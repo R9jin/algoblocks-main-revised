@@ -265,14 +265,14 @@ export default function MainApp() {
           if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
             const pData = await pRes.json();
             for (const cp of pData.projects || pData || []) {
-              if (cp.owner_id === user.email || cp.userId === user.email) await projectsDB.setItem(cp._id, { ...cp, synced: true });
+              if (cp.owner_id === user.email || cp.userId === user.email) await projectsDB.setItem(cp._id, { ...cp, synced: true, isSynced: true });
             }
           }
           const tRes = await fetch(`${API_BASE}/api/templates?userId=${encodeURIComponent(user.email)}`, { headers });
           if (tRes.ok && tRes.headers.get("content-type")?.includes("application/json")) {
             const tData = await tRes.json();
             for (const ct of tData.templates || tData || []) {
-              if (ct.owner_id === user.email || ct.userId === user.email) await templatesDB.setItem(ct._id, { ...ct, synced: true });
+              if (ct.owner_id === user.email || ct.userId === user.email) await templatesDB.setItem(ct._id, { ...ct, synced: true, isSynced: true });
             }
           }
         } catch (e) { console.warn("MainApp templates cloud sync degraded offline:", e); }
@@ -284,7 +284,7 @@ export default function MainApp() {
           customItems.push({
             _id: value._id, title: value.title || value.name || "Untitled Project",
             description: value.description || "Saved Project", category: "My Projects",
-            isSystem: false, saveType: "project", data: value.data || value.workspace?.blocklyJson, synced: value.synced,
+            isSystem: false, saveType: "project", data: value.data || value.workspace?.blocklyJson, synced: value.synced || value.isSynced,
           });
         }
       });
@@ -293,7 +293,7 @@ export default function MainApp() {
           customItems.push({
             _id: value._id, title: value.title || value.name || "Untitled Template",
             description: value.description || "Custom template", category: value.category || "Custom Templates",
-            isSystem: false, saveType: "template", data: value.data || value.workspace?.blocklyJson, synced: value.synced,
+            isSystem: false, saveType: "template", data: value.data || value.workspace?.blocklyJson, synced: value.synced || value.isSynced,
           });
         }
       });
@@ -501,27 +501,14 @@ export default function MainApp() {
     }
   };
 
-  // FIX: Safely retrieve active workspace data before opening the modal
   const openSaveModal = () => {
-    let currentJson = activeTab.blocklyJson;
-    let currentCode = activeTab.pythonCode;
-    
-    if (workspaceRefs.current[activeTabId] && typeof workspaceRefs.current[activeTabId].getWorkspaceJson === 'function') {
-      try {
-        currentJson = workspaceRefs.current[activeTabId].getWorkspaceJson();
-      } catch (err) {
-        console.warn("Could not extract live workspace JSON directly:", err);
-      }
-    }
-
-    if (!currentJson && (!currentCode || currentCode === "# Drag blocks to generate Python code")) {
+    if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) {
       showToast("The workspace is empty. Nothing to save!", "error"); return;
     }
     if (!getUser()) { showToast("You must be logged in to save.", "error"); return; }
     if (isGuest) { showToast("Guest accounts cannot save projects or templates.", "error"); return; }
-    
     setSaveModal({
-      isOpen: true, isEditMetadataOnly: false, editingId: activeTab.currentLoadedId, editingData: currentJson,
+      isOpen: true, isEditMetadataOnly: false, editingId: activeTab.currentLoadedId, editingData: null,
       title: activeTab.title !== "Untitled Project" ? activeTab.title : "",
       description: "", category: "Custom Templates", saveType: activeTab.saveType,
     });
@@ -614,30 +601,13 @@ export default function MainApp() {
 
     const id = saveModal.editingId || (saveModal.saveType === "template" ? `local_tpl_${Date.now()}` : `local_proj_${Date.now()}`);
     const nowMs = Date.now();
-    
-    // Grab live blocks JSON safely
-    let currentBlocksJson = saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson;
-    if (!currentBlocksJson && workspaceRefs.current[activeTabId] && typeof workspaceRefs.current[activeTabId].getWorkspaceJson === 'function') {
-      try { currentBlocksJson = workspaceRefs.current[activeTabId].getWorkspaceJson(); } catch(e){}
-    }
-
     const payload = {
-      _id: id, 
-      projectId: id,
-      templateId: id,
-      title: saveModal.title, 
-      name: saveModal.title, 
-      description: saveModal.description,
+      _id: id, title: saveModal.title, name: saveModal.title, description: saveModal.description,
       category: saveModal.saveType === "template" ? saveModal.category : undefined,
-      data: currentBlocksJson,
-      workspace: { blocklyJson: currentBlocksJson },
+      data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson,
+      workspace: { blocklyJson: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson },
       pythonCode: activeTab.pythonCode || "",
-      owner_id: user.email, 
-      userId: user.email, 
-      isSynced: false,
-      synced: false, 
-      timestamp: nowMs,
-      updatedAt: nowMs
+      owner_id: user.email, userId: user.email, synced: false, isSynced: false, updatedAt: nowMs,
     };
 
     const db = saveModal.saveType === "template" ? templatesDB : projectsDB;
@@ -645,25 +615,32 @@ export default function MainApp() {
 
     if (navigator && navigator.onLine && user.email && API_BASE) {
       try {
-        const endpoint = saveModal.saveType === "template" ? "/api/templates" : "/api/projects";
+        const endpoint = saveModal.saveType === "template" ? "/api/templates/save" : "/api/projects/save";
+        const fallbackEndpoint = saveModal.saveType === "template" ? "/api/templates" : "/api/projects";
         const apiPayload = saveModal.saveType === "template"
-          ? { templateId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: currentBlocksJson } }
-          : { projectId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, workspace: { blocklyJson: currentBlocksJson }, pythonCode: activeTab.pythonCode || "" };
+          ? { templateId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
+          : { projectId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
         
-        const res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
+        let res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
+        if (res.status === 404) {
+           res = await fetch(`${API_BASE}${fallbackEndpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
+        }
         
-        if (res.ok) {
+        if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
           const responseData = await res.json();
           const realId = responseData.projectId || responseData.templateId || responseData._id || id;
-          payload._id = realId; payload.isSynced = true; payload.synced = true;
+          payload._id = realId; payload.synced = true; payload.isSynced = true;
           if (realId !== id) await db.removeItem(id);
           await db.setItem(realId, payload);
           showToast("Saved directly to cloud!", "success");
-          setSaveModal({ ...saveModal, isOpen: false });
+          
+          setSaveModal((prev) => ({ ...prev, isOpen: false }));
           
           if (!saveModal.isEditMetadataOnly) {
             updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType, isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
           }
+          
+          // FIX: Broadcast immediate global custom event to update dashboard/project state counters
           window.dispatchEvent(new Event("localDataSynced"));
           fetchTemplates(); return;
         }
@@ -672,12 +649,14 @@ export default function MainApp() {
 
     await syncQueueDB.setItem(`sync_${id}_${nowMs}`, { type: saveModal.saveType.toUpperCase(), action: "UPSERT", data: payload });
     showToast("Saved locally. Background sync queued.");
-    setSaveModal({ ...saveModal, isOpen: false });
+    
+    setSaveModal((prev) => ({ ...prev, isOpen: false }));
     
     if (!saveModal.isEditMetadataOnly) {
       updateTab(activeTabId, { title: saveModal.title, currentLoadedId: id, saveType: saveModal.saveType, isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
     }
     
+    window.dispatchEvent(new Event("localDataSynced"));
     if (syncManager?.processSyncQueue) {
        syncManager.processSyncQueue();
     }
@@ -707,6 +686,7 @@ export default function MainApp() {
           updateTab(t.id, { currentLoadedId: null, title: "Untitled Project", isDirty: false });
         }
       });
+      window.dispatchEvent(new Event("localDataSynced"));
       if (syncManager?.processSyncQueue) syncManager.processSyncQueue();
     } catch (err) { showToast("Error deleting item.", "error"); fetchTemplates(); }
   };

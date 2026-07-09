@@ -64,7 +64,7 @@ export default function Projects() {
       }
       const user = JSON.parse(storedUser);
 
-      // 1. PULL CLOUD DATA
+      // 1. PULL CLOUD DATA & MERGE SYNC STATES
       if (navigator.onLine && API_BASE) {
         try {
           const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -82,7 +82,14 @@ export default function Projects() {
 
             for (const cp of cloudProjects) {
               if (cp.owner_id === user.email || cp.userId === user.email) {
-                await projectsDB.setItem(cp._id, { ...cp, synced: true, updatedAt: normalizeEpoch(cp.updatedAt || cp.updated_at) });
+                const existingLocal = await projectsDB.getItem(cp._id || cp.projectId);
+                await projectsDB.setItem(cp._id || cp.projectId, { 
+                  ...existingLocal, 
+                  ...cp, 
+                  synced: true, 
+                  isSynced: true, 
+                  updatedAt: normalizeEpoch(cp.updatedAt || cp.updated_at || cp.timestamp) 
+                });
               }
             }
           }
@@ -92,16 +99,16 @@ export default function Projects() {
       }
 
       // 2. CHECK QUEUE COUNT
-      const queueKeys = await syncQueueDB.keys();
+      const queueKeys = await syncQueueDB.keys ? await syncQueueDB.keys() : [];
       const pendingUploads = queueKeys.filter(k => k.includes("local_proj") || k.startsWith("sync_project") || k.startsWith("local_"));
 
-      // 3. READ LOCAL DB
+      // 3. READ LOCAL IDB RECONCILED STATE
       const loadedProjects = [];
       await projectsDB.iterate((value) => {
         if (value.owner_id === user.email || value.userId === user.email) {
           loadedProjects.push({
             ...value,
-            updatedAt: normalizeEpoch(value.updatedAt || value.updated_at)
+            updatedAt: normalizeEpoch(value.updatedAt || value.updated_at || value.timestamp)
           });
         }
       });
@@ -230,8 +237,8 @@ export default function Projects() {
                         <span className="meta-date">
                           <FiClock size={14} /> {formatDisplayDate(proj.updatedAt)}
                         </span>
-                        <span className={`sync-status ${proj.synced ? "synced" : "local"}`}>
-                          {proj.synced ? <><FiCloud size={14} /> Cloud</> : <><FiHardDrive size={14} /> Local</>}
+                        <span className={`sync-status ${proj.synced || proj.isSynced ? "synced" : "local"}`}>
+                          {proj.synced || proj.isSynced ? <><FiCloud size={14} /> Cloud</> : <><FiHardDrive size={14} /> Local</>}
                         </span>
                       </div>
                     </div>
