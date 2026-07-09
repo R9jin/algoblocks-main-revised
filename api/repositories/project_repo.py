@@ -1,5 +1,6 @@
 from database import get_db_connection
 import json
+import uuid
 
 class ProjectRepository:
     @staticmethod
@@ -34,6 +35,11 @@ class ProjectRepository:
         user_id = project_data.get("userId")
         owner_id = project_data.get("owner_id", user_id)
         project_id = project_data.get("projectId")
+        
+        # Generate a safe UUID if the frontend stripped the ID or sent a local temp ID
+        if not project_id or str(project_id).startswith("local_"):
+            project_id = str(uuid.uuid4())
+            
         is_synced = project_data.get("isSynced", False)
         timestamp = project_data.get("timestamp", 0)
         

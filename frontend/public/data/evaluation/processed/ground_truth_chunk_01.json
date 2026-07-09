@@ -70,19 +70,19 @@
     "id": "algo_2n_003",
     "name": "Python program to print all distinct",
     "code": "# Python program to print all distinct\n# subsequences of a string.\n \n# Finds and stores result in st for a given\n# string s.\ndef generate(st, s):\n    if len(s) == 0:\n        return\n \n    # If current string is not already present.\n    if s not in st:\n        st.add(s)\n \n        # Traverse current string, one by one\n        # remove every character and recur.\n        for i in range(len(s)):\n            t = list(s).copy()\n            t.remove(s[i])\n            t = ''.join(t)\n            generate(st, t)\n \n    return\n \n \n# Driver Code\nif __name__ == \"__main__\":\n    s = \"xyz\"\n    st = set()\n    generate(st, s)\n    for i in st:\n        print(i)\n \n# This code is contributed by\n# sanjeev2552",
-    "expected_overall_time": "O(2^n)",
+    "expected_overall_time": "O(n!)",
     "expected_overall_space": "O(2^n)",
     "line_metrics": [
       {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 7, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 8, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 11, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
-      {"lineno": 12, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(n)", "global_space": "O(n)"},
-      {"lineno": 16, "local_time": "O(n)", "global_time": "O(n * 2^n)", "local_space": "O(1)", "global_space": "O(1)"},
-      {"lineno": 17, "local_time": "O(n)", "global_time": "O(n * 2^n)", "local_space": "O(n)", "global_space": "O(n)"},
-      {"lineno": 18, "local_time": "O(n)", "global_time": "O(n * 2^n)", "local_space": "O(1)", "global_space": "O(1)"},
-      {"lineno": 19, "local_time": "O(n)", "global_time": "O(n * 2^n)", "local_space": "O(n)", "global_space": "O(n)"},
-      {"lineno": 20, "local_time": "O(1)", "global_time": "O(2^n)", "local_space": "O(1)", "global_space": "O(2^n)"},
+      {"lineno": 12, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(2^n)"},
+      {"lineno": 16, "local_time": "O(n)", "global_time": "O(n · n!)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 17, "local_time": "O(n)", "global_time": "O(n · n!)", "local_space": "O(n)", "global_space": "O(n)"},
+      {"lineno": 18, "local_time": "O(n)", "global_time": "O(n · n!)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 19, "local_time": "O(n)", "global_time": "O(n · n!)", "local_space": "O(n)", "global_space": "O(n)"},
+      {"lineno": 20, "local_time": "O(n!)", "global_time": "O(n!)", "local_space": "O(n)", "global_space": "O(2^n)"},
       {"lineno": 22, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"}
     ]
   },
@@ -238,7 +238,7 @@
     "name": "Python3 Program to find maximum",
     "code": "# Python3 Program to find maximum\n# lowercase alphabets present\n# between two uppercase alphabets\n \n# Function which computes the\n# maximum number of distinct\n# lowercase alphabets between\n# two uppercase alphabets\ndef maxLower(str):\n   \n    n = len(str);\n \n    # Ignoring lowercase characters\n    # in the beginning.\n    i = 0;\n    for i in range(n):\n       \n        if (str[i] >= 'A' and\n            str[i] <= 'Z'):\n            i += 1;\n            break;\n \n    # We start from next of first\n    # capital letter and traverse\n    # through remaining character.\n    maxCount = 3;\n    s = set()\n     \n    for i in range(n):\n \n        # If character is in\n        # uppercase,\n        if (str[i] >= 'A' and\n            str[i] <= 'Z'):\n           \n            # Update maximum count if\n            # lowercase character before\n            # this is more.\n            maxCount = max(maxCount,\n                           len(s));\n             \n            # clear the set\n            s.clear();\n \n        # If character is in\n        # lowercase\n        if (str[i] >= 'a' and\n            str[i] <= 'z'):\n            s.add(str[i]);\n            return maxCount;\n \n# Driver Code\nif __name__ == '__main__':\n   \n    str = \"zACaAbbaazzC\";\n    print(maxLower(str));\n \n# This code is contributed by 29AjayKumar",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(n)",
+    "expected_overall_space": "O(1)",
     "line_metrics": [
       {"lineno": 8, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 10, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
@@ -248,13 +248,13 @@
       {"lineno": 19, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 20, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 25, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
-      {"lineno": 26, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 26, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 28, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 32, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 38, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 41, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 45, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
-      {"lineno": 47, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 47, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 48, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"}
     ]
   }

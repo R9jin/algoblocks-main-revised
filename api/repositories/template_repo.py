@@ -1,6 +1,7 @@
 # api/repositories/template_repo.py
 from database import get_db_connection
 import json
+import uuid
 
 class TemplateRepository:
     @staticmethod
@@ -46,6 +47,11 @@ class TemplateRepository:
         cursor = conn.cursor()
         
         template_id = template_data.get("templateId")
+        
+        # Generate a safe UUID if the frontend stripped the ID or sent a local temp ID
+        if not template_id or str(template_id).startswith("local_"):
+            template_id = str(uuid.uuid4())
+            
         category = template_data.get("category", "Custom")
         user_id = template_data.get("userId")
         owner_id = template_data.get("owner_id", user_id)
