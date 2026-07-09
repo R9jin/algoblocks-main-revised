@@ -107,9 +107,3 @@ def init_db():
     cursor.close()
     conn.close()
     logger.info("Successfully connected to PostgreSQL Neon and verified hybrid tables.")
-
-try:
-    init_db()
-except Exception as e:
-    logger.error(f"Error initializing PostgreSQL Neon tables: {e}", exc_info=True)
-    raise

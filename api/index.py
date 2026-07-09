@@ -57,5 +57,18 @@ app.include_router(admin_router.router, prefix="/api/admin", tags=["Admin Operat
 async def health_check():
     return {"status": "ok", "message": "AlgoBlocks API is running smoothly on PostgreSQL Neon."}
 
+@app.get("/api/admin/init-db", tags=["Admin Operations"])
+async def initialize_database():
+    """
+    Run this manually via browser once after deploying to Vercel to create tables.
+    Example: https://your-vercel-url.vercel.app/api/admin/init-db
+    """
+    try:
+        # Calls the function without it running globally on cold starts
+        database.init_db()
+        return {"status": "success", "message": "PostgreSQL tables initialized successfully!"}
+    except Exception as e:
+        return {"status": "error", "message": f"Initialization failed: {str(e)}"}
+
 if __name__ == "__main__":
     uvicorn.run("index:app", host="0.0.0.0", port=8000, reload=True)
