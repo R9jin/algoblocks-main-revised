@@ -21,7 +21,8 @@ from routers import (
     project_router,
     analyze_router,
     template_router,
-    admin_router
+    admin_router,
+    progress_router  # <--- FIX: Imported the missing progress router
 )
 
 app = FastAPI(
@@ -52,6 +53,8 @@ app.include_router(project_router.router, prefix="/api/projects", tags=["Project
 app.include_router(analyze_router.router, prefix="/api", tags=["Analysis"])
 app.include_router(template_router.router, prefix="/api/templates", tags=["Templates"])
 app.include_router(admin_router.router, prefix="/api/admin", tags=["Admin Operations"])
+# FIX: Attached the missing submission and progress routes to the live server
+app.include_router(progress_router.router, prefix="/api", tags=["Progress & Submissions"])
 
 @app.get("/api/health")
 async def health_check():

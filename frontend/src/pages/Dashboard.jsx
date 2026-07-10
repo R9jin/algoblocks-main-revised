@@ -4,7 +4,7 @@ import { FiLock, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
-import { projectsDB, templatesDB } from "../db";
+import { progressDB, projectsDB, templatesDB } from "../db";
 import "../styles/Dashboard.css";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
@@ -125,50 +125,24 @@ export default function Dashboard() {
   const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const user = currentUser;
+      const user = currentUser ? { ...currentUser } : null;
 
-      let total = 0;
-      let completed = 0;
-      let nextMod = curriculumIndex[0];
-      let foundNext = false;
-
-      for (const mod of curriculumIndex) {
-        let modCompleted = 0;
-        for (const les of mod.lessons) {
-          total++;
-          if (user && user.progress && user.progress[les.lessonId]) {
-            completed++;
-            modCompleted++;
-          }
-        }
-        if (modCompleted < mod.lessons.length && !foundNext) {
-          nextMod = mod;
-          foundNext = true;
+      // Ensure user progress is heavily merged from local IndexedDB 
+      if (user) {
+        if (!user.progress) user.progress = {};
+        try {
+          const allLocalProgress = await progressDB.getAll();
+          allLocalProgress.forEach(p => {
+            const key = p.lesson_id || p.id;
+            if (key) {
+              if (p.completed) user.progress[key] = true;
+              else if (p.score !== undefined) user.progress[key] = Math.max(user.progress[key] || 0, p.score);
+            }
+          });
+        } catch (e) {
+          console.warn("Could not read local progressDB", e);
         }
       }
-
-      if (!foundNext && curriculumIndex.length > 0) {
-        nextMod = curriculumIndex[curriculumIndex.length - 1]; 
-      }
-
-      const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
-
-      const modDescriptions = {
-        "module-0": "Start your journey into algorithm visualization and complexity analysis.",
-        "module-1": "Understand Big-O notation, Time, and Space Complexity boundaries.",
-        "module-2": "Explore Brute Force strategies and basic searching & sorting.",
-        "module-3": "Master recursive decomposition and logarithmic time complexity boundaries.",
-        "module-4": "Learn how to make locally optimal choices to solve global problems.",
-        "module-5": "Solve complex problems by breaking them down into overlapping subproblems.",
-        "module-6": "Explore all possible solutions efficiently using backtracking techniques."
-      };
-
-      setProgressData({
-        percent,
-        moduleTitle: nextMod?.title || "Algorithms",
-        moduleBadge: `Up Next • ${nextMod?.moduleId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Module"}`,
-        moduleDesc: nextMod ? modDescriptions[nextMod.moduleId] || "Continue your algorithm learning journey." : "Continue your algorithm learning journey."
-      });
 
       if (navigator.onLine && user && !user.isGuest && API_BASE) {
         try {
@@ -177,6 +151,16 @@ export default function Dashboard() {
             "Content-Type": "application/json",
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           };
+
+          // FIXED: Aggressively fetch progress from Cloud API directly on load so it never gets stuck at 0%
+          const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
+          if (progRes.ok && progRes.headers.get("content-type")?.includes("application/json")) {
+            const progData = await progRes.json();
+            if (progData.progress) {
+              user.progress = { ...user.progress, ...progData.progress };
+              localStorage.setItem("user", JSON.stringify(user));
+            }
+          }
 
           const pRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
           if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
@@ -205,7 +189,62 @@ export default function Dashboard() {
         }
       }
 
-      // Read from updated indexedDB wrapper
+      let totalLessons = 0;
+      let completedLessons = 0;
+      let nextMod = curriculumIndex[0];
+      let foundNext = false;
+
+      // Track individual activities inside lessons to provide partial UI bumps
+      let activityCount = 0;
+      if (user && user.progress) {
+        Object.entries(user.progress).forEach(([k, v]) => {
+          if (k.includes(':') && typeof v === 'number' && v >= 50) activityCount++;
+        });
+      }
+
+      for (const mod of curriculumIndex) {
+        let modCompleted = 0;
+        for (const les of mod.lessons) {
+          totalLessons++;
+          if (user && user.progress && user.progress[les.lessonId]) {
+            completedLessons++;
+            modCompleted++;
+          }
+        }
+        if (modCompleted < mod.lessons.length && !foundNext) {
+          nextMod = mod;
+          foundNext = true;
+        }
+      }
+
+      if (!foundNext && curriculumIndex.length > 0) {
+        nextMod = curriculumIndex[curriculumIndex.length - 1]; 
+      }
+
+      let percent = totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
+
+      // UX FIX: If they only did 1-2 activities and haven't fully passed a lesson yet, give them a visual fractional bump so the progress bar doesn't look dead.
+      if (percent === 0 && activityCount > 0) {
+        percent = Math.min(5, activityCount * 2);
+      }
+
+      const modDescriptions = {
+        "module-0": "Start your journey into algorithm visualization and complexity analysis.",
+        "module-1": "Understand Big-O notation, Time, and Space Complexity boundaries.",
+        "module-2": "Explore Brute Force strategies and basic searching & sorting.",
+        "module-3": "Master recursive decomposition and logarithmic time complexity boundaries.",
+        "module-4": "Learn how to make locally optimal choices to solve global problems.",
+        "module-5": "Solve complex problems by breaking them down into overlapping subproblems.",
+        "module-6": "Explore all possible solutions efficiently using backtracking techniques."
+      };
+
+      setProgressData({
+        percent,
+        moduleTitle: nextMod?.title || "Algorithms",
+        moduleBadge: `Up Next • ${nextMod?.moduleId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Module"}`,
+        moduleDesc: nextMod ? modDescriptions[nextMod.moduleId] || "Continue your algorithm learning journey." : "Continue your algorithm learning journey."
+      });
+
       const allProjects = await projectsDB.getAll();
       const userProjects = allProjects.filter((value) => !user || value.owner_id === user.email || value.userId === user.email);
       const sortedProjects = userProjects.sort((a, b) => new Date(b.updatedAt || b.timestamp || 0) - new Date(a.updatedAt || a.timestamp || 0));

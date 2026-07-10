@@ -7,7 +7,6 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Fetch relational user data
         cursor.execute('SELECT id, name, email, password, status, role, is_admin FROM users WHERE email = %s', (email,))
         user = cursor.fetchone()
         
@@ -18,12 +17,10 @@ class UserRepository:
             
         user_dict = dict(user)
         
-        # Fetch associated JSONB progress
         cursor.execute('SELECT data FROM progress WHERE email = %s LIMIT 1', (email,))
         progress_row = cursor.fetchone()
         user_dict["progress"] = progress_row["data"] if progress_row else {}
         
-        # Fetch associated JSONB assessments
         cursor.execute('SELECT data FROM assessments WHERE email = %s LIMIT 1', (email,))
         assessment_row = cursor.fetchone()
         user_dict["assessments"] = assessment_row["data"] if assessment_row else {}
@@ -37,7 +34,6 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # 1. Insert strict relational data
         is_admin = user_data.get("isAdmin", user_data.get("is_admin", False))
         cursor.execute('''
             INSERT INTO users (name, email, password, status, role, is_admin)
@@ -52,7 +48,6 @@ class UserRepository:
         ))
         inserted_id = cursor.fetchone()["id"]
         
-        # 2. Initialize JSONB tracker tables
         email = user_data.get("email")
         progress = user_data.get("progress", {})
         assessments = user_data.get("assessments", {})
@@ -60,6 +55,7 @@ class UserRepository:
         cursor.execute('INSERT INTO progress (email, data) VALUES (%s, %s)', (email, json.dumps(progress)))
         cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s)', (email, json.dumps(assessments)))
         
+        conn.commit() # <--- CRITICAL FIX: Save the transaction!
         cursor.close()
         conn.close()
         return str(inserted_id)
@@ -69,17 +65,16 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Update existing row safely
         cursor.execute('''
             UPDATE progress 
             SET data = jsonb_set(data, %s, %s, true)
             WHERE email = %s
         ''', (f'{{{lesson_id}}}', json.dumps(score), email))
         
-        # If no row was updated, insert exactly one safely
         if cursor.rowcount == 0:
             cursor.execute('INSERT INTO progress (email, data) VALUES (%s, %s)', (email, json.dumps({lesson_id: score})))
             
+        conn.commit() # <--- CRITICAL FIX: Save the transaction!
         cursor.close()
         conn.close()
 
@@ -88,17 +83,16 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Update existing row safely
         cursor.execute('''
             UPDATE assessments 
             SET data = jsonb_set(data, %s, %s, true)
             WHERE email = %s
         ''', (f'{{{assessment_key}}}', json.dumps(data), email))
         
-        # If no row was updated, insert exactly one safely
         if cursor.rowcount == 0:
              cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s)', (email, json.dumps({assessment_key: data})))
              
+        conn.commit() # <--- CRITICAL FIX: Save the transaction!
         cursor.close()
         conn.close()
         
@@ -107,7 +101,6 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Select purely from the unique users table to prevent duplicate identity rows
         cursor.execute('''
             SELECT id, name, email, status, role, is_admin
             FROM users
@@ -124,6 +117,7 @@ class UserRepository:
         cursor = conn.cursor()
         cursor.execute('UPDATE users SET status = %s WHERE email = %s', (status, email))
         rowcount = cursor.rowcount
+        conn.commit() # <--- CRITICAL FIX: Save the transaction!
         cursor.close()
         conn.close()
         return rowcount
@@ -132,9 +126,9 @@ class UserRepository:
     def delete_user(email: str):
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Due to ON DELETE CASCADE, this will wipe associated progress and assessments too
         cursor.execute('DELETE FROM users WHERE email = %s', (email,))
         rowcount = cursor.rowcount
+        conn.commit() # <--- CRITICAL FIX: Save the transaction!
         cursor.close()
         conn.close()
         return rowcount

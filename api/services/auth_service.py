@@ -217,8 +217,9 @@ class AuthService:
         if "guest" in str(user_id).lower():
             return {"status": "ignored", "message": "Guest persistence disabled"}
 
+        # FIXED: Explicitly added "id" to allow syncing composite primary key back to frontend
         allowed_fields = [
-            "userId", "moduleId", "activityId", "type", "status", 
+            "id", "userId", "moduleId", "activityId", "type", "status", 
             "score", "maxScore", "passedTestCases", "totalTestCases", 
             "passed_tests", "total_tests", "testCases", 
             "target_complexity", "actual_complexity", 
@@ -232,11 +233,20 @@ class AuthService:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Check if submission exists using jsonb operators
-        cursor.execute('''
-            SELECT id FROM submissions 
-            WHERE "userId" = %s AND data->>'moduleId' = %s AND data->>'activityId' = %s
-        ''', (user_id, module_id, activity_id))
+        # FIXED: Resilient Schema Check handles both "userId" OR "email" column variations securely without crashing API 
+        try:
+            cursor.execute('''
+                SELECT id FROM submissions 
+                WHERE "userId" = %s AND data->>'moduleId' = %s AND data->>'activityId' = %s
+            ''', (user_id, module_id, activity_id))
+            col_name = '"userId"'
+        except Exception:
+            conn.rollback()
+            cursor.execute('''
+                SELECT id FROM submissions 
+                WHERE email = %s AND data->>'moduleId' = %s AND data->>'activityId' = %s
+            ''', (user_id, module_id, activity_id))
+            col_name = 'email'
         
         existing = cursor.fetchone()
         
@@ -245,10 +255,11 @@ class AuthService:
                 UPDATE submissions SET data = %s WHERE id = %s
             ''', (json.dumps(safe_update_data), existing['id']))
         else:
-            cursor.execute('''
-                INSERT INTO submissions ("userId", data) VALUES (%s, %s)
+            cursor.execute(f'''
+                INSERT INTO submissions ({col_name}, data) VALUES (%s, %s)
             ''', (user_id, json.dumps(safe_update_data)))
             
+        conn.commit()  # <--- CRITICAL FIX: Save the transaction!
         cursor.close()
         conn.close()
         return {"status": "success", "message": "Submission synced"}
@@ -261,16 +272,30 @@ class AuthService:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        if moduleId:
-            cursor.execute('''
-                SELECT data FROM submissions 
-                WHERE "userId" = %s AND data->>'activityId' = %s AND data->>'moduleId' = %s
-            ''', (email, activityId, moduleId))
-        else:
-            cursor.execute('''
-                SELECT data FROM submissions 
-                WHERE "userId" = %s AND data->>'activityId' = %s
-            ''', (email, activityId))
+        # FIXED: Resilient Schema Support
+        try:
+            if moduleId:
+                cursor.execute('''
+                    SELECT data FROM submissions 
+                    WHERE "userId" = %s AND data->>'activityId' = %s AND data->>'moduleId' = %s
+                ''', (email, activityId, moduleId))
+            else:
+                cursor.execute('''
+                    SELECT data FROM submissions 
+                    WHERE "userId" = %s AND data->>'activityId' = %s
+                ''', (email, activityId))
+        except Exception:
+            conn.rollback()
+            if moduleId:
+                cursor.execute('''
+                    SELECT data FROM submissions 
+                    WHERE email = %s AND data->>'activityId' = %s AND data->>'moduleId' = %s
+                ''', (email, activityId, moduleId))
+            else:
+                cursor.execute('''
+                    SELECT data FROM submissions 
+                    WHERE email = %s AND data->>'activityId' = %s
+                ''', (email, activityId))
             
         row = cursor.fetchone()
         cursor.close()
@@ -295,8 +320,9 @@ class AuthService:
         if "guest" in str(user_id).lower():
             return {"status": "ignored", "message": "Guest persistence disabled"}
 
+        # FIXED: Add id explicitly
         allowed_fields = [
-            "userId", "moduleId", "assessmentId", "answers", "score", 
+            "id", "userId", "moduleId", "assessmentId", "answers", "score", 
             "maxScore", "completed", "timestamp", "passed", "correct", 
             "total", "timeElapsed", "completedAt", "attempts", "isSynced"
         ]
@@ -312,6 +338,7 @@ class AuthService:
             WHERE email = %s
         ''', (f'{{{module_id}}}', json.dumps(safe_update_data), user_id))
         
+        conn.commit() # <--- CRITICAL FIX: Save the transaction!
         cursor.close()
         conn.close()
         return {"status": "success", "message": "Assessment synced"}
@@ -339,7 +366,13 @@ class AuthService:
             
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT data FROM submissions WHERE "userId" = %s', (email,))
+        
+        try:
+            cursor.execute('SELECT data FROM submissions WHERE "userId" = %s', (email,))
+        except Exception:
+            conn.rollback()
+            cursor.execute('SELECT data FROM submissions WHERE email = %s', (email,))
+            
         rows = cursor.fetchall()
         cursor.close()
         conn.close()

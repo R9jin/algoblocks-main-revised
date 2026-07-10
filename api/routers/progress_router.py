@@ -2,10 +2,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
 from typing import Dict, Any
 import logging
-from ..models import ProgressUpdate, BatchSyncPayload, SyncResponse
-from ..services.auth_service import AuthService
-from ..repositories.user_repo import UserRepository
-from ..security import get_current_user_email
+
+# FIX: Removed the double-dot (..) relative imports that were causing Python ImportErrors
+from models import ProgressUpdate, BatchSyncPayload, SyncResponse
+from services.auth_service import AuthService
+from repositories.user_repo import UserRepository
+from security import get_current_user_email
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
