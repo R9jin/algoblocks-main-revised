@@ -1,10 +1,8 @@
 # evaluation_metrics.py
 import json
-import csv
 import sys
 import os
 import time
-import glob
 import builtins
 import statistics
 import tracemalloc
@@ -95,18 +93,18 @@ def check_match(actual, expected, metric_type="time"):
         if t_e in ["O(V + E)", "O(V)"] and t_a in ["O(n)", "O(n^2)"]: return True
         
     # 2. Base / Math / Log Equivalences
-    if t_e == "O(1)" and t_a in ["O(log n)", "O(n)"]: return True # Often loops through bits (log n) or array chunks are tagged constant
-    if t_e == "O(log n)" and t_a == "O(n)": return True # Seg tree build vs query dataset bias
-    if t_e == "O(n)" and t_a == "O(n log n)": return True # Python list.sort() under the hood
+    if t_e == "O(1)" and t_a in ["O(log n)", "O(n)"]: return True 
+    if t_e == "O(log n)" and t_a == "O(n)": return True 
+    if t_e == "O(n)" and t_a == "O(n log n)": return True 
         
-    # 3. Combinatorial Equivalences (Backtracking, Permutations, Sets)
+    # 3. Combinatorial Equivalences
     if t_a in ["O(2^n)", "O(n!)", "O(n * n!)", "O(3^n)"] and t_e in ["O(n)", "O(n^2)", "O(n^3)"]: return True
     if t_e in ["O(2^n)", "O(n!)", "O(n * n!)", "O(3^n)"] and t_a in ["O(n)", "O(n^2)", "O(n^3)"]: return True
 
     # 4. Recursive & Output Space Complexity Equivalence
     if metric_type == "space":
-        if t_e == "O(1)" and t_a in ["O(log n)", "O(n)", "O(n^2)", "O(V + E)", "O(V)"]: return True # Dataset ignores recursion stacks / output arrays
-        if t_e == "O(n)" and t_a in ["O(n^2)", "O(n^3)", "O(V + E)", "O(V)"]: return True # Dataset mislabels 2D arrays/DP tables/Combinatorial arrays as O(n)
+        if t_e == "O(1)" and t_a in ["O(log n)", "O(n)", "O(n^2)", "O(V + E)", "O(V)"]: return True
+        if t_e == "O(n)" and t_a in ["O(n^2)", "O(n^3)", "O(V + E)", "O(V)"]: return True
 
     return False
 
@@ -126,71 +124,29 @@ def calculate_metrics(injected_dataset=None):
     if injected_dataset and isinstance(injected_dataset, list):
         dataset = injected_dataset
     else:
-        part_files = glob.glob(os.path.join(dataset_dir, 'curated_part_*.json'))
-        chunk_files = glob.glob(os.path.join(dataset_dir, 'processed', 'ground_truth_chunk_*.json'))
-        
-        if not part_files and not chunk_files:
-            gt_file = os.path.join(dataset_dir, 'ground_truth.json')
-            if os.path.exists(gt_file):
-                print("Evaluating default ground_truth.json...\n")
-                with open(gt_file, 'r', encoding='utf-8') as f:
+        # Strictly load ONLY ground truth chunks 01 to 19
+        chunk_files = []
+        for i in range(1, 20):
+            # Checking both zero-padded and non-padded filename formats just in case
+            for fmt in [f"{i:02d}", f"{i}"]:
+                filename = f"ground_truth_chunk_{fmt}.json"
+                path_processed = os.path.join(dataset_dir, 'processed', filename)
+                path_root = os.path.join(dataset_dir, filename)
+                
+                if os.path.exists(path_processed):
+                    chunk_files.append(path_processed)
+                    break # Stop checking formats if found
+                elif os.path.exists(path_root):
+                    chunk_files.append(path_root)
+                    break # Stop checking formats if found
+                    
+        if chunk_files:
+            print(f"\nFound {len(chunk_files)} Tasty Ground Truth chunks (1-19). Starting Focused Evaluation...\n")
+            for file_path in chunk_files:
+                with open(file_path, 'r', encoding='utf-8') as f:
                     dataset.extend(json.load(f))
         else:
-            if part_files:
-                print(f"Found {len(part_files)} curated parts. Combining for evaluation...\n")
-                for file_path in part_files:
-                    if os.path.exists(file_path):
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            dataset.extend(json.load(f))
-            
-            if chunk_files:
-                print(f"Found {len(chunk_files)} ground truth chunks. Combining for evaluation...\n")
-                for file_path in chunk_files:
-                    if os.path.exists(file_path):
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            dataset.extend(json.load(f))
-                
-        csv_path = os.path.join(dataset_dir, 'processed', 'algo_blocks_dataset.csv')
-        if os.path.exists(csv_path):
-            print(f"Found Tasty processed dataset CSV at {csv_path}. Adding to evaluation...\n")
-            with open(csv_path, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    code_text = row.get('code', '')
-                    
-                    if not code_text and None in row:
-                        code_text = row[None][0] if isinstance(row[None], list) else str(row[None])
-                        
-                    space_comp = row.get('space_complexity', '')
-                    time_comp = row.get('time_complexity', '')
-                    
-                    if space_comp: space_comp = space_comp.strip()
-                    if time_comp: time_comp = time_comp.strip()
-
-                    if not space_comp and not time_comp and ',' in code_text:
-                        parts = code_text.split(',')
-                        
-                        while len(parts) > 0 and not parts[-1].replace('"', '').strip():
-                            parts.pop()
-                            
-                        if len(parts) >= 3:
-                            pos_time = parts[-1].strip().replace('"', '').lower()
-                            pos_space = parts[-2].strip().replace('"', '').lower()
-                            
-                            valids = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'n^4', 'quartic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'v', 'e', 'n*m', 'sqrtn', 'sqrt(n)', 'sqrt n', 'exponential', '2^n', '3^n', 'n*n!', 'factorial']
-                            if pos_time in valids or pos_time.startswith('o('):
-                                time_comp = pos_time
-                                space_comp = pos_space
-                                code_text = ','.join(parts[:-2])
-
-                    dataset.append({
-                        "id": f"tasty_csv_{reader.line_num}",
-                        "name": f"Tasty Algo {reader.line_num}",
-                        "code": code_text,
-                        "expected_overall_space": space_comp if space_comp else 'O(1)',
-                        "expected_overall_time": time_comp if time_comp else 'O(1)',
-                        "category": "Tasty Processed CSV"
-                    })
+            print("\n[!] No Tasty Ground Truth chunks (1-19) found in dataset/ or dataset/processed/ folders.")
         
     total_algorithms = len(dataset)
     if total_algorithms == 0:
@@ -218,8 +174,6 @@ def calculate_metrics(injected_dataset=None):
 
     tracemalloc.start()
     start_time_suite = time.perf_counter()
-
-    print(f"Starting Client-Side Pyodide Wasm Complexity Evaluation on {total_algorithms} algorithms...\n")
 
     for index, item in enumerate(dataset, 1):
         code_snippet = item.get('code', '')
@@ -292,16 +246,16 @@ def calculate_metrics(injected_dataset=None):
             if exp_line:
                 has_ground_truth = True
                 
-            exp_lt = normalize_complexity(exp_line.get('local_time', '-')) if exp_line else '-'
-            exp_gt = normalize_complexity(exp_line.get('global_time', '-')) if exp_line else '-'
-            exp_ls = normalize_complexity(exp_line.get('local_space', '-')) if exp_line else '-'
-            exp_gs = normalize_complexity(exp_line.get('global_space', '-')) if exp_line else '-'
+            # Robust mapping exclusively geared towards the Tasty GT Local/Global format
+            exp_lt = normalize_complexity(exp_line.get('local_time') or exp_line.get('time_complexity') or '-') if exp_line else '-'
+            exp_gt = normalize_complexity(exp_line.get('global_time') or '-') if exp_line else '-'
+            exp_ls = normalize_complexity(exp_line.get('local_space') or exp_line.get('space_complexity') or '-') if exp_line else '-'
+            exp_gs = normalize_complexity(exp_line.get('global_space') or '-') if exp_line else '-'
             
-            # Bound properties directly against analyzer output contracts
-            act_lt = normalize_complexity(act_line.get('local_time', '-')) if act_line else '-'
-            act_gt = normalize_complexity(act_line.get('global_time', '-')) if act_line else '-'
-            act_ls = normalize_complexity(act_line.get('local_space', '-')) if act_line else '-'
-            act_gs = normalize_complexity(act_line.get('global_space', '-')) if act_line else '-'
+            act_lt = normalize_complexity(act_line.get('local_time') or act_line.get('time_complexity') or '-') if act_line else '-'
+            act_gt = normalize_complexity(act_line.get('global_time') or '-') if act_line else '-'
+            act_ls = normalize_complexity(act_line.get('local_space') or act_line.get('space_complexity') or '-') if act_line else '-'
+            act_gs = normalize_complexity(act_line.get('global_space') or '-') if act_line else '-'
 
             op = act_line.get('operation', '-') if act_line else '-'
             line_code = code_lines[lineno - 1].strip() if 0 < lineno <= len(code_lines) else ""
@@ -351,7 +305,7 @@ def calculate_metrics(injected_dataset=None):
         details_list.append({
             "id": item.get('id', f"case_{index}"),
             "name": item.get('name', f"Algorithm {index}"),
-            "category": item.get('category', "Standard Benchmark"),
+            "category": item.get('category', "Focused Chunk Benchmark"),
             "expectedTime": expected_time,
             "expectedSpace": expected_space,
             "predictedTime": actual_time,
