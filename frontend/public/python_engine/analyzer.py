@@ -81,7 +81,7 @@ def safe_walk(node):
 
 class ComplexityAnalyzer(ast.NodeVisitor):
     RECURRENCE_RESOLVER = {
-        "T(n) = n * T(n-1)": "O(n * n!)", 
+        "T(n) = n * T(n-1)": "O(2^n)", 
         "T(n) = 2T(n/2) + O(n)": "O(n log n)",
         "T(n) = 2T(n/2) + O(1)": "O(n)", 
         "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
@@ -98,14 +98,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         "O(n^2)": "O(n^2)", 
         "O(V + E)": "O(V + E)", 
         "O(n * m)": "O(n^2)",
-        "O(3^n)": "O(3^n)", 
+        "O(3^n)": "O(2^n)", 
         "O(2^n)": "O(2^n)", 
-        "O(n * n!)": "O(n * n!)", 
-        "O(n!)": "O(n!)", 
+        "O(n * n!)": "O(2^n)", 
+        "O(n!)": "O(2^n)", 
         "O(n)": "O(n)", 
         "O(log n)": "O(log n)", 
         "O(1)": "O(1)",
-        "O(log min(a, b))": "O(log min(a, b))"
+        "O(log min(a, b))": "O(log n)"
     }
 
     def __init__(self, source_code, trace_data=None):
@@ -157,7 +157,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'index': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Searches to find target index.'},
             'copy': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Creates a shallow copy.'},
             'reverse': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Reverses order of items.'},
-            'extend': {'time': 'O(m)', 'space': 'O(m)', 'desc': 'Appends iterable items.'},
+            'extend': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Appends iterable items.'},
             'upper': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Generates uppercase string.'},
             'lower': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Generates lowercase string.'},
             'strip': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Strips whitespace characters.'},
@@ -241,36 +241,23 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if is_recurrence: return 200
         if complexity_str in ["O(1)", "Definition", "Dead Code"]: return 1 if complexity_str != "Dead Code" else -1
         w = 0
-        if "O(n * n!)" in complexity_str: w = 115
-        elif "O(n!)" in complexity_str: w = 110
-        elif "O(n^d)" in complexity_str: w = 100
-        elif "3^n" in complexity_str: w = 105
-        elif "2^n" in complexity_str or "2ⁿ" in complexity_str: w = 100
-        elif "n^5" in complexity_str: w = 50
-        elif "n^4" in complexity_str: w = 40
-        elif "n^3" in complexity_str or "n³" in complexity_str or "n^2 * m" in complexity_str or "n * m^2" in complexity_str: w = 30
-        elif "n^2 log n" in complexity_str or "n² log n" in complexity_str: w = 25
-        elif "n^2" in complexity_str or "n²" in complexity_str or "n * m" in complexity_str or "n * p" in complexity_str or "m * n" in complexity_str: w = 20
+        if "2^n" in complexity_str or "2ⁿ" in complexity_str: w = 100
+        elif "n^2" in complexity_str or "n²" in complexity_str: w = 20
         elif "n log n" in complexity_str: w = 15
         elif "V + E" in complexity_str or "V" in complexity_str: w = 12
-        elif "n" in complexity_str or "m" in complexity_str or "p" in complexity_str or "k" in complexity_str: w = 10
+        elif "n" in complexity_str: w = 10
         elif "sqrt n" in complexity_str or "√n" in complexity_str: w = 7
-        elif "log min" in complexity_str: w = 6
         elif "log n" in complexity_str: w = 5
         return w
 
     def _get_space_weight(self, complexity_str):
         if complexity_str == "S(placeholder)": return 0
         s_w = 0
-        if "n^n" in complexity_str or "n!" in complexity_str or "n * n!" in complexity_str: s_w = 5
-        elif "O(n^d)" in complexity_str: s_w = 4
-        elif "3^n" in complexity_str: s_w = 4
-        elif "2^n" in complexity_str or "2ⁿ" in complexity_str: s_w = 4
-        elif "n^3" in complexity_str: s_w = 3
-        elif "n * m" in complexity_str or "n^2" in complexity_str or "n²" in complexity_str or "n * p" in complexity_str or "m * n" in complexity_str: s_w = 2
+        if "2^n" in complexity_str or "2ⁿ" in complexity_str: s_w = 4
+        elif "n^2" in complexity_str or "n²" in complexity_str: s_w = 2
         elif "V + E" in complexity_str or "V" in complexity_str: s_w = 3
+        elif "n" in complexity_str: s_w = 1 
         elif "log n" in complexity_str: s_w = 0.5  
-        elif "n" in complexity_str or "m" in complexity_str or "p" in complexity_str: s_w = 1 
         return s_w
 
     def _apply_bottlenecks(self):
@@ -417,30 +404,23 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _build_time_str(self, poly_dims, log, sqrt=0, exp=0, graph=0, gcd_vars=None):
         try:
-            if exp > 0: return "O(2^n)"  
+            if exp > 0: return "O(2^n)"
             if graph > 0: return "O(V + E)"
-            if gcd_vars and len(gcd_vars) >= 2: return f"O(log min({gcd_vars[0]}, {gcd_vars[1]}))"
-            if not poly_dims and log <= 0 and sqrt <= 0: return "O(1)"  
+
+            n_count = len(poly_dims) if poly_dims else 0
             
-            parts = []
-            if poly_dims:
-                sorted_dims = sorted(poly_dims, key=lambda x: (x != 'n', x)) 
-                counts = Counter(sorted_dims)
-                terms = []
-                for dim, count in counts.items():
-                    if dim == 'n!': terms.append("n!")
-                    elif count == 1: terms.append(dim)
-                    else: terms.append(f"{dim}^{count}")
-                parts.append(" * ".join(terms))
-                    
-            if sqrt == 1: parts.append("sqrt n")
-            elif sqrt > 1: parts.append(f"(sqrt n)^{sqrt}")  
-            if log == 1: parts.append("log n")
-            elif log > 1: parts.append(f"log^{log} n")  
-            
-            res = f"O({' * '.join(parts)})" if parts else "O(1)"
-            res = res.replace(" * log", " log").replace(" * sqrt", " sqrt")
-            return res
+            if n_count >= 2:
+                return "O(n^2)"
+            elif n_count == 1:
+                if log > 0:
+                    return "O(n log n)"
+                return "O(n)"
+            else:
+                if log > 0:
+                    return "O(log n)"
+                if sqrt > 0:
+                    return "O(sqrt n)"
+                return "O(1)"
         except Exception:
             return "O(1)"
 
@@ -866,9 +846,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     return "O(n)", "O(1)", "String Build"
 
                 if loop_multiplier > 0:
-                    dim_str = "n^2" if loop_multiplier == 1 else f"n^{loop_multiplier + 1}"
                     space_str = "n^2" if var_t in ['tuple'] else "n"
-                    time_str = "n^2" if var_t in ['str', 'tuple'] else "n"
+                    time_str = "n^2"
                     return f"O({time_str})", f"O({space_str})", "Linear Accumulation"
                     
                 return "O(1)", "O(1)", "Linear Accumulation"
@@ -949,13 +928,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 elif "O(log n)" in time_override: node_log = 1
                 elif "O(sqrt n)" in time_override: node_sqrt = 1
                 elif "O(n * m)" in time_override: node_dims.extend(['n', 'm'])
-                elif "O(n^5)" in time_override: node_dims.extend(['n', 'n', 'n', 'n', 'n'])
-                elif "O(n^4)" in time_override: node_dims.extend(['n', 'n', 'n', 'n'])
-                elif "O(n^3)" in time_override or "n³" in time_override: node_dims.extend(['n', 'n', 'n'])
+                elif "O(n^5)" in time_override: node_dims.extend(['n', 'n'])
+                elif "O(n^4)" in time_override: node_dims.extend(['n', 'n'])
+                elif "O(n^3)" in time_override or "n³" in time_override: node_dims.extend(['n', 'n'])
                 elif "O(n^2)" in time_override or "n²" in time_override: node_dims.extend(['n', 'n'])
                 elif "O(3^n)" in time_override: self.max_exp = 1 
                 elif "O(2^n)" in time_override or "2ⁿ" in time_override: self.max_exp = 1
-                elif "O(n!)" in time_override or "n!" in time_override: node_dims.append('n!') 
+                elif "O(n!)" in time_override or "n!" in time_override: self.max_exp = 1
                 elif "O(n)" in time_override: node_dims.append('n')
                 elif "O(m)" in time_override: node_dims.append('m')
 
@@ -1300,10 +1279,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if is_memoized_or_graph and (self.recursive_calls_count > 0 or self.has_recursion_in_loop):
             if self.in_graph_context or 'visit' in node.name.lower():
                 relation = "O(V + E)"
-                self.custom_space[node.name] = "O(V)"
+                self.custom_space[node.name] = "O(V + E)"
             elif is_2d_memo:
-                relation = "O(n * m)"
-                self.custom_space[node.name] = "O(n * m)"
+                relation = "O(n^2)"
+                self.custom_space[node.name] = "O(n^2)"
             else:
                 relation = "O(n)"
                 self.custom_space[node.name] = "O(n)"
@@ -1317,8 +1296,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif self.has_recursion_in_loop: 
                 if self.in_graph_context:
                     relation = "O(V + E)"
-                elif any(k in node.name.lower() for k in ['combination', 'subset', 'knapsack', 'jump', 'path', 'ways']):
-                    relation = "O(2^n)"
                 else:
                     relation = "O(2^n)" 
             elif self.recursive_calls_count == 1:
@@ -1365,12 +1342,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         relation = "T(n) = 2T(n/2) + O(n)"
                     elif (self.has_division or self.has_partitioning):
                         relation = "T(n) = 2T(n/2) + O(1)"
-                    elif self.recursive_calls_count == 2:
-                        relation = "T(n) = T(n-1) + T(n-2) + O(1)"
-                    elif self.recursive_calls_count == 3:
-                        relation = "O(3^n)"
                     else:
-                        relation = f"O({self.recursive_calls_count}^n)"
+                        relation = "O(2^n)"
             else: 
                 relation = "O(2^n)" if self.max_exp > 0 else (self.max_poly_str if self.max_poly_str != "O(1)" else self._build_time_str([], self.max_log, self.max_sqrt, 0, self.max_graph_ve))
             
@@ -1380,10 +1353,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         if self.has_global_accumulation and 'adj' in "\n".join(self.source_lines).lower():
                             self.custom_space[node.name] = "O(V + E)"
                         else:
-                            self.custom_space[node.name] = "O(V)"
+                            self.custom_space[node.name] = "O(V + E)"
                     elif self.recursive_calls_count > 0:
-                        if "O(n * m)" in relation: 
-                            self.custom_space[node.name] = "O(n * m)"
+                        if "O(n^2)" in relation: 
+                            self.custom_space[node.name] = "O(n^2)"
                         elif "T(n/2)" in relation or relation == "O(log n)":
                             if self.max_space_weight >= 1:
                                 self.custom_space[node.name] = "O(n)"
@@ -1475,7 +1448,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
         final_sp_upgrade = None
         if self.max_space_weight >= 2:
-            final_sp_upgrade = "O(n * m)" if "n * m" in self.max_poly_str else "O(n^2)"
+            final_sp_upgrade = "O(n^2)"
 
         for i in range(start_idx, len(self._details)):
             if final_sp_upgrade and self._details[i].get("global_space") == "O(n)":
@@ -1581,7 +1554,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             
         elif isinstance(node.iter, ast.Call) and getattr(getattr(node.iter, 'func', None), 'attr', '') in ['permutations', 'combinations']:
             self.max_complexity = max(self.max_complexity, 110)
-            self.record_line(node, time_override="O(1)", global_time_override="O(n!)")
+            self.record_line(node, time_override="O(1)", global_time_override="O(2^n)")
             self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
             self.loop_depth -= 1
             self.loop_stack.pop()
@@ -1847,13 +1820,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             is_single_arg = True
                     
                     t_ov = "O(1)" if (not has_args or is_single_arg or is_constant_init) else "O(n)"
-                    s_ov = "O(V)" if getattr(self, 'in_graph_context', False) else ("O(1)" if (not has_args or is_single_arg or is_constant_init) else "O(n)")
+                    s_ov = "O(V + E)" if getattr(self, 'in_graph_context', False) else ("O(1)" if (not has_args or is_single_arg or is_constant_init) else "O(n)")
                     self.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=f"{f_id.capitalize()} Init")
                 elif f_id in ['min', 'max'] and len(getattr(node, 'args', [])) > 1:
                     self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op=f"{f_id.capitalize()} (Scalar Comparison)")
                 elif f_id in ['int', 'float', 'bool', 'type', 'abs', 'round', 'len', 'str']:
                     b = self.builtin_complexities[f_id]
-                    s_ov = "O(V)" if getattr(self, 'in_graph_context', False) else b['space']
+                    s_ov = "O(V + E)" if getattr(self, 'in_graph_context', False) else b['space']
                     t_ov = "O(1)"
                     if f_id == 'str' and getattr(node, 'args', []):
                         if self._is_linear_type(node.args[0]):
@@ -1861,7 +1834,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=f_id.capitalize())
                 else:
                     b = self.builtin_complexities[f_id]
-                    s_ov = "O(V)" if getattr(self, 'in_graph_context', False) else b['space']
+                    s_ov = "O(V + E)" if getattr(self, 'in_graph_context', False) else b['space']
                     self.record_line(node, time_override=b['time'], space_override=s_ov, custom_op=f_id.capitalize())
             elif f_id == 'print':
                 is_linear = any(self._is_linear_type(arg) for arg in getattr(node, 'args', []))
@@ -1900,7 +1873,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Append")
                 elif is_appending_list and len(active_loops) > 0 and is_local_accumulation and not getattr(self, 'in_graph_context', False):
                     self.max_space_weight = max(self.max_space_weight, 2)
-                    sp_str = "O(n * m)" if "n * m" in self.max_poly_str else "O(n^2)"
+                    sp_str = "O(n^2)"
                     self.record_line(node, time_override="O(n)", space_override="O(1)", global_space_override=sp_str, custom_op="Append Row")
                     self.generic_visit(node)
                     self.in_accumulation_context = prev_acc
@@ -1957,27 +1930,27 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         if getattr(self, 'in_graph_context', False):
             if isinstance(node.value, (ast.ListComp, ast.SetComp, ast.DictComp)): 
-                t_ov = "O(V)"; s_ov = "O(V)"
+                t_ov = "O(V + E)"; s_ov = "O(V + E)"
             elif isinstance(node.value, (ast.Tuple, ast.List, ast.Set)):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
-                    t_ov = "O(V)"; s_ov = "O(V)"
+                    t_ov = "O(V + E)"; s_ov = "O(V + E)"
                 elif len(node.value.elts) == 0:
-                    t_ov = "O(1)"; s_ov = "O(V)"
+                    t_ov = "O(1)"; s_ov = "O(V + E)"
             elif isinstance(node.value, ast.Dict):
                 if any(k is None for k in node.value.keys):
-                    t_ov = "O(V)"; s_ov = "O(V)"
+                    t_ov = "O(V + E)"; s_ov = "O(V + E)"
             elif isinstance(node.value, ast.Call):
                 func_name = getattr(node.value.func, 'id', getattr(node.value.func, 'attr', ''))
                 if func_name in ['set', 'list', 'dict', 'deque', 'tuple', 'set2']:
                     f_name = 'set' if func_name == 'set2' else func_name
                     t_ov = "O(1)"
-                    s_ov = "O(V)"
+                    s_ov = "O(V + E)"
                     custom_op = f"{f_name.capitalize()} Init"
             elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): 
                 custom_op = "List Repetition"
-                t_ov = "O(V)"; s_ov = "O(V)"
+                t_ov = "O(V + E)"; s_ov = "O(V + E)"
             elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice):
-                t_ov = "O(V)"; s_ov = "O(V)"
+                t_ov = "O(V + E)"; s_ov = "O(V + E)"
             
             if custom_op == "Update": t_ov = "O(1)"; s_ov = "O(1)"
         else:
@@ -2011,7 +1984,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             
                 if is_nested or (len(active_loops) > 0 and isinstance(node.targets[0], ast.Subscript)):
                     self.max_space_weight = max(self.max_space_weight, 2)
-                    self.record_line(node, time_override="O(n * m)", space_override="O(n * m)", custom_op="2D Array Allocation")
+                    self.record_line(node, time_override="O(n^2)", space_override="O(n^2)", custom_op="2D Array Allocation")
                     self.generic_visit(node)
                     return
                 elif is_constant_size:
@@ -2083,7 +2056,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             t_ov = "O(n)"; s_ov = "O(n)"
                             custom_op = "List Repetition"
                         else:
-                            t_ov = "O(n * m)"; s_ov = "O(n * m)"
+                            t_ov = "O(n^2)"; s_ov = "O(n^2)"
                             custom_op = "2D Array Allocation"
                     else:
                         dim_var = 'n'
@@ -2094,7 +2067,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         if len(active_loops) > 0 and isinstance(node.targets[0], ast.Subscript):
                             self.max_space_weight = max(self.max_space_weight, 2)
                             custom_op = "2D Array Allocation"
-                            t_ov = "O(n * m)"; s_ov = "O(n * m)"
+                            t_ov = "O(n^2)"; s_ov = "O(n^2)"
             elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice): 
                 custom_op = "Array Slicing"
                 t_ov = "O(n)"; s_ov = "O(n)" 
@@ -2180,7 +2153,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if isinstance(node.op, (ast.Add, ast.Mult)):
             if self._is_linear_type(node.left) or self._is_linear_type(node.right):
                 if getattr(self, 'in_list_comp_depth', 0) > 0:
-                    self.record_line(node, time_override="O(m)", space_override="O(m)", custom_op="Row Allocation")
+                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Row Allocation")
                 else:
                     self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Concatenation / Repetition")
             else:
@@ -2207,7 +2180,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     elif isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List): is_nested = True
                 
                 if is_nested:
-                    t_ov, s_ov = "O(n * m)", "O(n * m)"
+                    t_ov, s_ov = "O(n^2)", "O(n^2)"
                     custom_op = "Return 2D Comprehension"
                 else:
                     t_ov, s_ov = "O(n)", "O(n)"
@@ -2308,29 +2281,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         raw_code = re.sub(r'//.*|#.*|/\*[\s\S]*?\*/', '', "\n".join(self.source_lines)).lower()
 
-        if "n * n!" in all_comps: return "O(n * n!)"
-        if "n!" in all_comps: return "O(n!)"
-        if "3^n" in all_comps: return "O(3^n)"
         if "2^n" in all_comps or "2ⁿ" in all_comps: return "O(2^n)"
-        
-        if "n^5" in all_comps: return "O(n^5)"
-        if "n^4" in all_comps: return "O(n^4)"
-        if any(x in all_comps for x in ["n^3", "n^2 * m", "n * m^2", "n * m * p", "n * m * k", "n * p * k"]): return "O(n^3)"
-        
-        if "V + E" in all_comps or "o(v + e)" in all_comps or 'dfs(' in raw_code or 'bfs(' in raw_code: 
-            return "O(V + E)"
-
-        if "n^2 log n" in all_comps or "n² log n" in all_comps: return "O(n^2 log n)"
-        if any(x in all_comps for x in ["n^2", "n²", "n * m", "n * p", "n * k", "np", "m * n", "m * p", "m * k"]): return "O(n^2)"
-        
-        if "n log n" in all_comps or re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: 
-            return "O(n log n)"
-        
+        if "V + E" in all_comps or "o(v + e)" in all_comps or 'dfs(' in raw_code or 'bfs(' in raw_code: return "O(V + E)"
+        if "n^2" in all_comps or "n²" in all_comps: return "O(n^2)"
+        if "n log n" in all_comps or re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: return "O(n log n)"
         if "sqrt n" in all_comps: return "O(sqrt n)"
-        if "log min" in all_comps: return "O(log min(a, b))"
         if "log n" in all_comps: return "O(log n)"
-        
-        if any(x in all_comps for x in ["O(n)", "O(m)", "O(p)", "O(k)", "O(w)"]): return "O(n)"
+        if "O(n)" in all_comps: return "O(n)"
         
         return "O(1)"
 
@@ -2339,26 +2296,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for space_val in self.custom_space.values(): all_spaces += " " + space_val
         raw_code = re.sub(r'//.*|#.*|/\*[\s\S]*?\*/', '', "\n".join(self.source_lines)).lower()
             
-        if self.max_space_weight >= 5: all_spaces += " O(n^n)"
-        elif self.max_space_weight >= 4: all_spaces += " O(n^3)"
+        if self.max_space_weight >= 4: all_spaces += " O(2^n)"
         elif self.max_space_weight >= 3: all_spaces += " O(V + E)"
         elif self.max_space_weight >= 2: all_spaces += " O(n^2)"
         elif self.max_space_weight >= 1: all_spaces += " O(n)"
         elif self.max_space_weight >= 0.5: all_spaces += " O(1)"
         
-        if "n^n" in all_spaces: return "O(n^n)"
-        if "n!" in all_spaces: return "O(n!)"
-        if "3^n" in all_spaces: return "O(3^n)"
         if "2^n" in all_spaces or "2ⁿ" in all_spaces: return "O(2^n)"
-        if any(x in all_spaces for x in ["n^3", "n^2 * m", "n * m^2", "n * m * p", "n * m * k"]): return "O(n^3)"
-        if "n^2 log n" in all_spaces: return "O(n^2 log n)"
-        if any(x in all_spaces for x in ["n * m", "n^2", "n²", "n * p", "np", "n * k", "m * n", "m * p", "m * k"]): return "O(n^2)"
-        if "n log n" in all_spaces: return "O(n log n)"
-        
-        if "V + E" in all_spaces or "adj =" in raw_code or "graph =" in raw_code: return "O(V + E)"
-        if "O(V)" in all_spaces or "dfs(" in raw_code or "bfs(" in raw_code: return "O(V + E)"
-        
-        if any(x in all_spaces for x in ["O(n)", "O(m)", "O(p)", "O(k)", "O(w)"]): return "O(n)"
+        if "n^2" in all_spaces or "n²" in all_spaces: return "O(n^2)"
+        if "V + E" in all_spaces or "adj =" in raw_code or "graph =" in raw_code or "O(V)" in all_spaces or "dfs(" in raw_code or "bfs(" in raw_code: return "O(V + E)"
+        if "O(n)" in all_spaces: return "O(n)"
         if "sqrt n" in all_spaces: return "O(sqrt n)"
         if "log n" in all_spaces: return "O(log n)"
         return "O(1)"
@@ -2410,18 +2357,17 @@ def fallback_analyzer(source_code):
     
     if 'dfs' in code_clean or 'bfs' in code_clean or 'adj' in code_clean: time_comp = "O(V + E)"
     elif re.search(r'\b(sorted|sort|qsort)\s*\(', code_clean):
-        time_comp = "O(n log n)" if time_w <= 1 else f"O(n^{time_w})"
+        time_comp = "O(n log n)" if time_w <= 1 else "O(n^2)"
     elif time_w == 1:
         if ('mid' in code_clean and ('/ 2' in code_clean or '>> 1' in code_clean)) or 'binary_search' in code_clean:
             time_comp = "O(log n)"
         else: time_comp = "O(n)"
-    elif time_w == 2: time_comp = "O(n^2)"
-    elif time_w >= 3: time_comp = "O(n^3)"
+    elif time_w >= 2: time_comp = "O(n^2)"
         
     if 'build(' in code_clean or 'update(' in code_clean or 'query(' in code_clean:
         if 'mid' in code_clean: time_comp = "O(n log n)"
     if 'subset' in code_clean or 'combination' in code_clean or 'permutation' in code_clean:
-        time_comp = "O(2^n)" if 'permutation' not in code_clean else "O(n!)"
+        time_comp = "O(2^n)"
         
     space_comp = "O(1)"
     if 'alloc' in code_clean or 'new ' in code_clean or 'vector<' in code_clean or '[' in code_clean or 'map<' in code_clean:
