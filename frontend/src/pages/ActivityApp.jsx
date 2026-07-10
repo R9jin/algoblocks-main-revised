@@ -16,6 +16,22 @@ import { getComplexityWeight, sanitizePythonCode, usePanelResizer } from "../uti
 import { translatePythonError } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
 
+// ULTIMATE FALLBACK: Completely bypasses syncQueueDB errors by using native localStorage queue
+const pushToSyncQueue = (key, data) => {
+  try {
+    if (syncQueueDB && typeof syncQueueDB.setItem === 'function') {
+        syncQueueDB.setItem(key, data);
+        return;
+    }
+  } catch(e) {}
+  
+  try {
+    const queue = JSON.parse(localStorage.getItem("offline_sync_queue") || "[]");
+    queue.push({ key, data, timestamp: Date.now() });
+    localStorage.setItem("offline_sync_queue", JSON.stringify(queue));
+  } catch (e) { console.error("Sync queue failed:", e); }
+};
+
 const renderFormattedTask = (text) => {
   if (!text) return null;
   const parseStr = (str) => {
@@ -47,7 +63,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const API_BASE = import.meta.env.VITE_API_URL || "";
   const navigate = useNavigate();
   const { worker, isEngineReady, resetWorker } = usePyodide();
+  
   const isReadyRef = useRef(false);
+  const isWorkspaceLoadedRef = useRef(false);
+  const isUnmountingRef = useRef(false); 
+  const loadTimeRef = useRef(0); 
+  
   const workspaceRef = useRef(null);
   const workerRef = useRef(null);
   const workerMessageHandler = useRef(null);
@@ -73,6 +94,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? window.navigator.onLine : true);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isSyncingBlocks, setIsSyncingBlocks] = useState(false);
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
   const [viewMode, setViewMode] = useState("workspace");
@@ -195,7 +217,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const finalOutput = flushed + resultData;
         let notice = "";
         
-        // Provide friendly feedback for functions defined without any output/prints
         if (finalOutput.trim() === "") {
           notice = "\n> (Note: Code executed successfully, but no output was printed. Did you call your function?)";
         }
@@ -223,11 +244,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       setIsWaitingForInput(true);
     } else if (type === "ERROR") {
       clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-      if (testRejectRef.current) {
-        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        outputAccumulatorRef.current += flushed;
-        testRejectRef.current(new Error(data));
-        testResolveRef.current = null; testRejectRef.current = null;
+      if (testResolveRef.current) {
+        pendingOutputRef.current += data;
       } else {
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         const hint = translatePythonError(data);
@@ -237,7 +255,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     }
   };
 
-  useEffect(() => { if (worker) { workerRef.current = worker; workerRef.current.onmessage = workerMessageHandler.current; } }, [worker]);
+  useEffect(() => { 
+    if (worker) { 
+      workerRef.current = worker; 
+      workerRef.current.onmessage = (event) => workerMessageHandler.current(event); 
+    } 
+  }, [worker]);
 
   const toggleTest = (index) => setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] }));
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
@@ -290,9 +313,43 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
   };
 
-  const triggerFinalSave = () => {
+  const getFailsafeWorkspaceJson = () => {
+    let finalJson = latestStateRef.current.json;
+    if (workspaceRef.current) {
+        try {
+            if (typeof workspaceRef.current.getJson === 'function') {
+                const wsJson = workspaceRef.current.getJson();
+                if (wsJson && Object.keys(wsJson).length > 0) finalJson = wsJson;
+            } else if (typeof workspaceRef.current.getBlocksJson === 'function') {
+                const wsJson = workspaceRef.current.getBlocksJson();
+                if (wsJson && Object.keys(wsJson).length > 0) finalJson = wsJson;
+            }
+        } catch(e) {}
+    }
+    return finalJson;
+  };
+
+  // ANTI-WIPEOUT PROTECTION: Protects against Unmount Destruction
+  const triggerFinalSave = async () => {
     const state = latestStateRef.current;
-    if (!state.userId || (state.pythonCode === "# Drag blocks to generate Python code" && (!state.json || Object.keys(state.json).length === 0))) return;
+    if (!state.userId) return;
+
+    let currentJson = getFailsafeWorkspaceJson();
+    const isJsonEmpty = !currentJson || Object.keys(currentJson).length === 0 || (currentJson.blocks && currentJson.blocks.blocks && currentJson.blocks.blocks.length === 0);
+    const hasValidPython = state.pythonCode && state.pythonCode !== "# Drag blocks to generate Python code" && state.pythonCode.trim() !== "";
+    
+    // Critical: If blocks are empty due to worker race condition but python is valid, recover blocks from DB
+    if (isJsonEmpty && hasValidPython) {
+        try {
+            const subId = `${state.userId}_${moduleId}_${activityId}`;
+            const existingSub = await submissionsDB.getItem(subId);
+            if (existingSub && existingSub.workspace && existingSub.workspace.blocklyJson) {
+                currentJson = existingSub.workspace.blocklyJson;
+            }
+        } catch(e) {}
+    }
+
+    if (isJsonEmpty && !hasValidPython) return;
 
     const payload = {
       userId: state.userId, moduleId: moduleId, activityId: activityId, type: state.type || "activity", status: state.status || "draft",
@@ -302,18 +359,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
       testCases: state.testResults, target_complexity: state.targetTime || "O(n)", actual_complexity: state.actualTime,
       target_space_complexity: state.targetSpace || "O(1)", actual_space_complexity: state.actualSpace,
-      workspace: { blocklyJson: state.json || {} }, pythonCode: state.pythonCode, timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: true,
+      workspace: { blocklyJson: currentJson || {} }, pythonCode: state.pythonCode, timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: true,
     };
 
     const finalSubId = `${state.userId}_${moduleId}_${activityId}`;
-    submissionsDB.setItem(finalSubId, { ...payload, isSynced: false });
+    try { submissionsDB.setItem(finalSubId, { ...payload, isSynced: false }); } catch (e) {}
 
     if (navigator && navigator.onLine && API_BASE) {
       try {
         const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
         fetch(`${API_BASE}/api/sync-submission`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload), keepalive: true });
-      } catch (err) { syncQueueDB.setItem(`sync_${finalSubId}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); }
-    } else syncQueueDB.setItem(`sync_${finalSubId}`, { type: "SUBMISSION", action: "UPSERT", data: payload });
+      } catch (err) { pushToSyncQueue(`sync_${finalSubId}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); }
+    } else pushToSyncQueue(`sync_${finalSubId}`, { type: "SUBMISSION", action: "UPSERT", data: payload });
   };
 
   useEffect(() => {
@@ -323,7 +380,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   }, []);
 
   useEffect(() => {
-    let cancelled = false; isReadyRef.current = false;
+    let cancelled = false; 
+    isReadyRef.current = false;
+    isUnmountingRef.current = false;
+
     const boot = async () => {
       try {
         const resolvedActivity = await resolveActivityFromModule();
@@ -347,12 +407,32 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         }
 
         let finalSubmissionToLoad = null;
-        const localCode = localSubmission?.pythonCode || ""; const cloudCode = cloudSubmission?.pythonCode || "";
-        const isLocalBlank = !localCode || localCode === "# Drag blocks to generate Python code"; const isCloudBlank = !cloudCode || cloudCode === "# Drag blocks to generate Python code";
+        const localCode = localSubmission?.pythonCode || ""; 
+        const cloudCode = cloudSubmission?.pythonCode || "";
+        const isLocalBlank = !localCode || localCode.trim() === "" || localCode === "# Drag blocks to generate Python code";
+        const isCloudBlank = !cloudCode || cloudCode.trim() === "" || cloudCode === "# Drag blocks to generate Python code";
 
-        if (isLocalBlank && !isCloudBlank) { finalSubmissionToLoad = cloudSubmission; await submissionsDB.setItem(submissionId, cloudSubmission); }
-        else if (!isLocalBlank && !isCloudBlank) finalSubmissionToLoad = (localSubmission.timestamp || 0) >= (cloudSubmission.timestamp || 0) ? localSubmission : cloudSubmission;
-        else if (!isLocalBlank) finalSubmissionToLoad = localSubmission;
+        if (!isLocalBlank && isCloudBlank) {
+            finalSubmissionToLoad = localSubmission; 
+        } else if (isLocalBlank && !isCloudBlank) {
+            finalSubmissionToLoad = cloudSubmission;
+            try { await submissionsDB.setItem(submissionId, cloudSubmission); } catch (e) {}
+        } else if (localSubmission && cloudSubmission) {
+           finalSubmissionToLoad = (localSubmission.timestamp || 0) >= (cloudSubmission.timestamp || 0) ? localSubmission : cloudSubmission;
+        } else if (localSubmission) {
+           finalSubmissionToLoad = localSubmission;
+        } else if (cloudSubmission) {
+           finalSubmissionToLoad = cloudSubmission;
+        }
+
+        const applyWorkspaceData = (json, pythonCode) => {
+          if (workspaceRef.current?.loadTemplate && !cancelled && !isUnmountingRef.current) {
+             workspaceRef.current.loadTemplate(json || {}, pythonCode);
+             loadTimeRef.current = Date.now();
+          } else if (!cancelled && !isUnmountingRef.current) {
+             setTimeout(() => applyWorkspaceData(json, pythonCode), 100);
+          }
+        };
 
         if (finalSubmissionToLoad && finalSubmissionToLoad.activityId === activityId && !cancelled) {
           try {
@@ -378,8 +458,16 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
               setCurrentRog(calcRog > 0 ? calcRog : 0);
             }
 
-            setTimeout(() => { if (workspaceRef.current?.loadTemplate && !cancelled) workspaceRef.current.loadTemplate(json || {}, pythonCode); }, 400);
-            if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") setGeneratedPython(pythonCode);
+            applyWorkspaceData(json, pythonCode);
+            if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") {
+                setGeneratedPython(pythonCode);
+                
+                const isJsonEmpty = !json || Object.keys(json).length === 0 || (json.blocks && json.blocks.blocks && json.blocks.blocks.length === 0);
+                if (isJsonEmpty) {
+                    setViewMode("python");
+                    setIsEditingCode(true);
+                }
+            }
           } catch (e) { console.error("Failed to load blocks"); }
         } else if (resolvedActivity.templateUrl) {
           try {
@@ -404,11 +492,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             latestStateRef.current.json = templateBlocks;
             latestStateRef.current.pythonCode = templatePython;
 
-            setTimeout(() => {
-              if (workspaceRef.current?.loadTemplate && !cancelled) {
-                workspaceRef.current.loadTemplate(templateBlocks, templatePython);
-              }
-            }, 400);
+            applyWorkspaceData(templateBlocks, templatePython);
 
             if (templatePython && templatePython !== "# Drag blocks to generate Python code") {
               setGeneratedPython(templatePython);
@@ -424,8 +508,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       } catch (e) { console.error("Activity bootstrap failed:", e); if (!cancelled) navigate("/learning-path", { replace: true }); }
     };
     boot();
-    return () => { cancelled = true; triggerFinalSave(); if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current); };
-  }, []);
+    return () => { 
+        isUnmountingRef.current = true; 
+        cancelled = true; 
+        triggerFinalSave(); 
+        if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current); 
+    };
+  }, [moduleId, activityId]);
 
   const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false) => {
     if (!latestStateRef.current.userId) return;
@@ -434,29 +523,49 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const finalTestResults = testResults !== null ? testResults : latestStateRef.current.testResults;
     const finalStatus = isDraft ? (finalScore >= 50 ? "passed" : "draft") : (finalScore >= 50 ? "passed" : "failed");
 
-    latestStateRef.current.json = json; latestStateRef.current.pythonCode = pythonCode; latestStateRef.current.score = finalScore; latestStateRef.current.passed = finalPassed; latestStateRef.current.testResults = finalTestResults; latestStateRef.current.status = finalStatus;
+    let safeJson = json;
+    const isBlocksEmpty = !safeJson || Object.keys(safeJson).length === 0 || (safeJson.blocks && safeJson.blocks.blocks && safeJson.blocks.blocks.length === 0);
+    const hasValidPython = pythonCode && pythonCode !== "# Drag blocks to generate Python code" && pythonCode.trim() !== "";
 
+    // ANTI-WIPEOUT: Secure recovery if json is empty but code exists
     const submissionId = `${latestStateRef.current.userId}_${moduleId}_${activityId}`;
+    if (isBlocksEmpty && hasValidPython) {
+        try {
+            const existingSub = await submissionsDB.getItem(submissionId);
+            if (existingSub && existingSub.workspace && existingSub.workspace.blocklyJson && Object.keys(existingSub.workspace.blocklyJson).length > 0) {
+                safeJson = existingSub.workspace.blocklyJson;
+            }
+        } catch(e) {}
+    }
+
+    latestStateRef.current.json = safeJson; 
+    latestStateRef.current.pythonCode = pythonCode; 
+    latestStateRef.current.score = finalScore; 
+    latestStateRef.current.passed = finalPassed; 
+    latestStateRef.current.testResults = finalTestResults; 
+    latestStateRef.current.status = finalStatus;
+
     const payload = {
       userId: latestStateRef.current.userId, moduleId: moduleId, activityId: activityId, type: latestStateRef.current.type || "activity", status: finalStatus,
       score: finalScore, maxScore: 100,
       initial_aes: latestStateRef.current.initial_aes, final_aes: latestStateRef.current.final_aes,
       rog: (latestStateRef.current.final_aes || 0) - (latestStateRef.current.initial_aes || 0),
-      passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total, testCases: finalTestResults, target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime, target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace, workspace: { blocklyJson: json || {} }, pythonCode: pythonCode || "", timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false,
+      passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total, testCases: finalTestResults, target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime, target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace, workspace: { blocklyJson: safeJson || {} }, pythonCode: pythonCode || "", timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false,
     };
 
     try { await submissionsDB.setItem(submissionId, payload); window.dispatchEvent(new Event("localDataSynced")); } catch (e) { }
 
-    if (navigator && !navigator.onLine) { await syncQueueDB.setItem(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); return; }
+    if (navigator && !navigator.onLine) { pushToSyncQueue(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); return; }
 
     try {
       const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
       if (API_BASE) {
         const response = await fetch(`${API_BASE}/api/sync-submission`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ ...payload, isSynced: true }) });
-        if (response.ok) await submissionsDB.setItem(submissionId, { ...payload, isSynced: true });
-        else throw new Error("Server rejected submission");
+        if (response.ok) {
+           try { await submissionsDB.setItem(submissionId, { ...payload, isSynced: true }); } catch(e) {}
+        } else throw new Error("Server rejected submission");
       }
-    } catch (err) { await syncQueueDB.setItem(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); }
+    } catch (err) { pushToSyncQueue(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); }
   };
 
   const handleWorkspaceAutoSave = (json, pythonCode) => {
@@ -469,7 +578,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   };
 
   useEffect(() => {
-    if (!isReadyRef.current) return;
+    if (!isReadyRef.current || isUnmountingRef.current) return;
     if (isOnline && isEngineReady && workerRef.current && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
       const timeoutId = setTimeout(() => {
         workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython) });
@@ -479,13 +588,32 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   }, [generatedPython, isOnline, isEngineReady]);
 
   const handleWorkspaceChange = async (json, incomingPythonCode, isUnsynced = false) => {
-    if (!isReadyRef.current) return;
+    if (isUnmountingRef.current || !isReadyRef.current) return;
+
+    const isIncomingBlocksEmpty = !json || Object.keys(json).length === 0 || (json.blocks && json.blocks.blocks && json.blocks.blocks.length === 0);
+    const isIncomingCodeEmpty = !incomingPythonCode || incomingPythonCode.trim() === "" || incomingPythonCode === "# Drag blocks to generate Python code";
+    
+    // Ignore early ghost wipeout events generated by Blockly's debouncer
+    if ((isIncomingBlocksEmpty || isIncomingCodeEmpty) && Date.now() - loadTimeRef.current < 3000) {
+        return;
+    }
+
     latestBlocksJsonRef.current = json;
     let codeToSave = incomingPythonCode;
+    
+    if (isIncomingCodeEmpty && generatedPython && generatedPython.trim() !== "" && generatedPython !== "# Drag blocks to generate Python code") {
+        if (Date.now() - loadTimeRef.current < 4000 || !isEditingCode) {
+             codeToSave = generatedPython; 
+        }
+    }
+
     if (isEditingCode && !isUnsynced) codeToSave = generatedPython;
 
-    const oldCode = (generatedPython || "").trim(); const newCode = (codeToSave || "").trim();
-    latestStateRef.current.json = json; latestStateRef.current.pythonCode = codeToSave;
+    const oldCode = (generatedPython || "").trim(); 
+    const newCode = (codeToSave || "").trim();
+
+    latestStateRef.current.json = json; 
+    latestStateRef.current.pythonCode = codeToSave;
     handleWorkspaceAutoSave(json, codeToSave);
 
     if (isUnsynced) {
@@ -498,12 +626,17 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const handleSyncToBlocks = async () => {
     if (workspaceRef.current && generatedPython) {
+      setIsSyncingBlocks(true);
       try {
         await workspaceRef.current.loadFromPython(sanitizePythonCode(generatedPython));
-        setIsEditingCode(false); setViewMode("workspace");
+        loadTimeRef.current = Date.now(); // Reset protection timer
+        setIsEditingCode(false); 
+        setViewMode("workspace");
         showToast("Python code successfully converted into blocks!", "success");
       } catch (e) {
         setModalConfig({ isOpen: true, title: "Sync Error", message: "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
+      } finally {
+        setIsSyncingBlocks(false);
       }
     }
   };
@@ -551,15 +684,16 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const payload = { email: user.email, lesson_id: lessonId, score: user.progress[lessonId] };
     const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
-    await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: false });
+    try { await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: false }); } catch(e) {}
 
     if (navigator && navigator.onLine && !user.isGuest && API_BASE) {
       try {
         const res = await fetch(`${API_BASE}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
-        if (res.ok) await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: true });
-        else throw new Error("Sync failed with status: " + res.status);
-      } catch (error) { await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload }); }
-    } else if (!user.isGuest) await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload });
+        if (res.ok) {
+           try { await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: true }); } catch (e) {}
+        } else throw new Error("Sync failed with status: " + res.status);
+      } catch (error) { pushToSyncQueue(`sync_prog_${lessonId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload }); }
+    } else if (!user.isGuest) pushToSyncQueue(`sync_prog_${lessonId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload });
   };
 
   const completeFullTopic = async (topicId) => {
@@ -573,15 +707,16 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const payload = { email: user.email, lesson_id: topicId, score: 100, completed: true };
     const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
-    await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: false });
+    try { await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: false }); } catch(e) {}
 
     if (navigator && navigator.onLine && !user.isGuest && API_BASE) {
       try {
         const res = await fetch(`${API_BASE}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
-        if (res.ok) await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: true });
-        else throw new Error("Sync failed with status: " + res.status);
-      } catch (error) { await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload }); }
-    } else if (!user.isGuest) await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload });
+        if (res.ok) {
+            try { await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: true }); } catch (e) {}
+        } else throw new Error("Sync failed with status: " + res.status);
+      } catch (error) { pushToSyncQueue(`sync_prog_${topicId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload }); }
+    } else if (!user.isGuest) pushToSyncQueue(`sync_prog_${topicId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload });
   };
 
   const executeTest = async (codeToRun) => {
@@ -598,8 +733,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     });
   };
 
-  const checkLessonCompletion = async () => {
-    if (!latestStateRef.current.userId || !lessonActivitiesResolved.length) return { passedCount: 0, threshold: 1, isCompleted: false };
+  // INSTANT PROGRESS FIX: Now accurately checks user.progress from localStorage to eliminate API DB sync delays
+  const checkLessonCompletion = async (currentActivityId = null, currentScore = null) => {
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (!storedUser || !lessonActivitiesResolved.length) return { passedCount: 0, threshold: 1, isCompleted: false };
+    
+    const user = JSON.parse(storedUser);
+    const userProgress = user.progress || {};
 
     const diffs = lessonActivitiesResolved.map(a => (a.difficulty || 'Easy').toLowerCase());
     const types = lessonActivitiesResolved.map(a => (a.type || 'activity').toLowerCase());
@@ -613,11 +753,23 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     let passedCount = 0;
     for (const act of lessonActivitiesResolved) {
-      const subId = `${latestStateRef.current.userId}_${moduleId}_${act.id}`;
-      try {
-        const sub = await submissionsDB.getItem(subId);
-        if (sub && sub.status === "passed" && sub.score >= 50) passedCount++;
-      } catch (e) { }
+      if (currentActivityId === String(act.id)) {
+         if (currentScore >= 50) passedCount++;
+         continue;
+      }
+
+      const lessonKey = `${moduleId}:${act.id}`;
+      // Instant read from dict
+      if (userProgress[lessonKey] >= 50) {
+          passedCount++;
+      } else {
+          // Backup fetch just in case it's missing from dict but in IndexedDB
+          const subId = `${user.email}_${moduleId}_${act.id}`;
+          try {
+            const sub = await submissionsDB.getItem(subId);
+            if (sub && sub.score >= 50) passedCount++;
+          } catch (e) { }
+      }
     }
     return { passedCount, threshold, isCompleted: passedCount >= threshold };
   };
@@ -627,10 +779,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const isLast = currentIndex === lessonActivitiesResolved.length - 1;
     const nextActivity = !isLast ? lessonActivitiesResolved[currentIndex + 1] : null;
 
-    const completionData = await checkLessonCompletion();
+    const completionData = await checkLessonCompletion(activityId, aesScore);
     const meetsThreshold = completionData.isCompleted;
 
-    if (meetsThreshold && topicIdResolved) await completeFullTopic(topicIdResolved);
+    if (meetsThreshold && topicIdResolved) {
+        try { await completeFullTopic(topicIdResolved); } catch(e) {}
+    }
 
     let promptMsg = "";
     if (aesScore === 100) {
@@ -662,7 +816,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   };
 
   const runTestCases = async () => {
-    if (isEvaluating) return;
+    if (isEvaluating || isSyncingBlocks) return;
     if (!processedTestCases.length) return;
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
@@ -740,6 +894,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       } catch (err) { 
         fullOutput += `Test ${i + 1}: ERROR\n  Message: ${err.message}\n\n`; 
         setConsoleOutput(fullOutput); 
+        break;
       }
     }
 
@@ -788,11 +943,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
 
-    await saveSubmission(latestStateRef.current.json, generatedPython, aes, passed, totalTests, testResults, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", false);
-    localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: aes }));
+    const trueFinalJsonToSave = getFailsafeWorkspaceJson() || latestStateRef.current.json;
+
+    try { await saveSubmission(trueFinalJsonToSave, generatedPython, aes, passed, totalTests, testResults, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", false); } catch(e) { console.error(e) }
+    try { localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: aes })); } catch(e) {}
 
     const lessonKey = `${moduleId}:${activityId}`;
-    await savePartialProgress(lessonKey, aes);
+    try { await savePartialProgress(lessonKey, aes); } catch(e) { console.error(e) }
 
     await handleSuccess(aes, functionalPassed, functionalTotal, calculatedRog);
   };
@@ -814,11 +971,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           </div>
         </div>
         <div className="wh-right">
-          <button className="wh-btn-save" onClick={handleActivityRun} disabled={isEvaluating} title="Run code without submitting to test cases">
+          <button className="wh-btn-save" onClick={handleActivityRun} disabled={isEvaluating || isSyncingBlocks} title="Run code without submitting to test cases">
             <FiTerminal size={16} /> {isEvaluating ? "..." : "Run Code"}
           </button>
-          <button className={`wh-btn-run ${isEvaluating ? "running" : ""}`} onClick={runTestCases} disabled={isEvaluating}>
-            <FiPlay size={16} /> {isEvaluating ? "..." : "Evaluate Efficiency (AES)"}
+          <button className={`wh-btn-run ${isEvaluating ? "running" : ""}`} onClick={runTestCases} disabled={isEvaluating || isSyncingBlocks}>
+            <FiPlay size={16} /> {isEvaluating ? "..." : isSyncingBlocks ? "Syncing..." : "Evaluate Efficiency (AES)"}
           </button>
         </div>
       </header>
@@ -867,9 +1024,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
               syntaxErrors={syntaxErrors || []}
               onSyncToBlocks={handleSyncToBlocks}
               onChangeCode={(value) => {
+                if (isUnmountingRef.current) return;
                 const newCode = sanitizePythonCode(value);
                 setGeneratedPython(newCode); setIsEditingCode(true); setSyntaxErrors([]);
-                latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(latestStateRef.current.json, newCode);
+                latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(getFailsafeWorkspaceJson() || latestStateRef.current.json, newCode);
               }}
               onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
             />
@@ -945,7 +1103,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                   confirmText: "Restart", cancelText: "Cancel", isDanger: true,
                   onConfirmAction: async () => {
                     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-                    if (storedUser) { const user = JSON.parse(storedUser); await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); }
+                    if (storedUser) { const user = JSON.parse(storedUser); try { await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } catch(e){} }
                     localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`);
                     await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true);
                     window.location.reload();
@@ -1017,5 +1175,5 @@ const ActivityApp = () => {
   const { moduleId, activityId } = useParams();
   return <ActivityAppInner key={`${moduleId}-${activityId}`} moduleId={moduleId} activityId={activityId} />;
 };
-
+s
 export default ActivityApp;
