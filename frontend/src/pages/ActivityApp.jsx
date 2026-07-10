@@ -1175,5 +1175,5 @@ const ActivityApp = () => {
   const { moduleId, activityId } = useParams();
   return <ActivityAppInner key={`${moduleId}-${activityId}`} moduleId={moduleId} activityId={activityId} />;
 };
-s
+
 export default ActivityApp;
