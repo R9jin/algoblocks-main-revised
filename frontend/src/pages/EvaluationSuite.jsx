@@ -279,7 +279,6 @@ export default function EvaluationSuite() {
     worker.postMessage({ type: "RUN_BENCHMARK_SUITE", dataset: gauntletPayload });
   };
 
-  // Safe Extraction Logic For Download - We want to log ANY kind of mismatch (line or overall)
   const totalErrorsCount = results?.details.filter(d =>
     !d.isCompletelyCorrect || d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
   ).length || 0;
@@ -320,10 +319,10 @@ export default function EvaluationSuite() {
           logText += `\nLine Level Mismatches:\n`;
           m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).forEach(l => {
             logText += `  -> Line ${l.lineno}:\n`;
-            logText += `     LT Exp [${l.expLocalTime || '-'}] Act [${l.localTime || '-'}]\n`;
-            logText += `     GT Exp [${l.expTime || '-'}] Act [${l.predTime || '-'}]\n`;
-            logText += `     LS Exp [${l.expLocalSpace || '-'}] Act [${l.localSpace || '-'}]\n`;
-            logText += `     GS Exp [${l.expSpace || '-'}] Act [${l.predSpace || '-'}]\n`;
+            logText += `     LT Exp [${l.expLocalTime || '-'}] Act [${l.predLocalTime || '-'}]\n`;
+            logText += `     GT Exp [${l.expGlobalTime || '-'}] Act [${l.predGlobalTime || '-'}]\n`;
+            logText += `     LS Exp [${l.expLocalSpace || '-'}] Act [${l.predLocalSpace || '-'}]\n`;
+            logText += `     GS Exp [${l.expGlobalSpace || '-'}] Act [${l.predGlobalSpace || '-'}]\n`;
           });
         }
         logText += `${'-'.repeat(60)}\n\n`;
@@ -343,7 +342,6 @@ export default function EvaluationSuite() {
     }
   };
 
-  // Filter Details separating strictly Overall and Line Context to prevent mixing metrics
   const filteredDetails = (results?.details || []).filter((item) => {
     const gtLines = item.lineValidationResults?.filter(l => l.hasGroundTruth) || [];
     const lineFails = gtLines.filter(l => !l.isPassed).length;
@@ -367,7 +365,6 @@ export default function EvaluationSuite() {
     d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
   ).length || 0;
 
-  // Calculate Line-level distinct metric derivations natively
   const lineTimeErrorRate = results?.totalLinesTested > 0 ? (100 - results.lineTimeAccuracyRate).toFixed(1) : 0;
   const lineSpaceErrorRate = results?.totalLinesTested > 0 ? (100 - results.lineSpaceAccuracyRate).toFixed(1) : 0;
   const lineTimeFailed = results?.totalLinesTested > 0 ? (results.totalLinesTested - results.lineTimePassed) : 0;
@@ -1367,26 +1364,26 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
 
                                         <td className="line-td-comp">
                                           {lineItem.hasGroundTruth
-                                            ? renderDualBadge("-", lineItem.localTime, true)
-                                            : <span className="comp-act comp-neutral">{lineItem.localTime || "-"}</span>}
+                                            ? renderDualBadge(lineItem.expLocalTime, lineItem.predLocalTime, lineItem.ltMatch)
+                                            : <span className="comp-act comp-neutral">{lineItem.predLocalTime || "-"}</span>}
                                         </td>
 
                                         <td className="line-td-comp">
                                           {lineItem.hasGroundTruth
-                                            ? renderDualBadge(lineItem.expTime, lineItem.predTime, lineItem.isTimeMatch)
-                                            : <span className="comp-act comp-neutral">{lineItem.predTime || "-"}</span>}
+                                            ? renderDualBadge(lineItem.expGlobalTime, lineItem.predGlobalTime, lineItem.gtMatch)
+                                            : <span className="comp-act comp-neutral">{lineItem.predGlobalTime || "-"}</span>}
                                         </td>
 
                                         <td className="line-td-comp">
                                           {lineItem.hasGroundTruth
-                                            ? renderDualBadge("-", lineItem.localSpace, true)
-                                            : <span className="comp-act comp-neutral">{lineItem.localSpace || "-"}</span>}
+                                            ? renderDualBadge(lineItem.expLocalSpace, lineItem.predLocalSpace, lineItem.lsMatch)
+                                            : <span className="comp-act comp-neutral">{lineItem.predLocalSpace || "-"}</span>}
                                         </td>
 
                                         <td className="line-td-comp">
                                           {lineItem.hasGroundTruth
-                                            ? renderDualBadge(lineItem.expSpace, lineItem.predSpace, lineItem.isSpaceMatch)
-                                            : <span className="comp-act comp-neutral">{lineItem.predSpace || "-"}</span>}
+                                            ? renderDualBadge(lineItem.expGlobalSpace, lineItem.predGlobalSpace, lineItem.gsMatch)
+                                            : <span className="comp-act comp-neutral">{lineItem.predGlobalSpace || "-"}</span>}
                                         </td>
 
                                         <td className="line-td-status">

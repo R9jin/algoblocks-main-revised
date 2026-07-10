@@ -47,8 +47,7 @@ EQUIVALENCE_MAP = {
     "O(n^0.5)": "O(sqrt n)",
     "O(V + E)": "O(V + E)",
     "O(exponential)": "O(2^n)",
-    "O(quartic)": "O(n^4)",
-    "O(t(n-1))": "O(n)"
+    "O(quartic)": "O(n^4)"
 }
 
 def normalize_complexity(c):
@@ -73,6 +72,9 @@ def normalize_complexity(c):
     if c in ("n*n!", "o(n*n!)"): return "O(n * n!)"
     if c in ("2^n", "exponential", "o(2^n)", "o(exponential)"): return "O(2^n)"
     if c in ("3^n", "o(3^n)"): return "O(3^n)"
+    
+    # Safely convert AST recurrence tracking to constant local time
+    if c in ("t(n-1)", "o(t(n-1))", "t(n/2)", "o(t(n/2))", "t(n-2)", "o(t(n-2))"): return "O(1)"
     
     return f"O({c})"
 

@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 7 OF 10) ---
 
---- TIMESTAMP: 2026-07-10 12:12:24 ---
+--- TIMESTAMP: 2026-07-11 06:46:35 ---
 
 
 --- FILE: frontend/src/index.jsx ---
@@ -118,18 +118,20 @@ import { getComplexityWeight, sanitizePythonCode, usePanelResizer } from "../uti
 import { translatePythonError } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
 
-// Robust fallback adapter for syncQueueDB
-const safeAddToSyncQueue = async (id, data) => {
+// ULTIMATE FALLBACK: Completely bypasses syncQueueDB errors by using native localStorage queue
+const pushToSyncQueue = (key, data) => {
   try {
-    if (!syncQueueDB) return;
-    if (typeof syncQueueDB.enqueue === 'function') await syncQueueDB.enqueue(data);
-    else if (typeof syncQueueDB.add === 'function') await syncQueueDB.add(data);
-    else if (typeof syncQueueDB.put === 'function') await syncQueueDB.put(data, id);
-    else if (typeof syncQueueDB.setItem === 'function') await syncQueueDB.setItem(id, data);
-    else if (typeof syncQueueDB.push === 'function') await syncQueueDB.push(data);
-  } catch (err) {
-    console.warn("Failed to add to sync queue:", err);
-  }
+    if (syncQueueDB && typeof syncQueueDB.setItem === 'function') {
+        syncQueueDB.setItem(key, data);
+        return;
+    }
+  } catch(e) {}
+  
+  try {
+    const queue = JSON.parse(localStorage.getItem("offline_sync_queue") || "[]");
+    queue.push({ key, data, timestamp: Date.now() });
+    localStorage.setItem("offline_sync_queue", JSON.stringify(queue));
+  } catch (e) { console.error("Sync queue failed:", e); }
 };
 
 const renderFormattedTask = (text) => {
@@ -165,8 +167,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const { worker, isEngineReady, resetWorker } = usePyodide();
   
   const isReadyRef = useRef(false);
-  const isUnmountingRef = useRef(false);
-  const loadTimeRef = useRef(0);
+  const isWorkspaceLoadedRef = useRef(false);
+  const isUnmountingRef = useRef(false); 
+  const loadTimeRef = useRef(0); 
   
   const workspaceRef = useRef(null);
   const workerRef = useRef(null);
@@ -412,14 +415,43 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
   };
 
-  const triggerFinalSave = () => {
+  const getFailsafeWorkspaceJson = () => {
+    let finalJson = latestStateRef.current.json;
+    if (workspaceRef.current) {
+        try {
+            if (typeof workspaceRef.current.getJson === 'function') {
+                const wsJson = workspaceRef.current.getJson();
+                if (wsJson && Object.keys(wsJson).length > 0) finalJson = wsJson;
+            } else if (typeof workspaceRef.current.getBlocksJson === 'function') {
+                const wsJson = workspaceRef.current.getBlocksJson();
+                if (wsJson && Object.keys(wsJson).length > 0) finalJson = wsJson;
+            }
+        } catch(e) {}
+    }
+    return finalJson;
+  };
+
+  // ANTI-WIPEOUT PROTECTION: Protects against Unmount Destruction
+  const triggerFinalSave = async () => {
     const state = latestStateRef.current;
     if (!state.userId) return;
 
-    const isJsonEmpty = !state.json || Object.keys(state.json).length === 0;
-    const isPythonEmpty = !state.pythonCode || state.pythonCode === "# Drag blocks to generate Python code" || state.pythonCode.trim() === "";
+    let currentJson = getFailsafeWorkspaceJson();
+    const isJsonEmpty = !currentJson || Object.keys(currentJson).length === 0 || (currentJson.blocks && currentJson.blocks.blocks && currentJson.blocks.blocks.length === 0);
+    const hasValidPython = state.pythonCode && state.pythonCode !== "# Drag blocks to generate Python code" && state.pythonCode.trim() !== "";
     
-    if (isJsonEmpty && isPythonEmpty) return;
+    // Critical: If blocks are empty due to worker race condition but python is valid, recover blocks from DB
+    if (isJsonEmpty && hasValidPython) {
+        try {
+            const subId = `${state.userId}_${moduleId}_${activityId}`;
+            const existingSub = await submissionsDB.getItem(subId);
+            if (existingSub && existingSub.workspace && existingSub.workspace.blocklyJson) {
+                currentJson = existingSub.workspace.blocklyJson;
+            }
+        } catch(e) {}
+    }
+
+    if (isJsonEmpty && !hasValidPython) return;
 
     const payload = {
       userId: state.userId, moduleId: moduleId, activityId: activityId, type: state.type || "activity", status: state.status || "draft",
@@ -429,7 +461,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
       testCases: state.testResults, target_complexity: state.targetTime || "O(n)", actual_complexity: state.actualTime,
       target_space_complexity: state.targetSpace || "O(1)", actual_space_complexity: state.actualSpace,
-      workspace: { blocklyJson: state.json || {} }, pythonCode: state.pythonCode, timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: true,
+      workspace: { blocklyJson: currentJson || {} }, pythonCode: state.pythonCode, timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: true,
     };
 
     const finalSubId = `${state.userId}_${moduleId}_${activityId}`;
@@ -439,8 +471,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       try {
         const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
         fetch(`${API_BASE}/api/sync-submission`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload), keepalive: true });
-      } catch (err) { safeAddToSyncQueue(`sync_${finalSubId}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); }
-    } else safeAddToSyncQueue(`sync_${finalSubId}`, { type: "SUBMISSION", action: "UPSERT", data: payload });
+      } catch (err) { pushToSyncQueue(`sync_${finalSubId}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); }
+    } else pushToSyncQueue(`sync_${finalSubId}`, { type: "SUBMISSION", action: "UPSERT", data: payload });
   };
 
   useEffect(() => {
@@ -532,7 +564,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") {
                 setGeneratedPython(pythonCode);
                 
-                // Fallback Fix: If blocks failed to save but Python code did, force Python view on load
                 const isJsonEmpty = !json || Object.keys(json).length === 0 || (json.blocks && json.blocks.blocks && json.blocks.blocks.length === 0);
                 if (isJsonEmpty) {
                     setViewMode("python");
@@ -594,20 +625,39 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const finalTestResults = testResults !== null ? testResults : latestStateRef.current.testResults;
     const finalStatus = isDraft ? (finalScore >= 50 ? "passed" : "draft") : (finalScore >= 50 ? "passed" : "failed");
 
-    latestStateRef.current.json = json; latestStateRef.current.pythonCode = pythonCode; latestStateRef.current.score = finalScore; latestStateRef.current.passed = finalPassed; latestStateRef.current.testResults = finalTestResults; latestStateRef.current.status = finalStatus;
+    let safeJson = json;
+    const isBlocksEmpty = !safeJson || Object.keys(safeJson).length === 0 || (safeJson.blocks && safeJson.blocks.blocks && safeJson.blocks.blocks.length === 0);
+    const hasValidPython = pythonCode && pythonCode !== "# Drag blocks to generate Python code" && pythonCode.trim() !== "";
 
+    // ANTI-WIPEOUT: Secure recovery if json is empty but code exists
     const submissionId = `${latestStateRef.current.userId}_${moduleId}_${activityId}`;
+    if (isBlocksEmpty && hasValidPython) {
+        try {
+            const existingSub = await submissionsDB.getItem(submissionId);
+            if (existingSub && existingSub.workspace && existingSub.workspace.blocklyJson && Object.keys(existingSub.workspace.blocklyJson).length > 0) {
+                safeJson = existingSub.workspace.blocklyJson;
+            }
+        } catch(e) {}
+    }
+
+    latestStateRef.current.json = safeJson; 
+    latestStateRef.current.pythonCode = pythonCode; 
+    latestStateRef.current.score = finalScore; 
+    latestStateRef.current.passed = finalPassed; 
+    latestStateRef.current.testResults = finalTestResults; 
+    latestStateRef.current.status = finalStatus;
+
     const payload = {
       userId: latestStateRef.current.userId, moduleId: moduleId, activityId: activityId, type: latestStateRef.current.type || "activity", status: finalStatus,
       score: finalScore, maxScore: 100,
       initial_aes: latestStateRef.current.initial_aes, final_aes: latestStateRef.current.final_aes,
       rog: (latestStateRef.current.final_aes || 0) - (latestStateRef.current.initial_aes || 0),
-      passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total, testCases: finalTestResults, target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime, target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace, workspace: { blocklyJson: json || {} }, pythonCode: pythonCode || "", timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false,
+      passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total, testCases: finalTestResults, target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime, target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace, workspace: { blocklyJson: safeJson || {} }, pythonCode: pythonCode || "", timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false,
     };
 
     try { await submissionsDB.setItem(submissionId, payload); window.dispatchEvent(new Event("localDataSynced")); } catch (e) { }
 
-    if (navigator && !navigator.onLine) { await safeAddToSyncQueue(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); return; }
+    if (navigator && !navigator.onLine) { pushToSyncQueue(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); return; }
 
     try {
       const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -617,7 +667,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
            try { await submissionsDB.setItem(submissionId, { ...payload, isSynced: true }); } catch(e) {}
         } else throw new Error("Server rejected submission");
       }
-    } catch (err) { await safeAddToSyncQueue(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); }
+    } catch (err) { pushToSyncQueue(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); }
   };
 
   const handleWorkspaceAutoSave = (json, pythonCode) => {
@@ -643,14 +693,22 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (isUnmountingRef.current || !isReadyRef.current) return;
 
     const isIncomingBlocksEmpty = !json || Object.keys(json).length === 0 || (json.blocks && json.blocks.blocks && json.blocks.blocks.length === 0);
+    const isIncomingCodeEmpty = !incomingPythonCode || incomingPythonCode.trim() === "" || incomingPythonCode === "# Drag blocks to generate Python code";
     
-    // Ignore ghost wipeouts right after load
-    if (isIncomingBlocksEmpty && Date.now() - loadTimeRef.current < 1000) {
+    // Ignore early ghost wipeout events generated by Blockly's debouncer
+    if ((isIncomingBlocksEmpty || isIncomingCodeEmpty) && Date.now() - loadTimeRef.current < 3000) {
         return;
     }
 
     latestBlocksJsonRef.current = json;
     let codeToSave = incomingPythonCode;
+    
+    if (isIncomingCodeEmpty && generatedPython && generatedPython.trim() !== "" && generatedPython !== "# Drag blocks to generate Python code") {
+        if (Date.now() - loadTimeRef.current < 4000 || !isEditingCode) {
+             codeToSave = generatedPython; 
+        }
+    }
+
     if (isEditingCode && !isUnsynced) codeToSave = generatedPython;
 
     const oldCode = (generatedPython || "").trim(); 
@@ -673,9 +731,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       setIsSyncingBlocks(true);
       try {
         await workspaceRef.current.loadFromPython(sanitizePythonCode(generatedPython));
+        loadTimeRef.current = Date.now(); // Reset protection timer
         setIsEditingCode(false); 
         setViewMode("workspace");
-        loadTimeRef.current = Date.now();
         showToast("Python code successfully converted into blocks!", "success");
       } catch (e) {
         setModalConfig({ isOpen: true, title: "Sync Error", message: "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
@@ -736,8 +794,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         if (res.ok) {
            try { await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: true }); } catch (e) {}
         } else throw new Error("Sync failed with status: " + res.status);
-      } catch (error) { await safeAddToSyncQueue(`sync_prog_${lessonId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload }); }
-    } else if (!user.isGuest) await safeAddToSyncQueue(`sync_prog_${lessonId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload });
+      } catch (error) { pushToSyncQueue(`sync_prog_${lessonId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload }); }
+    } else if (!user.isGuest) pushToSyncQueue(`sync_prog_${lessonId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload });
   };
 
   const completeFullTopic = async (topicId) => {
@@ -759,8 +817,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         if (res.ok) {
             try { await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: true }); } catch (e) {}
         } else throw new Error("Sync failed with status: " + res.status);
-      } catch (error) { await safeAddToSyncQueue(`sync_prog_${topicId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload }); }
-    } else if (!user.isGuest) await safeAddToSyncQueue(`sync_prog_${topicId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload });
+      } catch (error) { pushToSyncQueue(`sync_prog_${topicId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload }); }
+    } else if (!user.isGuest) pushToSyncQueue(`sync_prog_${topicId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload });
   };
 
   const executeTest = async (codeToRun) => {
@@ -777,8 +835,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     });
   };
 
-  const checkLessonCompletion = async (currentActivityId = null, currentStatus = null, currentScore = null) => {
-    if (!latestStateRef.current.userId || !lessonActivitiesResolved.length) return { passedCount: 0, threshold: 1, isCompleted: false };
+  // INSTANT PROGRESS FIX: Now accurately checks user.progress from localStorage to eliminate API DB sync delays
+  const checkLessonCompletion = async (currentActivityId = null, currentScore = null) => {
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (!storedUser || !lessonActivitiesResolved.length) return { passedCount: 0, threshold: 1, isCompleted: false };
+    
+    const user = JSON.parse(storedUser);
+    const userProgress = user.progress || {};
 
     const diffs = lessonActivitiesResolved.map(a => (a.difficulty || 'Easy').toLowerCase());
     const types = lessonActivitiesResolved.map(a => (a.type || 'activity').toLowerCase());
@@ -793,15 +856,22 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     let passedCount = 0;
     for (const act of lessonActivitiesResolved) {
       if (currentActivityId === String(act.id)) {
-         if ((currentStatus === "passed" || currentScore >= 50)) passedCount++;
+         if (currentScore >= 50) passedCount++;
          continue;
       }
 
-      const subId = `${latestStateRef.current.userId}_${moduleId}_${act.id}`;
-      try {
-        const sub = await submissionsDB.getItem(subId);
-        if (sub && (sub.status === "passed" || sub.score >= 50)) passedCount++;
-      } catch (e) { }
+      const lessonKey = `${moduleId}:${act.id}`;
+      // Instant read from dict
+      if (userProgress[lessonKey] >= 50) {
+          passedCount++;
+      } else {
+          // Backup fetch just in case it's missing from dict but in IndexedDB
+          const subId = `${user.email}_${moduleId}_${act.id}`;
+          try {
+            const sub = await submissionsDB.getItem(subId);
+            if (sub && sub.score >= 50) passedCount++;
+          } catch (e) { }
+      }
     }
     return { passedCount, threshold, isCompleted: passedCount >= threshold };
   };
@@ -811,8 +881,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const isLast = currentIndex === lessonActivitiesResolved.length - 1;
     const nextActivity = !isLast ? lessonActivitiesResolved[currentIndex + 1] : null;
 
-    const currentStatus = aesScore >= 50 ? "passed" : "failed";
-    const completionData = await checkLessonCompletion(activityId, currentStatus, aesScore);
+    const completionData = await checkLessonCompletion(activityId, aesScore);
     const meetsThreshold = completionData.isCompleted;
 
     if (meetsThreshold && topicIdResolved) {
@@ -976,7 +1045,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
 
-    try { await saveSubmission(latestStateRef.current.json, generatedPython, aes, passed, totalTests, testResults, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", false); } catch(e) { console.error(e) }
+    const trueFinalJsonToSave = getFailsafeWorkspaceJson() || latestStateRef.current.json;
+
+    try { await saveSubmission(trueFinalJsonToSave, generatedPython, aes, passed, totalTests, testResults, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", false); } catch(e) { console.error(e) }
     try { localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: aes })); } catch(e) {}
 
     const lessonKey = `${moduleId}:${activityId}`;
@@ -1058,7 +1129,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                 if (isUnmountingRef.current) return;
                 const newCode = sanitizePythonCode(value);
                 setGeneratedPython(newCode); setIsEditingCode(true); setSyntaxErrors([]);
-                latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(latestStateRef.current.json, newCode);
+                latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(getFailsafeWorkspaceJson() || latestStateRef.current.json, newCode);
               }}
               onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
             />
@@ -2349,7 +2420,7 @@ import { FiLock, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
-import { projectsDB, templatesDB } from "../db";
+import { progressDB, projectsDB, templatesDB } from "../db";
 import "../styles/Dashboard.css";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
@@ -2470,50 +2541,24 @@ export default function Dashboard() {
   const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const user = currentUser;
+      const user = currentUser ? { ...currentUser } : null;
 
-      let total = 0;
-      let completed = 0;
-      let nextMod = curriculumIndex[0];
-      let foundNext = false;
-
-      for (const mod of curriculumIndex) {
-        let modCompleted = 0;
-        for (const les of mod.lessons) {
-          total++;
-          if (user && user.progress && user.progress[les.lessonId]) {
-            completed++;
-            modCompleted++;
-          }
-        }
-        if (modCompleted < mod.lessons.length && !foundNext) {
-          nextMod = mod;
-          foundNext = true;
+      // Ensure user progress is heavily merged from local IndexedDB 
+      if (user) {
+        if (!user.progress) user.progress = {};
+        try {
+          const allLocalProgress = await progressDB.getAll();
+          allLocalProgress.forEach(p => {
+            const key = p.lesson_id || p.id;
+            if (key) {
+              if (p.completed) user.progress[key] = true;
+              else if (p.score !== undefined) user.progress[key] = Math.max(user.progress[key] || 0, p.score);
+            }
+          });
+        } catch (e) {
+          console.warn("Could not read local progressDB", e);
         }
       }
-
-      if (!foundNext && curriculumIndex.length > 0) {
-        nextMod = curriculumIndex[curriculumIndex.length - 1]; 
-      }
-
-      const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
-
-      const modDescriptions = {
-        "module-0": "Start your journey into algorithm visualization and complexity analysis.",
-        "module-1": "Understand Big-O notation, Time, and Space Complexity boundaries.",
-        "module-2": "Explore Brute Force strategies and basic searching & sorting.",
-        "module-3": "Master recursive decomposition and logarithmic time complexity boundaries.",
-        "module-4": "Learn how to make locally optimal choices to solve global problems.",
-        "module-5": "Solve complex problems by breaking them down into overlapping subproblems.",
-        "module-6": "Explore all possible solutions efficiently using backtracking techniques."
-      };
-
-      setProgressData({
-        percent,
-        moduleTitle: nextMod?.title || "Algorithms",
-        moduleBadge: `Up Next â€¢ ${nextMod?.moduleId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Module"}`,
-        moduleDesc: nextMod ? modDescriptions[nextMod.moduleId] || "Continue your algorithm learning journey." : "Continue your algorithm learning journey."
-      });
 
       if (navigator.onLine && user && !user.isGuest && API_BASE) {
         try {
@@ -2522,6 +2567,16 @@ export default function Dashboard() {
             "Content-Type": "application/json",
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           };
+
+          // FIXED: Aggressively fetch progress from Cloud API directly on load so it never gets stuck at 0%
+          const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
+          if (progRes.ok && progRes.headers.get("content-type")?.includes("application/json")) {
+            const progData = await progRes.json();
+            if (progData.progress) {
+              user.progress = { ...user.progress, ...progData.progress };
+              localStorage.setItem("user", JSON.stringify(user));
+            }
+          }
 
           const pRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
           if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
@@ -2550,7 +2605,62 @@ export default function Dashboard() {
         }
       }
 
-      // Read from updated indexedDB wrapper
+      let totalLessons = 0;
+      let completedLessons = 0;
+      let nextMod = curriculumIndex[0];
+      let foundNext = false;
+
+      // Track individual activities inside lessons to provide partial UI bumps
+      let activityCount = 0;
+      if (user && user.progress) {
+        Object.entries(user.progress).forEach(([k, v]) => {
+          if (k.includes(':') && typeof v === 'number' && v >= 50) activityCount++;
+        });
+      }
+
+      for (const mod of curriculumIndex) {
+        let modCompleted = 0;
+        for (const les of mod.lessons) {
+          totalLessons++;
+          if (user && user.progress && user.progress[les.lessonId]) {
+            completedLessons++;
+            modCompleted++;
+          }
+        }
+        if (modCompleted < mod.lessons.length && !foundNext) {
+          nextMod = mod;
+          foundNext = true;
+        }
+      }
+
+      if (!foundNext && curriculumIndex.length > 0) {
+        nextMod = curriculumIndex[curriculumIndex.length - 1]; 
+      }
+
+      let percent = totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
+
+      // UX FIX: If they only did 1-2 activities and haven't fully passed a lesson yet, give them a visual fractional bump so the progress bar doesn't look dead.
+      if (percent === 0 && activityCount > 0) {
+        percent = Math.min(5, activityCount * 2);
+      }
+
+      const modDescriptions = {
+        "module-0": "Start your journey into algorithm visualization and complexity analysis.",
+        "module-1": "Understand Big-O notation, Time, and Space Complexity boundaries.",
+        "module-2": "Explore Brute Force strategies and basic searching & sorting.",
+        "module-3": "Master recursive decomposition and logarithmic time complexity boundaries.",
+        "module-4": "Learn how to make locally optimal choices to solve global problems.",
+        "module-5": "Solve complex problems by breaking them down into overlapping subproblems.",
+        "module-6": "Explore all possible solutions efficiently using backtracking techniques."
+      };
+
+      setProgressData({
+        percent,
+        moduleTitle: nextMod?.title || "Algorithms",
+        moduleBadge: `Up Next â€¢ ${nextMod?.moduleId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Module"}`,
+        moduleDesc: nextMod ? modDescriptions[nextMod.moduleId] || "Continue your algorithm learning journey." : "Continue your algorithm learning journey."
+      });
+
       const allProjects = await projectsDB.getAll();
       const userProjects = allProjects.filter((value) => !user || value.owner_id === user.email || value.userId === user.email);
       const sortedProjects = userProjects.sort((a, b) => new Date(b.updatedAt || b.timestamp || 0) - new Date(a.updatedAt || a.timestamp || 0));
