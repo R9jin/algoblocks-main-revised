@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 1 OF 10) ---
 
---- TIMESTAMP: 2026-07-08 19:33:22 ---
+--- TIMESTAMP: 2026-07-10 11:11:30 ---
 
 
 --- FILE: README.md ---
@@ -3390,12 +3390,6 @@ def init_db():
     conn.close()
     logger.info("Successfully connected to PostgreSQL Neon and verified hybrid tables.")
 
-try:
-    init_db()
-except Exception as e:
-    logger.error(f"Error initializing PostgreSQL Neon tables: {e}", exc_info=True)
-    raise
-
 --- FILE: api/dynamic_tracer.py ---
 
 # frontend/public/python_engine/dynamic_tracer.py
@@ -3564,6 +3558,19 @@ app.include_router(admin_router.router, prefix="/api/admin", tags=["Admin Operat
 async def health_check():
     return {"status": "ok", "message": "AlgoBlocks API is running smoothly on PostgreSQL Neon."}
 
+@app.get("/api/admin/init-db", tags=["Admin Operations"])
+async def initialize_database():
+    """
+    Run this manually via browser once after deploying to Vercel to create tables.
+    Example: https://your-vercel-url.vercel.app/api/admin/init-db
+    """
+    try:
+        # Calls the function without it running globally on cold starts
+        database.init_db()
+        return {"status": "success", "message": "PostgreSQL tables initialized successfully!"}
+    except Exception as e:
+        return {"status": "error", "message": f"Initialization failed: {str(e)}"}
+
 if __name__ == "__main__":
     uvicorn.run("index:app", host="0.0.0.0", port=8000, reload=True)
 
@@ -3705,6 +3712,7 @@ class SyncResponse(BaseModel):
 
 from database import get_db_connection
 import json
+import uuid
 
 class ProjectRepository:
     @staticmethod
@@ -3739,6 +3747,11 @@ class ProjectRepository:
         user_id = project_data.get("userId")
         owner_id = project_data.get("owner_id", user_id)
         project_id = project_data.get("projectId")
+        
+        # Generate a safe UUID if the frontend stripped the ID or sent a local temp ID
+        if not project_id or str(project_id).startswith("local_"):
+            project_id = str(uuid.uuid4())
+            
         is_synced = project_data.get("isSynced", False)
         timestamp = project_data.get("timestamp", 0)
         
@@ -3794,10 +3807,9 @@ class ProjectRepository:
             values.append(timestamp)
             
         if blockly_updates:
-            # jsonb_set allows updating specific keys inside the JSON object natively in Postgres
-            for key, val in blockly_updates.items():
-                set_clauses.append(f"blockly_data = jsonb_set(blockly_data, %s, %s, true)")
-                values.extend([f'{{{key}}}', json.dumps(val)])
+            # Safely merge updates into the JSONB object natively using PostgreSQL concatenation (||)
+            set_clauses.append("blockly_data = blockly_data || %s::jsonb")
+            values.append(json.dumps(blockly_updates))
                 
         if not set_clauses:
             return None
@@ -3841,6 +3853,7 @@ class ProjectRepository:
 # api/repositories/template_repo.py
 from database import get_db_connection
 import json
+import uuid
 
 class TemplateRepository:
     @staticmethod
@@ -3886,6 +3899,11 @@ class TemplateRepository:
         cursor = conn.cursor()
         
         template_id = template_data.get("templateId")
+        
+        # Generate a safe UUID if the frontend stripped the ID or sent a local temp ID
+        if not template_id or str(template_id).startswith("local_"):
+            template_id = str(uuid.uuid4())
+            
         category = template_data.get("category", "Custom")
         user_id = template_data.get("userId")
         owner_id = template_data.get("owner_id", user_id)
@@ -3994,12 +4012,12 @@ class UserRepository:
         user_dict = dict(user)
         
         # Fetch associated JSONB progress
-        cursor.execute('SELECT data FROM progress WHERE email = %s', (email,))
+        cursor.execute('SELECT data FROM progress WHERE email = %s LIMIT 1', (email,))
         progress_row = cursor.fetchone()
         user_dict["progress"] = progress_row["data"] if progress_row else {}
         
         # Fetch associated JSONB assessments
-        cursor.execute('SELECT data FROM assessments WHERE email = %s', (email,))
+        cursor.execute('SELECT data FROM assessments WHERE email = %s LIMIT 1', (email,))
         assessment_row = cursor.fetchone()
         user_dict["assessments"] = assessment_row["data"] if assessment_row else {}
         
@@ -4044,15 +4062,17 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Ensure row exists
-        cursor.execute('INSERT INTO progress (email, data) VALUES (%s, %s) ON CONFLICT DO NOTHING', (email, '{}'))
-        
+        # Update existing row safely
         cursor.execute('''
             UPDATE progress 
             SET data = jsonb_set(data, %s, %s, true)
             WHERE email = %s
         ''', (f'{{{lesson_id}}}', json.dumps(score), email))
         
+        # If no row was updated, insert exactly one safely
+        if cursor.rowcount == 0:
+            cursor.execute('INSERT INTO progress (email, data) VALUES (%s, %s)', (email, json.dumps({lesson_id: score})))
+            
         cursor.close()
         conn.close()
 
@@ -4061,15 +4081,17 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Ensure row exists
-        cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s) ON CONFLICT DO NOTHING', (email, '{}'))
-        
+        # Update existing row safely
         cursor.execute('''
             UPDATE assessments 
             SET data = jsonb_set(data, %s, %s, true)
             WHERE email = %s
         ''', (f'{{{assessment_key}}}', json.dumps(data), email))
         
+        # If no row was updated, insert exactly one safely
+        if cursor.rowcount == 0:
+             cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s)', (email, json.dumps({assessment_key: data})))
+             
         cursor.close()
         conn.close()
         
@@ -4078,14 +4100,10 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Join the relational table with the JSONB tracker tables
+        # Select purely from the unique users table to prevent duplicate identity rows
         cursor.execute('''
-            SELECT u.name, u.email, u.status, u.role, u.is_admin,
-                   COALESCE(p.data, '{}'::jsonb) as progress,
-                   COALESCE(a.data, '{}'::jsonb) as assessments
-            FROM users u
-            LEFT JOIN progress p ON u.email = p.email
-            LEFT JOIN assessments a ON u.email = a.email
+            SELECT id, name, email, status, role, is_admin
+            FROM users
         ''')
         users = cursor.fetchall()
         
@@ -4107,7 +4125,7 @@ class UserRepository:
     def delete_user(email: str):
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Due to ON DELETE CASCADE in the table creation, this will also wipe progress and assessments
+        # Due to ON DELETE CASCADE, this will wipe associated progress and assessments too
         cursor.execute('DELETE FROM users WHERE email = %s', (email,))
         rowcount = cursor.rowcount
         cursor.close()

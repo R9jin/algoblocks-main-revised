@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 10 OF 10) ---
 
---- TIMESTAMP: 2026-07-08 19:33:22 ---
+--- TIMESTAMP: 2026-07-10 11:11:30 ---
 
 
 --- FILE: frontend/src/styles/TestCaseTester.css ---
@@ -2261,13 +2261,29 @@ export const SyncManager = {
             // 3. Sync Individual Projects
             for (const project of unsyncedProjects) {
                 try {
+                    const apiPayload = { ...project };
+                    // Prevent Postgres 500 error by stripping local string IDs
+                    if (String(apiPayload.projectId || apiPayload._id).startsWith("local_")) {
+                        apiPayload.projectId = null;
+                    }
+                    
                     const res = await fetch(`${API_BASE_URL}/projects`, {
                         method: "POST",
                         headers,
-                        body: JSON.stringify(project)
+                        body: JSON.stringify(apiPayload)
                     });
+                    
                     if (res.ok) {
-                        await projectsDB.save({ ...project, isSynced: true });
+                        const responseData = await res.json().catch(() => ({}));
+                        const realId = responseData.projectId || responseData._id || project.projectId || project._id;
+                        
+                        // If the backend generated a new numeric ID, swap it out locally
+                        if (String(realId) !== String(project.projectId || project._id)) {
+                            await projectsDB.delete(project.projectId || project._id);
+                            await projectsDB.save({ ...project, projectId: realId, _id: realId, isSynced: true });
+                        } else {
+                            await projectsDB.save({ ...project, isSynced: true });
+                        }
                     }
                 } catch (e) {
                     console.error(`Failed to sync project ${project.projectId}`, e);
@@ -2277,13 +2293,29 @@ export const SyncManager = {
             // 4. Sync Individual Templates
             for (const template of unsyncedTemplates) {
                 try {
+                    const apiPayload = { ...template };
+                    // Prevent Postgres 500 error by stripping local string IDs
+                    if (String(apiPayload.templateId || apiPayload._id).startsWith("local_")) {
+                        apiPayload.templateId = null;
+                        apiPayload.projectId = null; 
+                    }
+                    
                     const res = await fetch(`${API_BASE_URL}/templates`, {
                         method: "POST",
                         headers,
-                        body: JSON.stringify(template)
+                        body: JSON.stringify(apiPayload)
                     });
+                    
                     if (res.ok) {
-                        await templatesDB.save({ ...template, isSynced: true });
+                        const responseData = await res.json().catch(() => ({}));
+                        const realId = responseData.templateId || responseData._id || template.templateId || template._id;
+                        
+                        if (String(realId) !== String(template.templateId || template._id)) {
+                            await templatesDB.delete(template.templateId || template._id);
+                            await templatesDB.save({ ...template, templateId: realId, _id: realId, isSynced: true });
+                        } else {
+                            await templatesDB.save({ ...template, isSynced: true });
+                        }
                     }
                 } catch (e) {
                     console.error(`Failed to sync template ${template.templateId}`, e);

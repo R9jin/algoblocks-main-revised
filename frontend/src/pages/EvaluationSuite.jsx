@@ -320,9 +320,9 @@ export default function EvaluationSuite() {
           logText += `\nLine Level Mismatches:\n`;
           m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).forEach(l => {
             logText += `  -> Line ${l.lineno}:\n`;
-            logText += `     LT Exp [-] Act [${l.localTime || '-'}]\n`;
+            logText += `     LT Exp [${l.expLocalTime || '-'}] Act [${l.localTime || '-'}]\n`;
             logText += `     GT Exp [${l.expTime || '-'}] Act [${l.predTime || '-'}]\n`;
-            logText += `     LS Exp [-] Act [${l.localSpace || '-'}]\n`;
+            logText += `     LS Exp [${l.expLocalSpace || '-'}] Act [${l.localSpace || '-'}]\n`;
             logText += `     GS Exp [${l.expSpace || '-'}] Act [${l.predSpace || '-'}]\n`;
           });
         }

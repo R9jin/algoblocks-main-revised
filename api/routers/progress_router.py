@@ -1,7 +1,8 @@
 # api/routers/progress_router.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
+from typing import Dict, Any
 import logging
-from ..models import ProgressUpdate, ActivitySubmission, AssessmentSubmission, BatchSyncPayload, SyncResponse
+from ..models import ProgressUpdate, BatchSyncPayload, SyncResponse
 from ..services.auth_service import AuthService
 from ..repositories.user_repo import UserRepository
 from ..security import get_current_user_email
@@ -26,15 +27,14 @@ async def update_progress(data: ProgressUpdate, current_user_email: str = Depend
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/sync-submission")
-async def sync_submission(data: ActivitySubmission, current_user_email: str = Depends(get_current_user_email)):
+async def sync_submission(data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
     try:
-        if data.userId != current_user_email:
+        if data.get("userId") != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to sync this submission")
 
-        submission_dict = data.dict()
-        submission_dict["isSynced"] = True
+        data["isSynced"] = True
 
-        AuthService.sync_submission(submission_dict)
+        AuthService.sync_submission(data)
 
         return {"status": "success", "message": "Submission synced"}
     except HTTPException:
@@ -44,15 +44,14 @@ async def sync_submission(data: ActivitySubmission, current_user_email: str = De
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/sync-assessment")
-async def sync_assessment(data: AssessmentSubmission, current_user_email: str = Depends(get_current_user_email)):
+async def sync_assessment(data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
     try:
-        if data.userId != current_user_email:
+        if data.get("userId") != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to sync this assessment")
 
-        assessment_dict = data.dict()
-        assessment_dict["isSynced"] = True
+        data["isSynced"] = True
         
-        AuthService.sync_assessment(assessment_dict)
+        AuthService.sync_assessment(data)
 
         return {"status": "success", "message": "Assessment synced"}
     except HTTPException:
@@ -78,7 +77,7 @@ async def batch_sync(payload: BatchSyncPayload, current_user_email: str = Depend
 async def get_submission(activityId: str, moduleId: str, current_user_email: str = Depends(get_current_user_email)):
     try:
         res = AuthService.get_submission(current_user_email, activityId, moduleId)
-        if res.get("submission"):
+        if res and res.get("submission"):
             return {"status": "success", "submission": res["submission"]}
         return {"status": "not_found", "submission": None}
     except Exception as e:
@@ -89,7 +88,7 @@ async def get_submission(activityId: str, moduleId: str, current_user_email: str
 async def get_assessment(assessmentId: str, current_user_email: str = Depends(get_current_user_email)):
     try:
         res = AuthService.get_assessment(current_user_email, assessmentId)
-        if res.get("assessment"):
+        if res and res.get("assessment"):
             return {"status": "success", "assessment": res["assessment"]}
         return {"status": "not_found", "assessment": None}
     except Exception as e:

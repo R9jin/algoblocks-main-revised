@@ -24,12 +24,6 @@ def signup_user(request: Request, req: UserCreate):
 def google_auth(request: Request, req: GoogleLoginRequest): 
     return AuthService.google_login(req.token)
 
-@router.post("/update-progress")
-@limiter.limit("30/minute")
-def update_progress(request: Request, req: ProgressUpdate, trusted_email: str = Depends(get_current_user_email)):
-    req.email = trusted_email 
-    return AuthService.update_progress(req)
-
 @router.get("/get-progress")
 @limiter.limit("30/minute")
 def get_progress(request: Request, trusted_email: str = Depends(get_current_user_email)):
@@ -45,28 +39,6 @@ def update_assessment(request: Request, req: AssessmentUpdateRequest, trusted_em
 @limiter.limit("30/minute")
 def get_assessments(request: Request, trusted_email: str = Depends(get_current_user_email)):
     return AuthService.get_assessments(trusted_email)
-
-@router.post("/sync-submission")
-@limiter.limit("60/minute")
-def sync_submission(request: Request, payload: Dict[str, Any] = Body(...), trusted_email: str = Depends(get_current_user_email)):
-    payload["userId"] = trusted_email 
-    return AuthService.sync_submission(payload)
-
-@router.get("/get-submission")
-@limiter.limit("60/minute")
-def get_submission(request: Request, activityId: str = Query(...), moduleId: str = Query(None), trusted_email: str = Depends(get_current_user_email)):
-    return AuthService.get_submission(trusted_email, activityId, moduleId)
-
-@router.post("/sync-assessment")
-@limiter.limit("30/minute")
-def sync_assessment(request: Request, payload: Dict[str, Any] = Body(...), trusted_email: str = Depends(get_current_user_email)):
-    payload["userId"] = trusted_email
-    return AuthService.sync_assessment(payload)
-
-@router.get("/get-assessment")
-@limiter.limit("30/minute")
-def get_assessment(request: Request, moduleId: str = Query(...), trusted_email: str = Depends(get_current_user_email)):
-    return AuthService.get_assessment(trusted_email, moduleId)
 
 @router.get("/get-all-submissions")
 @limiter.limit("30/minute")

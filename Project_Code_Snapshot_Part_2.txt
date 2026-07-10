@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 2 OF 10) ---
 
---- TIMESTAMP: 2026-07-08 19:33:22 ---
+--- TIMESTAMP: 2026-07-10 11:11:30 ---
 
 
 --- FILE: api/requirements.txt ---
@@ -59,14 +59,14 @@ def get_all_users(request: Request, admin_email: str = Depends(get_current_admin
         logger.error(f"Error fetching users via PostgreSQL: {str(e)}")
         raise HTTPException(status_code=500, detail="Error fetching users")
 
-@router.post("/users/status")
+@router.patch("/users/{email}/status")
 @limiter.limit("20/minute")
 def update_user_status(
+    email: str,
     request: Request,
     payload: Dict[str, Any] = Body(...), 
     admin_email: str = Depends(get_current_admin_user)
 ):
-    email = payload.get("email")
     status = payload.get("status")
     
     if not email or not status:
@@ -86,15 +86,13 @@ def update_user_status(
         logger.error(f"Error updating user status in PostgreSQL: {str(e)}")
         raise HTTPException(status_code=500, detail="Error updating user status")
 
-@router.post("/users/delete")
+@router.delete("/users/{email}")
 @limiter.limit("10/minute")
 def delete_user(
+    email: str,
     request: Request,
-    payload: Dict[str, Any] = Body(...), 
     admin_email: str = Depends(get_current_admin_user)
 ):
-    email = payload.get("email")
-    
     if not email:
         raise HTTPException(status_code=400, detail="Missing email")
         
@@ -407,7 +405,9 @@ router = APIRouter()
 def get_all_templates(userId: Optional[str] = Query(None)):
     return TemplateService.get_all_templates()
 
-# BUG-07 Fix: Require valid JWT token to persist templates
+# Added "" and "/" so syncManager's POST to /api/templates works
+@router.post("")
+@router.post("/")
 @router.post("/save")
 def save_template(req: TemplateSyncRequest, current_user: str = Depends(get_current_user_email)):
     try:
