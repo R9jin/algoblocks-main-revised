@@ -11,7 +11,7 @@
       {"lineno": 19, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 25, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 26, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
-      {"lineno": 30, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 30, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 32, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 33, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 38, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
@@ -21,7 +21,11 @@
       {"lineno": 46, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 47, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
       {"lineno": 51, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
-      {"lineno": 52, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"}
+      {"lineno": 52, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 57, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(n)", "global_space": "O(n)"},
+      {"lineno": 58, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 59, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 61, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"}
     ]
   },
   {

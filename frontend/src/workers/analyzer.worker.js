@@ -572,26 +572,51 @@ json.dumps(res)
           const lineValidationResults = predictedLines.map(pLine => {
             const lineNo = pLine.lineno || pLine.line || 0;
             const matchedExp = expectedLines.find(e => (e.lineno || e.line) === lineNo);
-            
-            const predLineTime = strictBigONormalizer(pLine.global_time || pLine.local_time || "O(1)");
-            const predLineSpace = strictBigONormalizer(pLine.global_space || pLine.local_space || "O(1)");
-            
-            let expLineTime = matchedExp ? strictBigONormalizer(matchedExp.global_time || matchedExp.time || matchedExp.time_complexity || "") : null;
-            let expLineSpace = matchedExp ? strictBigONormalizer(matchedExp.global_space || matchedExp.space || matchedExp.space_complexity || "") : null;
-            
-            let isLineTimeMatch = expLineTime ? checkMatch(predLineTime, expLineTime, "time") : true;
-            let isLineSpaceMatch = expLineSpace ? checkMatch(predLineSpace, expLineSpace, "space") : true;
-            
+
+            // Predicted: analyzer.py emits distinct local_time/global_time/local_space/global_space
+            // per line -- capture all four instead of collapsing them into one pair.
+            const predLocalTime = strictBigONormalizer(pLine.local_time || "O(1)");
+            const predGlobalTime = strictBigONormalizer(pLine.global_time || pLine.local_time || "O(1)");
+            const predLocalSpace = strictBigONormalizer(pLine.local_space || "O(1)");
+            const predGlobalSpace = strictBigONormalizer(pLine.global_space || pLine.local_space || "O(1)");
+
+            // Expected: ground-truth line_metrics entries also carry local_* and global_* separately.
+            const expLocalTime = matchedExp ? strictBigONormalizer(matchedExp.local_time || matchedExp.time || matchedExp.time_complexity || "") : null;
+            const expGlobalTime = matchedExp ? strictBigONormalizer(matchedExp.global_time || matchedExp.time || matchedExp.time_complexity || "") : null;
+            const expLocalSpace = matchedExp ? strictBigONormalizer(matchedExp.local_space || matchedExp.space || matchedExp.space_complexity || "") : null;
+            const expGlobalSpace = matchedExp ? strictBigONormalizer(matchedExp.global_space || matchedExp.space || matchedExp.space_complexity || "") : null;
+
+            const isLocalTimeMatch = expLocalTime ? checkMatch(predLocalTime, expLocalTime, "time") : true;
+            const isGlobalTimeMatch = expGlobalTime ? checkMatch(predGlobalTime, expGlobalTime, "time") : true;
+            const isLocalSpaceMatch = expLocalSpace ? checkMatch(predLocalSpace, expLocalSpace, "space") : true;
+            const isGlobalSpaceMatch = expGlobalSpace ? checkMatch(predGlobalSpace, expGlobalSpace, "space") : true;
+
+            const isLineTimeMatch = isLocalTimeMatch && isGlobalTimeMatch;
+            const isLineSpaceMatch = isLocalSpaceMatch && isGlobalSpaceMatch;
+
             return {
               lineno: lineNo,
               lineOfCode: pLine.lineOfCode || pLine.code || "",
               operation: pLine.operation || "Statement",
-              localTime: strictBigONormalizer(pLine.local_time || "O(1)"),
-              localSpace: strictBigONormalizer(pLine.local_space || "O(1)"),
-              predTime: predLineTime,
-              predSpace: predLineSpace,
-              expTime: expLineTime,
-              expSpace: expLineSpace,
+
+              // Canonical field names (matched by EvaluationSuite.jsx's getProp lookups)
+              predLocalTime, predGlobalTime, predLocalSpace, predGlobalSpace,
+              expLocalTime, expGlobalTime, expLocalSpace, expGlobalSpace,
+
+              // Legacy aliases kept for backward compatibility with any other consumers
+              localTime: predLocalTime,
+              localSpace: predLocalSpace,
+              predTime: predGlobalTime,
+              predSpace: predGlobalSpace,
+              expTime: expGlobalTime,
+              expSpace: expGlobalSpace,
+
+              // Per-cell match flags consumed by renderDualBadge() for pass/fail color-coding
+              ltMatch: isLocalTimeMatch,
+              gtMatch: isGlobalTimeMatch,
+              lsMatch: isLocalSpaceMatch,
+              gsMatch: isGlobalSpaceMatch,
+
               hasGroundTruth: !!matchedExp,
               isTimeMatch: isLineTimeMatch,
               isSpaceMatch: isLineSpaceMatch,
@@ -617,18 +642,27 @@ json.dumps(res)
               // Drop it entirely to prevent punishing the metric suite over unparsed docstrings/comments
               if (isCommentOrBlank) return;
 
-              const expLineTime = strictBigONormalizer(eLine.global_time || eLine.time || "");
-              const expLineSpace = strictBigONormalizer(eLine.global_space || eLine.space || "");
+              const expLocalTime = strictBigONormalizer(eLine.local_time || eLine.time || "");
+              const expGlobalTime = strictBigONormalizer(eLine.global_time || eLine.time || "");
+              const expLocalSpace = strictBigONormalizer(eLine.local_space || eLine.space || "");
+              const expGlobalSpace = strictBigONormalizer(eLine.global_space || eLine.space || "");
               lineValidationResults.push({
                 lineno: lineNo,
                 lineOfCode: eLine.lineOfCode || eLine.code || "(Unparsed statement)",
                 operation: eLine.operation || "Statement",
+
+                predLocalTime: "MISSING", predGlobalTime: "MISSING",
+                predLocalSpace: "MISSING", predGlobalSpace: "MISSING",
+                expLocalTime, expGlobalTime, expLocalSpace, expGlobalSpace,
+
+                // Legacy aliases
                 localTime: "-",
                 localSpace: "-",
                 predTime: "MISSING",
                 predSpace: "MISSING",
-                expTime: expLineTime,
-                expSpace: expLineSpace,
+                expTime: expGlobalTime,
+                expSpace: expGlobalSpace,
+
                 hasGroundTruth: true,
                 isTimeMatch: false,
                 isSpaceMatch: false,
