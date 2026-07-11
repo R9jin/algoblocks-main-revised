@@ -73,7 +73,6 @@ def normalize_complexity(c):
     if c in ("2^n", "exponential", "o(2^n)", "o(exponential)"): return "O(2^n)"
     if c in ("3^n", "o(3^n)"): return "O(3^n)"
     
-    # Safely convert AST recurrence tracking to constant local time
     if c in ("t(n-1)", "o(t(n-1))", "t(n/2)", "o(t(n/2))", "t(n-2)", "o(t(n-2))"): return "O(1)"
     
     return f"O({c})"
@@ -82,23 +81,19 @@ def get_metric(line_data, possible_keys):
     if not line_data:
         return "-"
         
-    # Deep Normalization: strips spaces, underscores, and makes everything lowercase
     ld_norm = {str(k).lower().replace("_", "").replace(" ", ""): v for k, v in line_data.items()}
     pk_norm = [str(k).lower().replace("_", "").replace(" ", "") for k in possible_keys]
     
-    # 1. Top-Level Search
     for k in pk_norm:
         if k in ld_norm and ld_norm[k] is not None and str(ld_norm[k]).strip() != "":
             return str(ld_norm[k])
             
-    # 2. Nested "metrics" Object Search (Often causes the missing [-] bug)
     if "metrics" in ld_norm and isinstance(ld_norm["metrics"], dict):
         nested_metrics = {str(k).lower().replace("_", "").replace(" ", ""): v for k, v in ld_norm["metrics"].items()}
         for k in pk_norm:
             if k in nested_metrics and nested_metrics[k] is not None and str(nested_metrics[k]).strip() != "":
                 return str(nested_metrics[k])
                 
-    # 3. Nested "complexities" Object Search
     if "complexities" in ld_norm and isinstance(ld_norm["complexities"], dict):
         nested_comps = {str(k).lower().replace("_", "").replace(" ", ""): v for k, v in ld_norm["complexities"].items()}
         for k in pk_norm:
@@ -110,6 +105,7 @@ def get_metric(line_data, possible_keys):
 def check_match(actual, expected, metric_type="time"):
     if actual == expected: return True
     if expected == "-": return True
+    if actual == "-": return False
     
     t_a = EQUIVALENCE_MAP.get(actual, actual)
     t_e = EQUIVALENCE_MAP.get(expected, expected)
@@ -142,6 +138,53 @@ def calc_percentile(data, pct):
     f = int(k)
     c = min(f + 1, len(s) - 1)
     return s[f] + (s[c] - s[f]) * (k - f)
+
+def align_lines(act_lines, exp_lines):
+    """
+    Fuzzy bidirectional matcher to align Ground Truth lines with shifted AST lines.
+    Ensures 'ACTUALS' map accurately despite omitted comments/blank lines.
+    """
+    aligned_results = []
+    act_keys = sorted(list(act_lines.keys()))
+    exp_keys = sorted([x.get('lineno') for x in exp_lines if x.get('lineno')])
+    
+    gt_to_ast = {}
+    used_ast = set()
+    
+    # Pass 1: exact
+    for gt in exp_keys:
+        if gt in act_keys:
+            gt_to_ast[gt] = gt
+            used_ast.add(gt)
+            
+    # Pass 2: fuzzy (Look ahead/behind up to 5 lines)
+    for gt in exp_keys:
+        if gt not in gt_to_ast:
+            best = None
+            for offset in [1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+                cand = gt + offset
+                if cand in act_keys and cand not in used_ast:
+                    best = cand
+                    break
+            if best:
+                gt_to_ast[gt] = best
+                used_ast.add(best)
+                
+    ast_to_gt = {v: k for k, v in gt_to_ast.items() if k != v}
+    
+    display_lines = set(act_keys)
+    for gt in exp_keys:
+        if gt not in gt_to_ast or gt_to_ast[gt] == gt:
+            display_lines.add(gt)
+            
+    for lineno in sorted(list(display_lines)):
+        gt_ln = ast_to_gt.get(lineno, lineno)
+        exp_line = next((l for l in exp_lines if l.get('lineno') == gt_ln), None)
+        act_line = act_lines.get(lineno)
+        
+        aligned_results.append((lineno, exp_line, act_line))
+        
+    return aligned_results
 
 def calculate_metrics(injected_dataset=None):
     dataset_dir = os.path.join(os.path.dirname(__file__), 'dataset')
@@ -239,21 +282,15 @@ def calculate_metrics(injected_dataset=None):
         y_pred_space.append(normalize_complexity(EQUIVALENCE_MAP.get(actual_space, actual_space)))
 
         actual_lines_dict = { detail.get('lineno'): detail for detail in actual_details }
-        lineValidationResults = []
-        
         gt_line_metrics = item.get('line_metrics', item.get('lines', item.get('line_level_complexities', [])))
-        all_lines = sorted(list(set(list(actual_lines_dict.keys()) + [m.get('lineno') for m in gt_line_metrics if m.get('lineno')])))
+        
+        aligned_data = align_lines(actual_lines_dict, gt_line_metrics)
+        lineValidationResults = []
         code_lines = code_snippet.split('\n') if code_snippet else []
 
-        for lineno in all_lines:
-            has_ground_truth = False
-            exp_line = next((l for l in gt_line_metrics if l.get('lineno') == lineno), None)
-            act_line = actual_lines_dict.get(lineno)
-            
-            if exp_line:
-                has_ground_truth = True
+        for lineno, exp_line, act_line in aligned_data:
+            has_ground_truth = bool(exp_line)
                 
-            # Deep invincible multi-key mapping
             exp_lt_raw = get_metric(exp_line, ['local_time', 'lt', 'localTime', 'expected_local_time', 'time_complexity'])
             exp_gt_raw = get_metric(exp_line, ['global_time', 'gt', 'globalTime', 'expected_global_time'])
             exp_ls_raw = get_metric(exp_line, ['local_space', 'ls', 'localSpace', 'expected_local_space', 'space_complexity'])
@@ -275,6 +312,7 @@ def calculate_metrics(injected_dataset=None):
             act_gs = normalize_complexity(act_gs_raw)
 
             op = get_metric(act_line, ['operation', 'name'])
+            if op == "-": op = "Unparsed/Ignored"
             line_code = code_lines[lineno - 1].strip() if 0 < lineno <= len(code_lines) else ""
             
             if has_ground_truth:
@@ -308,7 +346,6 @@ def calculate_metrics(injected_dataset=None):
                 "lsMatch": ls_match,
                 "gsMatch": gs_match,
                 
-                # FAT PAYLOAD: Blast every possible property name to perfectly hook into React
                 "expLocalTime": exp_lt, "expectedLocalTime": exp_lt, "local_time": exp_lt,
                 "expGlobalTime": exp_gt, "expectedGlobalTime": exp_gt, "global_time": exp_gt,
                 "expLocalSpace": exp_ls, "expectedLocalSpace": exp_ls, "local_space": exp_ls,
