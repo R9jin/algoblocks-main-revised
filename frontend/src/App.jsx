@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
 import { PyodideProvider } from "./context/PyodideContext";
-import { startBackgroundSync } from "./utils/syncManager";
+import { startBackgroundSync, stopBackgroundSync } from "./utils/syncManager";
 
 // Lazy load ALL pages to prevent circular dependency crashes and reduce the initial load payload
 const AdminUserManagement = lazy(() => import('./pages/AdminUserManagement'));
@@ -13,6 +13,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const LandingPage = lazy(() => import("./pages/HomePage"));
 const LearningPath = lazy(() => import("./pages/LearningPath"));
 const Projects = lazy(() => import("./pages/Projects"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const SignIn = lazy(() => import("./pages/SignIn"));
 const SignUp = lazy(() => import("./pages/SignUp"));
 const UserHomePage = lazy(() => import("./pages/UserHomePage"));
@@ -51,9 +52,14 @@ function App() {
     const isValidUser = userStr && userStr !== "null" && userStr !== "undefined";
     const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
     
+    // Manage background sync lifecycle to prevent memory leaks and unauthenticated pings
     if (isValidUser && !isAuthPage) {
-      startBackgroundSync();
+      startBackgroundSync(30000); // 30 seconds interval
+    } else {
+      stopBackgroundSync();
     }
+
+    return () => stopBackgroundSync();
   }, [location.pathname]);
 
   return (
@@ -67,6 +73,7 @@ function App() {
           <Route path="/signin" element={<PublicRoute><SignIn /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
           
           {/* Protected Application Routes */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

@@ -4,7 +4,7 @@ import { FiLock, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
-import { projectsDB, templatesDB } from "../db";
+import { progressDB, projectsDB, templatesDB } from "../db";
 import "../styles/Dashboard.css";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
@@ -125,19 +125,89 @@ export default function Dashboard() {
   const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const user = currentUser;
+      const user = currentUser ? { ...currentUser } : null;
 
-      let total = 0;
-      let completed = 0;
+      // Ensure user progress is heavily merged from local IndexedDB 
+      if (user) {
+        if (!user.progress) user.progress = {};
+        try {
+          const allLocalProgress = await progressDB.getAll();
+          allLocalProgress.forEach(p => {
+            const key = p.lesson_id || p.id;
+            if (key) {
+              if (p.completed) user.progress[key] = true;
+              else if (p.score !== undefined) user.progress[key] = Math.max(user.progress[key] || 0, p.score);
+            }
+          });
+        } catch (e) {
+          console.warn("Could not read local progressDB", e);
+        }
+      }
+
+      if (navigator.onLine && user && !user.isGuest && API_BASE) {
+        try {
+          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+          const headers = {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          };
+
+          // FIXED: Aggressively fetch progress from Cloud API directly on load so it never gets stuck at 0%
+          const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
+          if (progRes.ok && progRes.headers.get("content-type")?.includes("application/json")) {
+            const progData = await progRes.json();
+            if (progData.progress) {
+              user.progress = { ...user.progress, ...progData.progress };
+              localStorage.setItem("user", JSON.stringify(user));
+            }
+          }
+
+          const pRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
+          if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
+            const pData = await pRes.json();
+            const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
+            for (const cp of cloudProjects) {
+              if (cp.owner_id === user.email || cp.userId === user.email) {
+                await projectsDB.save({ ...cp, projectId: cp.projectId || cp._id, isSynced: true });
+              }
+            }
+          }
+
+          const tRes = await fetch(`${API_BASE}/api/templates?userId=${encodeURIComponent(user.email)}`, { headers });
+          if (tRes.ok && tRes.headers.get("content-type")?.includes("application/json")) {
+            const tData = await tRes.json();
+            const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
+            for (const ct of cloudTemplates) {
+              if (ct.owner_id === user.email || ct.userId === user.email) {
+                await templatesDB.save({ ...ct, templateId: ct.templateId || ct._id, isSynced: true });
+              }
+            }
+          }
+
+        } catch (fetchErr) {
+          console.warn("Cloud sync check dropped to local cache:", fetchErr);
+        }
+      }
+
+      let totalLessons = 0;
+      let completedLessons = 0;
       let nextMod = curriculumIndex[0];
       let foundNext = false;
+
+      // Track individual activities inside lessons to provide partial UI bumps
+      let activityCount = 0;
+      if (user && user.progress) {
+        Object.entries(user.progress).forEach(([k, v]) => {
+          if (k.includes(':') && typeof v === 'number' && v >= 50) activityCount++;
+        });
+      }
 
       for (const mod of curriculumIndex) {
         let modCompleted = 0;
         for (const les of mod.lessons) {
-          total++;
+          totalLessons++;
           if (user && user.progress && user.progress[les.lessonId]) {
-            completed++;
+            completedLessons++;
             modCompleted++;
           }
         }
@@ -151,7 +221,12 @@ export default function Dashboard() {
         nextMod = curriculumIndex[curriculumIndex.length - 1]; 
       }
 
-      const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+      let percent = totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
+
+      // UX FIX: If they only did 1-2 activities and haven't fully passed a lesson yet, give them a visual fractional bump so the progress bar doesn't look dead.
+      if (percent === 0 && activityCount > 0) {
+        percent = Math.min(5, activityCount * 2);
+      }
 
       const modDescriptions = {
         "module-0": "Start your journey into algorithm visualization and complexity analysis.",
@@ -170,63 +245,20 @@ export default function Dashboard() {
         moduleDesc: nextMod ? modDescriptions[nextMod.moduleId] || "Continue your algorithm learning journey." : "Continue your algorithm learning journey."
       });
 
-      if (navigator.onLine && user && !user.isGuest && API_BASE) {
-        try {
-          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-          const headers = {
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
-          };
-
-          const pRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
-          if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
-            const pData = await pRes.json();
-            const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
-            for (const cp of cloudProjects) {
-              if (cp.owner_id === user.email || cp.userId === user.email) {
-                await projectsDB.setItem(cp._id, { ...cp, synced: true });
-              }
-            }
-          }
-
-          const tRes = await fetch(`${API_BASE}/api/templates?userId=${encodeURIComponent(user.email)}`, { headers });
-          if (tRes.ok && tRes.headers.get("content-type")?.includes("application/json")) {
-            const tData = await tRes.json();
-            const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
-            for (const ct of cloudTemplates) {
-              if (ct.owner_id === user.email || ct.userId === user.email) {
-                await templatesDB.setItem(ct._id, { ...ct, synced: true });
-              }
-            }
-          }
-
-        } catch (fetchErr) {
-          console.warn("Cloud sync check dropped to local cache:", fetchErr);
-        }
-      }
-
-      const loadedProjects = [];
-      await projectsDB.iterate((value) => {
-        if (!user || value.owner_id === user.email || value.userId === user.email) {
-          loadedProjects.push(value);
-        }
-      });
-      const sortedProjects = loadedProjects.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      const allProjects = await projectsDB.getAll();
+      const userProjects = allProjects.filter((value) => !user || value.owner_id === user.email || value.userId === user.email);
+      const sortedProjects = userProjects.sort((a, b) => new Date(b.updatedAt || b.timestamp || 0) - new Date(a.updatedAt || a.timestamp || 0));
       setRecentProjects(sortedProjects.slice(0, 5));
 
-      const loadedTemplates = [];
-      await templatesDB.iterate((value) => {
-        if (!user || value.owner_id === user.email || value.userId === user.email) {
-          loadedTemplates.push({
-            ...value,
-            isSystem: false,
-            icon: "/assets/blocks-icon.png", 
-            desc: value.description || "User-created template",
-            name: value.title || value.name || "Untitled Template"
-          });
-        }
-      });
-      const sortedTemplates = loadedTemplates.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      const allTemplates = await templatesDB.getAll();
+      const userTpls = allTemplates.filter((value) => !user || value.owner_id === user.email || value.userId === user.email).map(value => ({
+        ...value,
+        isSystem: false,
+        icon: "/assets/blocks-icon.png", 
+        desc: value.description || "User-created template",
+        name: value.title || value.name || "Untitled Template"
+      }));
+      const sortedTemplates = userTpls.sort((a, b) => new Date(b.updatedAt || b.timestamp || 0) - new Date(a.updatedAt || a.timestamp || 0));
       setUserTemplates(sortedTemplates);
 
     } catch (error) {
@@ -236,7 +268,6 @@ export default function Dashboard() {
     }
   }, [currentUser]);
 
-  // LIVE EVENT BUS: Instantly flips Local tags to Cloud tags whenever background sync dispatches
   useEffect(() => {
     loadDashboardData();
 
@@ -275,7 +306,7 @@ export default function Dashboard() {
         const proj = { 
           data: template.blocks || template.data || template.workspace?.blocklyJson, 
           isTemplate: true, 
-          templateId: template._id, 
+          templateId: template.templateId || template._id, 
           name: template.name || template.title,
           title: template.name || template.title 
         };
@@ -378,7 +409,7 @@ export default function Dashboard() {
                 <div className="bento-category-group">
                   <div className="bento-template-grid">
                     {userTemplates.map((tpl, i) => (
-                      <div key={tpl._id || i} className="bento-template-card custom-template-card" onClick={() => handleTryTemplate(tpl)} style={{ borderTop: "3px solid #db7fff" }}>
+                      <div key={tpl.templateId || i} className="bento-template-card custom-template-card" onClick={() => handleTryTemplate(tpl)} style={{ borderTop: "3px solid #db7fff" }}>
                         <div className="template-card-header">
                           <div className="template-icon-wrapper" style={{ background: "rgba(108, 92, 231, 0.2)" }}>
                             <img src={tpl.icon} alt="icon" className="template-icon" />
@@ -452,7 +483,6 @@ export default function Dashboard() {
           <aside className="bento-sidebar-column">
             <div className="bento-recent-card">
               
-              {/* Dynamic Header with Live Spinning Sync Indicator */}
               <div className="recent-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <h3>Recent Projects</h3>
@@ -481,7 +511,7 @@ export default function Dashboard() {
                 ) : (
                   <div className="bento-recent-list">
                     {recentProjects.map((proj) => (
-                      <div key={proj._id || proj.id} className="bento-recent-item" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
+                      <div key={proj.projectId || proj._id} className="bento-recent-item" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
                         <div className="recent-item-icon">
                           <CodeIcon />
                         </div>
@@ -489,10 +519,10 @@ export default function Dashboard() {
                           <h4 className="recent-item-title">{proj.title || proj.name}</h4>
                           <div className="recent-item-meta">
                             <ClockIcon />
-                            <span>{new Date(proj.updatedAt || Date.now()).toLocaleDateString()}</span>
+                            <span>{new Date(proj.updatedAt || proj.timestamp || Date.now()).toLocaleDateString()}</span>
                             <span className="dot-separator">•</span>
-                            <span className={`sync-status ${proj.synced ? "synced" : "local"}`}>
-                              {proj.synced ? "Cloud" : "Local"}
+                            <span className={`sync-status ${proj.synced || proj.isSynced ? "synced" : "local"}`}>
+                              {proj.synced || proj.isSynced ? "Cloud" : "Local"}
                             </span>
                           </div>
                         </div>

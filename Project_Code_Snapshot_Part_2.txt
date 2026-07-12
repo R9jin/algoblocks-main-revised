@@ -1,69 +1,115 @@
 ﻿--- PROJECT SNAPSHOT (PART 2 OF 10) ---
 
---- TIMESTAMP: 2026-07-07 17:19:35 ---
+--- TIMESTAMP: 2026-07-11 06:46:35 ---
 
+
+--- FILE: api/requirements.txt ---
+
+fastapi==0.135.3
+uvicorn[standard]==0.44.0
+websockets==12.0
+pydantic==2.13.0
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+requests==2.32.3
+slowapi==0.1.9
+pydantic[email]
+passlib[bcrypt]
+PyJWT
+
+# optional but already in your freeze (safe to keep)
+anyio==4.13.0
+click==8.3.2
+colorama==0.4.6
+h11==0.16.0
+idna==3.11
+typing_extensions==4.15.0
+google-auth==2.29.0
+requests==2.32.3
 
 --- FILE: api/routers/admin_router.py ---
 
 # api/routers/admin_router.py
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Body, Request
+from typing import List, Dict, Any
+import logging
 
-from repositories.user_repo import UserRepository
 from security import get_current_admin_user
+from repositories.user_repo import UserRepository
 from limiter import limiter
-from fastapi import Request
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.get("/users")
-@limiter.limit("30/minute")
+@limiter.limit("20/minute")
 def get_all_users(request: Request, admin_email: str = Depends(get_current_admin_user)):
     try:
         users = UserRepository.find_all_users()
+        
+        for user in users:
+            if "password" in user:
+                del user["password"]
+            # AdminUserManagement.jsx checks `user.isAdmin`, not the raw
+            # Postgres column name `is_admin`.
+            user["isAdmin"] = user.get("is_admin", False)
+                
         return {"status": "success", "users": users}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error fetching users via PostgreSQL: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching users")
 
-@router.patch("/users/{target_email}/status")
+@router.patch("/users/{email}/status")
 @limiter.limit("20/minute")
 def update_user_status(
-    request: Request, 
-    target_email: str, 
-    payload: Dict[str, str], 
+    email: str,
+    request: Request,
+    payload: Dict[str, Any] = Body(...), 
     admin_email: str = Depends(get_current_admin_user)
 ):
-    new_status = payload.get("status")
-    if new_status not in ["Active", "Suspended"]:
-        raise HTTPException(status_code=400, detail="Invalid status provided.")
+    status = payload.get("status")
+    
+    if not email or not status:
+        raise HTTPException(status_code=400, detail="Missing email or status")
         
-    if target_email == admin_email:
-        raise HTTPException(status_code=403, detail="Admins cannot suspend their own accounts.")
-
-    result = UserRepository.update_user_status(target_email, new_status)
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="User not found.")
+    if email == admin_email:
+        raise HTTPException(status_code=400, detail="Cannot change your own status")
         
-    return {"status": "success", "message": f"User status updated to {new_status}"}
+    try:
+        rowcount = UserRepository.update_user_status(email, status)
+        if rowcount == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {"status": "success", "message": f"User status updated to {status}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user status in PostgreSQL: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error updating user status")
 
-@router.delete("/users/{target_email}")
+@router.delete("/users/{email}")
 @limiter.limit("10/minute")
-def delete_user(request: Request, target_email: str, admin_email: str = Depends(get_current_admin_user)):
-    if target_email == admin_email:
-        raise HTTPException(status_code=403, detail="Admins cannot delete their own accounts.")
+def delete_user(
+    email: str,
+    request: Request,
+    admin_email: str = Depends(get_current_admin_user)
+):
+    if not email:
+        raise HTTPException(status_code=400, detail="Missing email")
         
-    # Check if user is the last admin before deletion (optional safeguard)
-    target_user = UserRepository.find_by_email(target_email)
-    if target_user and target_user.get("isAdmin"):
-        admin_count = len([u for u in UserRepository.find_all_users() if u.get("isAdmin")])
-        if admin_count <= 1:
-            raise HTTPException(status_code=403, detail="Cannot delete the last remaining administrator.")
-
-    result = UserRepository.delete_user(target_email)
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="User not found.")
+    if email == admin_email:
+        raise HTTPException(status_code=400, detail="Cannot delete your own account")
         
-    return {"status": "success", "message": "User permanently deleted."}
+    try:
+        # User deletion automatically cascades to progress and assessments due to ON DELETE CASCADE
+        rowcount = UserRepository.delete_user(email)
+        if rowcount == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {"status": "success", "message": "User deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting user from PostgreSQL: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error deleting user")
 
 --- FILE: api/routers/analyze_router.py ---
 
@@ -120,14 +166,6 @@ def signup_user(request: Request, req: UserCreate):
 def google_auth(request: Request, req: GoogleLoginRequest): 
     return AuthService.google_login(req.token)
 
-# ðŸ›¡ï¸ PROTECTED ROUTES BELOW ðŸ›¡ï¸
-
-@router.post("/update-progress")
-@limiter.limit("30/minute")
-def update_progress(request: Request, req: ProgressUpdate, trusted_email: str = Depends(get_current_user_email)):
-    req.email = trusted_email 
-    return AuthService.update_progress(req)
-
 @router.get("/get-progress")
 @limiter.limit("30/minute")
 def get_progress(request: Request, trusted_email: str = Depends(get_current_user_email)):
@@ -144,48 +182,23 @@ def update_assessment(request: Request, req: AssessmentUpdateRequest, trusted_em
 def get_assessments(request: Request, trusted_email: str = Depends(get_current_user_email)):
     return AuthService.get_assessments(trusted_email)
 
-@router.post("/sync-submission")
-@limiter.limit("60/minute")
-def sync_submission(request: Request, payload: Dict[str, Any] = Body(...), trusted_email: str = Depends(get_current_user_email)):
-    payload["userId"] = trusted_email 
-    return AuthService.sync_submission(payload)
-
-@router.get("/get-submission")
-@limiter.limit("60/minute")
-def get_submission(request: Request, activityId: str = Query(...), moduleId: str = Query(None), trusted_email: str = Depends(get_current_user_email)):
-    return AuthService.get_submission(trusted_email, activityId, moduleId)
-
-@router.post("/sync-assessment")
-@limiter.limit("30/minute")
-def sync_assessment(request: Request, payload: Dict[str, Any] = Body(...), trusted_email: str = Depends(get_current_user_email)):
-    payload["userId"] = trusted_email
-    return AuthService.sync_assessment(payload)
-
-@router.get("/get-assessment")
-@limiter.limit("30/minute")
-def get_assessment(request: Request, moduleId: str = Query(...), trusted_email: str = Depends(get_current_user_email)):
-    return AuthService.get_assessment(trusted_email, moduleId)
-
 @router.get("/get-all-submissions")
 @limiter.limit("30/minute")
 def get_all_submissions(request: Request, trusted_email: str = Depends(get_current_user_email)):
     return AuthService.get_all_submissions(trusted_email)
 
-@router.post("/batch-sync", response_model=SyncResponse)
-@limiter.limit("15/minute")
-def batch_sync(request: Request, payload: BatchSyncPayload, trusted_email: str = Depends(get_current_user_email)):
-    return AuthService.batch_sync(payload.dict(), trusted_email)
-
 --- FILE: api/routers/progress_router.py ---
 
 # api/routers/progress_router.py
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Body
+from typing import Dict, Any
 import logging
-from ..models import ProgressUpdate, ActivitySubmission, AssessmentSubmission, BatchSyncPayload, SyncResponse
-from ..database import users_collection, progress_collection, submissions_collection, assessments_collection
-# BUG-10 Fix: Align with live security signature get_current_user_email
-from ..security import get_current_user_email
+
+# FIX: Removed the double-dot (..) relative imports that were causing Python ImportErrors
+from models import ProgressUpdate, BatchSyncPayload, SyncResponse
+from services.auth_service import AuthService
+from repositories.user_repo import UserRepository
+from security import get_current_user_email
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -196,24 +209,9 @@ async def update_progress(data: ProgressUpdate, current_user_email: str = Depend
         if data.email != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to update this progress")
 
-        users_collection.update_one(
-            {"email": current_user_email},
-            {"$set": {f"progress.{data.lesson_id}": data.score}},
-            upsert=True
-        )
-
-        progress_collection.update_one(
-            {"userId": current_user_email, "lessonId": data.lesson_id},
-            {
-                "$set": {
-                    "score": data.score,
-                    "completed": data.completed,
-                    "lastUpdated": data.dict().get("timestamp", None)
-                }
-            },
-            upsert=True
-        )
-
+        # Automatically handles SQL logic in user_repo via jsonb
+        AuthService.update_progress(data)
+        
         return {"status": "success", "message": "Progress updated"}
     except HTTPException:
         raise
@@ -222,23 +220,14 @@ async def update_progress(data: ProgressUpdate, current_user_email: str = Depend
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/sync-submission")
-async def sync_submission(data: ActivitySubmission, current_user_email: str = Depends(get_current_user_email)):
+async def sync_submission(data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
     try:
-        if data.userId != current_user_email:
+        if data.get("userId") != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to sync this submission")
 
-        submission_dict = data.dict()
-        submission_dict["isSynced"] = True
+        data["isSynced"] = True
 
-        submissions_collection.update_one(
-            {
-                "userId": current_user_email,
-                "moduleId": data.moduleId,
-                "activityId": data.activityId
-            },
-            {"$set": submission_dict},
-            upsert=True
-        )
+        AuthService.sync_submission(data)
 
         return {"status": "success", "message": "Submission synced"}
     except HTTPException:
@@ -248,19 +237,14 @@ async def sync_submission(data: ActivitySubmission, current_user_email: str = De
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/sync-assessment")
-async def sync_assessment(data: AssessmentSubmission, current_user_email: str = Depends(get_current_user_email)):
+async def sync_assessment(data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
     try:
-        if data.userId != current_user_email:
+        if data.get("userId") != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to sync this assessment")
 
-        assessments_collection.update_one(
-            {
-                "userId": current_user_email,
-                "assessmentId": data.assessmentId
-            },
-            {"$set": data.dict()},
-            upsert=True
-        )
+        data["isSynced"] = True
+        
+        AuthService.sync_assessment(data)
 
         return {"status": "success", "message": "Assessment synced"}
     except HTTPException:
@@ -272,53 +256,12 @@ async def sync_assessment(data: AssessmentSubmission, current_user_email: str = 
 @router.post("/batch-sync", response_model=SyncResponse)
 async def batch_sync(payload: BatchSyncPayload, current_user_email: str = Depends(get_current_user_email)):
     try:
-        synced_count = 0
-
-        if payload.progress:
-            for prog in payload.progress:
-                if prog.get("email") == current_user_email:
-                    progress_collection.update_one(
-                        {"userId": current_user_email, "lessonId": prog.get("lesson_id")},
-                        {"$set": prog},
-                        upsert=True
-                    )
-                    users_collection.update_one(
-                        {"email": current_user_email},
-                        {"$set": {f"progress.{prog.get('lesson_id')}": prog.get("score")}},
-                        upsert=True
-                    )
-                    synced_count += 1
-
-        if payload.submissions:
-            for sub in payload.submissions:
-                if sub.get("userId") == current_user_email:
-                    sub["isSynced"] = True
-                    submissions_collection.update_one(
-                        {
-                            "userId": current_user_email,
-                            "moduleId": sub.get("moduleId"),
-                            "activityId": sub.get("activityId")
-                        },
-                        {"$set": sub},
-                        upsert=True
-                    )
-                    synced_count += 1
-
-        if payload.assessments:
-            for ass in payload.assessments:
-                if ass.get("userId") == current_user_email:
-                    assessments_collection.update_one(
-                        {
-                            "userId": current_user_email,
-                            "assessmentId": ass.get("assessmentId")
-                        },
-                        {"$set": ass},
-                        upsert=True
-                    )
-                    synced_count += 1
-
-        return SyncResponse(status="success", message="Batch sync completed", synced_items=synced_count)
-
+        response = AuthService.batch_sync(payload.dict(), current_user_email)
+        return SyncResponse(
+            status=response["status"], 
+            message=response["message"], 
+            synced_items=response["synced_items"]
+        )
     except Exception as e:
         logger.error(f"Error in batch sync: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error during batch sync")
@@ -326,12 +269,9 @@ async def batch_sync(payload: BatchSyncPayload, current_user_email: str = Depend
 @router.get("/get-submission")
 async def get_submission(activityId: str, moduleId: str, current_user_email: str = Depends(get_current_user_email)):
     try:
-        submission = submissions_collection.find_one(
-            {"userId": current_user_email, "moduleId": moduleId, "activityId": activityId},
-            {"_id": 0}
-        )
-        if submission:
-            return {"status": "success", "submission": submission}
+        res = AuthService.get_submission(current_user_email, activityId, moduleId)
+        if res and res.get("submission"):
+            return {"status": "success", "submission": res["submission"]}
         return {"status": "not_found", "submission": None}
     except Exception as e:
         logger.error(f"Error fetching submission: {str(e)}")
@@ -340,12 +280,9 @@ async def get_submission(activityId: str, moduleId: str, current_user_email: str
 @router.get("/get-assessment")
 async def get_assessment(assessmentId: str, current_user_email: str = Depends(get_current_user_email)):
     try:
-        assessment = assessments_collection.find_one(
-            {"userId": current_user_email, "assessmentId": assessmentId},
-            {"_id": 0}
-        )
-        if assessment:
-            return {"status": "success", "assessment": assessment}
+        res = AuthService.get_assessment(current_user_email, assessmentId)
+        if res and res.get("assessment"):
+            return {"status": "success", "assessment": res["assessment"]}
         return {"status": "not_found", "assessment": None}
     except Exception as e:
         logger.error(f"Error fetching assessment: {str(e)}")
@@ -354,7 +291,7 @@ async def get_assessment(assessmentId: str, current_user_email: str = Depends(ge
 --- FILE: api/routers/project_router.py ---
 
 # api/routers/project_router.py
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, HTTPException
 from typing import Dict, Optional
 
 from models import ProjectSyncRequest
@@ -397,7 +334,7 @@ def save_project(
 
 @router.post("/delete")
 @limiter.limit("10/minute")
-def delete_project(
+def delete_project_post(
     request: Request, 
     payload: Dict[str, str], 
     trusted_email: str = Depends(get_current_user_email)
@@ -405,6 +342,23 @@ def delete_project(
     payload["userId"] = trusted_email
     if "owner_id" not in payload:
         payload["owner_id"] = trusted_email
+    return ProjectService.delete_project(payload)
+
+@router.delete("/{project_id}")
+@limiter.limit("10/minute")
+def delete_project(
+    project_id: str,
+    request: Request, 
+    trusted_email: str = Depends(get_current_user_email)
+):
+    if not trusted_email:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    payload = {
+        "projectId": project_id,
+        "userId": trusted_email,
+        "owner_id": trusted_email
+    }
     return ProjectService.delete_project(payload)
 
 --- FILE: api/routers/template_router.py ---
@@ -424,7 +378,9 @@ router = APIRouter()
 def get_all_templates(userId: Optional[str] = Query(None)):
     return TemplateService.get_all_templates()
 
-# BUG-07 Fix: Require valid JWT token to persist templates
+# Added "" and "/" so syncManager's POST to /api/templates works
+@router.post("")
+@router.post("/")
 @router.post("/save")
 def save_template(req: TemplateSyncRequest, current_user: str = Depends(get_current_user_email)):
     try:
@@ -446,7 +402,9 @@ from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from database import users_collection
+
+# Replaced PyMongo collection with the PostgreSQL user repository
+from repositories.user_repo import UserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -504,15 +462,20 @@ async def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
 
 async def get_current_admin_user(email: str = Depends(get_current_user_email)) -> str:
     """
-    Dependency that checks if the currently authenticated user has the 'isAdmin' flag set to True.
+    Dependency that checks if the currently authenticated user has admin privileges in PostgreSQL.
     """
-    user = users_collection.find_one({"email": email})
+    user = UserRepository.find_by_email(email)
     
-    if not user or not user.get("isAdmin"):
+    # Using the fetched dictionary from the PG repository
+    is_admin = False
+    if user:
+        is_admin = user.get("isAdmin", False) or user.get("is_admin", False) or user.get("role") == "admin"
+        
+    if not user or not is_admin:
         logger.warning(f"Rejected request: {email} attempted to access an admin-restricted endpoint.")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Administrator privileges required to perform this action."
+            detail="Administrator privileges required to perform this action.",
         )
         
     return email
@@ -1682,10 +1645,11 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
 import bcrypt
+import json
 
 from repositories.user_repo import UserRepository
 from models import UserLogin, UserCreate, ProgressUpdate, AssessmentUpdateRequest
-from database import db
+from database import get_db_connection
 from security import create_access_token
 
 class AuthService:
@@ -1894,8 +1858,9 @@ class AuthService:
         if "guest" in str(user_id).lower():
             return {"status": "ignored", "message": "Guest persistence disabled"}
 
+        # FIXED: Explicitly added "id" to allow syncing composite primary key back to frontend
         allowed_fields = [
-            "userId", "moduleId", "activityId", "type", "status", 
+            "id", "userId", "moduleId", "activityId", "type", "status", 
             "score", "maxScore", "passedTestCases", "totalTestCases", 
             "passed_tests", "total_tests", "testCases", 
             "target_complexity", "actual_complexity", 
@@ -1906,11 +1871,38 @@ class AuthService:
         
         safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
 
-        db["submissions"].update_one(
-            {"userId": user_id, "moduleId": module_id, "activityId": activity_id},
-            {"$set": safe_update_data},
-            upsert=True
-        )
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # FIXED: Resilient Schema Check handles both "userId" OR "email" column variations securely without crashing API 
+        try:
+            cursor.execute('''
+                SELECT id FROM submissions 
+                WHERE "userId" = %s AND data->>'moduleId' = %s AND data->>'activityId' = %s
+            ''', (user_id, module_id, activity_id))
+            col_name = '"userId"'
+        except Exception:
+            conn.rollback()
+            cursor.execute('''
+                SELECT id FROM submissions 
+                WHERE email = %s AND data->>'moduleId' = %s AND data->>'activityId' = %s
+            ''', (user_id, module_id, activity_id))
+            col_name = 'email'
+        
+        existing = cursor.fetchone()
+        
+        if existing:
+            cursor.execute('''
+                UPDATE submissions SET data = %s WHERE id = %s
+            ''', (json.dumps(safe_update_data), existing['id']))
+        else:
+            cursor.execute(f'''
+                INSERT INTO submissions ({col_name}, data) VALUES (%s, %s)
+            ''', (user_id, json.dumps(safe_update_data)))
+            
+        conn.commit()  # <--- CRITICAL FIX: Save the transaction!
+        cursor.close()
+        conn.close()
         return {"status": "success", "message": "Submission synced"}
 
     @staticmethod
@@ -1918,12 +1910,41 @@ class AuthService:
         if not email or not activityId:
              return {"status": "ignored"}
              
-        query = {"userId": email, "activityId": activityId}
-        if moduleId:
-            query["moduleId"] = moduleId
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # FIXED: Resilient Schema Support
+        try:
+            if moduleId:
+                cursor.execute('''
+                    SELECT data FROM submissions 
+                    WHERE "userId" = %s AND data->>'activityId' = %s AND data->>'moduleId' = %s
+                ''', (email, activityId, moduleId))
+            else:
+                cursor.execute('''
+                    SELECT data FROM submissions 
+                    WHERE "userId" = %s AND data->>'activityId' = %s
+                ''', (email, activityId))
+        except Exception:
+            conn.rollback()
+            if moduleId:
+                cursor.execute('''
+                    SELECT data FROM submissions 
+                    WHERE email = %s AND data->>'activityId' = %s AND data->>'moduleId' = %s
+                ''', (email, activityId, moduleId))
+            else:
+                cursor.execute('''
+                    SELECT data FROM submissions 
+                    WHERE email = %s AND data->>'activityId' = %s
+                ''', (email, activityId))
             
-        submission = db["submissions"].find_one(query, {"_id": 0})
-        return {"status": "success", "submission": submission}
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if row:
+            return {"status": "success", "submission": row["data"]}
+        return {"status": "success", "submission": None}
 
     @staticmethod
     def sync_assessment(payload: dict):
@@ -1940,18 +1961,27 @@ class AuthService:
         if "guest" in str(user_id).lower():
             return {"status": "ignored", "message": "Guest persistence disabled"}
 
+        # FIXED: Add id explicitly
         allowed_fields = [
-            "userId", "moduleId", "assessmentId", "answers", "score", 
+            "id", "userId", "moduleId", "assessmentId", "answers", "score", 
             "maxScore", "completed", "timestamp", "passed", "correct", 
             "total", "timeElapsed", "completedAt", "attempts", "isSynced"
         ]
         safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
 
-        db["assessments"].update_one(
-            {"userId": user_id, "moduleId": module_id},
-            {"$set": safe_update_data},
-            upsert=True
-        )
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s) ON CONFLICT DO NOTHING', (user_id, '{}'))
+        cursor.execute('''
+            UPDATE assessments 
+            SET data = jsonb_set(data, %s, %s, true)
+            WHERE email = %s
+        ''', (f'{{{module_id}}}', json.dumps(safe_update_data), user_id))
+        
+        conn.commit() # <--- CRITICAL FIX: Save the transaction!
+        cursor.close()
+        conn.close()
         return {"status": "success", "message": "Assessment synced"}
 
     @staticmethod
@@ -1959,16 +1989,36 @@ class AuthService:
         if not email or not moduleId:
             return {"status": "ignored"}
             
-        assessment = db["assessments"].find_one({"userId": email, "moduleId": moduleId}, {"_id": 0})
-        return {"status": "success", "assessment": assessment}
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT data->%s as assessment_data FROM assessments WHERE email = %s', (moduleId, email))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if row and row.get("assessment_data"):
+            return {"status": "success", "assessment": row["assessment_data"]}
+        return {"status": "success", "assessment": None}
     
     @staticmethod
     def get_all_submissions(email: str):
         if not email:
             return {"status": "ignored"}
             
-        submissions = list(db["submissions"].find({"userId": email}, {"_id": 0}))
+        conn = get_db_connection()
+        cursor = conn.cursor()
         
+        try:
+            cursor.execute('SELECT data FROM submissions WHERE "userId" = %s', (email,))
+        except Exception:
+            conn.rollback()
+            cursor.execute('SELECT data FROM submissions WHERE email = %s', (email,))
+            
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        submissions = [row["data"] for row in rows]
         return {"status": "success", "submissions": submissions}
 
     @staticmethod
@@ -2004,6 +2054,7 @@ from repositories.project_repo import ProjectRepository
 from models import ProjectSyncRequest
 from fastapi import HTTPException
 from datetime import datetime
+import time
 
 class ProjectService:
     @staticmethod
@@ -2022,18 +2073,20 @@ class ProjectService:
             "description": req.description or "",
             "workspace": req.workspace or {},
             "pythonCode": req.pythonCode or "",
-            "updatedAt": datetime.utcnow().isoformat(),
+            "timestamp": req.timestamp or int(time.time() * 1000),
             "userId": req.userId,
-            "owner_id": req.userId
+            "owner_id": req.owner_id or req.userId,
+            "projectId": req.projectId,
+            "isSynced": True
         }
 
         if req.projectId and not str(req.projectId).startswith("local_"):
-            result = ProjectRepository.update(req.projectId, req.userId, update_data)
-            if result.matched_count == 0:
+            # ProjectRepository.update now returns rowcount instead of PyMongo object
+            rowcount = ProjectRepository.update(req.projectId, req.userId, update_data)
+            if rowcount == 0 or rowcount is None:
                 raise HTTPException(status_code=404, detail="Project not found or unauthorized")
             return {"status": "success", "projectId": req.projectId, "synced": True}
         else:
-            update_data["createdAt"] = update_data["updatedAt"]
             project_id = ProjectRepository.insert(update_data)
             return {"status": "success", "projectId": project_id, "synced": True}
 
@@ -2045,8 +2098,9 @@ class ProjectService:
         if not project_id or not user_id:
             raise HTTPException(status_code=400, detail="Missing projectId or userId")
 
-        result = ProjectRepository.delete(project_id, user_id)
-        if result.deleted_count == 0:
+        # ProjectRepository.delete now returns rowcount instead of PyMongo object
+        rowcount = ProjectRepository.delete(project_id, user_id)
+        if rowcount == 0:
             raise HTTPException(status_code=404, detail="Project not found or unauthorized")
 
         return {"status": "success"}
@@ -2067,11 +2121,8 @@ class TemplateService:
         templates = TemplateRepository.find_all()
         return {"status": "success", "templates": templates}
 
-    # ADDED/UPDATED: Method to handle saving/updating a template
     @staticmethod
     def save_template(req):
-        # Convert pydantic model to dict, exclude unset so we don't push nulls unnecessarily
-        # Support both Pydantic V1 (.dict()) and Pydantic V2 (.model_dump()) depending on FastAPI version
         if hasattr(req, "model_dump"):
             template_data = req.model_dump(exclude_unset=True)
         elif hasattr(req, "dict"):
@@ -2079,14 +2130,12 @@ class TemplateService:
         else:
             template_data = dict(req)
         
-        # Ensure owner_id is set so frontend sync catches it
         if template_data.get("userId") and not template_data.get("owner_id"):
             template_data["owner_id"] = template_data["userId"]
             
-        template_id = template_data.pop("templateId", None)
+        template_id = template_data.get("templateId", None)
         
         if template_id:
-            # Update existing
             updated_id = TemplateRepository.update(template_id, template_data)
             return {
                 "status": "success", 
@@ -2094,61 +2143,9 @@ class TemplateService:
                 "templateId": updated_id
             }
         else:
-            # Insert new
             inserted_id = TemplateRepository.save(template_data)
             return {
                 "status": "success", 
                 "message": "Template saved successfully", 
                 "templateId": inserted_id
             }
-
---- FILE: frontend/README.md ---
-
-# React + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-
---- FILE: frontend/eslint.config.js ---
-
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import { defineConfig, globalIgnores } from 'eslint/config'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{js,jsx}'],
-    extends: [
-      js.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
-    languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
-      parserOptions: {
-        ecmaVersion: 'latest',
-        ecmaFeatures: { jsx: true },
-        sourceType: 'module',
-      },
-    },
-    rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
-    },
-  },
-])

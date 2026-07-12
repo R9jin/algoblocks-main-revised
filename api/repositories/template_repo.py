@@ -1,39 +1,138 @@
 # api/repositories/template_repo.py
-from database import templates_collection
-from bson.objectid import ObjectId
+from database import get_db_connection
+import json
+import uuid
 
 class TemplateRepository:
     @staticmethod
     def find_by_category(category: str):
-        templates = list(templates_collection.find({"category": category}))
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM templates WHERE category = %s', (category,))
+        templates = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        result = []
         for tpl in templates:
-            tpl["_id"] = str(tpl["_id"])
-        return templates
+            t = dict(tpl)
+            # Unpack blockly_data back to root
+            blockly_data = t.pop("blockly_data", {})
+            t.update(blockly_data)
+            t["_id"] = str(t["id"])
+            result.append(t)
+        return result
 
     @staticmethod
     def find_all():
-        templates = list(templates_collection.find({}))
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM templates')
+        templates = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        result = []
         for tpl in templates:
-            tpl["_id"] = str(tpl["_id"])
-        return templates
+            t = dict(tpl)
+            blockly_data = t.pop("blockly_data", {})
+            t.update(blockly_data)
+            t["_id"] = str(t["id"])
+            result.append(t)
+        return result
 
-    # ADDED: Save method to push to database
     @staticmethod
     def save(template_data: dict):
-        result = templates_collection.insert_one(template_data)
-        return str(result.inserted_id)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        template_id = template_data.get("templateId")
+        
+        # Generate a safe UUID if the frontend stripped the ID or sent a local temp ID
+        if not template_id or str(template_id).startswith("local_"):
+            template_id = str(uuid.uuid4())
+            
+        category = template_data.get("category", "Custom")
+        user_id = template_data.get("userId")
+        owner_id = template_data.get("owner_id", user_id)
+        is_synced = template_data.get("isSynced", False)
+        timestamp = template_data.get("timestamp", 0)
+        
+        # Package blockly and metadata into JSONB
+        blockly_data = {
+            "title": template_data.get("title", "Untitled Template"),
+            "name": template_data.get("name", "Untitled Template"),
+            "description": template_data.get("description", ""),
+            "workspace": template_data.get("workspace", {}),
+            "pythonCode": template_data.get("pythonCode", "")
+        }
+        
+        cursor.execute('''
+            INSERT INTO templates ("templateId", category, "userId", owner_id, "isSynced", timestamp, blockly_data)
+            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
+        ''', (
+            template_id,
+            category,
+            user_id,
+            owner_id,
+            is_synced,
+            timestamp,
+            json.dumps(blockly_data)
+        ))
+        
+        inserted_id = cursor.fetchone()["id"]
+        cursor.close()
+        conn.close()
+        return str(inserted_id)
 
-    # ADDED: Update method for existing templates
     @staticmethod
     def update(template_id: str, template_data: dict):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if exists by string templateId or int id
         try:
-            obj_id = ObjectId(template_id)
-        except Exception:
-            obj_id = template_id
+            t_id = int(template_id)
+            cursor.execute('SELECT id, blockly_data FROM templates WHERE id = %s', (t_id,))
+        except ValueError:
+            cursor.execute('SELECT id, blockly_data FROM templates WHERE "templateId" = %s', (template_id,))
             
-        templates_collection.update_one(
-            {"_id": obj_id},
-            {"$set": template_data},
-            upsert=True
-        )
-        return str(template_id)
+        existing = cursor.fetchone()
+        
+        if existing:
+            blockly_updates = {}
+            for key in ["title", "name", "description", "workspace", "pythonCode"]:
+                if key in template_data:
+                    blockly_updates[key] = template_data[key]
+                    
+            set_clauses = []
+            values = []
+            
+            if "category" in template_data:
+                set_clauses.append("category = %s")
+                values.append(template_data["category"])
+            if "isSynced" in template_data:
+                set_clauses.append('"isSynced" = %s')
+                values.append(template_data["isSynced"])
+            if "timestamp" in template_data:
+                set_clauses.append("timestamp = %s")
+                values.append(template_data["timestamp"])
+                
+            for key, val in blockly_updates.items():
+                set_clauses.append(f"blockly_data = jsonb_set(blockly_data, %s, %s, true)")
+                values.extend([f'{{{key}}}', json.dumps(val)])
+                
+            if set_clauses:
+                set_clause_str = ", ".join(set_clauses)
+                query = f'UPDATE templates SET {set_clause_str} WHERE id = %s'
+                values.append(existing["id"])
+                cursor.execute(query, tuple(values))
+                
+            cursor.close()
+            conn.close()
+            return str(existing["id"])
+        else:
+            cursor.close()
+            conn.close()
+            # If not found, insert
+            return TemplateRepository.save(template_data)

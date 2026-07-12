@@ -279,10 +279,18 @@ export default function EvaluationSuite() {
     worker.postMessage({ type: "RUN_BENCHMARK_SUITE", dataset: gauntletPayload });
   };
 
-  // Safe Extraction Logic For Download - We want to log ANY kind of mismatch (line or overall)
   const totalErrorsCount = results?.details.filter(d =>
     !d.isCompletelyCorrect || d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
   ).length || 0;
+
+  // ROBUST FALLBACK GETTERS
+  const getProp = (obj, keys, defaultVal = "-") => {
+    if (!obj) return defaultVal;
+    for (const key of keys) {
+      if (obj[key] !== undefined && obj[key] !== null) return obj[key];
+    }
+    return defaultVal;
+  };
 
   const downloadFailuresLog = (details) => {
     const mismatches = details.filter(d =>
@@ -303,7 +311,7 @@ export default function EvaluationSuite() {
       return;
     }
 
-    const numChunks = 5;
+    const numChunks = 10;
     const chunkSize = Math.ceil(mismatches.length / numChunks);
 
     for (let i = 0; i < numChunks; i++) {
@@ -319,11 +327,20 @@ export default function EvaluationSuite() {
         if (m.lineValidationResults && m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).length > 0) {
           logText += `\nLine Level Mismatches:\n`;
           m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).forEach(l => {
+            const expLT = getProp(l, ['expLocalTime', 'expectedLocalTime', 'local_time']);
+            const predLT = getProp(l, ['predLocalTime', 'predictedLocalTime']);
+            const expGT = getProp(l, ['expGlobalTime', 'expectedGlobalTime', 'global_time']);
+            const predGT = getProp(l, ['predGlobalTime', 'predictedGlobalTime']);
+            const expLS = getProp(l, ['expLocalSpace', 'expectedLocalSpace', 'local_space']);
+            const predLS = getProp(l, ['predLocalSpace', 'predictedLocalSpace']);
+            const expGS = getProp(l, ['expGlobalSpace', 'expectedGlobalSpace', 'global_space']);
+            const predGS = getProp(l, ['predGlobalSpace', 'predictedGlobalSpace']);
+
             logText += `  -> Line ${l.lineno}:\n`;
-            logText += `     LT Exp [-] Act [${l.localTime || '-'}]\n`;
-            logText += `     GT Exp [${l.expTime || '-'}] Act [${l.predTime || '-'}]\n`;
-            logText += `     LS Exp [-] Act [${l.localSpace || '-'}]\n`;
-            logText += `     GS Exp [${l.expSpace || '-'}] Act [${l.predSpace || '-'}]\n`;
+            logText += `     LT Exp [${expLT}] Act [${predLT}]\n`;
+            logText += `     GT Exp [${expGT}] Act [${predGT}]\n`;
+            logText += `     LS Exp [${expLS}] Act [${predLS}]\n`;
+            logText += `     GS Exp [${expGS}] Act [${predGS}]\n`;
           });
         }
         logText += `${'-'.repeat(60)}\n\n`;
@@ -343,7 +360,6 @@ export default function EvaluationSuite() {
     }
   };
 
-  // Filter Details separating strictly Overall and Line Context to prevent mixing metrics
   const filteredDetails = (results?.details || []).filter((item) => {
     const gtLines = item.lineValidationResults?.filter(l => l.hasGroundTruth) || [];
     const lineFails = gtLines.filter(l => !l.isPassed).length;
@@ -367,7 +383,6 @@ export default function EvaluationSuite() {
     d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
   ).length || 0;
 
-  // Calculate Line-level distinct metric derivations natively
   const lineTimeErrorRate = results?.totalLinesTested > 0 ? (100 - results.lineTimeAccuracyRate).toFixed(1) : 0;
   const lineSpaceErrorRate = results?.totalLinesTested > 0 ? (100 - results.lineSpaceAccuracyRate).toFixed(1) : 0;
   const lineTimeFailed = results?.totalLinesTested > 0 ? (results.totalLinesTested - results.lineTimePassed) : 0;
@@ -460,13 +475,11 @@ export default function EvaluationSuite() {
             <div className="eval-modal-header">
               <div>
                 <h3 className="eval-modal-title">{selectedItemCode.name}</h3>
-
                 <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>ID: {selectedItemCode.id}</span>
               </div>
               <div className="eval-modal-badges">
                 <span className="eval-modal-badge-gt">
                   GT Time: {selectedItemCode.expectedTime} | Space: {selectedItemCode.expectedSpace}
-
                 </span>
               </div>
             </div>
@@ -477,7 +490,6 @@ export default function EvaluationSuite() {
             <div className="eval-section-label">AST VM Profiler Explanation & Trace</div>
             <div className="eval-explanation-box">{selectedItemCode.explanation}</div>
 
-
             <div className="eval-modal-footer">
               <button onClick={() => setSelectedItemCode(null)} className="eval-btn-close">Close View</button>
             </div>
@@ -487,14 +499,12 @@ export default function EvaluationSuite() {
 
       {isMetricsHelpOpen && (
         <div className="modal-overlay" onClick={() => setIsMetricsHelpOpen(false)}>
-          <div className="eval-modal-content metrics-help-modal"
-            onClick={(e) => e.stopPropagation()}>
+          <div className="eval-modal-content metrics-help-modal" onClick={(e) => e.stopPropagation()}>
             <div className="eval-modal-header">
               <div>
                 <h3 className="eval-modal-title">Understanding Classification Performance Metrics</h3>
                 <span className="eval-dataset-subtitle">Learn how Precision, Recall, F1-Score, and Support are used to evaluate the performance of the Complexity Analyzer.</span>
               </div>
-
               <button onClick={() => setIsMetricsHelpOpen(false)} className="eval-btn-close-sm">
                 <FiXCircle size={22} />
               </button>
@@ -502,129 +512,58 @@ export default function EvaluationSuite() {
 
             <div className="metrics-help-body">
               <div className="metric-card-info" style={{ borderLeft: "4px solid #3B82F6" }}>
-
                 <div className="metric-card-header">
-                  <span
-                    className="metric-name-badge"
-                    style={{
-                      backgroundColor: "#EFF6FF",
-
-                      color: "#1D4ED8",
-                      border: "1px solid #BFDBFE"
-                    }}
-                  >
+                  <span className="metric-name-badge" style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>
                     Precision (Trustworthiness)
-
                   </span>
                   <span className="metric-formula">TP / (TP + FP)</span>
                 </div>
-
                 <p className="metric-desc">
                   <strong>Measures the correctness of the engine's positive complexity predictions.</strong>
-
                   <br />
-                  Precision represents the proportion of predicted complexity classifications that are
-                  actually correct according to the ground truth dataset.
-                  A high Precision value indicates
-                  that the AST-based analysis engine rarely assigns an incorrect complexity class,
-                  minimizing false positive classifications and improving the reliability of reported
-                  algorithmic complexity results.
+                  Precision represents the proportion of predicted complexity classifications that are actually correct according to the ground truth dataset. A high Precision value indicates that the AST-based analysis engine rarely assigns an incorrect complexity class, minimizing false positive classifications and improving the reliability of reported algorithmic complexity results.
                 </p>
               </div>
 
               <div className="metric-card-info" style={{ borderLeft: "4px solid #10B981" }}>
                 <div className="metric-card-header">
-                  <span
-                    className="metric-name-badge"
-
-                    style={{
-                      backgroundColor: "#ECFDF5",
-                      color: "#065F46",
-                      border: "1px solid #A7F3D0"
-
-                    }}
-                  >
+                  <span className="metric-name-badge" style={{ backgroundColor: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>
                     Recall (Detection Coverage)
                   </span>
                   <span className="metric-formula">TP / (TP + FN)</span>
                 </div>
-
-
                 <p className="metric-desc">
                   <strong>Measures the engine's ability to identify all valid complexity classifications.</strong>
                   <br />
-                  Recall represents the proportion of actual algorithm complexity classes that were
-
-                  successfully detected by the AST analysis engine.
-                  A high Recall value indicates that
-                  the system rarely overlooks valid algorithmic patterns, thereby minimizing false
-                  negatives and providing comprehensive complexity detection across the evaluation
-                  dataset.
+                  Recall represents the proportion of actual algorithm complexity classes that were successfully detected by the AST analysis engine. A high Recall value indicates that the system rarely overlooks valid algorithmic patterns, thereby minimizing false negatives and providing comprehensive complexity detection across the evaluation dataset.
                 </p>
               </div>
 
               <div className="metric-card-info" style={{ borderLeft: "4px solid #8B5CF6" }}>
                 <div className="metric-card-header">
-                  <span
-                    className="metric-name-badge"
-
-                    style={{
-                      backgroundColor: "#F5F3FF",
-                      color: "#6D28D9",
-                      border: "1px solid #DDD6FE"
-
-                    }}
-                  >
+                  <span className="metric-name-badge" style={{ backgroundColor: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE" }}>
                     F1-Score (Balanced Performance)
                   </span>
                   <span className="metric-formula">2 × (P × R) / (P + R)</span>
-
                 </div>
-
                 <p className="metric-desc">
                   <strong>Provides a balanced evaluation of Precision and Recall.</strong>
                   <br />
-                  The F1-Score is the harmonic mean of Precision and Recall, providing a single measure
-
-                  that reflects both prediction accuracy and detection completeness.
-                  Unlike a simple
-                  arithmetic average, the harmonic mean penalizes situations where one metric is high
-                  while the other is low.
-                  Consequently, a high F1-Score indicates that the complexity
-                  classification engine produces predictions that are both accurate and comprehensive.
+                  The F1-Score is the harmonic mean of Precision and Recall, providing a single measure that reflects both prediction accuracy and detection completeness. Unlike a simple arithmetic average, the harmonic mean penalizes situations where one metric is high while the other is low. Consequently, a high F1-Score indicates that the complexity classification engine produces predictions that are both accurate and comprehensive.
                 </p>
               </div>
 
               <div className="metric-card-info" style={{ borderLeft: "4px solid #64748B" }}>
                 <div className="metric-card-header">
-                  <span
-                    className="metric-name-badge"
-
-                    style={{
-                      backgroundColor: "#F1F5F9",
-                      color: "#334155",
-                      border: "1px solid #CBD5E1"
-
-                    }}
-                  >
+                  <span className="metric-name-badge" style={{ backgroundColor: "#F1F5F9", color: "#334155", border: "1px solid #CBD5E1" }}>
                     Support (Ground Truth Frequency)
                   </span>
                   <span className="metric-formula">Actual Ground Truth Occurrences</span>
                 </div>
-
-
                 <p className="metric-desc">
                   <strong>Represents the number of ground truth instances for each complexity class.</strong>
                   <br />
-                  Support indicates how many samples belonging to a particular complexity category are
-
-                  present in the evaluation dataset.
-                  Although it does not directly measure predictive
-                  performance, Support provides important statistical context when interpreting Precision,
-                  Recall, and F1-Score.
-                  Performance metrics computed from larger support values are
-                  generally considered more representative and statistically reliable than those derived
-                  from only a small number of observations.
+                  Support indicates how many samples belonging to a particular complexity category are present in the evaluation dataset. Although it does not directly measure predictive performance, Support provides important statistical context when interpreting Precision, Recall, and F1-Score. Performance metrics computed from larger support values are generally considered more representative and statistically reliable than those derived from only a small number of observations.
                 </p>
               </div>
 
@@ -632,9 +571,7 @@ export default function EvaluationSuite() {
                 <h4 className="interactive-box-title">
                   <FiCpu style={{ display: "inline", marginRight: "6px", color: "#7928CA" }} />
                   Interactive Classification Metric Simulator
-
                 </h4>
-
                 <p className="interactive-box-subtitle">
                   Adjust the classification outcomes below to observe how changes in True Positives, False Positives, and False Negatives affect Precision, Recall, and the F1-Score in real time.
                 </p>
@@ -643,95 +580,42 @@ export default function EvaluationSuite() {
                   <div className="slider-group">
                     <label>
                       True Positives (Correct Classifications): <strong>{sandboxTP} cases</strong>
-
                     </label>
-                    <input
-                      type="range"
-                      min="1"
-                      max="100"
-
-                      value={sandboxTP}
-                      onChange={(e) => setSandboxTP(parseInt(e.target.value))}
-                    />
+                    <input type="range" min="1" max="100" value={sandboxTP} onChange={(e) => setSandboxTP(parseInt(e.target.value))} />
                   </div>
-
                   <div className="slider-group">
-
                     <label>
                       False Positives (Incorrect Positive Classifications): <strong>{sandboxFP} cases</strong>
                     </label>
-                    <input
-
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={sandboxFP}
-                      onChange={(e) => setSandboxFP(parseInt(e.target.value))}
-
-                    />
+                    <input type="range" min="0" max="100" value={sandboxFP} onChange={(e) => setSandboxFP(parseInt(e.target.value))} />
                   </div>
-
                   <div className="slider-group">
                     <label>
                       False Negatives (Missed Classifications): <strong>{sandboxFN} cases</strong>
-
                     </label>
-                    <input
-                      type="range"
-                      min="0"
-
-                      max="100"
-                      value={sandboxFN}
-                      onChange={(e) => setSandboxFN(parseInt(e.target.value))}
-                    />
+                    <input type="range" min="0" max="100" value={sandboxFN} onChange={(e) => setSandboxFN(parseInt(e.target.value))} />
                   </div>
-
                 </div>
 
                 <div className="sandbox-results">
                   <div className="sandbox-stat">
                     <span>Precision</span>
-                    <strong style={{ color: "#1D4ED8" }}>
-
-                      {(simPrecision * 100).toFixed(1)}%
-                    </strong>
-                    <small className="stat-dec">
-                      ({simPrecision.toFixed(2)})
-                    </small>
-
+                    <strong style={{ color: "#1D4ED8" }}>{(simPrecision * 100).toFixed(1)}%</strong>
+                    <small className="stat-dec">({simPrecision.toFixed(2)})</small>
                   </div>
-
                   <div className="sandbox-stat">
                     <span>Recall</span>
-                    <strong style={{ color: "#065F46" }}>
-                      {(simRecall * 100).toFixed(1)}%
-
-                    </strong>
-                    <small className="stat-dec">
-                      ({simRecall.toFixed(2)})
-                    </small>
+                    <strong style={{ color: "#065F46" }}>{(simRecall * 100).toFixed(1)}%</strong>
+                    <small className="stat-dec">({simRecall.toFixed(2)})</small>
                   </div>
-
-
-                  <div
-                    className="sandbox-stat"
-                    style={{ backgroundColor: "#F3E8FF", borderColor: "#D8B4FE" }}
-                  >
-                    <span style={{
-                      color: "#6B21A8"
-                    }}>F1-Score</span>
-                    <strong style={{ color: "#6D28D9" }}>
-                      {(simF1 * 100).toFixed(1)}%
-                    </strong>
-                    <small className="stat-dec">
-
-                      ({simF1.toFixed(2)})
-                    </small>
+                  <div className="sandbox-stat" style={{ backgroundColor: "#F3E8FF", borderColor: "#D8B4FE" }}>
+                    <span style={{ color: "#6B21A8" }}>F1-Score</span>
+                    <strong style={{ color: "#6D28D9" }}>{(simF1 * 100).toFixed(1)}%</strong>
+                    <small className="stat-dec">({simF1.toFixed(2)})</small>
                   </div>
                 </div>
 
                 <div className="sandbox-live-commentary">
-
                   <FiActivity size={16} />
                   <span>
                     {simF1 >= 0.8
@@ -744,8 +628,7 @@ export default function EvaluationSuite() {
               </div>
             </div>
 
-            <div
-              className="eval-modal-footer">
+            <div className="eval-modal-footer">
               <button onClick={() => setIsMetricsHelpOpen(false)} className="eval-btn-close">Return to Benchmark Matrix</button>
             </div>
           </div>
@@ -755,8 +638,7 @@ export default function EvaluationSuite() {
       <header className="workspace-header-purple">
         <div className="wh-left">
           <Link to="/dashboard" className="wh-back-btn eval-exit-link">
-            <FiArrowLeft size={18}
-            /><span>Dashboard</span>
+            <FiArrowLeft size={18} /><span>Dashboard</span>
           </Link>
           <div className="wh-divider"></div>
           <h2 className="wh-project-title eval-wh-title">
@@ -766,23 +648,17 @@ export default function EvaluationSuite() {
 
         <div className="wh-right">
           <button
-
             onClick={handleStartEvaluation}
-            disabled={isRunning ||
-              !isEngineReady}
-            className={`eval-btn-run ${isRunning || !isEngineReady ?
-              "eval-run-disabled" : "eval-run-ready"}`}
+            disabled={isRunning || !isEngineReady}
+            className={`eval-btn-run ${isRunning || !isEngineReady ? "eval-run-disabled" : "eval-run-ready"}`}
           >
-            {isRunning ?
-              <FiRefreshCw className="spinner" size={16} /> : <FiPlay fill="#fff" size={16} />}
-            <span>{isRunning ?
-              `Running Benchmark (${progress}%)...` : "Execute Benchmark"}</span>
+            {isRunning ? <FiRefreshCw className="spinner" size={16} /> : <FiPlay fill="#fff" size={16} />}
+            <span>{isRunning ? `Running Benchmark (${progress}%)...` : "Execute Benchmark"}</span>
           </button>
         </div>
       </header>
 
       <div className="eval-main-wrapper">
-
         <div className="eval-dataset-selector-box">
           <div className="eval-dataset-info">
             <FiDatabase style={{ color: "#7928CA" }} size={24} />
@@ -793,7 +669,6 @@ export default function EvaluationSuite() {
               </span>
             </div>
           </div>
-
           <div className="dataset-btn-group">
             <button
               onClick={() => !isRunning && setDatasetOption("chunks")}
@@ -807,24 +682,21 @@ export default function EvaluationSuite() {
 
         <div className="eval-status-banner">
           <div className="eval-status-group">
-
             <span className="eval-status-label">Execution Target:</span>
             <strong className="eval-status-target">{statusText}</strong>
           </div>
           <div className="eval-status-group">
             {results && totalErrorsCount > 0 && (
               <button className="eval-btn-inspect" onClick={() => downloadFailuresLog(results.details)} style={{ marginRight: "15px", display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px" }}>
-
                 <FiDownload size={14} /> Download Error Logs (TXT)
               </button>
             )}
             <span className="eval-status-label-sm">AST Virtual Machine:</span>
-            {isEngineReady ?
-              (
-                <span className="eval-vm-ready"><FiCheckCircle size={13} /> Pyodide 3.11 AST Active</span>
-              ) : (
-                <span className="eval-vm-booting"><FiRefreshCw className="spinner" size={13} /> Wasm Engine Initializing...</span>
-              )}
+            {isEngineReady ? (
+              <span className="eval-vm-ready"><FiCheckCircle size={13} /> Pyodide 3.11 AST Active</span>
+            ) : (
+              <span className="eval-vm-booting"><FiRefreshCw className="spinner" size={13} /> Wasm Engine Initializing...</span>
+            )}
           </div>
         </div>
 
@@ -832,7 +704,6 @@ export default function EvaluationSuite() {
           <div className="eval-progress-track">
             <div className="eval-progress-fill" style={{ width: `${progress}%` }}></div>
           </div>
-
         )}
 
         {results && (
@@ -855,43 +726,36 @@ export default function EvaluationSuite() {
                   {results.timeAccuracyRate}%
                 </div>
               </div>
-
               <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
                 <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Overall Time Error Rate</div>
                 <div className="eval-stat-value val-danger">
                   {results.timeErrorRate}%
                 </div>
               </div>
-
               <div className="eval-stat-card">
                 <div className="eval-stat-title">Overall Time Passed</div>
                 <div className="eval-stat-value val-success">{results.timePassed}</div>
               </div>
-
               <div className="eval-stat-card">
                 <div className="eval-stat-title">Overall Time Mismatches</div>
                 <div className={`eval-stat-value ${results.timeFailed > 0 ? "val-danger" : "val-muted"}`}>{results.timeFailed}</div>
               </div>
-
               <div className="eval-stat-card" style={{ borderTop: "4px solid #0EA5E9" }}>
                 <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Overall Space Accuracy</div>
                 <div className="eval-stat-value" style={{ color: results.spaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
                   {results.spaceAccuracyRate}%
                 </div>
               </div>
-
               <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
                 <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Overall Space Error Rate</div>
                 <div className="eval-stat-value val-danger">
                   {results.spaceErrorRate}%
                 </div>
               </div>
-
               <div className="eval-stat-card">
                 <div className="eval-stat-title">Overall Space Passed</div>
                 <div className="eval-stat-value" style={{ color: "#0EA5E9" }}>{results.spacePassed}</div>
               </div>
-
               <div className="eval-stat-card">
                 <div className="eval-stat-title">Overall Space Mismatches</div>
                 <div className={`eval-stat-value ${results.spaceFailed > 0 ? "val-danger" : "val-muted"}`}>{results.spaceFailed}</div>
@@ -920,43 +784,36 @@ export default function EvaluationSuite() {
                   {results.totalLinesTested > 0 ? results.lineTimeAccuracyRate : "0.0"}%
                 </div>
               </div>
-
               <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
                 <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Line Time Error Rate</div>
                 <div className="eval-stat-value val-danger">
                   {lineTimeErrorRate}%
                 </div>
               </div>
-
               <div className="eval-stat-card">
                 <div className="eval-stat-title">Line Time Passed</div>
                 <div className="eval-stat-value val-success">{results.lineTimePassed}</div>
               </div>
-
               <div className="eval-stat-card">
                 <div className="eval-stat-title">Line Time Mismatches</div>
                 <div className={`eval-stat-value ${lineTimeFailed > 0 ? "val-danger" : "val-muted"}`}>{lineTimeFailed}</div>
               </div>
-
               <div className="eval-stat-card" style={{ borderTop: "4px solid #0EA5E9" }}>
                 <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Line Space Accuracy</div>
                 <div className="eval-stat-value" style={{ color: results.lineSpaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
                   {results.totalLinesTested > 0 ? results.lineSpaceAccuracyRate : "0.0"}%
                 </div>
               </div>
-
               <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
                 <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Line Space Error Rate</div>
                 <div className="eval-stat-value val-danger">
                   {lineSpaceErrorRate}%
                 </div>
               </div>
-
               <div className="eval-stat-card">
                 <div className="eval-stat-title">Line Space Passed</div>
                 <div className="eval-stat-value" style={{ color: "#0EA5E9" }}>{results.lineSpacePassed}</div>
               </div>
-
               <div className="eval-stat-card">
                 <div className="eval-stat-title">Line Space Mismatches</div>
                 <div className={`eval-stat-value ${lineSpaceFailed > 0 ? "val-danger" : "val-muted"}`}>{lineSpaceFailed}</div>
@@ -969,79 +826,60 @@ export default function EvaluationSuite() {
           <div className="eval-sklearn-container" style={{ marginBottom: "24px" }}>
             <div className="eval-sklearn-header">
               <div className="eval-sklearn-header-left">
-
                 <strong className="eval-sklearn-title">
                   <FiZap style={{ display: "inline", color: "#F59E0B", marginRight: "8px" }} /> Computational Efficiency & Hardware Profiling Report
                 </strong>
                 <span className="eval-sklearn-subtitle">
-                  Execution efficiency benchmarks measuring Wasm AST engine throughput, latency percentiles, and memory
-                  allocation across {results.efficiency.totalLines} source lines of code.
+                  Execution efficiency benchmarks measuring Wasm AST engine throughput, latency percentiles, and memory allocation across {results.efficiency.totalLines} source lines of code.
                 </span>
               </div>
             </div>
-
             <div className="eval-stats-grid" style={{ padding: "16px 20px 20px", gap: "16px", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #F59E0B" }}>
-
                 <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Total Benchmarking Time</div>
                 <div className="eval-stat-value" style={{ color: "#D97706" }}>
                   {results.efficiency.totalExecutionSec}s
                 </div>
-                <span style={{
-                  fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block"
-                }}>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
                   {results.totalTested} algorithms processed
                 </span>
               </div>
-
               <div className="eval-stat-card" style={{ borderTop: "4px solid #3B82F6" }}>
                 <div className="eval-stat-title"><FiTrendingUp style={{ display: "inline", marginRight: "4px" }} /> Engine Throughput</div>
-
                 <div className="eval-stat-value" style={{ color: "#2563EB" }}>
                   {results.efficiency.throughputAlgos} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>algos/s</small>
                 </div>
                 <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
-
                   {results.efficiency.throughputLines} lines/sec
                 </span>
               </div>
-
               <div className="eval-stat-card" style={{ borderTop: "4px solid #8B5CF6" }}>
                 <div className="eval-stat-title"><FiActivity style={{ display: "inline", marginRight: "4px" }} /> Mean AST Latency</div>
-                <div className="eval-stat-value"
-                  style={{ color: "#7C3AED" }}>
+                <div className="eval-stat-value" style={{ color: "#7C3AED" }}>
                   {results.efficiency.meanTimeMs} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>ms</small>
                 </div>
                 <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
                   Median: {results.efficiency.medianTimeMs} ms
-
                 </span>
               </div>
-
               <div className="eval-stat-card" style={{ borderTop: "4px solid #EC4899" }}>
                 <div className="eval-stat-title"><FiBarChart2 style={{ display: "inline", marginRight: "4px" }} /> Latency (P95 / Max)</div>
                 <div className="eval-stat-value" style={{ color: "#DB2777" }}>
-
                   {results.efficiency.p95TimeMs} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>ms</small>
                 </div>
                 <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
                   Peak Max: {results.efficiency.maxTimeMs} ms
                 </span>
-
               </div>
-
               <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
                 <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Peak Wasm Memory</div>
                 <div className="eval-stat-value" style={{ color: "#059669" }}>
-                  {results.efficiency.peakAstMemMB} <small style={{
-                    fontSize: "13px", fontWeight: "normal", color: "#64748B"
-                  }}>MB</small>
+                  {results.efficiency.peakAstMemMB} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>MB</small>
                 </div>
                 <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
                   Mean Traversal: {results.efficiency.meanAstMemKB} KB
                 </span>
               </div>
-
             </div>
           </div>
         )}
@@ -1051,155 +889,121 @@ export default function EvaluationSuite() {
             <div className="eval-sklearn-header">
               <div className="eval-sklearn-header-left">
                 <strong className="eval-sklearn-title">
-
                   <FiLayers style={{ display: "inline", color: "#7928CA", marginRight: "8px" }} /> Classification Performance Report
                 </strong>
-                <span className="eval-sklearn-subtitle">Performance statistics generated from the benchmark dataset using the Scikit-learn classification report.
-                  Values are shown in both percentage and decimal formats for clarity.</span>
+                <span className="eval-sklearn-subtitle">Performance statistics generated from the benchmark dataset using the Scikit-learn classification report. Values are shown in both percentage and decimal formats for clarity.</span>
               </div>
               <button onClick={() => setIsMetricsHelpOpen(true)} className="eval-btn-metrics-help">
                 <FiHelpCircle size={16} /> Understand Metric Percentages
               </button>
             </div>
 
-
             <div className="eval-sklearn-grid">
-
               <div className="sklearn-table-box">
                 <div className="sklearn-table-title">
                   <span>Time Complexity Validation Matrix</span>
                   <span style={{ fontWeight: "normal", color: "#64748B" }}>Total Algorithms: {results.totalTested}</span>
-
                 </div>
                 <table className="sklearn-table">
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-
                       <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
-                      <th title="Recall = TP / (TP + FN) |
-Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                       <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                       <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                     </tr>
-
                   </thead>
                   <tbody>
                     {Object.keys(processedTimeReport.perClass).map((cKey) => {
                       const row = processedTimeReport.perClass[cKey];
-
                       return (
                         <tr key={`time_${cKey}`}>
                           <td className="td-class-code">{cKey}</td>
                           <td>{renderMetricCell(row.precision)}</td>
-
                           <td>{renderMetricCell(row.recall)}</td>
                           <td>{renderF1Badge(row.f1Score)}</td>
                           <td className="td-support-count"><strong>{row.support}</strong> <small>cases</small></td>
                         </tr>
-
                       );
                     })}
-
                     <tr className="tr-divider">
                       <td>overall accuracy</td>
                       <td>-</td>
                       <td>-</td>
-
                       <td><strong style={{ color: "#10B981", fontSize: "14px" }}>{((results.timePassed / results.totalTested) * 100).toFixed(1)}%</strong> <small style={{ color: "#94A3B8" }}>({(results.timePassed / results.totalTested).toFixed(2)})</small></td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr>
-
                       <td>macro avg</td>
                       <td>{renderMetricCell(processedTimeReport.macroAvg.precision)}</td>
                       <td>{renderMetricCell(processedTimeReport.macroAvg.recall)}</td>
                       <td>{renderMetricCell(processedTimeReport.macroAvg.f1Score)}</td>
-
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr className="tr-weighted">
                       <td>weighted avg</td>
                       <td>{renderMetricCell(processedTimeReport.weightedAvg.precision)}</td>
-
                       <td>{renderMetricCell(processedTimeReport.weightedAvg.recall)}</td>
                       <td>{renderMetricCell(processedTimeReport.weightedAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                   </tbody>
-
                 </table>
               </div>
 
               <div className="sklearn-table-box">
                 <div className="sklearn-table-title">
                   <span>Space Complexity Validation Matrix</span>
-                  <span style={{
-                    fontWeight:
-                      "normal", color: "#64748B"
-                  }}>Total Algorithms: {results.totalTested}</span>
+                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Total Algorithms: {results.totalTested}</span>
                 </div>
                 <table className="sklearn-table">
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-
-                      <th title="Precision = TP / (TP + FP) |
-Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
-                      <th title="Recall = TP / (TP + FN) |
-Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                       <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                       <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                     </tr>
-
                   </thead>
                   <tbody>
                     {Object.keys(processedSpaceReport.perClass).map((cKey) => {
                       const row = processedSpaceReport.perClass[cKey];
-
                       return (
                         <tr key={`space_${cKey}`}>
                           <td className="td-class-code">{cKey}</td>
                           <td>{renderMetricCell(row.precision)}</td>
-
                           <td>{renderMetricCell(row.recall)}</td>
                           <td>{renderF1Badge(row.f1Score)}</td>
                           <td className="td-support-count"><strong>{row.support}</strong> <small>cases</small></td>
                         </tr>
-
                       );
                     })}
-
                     <tr className="tr-divider">
                       <td>overall accuracy</td>
                       <td>-</td>
                       <td>-</td>
-
                       <td><strong style={{ color: "#0EA5E9", fontSize: "14px" }}>{((results.spacePassed / results.totalTested) * 100).toFixed(1)}%</strong> <small style={{ color: "#94A3B8" }}>({(results.spacePassed / results.totalTested).toFixed(2)})</small></td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr>
-
                       <td>macro avg</td>
                       <td>{renderMetricCell(processedSpaceReport.macroAvg.precision)}</td>
                       <td>{renderMetricCell(processedSpaceReport.macroAvg.recall)}</td>
                       <td>{renderMetricCell(processedSpaceReport.macroAvg.f1Score)}</td>
-
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr className="tr-weighted">
                       <td>weighted avg</td>
                       <td>{renderMetricCell(processedSpaceReport.weightedAvg.precision)}</td>
-
                       <td>{renderMetricCell(processedSpaceReport.weightedAvg.recall)}</td>
                       <td>{renderMetricCell(processedSpaceReport.weightedAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                   </tbody>
-
                 </table>
               </div>
-
             </div>
           </div>
         )}
@@ -1240,7 +1044,6 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
               </thead>
               <tbody>
                 {filteredDetails.map((row, idx) => {
-
                   const isExpanded = !!expandedRows[row.id];
                   const gtLines = row.lineValidationResults?.filter(l => l.hasGroundTruth) || [];
                   const lineFails = gtLines.filter(l => !l.isPassed).length;
@@ -1250,14 +1053,11 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                   return (
                     <React.Fragment key={`${row.id}_${idx}`}>
                       <tr className={isExpanded ? "tr-expanded-parent" : ""}>
-
                         <td className="cell-algo-name">
                           {row.name}
                           <span style={{ display: "block", fontSize: "11px", color: "#94A3B8", fontWeight: "normal" }}>{row.id}</span>
                         </td>
-
                         <td className="cell-category">{row.category}</td>
-
                         <td>
                           <code className="code-badge-gt" style={{ marginBottom: "4px" }}>
                             T: {row.expectedTime}
@@ -1266,7 +1066,6 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                             S: {row.expectedSpace}
                           </code>
                         </td>
-
                         <td>
                           <code className={row.isTimeCorrect ? "code-badge-pred-pass" : "code-badge-pred-fail"} style={{ marginBottom: "4px" }}>
                             T: {row.predictedTime}
@@ -1275,8 +1074,6 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                             S: {row.predictedSpace}
                           </code>
                         </td>
-
-
                         <td>
                           {row.isTimeCorrect ? (
                             <span className="eval-verdict verdict-pass"><FiCheckCircle size={15} /> Pass</span>
@@ -1284,7 +1081,6 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                             <span className="eval-verdict verdict-fail"><FiXCircle size={15} /> Mismatch</span>
                           )}
                         </td>
-
                         <td>
                           {row.isSpaceCorrect ? (
                             <span className="eval-verdict verdict-pass" style={{ color: "#0EA5E9" }}><FiCheckCircle size={15} /> Pass</span>
@@ -1292,7 +1088,6 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                             <span className="eval-verdict verdict-fail"><FiXCircle size={15} /> Mismatch</span>
                           )}
                         </td>
-
                         <td>
                           {!hasLines ? (
                             <span className="eval-verdict" style={{ color: "#94A3B8" }}>-</span>
@@ -1302,163 +1097,141 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                             <span className="eval-verdict verdict-pass" style={{ color: "#10B981" }}><FiCheckCircle size={15} /> Perfect</span>
                           )}
                         </td>
-
                         <td>
                           <div className="action-buttons-group">
-
                             <button onClick={() => setSelectedItemCode(row)} className="eval-btn-inspect">
                               <FiCode size={14} /> Inspect AST
                             </button>
-
                             <button onClick={() => toggleRowDropdown(row.id)} className={`eval-btn-dropdown ${isExpanded ? "active-dropdown" : ""} ${hasLineMismatch && !isExpanded ? "btn-dropdown-error" : ""}`}>
                               <FiList size={14} /> <span>{isExpanded ? "Hide Lines" : (hasLineMismatch ? "Review Errors" : "Line Checks")}</span> {isExpanded ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
                             </button>
                           </div>
                         </td>
-
                       </tr>
 
                       {isExpanded && (
                         <tr className="tr-dropdown-content">
                           <td colSpan="8" className="td-dropdown-cell">
-
                             <div className="line-checks-dropdown-box">
                               <div className="dropdown-box-header">
                                 <div className="dbh-left">
-
                                   <FiCornerDownRight size={16} className="dbh-icon" />
                                   <strong>Line-by-Line Complexity & Execution Verification</strong>
                                   <span className="dbh-sub">Statement-level Big-O detection trace for {row.name}</span>
-
                                 </div>
                                 <div className="dbh-right">
                                   <span className="line-count-pill">
-
                                     <FiLayers size={13} style={{ marginRight: "5px" }} />
                                     {row.lineValidationResults?.length || 0} Statements Evaluated
                                   </span>
                                 </div>
                               </div>
 
-
                               <div className="dropdown-table-wrapper">
                                 <table className="dropdown-line-table">
                                   <thead>
-
                                     <tr>
                                       <th>Line #</th>
-
                                       <th>Source Statement</th>
                                       <th>Local Time</th>
                                       <th>Global Time</th>
-
                                       <th>Local Space</th>
                                       <th>Global Space</th>
-
                                       <th>Line Status</th>
                                     </tr>
                                   </thead>
-
                                   <tbody>
-                                    {(row.lineValidationResults || []).map((lineItem, lIdx) => (
-                                      <tr key={`line_${row.id}_${lineItem.lineno}_${lIdx}`} className={!lineItem.isPassed && lineItem.hasGroundTruth ? "line-tr-fail" : ""}>
-                                        <td className="line-td-num">{lineItem.lineno}</td>
-                                        <td className="line-td-code"><code>{lineItem.lineOfCode || "-"}</code></td>
+                                    {(row.lineValidationResults || []).map((lineItem, lIdx) => {
+                                      // Robust fallback property accessors specifically built into React
+                                      const expLT = getProp(lineItem, ['expLocalTime', 'expectedLocalTime', 'local_time']);
+                                      const predLT = getProp(lineItem, ['predLocalTime', 'predictedLocalTime']);
+                                      const expGT = getProp(lineItem, ['expGlobalTime', 'expectedGlobalTime', 'global_time']);
+                                      const predGT = getProp(lineItem, ['predGlobalTime', 'predictedGlobalTime']);
+                                      const expLS = getProp(lineItem, ['expLocalSpace', 'expectedLocalSpace', 'local_space']);
+                                      const predLS = getProp(lineItem, ['predLocalSpace', 'predictedLocalSpace']);
+                                      const expGS = getProp(lineItem, ['expGlobalSpace', 'expectedGlobalSpace', 'global_space']);
+                                      const predGS = getProp(lineItem, ['predGlobalSpace', 'predictedGlobalSpace']);
 
-                                        <td className="line-td-comp">
-                                          {lineItem.hasGroundTruth
-                                            ? renderDualBadge("-", lineItem.localTime, true)
-                                            : <span className="comp-act comp-neutral">{lineItem.localTime || "-"}</span>}
-                                        </td>
-
-                                        <td className="line-td-comp">
-                                          {lineItem.hasGroundTruth
-                                            ? renderDualBadge(lineItem.expTime, lineItem.predTime, lineItem.isTimeMatch)
-                                            : <span className="comp-act comp-neutral">{lineItem.predTime || "-"}</span>}
-                                        </td>
-
-                                        <td className="line-td-comp">
-                                          {lineItem.hasGroundTruth
-                                            ? renderDualBadge("-", lineItem.localSpace, true)
-                                            : <span className="comp-act comp-neutral">{lineItem.localSpace || "-"}</span>}
-                                        </td>
-
-                                        <td className="line-td-comp">
-                                          {lineItem.hasGroundTruth
-                                            ? renderDualBadge(lineItem.expSpace, lineItem.predSpace, lineItem.isSpaceMatch)
-                                            : <span className="comp-act comp-neutral">{lineItem.predSpace || "-"}</span>}
-                                        </td>
-
-                                        <td className="line-td-status">
-                                          {lineItem.hasGroundTruth ? (
-                                            lineItem.isPassed ? (
-                                              <span className="line-verdict verdict-pass"><FiCheckCircle size={13} /> Match</span>
-
+                                      return (
+                                        <tr key={`line_${row.id}_${lineItem.lineno}_${lIdx}`} className={!lineItem.isPassed && lineItem.hasGroundTruth ? "line-tr-fail" : ""}>
+                                          <td className="line-td-num">{lineItem.lineno}</td>
+                                          <td className="line-td-code"><code>{lineItem.lineOfCode || "-"}</code></td>
+                                          <td className="line-td-comp">
+                                            {lineItem.hasGroundTruth
+                                              ? renderDualBadge(expLT, predLT, lineItem.ltMatch)
+                                              : <span className="comp-act comp-neutral">{predLT || "-"}</span>}
+                                          </td>
+                                          <td className="line-td-comp">
+                                            {lineItem.hasGroundTruth
+                                              ? renderDualBadge(expGT, predGT, lineItem.gtMatch)
+                                              : <span className="comp-act comp-neutral">{predGT || "-"}</span>}
+                                          </td>
+                                          <td className="line-td-comp">
+                                            {lineItem.hasGroundTruth
+                                              ? renderDualBadge(expLS, predLS, lineItem.lsMatch)
+                                              : <span className="comp-act comp-neutral">{predLS || "-"}</span>}
+                                          </td>
+                                          <td className="line-td-comp">
+                                            {lineItem.hasGroundTruth
+                                              ? renderDualBadge(expGS, predGS, lineItem.gsMatch)
+                                              : <span className="comp-act comp-neutral">{predGS || "-"}</span>}
+                                          </td>
+                                          <td className="line-td-status">
+                                            {lineItem.hasGroundTruth ? (
+                                              lineItem.isPassed ? (
+                                                <span className="line-verdict verdict-pass"><FiCheckCircle size={13} /> Match</span>
+                                              ) : (
+                                                <span className="line-verdict verdict-fail"><FiXCircle size={13} /> Mismatch</span>
+                                              )
                                             ) : (
-                                              <span className="line-verdict verdict-fail"><FiXCircle size={13} /> Mismatch</span>
-
-                                            )
-                                          ) : (
-                                            <span className="line-verdict verdict-none">AST Verified</span>
-                                          )}
-
-                                        </td>
-                                      </tr>
-                                    ))}
+                                              <span className="line-verdict verdict-none">AST Verified</span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
 
                                     {(!row.lineValidationResults || row.lineValidationResults.length === 0) && (
                                       <tr>
-
                                         <td colSpan="7" style={{ padding: "28px", textAlign: "center", color: "#64748B" }}>
                                           No statement-level AST trace recorded for this dataset snippet.
                                         </td>
                                       </tr>
                                     )}
-
                                   </tbody>
                                 </table>
                               </div>
 
-
                               <div className="dropdown-box-footer">
                                 <div className="dbf-verdict">
                                   <span>Overall Algorithm Verdict:</span>
-
                                   {row.isCompletelyCorrect ? (
                                     <strong className="verdict-pass"><FiCheckCircle size={16} /> PASSED OVERALL</strong>
                                   ) : (
-
                                     <strong className="verdict-fail"><FiXCircle size={16} /> FAILED OVERALL</strong>
                                   )}
                                 </div>
-
                                 <div className="dbf-metrics">
                                   <div className="dbf-metric-item">
                                     <span>Overall Time:</span>
-
                                     <strong className={row.isTimeCorrect ? "verdict-pass" : "verdict-fail"}>
                                       Exp {row.expectedTime} vs Act {row.predictedTime}
                                     </strong>
-
                                   </div>
                                   <div className="dbf-metric-item">
                                     <span>Overall Space:</span>
-
                                     <strong className={row.isSpaceCorrect ? "verdict-pass" : "verdict-fail"}>
                                       Exp {row.expectedSpace} vs Act {row.predictedSpace}
                                     </strong>
-
                                   </div>
                                 </div>
                               </div>
-
 
                             </div>
                           </td>
                         </tr>
                       )}
                     </React.Fragment>
-
                   );
                 })}
               </tbody>
@@ -1468,9 +1241,7 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
               <div className="eval-empty-state">No algorithms match the selected filter.</div>
             )}
           </div>
-
         )}
-
       </div>
     </div>
   );

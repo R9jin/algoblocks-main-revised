@@ -359,7 +359,7 @@ export default function ProfilePage() {
               {user.isGuest ? (
                 <span className="guest-warning-badge">
                   <FiAlertTriangle className="status-icon warning" />
-                  Guest Mode — Educational Thesis Session (Local persistence disabled)
+                  Guest Mode (Local persistence disabled)
                 </span>
               ) : (
                 <span className="user-email">{user.email}</span>
@@ -665,7 +665,7 @@ export default function ProfilePage() {
                   <div className="mastery-card-right">
                     {milestones.postTest ? (
                       <span className="milestone-status validated">
-                        <FiCheckCircle className="status-inline-icon" /> Thesis Validated
+                        <FiCheckCircle className="status-inline-icon" /> Completed
                       </span>
                     ) : isPostTestUnlocked ? (
                       <Link to="/assessment/course-post-test" className="btn-milestone-action gold">

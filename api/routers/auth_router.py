@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Request, Query, Body, Depends
 from typing import Dict, Any
 
-from models import UserLogin, UserCreate, ProgressUpdate, GoogleLoginRequest, AssessmentUpdateRequest, BatchSyncPayload, SyncResponse
+from models import UserLogin, UserCreate, ProgressUpdate, GoogleLoginRequest, AssessmentUpdateRequest, BatchSyncPayload, SyncResponse, ForgotPasswordRequest, ResetPasswordRequest
 from services.auth_service import AuthService
 from limiter import limiter
 from security import get_current_user_email
@@ -19,18 +19,25 @@ def login_user(request: Request, req: UserLogin):
 def signup_user(request: Request, req: UserCreate): 
     return AuthService.signup(req)
 
+@router.post("/forgot-password")
+@limiter.limit("5/minute")
+def forgot_password(request: Request, req: ForgotPasswordRequest):
+    return AuthService.forgot_password(req.email)
+
+@router.get("/verify-reset-token")
+@limiter.limit("20/minute")
+def verify_reset_token(request: Request, token: str = Query(...)):
+    return AuthService.verify_reset_token(token)
+
+@router.post("/reset-password")
+@limiter.limit("5/minute")
+def reset_password(request: Request, req: ResetPasswordRequest):
+    return AuthService.reset_password(req.token, req.new_password)
+
 @router.post("/auth/google")
 @limiter.limit("5/minute")
 def google_auth(request: Request, req: GoogleLoginRequest): 
     return AuthService.google_login(req.token)
-
-# 🛡️ PROTECTED ROUTES BELOW 🛡️
-
-@router.post("/update-progress")
-@limiter.limit("30/minute")
-def update_progress(request: Request, req: ProgressUpdate, trusted_email: str = Depends(get_current_user_email)):
-    req.email = trusted_email 
-    return AuthService.update_progress(req)
 
 @router.get("/get-progress")
 @limiter.limit("30/minute")
@@ -48,34 +55,7 @@ def update_assessment(request: Request, req: AssessmentUpdateRequest, trusted_em
 def get_assessments(request: Request, trusted_email: str = Depends(get_current_user_email)):
     return AuthService.get_assessments(trusted_email)
 
-@router.post("/sync-submission")
-@limiter.limit("60/minute")
-def sync_submission(request: Request, payload: Dict[str, Any] = Body(...), trusted_email: str = Depends(get_current_user_email)):
-    payload["userId"] = trusted_email 
-    return AuthService.sync_submission(payload)
-
-@router.get("/get-submission")
-@limiter.limit("60/minute")
-def get_submission(request: Request, activityId: str = Query(...), moduleId: str = Query(None), trusted_email: str = Depends(get_current_user_email)):
-    return AuthService.get_submission(trusted_email, activityId, moduleId)
-
-@router.post("/sync-assessment")
-@limiter.limit("30/minute")
-def sync_assessment(request: Request, payload: Dict[str, Any] = Body(...), trusted_email: str = Depends(get_current_user_email)):
-    payload["userId"] = trusted_email
-    return AuthService.sync_assessment(payload)
-
-@router.get("/get-assessment")
-@limiter.limit("30/minute")
-def get_assessment(request: Request, moduleId: str = Query(...), trusted_email: str = Depends(get_current_user_email)):
-    return AuthService.get_assessment(trusted_email, moduleId)
-
 @router.get("/get-all-submissions")
 @limiter.limit("30/minute")
 def get_all_submissions(request: Request, trusted_email: str = Depends(get_current_user_email)):
     return AuthService.get_all_submissions(trusted_email)
-
-@router.post("/batch-sync", response_model=SyncResponse)
-@limiter.limit("15/minute")
-def batch_sync(request: Request, payload: BatchSyncPayload, trusted_email: str = Depends(get_current_user_email)):
-    return AuthService.batch_sync(payload.dict(), trusted_email)

@@ -1,7 +1,7 @@
 // frontend/src/pages/SignUp.jsx
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
-import { FiAlertTriangle, FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/Auth.css";
 
@@ -40,10 +40,10 @@ export default function SignUp() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/api/register`, {
+      // FIX: Changed from /api/register to /api/signup to match FastAPI router
+      const response = await fetch(`${API_BASE}/api/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Explicitly hardcode standard user roles to prevent payload tampering
         body: JSON.stringify({ 
           name, 
           email, 
@@ -61,7 +61,6 @@ export default function SignUp() {
         return;
       }
 
-      // If the backend auto-logs in the user after registration and returns a token
       if (data.token) {
         localStorage.removeItem("authToken");
         sessionStorage.removeItem("authToken");
@@ -71,7 +70,6 @@ export default function SignUp() {
         sessionStorage.setItem("authToken", data.token);
         sessionStorage.setItem("token", data.token);
         
-        // Force the local cache to recognize the new account strictly as a non-admin
         sessionStorage.setItem("user", JSON.stringify({
           email: data.email || email,
           name: data.name || name,
@@ -83,7 +81,6 @@ export default function SignUp() {
         
         navigate("/dashboard");
       } else {
-        // If the backend requires a manual login step after registration
         showToast("Registration successful! Redirecting to login...", "success");
         setTimeout(() => navigate("/signin"), 2000);
       }
@@ -102,7 +99,6 @@ export default function SignUp() {
       const response = await fetch(`${API_BASE}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Explicitly inject standard roles for new Google Auth users
         body: JSON.stringify({ 
           token: credentialResponse.credential,
           role: "user", 
@@ -125,7 +121,6 @@ export default function SignUp() {
       sessionStorage.setItem("authToken", data.token);
       sessionStorage.setItem("token", data.token);
       
-      // Cache the Google user as a strict non-admin unless the backend explicitly overrides it
       sessionStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
@@ -153,23 +148,8 @@ export default function SignUp() {
 
       <div className="auth-container">
         <div className="auth-card">
-
-          <div className="auth-research-banner">
-            <div className="banner-icon-wrapper">
-              <FiAlertTriangle size={18} />
-            </div>
-            <div className="banner-text">
-              <strong>Academic Research Notice</strong>
-              <p>
-                To ensure data validity for this thesis, please use <b>strictly one account</b> throughout your evaluation. 
-                Progress, assessments, and learning analytics are being actively monitored and recorded to a single ID.
-              </p>
-            </div>
-          </div>
-
           <h2>Sign Up for AlgoBlocks</h2>
           <form onSubmit={handleSubmit}>
-            
             <div className="form-group">
               <label>Full Name</label>
               <div className="auth-input-wrap">

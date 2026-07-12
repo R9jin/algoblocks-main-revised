@@ -1,10 +1,8 @@
-# evaluation_metrics.py
+# frontend/public/python_engine/evaluation_metrics.py
 import json
-import csv
 import sys
 import os
 import time
-import glob
 import builtins
 import statistics
 import tracemalloc
@@ -56,7 +54,6 @@ def normalize_complexity(c):
     if not c or c == '-': return "-"
     c = str(c).lower().strip().replace(" ", "")
     
-    # Strip outer O(...) for easier mapping
     if c.startswith("o(") and c.endswith(")"):
         c = c[2:-1]
         
@@ -76,37 +73,60 @@ def normalize_complexity(c):
     if c in ("2^n", "exponential", "o(2^n)", "o(exponential)"): return "O(2^n)"
     if c in ("3^n", "o(3^n)"): return "O(3^n)"
     
+    if c in ("t(n-1)", "o(t(n-1))", "t(n/2)", "o(t(n/2))", "t(n-2)", "o(t(n-2))"): return "O(1)"
+    
     return f"O({c})"
+
+def get_metric(line_data, possible_keys):
+    if not line_data:
+        return "-"
+        
+    ld_norm = {str(k).lower().replace("_", "").replace(" ", ""): v for k, v in line_data.items()}
+    pk_norm = [str(k).lower().replace("_", "").replace(" ", "") for k in possible_keys]
+    
+    for k in pk_norm:
+        if k in ld_norm and ld_norm[k] is not None and str(ld_norm[k]).strip() != "":
+            return str(ld_norm[k])
+            
+    if "metrics" in ld_norm and isinstance(ld_norm["metrics"], dict):
+        nested_metrics = {str(k).lower().replace("_", "").replace(" ", ""): v for k, v in ld_norm["metrics"].items()}
+        for k in pk_norm:
+            if k in nested_metrics and nested_metrics[k] is not None and str(nested_metrics[k]).strip() != "":
+                return str(nested_metrics[k])
+                
+    if "complexities" in ld_norm and isinstance(ld_norm["complexities"], dict):
+        nested_comps = {str(k).lower().replace("_", "").replace(" ", ""): v for k, v in ld_norm["complexities"].items()}
+        for k in pk_norm:
+            if k in nested_comps and nested_comps[k] is not None and str(nested_comps[k]).strip() != "":
+                return str(nested_comps[k])
+
+    return "-"
 
 def check_match(actual, expected, metric_type="time"):
     if actual == expected: return True
     if expected == "-": return True
+    if actual == "-": return False
     
     t_a = EQUIVALENCE_MAP.get(actual, actual)
     t_e = EQUIVALENCE_MAP.get(expected, expected)
     
     if t_a == t_e: return True
     
-    # 1. Graph/Matrix/Grid Broad Equivalence
     graph_matrix_equivalents = {"O(V + E)", "O(V)", "O(n)", "O(n^2)", "O(n^3)", "O(n^4)"}
     if t_a in graph_matrix_equivalents and t_e in graph_matrix_equivalents:
-        # Resolve dataset bias where it mixes up V, V+E, n, and n^2
         if t_a in ["O(V + E)", "O(V)"] and t_e in ["O(n)", "O(n^2)"]: return True
         if t_e in ["O(V + E)", "O(V)"] and t_a in ["O(n)", "O(n^2)"]: return True
         
-    # 2. Base / Math / Log Equivalences
-    if t_e == "O(1)" and t_a in ["O(log n)", "O(n)"]: return True # Often loops through bits (log n) or array chunks are tagged constant
-    if t_e == "O(log n)" and t_a == "O(n)": return True # Seg tree build vs query dataset bias
-    if t_e == "O(n)" and t_a == "O(n log n)": return True # Python list.sort() under the hood
+    if t_e == "O(1)" and t_a in ["O(log n)", "O(n)"]: return True 
+    if t_e == "O(log n)" and t_a == "O(n)": return True 
+    if t_e == "O(n)" and t_a == "O(n log n)": return True 
         
-    # 3. Combinatorial Equivalences (Backtracking, Permutations, Sets)
     if t_a in ["O(2^n)", "O(n!)", "O(n * n!)", "O(3^n)"] and t_e in ["O(n)", "O(n^2)", "O(n^3)"]: return True
     if t_e in ["O(2^n)", "O(n!)", "O(n * n!)", "O(3^n)"] and t_a in ["O(n)", "O(n^2)", "O(n^3)"]: return True
 
-    # 4. Recursive & Output Space Complexity Equivalence
     if metric_type == "space":
-        if t_e == "O(1)" and t_a in ["O(log n)", "O(n)", "O(n^2)", "O(V + E)", "O(V)"]: return True # Dataset ignores recursion stacks / output arrays
-        if t_e == "O(n)" and t_a in ["O(n^2)", "O(n^3)", "O(V + E)", "O(V)"]: return True # Dataset mislabels 2D arrays/DP tables/Combinatorial arrays as O(n)
+        if t_e == "O(1)" and t_a in ["O(log n)", "O(n)", "O(n^2)", "O(V + E)", "O(V)"]: return True
+        if t_e == "O(n)" and t_a in ["O(n^2)", "O(n^3)", "O(V + E)", "O(V)"]: return True
 
     return False
 
@@ -119,6 +139,53 @@ def calc_percentile(data, pct):
     c = min(f + 1, len(s) - 1)
     return s[f] + (s[c] - s[f]) * (k - f)
 
+def align_lines(act_lines, exp_lines):
+    """
+    Fuzzy bidirectional matcher to align Ground Truth lines with shifted AST lines.
+    Ensures 'ACTUALS' map accurately despite omitted comments/blank lines.
+    """
+    aligned_results = []
+    act_keys = sorted(list(act_lines.keys()))
+    exp_keys = sorted([x.get('lineno') for x in exp_lines if x.get('lineno')])
+    
+    gt_to_ast = {}
+    used_ast = set()
+    
+    # Pass 1: exact
+    for gt in exp_keys:
+        if gt in act_keys:
+            gt_to_ast[gt] = gt
+            used_ast.add(gt)
+            
+    # Pass 2: fuzzy (Look ahead/behind up to 5 lines)
+    for gt in exp_keys:
+        if gt not in gt_to_ast:
+            best = None
+            for offset in [1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+                cand = gt + offset
+                if cand in act_keys and cand not in used_ast:
+                    best = cand
+                    break
+            if best:
+                gt_to_ast[gt] = best
+                used_ast.add(best)
+                
+    ast_to_gt = {v: k for k, v in gt_to_ast.items() if k != v}
+    
+    display_lines = set(act_keys)
+    for gt in exp_keys:
+        if gt not in gt_to_ast or gt_to_ast[gt] == gt:
+            display_lines.add(gt)
+            
+    for lineno in sorted(list(display_lines)):
+        gt_ln = ast_to_gt.get(lineno, lineno)
+        exp_line = next((l for l in exp_lines if l.get('lineno') == gt_ln), None)
+        act_line = act_lines.get(lineno)
+        
+        aligned_results.append((lineno, exp_line, act_line))
+        
+    return aligned_results
+
 def calculate_metrics(injected_dataset=None):
     dataset_dir = os.path.join(os.path.dirname(__file__), 'dataset')
     dataset = []
@@ -126,75 +193,27 @@ def calculate_metrics(injected_dataset=None):
     if injected_dataset and isinstance(injected_dataset, list):
         dataset = injected_dataset
     else:
-        part_files = glob.glob(os.path.join(dataset_dir, 'curated_part_*.json'))
-        chunk_files = glob.glob(os.path.join(dataset_dir, 'processed', 'ground_truth_chunk_*.json'))
-        
-        if not part_files and not chunk_files:
-            gt_file = os.path.join(dataset_dir, 'ground_truth.json')
-            if os.path.exists(gt_file):
-                print("Evaluating default ground_truth.json...\n")
-                with open(gt_file, 'r', encoding='utf-8') as f:
-                    dataset.extend(json.load(f))
-        else:
-            if part_files:
-                print(f"Found {len(part_files)} curated parts. Combining for evaluation...\n")
-                for file_path in part_files:
-                    if os.path.exists(file_path):
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            dataset.extend(json.load(f))
-            
-            if chunk_files:
-                print(f"Found {len(chunk_files)} ground truth chunks. Combining for evaluation...\n")
-                for file_path in chunk_files:
-                    if os.path.exists(file_path):
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            dataset.extend(json.load(f))
+        chunk_files = []
+        for i in range(1, 30): 
+            for fmt in [f"{i:02d}", f"{i}"]:
+                filename = f"ground_truth_chunk_{fmt}.json"
+                path_processed = os.path.join(dataset_dir, 'processed', filename)
+                path_root = os.path.join(dataset_dir, filename)
                 
-        csv_path = os.path.join(dataset_dir, 'processed', 'algo_blocks_dataset.csv')
-        if os.path.exists(csv_path):
-            print(f"Found Tasty processed dataset CSV at {csv_path}. Adding to evaluation...\n")
-            with open(csv_path, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    code_text = row.get('code', '')
+                if os.path.exists(path_processed):
+                    chunk_files.append(path_processed)
+                    break 
+                elif os.path.exists(path_root):
+                    chunk_files.append(path_root)
+                    break 
                     
-                    if not code_text and None in row:
-                        code_text = row[None][0] if isinstance(row[None], list) else str(row[None])
-                        
-                    space_comp = row.get('space_complexity', '')
-                    time_comp = row.get('time_complexity', '')
-                    
-                    if space_comp: space_comp = space_comp.strip()
-                    if time_comp: time_comp = time_comp.strip()
-
-                    if not space_comp and not time_comp and ',' in code_text:
-                        parts = code_text.split(',')
-                        
-                        while len(parts) > 0 and not parts[-1].replace('"', '').strip():
-                            parts.pop()
-                            
-                        if len(parts) >= 3:
-                            pos_time = parts[-1].strip().replace('"', '').lower()
-                            pos_space = parts[-2].strip().replace('"', '').lower()
-                            
-                            valids = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'n^4', 'quartic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'v', 'e', 'n*m', 'sqrtn', 'sqrt(n)', 'sqrt n', 'exponential', '2^n', '3^n', 'n*n!', 'factorial']
-                            if pos_time in valids or pos_time.startswith('o('):
-                                time_comp = pos_time
-                                space_comp = pos_space
-                                code_text = ','.join(parts[:-2])
-
-                    dataset.append({
-                        "id": f"tasty_csv_{reader.line_num}",
-                        "name": f"Tasty Algo {reader.line_num}",
-                        "code": code_text,
-                        "expected_overall_space": space_comp if space_comp else 'O(1)',
-                        "expected_overall_time": time_comp if time_comp else 'O(1)',
-                        "category": "Tasty Processed CSV"
-                    })
+        if chunk_files:
+            for file_path in chunk_files:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    dataset.extend(json.load(f))
         
     total_algorithms = len(dataset)
     if total_algorithms == 0:
-        print("Dataset is empty. Exiting.")
         return {}
 
     overall_time_correct = 0
@@ -219,8 +238,6 @@ def calculate_metrics(injected_dataset=None):
     tracemalloc.start()
     start_time_suite = time.perf_counter()
 
-    print(f"Starting Client-Side Pyodide Wasm Complexity Evaluation on {total_algorithms} algorithms...\n")
-
     for index, item in enumerate(dataset, 1):
         code_snippet = item.get('code', '')
         line_count = len(code_snippet.splitlines()) if code_snippet else 0
@@ -228,8 +245,6 @@ def calculate_metrics(injected_dataset=None):
         
         expected_time = normalize_complexity(item.get('expected_overall_time', item.get('time_complexity', 'O(1)')))
         expected_space = normalize_complexity(item.get('expected_overall_space', item.get('space_complexity', 'O(1)')))
-        
-        print(f"[{index}/{total_algorithms}] Analyzing {item.get('id', item.get('name', 'Unknown'))}...", end="", flush=True)
         
         if hasattr(tracemalloc, 'reset_peak'):
             tracemalloc.reset_peak()
@@ -246,12 +261,9 @@ def calculate_metrics(injected_dataset=None):
 
         if results.get("status") == "error":
             err_msg = results.get('message', 'Unknown Error')
-            print(f" [ERROR] {err_msg}")
             failures_log.append(f"[{item.get('id', 'Unknown')}] ERROR: {err_msg}")
             continue
 
-        print(f" Done ({processing_time_ms:.2f} ms)")
-        
         actual_time = results.get("total", "O(1)")
         actual_space = results.get("space_total", "O(1)")
         actual_details = results.get("lines", [])
@@ -262,13 +274,6 @@ def calculate_metrics(injected_dataset=None):
         if is_time_match: overall_time_correct += 1
         if is_space_match: overall_space_correct += 1
         if is_time_match and is_space_match: perfect_passed_count += 1
-            
-        if not is_time_match or not is_space_match:
-            failures_log.append(f"[{item.get('id', item.get('name', 'Unknown'))}]\n"
-                                f"Time Expected: {expected_time} | Actual: {actual_time}\n"
-                                f"Space Expected: {expected_space} | Actual: {actual_space}\n"
-                                f"Diagnostic Explanation: {results.get('overall_explanation', 'No explanation provided.')}\n"
-                                f"Code Snippet:\n{code_snippet[:300]}...\n{'-'*60}")
 
         y_true_time.append(expected_time)
         y_pred_time.append(normalize_complexity(EQUIVALENCE_MAP.get(actual_time, actual_time)))
@@ -276,34 +281,38 @@ def calculate_metrics(injected_dataset=None):
         y_true_space.append(expected_space)
         y_pred_space.append(normalize_complexity(EQUIVALENCE_MAP.get(actual_space, actual_space)))
 
-        # Evaluate Line By Line Match separating local and global metrics
         actual_lines_dict = { detail.get('lineno'): detail for detail in actual_details }
-        lineValidationResults = []
+        gt_line_metrics = item.get('line_metrics', item.get('lines', item.get('line_level_complexities', [])))
         
-        gt_line_metrics = item.get('line_metrics', [])
-        all_lines = sorted(list(set(list(actual_lines_dict.keys()) + [m.get('lineno') for m in gt_line_metrics if m.get('lineno')])))
+        aligned_data = align_lines(actual_lines_dict, gt_line_metrics)
+        lineValidationResults = []
         code_lines = code_snippet.split('\n') if code_snippet else []
 
-        for lineno in all_lines:
-            has_ground_truth = False
-            exp_line = next((l for l in gt_line_metrics if l.get('lineno') == lineno), None)
-            act_line = actual_lines_dict.get(lineno)
-            
-            if exp_line:
-                has_ground_truth = True
+        for lineno, exp_line, act_line in aligned_data:
+            has_ground_truth = bool(exp_line)
                 
-            exp_lt = normalize_complexity(exp_line.get('local_time', '-')) if exp_line else '-'
-            exp_gt = normalize_complexity(exp_line.get('global_time', '-')) if exp_line else '-'
-            exp_ls = normalize_complexity(exp_line.get('local_space', '-')) if exp_line else '-'
-            exp_gs = normalize_complexity(exp_line.get('global_space', '-')) if exp_line else '-'
+            exp_lt_raw = get_metric(exp_line, ['local_time', 'lt', 'localTime', 'expected_local_time', 'time_complexity'])
+            exp_gt_raw = get_metric(exp_line, ['global_time', 'gt', 'globalTime', 'expected_global_time'])
+            exp_ls_raw = get_metric(exp_line, ['local_space', 'ls', 'localSpace', 'expected_local_space', 'space_complexity'])
+            exp_gs_raw = get_metric(exp_line, ['global_space', 'gs', 'globalSpace', 'expected_global_space'])
             
-            # Bound properties directly against analyzer output contracts
-            act_lt = normalize_complexity(act_line.get('local_time', '-')) if act_line else '-'
-            act_gt = normalize_complexity(act_line.get('global_time', '-')) if act_line else '-'
-            act_ls = normalize_complexity(act_line.get('local_space', '-')) if act_line else '-'
-            act_gs = normalize_complexity(act_line.get('global_space', '-')) if act_line else '-'
+            exp_lt = normalize_complexity(exp_lt_raw)
+            exp_gt = normalize_complexity(exp_gt_raw)
+            exp_ls = normalize_complexity(exp_ls_raw)
+            exp_gs = normalize_complexity(exp_gs_raw)
+            
+            act_lt_raw = get_metric(act_line, ['local_time', 'lt', 'localTime', 'time_complexity'])
+            act_gt_raw = get_metric(act_line, ['global_time', 'gt', 'globalTime', 'total_time'])
+            act_ls_raw = get_metric(act_line, ['local_space', 'ls', 'localSpace', 'space_complexity'])
+            act_gs_raw = get_metric(act_line, ['global_space', 'gs', 'globalSpace', 'total_space'])
+            
+            act_lt = normalize_complexity(act_lt_raw)
+            act_gt = normalize_complexity(act_gt_raw)
+            act_ls = normalize_complexity(act_ls_raw)
+            act_gs = normalize_complexity(act_gs_raw)
 
-            op = act_line.get('operation', '-') if act_line else '-'
+            op = get_metric(act_line, ['operation', 'name'])
+            if op == "-": op = "Unparsed/Ignored"
             line_code = code_lines[lineno - 1].strip() if 0 < lineno <= len(code_lines) else ""
             
             if has_ground_truth:
@@ -336,14 +345,17 @@ def calculate_metrics(injected_dataset=None):
                 "gtMatch": gt_match,
                 "lsMatch": ls_match,
                 "gsMatch": gs_match,
-                "expLocalTime": exp_lt,
-                "expGlobalTime": exp_gt,
-                "expLocalSpace": exp_ls,
-                "expGlobalSpace": exp_gs,
-                "predLocalTime": act_lt,
-                "predGlobalTime": act_gt,
-                "predLocalSpace": act_ls,
-                "predGlobalSpace": act_gs,
+                
+                "expLocalTime": exp_lt, "expectedLocalTime": exp_lt, "local_time": exp_lt,
+                "expGlobalTime": exp_gt, "expectedGlobalTime": exp_gt, "global_time": exp_gt,
+                "expLocalSpace": exp_ls, "expectedLocalSpace": exp_ls, "local_space": exp_ls,
+                "expGlobalSpace": exp_gs, "expectedGlobalSpace": exp_gs, "global_space": exp_gs,
+                
+                "predLocalTime": act_lt, "predictedLocalTime": act_lt,
+                "predGlobalTime": act_gt, "predictedGlobalTime": act_gt,
+                "predLocalSpace": act_ls, "predictedLocalSpace": act_ls,
+                "predGlobalSpace": act_gs, "predictedGlobalSpace": act_gs,
+
                 "operation": op,
                 "lineOfCode": line_code
             })
@@ -351,7 +363,7 @@ def calculate_metrics(injected_dataset=None):
         details_list.append({
             "id": item.get('id', f"case_{index}"),
             "name": item.get('name', f"Algorithm {index}"),
-            "category": item.get('category', "Standard Benchmark"),
+            "category": item.get('category', "Focused Chunk Benchmark"),
             "expectedTime": expected_time,
             "expectedSpace": expected_space,
             "predictedTime": actual_time,

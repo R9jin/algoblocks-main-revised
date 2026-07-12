@@ -12,11 +12,8 @@ class TemplateService:
         templates = TemplateRepository.find_all()
         return {"status": "success", "templates": templates}
 
-    # ADDED/UPDATED: Method to handle saving/updating a template
     @staticmethod
     def save_template(req):
-        # Convert pydantic model to dict, exclude unset so we don't push nulls unnecessarily
-        # Support both Pydantic V1 (.dict()) and Pydantic V2 (.model_dump()) depending on FastAPI version
         if hasattr(req, "model_dump"):
             template_data = req.model_dump(exclude_unset=True)
         elif hasattr(req, "dict"):
@@ -24,14 +21,12 @@ class TemplateService:
         else:
             template_data = dict(req)
         
-        # Ensure owner_id is set so frontend sync catches it
         if template_data.get("userId") and not template_data.get("owner_id"):
             template_data["owner_id"] = template_data["userId"]
             
-        template_id = template_data.pop("templateId", None)
+        template_id = template_data.get("templateId", None)
         
         if template_id:
-            # Update existing
             updated_id = TemplateRepository.update(template_id, template_data)
             return {
                 "status": "success", 
@@ -39,7 +34,6 @@ class TemplateService:
                 "templateId": updated_id
             }
         else:
-            # Insert new
             inserted_id = TemplateRepository.save(template_data)
             return {
                 "status": "success", 

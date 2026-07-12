@@ -355,6 +355,15 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
       Blockly.Events.setGroup(true);
       try { workspace.current.clear(); } finally { Blockly.Events.setGroup(false); }
     },
+    // FIX: Added imperative methods to fetch raw JSON manually so failsafes work perfectly
+    getJson: () => {
+      if (!workspace.current) return {};
+      return Blockly.serialization.workspaces.save(workspace.current);
+    },
+    getBlocksJson: () => {
+      if (!workspace.current) return {};
+      return Blockly.serialization.workspaces.save(workspace.current);
+    },
     loadTemplate: (json, preservePythonCode = undefined) => {
       if (!workspace.current) {
         pendingLoadRef.current = { json, preservePythonCode };
@@ -464,16 +473,12 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
 
       const getCode = (b, n, o = pythonGenerator.ORDER_NONE) => pythonGenerator.valueToCode(b, n, o);
       
-      // >>> BUG FIXES FOR DEFAULT BLOCKLY GENERATORS <<<
-      
-      // Fixes the ugly isinstance check for variables_change
       pythonGenerator.forBlock["math_change"] = function (block) {
         const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
         const val = getCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC) || "0";
         return `${v} += ${val}\n`;
       };
 
-      // Fixes the ugly int() casting for repeat loops
       pythonGenerator.forBlock["controls_repeat_ext"] = function (block) {
         const repeats = getCode(block, "TIMES", pythonGenerator.ORDER_NONE) || "0";
         const branch = pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS;
@@ -485,8 +490,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
         const branch = pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS;
         return `for _ in range(${repeats}):\n${branch}`;
       };
-
-      // >>> END BUG FIXES <<<
 
       pythonGenerator.forBlock["math_assignment"] = function (block) {
         const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));

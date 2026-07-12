@@ -1,57 +1,128 @@
 // frontend/src/db.js
-import localforage from 'localforage';
+import { openDB } from "idb";
 
-export const projectsDB = localforage.createInstance({
-    name: "AlgoBlocks_Projects",
-    storeName: "projects"
-});
+const DB_NAME = "AlgoBlocksDB";
+const DB_VERSION = 6; // Bumped to 6 to fix submissions keyPath
 
-export const templatesDB = localforage.createInstance({
-    name: "AlgoBlocks_Templates",
-    storeName: "templates"
-});
+export const initDB = async () => {
+    return openDB(DB_NAME, DB_VERSION, {
+        upgrade(db, oldVersion, newVersion, transaction) {
+            if (!db.objectStoreNames.contains("projects")) {
+                const store = db.createObjectStore("projects", { keyPath: "projectId" });
+                store.createIndex("userId", "userId", { unique: false });
+                store.createIndex("isSynced", "isSynced", { unique: false });
+            }
 
-export const syncQueueDB = localforage.createInstance({
-    name: "AlgoBlocks_SyncQueue",
-    storeName: "sync_queue"
-});
+            if (!db.objectStoreNames.contains("templates")) {
+                const store = db.createObjectStore("templates", { keyPath: "templateId" });
+                store.createIndex("category", "category", { unique: false });
+            }
 
-// Activity Submissions, Progress, and Assessment DBs
-export const submissionsDB = localforage.createInstance({
-    name: "AlgoBlocks_Submissions",
-    storeName: "submissions"
-});
+            if (!db.objectStoreNames.contains("progress")) {
+                const store = db.createObjectStore("progress", { keyPath: "lesson_id" });
+                store.createIndex("isSynced", "isSynced", { unique: false });
+            }
 
-export const progressDB = localforage.createInstance({
-    name: "AlgoBlocks_Progress",
-    storeName: "progress"
-});
+            if (!db.objectStoreNames.contains("assessments")) {
+                const store = db.createObjectStore("assessments", { keyPath: "assessmentId" });
+                store.createIndex("isSynced", "isSynced", { unique: false });
+            }
 
-export const assessmentsDB = localforage.createInstance({
-    name: "AlgoBlocks_Assessments",
-    storeName: "assessments"
-});
+            // FIX: Recreate submissions store with correct primary key "id"
+            if (db.objectStoreNames.contains("submissions")) {
+                db.deleteObjectStore("submissions");
+            }
+            const subStore = db.createObjectStore("submissions", { keyPath: "id" });
+            subStore.createIndex("isSynced", "isSynced", { unique: false });
+            
+            if (!db.objectStoreNames.contains("syncQueue")) {
+                const store = db.createObjectStore("syncQueue", { keyPath: "id", autoIncrement: true });
+            }
 
-// Cache for Curriculum JSON files to prevent slow network waterfalls
-export const curriculumCacheDB = localforage.createInstance({
-    name: "AlgoBlocks_Curriculum",
-    storeName: "curriculum_cache"
-});
-
-// Helper functions for React components to use
-export const saveProjectOffline = async (projectData) => {
-    const id = projectData._id || `local_${Date.now()}`;
-    const project = { ...projectData, _id: id, synced: false, updatedAt: Date.now() };
-    
-    await projectsDB.setItem(id, project);
-    await syncQueueDB.setItem(id, { type: 'PROJECT', action: 'UPSERT', data: project });
-    return id;
+            if (!db.objectStoreNames.contains("curriculumCache")) {
+                const store = db.createObjectStore("curriculumCache", { keyPath: "id" });
+            }
+        },
+    });
 };
 
-export const getOfflineProjects = async () => {
-    const projects = [];
-    await projectsDB.iterate((value) => {
-        projects.push(value);
-    });
-    return projects;
+const createStoreWrapper = (storeName, keyPath) => {
+    return {
+        async getAll() {
+            const db = await initDB();
+            return db.getAll(storeName);
+        },
+        async get(id) { 
+            const db = await initDB();
+            return db.get(storeName, id);
+        },
+        async save(item) {
+            const db = await initDB();
+            return db.put(storeName, { ...item, timestamp: Date.now() });
+        },
+        async delete(id) {
+            const db = await initDB();
+            return db.delete(storeName, id);
+        },
+        async clear() {
+            const db = await initDB();
+            return db.clear(storeName);
+        },
+        async getItem(id) {
+            const data = await this.get(id);
+            if (data && data._isWrappedPayload) {
+                return data.value;
+            }
+            return data;
+        },
+        async setItem(id, value) {
+            if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+                return this.save({ [keyPath || "id"]: id, _isWrappedPayload: true, value });
+            }
+            
+            const payload = { ...value };
+            if (keyPath) {
+                payload[keyPath] = payload[keyPath] || id;
+            }
+            return this.save(payload);
+        },
+        async removeItem(id) {
+            return this.delete(id);
+        },
+        async iterate(callback) {
+            const allItems = await this.getAll();
+            for (let i = 0; i < allItems.length; i++) {
+                const item = allItems[i];
+                const passedValue = item._isWrappedPayload ? item.value : item;
+                await callback(passedValue, item[keyPath || "id"], i);
+            }
+        }
+    };
+};
+
+export const projectsDB = createStoreWrapper("projects", "projectId");
+export const templatesDB = createStoreWrapper("templates", "templateId");
+export const progressDB = createStoreWrapper("progress", "lesson_id");
+export const assessmentsDB = createStoreWrapper("assessments", "assessmentId");
+// FIX: Updated keyPath binding to match the new DB schema
+export const submissionsDB = createStoreWrapper("submissions", "id");
+export const curriculumCacheDB = createStoreWrapper("curriculumCache", "id");
+
+export const syncQueueDB = {
+    async add(action, payload) {
+        const db = await initDB();
+        return db.add("syncQueue", { action, payload, timestamp: Date.now() });
+    },
+    async getAll() {
+        const db = await initDB();
+        return db.getAll("syncQueue");
+    },
+    async remove(id) {
+        const db = await initDB();
+        return db.delete("syncQueue", id);
+    },
+    async clear() {
+        const db = await initDB();
+        return db.clear("syncQueue");
+    }
 };

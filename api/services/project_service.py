@@ -3,6 +3,7 @@ from repositories.project_repo import ProjectRepository
 from models import ProjectSyncRequest
 from fastapi import HTTPException
 from datetime import datetime
+import time
 
 class ProjectService:
     @staticmethod
@@ -21,18 +22,20 @@ class ProjectService:
             "description": req.description or "",
             "workspace": req.workspace or {},
             "pythonCode": req.pythonCode or "",
-            "updatedAt": datetime.utcnow().isoformat(),
+            "timestamp": req.timestamp or int(time.time() * 1000),
             "userId": req.userId,
-            "owner_id": req.userId
+            "owner_id": req.owner_id or req.userId,
+            "projectId": req.projectId,
+            "isSynced": True
         }
 
         if req.projectId and not str(req.projectId).startswith("local_"):
-            result = ProjectRepository.update(req.projectId, req.userId, update_data)
-            if result.matched_count == 0:
+            # ProjectRepository.update now returns rowcount instead of PyMongo object
+            rowcount = ProjectRepository.update(req.projectId, req.userId, update_data)
+            if rowcount == 0 or rowcount is None:
                 raise HTTPException(status_code=404, detail="Project not found or unauthorized")
             return {"status": "success", "projectId": req.projectId, "synced": True}
         else:
-            update_data["createdAt"] = update_data["updatedAt"]
             project_id = ProjectRepository.insert(update_data)
             return {"status": "success", "projectId": project_id, "synced": True}
 
@@ -44,8 +47,9 @@ class ProjectService:
         if not project_id or not user_id:
             raise HTTPException(status_code=400, detail="Missing projectId or userId")
 
-        result = ProjectRepository.delete(project_id, user_id)
-        if result.deleted_count == 0:
+        # ProjectRepository.delete now returns rowcount instead of PyMongo object
+        rowcount = ProjectRepository.delete(project_id, user_id)
+        if rowcount == 0:
             raise HTTPException(status_code=404, detail="Project not found or unauthorized")
 
         return {"status": "success"}
