@@ -1,35 +1,110 @@
 // frontend/src/pages/ForgotPassword.jsx
-import { FiAlertCircle, FiArrowLeft, FiLock } from "react-icons/fi";
+import { useState } from "react";
+import { FiArrowLeft, FiCheckCircle, FiLock, FiMail } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import "../styles/Auth.css";
 
 export default function ForgotPassword() {
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
+
+  const rawApiUrl = import.meta.env.VITE_API_URL || "";
+  const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+  const showToast = (message, type = "error") => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast({ visible: false, message: "", type: "error" });
+    }, 4000);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      // The backend always returns a generic success message here, whether or
+      // not the email is registered, so we never reveal account existence.
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        const data = await response.json().catch(() => ({}));
+        showToast(data.detail || "Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      console.error(error);
+      showToast("Server not reachable. Check backend connection.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header" style={{ textAlign: "center", marginBottom: "16px" }}>
-          <FiLock className="auth-icon" size={32} style={{ color: "#818cf8", marginBottom: "8px" }} />
-          <h2>Credential Reset Notice</h2>
-        </div>
-        
-        {/* BUG-04 Fix: Replaced deceptive email reset with thesis study instructions */}
-        <div className="notice-banner" style={{ display: "flex", gap: "12px", padding: "16px", background: "#332e49", border: "1px solid #6366f1", borderRadius: "8px", margin: "20px 0", color: "#e0e7ff" }}>
-          <FiAlertCircle size={24} style={{ flexShrink: 0, color: "#818cf8" }} />
-          <p style={{ margin: 0, fontSize: "14px", lineHeight: "1.5" }}>
-            AlgoBlocks operates under active academic thesis research protocols. Automated email credential resets are disabled to preserve participant identity tracking.
-          </p>
-        </div>
+    <>
+      <div className={`custom-toast ${toast.type} ${toast.visible ? "visible" : ""}`}>
+        {toast.message}
+      </div>
 
-        <p className="auth-instruction" style={{ textAlign: "center", marginBottom: "24px", color: "#cbd5e1", fontSize: "0.95rem" }}>
-          Please contact your research facilitator or lab supervisor directly to request a manual credential reset.
-        </p>
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-header" style={{ textAlign: "center", marginBottom: "16px" }}>
+            {submitted ? (
+              <FiCheckCircle className="auth-icon" size={32} style={{ color: "#818cf8", marginBottom: "8px" }} />
+            ) : (
+              <FiLock className="auth-icon" size={32} style={{ color: "#818cf8", marginBottom: "8px" }} />
+            )}
+            <h2>{submitted ? "Check your inbox" : "Forgot your password?"}</h2>
+          </div>
 
-        <div className="auth-links" style={{ textAlign: "center" }}>
-          <Link to="/signin" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-            <FiArrowLeft size={16} /> Back to Sign In
-          </Link>
+          {submitted ? (
+            <p className="auth-instruction" style={{ textAlign: "center", marginBottom: "24px", color: "#cbd5e1", fontSize: "0.95rem" }}>
+              If an account exists for <strong>{email}</strong>, we've sent a link to reset your password.
+              It expires in 30 minutes — be sure to check your spam folder if it doesn't show up shortly.
+            </p>
+          ) : (
+            <>
+              <p className="auth-instruction" style={{ textAlign: "center", marginBottom: "24px", color: "#cbd5e1", fontSize: "0.95rem" }}>
+                Enter the email address associated with your account and we'll send you a link to reset your password.
+              </p>
+
+              <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                  <label>Email</label>
+                  <div className="auth-input-wrap">
+                    <FiMail className="auth-input-icon" aria-hidden="true" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email address"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="auth-button" disabled={isLoading}>
+                  {isLoading ? "Sending..." : "Send Reset Link"}
+                </button>
+              </form>
+            </>
+          )}
+
+          <div className="auth-links" style={{ textAlign: "center" }}>
+            <Link to="/signin" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+              <FiArrowLeft size={16} /> Back to Sign In
+            </Link>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

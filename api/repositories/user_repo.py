@@ -132,3 +132,50 @@ class UserRepository:
         cursor.close()
         conn.close()
         return rowcount
+
+    @staticmethod
+    def set_reset_token(email: str, token_hash: str, expires_at):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users SET reset_token_hash = %s, reset_token_expires = %s WHERE email = %s
+        ''', (token_hash, expires_at, email))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    @staticmethod
+    def find_by_reset_token_hash(token_hash: str):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, name, email, reset_token_expires
+            FROM users
+            WHERE reset_token_hash = %s
+        ''', (token_hash,))
+        user = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return dict(user) if user else None
+
+    @staticmethod
+    def clear_reset_token(email: str):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users SET reset_token_hash = NULL, reset_token_expires = NULL WHERE email = %s
+        ''', (email,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    @staticmethod
+    def update_password(email: str, hashed_password: str):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE users SET password = %s WHERE email = %s', (hashed_password, email))
+        rowcount = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return rowcount

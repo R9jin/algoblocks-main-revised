@@ -52,6 +52,11 @@ def init_db():
     # which violates a NOT NULL constraint on a table created before this fix.
     cursor.execute('ALTER TABLE users ALTER COLUMN password DROP NOT NULL')
 
+    # Forgot-password flow: store only a hash of the reset token (never the raw token)
+    # plus its expiry, so a leaked database never exposes a usable token.
+    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_hash VARCHAR(255)')
+    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ')
+
     # HYBRID: Projects Table (Relational Sync/Keys + JSONB Blockly Data)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS projects (

@@ -15,4 +15,3 @@ colorama==0.4.6
 h11==0.16.0
 idna==3.11
 typing_extensions==4.12.2
-mailersend==0.4.2

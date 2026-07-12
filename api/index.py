@@ -1,15 +1,33 @@
 # api/index.py
 import os
 import sys
+import logging
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Initialize PostgreSQL Neon connection and hybrid tables
-import database 
+# Initialize PostgreSQL Neon connection and hybrid tables.
+# Runs at import time (not inside a request handler) so it fires exactly
+# once per process: once per local `uvicorn`/`python index.py` run, and once
+# per Vercel cold start. CREATE TABLE IF NOT EXISTS / ALTER TABLE ADD COLUMN
+# IF NOT EXISTS make this safe to run repeatedly against a live database —
+# it never drops or overwrites existing data, it only adds what's missing.
+# A failure here is logged but doesn't crash the app, since Neon's free tier
+# can be briefly asleep/unreachable on first request; the /api/admin/init-db
+# endpoint below stays available as a manual retry.
+import database
+
+try:
+    database.init_db()
+    logger.info("Database schema check completed on startup.")
+except Exception as e:
+    logger.error(f"Database initialization failed on startup: {e}", exc_info=True)
 
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -63,7 +81,10 @@ async def health_check():
 @app.get("/api/admin/init-db", tags=["Admin Operations"])
 async def initialize_database():
     """
-    Run this manually via browser once after deploying to Vercel to create tables.
+    Manual fallback only — the schema check now also runs automatically on
+    every startup/cold start (see the top of this file). Use this if that
+    startup run failed (e.g. Neon was asleep) and you want to retry without
+    redeploying or restarting the server.
     Example: https://your-vercel-url.vercel.app/api/admin/init-db
     """
     try:

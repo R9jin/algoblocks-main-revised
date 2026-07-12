@@ -5,11 +5,21 @@ from google.auth.transport import requests
 import os
 import bcrypt
 import json
+import hashlib
+import secrets
+import logging
+from datetime import datetime, timedelta, timezone
 
 from repositories.user_repo import UserRepository
 from models import UserLogin, UserCreate, ProgressUpdate, AssessmentUpdateRequest
 from database import get_db_connection
 from security import create_access_token
+from services import mail_service
+
+logger = logging.getLogger(__name__)
+
+# How long a password reset link stays valid for.
+RESET_TOKEN_TTL_MINUTES = 30
 
 class AuthService:
     @staticmethod
@@ -145,6 +155,76 @@ class AuthService:
             "status": "success",
             "assessments": user.get("assessments", {})
         }
+
+    @staticmethod
+    def forgot_password(email: str):
+        """
+        Always returns the same generic response whether or not the email is
+        registered, so this endpoint can't be used to enumerate accounts.
+        """
+        generic_response = {
+            "status": "success",
+            "message": "If an account with that email exists, a password reset link has been sent."
+        }
+
+        user = UserRepository.find_by_email(email)
+        if not user:
+            return generic_response
+
+        # Raw token goes in the emailed link; only its hash is ever persisted.
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+
+        UserRepository.set_reset_token(email, token_hash, expires_at)
+
+        sent = mail_service.send_password_reset_email(
+            to_email=email,
+            to_name=user.get("name", ""),
+            reset_token=raw_token
+        )
+        if not sent:
+            logger.error(f"Password reset email failed to send for {email}")
+
+        return generic_response
+
+    @staticmethod
+    def verify_reset_token(token: str):
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        user = UserRepository.find_by_reset_token_hash(token_hash)
+
+        if not user or not user.get("reset_token_expires"):
+            return {"valid": False}
+
+        expires_at = user["reset_token_expires"]
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        if expires_at < datetime.now(timezone.utc):
+            return {"valid": False}
+
+        return {"valid": True}
+
+    @staticmethod
+    def reset_password(token: str, new_password: str):
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        user = UserRepository.find_by_reset_token_hash(token_hash)
+
+        if not user or not user.get("reset_token_expires"):
+            raise HTTPException(status_code=400, detail="Invalid or expired reset link.")
+
+        expires_at = user["reset_token_expires"]
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Invalid or expired reset link.")
+
+        hashed_password = AuthService.hash_password(new_password)
+        UserRepository.update_password(user["email"], hashed_password)
+        UserRepository.clear_reset_token(user["email"])
+
+        return {"status": "success", "message": "Your password has been reset. You can now sign in."}
 
     @staticmethod
     def google_login(token: str):
