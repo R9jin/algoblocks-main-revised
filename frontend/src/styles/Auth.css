@@ -60,47 +60,6 @@
   letter-spacing: -0.5px;
 }
 
-/* Academic Research Banner */
-.auth-research-banner {
-  display: flex;
-  gap: 12px;
-  background: rgba(224, 88, 251, 0.08);
-  border: 1px solid rgba(224, 88, 251, 0.3);
-  padding: 1rem;
-  border-radius: 12px;
-  margin-bottom: 2rem;
-  align-items: flex-start;
-}
-
-.banner-icon-wrapper {
-  color: #E058FB;
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-
-.banner-text {
-  font-size: 0.85rem;
-  color: #E0E0E0;
-  line-height: 1.5;
-}
-
-.banner-text strong {
-  display: block;
-  color: #FFFFFF;
-  margin-bottom: 6px;
-  font-size: 0.95rem;
-}
-
-.banner-text p {
-  margin: 0;
-  text-align: left;
-  color: #A396B8;
-}
-
-.banner-text b {
-  color: #E058FB;
-}
-
 /* Form */
 .form-group {
   margin-bottom: 1.5rem;
@@ -435,26 +394,6 @@
 .auth-title-with-icon svg {
   color: var(--auth-purple-dark);
   -webkit-text-fill-color: initial;
-}
-
-.auth-research-banner {
-  color: var(--auth-text);
-  background: var(--auth-purple-soft);
-  border-color: #c9b8ff;
-}
-
-.banner-icon-wrapper,
-.banner-text b {
-  color: var(--auth-purple-dark);
-}
-
-.banner-text,
-.banner-text p {
-  color: var(--auth-text-muted);
-}
-
-.banner-text strong {
-  color: var(--auth-text);
 }
 
 .form-group label,

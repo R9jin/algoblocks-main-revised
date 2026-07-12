@@ -1,7 +1,7 @@
 // frontend/src/pages/SignUp.jsx
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
-import { FiAlertTriangle, FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/Auth.css";
 
@@ -148,19 +148,6 @@ export default function SignUp() {
 
       <div className="auth-container">
         <div className="auth-card">
-          <div className="auth-research-banner">
-            <div className="banner-icon-wrapper">
-              <FiAlertTriangle size={18} />
-            </div>
-            <div className="banner-text">
-              <strong>Academic Research Notice</strong>
-              <p>
-                To ensure data validity for this thesis, please use <b>strictly one account</b> throughout your evaluation. 
-                Progress, assessments, and learning analytics are being actively monitored and recorded to a single ID.
-              </p>
-            </div>
-          </div>
-
           <h2>Sign Up for AlgoBlocks</h2>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
