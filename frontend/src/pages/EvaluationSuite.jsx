@@ -200,7 +200,7 @@ export default function EvaluationSuite() {
       const timeIdx = headers.indexOf('time_complexity');
 
       const dataset = [];
-      const validComplexities = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'n^4', 'quartic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'v', 'e', 'n*m', 'sqrtn', 'sqrt(n)', 'sqrt n', 'exponential', '2^n', '3^n', 'n*n!', 'factorial'];
+      const validComplexities = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^4', 'quartic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'v', 'e', 'n*m', 'sqrtn', 'sqrt(n)', 'sqrt n', 'exponential', '2^n', '3^n'];
       for (let i = 1; i < rows.length; i++) {
         if (!rows[i] || rows[i].length === 0 || (rows[i].length === 1 && !rows[i][0].trim())) continue;
         let codeText = rows[i][codeIdx] !== undefined ? rows[i][codeIdx] : (rows[i][0] || '');
@@ -1142,7 +1142,6 @@ export default function EvaluationSuite() {
                                   </thead>
                                   <tbody>
                                     {(row.lineValidationResults || []).map((lineItem, lIdx) => {
-                                      // Robust fallback property accessors specifically built into React
                                       const expLT = getProp(lineItem, ['expLocalTime', 'expectedLocalTime', 'local_time']);
                                       const predLT = getProp(lineItem, ['predLocalTime', 'predictedLocalTime']);
                                       const expGT = getProp(lineItem, ['expGlobalTime', 'expectedGlobalTime', 'global_time']);

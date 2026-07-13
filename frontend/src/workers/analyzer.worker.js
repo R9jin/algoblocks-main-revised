@@ -11,13 +11,10 @@ const EQUIVALENCE_MAP = {
   "t(n) = t(n-1) + o(1)": "O(n)",
   "t(n) = t(n-1) + o(n)": "O(n^2)",
   "t(n) = t(n-1) + t(n-2) + o(1)": "O(2^n)",
-  "t(n) = n * t(n-1)": "O(n!)",
   "t(n) = 2t(n/2) + o(1)": "O(n)",
   "t(n) = t(n/2) + o(n)": "O(n)",
   "t(n) = t(n-1) + o(log n)": "O(n log n)",
   "o(n * m)": "O(n^2)",
-  "o(n^2 * m)": "O(n^3)",
-  "o(n * m^2)": "O(n^3)",
   "o(n^2 log n)": "O(n^2 log n)",
   "o(1) amortized": "O(1)",
   "o(v)": "O(V + E)",
@@ -40,7 +37,7 @@ function checkMatch(actual, expected, metricType = "time") {
 
   if (t_a === t_e) return true;
 
-  const graphMatrixEq = ["o(v + e)", "o(v)", "o(n)", "o(n^2)", "o(n^3)", "o(n^4)"];
+  const graphMatrixEq = ["o(v + e)", "o(v)", "o(n)", "o(n^2)", "o(n^4)"];
   if (graphMatrixEq.includes(t_a) && graphMatrixEq.includes(t_e)) {
     if (["o(v + e)", "o(v)"].includes(t_a) && ["o(n)", "o(n^2)"].includes(t_e)) return true;
     if (["o(v + e)", "o(v)"].includes(t_e) && ["o(n)", "o(n^2)"].includes(t_a)) return true;
@@ -50,14 +47,14 @@ function checkMatch(actual, expected, metricType = "time") {
   if (t_e === "o(log n)" && t_a === "o(n)") return true;
   if (t_e === "o(n)" && t_a === "o(n log n)") return true;
 
-  const combEq = ["o(2^n)", "o(n!)", "o(n * n!)", "o(3^n)"];
-  const polyEq = ["o(n)", "o(n^2)", "o(n^3)"];
+  const combEq = ["o(2^n)", "o(3^n)"];
+  const polyEq = ["o(n)", "o(n^2)"];
   if (combEq.includes(t_a) && polyEq.includes(t_e)) return true;
   if (combEq.includes(t_e) && polyEq.includes(t_a)) return true;
 
   if (metricType === "space") {
     if (t_e === "o(1)" && ["o(log n)", "o(n)", "o(n^2)", "o(v + e)", "o(v)"].includes(t_a)) return true;
-    if (t_e === "o(n)" && ["o(n^2)", "o(n^3)", "o(v + e)", "o(v)"].includes(t_a)) return true;
+    if (t_e === "o(n)" && ["o(n^2)", "o(v + e)", "o(v)"].includes(t_a)) return true;
   }
 
   return false;
@@ -73,13 +70,11 @@ function strictBigONormalizer(raw) {
   if (s === "1" || s === "constant") return "O(1)";
   if (s === "n" || s === "linear") return "O(n)";
   if (s === "n^2" || s === "quadratic") return "O(n^2)";
-  if (s === "n^3" || s === "cubic") return "O(n^3)";
   if (s === "nlogn" || s === "n*logn" || s === "log(n)*n") return "O(n log n)";
   if (s === "logn" || s === "log(n)" || s === "log") return "O(log n)";
 
   if (s.includes("2^n")) return "O(2^n)";
   if (s.includes("3^n")) return "O(3^n)";
-  if (s.includes("n!") || s.includes("n*n!")) return "O(n * n!)";
   if (s.includes("v+e") || s.includes("e+v")) return "O(V + E)";
   if (s.includes("n*m") || s.includes("m*n")) return "O(n * m)";
   if (s.includes("logmin") || s.includes("gcd")) return "O(log min(a, b))";
@@ -141,10 +136,8 @@ function sortBigOClasses(classes) {
     "O(n * m)",
     "O(n^2)",
     "O(n^2 log n)",
-    "O(n^3)",
     "O(2^n)",
-    "O(3^n)",
-    "O(n * n!)"
+    "O(3^n)"
   ];
   return classes.sort((a, b) => {
     const idxA = order.indexOf(a);
@@ -743,8 +736,8 @@ json.dumps(res)
         const spaceAcc = (spacePassedCount / totalCases) * 100;
         const perfectAcc = (bothPassedCount / totalCases) * 100;
 
-        const timeBaseClasses = ["O(1)", "O(log n)", "O(sqrt n)", "O(n)", "O(n log n)", "O(n^2)", "O(n^3)", "O(2^n)", "O(V + E)", "O(n * n!)"];
-        const spaceBaseClasses = ["O(1)", "O(log n)", "O(n)", "O(n^2)", "O(n^3)", "O(2^n)", "O(V + E)"];
+        const timeBaseClasses = ["O(1)", "O(log n)", "O(sqrt n)", "O(n)", "O(n log n)", "O(n^2)", "O(2^n)", "O(V + E)"];
+        const spaceBaseClasses = ["O(1)", "O(log n)", "O(n)", "O(n^2)", "O(2^n)", "O(V + E)"];
 
         const timeReportData = generateClassificationReport(detailedResults, "expectedTime", "predictedTime", timeBaseClasses);
         const spaceReportData = generateClassificationReport(detailedResults, "expectedSpace", "predictedSpace", spaceBaseClasses);
