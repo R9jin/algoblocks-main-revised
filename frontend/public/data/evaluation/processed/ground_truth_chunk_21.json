@@ -646,8 +646,8 @@
     "id": "algo_n_206",
     "name": "Python3 program to illustrate if a given array can represent",
     "code": "# Python3 program to illustrate if a given array can represent\n# a preorder traversal of a BST or not\nimport sys\n \npreIndex = 0\n      \n# We are actually not building the tree\ndef buildBST_helper(n, pre, Min, Max):\n    global preIndex\n    if (preIndex >= n):\n        return\n \n    if (Min <= pre[preIndex] and pre[preIndex] <= Max):\n        # build node\n        rootData = pre[preIndex]\n        preIndex+=1\n \n        # build left subtree\n        buildBST_helper(n, pre, Min, rootData)\n \n        # build right subtree\n        buildBST_helper(n, pre, rootData, Max)\n    # else\n    # return NULL\n \ndef canRepresentBST(arr, N):\n    global preIndex\n    # code here\n    Min, Max = sys.maxsize, -sys.maxsize\n \n    buildBST_helper(N, arr, Min, Max)\n     \n    if preIndex == N:\n        return True\n \n    return False\n  \npreorder1 = [ 2, 4, 3 ]\n\"\"\"\n        2\n        \\\n         4\n        /\n       3\n \n\"\"\"\nn1 = len(preorder1)\n \nif (not canRepresentBST(preorder1, n1)):\n  print(\"preorder1 can represent BST\");\nelse:\n  print(\"preorder1 can not represent BST  :(\")\n \npreorder2 = [ 5, 3, 4, 1, 6, 10 ]\nn2 = len(preorder2)\n\"\"\"\n                      5\n           /     \\\n         3         1\n           \\     /  \\\n           4    6    10\n \n\"\"\"\nif (canRepresentBST(preorder2, n2)):\n  print(\"preorder2 can represent BST\")\nelse:\n  print(\"preorder2 can not represent BST  :(\")\n \npreorder3 = [ 5, 3, 4, 8, 6, 10 ]\nn3 = len(preorder3)\n\"\"\"\n                      5\n           /     \\\n         3         8\n           \\     /  \\\n           4    6    10\n\"\"\"\nif (not canRepresentBST(preorder3, n3)):\n  print(\"preorder3 can represent BST\")\nelse:\n  print(\"preorder3 can not represent BST  :(\")",
-    "expected_overall_time": "O(V+E)",
-    "expected_overall_space": "O(V+E)",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(2^n)",
     "line_metrics": [
       {
         "lineno": 3,
@@ -673,56 +673,56 @@
       {
         "lineno": 9,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(2^n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 10,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(2^n)",
         "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "global_space": "O(2^n)"
       },
       {
         "lineno": 11,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(2^n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 13,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(2^n)",
         "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "global_space": "O(2^n)"
       },
       {
         "lineno": 15,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(2^n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 16,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(2^n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 19,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 22,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
@@ -749,8 +749,8 @@
       },
       {
         "lineno": 31,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },

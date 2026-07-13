@@ -435,6 +435,136 @@
     "dataset_original_space": "O(n^2)"
   },
   {
+    "id": "algo_2n_003",
+    "name": "Python program to print all distinct",
+    "code": "# Python program to print all distinct\n# subsequences of a string.\n \n# Finds and stores result in st for a given\n# string s.\ndef generate(st, s):\n    if len(s) == 0:\n        return\n \n    # If current string is not already present.\n    if s not in st:\n        st.add(s)\n \n        # Traverse current string, one by one\n        # remove every character and recur.\n        for i in range(len(s)):\n            t = list(s).copy()\n            t.remove(s[i])\n            t = ''.join(t)\n            generate(st, t)\n \n    return\n \n \n# Driver Code\nif __name__ == \"__main__\":\n    s = \"xyz\"\n    st = set()\n    generate(st, s)\n    for i in st:\n        print(i)\n \n# This code is contributed by\n# sanjeev2552",
+    "expected_overall_time": "O(n!)",
+    "expected_overall_space": "O(n!)",
+    "line_metrics": [
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(n!)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(1)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(n!)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(1)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(n)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(n!)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(1)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(1)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "local_time": "O(1)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "local_time": "O(n!)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 22,
+        "local_time": "O(1)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 26,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 27,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 28,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 29,
+        "local_time": "O(n!)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 30,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 31,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ],
+    "dataset_original_time": "O(n!)",
+    "dataset_original_space": "O(2^n)"
+  },
+  {
     "id": "algo_n_004",
     "name": "Python3 program to find the difference",
     "code": "# Python3 program to find the difference\n# between the sum of diagonal.\ndef difference(arr, n):\n \n    # Initialize sums of diagonals\n    d1 = 0\n    d2 = 0\n \n    for i in range(0, n):\n        d1 = d1 + arr[i][i]\n        d2 = d2 + arr[i][n - i - 1]\n         \n    # Absolute difference of the sums\n    # across the diagonals\n    return abs(d1 - d2)\n \n# Driver Code\nn = 3\n \narr = [[11, 2, 4],\n       [4 , 5, 6],\n       [10, 8, -12]]\n \nprint(difference(arr, n))\n     \n# This code is contributed\n# by ihritik",
