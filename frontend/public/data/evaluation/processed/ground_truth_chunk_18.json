@@ -614,7 +614,7 @@
     "id": "algo_n2_176",
     "name": "Python 3 program to counts Palindromic",
     "code": "# Python 3 program to counts Palindromic\n# Subsequence in a given String using recursion\n \nstr = \"abcb\"\n \n# Function return the total\n# palindromic subsequence\n \n \ndef countPS(i, j):\n \n    if(i > j):\n        return 0\n \n    if(dp[i][j] != -1):\n        return dp[i][j]\n \n    if(i == j):\n        dp[i][j] = 1\n        return dp[i][j]\n \n    else if (str[i] == str[j]):\n        dp[i][j] = (countPS(i + 1, j) +\n                    countPS(i, j - 1) + 1)\n        return dp[i][j]\n    else:\n        dp[i][j] = (countPS(i + 1, j) +\n                    countPS(i, j - 1) -\n                    countPS(i + 1, j - 1))\n        return dp[i][j]\n \n \n# Driver code\nif __name__ == \"__main__\":\n \n    dp = [[-1 for x in range(1000)]\n          for y in range(1000)]\n \n    n = len(str)\n    print(\"Total palindromic subsequence are :\",\n          countPS(0, n - 1))\n \n# This code is contributed by ita_c",
-    "expected_overall_time": "O(V+E)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n^2)",
     "line_metrics": [
       {
@@ -634,84 +634,84 @@
       {
         "lineno": 12,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "global_space": "O(n)"
       },
       {
         "lineno": 13,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 15,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "global_space": "O(n)"
       },
       {
         "lineno": 16,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 18,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "global_space": "O(n)"
       },
       {
         "lineno": 19,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 20,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 22,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "global_space": "O(n)"
       },
       {
         "lineno": 23,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 25,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 27,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 30,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
@@ -738,8 +738,8 @@
       },
       {
         "lineno": 40,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
+        "local_time": "O(n)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       }

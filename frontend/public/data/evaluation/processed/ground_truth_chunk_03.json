@@ -1116,7 +1116,7 @@
     "id": "algo_n_028",
     "name": "Python 3 program to count number of strings",
     "code": "# Python 3 program to count number of strings\n# of n characters with\n \n# n is total number of characters.\n# bCount and cCount are counts of 'b'\n# and 'c' respectively.\ndef countStrUtil(dp, n, bCount=1,cCount=2):\n \n    # Base cases\n    if (bCount < 0 or cCount < 0):\n        return 0\n    if (n == 0):\n        return 1\n    if (bCount == 0 and cCount == 0):\n        return 1\n \n    # if we had saw this combination previously\n    if (dp[n][bCount][cCount] != -1):\n        return dp[n][bCount][cCount]\n \n    # Three cases, we choose, a or b or c\n    # In all three cases n decreases by 1.\n    res = countStrUtil(dp, n-1, bCount, cCount)\n    res += countStrUtil(dp, n-1, bCount-1, cCount)\n    res += countStrUtil(dp, n-1, bCount, cCount-1)\n \n    dp[n][bCount][cCount] = res\n    return dp[n][bCount][cCount]\n \n# A wrapper over countStrUtil()\ndef countStr(n):\n \n    dp = [ [ [-1 for x in range(2+1)] for y in range(1+1)]for z in range(n+1)]\n    return countStrUtil(dp, n)\n \n# Driver code\nif __name__ == \"__main__\":\n     \n    n = 3 # Total number of characters\n    print(countStr(n))\n     \n# This code is contributed by chitranayal",
-    "expected_overall_time": "O(V+E)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n^2)",
     "line_metrics": [
       {
@@ -1129,91 +1129,91 @@
       {
         "lineno": 10,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "global_space": "O(n)"
       },
       {
         "lineno": 11,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 12,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "global_space": "O(n)"
       },
       {
         "lineno": 13,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 14,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "global_space": "O(n)"
       },
       {
         "lineno": 15,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 18,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "global_space": "O(n)"
       },
       {
         "lineno": 19,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 23,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 24,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 25,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 27,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 28,
         "local_time": "O(1)",
-        "global_time": "O(V+E)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
@@ -1233,8 +1233,8 @@
       },
       {
         "lineno": 34,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
+        "local_time": "O(n)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },

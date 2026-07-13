@@ -379,8 +379,8 @@
     "id": "algo_logn_184",
     "name": "A python3 program to find a peak",
     "code": "# A python3 program to find a peak\n#  element using divide and conquer\n \n# A binary search based function\n# that returns index of a peak element\n \n \ndef findPeakUtil(arr, low, high, n):\n \n    # Find index of middle element\n    # low + (high - low) / 2\n    mid = low + (high - low)/2\n    mid = int(mid)\n \n    # Compare middle element with its\n    # neighbours (if neighbours exist)\n    if ((mid == 0 or arr[mid - 1] <= arr[mid]) and\n        (mid == n - 1 or arr[mid + 1] <= arr[mid])):\n        return mid\n \n \n    # If middle element is not peak and\n    # its left neighbour is greater\n    # than it, then left half must\n    # have a peak element\n    elif (mid > 0 and arr[mid - 1] > arr[mid]):\n        return findPeakUtil(arr, low, (mid - 1), n)\n \n    # If middle element is not peak and\n    # its right neighbour is greater\n    # than it, then right half must\n    # have a peak element\n    else:\n        return findPeakUtil(arr, (mid + 1), high, n)\n \n \n# A wrapper over recursive\n# function findPeakUtil()\ndef findPeak(arr, n):\n \n    return findPeakUtil(arr, 0, n - 1, n)\n \n \n# Driver code\narr = [1, 3, 20, 4, 1, 0]\nn = len(arr)\nprint(\"Index of a peak point is\", findPeak(arr, n))\n     \n# This code is contributed by\n# Smitha Dinesh Semwal",
-    "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(n)",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(log n)",
     "line_metrics": [
       {
         "lineno": 8,
@@ -392,49 +392,49 @@
       {
         "lineno": 12,
         "local_time": "O(1)",
-        "global_time": "O(n)",
+        "global_time": "O(log n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 13,
         "local_time": "O(1)",
-        "global_time": "O(n)",
+        "global_time": "O(log n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 17,
         "local_time": "O(1)",
-        "global_time": "O(n)",
+        "global_time": "O(log n)",
         "local_space": "O(1)",
-        "global_space": "O(n)"
+        "global_space": "O(log n)"
       },
       {
         "lineno": 19,
         "local_time": "O(1)",
-        "global_time": "O(n)",
+        "global_time": "O(log n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 26,
         "local_time": "O(1)",
-        "global_time": "O(n)",
+        "global_time": "O(log n)",
         "local_space": "O(1)",
-        "global_space": "O(n)"
+        "global_space": "O(log n)"
       },
       {
         "lineno": 27,
-        "local_time": "O(n)",
-        "global_time": "O(n^2)",
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 34,
-        "local_time": "O(n)",
-        "global_time": "O(n^2)",
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
@@ -447,8 +447,8 @@
       },
       {
         "lineno": 41,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
