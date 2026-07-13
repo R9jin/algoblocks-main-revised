@@ -827,16 +827,16 @@ export default function EvaluationSuite() {
             <div className="eval-sklearn-header">
               <div className="eval-sklearn-header-left">
                 <strong className="eval-sklearn-title">
-                  <FiZap style={{ display: "inline", color: "#F59E0B", marginRight: "8px" }} /> Computational Efficiency & Hardware Profiling Report
+                  <FiZap style={{ display: "inline", color: "#F59E0B", marginRight: "8px" }} /> System Performance & Efficiency
                 </strong>
                 <span className="eval-sklearn-subtitle">
-                  Execution efficiency benchmarks measuring Wasm AST engine throughput, latency percentiles, and memory allocation across {results.efficiency.totalLines} source lines of code.
+                  Speed and memory usage statistics for the code analyzer, measured across {results.efficiency.totalLines} lines of source code.
                 </span>
               </div>
             </div>
             <div className="eval-stats-grid" style={{ padding: "16px 20px 20px", gap: "16px", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #F59E0B" }}>
-                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Total Benchmarking Time</div>
+                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Total Evaluation Time</div>
                 <div className="eval-stat-value" style={{ color: "#D97706" }}>
                   {results.efficiency.totalExecutionSec}s
                 </div>
@@ -845,7 +845,7 @@ export default function EvaluationSuite() {
                 </span>
               </div>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #3B82F6" }}>
-                <div className="eval-stat-title"><FiTrendingUp style={{ display: "inline", marginRight: "4px" }} /> Engine Throughput</div>
+                <div className="eval-stat-title"><FiTrendingUp style={{ display: "inline", marginRight: "4px" }} /> Processing Speed</div>
                 <div className="eval-stat-value" style={{ color: "#2563EB" }}>
                   {results.efficiency.throughputAlgos} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>algos/s</small>
                 </div>
@@ -854,7 +854,7 @@ export default function EvaluationSuite() {
                 </span>
               </div>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #8B5CF6" }}>
-                <div className="eval-stat-title"><FiActivity style={{ display: "inline", marginRight: "4px" }} /> Mean AST Latency</div>
+                <div className="eval-stat-title"><FiActivity style={{ display: "inline", marginRight: "4px" }} /> Avg. Time per Algorithm</div>
                 <div className="eval-stat-value" style={{ color: "#7C3AED" }}>
                   {results.efficiency.meanTimeMs} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>ms</small>
                 </div>
@@ -863,7 +863,7 @@ export default function EvaluationSuite() {
                 </span>
               </div>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #EC4899" }}>
-                <div className="eval-stat-title"><FiBarChart2 style={{ display: "inline", marginRight: "4px" }} /> Latency (P95 / Max)</div>
+                <div className="eval-stat-title"><FiBarChart2 style={{ display: "inline", marginRight: "4px" }} /> Slowest Times (P95 / Peak)</div>
                 <div className="eval-stat-value" style={{ color: "#DB2777" }}>
                   {results.efficiency.p95TimeMs} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>ms</small>
                 </div>
@@ -872,12 +872,12 @@ export default function EvaluationSuite() {
                 </span>
               </div>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
-                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Peak Wasm Memory</div>
+                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Peak Memory Usage</div>
                 <div className="eval-stat-value" style={{ color: "#059669" }}>
                   {results.efficiency.peakAstMemMB} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>MB</small>
                 </div>
                 <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
-                  Mean Traversal: {results.efficiency.meanAstMemKB} KB
+                  Average Memory: {results.efficiency.meanAstMemKB} KB
                 </span>
               </div>
             </div>
