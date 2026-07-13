@@ -619,7 +619,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _is_amortized_inner_loop(self, node):
         try:
-            if self.loop_depth == 0 and len(self.loop_stack) == 0: return False
+            # FIX: Only apply amortized logic to truly nested inner loops.
+            # An outermost loop (depth 1) should be evaluated normally to prevent
+            # overriding binary search or standard traversals.
+            if self.loop_depth <= 1: return False
             if not isinstance(node, (ast.While, ast.For)): return False
             
             pops_container = False
@@ -1173,7 +1176,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     if t in ['set', 'dict']: is_hash_map = True
                     elif any(k in comp.id.lower() for k in ['memo', 'cache', 'visit', 'set', 'map', 'dp']): is_hash_map = True
                 elif isinstance(comp, (ast.Set, ast.Dict, ast.SetComp, ast.DictComp)): is_hash_map = True
-                elif isinstance(comp, ast.Call) and isinstance(getattr(comp, 'func', None), ast.Name) and comp.func.id in ['set', 'dict']: is_hash_map = True
+                elif isinstance(comp, ast.Call) and isinstance(getattr(comp, 'func', None), ast.Name) and comp.func.id in ['set', 'dict', 'defaultdict', 'Counter', 'OrderedDict']: is_hash_map = True
                 elif isinstance(comp, ast.Call) and isinstance(getattr(comp, 'func', None), ast.Attribute) and comp.func.attr in ['keys', 'values']: is_hash_map = True
                 elif isinstance(comp, (ast.List, ast.Tuple)):
                     all_const = True
@@ -1237,6 +1240,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
         is_dead = node.name not in self.reachable_funcs
         self.record_line(node, time_override="O(1)" if is_dead else "Definition", space_override="O(1)")
+        
+        # Ensure we capture the exact index to avoid IndexError during update mapping
+        found_idx = None
+        for i in range(len(self._details)-1, -1, -1):
+            if self._details[i]["lineno"] == getattr(node, 'lineno', -1):
+                found_idx = i
+                break
+        if found_idx is not None:
+            start_idx = found_idx
+        
         prev_dead = self.in_dead_code; self.in_dead_code = is_dead or prev_dead
         self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
         self.in_dead_code = prev_dead
@@ -1374,33 +1387,34 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.custom_functions[node.name] = relation
 
         call_idx = 0
-        for i in range(start_idx, len(self._details)):
-            is_placeholder = False
-            loc_time = str(self._details[i]["local_time"])
-            if loc_time == "T(placeholder)" or loc_time.startswith("T("): 
-                current_call_cost = "T(n-1)"
-                if "T(n/2)" in relation or relation == "O(log n)":
-                    current_call_cost = "T(n/2)"
-                elif "T(n-1) + T(n-2)" in relation:
-                    current_call_cost = "T(n-1)" if call_idx == 0 else "T(n-2)"
-                elif "T(n-1)" in relation:
+        if start_idx < len(self._details):
+            for i in range(start_idx, len(self._details)):
+                is_placeholder = False
+                loc_time = str(self._details[i]["local_time"])
+                if loc_time == "T(placeholder)" or loc_time.startswith("T("): 
                     current_call_cost = "T(n-1)"
-                
-                self._details[i]["local_time"] = current_call_cost
-                self._details[i]["global_time"] = current_call_cost 
-                is_placeholder = True
-
-            if is_placeholder:
-                call_idx += 1
-
-            if str(self._details[i]["local_space"]).startswith("S("):
-                self._details[i]["local_space"] = "O(1)"
-            if str(self._details[i]["global_space"]).startswith("S("):
-                self._details[i]["global_space"] = "O(1)" 
-                
-            if is_placeholder and "T(placeholder)" in str(self._details[i].get("time_explanation", "")) and SemanticNLGEngine:
-                formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
-                self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
+                    if "T(n/2)" in relation or relation == "O(log n)":
+                        current_call_cost = "T(n/2)"
+                    elif "T(n-1) + T(n-2)" in relation:
+                        current_call_cost = "T(n-1)" if call_idx == 0 else "T(n-2)"
+                    elif "T(n-1)" in relation:
+                        current_call_cost = "T(n-1)"
+                    
+                    self._details[i]["local_time"] = current_call_cost
+                    self._details[i]["global_time"] = current_call_cost 
+                    is_placeholder = True
+    
+                if is_placeholder:
+                    call_idx += 1
+    
+                if str(self._details[i]["local_space"]).startswith("S("):
+                    self._details[i]["local_space"] = "O(1)"
+                if str(self._details[i]["global_space"]).startswith("S("):
+                    self._details[i]["global_space"] = "O(1)" 
+                    
+                if is_placeholder and "T(placeholder)" in str(self._details[i].get("time_explanation", "")) and SemanticNLGEngine:
+                    formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
+                    self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
 
         if self.recursive_calls_count > 0 or self.has_recursion_in_loop or is_indirect or is_segment_tree_query:
             resolved_rel = relation
@@ -1411,34 +1425,36 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             
             heavy_ops = {"Loop", "Array Slicing", "List Comprehension", "Set Comprehension", "Dict Comprehension", "Generator Expression", "Sort", "Sorted", "Deep Copy Allocation", "Row Allocation", "2D Array Allocation", "List Repetition", "Set Operation", "Slice Assignment"}
             
-            for i in range(start_idx + 1, len(self._details)):
-                loc_t = str(self._details[i]["local_time"])
-                op = self._details[i]["operation"]
-                
-                if op == "Dead Code":
-                    self._details[i]["global_time"] = "O(1)"
-                    self._details[i]["weight"] = self._get_weight("O(1)")
-                    continue
+            if start_idx < len(self._details):
+                for i in range(start_idx + 1, len(self._details)):
+                    loc_t = str(self._details[i]["local_time"])
+                    op = self._details[i]["operation"]
                     
-                is_rec_call = loc_t.startswith("T(") or loc_t == "T(placeholder)" or "Recursive Call" in op
-                is_heavy_op = op in heavy_ops or (loc_t not in ["O(1)", "Definition", "Dead Code"])
-                
-                if is_rec_call or is_heavy_op:
-                    self._details[i]["global_time"] = resolved_rel
-                    self._details[i]["weight"] = self._get_weight(resolved_rel, False)
-                elif not getattr(self, 'in_graph_context', False):
-                    if self._details[i]["global_time"] == "O(1)" and relation not in ["O(1)", "O(log n)"]:
-                        if "2T(" in relation or "T(n-1) + T(n-2)" in relation or self.recursive_calls_count >= 2:
-                            self._details[i]["global_time"] = "O(n)"
-                            self._details[i]["weight"] = self._get_weight("O(n)")
+                    if op == "Dead Code":
+                        self._details[i]["global_time"] = "O(1)"
+                        self._details[i]["weight"] = self._get_weight("O(1)")
+                        continue
+                        
+                    is_rec_call = loc_t.startswith("T(") or loc_t == "T(placeholder)" or "Recursive Call" in op
+                    is_heavy_op = op in heavy_ops or (loc_t not in ["O(1)", "Definition", "Dead Code"])
+                    
+                    if is_rec_call or is_heavy_op:
+                        self._details[i]["global_time"] = resolved_rel
+                        self._details[i]["weight"] = self._get_weight(resolved_rel, False)
+                    elif not getattr(self, 'in_graph_context', False):
+                        if self._details[i]["global_time"] == "O(1)" and relation not in ["O(1)", "O(log n)"]:
+                            if "2T(" in relation or "T(n-1) + T(n-2)" in relation or self.recursive_calls_count >= 2:
+                                self._details[i]["global_time"] = "O(n)"
+                                self._details[i]["weight"] = self._get_weight("O(n)")
 
-        self._details[start_idx]["local_time"] = "O(1)"
-        self._details[start_idx]["global_time"] = "O(1)"
-        self._details[start_idx]["local_space"] = "O(1)"
-        self._details[start_idx]["global_space"] = "O(1)"
-        self._details[start_idx]["weight"] = 1
-        self._details[start_idx]["time_explanation"] = "Function declaration."
-        self._details[start_idx]["space_explanation"] = "O(1) memory overhead."
+        if start_idx < len(self._details):
+            self._details[start_idx]["local_time"] = "O(1)"
+            self._details[start_idx]["global_time"] = "O(1)"
+            self._details[start_idx]["local_space"] = "O(1)"
+            self._details[start_idx]["global_space"] = "O(1)"
+            self._details[start_idx]["weight"] = 1
+            self._details[start_idx]["time_explanation"] = "Function declaration."
+            self._details[start_idx]["space_explanation"] = "O(1) memory overhead."
 
         if not is_dead:
             self.max_exp, self.max_graph_ve = max(prev_data[5], self.max_exp), max(prev_data[6], self.max_graph_ve)
@@ -1450,9 +1466,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if self.max_space_weight >= 2:
             final_sp_upgrade = "O(n^2)"
 
-        for i in range(start_idx, len(self._details)):
-            if final_sp_upgrade and self._details[i].get("global_space") == "O(n)":
-                self._details[i]["global_space"] = final_sp_upgrade
+        if start_idx < len(self._details):
+            for i in range(start_idx, len(self._details)):
+                if final_sp_upgrade and self._details[i].get("global_space") == "O(n)":
+                    self._details[i]["global_space"] = final_sp_upgrade
 
         self.current_function_name = None; self.in_graph_context = False; self.recursive_calls_count = 0 
         self.tree_traversal_calls = 0
@@ -1805,7 +1822,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             f_id = self.aliases.get(f_id, f_id)
             
             if f_id in self.builtin_complexities and f_id in bare_builtins:
-                if f_id in ['set', 'list', 'dict', 'deque', 'tuple']:
+                if f_id in ['set', 'list', 'dict', 'deque', 'tuple', 'defaultdict', 'Counter', 'OrderedDict']:
                     has_args = bool(getattr(node, 'args', []))
                     is_single_arg = False
                     is_constant_init = False
@@ -1880,7 +1897,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     return
                 else:
                     self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Append (Worst-Case)")
-                    
+            elif func_node.attr == '__contains__':
+                is_hash_map = isinstance(getattr(func_node, 'value', None), ast.Name) and self.var_types.get(func_node.value.id) in ['set', 'dict']
+                t_ov = "O(n)" if getattr(self, 'in_graph_context', False) and not is_hash_map else ("O(1)" if is_hash_map else "O(n)")
+                self.record_line(node, time_override=t_ov, space_override="O(1)", custom_op="Membership Check")
             elif func_node.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'keys', 'values', 'items']:
                 b = self.builtin_complexities.get(func_node.attr, {'time': 'O(n)', 'space': 'O(1)'})
                 self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=func_node.attr.capitalize())
@@ -1896,6 +1916,23 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def visit_Assign(self, node):
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple):
             self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Input Unpacking / Swap")
+            
+            # Properly unpack the types into the ast tuple mapping
+            if isinstance(node.value, ast.Tuple):
+                for target in node.targets:
+                    if isinstance(target, ast.Tuple):
+                        for i, elt in enumerate(target.elts):
+                            if isinstance(elt, ast.Name) and i < len(node.value.elts):
+                                val = node.value.elts[i]
+                                if isinstance(val, (ast.List, ast.ListComp)): self.var_types[elt.id] = 'list'
+                                elif isinstance(val, (ast.Dict, ast.DictComp)): self.var_types[elt.id] = 'dict'
+                                elif isinstance(val, (ast.Set, ast.SetComp)): self.var_types[elt.id] = 'set'
+                                elif isinstance(val, ast.Tuple): self.var_types[elt.id] = 'tuple'
+                                elif isinstance(val, ast.Constant) and isinstance(val.value, str): self.var_types[elt.id] = 'str'
+                                elif isinstance(val, ast.Call) and getattr(getattr(val, 'func', None), 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple', 'defaultdict', 'Counter', 'OrderedDict']:
+                                    mapped_type = 'dict' if val.func.id in ['defaultdict', 'Counter', 'OrderedDict'] else val.func.id
+                                    self.var_types[elt.id] = mapped_type
+            self.generic_visit(node)
             return 
             
         for target in node.targets:
@@ -1905,8 +1942,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 elif isinstance(node.value, (ast.Set, ast.SetComp)): self.var_types[target.id] = 'set'
                 elif isinstance(node.value, ast.Tuple): self.var_types[target.id] = 'tuple'
                 elif isinstance(node.value, ast.Constant) and isinstance(node.value.value, str): self.var_types[target.id] = 'str'
-                elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple']:
-                    self.var_types[target.id] = node.value.func.id
+                elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple', 'defaultdict', 'Counter', 'OrderedDict']:
+                    mapped_type = 'dict' if node.value.func.id in ['defaultdict', 'Counter', 'OrderedDict'] else node.value.func.id
+                    self.var_types[target.id] = mapped_type
 
         s_ov, t_ov = "O(1)", "O(1)"
         custom_op = None
@@ -2030,7 +2068,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     custom_op = "Tuple Init"
             elif isinstance(node.value, ast.Call):
                 func_name = getattr(node.value.func, 'id', getattr(node.value.func, 'attr', ''))
-                if func_name in ['set', 'list', 'dict', 'deque', 'tuple', 'set2']: 
+                if func_name in ['set', 'list', 'dict', 'deque', 'tuple', 'set2', 'defaultdict', 'Counter', 'OrderedDict']: 
                     f_name = 'set' if func_name == 'set2' else func_name
                     if not getattr(node.value, 'args', []):
                         custom_op = f"{f_name.capitalize()} Init"

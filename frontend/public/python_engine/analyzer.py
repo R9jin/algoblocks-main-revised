@@ -619,7 +619,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _is_amortized_inner_loop(self, node):
         try:
-            if self.loop_depth == 0 and len(self.loop_stack) == 0: return False
+            # FIX: Only apply amortized logic to truly nested inner loops.
+            # An outermost loop (depth 1) should be evaluated normally to prevent
+            # overriding binary search or standard traversals.
+            if self.loop_depth <= 1: return False
             if not isinstance(node, (ast.While, ast.For)): return False
             
             pops_container = False
@@ -2138,7 +2141,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def visit_AugAssign(self, node): 
         if self.loop_depth > 0 and isinstance(node.target, ast.Name) and isinstance(node.value, ast.Subscript):
-            self.add_logic_hint(node, "Logic Risk (Data-Dependent Traversal): Your loop increment/step mainly depends heavily on dynamic data values. Static analysis conservatively mainly defaults to worst-case,I'm having a hard time fulfilling your request. Can I help you with something else instead? but runtime could radically fluctuate depending on the dataset state.")
+            self.add_logic_hint(node, "Logic Risk (Data-Dependent Traversal): Your loop increment/step mainly depends heavily on dynamic data values. Static analysis conservatively mainly defaults to worst-case, but runtime could radically fluctuate depending on the dataset state.")
 
         if isinstance(node.target, ast.Name) and self._is_linear_var(node.target.id):
             is_geometric = False
