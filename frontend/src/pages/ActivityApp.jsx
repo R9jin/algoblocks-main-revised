@@ -975,7 +975,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             <FiTerminal size={16} /> {isEvaluating ? "..." : "Run Code"}
           </button>
           <button className={`wh-btn-run ${isEvaluating ? "running" : ""}`} onClick={runTestCases} disabled={isEvaluating || isSyncingBlocks}>
-            <FiPlay size={16} /> {isEvaluating ? "..." : isSyncingBlocks ? "Syncing..." : "Submit"}
+            <FiPlay size={16} /> {isEvaluating ? "..." : isSyncingBlocks ? "Syncing..." : "Evaluate Efficiency (AES)"}
           </button>
         </div>
       </header>
