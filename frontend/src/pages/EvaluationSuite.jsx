@@ -514,56 +514,56 @@ export default function EvaluationSuite() {
               <div className="metric-card-info" style={{ borderLeft: "4px solid #3B82F6" }}>
                 <div className="metric-card-header">
                   <span className="metric-name-badge" style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>
-                    Precision (Trustworthiness)
+                    Precision (Accuracy of Predictions)
                   </span>
                   <span className="metric-formula">TP / (TP + FP)</span>
                 </div>
                 <p className="metric-desc">
-                  <strong>Measures the correctness of the engine's positive complexity predictions.</strong>
+                  <strong>How often the analyzer is right when it predicts a specific complexity.</strong>
                   <br />
-                  Precision represents the proportion of predicted complexity classifications that are actually correct according to the ground truth dataset. A high Precision value indicates that the AST-based analysis engine rarely assigns an incorrect complexity class, minimizing false positive classifications and improving the reliability of reported algorithmic complexity results.
+                  If your engine labels an algorithm as O(n²), precision tells you the odds that it actually is O(n²). A high precision means you can trust the analyzer's output, as it rarely gives false positive classifications for a given Big-O class.
                 </p>
               </div>
 
               <div className="metric-card-info" style={{ borderLeft: "4px solid #10B981" }}>
                 <div className="metric-card-header">
                   <span className="metric-name-badge" style={{ backgroundColor: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>
-                    Recall (Detection Coverage)
+                    Recall (Detection Rate)
                   </span>
                   <span className="metric-formula">TP / (TP + FN)</span>
                 </div>
                 <p className="metric-desc">
-                  <strong>Measures the engine's ability to identify all valid complexity classifications.</strong>
+                  <strong>How well the analyzer catches all algorithms of a certain complexity.</strong>
                   <br />
-                  Recall represents the proportion of actual algorithm complexity classes that were successfully detected by the AST analysis engine. A high Recall value indicates that the system rarely overlooks valid algorithmic patterns, thereby minimizing false negatives and providing comprehensive complexity detection across the evaluation dataset.
+                  Recall measures detection rate. If there are 50 O(n) algorithms in your dataset, recall tells you how many of them your engine successfully found. High recall means the system rarely misses valid patterns (low false negatives).
                 </p>
               </div>
 
               <div className="metric-card-info" style={{ borderLeft: "4px solid #8B5CF6" }}>
                 <div className="metric-card-header">
                   <span className="metric-name-badge" style={{ backgroundColor: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE" }}>
-                    F1-Score (Balanced Performance)
+                    F1-Score (Balanced Metric)
                   </span>
                   <span className="metric-formula">2 × (P × R) / (P + R)</span>
                 </div>
                 <p className="metric-desc">
-                  <strong>Provides a balanced evaluation of Precision and Recall.</strong>
+                  <strong>The balance between Precision and Recall.</strong>
                   <br />
-                  The F1-Score is the harmonic mean of Precision and Recall, providing a single measure that reflects both prediction accuracy and detection completeness. Unlike a simple arithmetic average, the harmonic mean penalizes situations where one metric is high while the other is low. Consequently, a high F1-Score indicates that the complexity classification engine produces predictions that are both accurate and comprehensive.
+                  You want an analyzer that is both accurate and comprehensive. The F1-Score calculates the harmonic mean of Precision and Recall, heavily penalizing the score if either metric drops too low. A high F1-Score proves your engine is highly reliable overall.
                 </p>
               </div>
 
               <div className="metric-card-info" style={{ borderLeft: "4px solid #64748B" }}>
                 <div className="metric-card-header">
                   <span className="metric-name-badge" style={{ backgroundColor: "#F1F5F9", color: "#334155", border: "1px solid #CBD5E1" }}>
-                    Support (Ground Truth Frequency)
+                    Support (Sample Size)
                   </span>
                   <span className="metric-formula">Actual Ground Truth Occurrences</span>
                 </div>
                 <p className="metric-desc">
-                  <strong>Represents the number of ground truth instances for each complexity class.</strong>
+                  <strong>The actual number of algorithms in the dataset for a specific class.</strong>
                   <br />
-                  Support indicates how many samples belonging to a particular complexity category are present in the evaluation dataset. Although it does not directly measure predictive performance, Support provides important statistical context when interpreting Precision, Recall, and F1-Score. Performance metrics computed from larger support values are generally considered more representative and statistically reliable than those derived from only a small number of observations.
+                  Support is simply your sample size. It tells you how many O(1), O(n), etc., test cases exist in the ground truth data. Higher support means you have a larger sample size, making your performance metrics for that class much more statistically reliable.
                 </p>
               </div>
 
@@ -619,10 +619,10 @@ export default function EvaluationSuite() {
                   <FiActivity size={16} />
                   <span>
                     {simF1 >= 0.8
-                      ? "The simulated classification results indicate strong overall performance, demonstrating a well-balanced combination of prediction accuracy and detection coverage."
+                      ? "These simulated results show a solid balance between accuracy and detection rate, which is great for building a reliable analyzer."
                       : simF1 >= 0.6
-                        ? "The simulated results indicate moderate classification performance. Improving either Precision or Recall would increase the overall F1-Score."
-                        : "The simulated results indicate low classification performance. A significant imbalance between Precision and Recall reduces the F1-Score, suggesting that prediction accuracy, detection coverage, or both require improvement."}
+                        ? "These results are okay, but improving either Precision or Recall will help boost the overall F1-Score."
+                        : "These results indicate a heavily skewed or inaccurate model. You'll need to improve prediction accuracy, detection coverage, or both."}
                   </span>
                 </div>
               </div>
@@ -827,16 +827,16 @@ export default function EvaluationSuite() {
             <div className="eval-sklearn-header">
               <div className="eval-sklearn-header-left">
                 <strong className="eval-sklearn-title">
-                  <FiZap style={{ display: "inline", color: "#F59E0B", marginRight: "8px" }} /> Computational Efficiency & Hardware Profiling Report
+                  <FiZap style={{ display: "inline", color: "#F59E0B", marginRight: "8px" }} /> System Performance & Efficiency
                 </strong>
                 <span className="eval-sklearn-subtitle">
-                  Execution efficiency benchmarks measuring Wasm AST engine throughput, latency percentiles, and memory allocation across {results.efficiency.totalLines} source lines of code.
+                  Speed and memory usage statistics for the code analyzer, measured across {results.efficiency.totalLines} lines of source code.
                 </span>
               </div>
             </div>
             <div className="eval-stats-grid" style={{ padding: "16px 20px 20px", gap: "16px", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #F59E0B" }}>
-                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Total Benchmarking Time</div>
+                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Total Evaluation Time</div>
                 <div className="eval-stat-value" style={{ color: "#D97706" }}>
                   {results.efficiency.totalExecutionSec}s
                 </div>
@@ -845,7 +845,7 @@ export default function EvaluationSuite() {
                 </span>
               </div>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #3B82F6" }}>
-                <div className="eval-stat-title"><FiTrendingUp style={{ display: "inline", marginRight: "4px" }} /> Engine Throughput</div>
+                <div className="eval-stat-title"><FiTrendingUp style={{ display: "inline", marginRight: "4px" }} /> Processing Speed</div>
                 <div className="eval-stat-value" style={{ color: "#2563EB" }}>
                   {results.efficiency.throughputAlgos} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>algos/s</small>
                 </div>
@@ -854,7 +854,7 @@ export default function EvaluationSuite() {
                 </span>
               </div>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #8B5CF6" }}>
-                <div className="eval-stat-title"><FiActivity style={{ display: "inline", marginRight: "4px" }} /> Mean AST Latency</div>
+                <div className="eval-stat-title"><FiActivity style={{ display: "inline", marginRight: "4px" }} /> Avg. Time per Algorithm</div>
                 <div className="eval-stat-value" style={{ color: "#7C3AED" }}>
                   {results.efficiency.meanTimeMs} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>ms</small>
                 </div>
@@ -863,7 +863,7 @@ export default function EvaluationSuite() {
                 </span>
               </div>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #EC4899" }}>
-                <div className="eval-stat-title"><FiBarChart2 style={{ display: "inline", marginRight: "4px" }} /> Latency (P95 / Max)</div>
+                <div className="eval-stat-title"><FiBarChart2 style={{ display: "inline", marginRight: "4px" }} /> Slowest Times (P95 / Peak)</div>
                 <div className="eval-stat-value" style={{ color: "#DB2777" }}>
                   {results.efficiency.p95TimeMs} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>ms</small>
                 </div>
@@ -872,12 +872,12 @@ export default function EvaluationSuite() {
                 </span>
               </div>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
-                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Peak Wasm Memory</div>
+                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Peak Memory Usage</div>
                 <div className="eval-stat-value" style={{ color: "#059669" }}>
                   {results.efficiency.peakAstMemMB} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>MB</small>
                 </div>
                 <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
-                  Mean Traversal: {results.efficiency.meanAstMemKB} KB
+                  Average Memory: {results.efficiency.meanAstMemKB} KB
                 </span>
               </div>
             </div>
@@ -908,8 +908,8 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
-                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Precision = TP / (TP + FP) | Accuracy of Predictions">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) | Detection Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                       <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                       <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                     </tr>
@@ -961,8 +961,8 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
-                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Precision = TP / (TP + FP) | Accuracy of Predictions">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) | Detection Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                       <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                       <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                     </tr>
