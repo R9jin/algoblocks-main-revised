@@ -61,6 +61,7 @@ class AuthService:
             "isAdmin": user.get("isAdmin", False) or user.get("is_admin", False),
             "progress": user.get("progress", {}),
             "assessments": user.get("assessments", {}),
+            "onboarding_state": user.get("onboarding_state", {}),
             "token": token
         }
 
@@ -78,7 +79,12 @@ class AuthService:
             "role": "user",
             "isAdmin": False,
             "progress": {},
-            "assessments": {} 
+            "assessments": {},
+            "onboarding_state": {
+                "tourSeen": False,
+                "completedAt": None,
+                "pages": {}
+            }
         })
 
         token = create_access_token({"sub": req.email})
@@ -89,6 +95,11 @@ class AuthService:
             "name": req.name,
             "role": "user",
             "isAdmin": False,
+            "onboarding_state": {
+                "tourSeen": False,
+                "completedAt": None,
+                "pages": {}
+            },
             "token": token
         }
 
@@ -262,7 +273,12 @@ class AuthService:
                     "role": "user",
                     "isAdmin": False,
                     "progress": {},
-                    "assessments": {} 
+                    "assessments": {},
+                    "onboarding_state": {
+                        "tourSeen": False,
+                        "completedAt": None,
+                        "pages": {}
+                    }
                 })
                 user = UserRepository.find_by_email(email)
 
@@ -276,6 +292,7 @@ class AuthService:
                 "isAdmin": user.get("isAdmin", False) or user.get("is_admin", False),
                 "progress": user.get("progress", {}),
                 "assessments": user.get("assessments", {}),
+                "onboarding_state": user.get("onboarding_state", {}),
                 "token": backend_token
             }
 
@@ -459,6 +476,19 @@ class AuthService:
         
         submissions = [row["data"] for row in rows]
         return {"status": "success", "submissions": submissions}
+
+    @staticmethod
+    def update_onboarding(email: str, onboarding_state: dict):
+        if not email:
+            return {"status": "ignored"}
+
+        sanitized_state = onboarding_state if isinstance(onboarding_state, dict) else {}
+        UserRepository.update_onboarding_state(email, sanitized_state)
+        user = UserRepository.find_by_email(email)
+        return {
+            "status": "success",
+            "onboarding_state": user.get("onboarding_state", {}) if user else sanitized_state,
+        }
 
     @staticmethod
     def batch_sync(payload: dict, trusted_email: str):

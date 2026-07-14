@@ -1,7 +1,1058 @@
 ﻿--- PROJECT SNAPSHOT (PART 5 OF 10) ---
 
---- TIMESTAMP: 2026-07-13 17:14:56 ---
+--- TIMESTAMP: 2026-07-14 21:48:37 ---
 
+
+--- FILE: frontend/src/App.jsx ---
+
+// frontend/src/App.jsx
+import { lazy, Suspense, useEffect } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import OfflineIndicator from "./components/OfflineIndicator";
+import OnboardingTour from "./components/OnboardingTour";
+import { OnboardingProvider } from "./context/OnboardingContext";
+import { PyodideProvider } from "./context/PyodideContext";
+import { startBackgroundSync, stopBackgroundSync } from "./utils/syncManager";
+
+// Lazy load ALL pages to prevent circular dependency crashes and reduce the initial load payload
+const AdminUserManagement = lazy(() => import('./pages/AdminUserManagement'));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const EvaluationSuite = lazy(() => import("./pages/EvaluationSuite"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const LandingPage = lazy(() => import("./pages/HomePage"));
+const LearningPath = lazy(() => import("./pages/LearningPath"));
+const Projects = lazy(() => import("./pages/Projects"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const SignIn = lazy(() => import("./pages/SignIn"));
+const SignUp = lazy(() => import("./pages/SignUp"));
+const UserHomePage = lazy(() => import("./pages/UserHomePage"));
+const MainApp = lazy(() => import("./pages/MainApp"));
+const ActivityApp = lazy(() => import("./pages/ActivityApp"));
+const AssessmentPage = lazy(() => import("./pages/AssessmentPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const LessonViewer = lazy(() => import("./pages/LessonViewer"));
+
+const ProtectedRoute = ({ children }) => {
+  const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+  // Prevent JS type coercion bugs where the string "null" evaluates to true
+  const isValidUser = userStr && userStr !== "null" && userStr !== "undefined";
+  
+  if (!isValidUser) {
+    return <Navigate to="/" replace />; 
+  }
+  return children;
+};
+
+const PublicRoute = ({ children }) => {
+  const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+  const isValidUser = userStr && userStr !== "null" && userStr !== "undefined";
+  
+  if (isValidUser) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+};
+
+function App() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+    const isValidUser = userStr && userStr !== "null" && userStr !== "undefined";
+    const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
+    
+    // Manage background sync lifecycle to prevent memory leaks and unauthenticated pings
+    if (isValidUser && !isAuthPage) {
+      startBackgroundSync(30000); // 30 seconds interval
+    } else {
+      stopBackgroundSync();
+    }
+
+    return () => stopBackgroundSync();
+  }, [location.pathname]);
+
+  return (
+    <PyodideProvider>
+      <OnboardingProvider>
+        <OfflineIndicator />
+        <OnboardingTour />
+        
+        <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
+          <Routes>
+            {/* Public Auth Routes */}
+            <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
+            <Route path="/signin" element={<PublicRoute><SignIn /></PublicRoute>} />
+            <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
+            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+            <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+            
+            {/* Protected Application Routes */}
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/learning-path" element={<ProtectedRoute><LearningPath /></ProtectedRoute>} />
+            <Route path="/learning-path/:moduleId/:lessonId" element={<ProtectedRoute><LessonViewer /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+            <Route path="/app" element={<ProtectedRoute><MainApp /></ProtectedRoute>} />
+            <Route path="/workspace" element={<ProtectedRoute><MainApp /></ProtectedRoute>} />
+            <Route path="/home" element={<ProtectedRoute><UserHomePage /></ProtectedRoute>} />
+            <Route path="/activity/:moduleId/:activityId" element={<ProtectedRoute><ActivityApp /></ProtectedRoute>} />
+            <Route path="/assessment/:moduleId/:type" element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            
+            {/* Protected Admin Routes */}
+            <Route path="/admin/users" element={<ProtectedRoute><AdminUserManagement /></ProtectedRoute>} />
+            <Route path="/admin/evaluation-suite" element={<ProtectedRoute><EvaluationSuite /></ProtectedRoute>} />
+
+            {/* Catch-all route: prevents a completely blank screen if the user lands on an invalid 404 path */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </OnboardingProvider>
+    </PyodideProvider>
+  );
+}
+
+export default App;
+
+--- FILE: frontend/src/components/BigOChart.jsx ---
+
+import React, { useMemo } from "react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
+} from "recharts";
+
+const DEFAULT_COLORS = ["#7c5cff", "#ff7a7a", "#34c759", "#ffb84d", "#6ad3ff"];
+
+function computeValue(curve, n) {
+  switch (curve) {
+    case "O(1)":
+      return 1;
+    case "O(log n)":
+      return Math.log2(n || 1) || 0.0001;
+    case "O(n)":
+      return n;
+    case "O(n log n)":
+      return n * (Math.log2(n || 1) || 0.0001);
+    case "O(n^2)":
+      return n * n;
+    case "O(2^n)":
+      // cap to avoid Infinity on chart
+      return Math.min(Math.pow(2, n), 1e9);
+    default:
+      return n;
+  }
+}
+
+function generateData(maxN, curves, normalize = true) {
+  const rows = [];
+  for (let n = 1; n <= maxN; n++) {
+    const row = { n };
+    curves.forEach((c) => {
+      row[c] = computeValue(c, n);
+    });
+    rows.push(row);
+  }
+
+  if (!normalize) return rows;
+
+  // Normalize each curve so the largest value becomes 1 â€” this makes curves comparable visually
+  const maxPerCurve = {};
+  curves.forEach((c) => {
+    maxPerCurve[c] = Math.max(...rows.map((r) => r[c] || 0), 1);
+  });
+
+  return rows.map((r) => {
+    const out = { n: r.n };
+    curves.forEach((c) => {
+      out[c] = (r[c] || 0) / maxPerCurve[c];
+    });
+    return out;
+  });
+}
+
+export default function BigOChart({ maxN = 32, curves = ["O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n^2)"], normalize = true, colors = DEFAULT_COLORS }) {
+  const data = useMemo(() => generateData(Math.max(4, maxN), curves, normalize), [maxN, curves, normalize]);
+
+  return (
+    <div style={{ width: "100%", height: 320 }}>
+      <ResponsiveContainer>
+        <LineChart data={data} margin={{ top: 16, right: 24, left: 12, bottom: 16 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="n" label={{ value: "n (input size)", position: "insideBottomRight", offset: -6 }} />
+          <YAxis tickFormatter={(v) => (v >= 0 && v <= 1 ? `${Math.round(v * 100)}%` : v)} />
+          <Tooltip formatter={(value, name) => [typeof value === "number" ? value.toFixed(4) : value, name]} />
+          <Legend />
+          {curves.map((c, idx) => (
+            <Line key={c} type="monotone" dataKey={c} stroke={colors[idx % colors.length]} strokeWidth={2} dot={false} />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+--- FILE: frontend/src/components/BigOModal.jsx ---
+
+// frontend/src/components/BigOModal.jsx
+import { useState } from "react";
+import "../styles/BigOModal.css";
+import { formatComplexity } from "../utils/formatters";
+
+const BIG_O_DATA = [
+  {
+    complexity: "O(1)",
+    name: "Constant Time",
+    color: "excel",
+    def: "The execution time remains exactly the same regardless of the size of the input data set. It takes a single step, or a fixed number of steps, to complete. This is the holy grail of algorithm efficiency.",
+    analogy: "Knowing exactly where a book is on a shelf and grabbing it immediately.",
+    example: "Accessing a specific index in an array (e.g., arr[5]), pushing/popping a value to a stack, or looking up a key in a hash map.",
+    link: "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/"
+  },
+  {
+    complexity: "O(log n)",
+    name: "Logarithmic Time",
+    color: "excel",
+    def: "The algorithm systematically divides the data set in half with each step. As the data grows exponentially, the time it takes only grows linearly. Highly efficient for massive datasets.",
+    analogy: "Looking up a word in a physical dictionary by opening it to the middle, deciding which half the word is in, and repeating.",
+    example: "Binary Search on a sorted array, or finding an item in a balanced Binary Search Tree (BST).",
+    link: "https://www.khanacademy.org/computing/computer-science/algorithms/binary-search/a/running-time-of-binary-search"
+  },
+  {
+    complexity: "O(âˆšn)",
+    name: "Square Root Time",
+    color: "good",
+    def: "The execution time grows in proportion to the square root of the input size. It is much slower than logarithmic time but significantly faster than linear time for large datasets.",
+    analogy: "Walking exactly halfway across a square room instead of walking along the entire perimeter.",
+    example: "Checking if a number is prime by looping only up to its square root, or Grover's quantum search algorithm.",
+    link: "https://www.geeksforgeeks.org/understanding-time-complexity-simple-examples/"
+  },
+  {
+    complexity: "O(n)",
+    name: "Linear Time",
+    color: "good",
+    def: "The execution time grows directly and proportionally with the size of the input data set. If you have 10 items, it takes up to 10 operations. You must look at every single element at least once.",
+    analogy: "Reading a book page by page from start to finish.",
+    example: "Linear Search, counting elements, or traversing an array to find the maximum/minimum value.",
+    link: "https://www.geeksforgeeks.org/linear-search/"
+  },
+  {
+    complexity: "O(V + E)",
+    name: "Graph Traversal Time",
+    color: "fair",
+    def: "The execution time scales linearly with the size of a graph, depending on both the number of Vertices (nodes) and Edges (connections).",
+    analogy: "Visiting every city on a road map (Vertices) and driving down every connecting highway between them (Edges).",
+    example: "Breadth-First Search (BFS) and Depth-First Search (DFS) algorithms on an adjacency list representation of a graph.",
+    link: "https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/analyzing-graph-algorithms"
+  },
+  {
+    complexity: "O(n log n)",
+    name: "Linearithmic Time",
+    color: "fair",
+    def: "A combination of linear and logarithmic complexity. It performs an O(log n) operation for each of the 'n' items in the data set. This is the gold standard limit for efficient, general-purpose sorting.",
+    analogy: "Organizing a messy room by grouping similar items into piles (dividing), sorting the piles, and then putting them all together (merging).",
+    example: "Merge Sort, Heap Sort, and the average case of Quick Sort.",
+    link: "https://www.khanacademy.org/computing/computer-science/algorithms/merge-sort/a/analysis-of-merge-sort"
+  },
+  {
+    complexity: "O(n * m)",
+    name: "Multi-Variable Linear Time",
+    color: "bad",
+    def: "The execution time depends on two distinct input sizes (like rows and columns) interacting with each other. Functionally similar to quadratic time if n and m scale together.",
+    analogy: "Painting every single tile on a rectangular floor that is 'n' tiles wide and 'm' tiles long.",
+    example: "Traversing a non-square 2D grid/matrix, or classic 2D Dynamic Programming (like the Longest Common Subsequence).",
+    link: "https://www.geeksforgeeks.org/understanding-time-complexity-simple-examples/"
+  },
+  {
+    complexity: "O(nÂ²)",
+    name: "Quadratic Time",
+    color: "bad",
+    def: "The execution time grows proportionally to the square of the input size. This typically involves a loop inside of another loop (nested iterations). Performance degrades rapidly as the dataset grows.",
+    analogy: "A networking event where every single person in the room must individually shake hands with every other person in the room.",
+    example: "Bubble Sort, Insertion Sort, Selection Sort, or finding duplicate values using brute-force nested loops.",
+    link: "https://www.geeksforgeeks.org/bubble-sort/"
+  },
+  {
+    complexity: "O(nÂ³)",
+    name: "Cubic Time",
+    color: "bad",
+    def: "The execution time grows proportionally to the cube of the input size. Typically caused by three levels of nested loops. This becomes unusably slow even for medium-sized inputs.",
+    analogy: "At that same networking event, every time two people shake hands, a third person is brought over to take a group photo for every possible trio.",
+    example: "Naive matrix multiplication, or finding all possible triplets in an array.",
+    link: "https://www.geeksforgeeks.org/understanding-time-complexity-simple-examples/"
+  },
+  {
+    complexity: "O(2â¿)",
+    name: "Exponential Time",
+    color: "bad",
+    def: "The execution time doubles with each new element added to the input. Extremely inefficient and grows astronomically fast. Usually the result of algorithms that blindly explore all possible branches.",
+    analogy: "Trying to crack a binary combination lock by blindly guessing every single possible combination sequence one by one.",
+    example: "Naive recursive calculation of Fibonacci numbers, or solving the Tower of Hanoi problem.",
+    link: "https://www.geeksforgeeks.org/exponential-time-complexity/"
+  },
+  {
+    complexity: "O(n^d)",
+    name: "Recursive Branching Time",
+    color: "bad",
+    def: "The execution time grows exponentially relative to a variable depth 'd'. This commonly happens in recursive functions placed inside loops, where the depth of the recursion tree directly determines the mathematical exponent.",
+    analogy: "A nested doll where each doll contains 'n' more identical dolls inside it, and the pattern repeats for 'd' layers deep.",
+    example: "Complex recursive backtracking without memoization, or calculating dynamic sub-problems inside iteration branches.",
+    link: "https://www.geeksforgeeks.org/time-complexity-and-space-complexity/"
+  },
+  {
+    complexity: "O(n!)",
+    name: "Factorial Time",
+    color: "bad",
+    def: "The execution time grows factorially based on the input size. Even with extremely small inputs (like n=15), a modern computer could take years to compute it.",
+    analogy: "Trying to find the best seating arrangement for your friends at a dinner table by making them physically sit in every possible permutation of chairs.",
+    example: "Generating all possible permutations of a given string/array, or the brute-force solution to the Traveling Salesperson Problem.",
+    link: "https://www.geeksforgeeks.org/factorial-time-complexity/"
+  }
+];
+
+export default function BigOModal({ isOpen, onClose }) {
+  const [expandedRow, setExpandedRow] = useState(null);
+
+  if (!isOpen) return null;
+
+  const toggleRow = (index) => {
+    setExpandedRow(expandedRow === index ? null : index);
+  };
+
+  return (
+    <div className="big-o-modal-overlay" onClick={onClose}>
+      <div className="big-o-modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="big-o-modal-header">
+          <h2>
+            <img
+              src="/assets/table-icon.png"
+              alt="Reference"
+              className="tab-icon inverted-header-icon" 
+            /> Big O Complexity Reference
+          </h2>
+          <button className="big-o-close-btn" onClick={onClose}>âœ•</button>
+        </div>
+
+        <div className="big-o-accordion">
+          <div className="big-o-list-header">
+            <span>Complexity</span>
+            <span>Name</span>
+            <span></span>
+          </div>
+
+          {BIG_O_DATA.map((item, idx) => (
+            <div key={idx} className={`big-o-row ${expandedRow === idx ? 'expanded' : ''}`}>
+              <div className="big-o-row-trigger" onClick={() => toggleRow(idx)}>
+                <span className={`o-badge o-${item.color}`}>{formatComplexity(item.complexity)}</span>
+                <span className="o-name">{item.name}</span>
+                <span className="o-chevron dropdown-chevron">â–¶</span>
+              </div>
+
+              {expandedRow === idx && (
+                <div className="big-o-row-details">
+                  <p><strong>Definition:</strong> {item.def}</p>
+                  <p><strong>Analogy:</strong> {item.analogy}</p>
+                  <p><strong>Examples:</strong> {item.example}</p>
+                  <p className="verified-resource-container">
+                    <strong>Verified Resource:</strong> <a href={item.link} target="_blank" rel="noopener noreferrer" className="verified-resource-link">Explore {item.name} in-depth</a>
+                  </p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+--- FILE: frontend/src/components/BlocklyWorkspace.jsx ---
+
+// frontend/src/components/BlocklyWorkspace.jsx
+import { registerFieldMultilineInput } from "@blockly/field-multilineinput";
+import { CrossTabCopyPaste } from "@blockly/plugin-cross-tab-copy-paste";
+import { Modal } from "@blockly/plugin-modal";
+import { WorkspaceSearch } from "@blockly/plugin-workspace-search";
+import { shadowBlockConversionChangeListener } from "@blockly/shadow-block-converter";
+import "@blockly/toolbox-search";
+import { Backpack } from "@blockly/workspace-backpack";
+import { ContentHighlight } from "@blockly/workspace-content-highlight";
+import { PositionedMinimap } from "@blockly/workspace-minimap";
+import * as Blockly from "blockly";
+import "blockly/blocks";
+import * as En from "blockly/msg/en";
+import { pythonGenerator } from "blockly/python";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { convertPythonToBlocks } from "../workers/analyzerInstance";
+
+registerFieldMultilineInput();
+Blockly.setLocale(En);
+
+let crossTabPluginInitialized = false;
+const DarkTheme = Blockly.Themes.Dark;
+const ModernTheme = Blockly.Themes.Modern;
+
+const pastelTheme = Blockly.Theme.defineTheme("pastelTheme", {
+  base: ModernTheme,
+  categoryStyles: {
+    logic_category: { colour: "#c1a0e8" }, loop_category: { colour: "#8bcf8b" }, math_category: { colour: "#4C97FF" },
+    text_category: { colour: "#d5a52a" }, io_category: { colour: "#FF8A65" }, list_category: { colour: "#4DB6AC" },
+    dict_category: { colour: "#BA68C8" }, set_tuple_category: { colour: "#7986CB" }, stack_queue_category: { colour: "#F06292" },
+    variable_category: { colour: "#f38286" }, procedure_category: { colour: "#7a6b66" }, raw_category: { colour: "#FF6B6B" }
+  },
+  blockStyles: {
+    logic_blocks: { colourPrimary: "#c1a0e8", colourSecondary: "#B8A0D6", colourTertiary: "#A38CC1" },
+    loop_blocks: { colourPrimary: "#8bcf8b", colourSecondary: "#90BC90", colourTertiary: "#7CA77C" },
+    math_blocks: { colourPrimary: "#4C97FF", colourSecondary: "#2c80f5", colourTertiary: "#2A70CC" },
+    text_blocks: { colourPrimary: "#d5a52a", colourSecondary: "#E5AF2C", colourTertiary: "#CC9A26" },
+    io_blocks: { colourPrimary: "#FF8A65", colourSecondary: "#E27A59", colourTertiary: "#C76B4E" },
+    list_blocks: { colourPrimary: "#4DB6AC", colourSecondary: "#42A097", colourTertiary: "#388C83" },
+    dict_blocks: { colourPrimary: "#BA68C8", colourSecondary: "#A65CB4", colourTertiary: "#9251A0" },
+    set_tuple_blocks: { colourPrimary: "#7986CB", colourSecondary: "#6B77B5", colourTertiary: "#5E68A0" },
+    stack_queue_blocks: { colourPrimary: "#F06292", colourSecondary: "#D75883", colourTertiary: "#BD4D73" },
+    variable_blocks: { colourPrimary: "#f38286", colourSecondary: "#DB888B", colourTertiary: "#C27679" },
+    procedure_blocks: { colourPrimary: "#7a6b66", colourSecondary: "#BDB2AE", colourTertiary: "#A89D9A" },
+    raw_blocks: { colourPrimary: "#FF6B6B", colourSecondary: "#FF8787", colourTertiary: "#FFA8A8" }
+  },
+  fontStyle: { family: "'Outfit', 'Inter', sans-serif", weight: "500", size: 13 }
+});
+
+const sanitizePythonCode = (code) => {
+  if (!code) return "";
+  return code.replace(/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000]/g, " ");
+};
+
+const customBlocks = [
+  { type: "comment_block", message0: "Comment %1", colour: "#999999", tooltip: "Adds a single-line comment to the Python code. Comments are ignored by the computer but help human readers understand the logic of the code.",
+    args0: [{ type: "field_input", name: "TEXT", text: "write note here" }], previousStatement: null, nextStatement: null },
+  { type: "math_assignment", message0: "%1 %2 %3", colour: "#4C97FF", tooltip: "Modifies an existing variable using an assignment operator (+=, -=, *=, /=). For example, using '+=' with a value of 1 will increment the current value of the variable by 1.",
+    args0: [{ type: "field_variable", name: "VAR", variable: "item" }, { type: "field_dropdown", name: "OP", options: [["+=", "ADD"], ["-=", "MINUS"], ["*=", "MULTIPLY"], ["/=", "DIVIDE"]] }, { type: "input_value", name: "DELTA", check: "Number" }], inputsInline: true, previousStatement: null, nextStatement: null },
+  { type: "procedure_return_value", message0: "return %1", colour: "#7a6b66", tooltip: "Exits the current function and returns the specified value back to where the function was called. Any code written after this block inside the same function will not run.",
+    args0: [{ type: "input_value", name: "VALUE" }], previousStatement: null, nextStatement: null },
+  { type: "custom_string_join", message0: "join list %1 with delimiter %2", colour: "#d5a52a", tooltip: "Joins all items in a list into a single continuous string, placing the specified delimiter between each item. Great for converting arrays into readable, formatted text.",
+    args0: [{ type: "input_value", name: "LIST", check: "Array" }, { type: "input_value", name: "DELIMITER", check: "String" }], output: "String" },
+  { type: "string_to_list", message0: "create list from string %1", style: "list_blocks", tooltip: "Converts a string into a list where each character (or separated word) becomes an individual element in the newly created list array.",
+    args0: [{ type: "input_value", name: "STRING", check: "String" }], output: "Array" },
+  { type: "math_advanced_operators", message0: "%1 %2 %3", colour: "#4C97FF", tooltip: "Performs advanced mathematical operations: Floor Division (//) divides and discards the remainder, Power (**) calculates exponents, and Bitwise operators shift or logic-match binary bits.",
+    args0: [{ type: "input_value", name: "A", check: "Number" }, { type: "field_dropdown", name: "OP", options: [["//", "FLOOR_DIV"], ["**", "POWER"], [">>", "RSHIFT"], ["<<", "LSHIFT"], ["&", "BIT_AND"], ["|", "BIT_OR"]] }, { type: "input_value", name: "B", check: "Number" }], inputsInline: true, output: "Number" },
+  { type: "type_cast_int", message0: "int %1", colour: "#4C97FF", tooltip: "Converts a given value (like a float or a string containing numbers) into an integer (whole number). Decimals are completely truncated, not rounded.",
+    args0: [{ type: "input_value", name: "VALUE" }], output: "Number" },
+  { type: "math_min_max", message0: "%1 of %2 and %3", colour: "#4C97FF", tooltip: "Compares two numbers and returns either the highest (maximum) or the lowest (minimum) value among them depending on the selected dropdown.",
+    args0: [{ type: "field_dropdown", name: "OP", options: [["max", "MAX"], ["min", "MIN"]] }, { type: "input_value", name: "A", check: "Number" }, { type: "input_value", name: "B", check: "Number" }], inputsInline: true, output: "Number" },
+  { type: "dict_create_empty", message0: "create empty dictionary", style: "dict_blocks", tooltip: "Initializes a new, empty Python dictionary {}. Dictionaries store data in key-value pairs, allowing for extremely fast lookups by key.", output: null },
+  { type: "dict_set", message0: "in dictionary %1 set key %2 to %3", style: "dict_blocks", tooltip: "Adds a new key-value pair to a dictionary or updates the value of an existing key. The key must be a unique, immutable type like a string or number.",
+    args0: [{ type: "input_value", name: "DICT" }, { type: "input_value", name: "KEY" }, { type: "input_value", name: "VALUE" }], inputsInline: true, previousStatement: null, nextStatement: null },
+  { type: "dict_get", message0: "in dictionary %1 get key %2", style: "dict_blocks", tooltip: "Retrieves the value associated with a specific key in a dictionary. If the key does not exist in the dictionary, Python will throw a KeyError.",
+    args0: [{ type: "input_value", name: "DICT" }, { type: "input_value", name: "KEY" }], inputsInline: true, output: null },
+  { type: "dict_pair", message0: "key %1 : value %2", style: "dict_blocks", tooltip: "Creates a single Key-Value pair block. This is specifically used to populate a new dictionary literal directly upon creation.",
+    args0: [{ type: "input_value", name: "KEY" }, { type: "input_value", name: "VALUE" }], inputsInline: true, output: "DictPair" },
+  { type: "dict_from_pairs", message0: "create dictionary with %1", style: "dict_blocks", tooltip: "Constructs a new dictionary populated with a given list of pre-defined key-value pairs.",
+    args0: [{ type: "input_value", name: "LIST", check: "Array" }], output: null },
+  { type: "dict_pop", message0: "remove and get value for key/index %1 in %2", style: "dict_blocks", tooltip: "Removes the specified key from the dictionary and returns its associated value. Helpful for extracting and deleting data in one step.",
+    args0: [{ type: "input_value", name: "KEY" }, { type: "input_value", name: "DICT" }], inputsInline: true, output: null },
+  { type: "set_create_empty", message0: "create empty set", style: "set_tuple_blocks", tooltip: "Initializes a new, empty Python set. Sets are unordered collections that strictly do not allow any duplicate elements.", output: null },
+  { type: "set_from_list", message0: "create set from list %1", style: "set_tuple_blocks", tooltip: "Converts an existing list into a set. This automatically filters out and removes any duplicate values from the list and optimizes it for O(1) constant time lookups.",
+    args0: [{ type: "input_value", name: "LIST", check: "Array" }], output: null },
+  { type: "set_add", message0: "add %1 to set %2", style: "set_tuple_blocks", tooltip: "Adds a single item to a set. If the item already exists in the set, the set remains completely unchanged (no duplicates are added).",
+    args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "SET" }], inputsInline: true, previousStatement: null, nextStatement: null },
+  { type: "set_remove", message0: "remove %1 from set %2", style: "set_tuple_blocks", tooltip: "Removes a specific item from a set. If the item is not found inside the set, Python will throw a KeyError and halt execution.",
+    args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "SET" }], inputsInline: true, previousStatement: null, nextStatement: null },
+  { type: "set_operations", message0: "set %1 of %2 and %3", style: "set_tuple_blocks", tooltip: "Performs mathematical set operations: Union combines all elements from both sets, Intersection finds only the common elements, and Difference finds unique elements.",
+    args0: [{ type: "field_dropdown", name: "OP", options: [["union", "UNION"], ["intersection", "INTERSECTION"], ["difference", "DIFFERENCE"]] }, { type: "input_value", name: "SET1" }, { type: "input_value", name: "SET2" }], inputsInline: true, output: null },
+  { type: "tuple_create", message0: "create tuple with %1 and %2", style: "set_tuple_blocks", tooltip: "Creates a tuple, which is an ordered, unchangeable (immutable) collection of elements. Once created, its items cannot be modified or reassigned.",
+    args0: [{ type: "input_value", name: "A" }, { type: "input_value", name: "B" }], inputsInline: true, output: null },
+  { type: "multi_line_comment", message0: "comment %1", colour: "#999999", tooltip: "Adds a multi-line docstring comment (wrapped in triple quotes) to the Python code. Often used to document entire functions or block out large text descriptions.",
+    args0: [{ type: "field_multilinetext", name: "TEXT", text: "Write multi-line note here", spellcheck: false }], previousStatement: null, nextStatement: null },
+  { type: "raw_python_statement", message0: "Raw Code \n %1", style: "raw_blocks", tooltip: "Directly injects the exact text string as a raw Python statement into the generated code. Use with caution as it bypasses Blockly's syntax and safety checks.",
+    args0: [{ type: "field_multilinetext", name: "CODE", text: "print('Hello World')", spellcheck: false }], previousStatement: null, nextStatement: null },
+  { type: "raw_python_expression", message0: "Raw Eval \n %1", style: "raw_blocks", tooltip: "Evaluates an exact text string as a raw Python expression, returning a value that can be plugged into other blocks.",
+    args0: [{ type: "field_multilinetext", name: "CODE", text: "x + y", spellcheck: false }], output: null },
+  { type: "raw_python_multiline", message0: "Raw Block \n %1", style: "raw_blocks", tooltip: "Injects multiple lines of raw, unformatted Python code directly into the workspace generation. Useful for pasting complex custom logic.",
+    args0: [{ type: "field_multilinetext", name: "CODE", text: "def custom_func():\n    pass", spellcheck: false }], previousStatement: null, nextStatement: null },
+  { type: "python_input", message0: "ask user for input with prompt %1", style: "io_blocks", tooltip: "Halts program execution, prints the specified prompt message to the console, and waits for the user to type a response and press Enter. Returns the user input as a string.",
+    args0: [{ type: "input_value", name: "PROMPT", check: "String" }], output: "String" },
+  { type: "python_type", message0: "type of %1", colour: "#c1a0e8", tooltip: "Returns the data type of the provided value or variable (e.g., int, float, str, list, dict). Very useful for debugging and dynamic type checking.",
+    args0: [{ type: "input_value", name: "VALUE" }], output: null },
+  { type: "python_type_primitive", message0: "type %1", colour: "#c1a0e8", tooltip: "Selects a built-in Python primitive type class (like int, str, or list) to be used for type checking via isinstance or casting.",
+    args0: [{ type: "field_dropdown", name: "TYPE", options: [["int", "int"], ["float", "float"], ["str", "str"], ["list", "list"], ["dict", "dict"], ["bool", "bool"], ["tuple", "tuple"], ["set", "set"]] }], output: null },
+  { type: "python_isinstance", message0: "is %1 a %2?", colour: "#c1a0e8", tooltip: "Checks if a specific value or variable is exactly an instance of a given data type, returning True if it matches and False otherwise.",
+    args0: [{ type: "input_value", name: "VALUE" }, { type: "input_value", name: "TYPE" }], inputsInline: true, output: "Boolean" },
+  { type: "text_multiply", message0: "repeat text %1 %2 times", colour: "#d5a52a", tooltip: "Repeats a given string a specified number of times sequentially. For example, multiplying the string 'A' by 3 results in 'AAA'.",
+    args0: [{ type: "input_value", name: "TEXT", check: "String" }, { type: "input_value", name: "MULTIPLIER", check: "Number" }], inputsInline: true, output: "String" },
+  { type: "text_newline", message0: "Line Break", colour: "#d5a52a", tooltip: "Inserts a newline character (\\n) into a string, which forces subsequent text to drop down to the next line when printed to the console.", output: "String" },
+  { type: "list_append", message0: "append %1 to list %2", style: "list_blocks", tooltip: "Adds a new item to the very end of an existing list. The list is modified in-place and its overall size increases by one.",
+    args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "LIST", check: "Array" }], inputsInline: true, previousStatement: null, nextStatement: null },
+  { type: "list_count", message0: "count occurrences of %1 in list %2", style: "list_blocks", tooltip: "Scans the entire list from start to finish and counts exactly how many times the specified item appears within it.",
+    args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "LIST", check: "Array" }], inputsInline: true, output: "Number" },
+  { type: "list_reverse", message0: "reverse list %1", style: "list_blocks", tooltip: "Reverses the order of the items in the list entirely in-place. The first item becomes the last, and the last becomes the first.",
+    args0: [{ type: "input_value", name: "LIST", check: "Array" }], previousStatement: null, nextStatement: null },
+  { type: "list_clear", message0: "clear all items from %1", style: "list_blocks", tooltip: "Empties the entire collection, aggressively removing all items from the list or dictionary and leaving it completely blank.",
+    args0: [{ type: "input_value", name: "LIST" }], previousStatement: null, nextStatement: null },
+  { type: "list_range", message0: "create list from %1 to %2 (exclusive)", style: "list_blocks", tooltip: "Generates a list of sequential numbers starting from the 'start' value up to, but strictly not including, the 'end' value.",
+    args0: [{ type: "input_value", name: "START", check: "Number" }, { type: "input_value", name: "END", check: "Number" }], inputsInline: true, output: "Array" },
+  { type: "variable_swap", message0: "swap variable %1 and %2", style: "variable_blocks", tooltip: "Exchanges the values of two variables simultaneously in a single, atomic Python operation, completely avoiding the need for a temporary third variable.",
+    args0: [{ type: "field_variable", name: "VAR1", variable: "a" }, { type: "field_variable", name: "VAR2", variable: "b" }], previousStatement: null, nextStatement: null },
+  { type: "logic_in", message0: "%1 is in %2", colour: "#c1a0e8", tooltip: "Checks if a specific item exists anywhere inside a collection (like a list, set, dictionary keys, or string). Returns True if found, False otherwise.",
+    args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "COLLECTION" }], inputsInline: true, output: "Boolean" },
+  { type: "list_slice_advanced", message0: "slice list %1 from index %2 to %3", style: "list_blocks", tooltip: "Extracts a portion (slice) of a list starting from the start index and going up to the end index. Leave indices blank to default to the beginning or end of the list.",
+    args0: [{ type: "input_value", name: "LIST", check: "Array" }, { type: "input_value", name: "START" }, { type: "input_value", name: "END" }], inputsInline: true, output: "Array" },
+  { type: "list_concat", message0: "join list %1 and list %2", style: "list_blocks", tooltip: "Joins two separate lists together end-to-end to form a single, newly combined list array.",
+    args0: [{ type: "input_value", name: "LIST1", check: "Array" }, { type: "input_value", name: "LIST2", check: "Array" }], inputsInline: true, output: "Array" },
+  { type: "list_remove_value", message0: "remove first occurrence of %1 from list %2", style: "list_blocks", tooltip: "Searches for the very first exact match of the specified value in the list and removes it. Subsequent elements shift left to fill the gap.",
+    args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "LIST", check: "Array" }], inputsInline: true, previousStatement: null, nextStatement: null },
+  { type: "list_pop", message0: "remove and get last item from list %1", style: "list_blocks", tooltip: "Removes the last item from the very end of the list and returns that item so it can be assigned to a variable or used immediately.",
+    args0: [{ type: "input_value", name: "LIST", check: "Array" }], output: null },
+  { type: "list_pop_statement", message0: "remove last item from list %1", style: "list_blocks", tooltip: "Removes the last item from the very end of the list but does not return it. The removed item is simply discarded.",
+    args0: [{ type: "input_value", name: "LIST", check: "Array" }], previousStatement: null, nextStatement: null },
+  { type: "dict_keys_values", message0: "get %1 from dict %2", style: "dict_blocks", tooltip: "Extracts all keys, all values, or all key-value pairs (items) from a dictionary and immediately converts them into a flat list format for easy looping.",
+    args0: [{ type: "field_dropdown", name: "OP", options: [["keys", "keys"], ["values", "values"], ["items", "items"]] }, { type: "input_value", name: "DICT" }], inputsInline: true, output: "Array" },
+  { type: "controls_pass", message0: "pass", colour: "#8bcf8b", tooltip: "The 'pass' statement does absolutely nothing. It is used as a syntactic placeholder in loops, conditionals, or functions where code is eventually intended to go but cannot be left entirely blank.", previousStatement: null, nextStatement: null },
+  { type: "list_sort", message0: "sort list %1 %2", style: "list_blocks", tooltip: "Sorts the elements of the list permanently in-place (modifying the original list) in either standard ascending or reversed descending order.",
+    args0: [{ type: "input_value", name: "LIST", check: "Array" }, { type: "field_dropdown", name: "REVERSE", options: [["in ascending order", "FALSE"], ["in descending order", "TRUE"]] }], previousStatement: null, nextStatement: null },
+  { type: "list_sorted", message0: "get sorted copy of list %1 %2", style: "list_blocks", tooltip: "Creates and returns a brand new list containing the sorted elements, leaving the original list completely untouched and unmodified.",
+    args0: [{ type: "input_value", name: "LIST", check: "Array" }, { type: "field_dropdown", name: "REVERSE", options: [["in ascending order", "FALSE"], ["in descending order", "TRUE"]] }], output: "Array" },
+  { type: "list_insert", message0: "insert %1 at index %2 in list %3", style: "list_blocks", tooltip: "Inserts a new item into the list exactly at the given index position. All elements originally at or after this index are shifted one position to the right.",
+    args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "INDEX", check: "Number" }, { type: "input_value", name: "LIST", check: "Array" }], inputsInline: true, previousStatement: null, nextStatement: null },
+  { type: "string_split", message0: "split string %1 by delimiter %2", colour: "#d5a52a", tooltip: "Divides a single string into a list of multiple strings, breaking the text apart wherever the specified delimiter substring occurs.",
+    args0: [{ type: "input_value", name: "STRING", check: "String" }, { type: "input_value", name: "DELIMITER", check: "String" }], inputsInline: true, output: "Array" },
+  { type: "math_abs_round", message0: "%1 of %2", colour: "#4C97FF", tooltip: "Performs standard mathematical formatting: 'absolute value' strictly strips away any negative signs, while 'round' snaps floating-point decimals to the nearest whole integer.",
+    args0: [{ type: "field_dropdown", name: "OP", options: [["absolute value", "abs"], ["round", "round"]] }, { type: "input_value", name: "VALUE", check: "Number" }], output: "Number" },
+  { type: "type_cast_advanced", message0: "convert %1 to %2", colour: "#c1a0e8", tooltip: "Forcefully converts a given variable or value into the designated Python data type (for example, turning a text string '5' into a usable integer 5).",
+    args0: [{ type: "input_value", name: "VALUE" }, { type: "field_dropdown", name: "TYPE", options: [["float", "float"], ["boolean", "bool"], ["string", "str"], ["list", "list"]] }], inputsInline: true, output: null },
+  { type: "string_case_formatting", message0: "convert text %1 to %2", colour: "#d5a52a", tooltip: "Transforms the capitalization styling of a string. Options include forcing all letters to UPPERCASE, making all letters lowercase, Capitalizing Every Word (Title Case), or just capitalizing the first letter.",
+    args0: [{ type: "input_value", name: "STRING", check: "String" }, { type: "field_dropdown", name: "CASE", options: [["UPPERCASE", "upper"], ["lowercase", "lower"], ["Title Case", "title"], ["Capitalized", "capitalize"]] }], inputsInline: true, output: "String" },
+  { type: "stack_push", message0: "push %1 to stack %2", style: "stack_queue_blocks", tooltip: "Adds an element to the absolute top of the stack data structure. Under the hood in Python, this is functionally equivalent to appending an item to the end of a list.",
+    args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "STACK", check: "Array" }], inputsInline: true, previousStatement: null, nextStatement: null },
+  { type: "stack_pop", message0: "pop and get top of stack %1", style: "stack_queue_blocks", tooltip: "Removes and explicitly returns the element currently at the top of the stack (the most recently added item), strictly following the Last-In-First-Out (LIFO) logical principle.",
+    args0: [{ type: "input_value", name: "STACK", check: "Array" }], output: null },
+  { type: "stack_pop_statement", message0: "pop from stack %1", style: "stack_queue_blocks", tooltip: "Removes the element currently at the top of the stack (the most recently added item) but instantly discards it without returning the value.",
+    args0: [{ type: "input_value", name: "STACK", check: "Array" }], previousStatement: null, nextStatement: null },
+  { type: "stack_peek", message0: "peek top of stack %1", style: "stack_queue_blocks", tooltip: "Looks at and returns the element currently at the top of the stack (the most recently added item) without actually modifying or removing it from the stack.",
+    args0: [{ type: "input_value", name: "STACK", check: "Array" }], output: null },
+  { type: "queue_enqueue", message0: "enqueue %1 to queue %2", style: "stack_queue_blocks", tooltip: "Adds an element to the back of the queue data structure. Under the hood in Python, this is equivalent to appending an item to the end of a list.",
+    args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "QUEUE", check: "Array" }], inputsInline: true, previousStatement: null, nextStatement: null },
+  { type: "queue_dequeue", message0: "dequeue and get front of queue %1", style: "stack_queue_blocks", tooltip: "Removes and explicitly returns the element currently at the very front of the queue (the oldest item added), strictly following the First-In-First-Out (FIFO) logical principle.",
+    args0: [{ type: "input_value", name: "QUEUE", check: "Array" }], output: null },
+  { type: "queue_dequeue_statement", message0: "dequeue from queue %1", style: "stack_queue_blocks", tooltip: "Removes the element currently at the very front of the queue (the oldest item added) but instantly discards it without returning the value.",
+    args0: [{ type: "input_value", name: "QUEUE", check: "Array" }], previousStatement: null, nextStatement: null },
+  { type: "queue_peek", message0: "peek front of queue %1", style: "stack_queue_blocks", tooltip: "Looks at and returns the element currently at the very front of the queue (the oldest item added) without actually modifying or removing it from the queue.",
+    args0: [{ type: "input_value", name: "QUEUE", check: "Array" }], output: null },
+];
+
+if (Blockly.common && Blockly.common.defineBlocksWithJsonArray) { Blockly.common.defineBlocksWithJsonArray(customBlocks); } 
+else { Blockly.defineBlocksWithJsonArray(customBlocks); }
+
+const toolbox = {
+  kind: "categoryToolbox",
+  contents: [
+    { kind: "search", name: "Search", contents: [] },
+    {
+      kind: "category", name: "Logic", categorystyle: "logic_category",
+      contents: [
+        { kind: "block", type: "controls_if" }, { kind: "block", type: "logic_compare" },
+        { kind: "block", type: "logic_operation" }, { kind: "block", type: "logic_in" },
+        { kind: "block", type: "logic_negate" }, { kind: "block", type: "logic_boolean" },
+        { kind: "block", type: "logic_null" }, { kind: "block", type: "logic_ternary" },
+        { kind: "block", type: "procedure_return_value" }, { kind: "block", type: "python_type" },
+        { kind: "block", type: "python_type_primitive" }, { kind: "block", type: "python_isinstance" },
+        { kind: "block", type: "type_cast_advanced" }
+      ]
+    },
+    {
+      kind: "category", name: "Loops", categorystyle: "loop_category",
+      contents: [
+        { kind: "block", type: "controls_repeat_ext", inputs: { TIMES: { shadow: { type: "math_number", fields: { NUM: 10 } } } } },
+        { kind: "block", type: "controls_whileUntil" },
+        { kind: "block", type: "controls_for", inputs: { FROM: { shadow: { type: "math_number", fields: { NUM: 1 } } }, TO: { shadow: { type: "math_number", fields: { NUM: 10 } } }, BY: { shadow: { type: "math_number", fields: { NUM: 1 } } } } },
+        { kind: "block", type: "controls_forEach" }, { kind: "block", type: "controls_flow_statements" }, { kind: "block", type: "controls_pass" }
+      ]
+    },
+    {
+      kind: "category", name: "Math", categorystyle: "math_category",
+      contents: [
+        { kind: "block", type: "math_number", fields: { NUM: 1 } },
+        { kind: "block", type: "math_arithmetic", inputs: { A: { shadow: { type: "math_number", fields: { NUM: 1 } } }, B: { shadow: { type: "math_number", fields: { NUM: 1 } } } } },
+        { kind: "block", type: "math_advanced_operators" },
+        { kind: "block", type: "math_assignment", inputs: { DELTA: { shadow: { type: "math_number", fields: { NUM: 1 } } } } },
+        { kind: "block", type: "type_cast_int" }, { kind: "block", type: "math_min_max" },
+        { kind: "block", type: "math_abs_round" }, { kind: "block", type: "math_single" },
+        { kind: "block", type: "math_trig" }, { kind: "block", type: "math_constant" },
+        { kind: "block", type: "math_number_property" }, { kind: "block", type: "math_round" },
+        { kind: "block", type: "math_on_list" }, { kind: "block", type: "math_modulo" },
+        { kind: "block", type: "math_constrain", inputs: { LOW: { shadow: { type: "math_number", fields: { NUM: 1 } } }, HIGH: { shadow: { type: "math_number", fields: { NUM: 100 } } } } },
+        { kind: "block", type: "math_random_int", inputs: { FROM: { shadow: { type: "math_number", fields: { NUM: 1 } } }, TO: { shadow: { type: "math_number", fields: { NUM: 100 } } } } },
+        { kind: "block", type: "math_random_float" }
+      ]
+    },
+    {
+      kind: "category", name: "Text", categorystyle: "text_category",
+      contents: [
+        { kind: "block", type: "comment_block" }, { kind: "block", type: "multi_line_comment" },
+        { kind: "block", type: "text" }, { kind: "block", type: "text_newline" },
+        { kind: "block", type: "text_multiply", inputs: { MULTIPLIER: { shadow: { type: "math_number", fields: { NUM: 2 } } } } },
+        { kind: "block", type: "custom_string_join" }, { kind: "block", type: "string_split" },
+        { kind: "block", type: "string_case_formatting" }, { kind: "block", type: "text_join" },
+        { kind: "block", type: "text_append" }, { kind: "block", type: "text_length" },
+        { kind: "block", type: "text_isEmpty" }, { kind: "block", type: "text_indexOf" },
+        { kind: "block", type: "text_charAt" }, { kind: "block", type: "text_getSubstring" },
+        { kind: "block", type: "text_changeCase" }, { kind: "block", type: "text_trim" }
+      ]
+    },
+    {
+      kind: "category", name: "Input / Output", categorystyle: "io_category",
+      contents: [
+        { kind: "block", type: "text_print" },
+        { kind: "block", type: "python_input", inputs: { PROMPT: { shadow: { type: "text", fields: { TEXT: "Enter your name: " } } } } }
+      ]
+    },
+    {
+      kind: "category", name: "Lists (Built-in Type)", categorystyle: "list_category",
+      contents: [
+        { kind: "block", type: "string_to_list" }, { kind: "block", type: "lists_create_with", extraState: { itemCount: 0 } },
+        { kind: "block", type: "lists_create_with" }, { kind: "block", type: "list_append" },
+        { kind: "block", type: "list_concat" }, { kind: "block", type: "list_remove_value" },
+        { kind: "block", type: "list_pop" }, { kind: "block", type: "list_pop_statement" },
+        { kind: "block", type: "list_slice_advanced" }, { kind: "block", type: "list_sort" },
+        { kind: "block", type: "list_sorted" }, { kind: "block", type: "list_reverse" },
+        { kind: "block", type: "list_clear" }, { kind: "block", type: "list_insert" },
+        { kind: "block", type: "list_count" },
+        { kind: "block", type: "list_range", inputs: { START: { shadow: { type: "math_number", fields: { NUM: 1 } } }, END: { shadow: { type: "math_number", fields: { NUM: 10 } } } } },
+        { kind: "block", type: "lists_repeat", inputs: { NUM: { shadow: { type: "math_number", fields: { NUM: 5 } } } } },
+        { kind: "block", type: "lists_length" }, { kind: "block", type: "lists_isEmpty" },
+        { kind: "block", type: "lists_indexOf" }, { kind: "block", type: "lists_getIndex" },
+        { kind: "block", type: "lists_setIndex" }, { kind: "block", type: "lists_getSublist" },
+        { kind: "block", type: "lists_split" }, { kind: "block", type: "lists_sort" }
+      ]
+    },
+    {
+      kind: "category", name: "Dictionaries (Built-in Type)", categorystyle: "dict_category",
+      contents: [
+        { kind: "block", type: "dict_create_empty" },
+        { kind: "block", type: "dict_set", inputs: { KEY: { shadow: { type: "text", fields: { TEXT: "key_name" } } }, VALUE: { shadow: { type: "text", fields: { TEXT: "value" } } } } },
+        { kind: "block", type: "dict_get", inputs: { KEY: { shadow: { type: "text", fields: { TEXT: "key_name" } } } } },
+        { kind: "block", type: "dict_pop" }, { kind: "block", type: "list_clear" },
+        { kind: "block", type: "dict_keys_values" },
+        { kind: "block", type: "dict_from_pairs", inputs: { LIST: { block: { type: "lists_create_with", extraState: { itemCount: 2 } } } } },
+        { kind: "block", type: "dict_pair", inputs: { KEY: { shadow: { type: "text", fields: { TEXT: "key_name" } } }, VALUE: { shadow: { type: "text", fields: { TEXT: "value" } } } } }
+      ]
+    },
+    {
+      kind: "category", name: "Sets & Tuples (Core Built-in Types)", categorystyle: "set_tuple_category",
+      contents: [
+        { kind: "block", type: "tuple_create" }, { kind: "block", type: "set_create_empty" },
+        { kind: "block", type: "set_from_list" }, { kind: "block", type: "set_add" },
+        { kind: "block", type: "set_remove" }, { kind: "block", type: "set_operations" }
+      ]
+    },
+    {
+      kind: "category", name: "Stacks & Queues (Abstract Data Types)", categorystyle: "stack_queue_category",
+      contents: [
+        { kind: "block", type: "stack_push" }, { kind: "block", type: "stack_pop" },
+        { kind: "block", type: "stack_pop_statement" }, { kind: "block", type: "stack_peek" },
+        { kind: "block", type: "queue_enqueue" }, { kind: "block", type: "queue_dequeue" },
+        { kind: "block", type: "queue_dequeue_statement" }, { kind: "block", type: "queue_peek" }
+      ]
+    },
+    {
+      kind: "category", name: "Variables", categorystyle: "variable_category", custom: "VARIABLE",
+      contents: [
+        { kind: "button", text: "Create variable...", callbackKey: "createVariable" },
+        { kind: "block", type: "variable_swap" }
+      ]
+    },
+    { kind: "category", name: "Functions", categorystyle: "procedure_category", custom: "PROCEDURE" },
+    {
+      kind: "category", name: "Raw Python", categorystyle: "raw_category",
+      contents: [
+        { kind: "block", type: "raw_python_statement" },
+        { kind: "block", type: "raw_python_expression" },
+        { kind: "block", type: "raw_python_multiline" }
+      ]
+    }
+  ]
+};
+
+const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref) => {
+  const blocklyDiv = useRef(null);
+  const workspace = useRef(null);
+  const onChangeRef = useRef(onChange);
+  const pendingLoadRef = useRef(null); 
+
+  const executeLoad = (json, preservePythonCode) => {
+    if (!workspace.current) return;
+    try {
+      Blockly.Events.setGroup(true); 
+      workspace.current.clear();
+      
+      let parsedJson = json;
+      if (typeof json === "string") {
+        try { parsedJson = JSON.parse(json); } 
+        catch (e) { console.warn("Failed to parse JSON string"); }
+      }
+
+      if (parsedJson && typeof parsedJson === "object" && Object.keys(parsedJson).length > 0) {
+        if (Array.isArray(parsedJson)) {
+          Blockly.serialization.workspaces.load({ blocks: { languageVersion: 0, blocks: parsedJson } }, workspace.current);
+        } else if (parsedJson.blocks && Array.isArray(parsedJson.blocks) && !parsedJson.blocks.blocks) {
+          Blockly.serialization.workspaces.load({ blocks: { languageVersion: 0, blocks: parsedJson.blocks } }, workspace.current);
+        } else {
+          Blockly.serialization.workspaces.load(parsedJson, workspace.current);
+        }
+      }
+    } catch (e) {
+      console.error("Error loading workspace JSON:", e);
+    } finally {
+      Blockly.Events.setGroup(false);
+    }
+
+    setTimeout(() => {
+      if (!workspace.current) return;
+      const code = pythonGenerator.workspaceToCode(workspace.current);
+      const currentJson = Blockly.serialization.workspaces.save(workspace.current);
+
+      if (preservePythonCode !== undefined && preservePythonCode !== null) {
+        const isUnsynced = preservePythonCode.trim() !== code.trim() && preservePythonCode !== "# Drag blocks to generate Python code";
+        if (onChangeRef.current) onChangeRef.current(currentJson, preservePythonCode, isUnsynced);
+      } else {
+        if (onChangeRef.current) onChangeRef.current(currentJson, code, false);
+      }
+    }, 100);
+  };
+
+  useImperativeHandle(ref, () => ({
+    clear: () => {
+      if (!workspace.current) return;
+      Blockly.Events.setGroup(true);
+      try { workspace.current.clear(); } finally { Blockly.Events.setGroup(false); }
+    },
+    // FIX: Added imperative methods to fetch raw JSON manually so failsafes work perfectly
+    getJson: () => {
+      if (!workspace.current) return {};
+      return Blockly.serialization.workspaces.save(workspace.current);
+    },
+    getBlocksJson: () => {
+      if (!workspace.current) return {};
+      return Blockly.serialization.workspaces.save(workspace.current);
+    },
+    loadTemplate: (json, preservePythonCode = undefined) => {
+      if (!workspace.current) {
+        pendingLoadRef.current = { json, preservePythonCode };
+        return;
+      }
+      executeLoad(json, preservePythonCode);
+    },
+    setTheme: (themeName) => {
+      if (workspace.current) workspace.current.setTheme(themeName === "dark" ? DarkTheme : pastelTheme);
+    },
+    loadFromPython: async (pythonCode) => {
+      if (!workspace.current || !pythonCode) return;
+      const cleanCode = sanitizePythonCode(pythonCode);
+      try {
+        const data = await convertPythonToBlocks(cleanCode);
+        if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
+        
+        try { 
+          Blockly.Events.setGroup(true);
+          workspace.current.clear(); 
+          if (data.status === "success" && data.blocks) {
+            Blockly.serialization.workspaces.load(data.blocks, workspace.current);
+          }
+        } finally { Blockly.Events.setGroup(false); }
+
+        setTimeout(() => {
+          if (workspace.current && onChangeRef.current) {
+            onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonCode);
+          }
+        }, 100);
+      } catch (e) { throw e; }
+    },
+    resize: () => { if (workspace.current) { Blockly.svgResize(workspace.current); workspace.current.markFocused(); } }
+  }));
+
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+
+  useEffect(() => {
+    if (workspace.current) return;
+
+    let searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin;
+
+    if (!crossTabPluginInitialized) {
+      try { 
+        const crossTabPlugin = new CrossTabCopyPaste(); 
+        crossTabPlugin.init({ contextMenu: true, shortcut: true }); 
+        crossTabPluginInitialized = true; 
+      } catch (e) { }
+    }
+
+    if (blocklyDiv.current) {
+      if (Blockly.ShortcutRegistry.registry.getRegistry()["startSearch"]) Blockly.ShortcutRegistry.registry.unregister("startSearch");
+
+      Blockly.Variables.flyoutCategory = function (ws) {
+        let xmlList = [];
+        let btn = document.createElement("button");
+        btn.setAttribute("text", "Create variable..."); 
+        btn.setAttribute("callbackKey", "CREATE_VARIABLE");
+        ws.registerButtonCallback("CREATE_VARIABLE", (b) => Blockly.Variables.createVariableButtonHandler(b.getTargetWorkspace()));
+        xmlList.push(btn);
+        let blk = document.createElement("block"); 
+        blk.setAttribute("type", "variable_swap"); 
+        xmlList.push(blk);
+        return xmlList.concat(Blockly.Variables.flyoutCategoryBlocks(ws));
+      };
+
+      workspace.current = Blockly.inject(blocklyDiv.current, {
+        toolbox: toolbox, trashcan: true, move: { scrollbars: true, drag: true, wheel: true },
+        zoom: { controls: true, wheel: true, startScale: 1.0, maxScale: 3, minScale: 0.3, scaleSpeed: 1.2 },
+        renderer: "geras", theme: pastelTheme, grid: { spacing: 25, length: 3, colour: "#6e6e6e", snap: true }
+      });
+
+      try {
+        (searchPlugin = new WorkspaceSearch(workspace.current)).init(); 
+        (modalPlugin = new Modal(workspace.current)).init(); 
+        (backpackPlugin = new Backpack(workspace.current)).init(); 
+        (highlightPlugin = new ContentHighlight(workspace.current)).init();
+        workspace.current.addChangeListener(shadowBlockConversionChangeListener);
+        
+        minimapPlugin = new PositionedMinimap(workspace.current);
+        minimapPlugin.init();
+      } catch (e) { 
+        console.error("Plugin Init Error:", e);
+      }
+
+      if (!pythonGenerator.__originalInit) {
+        pythonGenerator.__originalInit = pythonGenerator.init;
+        pythonGenerator.init = function (ws) { 
+          pythonGenerator.INDENT = "    "; 
+          pythonGenerator.__originalInit.call(this, ws); 
+          if (this.definitions_["variables"]) delete this.definitions_["variables"]; 
+        };
+      }
+
+      if (!pythonGenerator.__originalFinish) {
+        pythonGenerator.__originalFinish = pythonGenerator.finish;
+        pythonGenerator.finish = function (code) {
+          return pythonGenerator.__originalFinish.call(this, code)
+            .replace(/^[ \t]*global[ \t]+.*\n?/gm, "")
+            .replace(/^[ \t]*"""Describe this function\.\.\."""\n?/gm, "")
+            .replace(/^[ \t]*# Describe this function\.\.\.\n?/gm, "")
+            .replace(/([^\n])\n+(def )/g, "$1\n\n\n$2")
+            .replace(/([^:\n][ \t]*)\n+([ \t]*(?:for |while |if |return |#))/g, "$1\n\n$2")
+            .replace(/\n{4,}/g, "\n\n\n").trim() + "\n";
+        };
+      }
+
+      const getCode = (b, n, o = pythonGenerator.ORDER_NONE) => pythonGenerator.valueToCode(b, n, o);
+      
+      pythonGenerator.forBlock["math_change"] = function (block) {
+        const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
+        const val = getCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC) || "0";
+        return `${v} += ${val}\n`;
+      };
+
+      pythonGenerator.forBlock["controls_repeat_ext"] = function (block) {
+        const repeats = getCode(block, "TIMES", pythonGenerator.ORDER_NONE) || "0";
+        const branch = pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS;
+        return `for _ in range(${repeats}):\n${branch}`;
+      };
+
+      pythonGenerator.forBlock["controls_repeat"] = function (block) {
+        const repeats = parseInt(block.getFieldValue("TIMES"), 10) || 0;
+        const branch = pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS;
+        return `for _ in range(${repeats}):\n${branch}`;
+      };
+
+      pythonGenerator.forBlock["math_assignment"] = function (block) {
+        const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
+        const op = block.getFieldValue("OP");
+        const val = getCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC) || "0";
+        const sym = op === "MINUS" ? "-=" : op === "MULTIPLY" ? "*=" : op === "DIVIDE" ? "/=" : "+=";
+        return `${v} ${sym} ${val}\n`;
+      };
+
+      pythonGenerator.forBlock["controls_for"] = function (block) {
+        const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
+        const from = getCode(block, "FROM") || "0", to = getCode(block, "TO") || "0", step = getCode(block, "BY") || "1";
+        const rangeCode = step.trim() === "1" ? (from.trim() === "0" ? `range(${to})` : `range(${from}, ${to})`) : `range(${from}, ${to}, ${step})`;
+        return `for ${v} in ${rangeCode}:\n${pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS}`;
+      };
+
+      pythonGenerator.forBlock["lists_getIndex"] = function (block) {
+        const mode = block.getFieldValue("MODE") || "GET", where = block.getFieldValue("WHERE") || "FROM_START";
+        const list = getCode(block, "VALUE", pythonGenerator.ORDER_MEMBER) || "[]";
+        let idx = "0";
+        if (where === "LAST") idx = "-1"; 
+        else if (where === "FROM_START") idx = getCode(block, "AT") || "0"; 
+        else if (where === "FROM_END") idx = "-" + (getCode(block, "AT") || "1");
+        
+        if (mode === "GET_REMOVE") return [where === "LAST" ? `${list}.pop()` : `${list}.pop(${idx})`, pythonGenerator.ORDER_FUNCTION_CALL];
+        if (mode === "REMOVE") return where === "LAST" ? `${list}.pop()\n` : `${list}.pop(${idx})\n`;
+        return [`${list}[${idx}]`, pythonGenerator.ORDER_MEMBER];
+      };
+
+      pythonGenerator.forBlock["lists_setIndex"] = function (block) {
+        const list = getCode(block, "LIST", pythonGenerator.ORDER_MEMBER) || "[]";
+        const mode = block.getFieldValue("MODE") || "SET", where = block.getFieldValue("WHERE") || "FROM_START";
+        const val = getCode(block, "TO") || "None";
+        
+        if (mode === "INSERT") {
+          if (where === "LAST") return `${list}.append(${val})\n`; 
+          if (where === "FIRST") return `${list}.insert(0, ${val})\n`;
+          const at = getCode(block, "AT") || (where === "FROM_END" ? "1" : "0");
+          return `${list}.insert(${where === "FROM_END" ? "-" : ""}${at}, ${val})\n`;
+        }
+        
+        let idx = "0"; 
+        if (where === "LAST") idx = "-1"; 
+        else if (where === "FROM_START") idx = getCode(block, "AT") || "0"; 
+        else if (where === "FROM_END") idx = "-" + (getCode(block, "AT") || "1");
+        
+        return `${list}[${idx}] = ${val}\n`;
+      };
+
+      pythonGenerator.forBlock["procedure_return_value"] = b => `return ${getCode(b, "VALUE") || "None"}\n`;
+      pythonGenerator.forBlock["custom_string_join"] = b => [`${getCode(b, "DELIMITER", pythonGenerator.ORDER_MEMBER) || "''"}.join(${getCode(b, "LIST") || "[]"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["string_to_list"] = b => [`list(${getCode(b, "STRING") || "''"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["type_cast_int"] = b => [`int(${getCode(b, "VALUE") || "0"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+
+      pythonGenerator.forBlock["math_advanced_operators"] = function (block) {
+        const opMap = { FLOOR_DIV: ["//", pythonGenerator.ORDER_MULTIPLICATIVE], POWER: ["**", pythonGenerator.ORDER_EXPONENTIATION], RSHIFT: [">>", pythonGenerator.ORDER_BITWISE_SHIFT], LSHIFT: ["<<", pythonGenerator.ORDER_BITWISE_SHIFT], BIT_AND: ["&", pythonGenerator.ORDER_BITWISE_AND], BIT_OR: ["|", pythonGenerator.ORDER_BITWISE_OR] };
+        const [sym, order] = opMap[block.getFieldValue("OP")] || ["", pythonGenerator.ORDER_NONE];
+        return [`${getCode(block, "A", order) || "0"} ${sym} ${getCode(block, "B", order) || "0"}`, order];
+      };
+
+      pythonGenerator.forBlock["math_min_max"] = b => [`${b.getFieldValue("OP") === "MAX" ? "max" : "min"}(${getCode(b, "A") || "0"}, ${getCode(b, "B") || "0"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["comment_block"] = b => `# ${b.getFieldValue("TEXT") || ""}\n`;
+      pythonGenerator.forBlock["multi_line_comment"] = b => `"""\n${b.getFieldValue("TEXT") || ""}\n"""\n`;
+      
+      pythonGenerator.forBlock["text_join"] = function (block) {
+        let fStr = "";
+        for (let i = 0; i < block.itemCount_; i++) {
+          let el = getCode(block, "ADD" + i);
+          if (el) fStr += (el.startsWith("'") && el.endsWith("'")) ? el.slice(1, -1) : `{${el}}`;
+        }
+        return [`f"${fStr}"`, pythonGenerator.ORDER_ATOMIC];
+      };
+
+      pythonGenerator.forBlock["dict_create_empty"] = () => ["{}", pythonGenerator.ORDER_ATOMIC];
+      pythonGenerator.forBlock["dict_set"] = b => `${getCode(b, "DICT", pythonGenerator.ORDER_MEMBER) || "{}"}[${getCode(b, "KEY") || '""'}] = ${getCode(b, "VALUE") || "None"}\n`;
+      pythonGenerator.forBlock["dict_get"] = b => [`${getCode(b, "DICT", pythonGenerator.ORDER_MEMBER) || "{}"}[${getCode(b, "KEY") || '""'}]`, pythonGenerator.ORDER_MEMBER];
+      pythonGenerator.forBlock["dict_pair"] = b => [`${getCode(b, "KEY") || '""'}: ${getCode(b, "VALUE") || "None"}`, pythonGenerator.ORDER_NONE];
+
+      pythonGenerator.forBlock["dict_from_pairs"] = function (block) {
+        const lb = block.getInputTargetBlock("LIST");
+        if (!lb || lb.type !== "lists_create_with") return ["{}", pythonGenerator.ORDER_ATOMIC];
+        let pairs = [];
+        for (let i = 0; i < lb.itemCount_; i++) { 
+          let p = getCode(lb, "ADD" + i); 
+          if (p) pairs.push(p); 
+        }
+        return pairs.length === 0 ? ["{}", pythonGenerator.ORDER_ATOMIC] : ["{\n    " + pairs.join(",\n    ") + "\n}", pythonGenerator.ORDER_ATOMIC];
+      };
+
+      pythonGenerator.forBlock["dict_pop"] = b => [`${getCode(b, "DICT", pythonGenerator.ORDER_MEMBER) || "{}"}.pop(${getCode(b, "KEY") || '""'})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["set_create_empty"] = () => ["set()", pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["set_from_list"] = b => [`set(${getCode(b, "LIST") || "[]"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["set_add"] = b => `${getCode(b, "SET", pythonGenerator.ORDER_MEMBER) || "set()"}.add(${getCode(b, "ITEM") || "None"})\n`;
+      pythonGenerator.forBlock["set_remove"] = b => `${getCode(b, "SET", pythonGenerator.ORDER_MEMBER) || "set()"}.remove(${getCode(b, "ITEM") || "None"})\n`;
+      pythonGenerator.forBlock["set_operations"] = b => [`${getCode(b, "SET1", pythonGenerator.ORDER_MEMBER) || "set()"}.${b.getFieldValue("OP").toLowerCase()}(${getCode(b, "SET2") || "set()"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["tuple_create"] = b => [`(${getCode(b, "A") || "None"}, ${getCode(b, "B") || "None"})`, pythonGenerator.ORDER_ATOMIC];
+      pythonGenerator.forBlock["python_type"] = b => [`type(${getCode(b, "VALUE") || "None"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["python_type_primitive"] = b => [b.getFieldValue("TYPE"), pythonGenerator.ORDER_ATOMIC];
+      pythonGenerator.forBlock["python_isinstance"] = b => [`isinstance(${getCode(b, "VALUE") || "None"}, ${getCode(b, "TYPE") || "type(None)"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["text_multiply"] = b => [`${getCode(b, "TEXT", pythonGenerator.ORDER_MULTIPLICATIVE) || "''"} * ${getCode(b, "MULTIPLIER", pythonGenerator.ORDER_MULTIPLICATIVE) || "0"}`, pythonGenerator.ORDER_MULTIPLICATIVE];
+      pythonGenerator.forBlock["text_newline"] = () => ["'\\n'", pythonGenerator.ORDER_ATOMIC];
+      
+      pythonGenerator.forBlock["list_append"] = b => `${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.append(${getCode(b, "ITEM") || "None"})\n`;
+      pythonGenerator.forBlock["list_count"] = b => [`${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.count(${getCode(b, "ITEM") || "None"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["list_reverse"] = b => `${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.reverse()\n`;
+      pythonGenerator.forBlock["list_clear"] = b => `${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.clear()\n`;
+      pythonGenerator.forBlock["list_range"] = b => [`list(range(${getCode(b, "START") || "0"}, ${getCode(b, "END") || "0"}))`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["variable_swap"] = b => `${pythonGenerator.getVariableName(b.getFieldValue("VAR1"))}, ${pythonGenerator.getVariableName(b.getFieldValue("VAR2"))} = ${pythonGenerator.getVariableName(b.getFieldValue("VAR2"))}, ${pythonGenerator.getVariableName(b.getFieldValue("VAR1"))}\n`;
+      pythonGenerator.forBlock["logic_in"] = b => [`${getCode(b, "ITEM", pythonGenerator.ORDER_RELATIONAL) || "None"} in ${getCode(b, "COLLECTION", pythonGenerator.ORDER_RELATIONAL) || "[]"}`, pythonGenerator.ORDER_RELATIONAL];
+      pythonGenerator.forBlock["list_slice_advanced"] = b => [`${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}[${getCode(b, "START") || ""}:${getCode(b, "END") || ""}]`, pythonGenerator.ORDER_MEMBER];
+      pythonGenerator.forBlock["list_concat"] = b => [`${getCode(b, "LIST1", pythonGenerator.ORDER_ADDITIVE) || "[]"} + ${getCode(b, "LIST2", pythonGenerator.ORDER_ADDITIVE) || "[]"}`, pythonGenerator.ORDER_ADDITIVE];
+      pythonGenerator.forBlock["list_remove_value"] = b => `${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.remove(${getCode(b, "ITEM") || "None"})\n`;
+      pythonGenerator.forBlock["list_pop"] = b => [`${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.pop()`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["list_pop_statement"] = b => `${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.pop()\n`;
+      pythonGenerator.forBlock["dict_keys_values"] = b => [`list(${getCode(b, "DICT", pythonGenerator.ORDER_MEMBER) || "{}"}.${b.getFieldValue("OP")}())`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["controls_pass"] = () => "pass\n";
+      pythonGenerator.forBlock["list_sort"] = b => `${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.sort(${b.getFieldValue("REVERSE") === "TRUE" ? "reverse=True" : ""})\n`;
+      pythonGenerator.forBlock["list_sorted"] = b => [`sorted(${getCode(b, "LIST") || "[]"}${b.getFieldValue("REVERSE") === "TRUE" ? ", reverse=True" : ""})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["list_insert"] = b => `${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.insert(${getCode(b, "INDEX") || "0"}, ${getCode(b, "ITEM") || "None"})\n`;
+      pythonGenerator.forBlock["string_split"] = b => [`${getCode(b, "STRING", pythonGenerator.ORDER_MEMBER) || "''"}.split(${getCode(b, "DELIMITER") || "''"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["math_abs_round"] = b => [`${b.getFieldValue("OP")}(${getCode(b, "VALUE") || "0"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["type_cast_advanced"] = b => [`${b.getFieldValue("TYPE")}(${getCode(b, "VALUE") || "None"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["string_case_formatting"] = b => [`${getCode(b, "STRING", pythonGenerator.ORDER_MEMBER) || "''"}.${b.getFieldValue("CASE")}()`, pythonGenerator.ORDER_FUNCTION_CALL];
+      
+      pythonGenerator.forBlock["stack_push"] = b => `${getCode(b, "STACK", pythonGenerator.ORDER_MEMBER) || "[]"}.append(${getCode(b, "ITEM") || "None"})\n`;
+      pythonGenerator.forBlock["stack_pop"] = b => [`${getCode(b, "STACK", pythonGenerator.ORDER_MEMBER) || "[]"}.pop()`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["stack_pop_statement"] = b => `${getCode(b, "STACK", pythonGenerator.ORDER_MEMBER) || "[]"}.pop()\n`;
+      pythonGenerator.forBlock["stack_peek"] = b => [`${getCode(b, "STACK", pythonGenerator.ORDER_MEMBER) || "[]"}[-1]`, pythonGenerator.ORDER_MEMBER];
+      pythonGenerator.forBlock["queue_enqueue"] = b => `${getCode(b, "QUEUE", pythonGenerator.ORDER_MEMBER) || "[]"}.append(${getCode(b, "ITEM") || "None"})\n`;
+      pythonGenerator.forBlock["queue_dequeue"] = b => [`${getCode(b, "QUEUE", pythonGenerator.ORDER_MEMBER) || "[]"}.pop(0)`, pythonGenerator.ORDER_FUNCTION_CALL];
+      pythonGenerator.forBlock["queue_dequeue_statement"] = b => `${getCode(b, "QUEUE", pythonGenerator.ORDER_MEMBER) || "[]"}.pop(0)\n`;
+      pythonGenerator.forBlock["queue_peek"] = b => [`${getCode(b, "QUEUE", pythonGenerator.ORDER_MEMBER) || "[]"}[0]`, pythonGenerator.ORDER_MEMBER];
+      
+      pythonGenerator.forBlock["raw_python_statement"] = b => b.getFieldValue("CODE") + "\n";
+      pythonGenerator.forBlock["raw_python_expression"] = b => [b.getFieldValue("CODE"), pythonGenerator.ORDER_ATOMIC];
+      pythonGenerator.forBlock["raw_python_multiline"] = b => b.getFieldValue("CODE") + "\n";
+      pythonGenerator.forBlock["python_input"] = b => [`input(${getCode(b, "PROMPT") || "''"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+
+      let changeTimeout = null;
+      workspace.current.addChangeListener((event) => {
+        if (event.isUiEvent) return;
+        if (changeTimeout) clearTimeout(changeTimeout);
+        changeTimeout = setTimeout(() => {
+          try { 
+            if (onChangeRef.current) onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonGenerator.workspaceToCode(workspace.current)); 
+          } catch (e) {}
+        }, 400);
+      });
+
+      let resizeFrame;
+      const observer = new ResizeObserver(() => { 
+        if (resizeFrame) cancelAnimationFrame(resizeFrame); 
+        resizeFrame = requestAnimationFrame(() => workspace.current && Blockly.svgResize(workspace.current)); 
+      });
+      observer.observe(blocklyDiv.current); 
+      blocklyDiv.current.resizeObserver = observer;
+
+      if (initialJson) {
+         executeLoad(initialJson);
+      } else if (pendingLoadRef.current) {
+         executeLoad(pendingLoadRef.current.json, pendingLoadRef.current.preservePythonCode);
+         pendingLoadRef.current = null;
+      }
+    }
+
+    return () => {
+      try { [searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin].forEach(p => p?.dispose && p.dispose()); } catch (e) {}
+      if (workspace.current) { workspace.current.dispose(); workspace.current = null; }
+      if (blocklyDiv.current?.resizeObserver) blocklyDiv.current.resizeObserver.disconnect();
+    };
+  }, []);
+
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <div ref={blocklyDiv} style={{ height: "100%", width: "100%" }} />
+      {syntaxError && (
+        <div style={{ position: "absolute", top: "20px", right: "20px", backgroundColor: "#3A2A6B", borderLeft: "4px solid #bc11ff", color: "#EBE4FF", padding: "12px 16px", borderRadius: "0 8px 8px 0", boxShadow: "0 4px 15px rgba(0,0,0,0.3)", display: "flex", alignItems: "center", gap: "12px", zIndex: 1000, maxWidth: "300px" }}>
+          <div>
+            <div style={{ fontWeight: "bold", fontSize: "0.9rem", color: "#bc11ff" }}>Syntax Error (Line {syntaxError.line})</div>
+            <div style={{ fontSize: "0.8rem", marginTop: "4px", opacity: 0.9 }}>{syntaxError.message}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+export default BlocklyWorkspace;
 
 --- FILE: frontend/src/components/CallGraphVisualizer.jsx ---
 
@@ -719,6 +1770,7 @@ export default ConfirmModal;
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LuActivity, LuFolder, LuLayoutDashboard, LuLogOut, LuRefreshCw, LuUser, LuUsers } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
+import TourHelpButton from "./TourHelpButton";
 import "../styles/DashboardHeader.css";
 import { stopBackgroundSync, syncManager } from "../utils/syncManager";
 import LogoutConfirmModal from "./LogoutConfirmModal";
@@ -726,6 +1778,8 @@ import LogoutConfirmModal from "./LogoutConfirmModal";
 export default function DashboardHeader({
   backTo = "/home",
   backText = "Back to Home",
+  tour,
+  tourPageId,
 }) {
   const [user, setUser] = useState(null);
   const [open, setOpen] = useState(false);
@@ -813,6 +1867,7 @@ export default function DashboardHeader({
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center" }}>
+          <TourHelpButton pageId={tourPageId} tour={tour} label="Replay this page tour" />
           
           {/* Live Sync Loader Indicator */}
           {isGlobalSyncing && (
@@ -1345,385 +2400,5 @@ export default function Header() {
         </button>
       </div>
     </nav>
-  );
-}
-
---- FILE: frontend/src/components/LogoutConfirmModal.jsx ---
-
-// frontend/src/components/LogoutConfirmModal.jsx
-import "../styles/LogoutConfirmModal.css";
-
-export default function LogoutConfirmModal({ isOpen, onClose, onLogoutClick }) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="logout-modal-overlay">
-      <div className="logout-modal">
-        <h2>Logout Confirmation</h2>
-        <p>Are you sure you want to sign out of AlgoBlocks?</p>
-        <div className="logout-modal-actions">
-          <button className="logout-btn" onClick={onLogoutClick}>Confirm</button>
-          <button className="logout-btn logout-btn-cancel" onClick={onClose}>Cancel</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
---- FILE: frontend/src/components/MemoryVisualizer.jsx ---
-
-// MemoryVisualizer.jsx
-import { useMemo, useState } from 'react';
-import {
-  FaCodeBranch,
-  FaCube,
-  FaFont,
-  FaHashtag,
-  FaInfoCircle,
-  FaLayerGroup,
-  FaMemory,
-  FaRegHdd,
-  FaSitemap
-} from 'react-icons/fa';
-import '../styles/MemoryVisualizer.css';
-import { formatComplexity } from '../utils/formatters';
-
-const MemoryVisualizer = ({ analysisData, currentStep }) => {
-  const [hoveredAlloc, setHoveredAlloc] = useState(null);
-
-  // Safely extract the current line's memory state
-  const currentMemoryState = useMemo(() => {
-    if (!analysisData || analysisData.length === 0 || currentStep < 0) return {};
-    const stepData = analysisData[currentStep];
-    return stepData?.memory_state || {};
-  }, [analysisData, currentStep]);
-
-  // Helper to map python data types to appropriate React Icons and Categories
-  const getTypeConfig = (type) => {
-    const t = (type || '').toLowerCase();
-    if (['int', 'float', 'bool', 'complex'].includes(t)) {
-      return { icon: <FaHashtag />, category: 'Primitive', color: '#3498db' }; // Blue
-    }
-    if (t === 'str') {
-      return { icon: <FaFont />, category: 'String', color: '#9b59b6' }; // Purple
-    }
-    if (['list', 'tuple', 'deque'].includes(t)) {
-      return { icon: <FaLayerGroup />, category: 'Linear Structure', color: '#2ecc71' }; // Green
-    }
-    if (['dict', 'set', 'defaultdict'].includes(t)) {
-      return { icon: <FaSitemap />, category: 'Hash Structure', color: '#e74c3c' }; // Red
-    }
-    return { icon: <FaCube />, category: 'Object/Reference', color: '#f1c40f' }; // Yellow
-  };
-
-  const variables = Object.entries(currentMemoryState);
-
-  if (!analysisData || analysisData.length === 0) {
-    return (
-      <div className="memory-visualizer empty-state">
-        <FaRegHdd className="empty-icon" />
-        <p>Awaiting analysis data to map memory footprint...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="memory-visualizer">
-      <div className="memory-header">
-        <div className="header-title">
-          <FaMemory className="header-icon" />
-          <h3>Memory Allocation Visualizer</h3>
-        </div>
-        <div className="trace-depth-badge">
-          <FaCodeBranch />
-          <span>Trace Depth: {currentStep >= 0 ? currentStep : 0}</span>
-        </div>
-      </div>
-
-      <div className="memory-grid">
-        {variables.length === 0 ? (
-          <div className="no-vars">
-            <FaRegHdd className="dim-icon" />
-            <span>No active memory allocations at this step.</span>
-          </div>
-        ) : (
-          variables.map(([varName, varData], index) => {
-            const config = getTypeConfig(varData.type);
-            const isHovered = hoveredAlloc === varName;
-            const size = varData.size || 1;
-            
-            // Limit rendering to 50 blocks so massive arrays don't crash the browser
-            const visualBlocks = Array.from({ length: Math.min(size, 50) });
-            const hasOverflow = size > 50;
-
-            return (
-              <div 
-                key={`${varName}-${index}`}
-                className={`memory-card ${isHovered ? 'hovered' : ''}`}
-                onMouseEnter={() => setHoveredAlloc(varName)}
-                onMouseLeave={() => setHoveredAlloc(null)}
-                style={{ borderTopColor: config.color }}
-              >
-                <div className="card-top">
-                  <div className="card-name-group">
-                    <span className="card-icon" style={{ color: config.color }}>{config.icon}</span>
-                    <span className="card-name">{varName}</span>
-                  </div>
-                  <div className="card-stats">
-                    <span>(Type: {varData.type || 'Unknown'}, Size: {size})</span>
-                  </div>
-                </div>
-
-                <div className="memory-segments-wrapper">
-                  <span className="segment-label">(0)</span>
-                  <div className="segment-blocks">
-                    {visualBlocks.map((_, i) => (
-                      <div 
-                        key={i} 
-                        className="segment-block" 
-                        style={{ backgroundColor: config.color, opacity: 0.8 }}
-                      ></div>
-                    ))}
-                    {hasOverflow && <span className="segment-overflow">...</span>}
-                  </div>
-                  <span className="segment-label">({size})</span>
-                </div>
-
-                {/* Educational Insight Explanation */}
-                {varData.explanation && (
-                  <div className="card-explanation" style={{ borderLeftColor: config.color }}>
-                    <FaInfoCircle className="explanation-icon" style={{ color: config.color }} />
-                    <span className="explanation-text">{varData.explanation}</span>
-                  </div>
-                )}
-
-                {varData.complexity && (
-                  <div className="card-bottom">
-                     <span className="space-complexity">Complexity: {formatComplexity(varData.complexity)}</span>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default MemoryVisualizer;
-
---- FILE: frontend/src/components/OfflineIndicator.jsx ---
-
-// frontend/src/components/OfflineIndicator.jsx
-import { useEffect, useRef, useState } from 'react';
-
-// Global variable to enforce a Strict Singleton pattern.
-// This guarantees only ONE popup can ever exist in the DOM, 
-// even if the component is accidentally rendered in multiple files.
-let activeInstanceId = null;
-
-export default function OfflineIndicator() {
-    const [status, setStatus] = useState('online'); 
-    const [isVisible, setIsVisible] = useState(false);
-    const [isPrimary, setIsPrimary] = useState(false);
-    
-    const statusRef = useRef('online');
-    const hideTimeoutRef = useRef(null);
-    const abortControllerRef = useRef(null);
-    const instanceId = useRef(Math.random().toString(36).substring(2, 9));
-
-    useEffect(() => {
-        // --- Singleton Logic ---
-        if (!activeInstanceId) {
-            activeInstanceId = instanceId.current;
-            setIsPrimary(true);
-        } else if (activeInstanceId !== instanceId.current) {
-            return; // A primary instance already exists. Ignore this duplicate.
-        }
-
-        // --- Network Logic ---
-        const triggerOnline = () => {
-            if (statusRef.current === 'offline') {
-                statusRef.current = 'restored';
-                setStatus('restored');
-                setIsVisible(true);
-
-                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-
-                hideTimeoutRef.current = setTimeout(() => {
-                    setIsVisible(false);
-                    setTimeout(() => {
-                        if (statusRef.current === 'restored') {
-                            statusRef.current = 'online';
-                            setStatus('online');
-                        }
-                    }, 400); 
-                }, 3000);
-            }
-        };
-
-        const triggerOffline = () => {
-            if (statusRef.current !== 'offline') {
-                statusRef.current = 'offline';
-                setStatus('offline');
-                setIsVisible(true);
-                
-                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-
-                hideTimeoutRef.current = setTimeout(() => {
-                    setIsVisible(false);
-                }, 10000); 
-            }
-        };
-
-        const handleOnline = () => {
-            checkRealConnectivity();
-        };
-
-        const handleOffline = () => {
-            // Instantly cancel any pending background checks to prevent race conditions
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
-            }
-            triggerOffline();
-        };
-
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-
-        const checkRealConnectivity = async () => {
-            if (!navigator.onLine) {
-                triggerOffline();
-                return;
-            }
-
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
-            }
-            abortControllerRef.current = new AbortController();
-            const signal = abortControllerRef.current.signal;
-
-            try {
-                // Add a 3 second timeout so the fetch doesn't hang indefinitely on poor networks
-                const timeoutId = setTimeout(() => {
-                    if (abortControllerRef.current) abortControllerRef.current.abort();
-                }, 3000);
-
-                await fetch('https://www.google.com/favicon.ico?t=' + Date.now(), {
-                    mode: 'no-cors',
-                    cache: 'no-store',
-                    signal: signal
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (!signal.aborted) {
-                    triggerOnline();
-                }
-            } catch (error) {
-                if (!signal.aborted) {
-                    triggerOffline();
-                }
-            }
-        };
-
-        const pollingInterval = setInterval(checkRealConnectivity, 5000);
-        checkRealConnectivity();
-
-        return () => {
-            if (activeInstanceId === instanceId.current) {
-                activeInstanceId = null;
-                window.removeEventListener('online', handleOnline);
-                window.removeEventListener('offline', handleOffline);
-                clearInterval(pollingInterval);
-                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-                if (abortControllerRef.current) abortControllerRef.current.abort();
-            }
-        };
-    }, []);
-
-    // If this is a duplicate mount, render absolutely nothing!
-    if (!isPrimary) return null;
-
-    return (
-        <div className={`network-popup ${status} ${isVisible ? 'show' : 'hide'}`}>
-            <div className="network-popup-content">
-                {status === 'offline' ? (
-                    <>
-                        <span className="network-icon">âš ï¸</span>
-                        <div>
-                            <strong>Connection Lost</strong>
-                            <p>You are working offline. Changes will sync later.</p>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <span className="network-icon">âœ…</span>
-                        <div>
-                            <strong>Back Online</strong>
-                            <p>Your connection has been restored.</p>
-                        </div>
-                    </>
-                )}
-            </div>
-        </div>
-    );
-}
-
---- FILE: frontend/src/components/PythonCodeEditor.jsx ---
-
-// frontend/src/components/PythonCodeEditor.jsx
-import Editor from "@monaco-editor/react";
-import { handleEditorWillMount } from "../utils/asymptoticParser.jsx";
-import FloatingErrorDropdown from "./FloatingErrorDropdown.jsx";
-
-export default function PythonCodeEditor({
-  viewMode = "workspace",
-  pythonCode = "",
-  isEditingCode = false,
-  syntaxErrors = [],
-  onSyncToBlocks,
-  onChangeCode,
-  onMountEditor
-}) {
-  const hasSyntaxErrors = syntaxErrors && syntaxErrors.length > 0;
-
-  return (
-    <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"}>
-      <div className="python-header">
-        <span className="python-sync-status">
-          {isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}
-        </span>
-        <button
-          onClick={onSyncToBlocks}
-          disabled={!isEditingCode || hasSyntaxErrors}
-          className={`python-sync-btn ${isEditingCode && !hasSyntaxErrors ? "active" : "disabled"}`}
-        >
-          Sync to Blocks
-        </button>
-      </div>
-
-      <div className="editor-wrapper">
-        <Editor
-          height="100%"
-          language="python"
-          theme="algoblocks-light"
-          beforeMount={handleEditorWillMount}
-          onMount={onMountEditor}
-          value={pythonCode}
-          onChange={onChangeCode}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 15,
-            fontFamily: "Consolas, 'Courier New', monospace",
-            scrollBeyondLastLine: false,
-            wordWrap: "on",
-            padding: { top: 16 }
-          }}
-        />
-        <FloatingErrorDropdown syntaxErrors={syntaxErrors} />
-      </div>
-    </div>
   );
 }

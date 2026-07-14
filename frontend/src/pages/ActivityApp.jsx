@@ -8,6 +8,7 @@ import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import DockedBottomPanel from "../components/DockedBottomPanel.jsx";
 import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
+import TourHelpButton from "../components/TourHelpButton";
 import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
@@ -113,6 +114,28 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [lineExecutions, setLineExecutions] = useState({});
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null });
   const [isEditingCode, setIsEditingCode] = useState(false);
+
+  const activityTour = {
+    id: "activity-tour",
+    pageId: `activity-${moduleId}-${activityId}`,
+    title: "Activity Tour",
+    steps: [
+      { target: ".wh-toggle-btn.active", title: "Change the view", description: "Switch between the visual Blockly workspace and generated Python code." },
+      { target: ".wh-btn-save", title: "Run the code", description: "Quickly execute your current code without submitting it to the activity grader." },
+      { target: ".wh-btn-run", title: "Grade the activity", description: "Run the full evaluation when you are ready to submit your solution." },
+      { target: ".footer-tab:nth-child(1)", title: "Open the console", description: "Inspect output, prompts, and execution traces in the console panel.", onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); } },
+      { target: ".bottom-docked-panel .clear-console-btn", title: "Clear the console", description: "Clear output before rerunning a test or experiment.", onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); } },
+      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(2)", title: "Line executions", description: "Check the frequency count for each line in the current solution.", onEnter: () => { setBottomPanel("console"); setConsoleTab("executions"); } },
+      { target: ".footer-tab:nth-child(2)", title: "Open complexity analysis", description: "Switch to the complexity panel for time and space analysis.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("overall"); } },
+      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(2)", title: "Local complexity", description: "Inspect local cost per line and see how each step contributes.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("local"); } },
+      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(3)", title: "Global complexity", description: "Switch to the global analysis view for the whole algorithm.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("global"); } },
+      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(4)", title: "Memory map", description: "Open the memory map to visualize how state changes over time.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("memory"); } },
+      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(5)", title: "Call graph", description: "Follow recursion and call flow in the call graph view.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("callgraph"); } },
+      { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you need a reminder of the notation.", onEnter: () => setIsBigOModalOpen(true) },
+      { target: ".big-o-modal-content", title: "Reference library", description: "Browse the reference table and expand entries for deeper details." },
+      { target: ".big-o-accordion .big-o-row-trigger", title: "Expandable complexity rows", description: "Open any row to inspect the definition, analogy, and examples behind a complexity class." },
+    ],
+  };
 
   const [syntaxErrors, setSyntaxErrors] = useState([]);
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
@@ -971,11 +994,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           </div>
         </div>
         <div className="wh-right">
+          <TourHelpButton pageId={activityTour.pageId} tour={activityTour} label="Replay activity tour" />
           <button className="wh-btn-save" onClick={handleActivityRun} disabled={isEvaluating || isSyncingBlocks} title="Run code without submitting to test cases">
             <FiTerminal size={16} /> {isEvaluating ? "..." : "Run Code"}
           </button>
           <button className={`wh-btn-run ${isEvaluating ? "running" : ""}`} onClick={runTestCases} disabled={isEvaluating || isSyncingBlocks}>
-            <FiPlay size={16} /> {isEvaluating ? "..." : isSyncingBlocks ? "Syncing..." : "Submit"}
+            <FiPlay size={16} /> {isEvaluating ? "..." : isSyncingBlocks ? "Syncing..." : "Evaluate Efficiency (AES)"}
           </button>
         </div>
       </header>

@@ -8,12 +8,13 @@ import {
   LuUser
 } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
+import TourHelpButton from "./TourHelpButton";
 import "../styles/UserHeader.css";
 import { startBackgroundSync } from "../utils/syncManager.js";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 
 // FIX: Added onLogoutClick to the component props
-export default function UserHeader({ user, onLogoutClick }) {
+export default function UserHeader({ user, onLogoutClick, tour, tourPageId }) {
   const [open, setOpen] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
   const menuRef = useRef(null);
@@ -79,6 +80,7 @@ export default function UserHeader({ user, onLogoutClick }) {
         </div>
 
         <div className="nav-links">
+          <TourHelpButton pageId={tourPageId} tour={tour} label="Replay home tour" />
           <div className="user-menu" ref={menuRef}>
             <button
               type="button"

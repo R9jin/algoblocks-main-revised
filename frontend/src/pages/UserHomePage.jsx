@@ -143,6 +143,17 @@ export default function UserHomePage() {
   const [learningStatus, setLearningStatus] = useState(() => getLearningStatus());
   const navigate = useNavigate();
 
+  const userHomeTour = {
+    id: "user-home-tour",
+    pageId: "home",
+    title: "Home Tour",
+    steps: [
+      { target: ".user-home-hero", title: "Continue learning", description: "Pick up where you left off or head back into the curriculum." },
+      { target: ".user-home-hero-actions", title: "Quick actions", description: "Jump straight to the learning path or the workspace from here." },
+      { target: ".user-home-feature-grid, .explore-features-grid", title: "Explore tools", description: "Review the major learning tools and what each one does." },
+    ],
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -204,7 +215,7 @@ export default function UserHomePage() {
 
   return (
     <div className="landing-container user-homepage">
-      <UserHeader user={user} onLogoutClick={() => setShowLogoutModal(true)} />
+      <UserHeader user={user} onLogoutClick={() => setShowLogoutModal(true)} tour={userHomeTour} tourPageId="home" />
 
       <main className="user-home-main">
         <section className="user-home-hero" aria-labelledby="welcome-heading">

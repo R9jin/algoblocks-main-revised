@@ -15,6 +15,8 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import BigOChart from "../components/BigOChart";
 import CodeSnippet from "../components/CodeSnippet";
+import TourHelpButton from "../components/TourHelpButton";
+import { useOnboarding } from "../context/OnboardingContext";
 import curriculumIndex from "../data/curriculumIndex";
 import { assessmentsDB, curriculumCacheDB, progressDB } from "../db";
 import "../styles/LessonViewer.css";
@@ -156,6 +158,7 @@ function renderChart(chart) {
 export default function LessonViewer() {
   const { moduleId, lessonId } = useParams();
   const navigate = useNavigate();
+  const { startTour } = useOnboarding();
 
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -166,6 +169,18 @@ export default function LessonViewer() {
   const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
   const [assessments, setAssessments] = useState({});
+
+  const lessonTour = {
+    id: "lesson-viewer-tour",
+    pageId: `lesson-${moduleId}-${lessonId}`,
+    title: "Lesson Tour",
+    steps: [
+      { target: ".lesson-sidebar-toggle-btn", title: "Collapse the curriculum", description: "Hide or show the curriculum rail to stay focused while you read." },
+      { target: ".lesson-top-nav", title: "Navigate the lesson", description: "Move back to the learning path or step through the lesson context." },
+      { target: ".lesson-chart-panel", title: "Review complexity", description: "See the visual Big-O chart and the lesson's complexity explanation." },
+      { target: ".lesson-code-snippets", title: "Inspect examples", description: "Use code snippets to connect the lesson text to real Python output." },
+    ],
+  };
 
   const storedUser = JSON.parse(
     localStorage.getItem("user") || sessionStorage.getItem("user") || "{}",
@@ -521,6 +536,7 @@ export default function LessonViewer() {
                 <FiChevronRight className="breadcrumb-icon" />
                 <span className="breadcrumb-current">Lesson {moduleNum}.{lessonNum}: {lesson?.title}</span>
               </div>
+              <TourHelpButton pageId={lessonTour.pageId} tour={lessonTour} label="Replay lesson tour" />
             </div>
 
             <div className="lesson-content-wrapper">

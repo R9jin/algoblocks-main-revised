@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LuActivity, LuFolder, LuLayoutDashboard, LuLogOut, LuRefreshCw, LuUser, LuUsers } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
+import TourHelpButton from "./TourHelpButton";
 import "../styles/DashboardHeader.css";
 import { stopBackgroundSync, syncManager } from "../utils/syncManager";
 import LogoutConfirmModal from "./LogoutConfirmModal";
@@ -9,6 +10,8 @@ import LogoutConfirmModal from "./LogoutConfirmModal";
 export default function DashboardHeader({
   backTo = "/home",
   backText = "Back to Home",
+  tour,
+  tourPageId,
 }) {
   const [user, setUser] = useState(null);
   const [open, setOpen] = useState(false);
@@ -96,6 +99,7 @@ export default function DashboardHeader({
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center" }}>
+          <TourHelpButton pageId={tourPageId} tour={tour} label="Replay this page tour" />
           
           {/* Live Sync Loader Indicator */}
           {isGlobalSyncing && (

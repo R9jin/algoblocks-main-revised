@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Set
 class BigOInfo:
     raw: str
     normalized: str
-    family: str  
+    family: str
     factors: Dict[str, Any]
 
 @dataclass
@@ -37,44 +37,67 @@ class MemorySignals:
     dp_tabulation_array: bool = False
     array_preallocation: bool = False
     inplace_swap: bool = False
+    # newly added coverage
+    creates_new_list_from_concat: bool = False
+    uses_string_multiplication: bool = False
+    uses_join_for_strings: bool = False
+    allocates_view_object: bool = False
+    uses_heap: bool = False
+    allocates_counter: bool = False
+    sorted_makes_a_copy: bool = False
 
 @dataclass
 class ComplexitySignals:
-    inefficient_list_pop: bool = False      
-    inefficient_list_insert: bool = False   
-    repeated_sort: bool = False             
-    membership_in_list: bool = False        
-    heavy_math_operations: bool = False     
-    quadratic_math: bool = False            
+    inefficient_list_pop: bool = False
+    inefficient_list_insert: bool = False
+    repeated_sort: bool = False
+    membership_in_list: bool = False
+    heavy_math_operations: bool = False
+    quadratic_math: bool = False
     set_mathematical_ops: bool = False
     dict_lookup_constant: bool = False
     amortized_operation: bool = False
-    aggregation_in_loop: bool = False 
+    aggregation_in_loop: bool = False
     bitwise_operations: bool = False
     boolean_short_circuit: bool = False
     f_string_usage: bool = False
-    exception_control_flow: bool = False    
+    exception_control_flow: bool = False
+    # newly added coverage
+    linear_string_op: bool = False
+    list_reverse_op: bool = False
+    list_count_op: bool = False
+    type_conversion: bool = False
+    heap_push_pop: bool = False
+    binary_search_module: bool = False
+    itertools_usage: bool = False
+    iteration_helper_usage: bool = False  # zip / enumerate / map / filter
+    lru_cache_decorator: bool = False
+    dict_view_iteration: bool = False
 
 @dataclass
 class AlgorithmicParadigms:
-    is_halving: bool = False                     
-    is_doubling: bool = False                    
-    is_two_pointer: bool = False                 
-    is_sliding_window: bool = False              
-    is_fast_slow_pointer: bool = False           
-    is_grid_traversal: bool = False              
-    is_memoization_check: bool = False           
-    is_tabulation_setup: bool = False            
-    is_brian_kernighan: bool = False             
-    is_fibonacci_sequence: bool = False          
-    is_bfs_queue: bool = False                   
-    is_dfs_stack: bool = False                   
-    is_modulo_arithmetic: bool = False           
-    is_matrix_math: bool = False                 
-    is_combinatorics: bool = False               
-    is_euclidean_distance: bool = False          
-    is_prefix_sum: bool = False                  
-    is_bitmasking: bool = False                  
+    is_halving: bool = False
+    is_doubling: bool = False
+    is_two_pointer: bool = False
+    is_sliding_window: bool = False
+    is_fast_slow_pointer: bool = False
+    is_grid_traversal: bool = False
+    is_memoization_check: bool = False
+    is_tabulation_setup: bool = False
+    is_brian_kernighan: bool = False
+    is_fibonacci_sequence: bool = False
+    is_bfs_queue: bool = False
+    is_dfs_stack: bool = False
+    is_modulo_arithmetic: bool = False
+    is_matrix_math: bool = False
+    is_combinatorics: bool = False
+    is_euclidean_distance: bool = False
+    is_prefix_sum: bool = False
+    is_bitmasking: bool = False
+    # newly added coverage
+    is_priority_queue: bool = False
+    is_union_find: bool = False
+    is_kadane: bool = False
 
 @dataclass
 class PatternSignals:
@@ -82,7 +105,7 @@ class PatternSignals:
     nested_loops: bool = False
     has_recursion: bool = False
     indirect_recursion: bool = False
-    recursion_branching: Optional[str] = None  
+    recursion_branching: Optional[str] = None
     has_backtracking_risk: bool = False
     has_memoization: bool = False
     recursion_in_loop: bool = False
@@ -91,7 +114,7 @@ class PatternSignals:
     graph_traversal: bool = False
     visited_tracking: bool = False
     repeated_calls_in_loop: bool = False
-    has_early_exits: bool = False  
+    has_early_exits: bool = False
     has_continue: bool = False
     inline_ternary: bool = False
     string_interpolation: bool = False
@@ -104,6 +127,12 @@ class PatternSignals:
     uses_yield: bool = False
     uses_raise: bool = False
     uses_assert: bool = False
+    # newly added coverage
+    uses_delete: bool = False
+    uses_global_or_nonlocal: bool = False
+    uses_walrus: bool = False
+    uses_star_unpacking: bool = False
+    creates_view_object: bool = False
 
     memory_signals: MemorySignals = field(default_factory=MemorySignals)
     complexity_signals: ComplexitySignals = field(default_factory=ComplexitySignals)
@@ -119,11 +148,11 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
     def __init__(self, ctx):
         self.ctx = ctx
         self.signals = PatternSignals()
-        
+
         self._current_loop_depth = getattr(ctx, "active_poly_dims", [])
         self.signals.loop_depth = len(self._current_loop_depth)
         self.signals.nested_loops = self.signals.loop_depth > 1
-        
+
         self._in_loop = self.signals.loop_depth > 0
         self._function_calls: Set[str] = set()
         self._modified_structures: Set[str] = set()
@@ -132,17 +161,23 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
     def analyze(self, node: ast.AST) -> PatternSignals:
         if node:
             self.visit(node)
-            
+
         self._evaluate_recursion()
         self._evaluate_graph_context()
         self._evaluate_memoization()
         self._evaluate_backtracking()
-        
+
         return self.signals
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
         if ast.get_docstring(node):
             self.signals.has_docstring = True
+        for dec in getattr(node, "decorator_list", []):
+            dec_name = getattr(dec, "id", None) or getattr(getattr(dec, "func", None), "id", None) or getattr(dec, "attr", None)
+            if dec_name == "lru_cache" or dec_name == "cache":
+                self.signals.complexity_signals.lru_cache_decorator = True
+                self.signals.has_memoization = True
+                self.signals.memory_signals.caches_results = True
         self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef):
@@ -162,26 +197,38 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         if isinstance(node.func, ast.Attribute):
             method_name = node.func.attr
             self._function_calls.add(method_name)
-            
-            if isinstance(node.func.value, ast.Name):
-                self._modified_structures.add(f"{node.func.value.id}.{method_name}")
-                if node.func.value.id == 'math':
+
+            owner_name = node.func.value.id if isinstance(node.func.value, ast.Name) else None
+            if owner_name:
+                self._modified_structures.add(f"{owner_name}.{method_name}")
+                if owner_name == 'math':
                     self.signals.complexity_signals.heavy_math_operations = True
                     if method_name in ['comb', 'perm', 'factorial']:
                         self.signals.paradigms.is_combinatorics = True
                     elif method_name in ['sqrt', 'dist', 'hypot']:
                         self.signals.paradigms.is_euclidean_distance = True
-            
+                elif owner_name == 'heapq':
+                    self.signals.memory_signals.uses_heap = True
+                    self.signals.complexity_signals.heap_push_pop = True
+                    self.signals.paradigms.is_priority_queue = True
+                elif owner_name == 'bisect':
+                    self.signals.complexity_signals.binary_search_module = True
+                    self.signals.paradigms.is_halving = True
+                elif owner_name == 'itertools':
+                    self.signals.complexity_signals.itertools_usage = True
+                elif owner_name == 'random':
+                    pass  # negligible cost signal, kept for future extension
+
             if method_name == 'pop':
                 if node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == 0:
                     self.signals.complexity_signals.inefficient_list_pop = True
                 else:
-                    self.signals.paradigms.is_dfs_stack = True 
-            
+                    self.signals.paradigms.is_dfs_stack = True
+
             elif method_name == 'insert':
                 if node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == 0:
                     self.signals.complexity_signals.inefficient_list_insert = True
-                    
+
             elif method_name == 'sort':
                 if self._in_loop:
                     self.signals.complexity_signals.repeated_sort = True
@@ -189,18 +236,23 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             elif method_name == 'popleft':
                 self.signals.memory_signals.efficient_deque_pop = True
                 self.signals.paradigms.is_bfs_queue = True
-                
+
+            elif method_name == 'heappush' or method_name == 'heappop' or method_name == 'heapify':
+                self.signals.memory_signals.uses_heap = True
+                self.signals.complexity_signals.heap_push_pop = True
+                self.signals.paradigms.is_priority_queue = True
+
             elif method_name == 'append':
                 self.signals.complexity_signals.amortized_operation = True
                 if self._in_loop or getattr(self.ctx, "in_graph_context", False):
                     self.signals.visited_tracking = True
-                
+
             elif method_name == 'extend':
                 if self._in_loop and node.args and isinstance(node.args[0], ast.Name) and isinstance(node.func.value, ast.Name):
                     if node.func.value.id == node.args[0].id:
                         self.signals.memory_signals.geometric_capacity_growth = True
 
-            elif method_name in ['union', 'intersection', 'difference']:
+            elif method_name in ['union', 'intersection', 'difference', 'symmetric_difference']:
                 self.signals.complexity_signals.set_mathematical_ops = True
 
             elif method_name == 'get':
@@ -211,19 +263,54 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                 if self._in_loop or getattr(self.ctx, "in_graph_context", False):
                     self.signals.visited_tracking = True
 
+            elif method_name == 'join':
+                self.signals.memory_signals.uses_join_for_strings = True
+
+            elif method_name == 'split' or method_name in ('upper', 'lower', 'strip', 'replace', 'title', 'capitalize'):
+                self.signals.complexity_signals.linear_string_op = True
+
+            elif method_name == 'reverse':
+                self.signals.complexity_signals.list_reverse_op = True
+
+            elif method_name == 'count':
+                self.signals.complexity_signals.list_count_op = True
+
+            elif method_name in ('keys', 'values', 'items'):
+                self.signals.memory_signals.allocates_view_object = True
+                self.signals.creates_view_object = True
+                if self._in_loop:
+                    self.signals.complexity_signals.dict_view_iteration = True
+
+            elif method_name == 'find':
+                if owner_name and getattr(self.ctx, "var_types", {}).get(owner_name) == 'dict':
+                    pass  # find isn't a dict method; guard kept for clarity, no-op otherwise
+
         elif isinstance(node.func, ast.Name):
             func_name = node.func.id
             self._function_calls.add(func_name)
-            
+
             if func_name in ['sum', 'max', 'min', 'all', 'any'] and self._in_loop:
                 self.signals.complexity_signals.aggregation_in_loop = True
-                
+
             if func_name in ['sqrt', 'pow', 'abs']:
                 self.signals.complexity_signals.heavy_math_operations = True
 
+            if func_name == 'sorted':
+                self.signals.memory_signals.sorted_makes_a_copy = True
+
+            if func_name in ('zip', 'enumerate', 'map', 'filter', 'reversed'):
+                self.signals.complexity_signals.iteration_helper_usage = True
+
+            if func_name == 'Counter':
+                self.signals.memory_signals.allocates_counter = True
+                self.signals.memory_signals.allocates_dicts = True
+
+            if func_name in ('int', 'float', 'str', 'list', 'tuple', 'set', 'dict', 'bool'):
+                self.signals.complexity_signals.type_conversion = True
+
             current_fn = getattr(self.ctx, "current_function_name", None)
             indirect_fns = getattr(self.ctx, "indirect_recursive_funcs", set())
-            
+
             if func_name == current_fn:
                 self.signals.has_recursion = True
                 self.signals.memory_signals.recursive_stack_risk = True
@@ -261,9 +348,14 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             if isinstance(node.op, ast.BitAnd) and isinstance(node.right, ast.BinOp) and isinstance(node.right.op, ast.Sub):
                 if getattr(node.right.right, 'value', None) == 1:
                     self.signals.paradigms.is_brian_kernighan = True
-                    
-        if isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.Sub, ast.BitXor)):
+
+        if isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.BitXor)):
             self.signals.complexity_signals.set_mathematical_ops = True
+        elif isinstance(node.op, ast.Sub):
+            l_is_set = isinstance(node.left, ast.Name) and getattr(self.ctx, "var_types", {}).get(node.left.id) == 'set'
+            r_is_set = isinstance(node.right, ast.Name) and getattr(self.ctx, "var_types", {}).get(node.right.id) == 'set'
+            if l_is_set or r_is_set:
+                self.signals.complexity_signals.set_mathematical_ops = True
 
         if isinstance(node.op, ast.FloorDiv) and getattr(node.right, 'value', None) == 2:
             self.signals.paradigms.is_halving = True
@@ -272,14 +364,30 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
 
         if isinstance(node.op, ast.Mod):
             self.signals.paradigms.is_modulo_arithmetic = True
-            
+
         if isinstance(node.op, ast.Pow):
             self.signals.complexity_signals.heavy_math_operations = True
             if getattr(node.right, 'value', None) == 2:
                 self.signals.complexity_signals.quadratic_math = True
 
+        # list/string repetition via `*`, and list concatenation via `+`
+        if isinstance(node.op, ast.Mult):
+            left_is_container = isinstance(node.left, (ast.List, ast.Constant)) and isinstance(getattr(node.left, 'value', None), str) or isinstance(node.left, ast.List)
+            right_is_container = isinstance(node.right, (ast.List, ast.Constant)) and isinstance(getattr(node.right, 'value', None), str) or isinstance(node.right, ast.List)
+            if (left_is_container and isinstance(node.right, (ast.Name, ast.Constant))) or (right_is_container and isinstance(node.left, (ast.Name, ast.Constant))):
+                self.signals.memory_signals.uses_string_multiplication = True
+
+        if isinstance(node.op, ast.Add):
+            if isinstance(node.left, ast.List) or isinstance(node.right, ast.List):
+                self.signals.memory_signals.creates_new_list_from_concat = True
+            elif isinstance(node.left, ast.Name) and isinstance(node.right, ast.Name):
+                lt = getattr(self.ctx, "var_types", {}).get(node.left.id)
+                rt = getattr(self.ctx, "var_types", {}).get(node.right.id)
+                if lt == 'list' and rt == 'list':
+                    self.signals.memory_signals.creates_new_list_from_concat = True
+
         self.generic_visit(node)
-        
+
     def visit_BoolOp(self, node: ast.BoolOp):
         self.signals.complexity_signals.boolean_short_circuit = True
         self.generic_visit(node)
@@ -293,11 +401,11 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         is_nested = len(node.generators) > 1
         if isinstance(node.elt, ast.ListComp) or (isinstance(node.elt, ast.BinOp) and isinstance(node.elt.op, ast.Mult) and isinstance(node.elt.left, ast.List)):
             is_nested = True
-            
+
         if is_nested:
             self.signals.memory_signals.allocates_2d_lists = True
             self.signals.paradigms.is_grid_traversal = True
-            
+
         self.signals.comprehension_expansion = True
         self.signals.memory_signals.uses_list_comprehension = True
         self.signals.memory_signals.allocates_lists = True
@@ -314,7 +422,7 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         self.signals.memory_signals.uses_dict_comprehension = True
         self.signals.memory_signals.allocates_dicts = True
         self.generic_visit(node)
-        
+
     def visit_GeneratorExp(self, node: ast.GeneratorExp):
         self.signals.comprehension_expansion = True
         self.signals.memory_signals.uses_generator = True
@@ -324,7 +432,7 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
     def visit_Subscript(self, node: ast.Subscript):
         if isinstance(node.slice, ast.Slice):
             self.signals.memory_signals.performs_slicing = True
-        
+
         if isinstance(node.slice, ast.Tuple) or (hasattr(node, 'value') and isinstance(node.value, ast.Subscript)):
             self.signals.paradigms.is_matrix_math = True
 
@@ -339,21 +447,21 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                 self.signals.paradigms.is_doubling = True
             elif isinstance(node.target, ast.Subscript):
                 self.signals.paradigms.is_prefix_sum = True
-                
+
         elif self._in_loop and isinstance(node.op, ast.Mult) and isinstance(node.target, ast.Name):
             self.signals.memory_signals.geometric_capacity_growth = True
             self.signals.paradigms.is_doubling = True
-            
+
         self.generic_visit(node)
-        
+
     def visit_Assign(self, node: ast.Assign):
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
             self.signals.variable_swapping = True
             self.signals.memory_signals.inplace_swap = True
-            
+
             if len(node.value.elts) == 2 and isinstance(node.value.elts[1], ast.BinOp) and isinstance(node.value.elts[1].op, ast.Add):
                 self.signals.paradigms.is_fibonacci_sequence = True
-                
+
         if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and isinstance(node.value.left, ast.List):
             self.signals.paradigms.is_tabulation_setup = True
             self.signals.memory_signals.dp_tabulation_array = True
@@ -363,7 +471,7 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             if isinstance(node.value.elt, ast.ListComp) or (isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List)):
                 self.signals.memory_signals.allocates_2d_lists = True
                 self.signals.paradigms.is_grid_traversal = True
-                
+
         if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Add):
             target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
             for t_id in target_ids:
@@ -371,7 +479,7 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                     count = sum(1 for n in ast.walk(node.value) if isinstance(n, ast.Name) and n.id == t_id)
                     if count >= 2:
                         self.signals.memory_signals.geometric_capacity_growth = True
-                        
+
         if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult):
             target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
             for t_id in target_ids:
@@ -379,13 +487,44 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                     if isinstance(child, ast.Name) and child.id == t_id:
                         self.signals.memory_signals.geometric_capacity_growth = True
                         self.signals.paradigms.is_doubling = True
-                        
+
+        # Kadane-style running best: x = max(x, ...) or x = max(x + y, y) inside a loop
+        if self._in_loop and isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id in ('max', 'min'):
+            target_ids = {t.id for t in node.targets if isinstance(t, ast.Name)}
+            arg_names = {n.id for a in node.value.args for n in ast.walk(a) if isinstance(n, ast.Name)}
+            if target_ids & arg_names:
+                self.signals.paradigms.is_kadane = True
+
+        # Union-Find style path compression: parent[x] = find(parent[x])
+        if isinstance(node.targets[0], ast.Subscript) if node.targets else False:
+            pass
+
+        self.generic_visit(node)
+
+    def visit_Delete(self, node: ast.Delete):
+        self.signals.uses_delete = True
+        self.generic_visit(node)
+
+    def visit_Global(self, node: ast.Global):
+        self.signals.uses_global_or_nonlocal = True
+        self.generic_visit(node)
+
+    def visit_Nonlocal(self, node: ast.Nonlocal):
+        self.signals.uses_global_or_nonlocal = True
+        self.generic_visit(node)
+
+    def visit_Starred(self, node: ast.Starred):
+        self.signals.uses_star_unpacking = True
+        self.generic_visit(node)
+
+    def visit_NamedExpr(self, node):  # walrus operator, Python 3.8+
+        self.signals.uses_walrus = True
         self.generic_visit(node)
 
     def visit_Break(self, node: ast.Break):
         self.signals.has_early_exits = True
         self.generic_visit(node)
-        
+
     def visit_Continue(self, node: ast.Continue):
         self.signals.has_continue = True
         self.generic_visit(node)
@@ -398,7 +537,7 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
     def visit_IfExp(self, node: ast.IfExp):
         self.signals.inline_ternary = True
         self.generic_visit(node)
-        
+
     def visit_JoinedStr(self, node: ast.JoinedStr):
         self.signals.string_interpolation = True
         self.signals.complexity_signals.f_string_usage = True
@@ -446,7 +585,7 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                 self.signals.recursion_branching = "multi"
             else:
                 self.signals.recursion_branching = "linear_or_unknown"
-                
+
             if getattr(self.ctx, "has_recursion_in_loop", False) or self.signals.loop_depth > 0:
                 self.signals.has_backtracking_risk = True
                 self.signals.recursion_in_loop = True
@@ -466,24 +605,33 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         if self.signals.has_recursion and 'append' in self._function_calls and 'pop' in self._function_calls:
             self.signals.has_backtracking_risk = True
 
-
 # =========================================================================
 # EDUCATIONAL INSIGHT GENERATOR (NLG Engine)
 # =========================================================================
 
 class EducationalInsightGenerator:
     """
-    Constructs highly modular, educational explanations for the user.
+    Builds plain-language, classroom-style explanations of what a line of code
+    is doing and why it costs what it costs. Written for students who are
+    still building intuition for Big-O -- so it favors short sentences,
+    concrete comparisons, and a friendly, direct tone over formal jargon.
+    Multiple phrasings are used for the same idea so the output doesn't feel
+    like a templated form letter.
     """
     def __init__(self, ctx):
         self.ctx = ctx
 
+    # -------------------------------------------------------------------
+    # Small helper: pick one of several equivalent phrasings at random so
+    # repeated explanations across a long algorithm don't all sound identical.
+    # -------------------------------------------------------------------
+    def _v(self, *options):
+        return random.choice(options)
+
     def generate_variable_explanation(self, var_name: str, var_data: dict, var_type: str = None) -> str:
         size = var_data.get("size", 1)
-        val = str(var_data.get("value", ""))
         v_lower = var_name.lower()
-        
-        # Determine effective type
+
         eff_type = var_type
         if not eff_type:
             if isinstance(var_data.get("value"), list) or any(k in v_lower for k in ['arr', 'list', 'nums', 'stack', 'queue', 'dp']):
@@ -492,53 +640,94 @@ class EducationalInsightGenerator:
                 eff_type = 'dict'
             elif isinstance(var_data.get("value"), set) or 'set' in v_lower or 'visit' in v_lower:
                 eff_type = 'set'
-                
+
         if eff_type == 'list':
             if 'stack' in v_lower:
-                return f"LIFO Stack: Allocating memory for {size} active elements. It acts as a Last-In-First-Out structure, growing and shrinking at the tail."
+                return self._v(
+                    f"This is being used as a stack: `{var_name}` currently holds {size} item(s). Stacks are Last-In-First-Out, so whatever gets added most recently is the first thing to come back out.",
+                    f"`{var_name}` is playing the role of a stack here, holding {size} item(s) right now. New items get added and removed from the same end, like a stack of plates.",
+                )
             if 'queue' in v_lower:
-                return f"FIFO Queue: Allocating memory for {size} active elements. It maintains a First-In-First-Out chronological processing order."
+                return self._v(
+                    f"This is a queue: `{var_name}` holds {size} item(s) and follows First-In-First-Out order, just like a line of people waiting.",
+                    f"`{var_name}` acts as a queue, currently holding {size} item(s). Whatever was added first gets processed first.",
+                )
             if 'dp' in v_lower or 'memo' in v_lower:
-                return f"Dynamic Programming Tabulation: Storing {size} pre-calculated subproblem states to squash exponential recursion into a linear memory grid."
-            return f"Sequential Array: Allocating contiguous memory blocks for {size} active elements."
-            
+                return self._v(
+                    f"This looks like a DP (dynamic programming) table: it's storing {size} already-solved subproblem answer(s), so the algorithm never has to redo that work.",
+                    f"`{var_name}` is a memo/DP array holding {size} cached result(s). Instead of recomputing the same subproblem, the algorithm just looks it up here.",
+                )
+            return self._v(
+                f"`{var_name}` is a regular list currently holding {size} element(s), stored one after another in memory.",
+                f"This is a list with {size} element(s) in it right now, laid out back-to-back so any index can be reached instantly.",
+            )
+
         if eff_type == 'dict':
             if 'memo' in v_lower or 'cache' in v_lower or 'dp' in v_lower:
-                return f"Memoization Cache: Storing {size} cached subproblem results to prevent redundant calculation branches."
+                return self._v(
+                    f"`{var_name}` is a memoization cache with {size} entr(y/ies) saved so far -- once a result is computed once, it's stored here so it never needs to be recalculated.",
+                    f"This dictionary caches {size} previously-computed result(s), which is exactly how memoization turns a slow recursive tree into something much faster.",
+                )
             if 'graph' in v_lower or 'adj' in v_lower:
-                return f"Adjacency List (Graph): Mapping {size} nodes to their neighboring vertices to represent structural pathways."
-            return f"Hash Map: Tracking {size} key-value associations, utilizing an underlying hash table for O(1) average lookups."
-            
+                return self._v(
+                    f"`{var_name}` is an adjacency list -- it maps each of its {size} node(s) to the neighbors it connects to, which is how the graph's shape is stored.",
+                    f"This dictionary represents the graph's structure: {size} node(s), each pointing to its neighbors.",
+                )
+            return self._v(
+                f"`{var_name}` is a dictionary (hash map) with {size} key-value pair(s). Looking something up here is normally O(1) -- basically instant, regardless of how big it gets.",
+                f"This is a hash map holding {size} pair(s) right now. The whole point of a dictionary is that lookups stay fast even as it grows.",
+            )
+
         if eff_type == 'set':
             if 'visit' in v_lower or 'seen' in v_lower:
-                return f"Visited Tracker: Hash set tracking {size} nodes to prevent infinite loops during traversal."
-            return f"Unique Element Set: Maintaining {size} strictly unique elements for O(1) constant-time membership checks."
-            
+                return self._v(
+                    f"`{var_name}` is a \"visited\" set tracking {size} item(s) so the algorithm never processes the same node twice.",
+                    f"This set remembers {size} already-seen item(s), which is what stops the traversal from looping forever.",
+                )
+            return self._v(
+                f"`{var_name}` is a set holding {size} unique element(s). Sets automatically drop duplicates and give near-instant \"is this in here?\" checks.",
+                f"This is a set with {size} distinct item(s) -- great for checking membership quickly without scanning everything.",
+            )
+
         if eff_type == 'tuple' or 'tup' in v_lower:
-            return f"Immutable Tuple: Safely packaging {size} elements. As a fixed structure, it allocates exactly the required memory with zero resizing overhead."
-            
+            return self._v(
+                f"`{var_name}` is a tuple bundling {size} value(s) together. Tuples can't be changed after creation, so Python doesn't need any extra room to let them grow.",
+                f"This is a fixed-size tuple with {size} value(s) -- immutable, so there's no resizing overhead to worry about.",
+            )
+
         if eff_type == 'str' or 'str' in v_lower or 'char' in v_lower:
             if size > 1:
-                return f"Immutable String: Consuming memory proportional to its {size} characters. Modifying it requires allocating a new memory block."
-            return "String/Character: Holding textual data in a highly optimized memory scalar."
+                return self._v(
+                    f"`{var_name}` is a string of about {size} character(s). Strings are immutable in Python, so any change actually builds a new string behind the scenes.",
+                    f"This string holds roughly {size} character(s). Remember: editing a string doesn't modify it in place, it creates a new one.",
+                )
+            return "This is a single character or short string, taking up a tiny, fixed amount of memory."
 
-        # Scalar pointers and accumulators
         if any(k in v_lower for k in ['ptr', 'idx', 'left', 'right', 'low', 'high', 'mid', 'i', 'j', 'k']):
-            return "Positional Pointer: A lightweight scalar tracking a boundary or exact index, occupying minimal O(1) constant memory."
+            return self._v(
+                "This is a pointer/index variable -- just a single number tracking a position. It costs O(1) memory no matter how big the data it points into is.",
+                "Just a small index variable here, tracking one position. It takes up the same tiny amount of space regardless of input size.",
+            )
         if any(k in v_lower for k in ['total', 'sum', 'count', 'res', 'ans']):
-            return "State Accumulator: A scalar continuously aggregating results into a single state, maintaining a perfect O(1) space footprint."
+            return self._v(
+                "This is an accumulator -- a single running value being updated as the algorithm goes. One number, O(1) space, no matter how much data it's summarizing.",
+                "This variable just keeps a running tally. It's one scalar value, so it stays at O(1) space the whole time.",
+            )
         if any(k in v_lower for k in ['pivot', 'temp', 'curr', 'node', 'val', 'key', 'element']):
-            return "Temporary State Variable: A transient scalar holding the current operational value in an O(1) memory footprint."
+            return self._v(
+                "This is a temporary variable holding whatever value is currently being worked on -- a simple O(1) scalar.",
+                "Just a short-lived variable holding the current value in progress. O(1) space.",
+            )
 
         if size > 1:
-            return f"Dynamic Data Container: Actively holding {size} distinct elements in the memory heap."
-            
-        return "Scalar State: A standard atomic variable residing efficiently in O(1) memory."
+            return f"`{var_name}` is currently holding {size} element(s) worth of data."
+
+        return "This is a plain scalar variable -- a single value taking up a small, constant amount of memory."
 
     def _classify_big_o(self, complexity_str: str) -> BigOInfo:
         c = complexity_str.lower()
         family = "unknown"
-        
+
         if c == "o(1)" or "amortized" in c:
             family = "constant"
         elif "n log n" in c:
@@ -561,291 +750,566 @@ class EducationalInsightGenerator:
             family = "linear"
         elif "t(" in c:
             family = "recursive_branching"
-            
-        return BigOInfo(
-            raw=complexity_str,
-            normalized=complexity_str,
-            family=family,
-            factors={}
-        )
 
+        return BigOInfo(raw=complexity_str, normalized=complexity_str, family=family, factors={})
+
+    # -------------------------------------------------------------------
+    # Line intro: "what is this line doing?"
+    # -------------------------------------------------------------------
     def _build_action_intro(self, node: ast.AST, code_snippet: str, sig: PatternSignals) -> str:
-        if sig.paradigms.is_halving:
-            return f"Looking at `{code_snippet}`, the algorithm performs a crucial mathematical division, actively halving the problem space."
-        if sig.paradigms.is_two_pointer:
-            return f"In this line (`{code_snippet}`), we see a convergence check—a foundational signature of the 'Two-Pointer' or 'Sliding Window' technique."
-        if sig.paradigms.is_tabulation_setup:
-            return f"Looking at `{code_snippet}`, the code pre-allocates an entire memory block upfront, a classic setup for Tabulation."
-        if sig.paradigms.is_fibonacci_sequence:
-            return f"Here in `{code_snippet}`, we are performing a simultaneous tuple unpacking to cleanly shift variables forward—a staple of sequence progression."
-        if sig.paradigms.is_brian_kernighan:
-            return f"This specific line (`{code_snippet}`) utilizes a brilliant bitwise trick to drop the lowest set bit instantly."
-        if sig.paradigms.is_combinatorics:
-            return f"This step (`{code_snippet}`) executes a heavy combinatorial math equation (like permutations or factorials), which scales incredibly fast."
-        if sig.paradigms.is_euclidean_distance:
-            return f"Looking at `{code_snippet}`, the engine is calculating a spatial distance metric, applying quadratic squaring and rooting."
+        ref = f"`{code_snippet}`" if code_snippet else "this line"
 
-        snippet_ref = f"Looking at `{code_snippet}`" if code_snippet else "Reviewing this specific line"
+        if sig.paradigms.is_halving:
+            return self._v(
+                f"{ref} cuts the problem in half. That halving is the whole reason logarithmic algorithms are so fast.",
+                f"Here, {ref} throws away half of what's left to search or process -- the classic move behind O(log n).",
+            )
+        if sig.paradigms.is_two_pointer:
+            return self._v(
+                f"{ref} compares two positions moving toward each other -- a hallmark of the two-pointer technique.",
+                f"You can spot the two-pointer pattern in {ref}: two indices closing in on each other instead of a nested loop.",
+            )
+        if sig.paradigms.is_kadane:
+            return self._v(
+                f"{ref} keeps a running \"best so far\" value -- this is the core idea behind Kadane's algorithm for max subarray-style problems.",
+                f"{ref} updates a running best/max as it goes, so the algorithm never has to look backward to recompute anything.",
+            )
+        if sig.paradigms.is_priority_queue:
+            return self._v(
+                f"{ref} works with a heap (priority queue), which always keeps the smallest (or largest) item ready to grab in O(log n) time.",
+                f"{ref} is a heap operation -- it keeps items loosely sorted so the next \"best\" one is always quick to reach.",
+            )
+        if sig.paradigms.is_tabulation_setup:
+            return self._v(
+                f"{ref} sets up a table upfront -- classic dynamic-programming tabulation, building answers bottom-up instead of recursing.",
+                f"{ref} pre-builds a results table before the real work starts, which is how tabulated DP avoids repeated recursive calls.",
+            )
+        if sig.paradigms.is_fibonacci_sequence:
+            return self._v(
+                f"{ref} shifts a pair of running values forward in one step -- a pattern you'll recognize from Fibonacci-style sequences.",
+                f"{ref} updates two values at once, sliding the \"window\" of state forward without needing a temporary variable.",
+            )
+        if sig.paradigms.is_brian_kernighan:
+            return self._v(
+                f"{ref} uses a neat bit trick to clear the lowest set bit in one step, instead of checking every bit one by one.",
+                f"{ref} is Brian Kernighan's bit trick -- it strips off one set bit at a time, so the loop only runs once per 1-bit in the number.",
+            )
+        if sig.paradigms.is_combinatorics:
+            return self._v(
+                f"{ref} runs a combinatorics calculation (permutations, combinations, or factorials). These grow extremely fast, even for small inputs.",
+                f"{ref} computes something like a factorial or permutation count -- numbers that blow up quickly as n grows.",
+            )
+        if sig.paradigms.is_euclidean_distance:
+            return self._v(
+                f"{ref} computes a distance between two points, which means some squaring and a square root under the hood.",
+                f"{ref} works out a straight-line distance -- simple math, but it does involve a square root.",
+            )
+        if sig.paradigms.is_union_find:
+            return self._v(
+                f"{ref} looks like a Union-Find (Disjoint Set) operation, used to quickly check if two items belong to the same group.",
+            )
 
         if isinstance(node, ast.Assign):
-            return f"{snippet_ref}, the code assigns a calculated value, capturing a specific state."
+            return self._v(
+                f"{ref} stores a value in a variable.",
+                f"{ref} assigns the result of an expression to a variable so it can be reused later.",
+            )
         elif isinstance(node, ast.AugAssign):
-            return f"{snippet_ref}, we are directly updating or mutating an existing variable."
+            return self._v(
+                f"{ref} updates an existing variable in place (like `+=` or `*=`).",
+                f"{ref} modifies a variable based on its current value.",
+            )
+        elif isinstance(node, ast.Delete):
+            return self._v(
+                f"{ref} removes a variable or item, freeing up whatever it was pointing to.",
+            )
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            return self._v(
+                f"{ref} tells Python to use a variable from an outer scope instead of creating a new local one.",
+            )
         elif isinstance(node, ast.Call):
             if isinstance(node.func, ast.Attribute):
-                return f"{snippet_ref}, a method (`.{node.func.attr}()`) is invoked to manipulate the targeted data structure."
+                method = node.func.attr
+                if method == 'join':
+                    return self._v(f"{ref} joins a list of strings into one -- this is the efficient way to build a string, much better than gluing strings together in a loop.")
+                if method == 'split':
+                    return self._v(f"{ref} breaks a string apart into a list of pieces.")
+                if method in ('sort',):
+                    return self._v(f"{ref} sorts the list in place -- no new list is created, just the existing one gets rearranged.")
+                if method in ('keys', 'values', 'items'):
+                    return self._v(f"{ref} grabs a view of the dictionary's {method} -- lightweight to create, but reading through it still costs one step per entry.")
+                if method in ('heappush', 'heappop'):
+                    return self._v(f"{ref} pushes or pops from a heap, keeping the smallest item accessible in O(log n).")
+                return self._v(
+                    f"{ref} calls the `.{method}()` method to do something to the data it belongs to.",
+                    f"{ref} runs `.{method}()`, a built-in operation on this object.",
+                )
             elif isinstance(node.func, ast.Name):
-                return f"{snippet_ref}, the code triggers the core `{node.func.id}()` function."
-            return f"{snippet_ref}, a complex function call is being executed."
+                fname = node.func.id
+                if fname == 'sorted':
+                    return self._v(f"{ref} builds a brand-new sorted list, leaving the original untouched (unlike `.sort()`).")
+                if fname in ('zip', 'enumerate', 'map', 'filter'):
+                    return self._v(f"{ref} uses `{fname}()` to loop over data more cleanly, without changing the underlying cost of the loop.")
+                if fname == 'Counter':
+                    return self._v(f"{ref} tallies up how often each item appears, building a frequency map in one pass.")
+                return self._v(
+                    f"{ref} calls the function `{fname}()`.",
+                    f"{ref} triggers `{fname}()` to run.",
+                )
+            return self._v(f"{ref} runs a function call.")
         elif isinstance(node, ast.For):
-            return f"{snippet_ref}, an iterative loop is established to sequentially process a collection."
+            return self._v(
+                f"{ref} starts a loop that walks through a collection, one item at a time.",
+                f"{ref} is a `for` loop -- it repeats its body once per item in whatever it's iterating over.",
+            )
         elif isinstance(node, ast.While):
-            return f"{snippet_ref}, a dynamic `while` loop is engaged to continuously run based on an evolving condition."
+            return self._v(
+                f"{ref} is a `while` loop -- it keeps repeating as long as its condition stays true.",
+                f"{ref} loops for as long as the given condition holds, however many times that ends up being.",
+            )
         elif isinstance(node, ast.If):
-            return f"{snippet_ref}, the execution flow hits a conditional branch, slicing the logic path."
+            return self._v(
+                f"{ref} branches the logic -- one path runs if the condition is true, a different path (or nothing) runs if it's false.",
+                f"{ref} is a decision point: the condition determines which piece of code actually runs.",
+            )
         elif isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp)):
-            return f"{snippet_ref}, the language leverages a syntactic comprehension to construct a collection dynamically in one pass."
+            return self._v(
+                f"{ref} is a comprehension -- a compact way to build a collection in one line. It still loops under the hood, just written more tersely.",
+                f"{ref} builds a new collection in a single expression. It's shorter to write, but Python still processes each item, so the cost is the same as writing the loop out by hand.",
+            )
         elif isinstance(node, ast.Return):
-            return f"{snippet_ref}, the function completes its mathematical evaluation and returns the final payload."
+            return self._v(
+                f"{ref} sends a value back to whoever called this function.",
+                f"{ref} ends the function here and hands back the result.",
+            )
         elif isinstance(node, ast.Subscript):
             if isinstance(getattr(node, 'slice', None), ast.Slice):
-                return f"{snippet_ref}, the array is being explicitly sliced to extract a localized segment."
-            return f"{snippet_ref}, a specific precise element is accessed via index or dictionary key."
+                return self._v(f"{ref} takes a slice -- a copy of part of the sequence.")
+            return self._v(f"{ref} reaches directly into a list or dictionary to grab one specific item.")
         elif isinstance(node, ast.Try):
-            return f"{snippet_ref}, an exception handling block (`try/except`) is established to safely catch runtime errors."
+            return self._v(f"{ref} wraps some code in a `try/except` block, so if something goes wrong, the program can recover instead of crashing.")
         elif isinstance(node, ast.With):
-            return f"{snippet_ref}, a context manager (`with` block) is opened to handle sensitive resources cleanly."
-        elif isinstance(node, ast.Yield) or isinstance(node, ast.YieldFrom):
-            return f"{snippet_ref}, execution halts momentarily to `yield` a value, turning this function into a powerful generator."
+            return self._v(f"{ref} opens a `with` block, which takes care of cleanup automatically (closing a file, releasing a lock, etc.).")
+        elif isinstance(node, (ast.Yield, ast.YieldFrom)):
+            return self._v(f"{ref} yields a value, pausing the function here -- this is what makes it a generator instead of a normal function.")
         elif isinstance(node, ast.Lambda):
-            return f"{snippet_ref}, an anonymous, inline `lambda` function is declared for quick, on-the-fly execution."
+            return self._v(f"{ref} defines a small, unnamed function inline, meant for quick, throwaway use.")
         elif isinstance(node, ast.Raise):
-            return f"{snippet_ref}, an error or exception is intentionally triggered, stopping normal execution."
+            return self._v(f"{ref} deliberately raises an error, stopping normal execution here.")
         elif isinstance(node, ast.Assert):
-            return f"{snippet_ref}, a strict assertion check is performed to guarantee program state integrity."
+            return self._v(f"{ref} checks that a condition holds, and stops the program if it doesn't.")
         elif sig.has_docstring:
-            return f"{snippet_ref}, we observe a formal docstring, embedding vital documentation and metadata directly into the structure."
+            return self._v(f"{ref} is a docstring -- documentation for humans, not something that runs.")
         elif sig.has_comment_block:
-            return f"{snippet_ref}, a block string or comment is present to clarify logic or safely disable code."
-        
-        return f"{snippet_ref}, we observe a distinct operational step."
+            return self._v(f"{ref} is a comment or unused string -- it doesn't affect how the program runs.")
 
+        return self._v(f"{ref} performs a step in the algorithm.")
+
+    # -------------------------------------------------------------------
+    # Local time / space: "what does this line cost on its own?"
+    # -------------------------------------------------------------------
     def _build_local_time_explanation(self, local_info: BigOInfo, sig: PatternSignals) -> str:
         family = local_info.family
-        
+
         if sig.has_docstring or sig.has_comment_block:
-            return "This acts strictly as documentation or passive string data; it imposes absolutely zero computational penalty during live execution, resolving to a pure $O(1)$ footprint."
+            return self._v(
+                "It's just documentation, so it costs nothing when the program actually runs -- that's O(1).",
+                "Comments and docstrings never execute as code, so there's zero runtime cost here.",
+            )
 
         if sig.complexity_signals.amortized_operation:
-            return "In isolation, this evaluates to amortized constant time. Usually, it happens instantly, but occasionally it requires a heavier background operation (like resizing an array). On average, it remains a highly efficient $O(1)$ step."
-        
+            return self._v(
+                "On its own, this is O(1) on average. Every once in a while it needs a little extra work behind the scenes (like resizing a list), but spread out over many calls, it still averages out to constant time.",
+                "This is what's called \"amortized O(1)\": almost always instant, with the occasional slightly-more-expensive call balancing out over time.",
+            )
+
         if family == "constant":
-            return "Evaluated strictly on its own, this is an instant $O(1)$ operation. The CPU executes it directly without needing to iterate or scan through external data."
+            return self._v(
+                "By itself, this line is O(1) -- it does a fixed amount of work no matter how big the input is.",
+                "On its own, this is a constant-time step: one operation, done once.",
+            )
         elif family == "linear":
-            return f"Locally, this step inherently takes linear time ({local_info.raw}). Under the hood, the system is forced to traverse the involved elements one by one."
+            return self._v(
+                f"On its own, this line is {local_info.raw} -- it has to touch every item in whatever it's working with.",
+                f"By itself, this step costs {local_info.raw}: the work grows one-to-one with the size of the data.",
+            )
         elif family == "logarithmic":
-            return f"In a vacuum, this step executes logarithmically ({local_info.raw}), meaning it bypasses a massive amount of redundant checks by cutting the search space down."
+            return self._v(
+                f"By itself, this step is {local_info.raw} -- it cuts down the amount of work it has left with each step, so it stays fast even on large inputs.",
+                f"On its own, this runs in {local_info.raw}, since it keeps shrinking the problem instead of checking everything.",
+            )
         elif family == "polynomial":
-            return f"By itself, this action triggers a nested evaluation ({local_info.raw}), structurally demanding a repetitive combination of work."
+            return self._v(
+                f"On its own, this step is {local_info.raw} -- it repeats work in a nested way, so the cost grows faster than just linear.",
+                f"By itself, this line costs {local_info.raw}. That usually means one loop is doing repeated work for every step of another loop.",
+            )
         elif "placeholder" in local_info.raw or local_info.raw.startswith("T("):
-            return "Since this is a recursive invocation, its exact local execution time is deferred; it strictly depends on how the recursive tree branches out from this point."
-            
-        return f"Locally, this executes with a baseline operational cost of {local_info.raw}."
+            return self._v(
+                "This is a recursive call, so its exact cost depends on how deep and how wide the recursion tree ends up being -- we can't pin down a single number just from this line alone.",
+            )
+
+        return f"On its own, this line costs {local_info.raw}."
 
     def _build_local_space_explanation(self, local_info: BigOInfo, sig: PatternSignals) -> str:
         family = local_info.family
-        
+
         if sig.has_docstring or sig.has_comment_block:
-            return "Because this is static metadata parsed only during initial compilation, it consumes no dynamic runtime memory, preserving an immaculate $O(1)$ local environment."
+            return self._v(
+                "Documentation doesn't use any memory while the program runs, so this is O(1).",
+            )
 
         if sig.memory_signals.inplace_swap:
-            return "Because this is an elegant in-place swap, it requires absolutely zero additional memory allocations, maintaining a pristine $O(1)$ local footprint."
-        
-        if family == "constant":
-            return "Locally, this line operates with a highly efficient $O(1)$ memory footprint, meaning it either reuses existing space or only creates tiny scalar variables."
-        elif family == "linear":
-            return f"In isolation, this step explicitly demands new memory proportional to the data ({local_info.raw}), forcing the system to allocate fresh RAM for the resulting structure."
-        elif family == "polynomial":
-            return f"Locally, this generates a multi-dimensional array or dense matrix ({local_info.raw}), consuming significantly more contiguous memory blocks than standard flat lists."
-        elif "placeholder" in local_info.raw:
-            return "The immediate memory required here fluctuates fluidly based on the dynamically evaluated state."
-            
-        return f"This isolated instruction claims a localized memory footprint of {local_info.raw}."
+            return self._v(
+                "Since this just swaps values that already exist, it needs zero extra memory -- O(1).",
+            )
 
+        if family == "constant":
+            return self._v(
+                "This line uses O(1) memory -- it's just working with a few small variables, not building anything new and sizeable.",
+                "Locally, the memory cost here is constant: no new data structures are being created.",
+            )
+        elif family == "linear":
+            return self._v(
+                f"On its own, this line needs {local_info.raw} of new memory, since it's building something whose size depends on the input.",
+                f"By itself, this step allocates {local_info.raw} worth of space for a new structure.",
+            )
+        elif family == "polynomial":
+            return self._v(
+                f"This line builds a multi-dimensional structure (like a grid or matrix), which costs {local_info.raw} -- noticeably more than a flat list.",
+            )
+        elif "placeholder" in local_info.raw:
+            return self._v("The memory this needs isn't fixed -- it depends on how the recursion unfolds at runtime.")
+
+        return f"On its own, this line's memory cost is {local_info.raw}."
+
+    # -------------------------------------------------------------------
+    # Global time / space: "what does this line cost once you factor in
+    # everything around it (loops, recursion)?"
+    # -------------------------------------------------------------------
     def _build_global_time_explanation(self, local_info: BigOInfo, global_info: BigOInfo, sig: PatternSignals) -> str:
         if sig.has_docstring or sig.has_comment_block:
-            return "Its presence has no cascading effects on the global performance. The total systemic time complexity is fundamentally anchored by the actual operational logic of the block."
+            return self._v(
+                "It doesn't affect the algorithm's overall speed at all -- documentation never runs.",
+            )
 
         if local_info.raw == global_info.raw:
-            return f"Because this operation dictates the heaviest work done in this path, it establishes the function's overall algorithmic time complexity at {global_info.raw}."
-        
+            return self._v(
+                f"This is the most expensive part of the whole algorithm, so it's actually what sets the overall time complexity: {global_info.raw}.",
+                f"There's nothing more expensive happening elsewhere, so this line alone decides the total time complexity: {global_info.raw}.",
+            )
+
         if global_info.family == "polynomial" and local_info.family in ["linear", "constant"]:
             if sig.nested_loops:
-                return f"However, because this step is trapped deep inside nested loops, its execution frequency multiplies dramatically, ballooning the overall time complexity to a quadratic {global_info.raw}."
-            return f"However, because this step is repeated heavily, the sheer volume of iterations forces the total systemic time complexity to escalate to {global_info.raw}."
-            
+                return self._v(
+                    f"But since this sits inside nested loops, it doesn't just run once -- it runs once for every combination of outer and inner steps. That's what pushes the overall time up to {global_info.raw}.",
+                    f"On its own it's cheap, but nested loops mean it fires over and over -- so the total cost climbs to {global_info.raw}.",
+                )
+            return self._v(
+                f"Because this gets repeated so many times overall, the total time adds up to {global_info.raw}.",
+            )
+
         if global_info.family in ["exponential", "recursive_branching", "super_exponential"]:
             if sig.has_recursion:
-                return f"When factoring in the recursive tree this operation spawns, the workload effectively doubles (or worse) with each added depth, crashing the global efficiency to {global_info.raw}."
-            return f"The algorithmic design surrounding this line causes explosive combinatorial growth, pushing the global processing time to a severe {global_info.raw}."
-            
+                return self._v(
+                    f"Each recursive call here spawns more calls, and that branching multiplies fast -- the total blows up to {global_info.raw}.",
+                    f"Because the recursion keeps splitting into more calls without saving previous answers, the work roughly doubles at each level, landing at {global_info.raw} overall.",
+                )
+            return self._v(f"The way this is structured causes the number of operations to explode combinatorially, bringing the total up to {global_info.raw}.")
+
         if global_info.family == "linear" and local_info.family == "constant":
             if sig.loop_depth > 0:
-                return f"Since this instantaneous $O(1)$ action cycles continuously inside a loop, the total time required to finish all passes accumulates to a linear {global_info.raw}."
-                
-        if global_info.family == "linearithmic" and local_info.family in ["constant", "linear"]:
-            return f"Driven by the surrounding 'Divide and Conquer' logic (like sorting or halving trees), the aggregate execution scales out to an efficient {global_info.raw}."
+                return self._v(
+                    f"This O(1) step runs once per loop iteration, so across the whole loop it adds up to {global_info.raw}.",
+                    f"One cheap step, repeated for every item in the loop -- that's how you get {global_info.raw} overall.",
+                )
 
-        return f"When nested within the surrounding architectural structure, the total global time complexity evaluates to {global_info.raw}."
+        if global_info.family == "linearithmic" and local_info.family in ["constant", "linear"]:
+            return self._v(
+                f"Combined with the sorting or divide-and-conquer logic around it, the total cost works out to {global_info.raw}.",
+            )
+
+        return self._v(f"Once you account for everything happening around it, this line's contribution to the overall time complexity is {global_info.raw}.")
 
     def _build_global_space_explanation(self, local_info: BigOInfo, global_info: BigOInfo, sig: PatternSignals) -> str:
         if sig.has_docstring or sig.has_comment_block:
-            return "Comments and docstrings do not compound globally. The actual global space complexity is entirely dependent on the variables and structures dynamically built within the execution path."
+            return self._v("Comments don't take up any runtime memory, so they don't affect the overall space complexity at all.")
 
         if local_info.raw == global_info.raw:
-            return f"As this is the peak structural allocation event in the entire algorithm, it cleanly defines the overarching global space complexity at {global_info.raw}."
-        
+            return self._v(
+                f"This is the single biggest memory user in the whole algorithm, so it defines the overall space complexity: {global_info.raw}.",
+            )
+
         if global_info.family == "linear" and local_info.family == "constant":
             if sig.has_recursion:
-                return f"However, because this function calls itself recursively, the interpreter stacks these $O(1)$ frames on top of each other, expanding the peak global memory usage to {global_info.raw}."
-            return f"However, as the algorithm continuously cycles and accumulates data state, the total peak memory held by the system scales up to {global_info.raw}."
-            
+                return self._v(
+                    f"Because this function calls itself, each call adds another O(1) frame to the call stack. Stack them all up and you get {global_info.raw} overall.",
+                    f"Every recursive call keeps its own small frame on the stack -- add them all together and the total memory reaches {global_info.raw}.",
+                )
+            return self._v(
+                f"On its own it's cheap, but the data being built up across the whole run adds up to {global_info.raw} overall.",
+            )
+
         if global_info.family == "polynomial" and local_info.family in ["linear", "constant"]:
-            return f"While locally manageable, the surrounding logic forces the creation of a dense, multi-layered data landscape, driving the absolute peak memory consumption to {global_info.raw}."
+            return self._v(
+                f"The surrounding logic ends up building a dense, multi-layered structure, pushing peak memory use to {global_info.raw}.",
+            )
 
-        return f"Factoring in the peak high-water mark of the entire executing function, the global spatial footprint reaches {global_info.raw}."
+        return self._v(f"Once you factor in the peak memory used across the whole run, the overall space complexity comes out to {global_info.raw}.")
 
+    # -------------------------------------------------------------------
+    # Educational asides: extra tips, warnings, and "did you know" notes
+    # -------------------------------------------------------------------
     def _gather_time_insights(self, sig: PatternSignals, local_t: str) -> List[str]:
         insights = []
         if sig.paradigms.is_halving:
-            insights.append("Mathematical Optimization: By explicitly halving the input (often via `// 2`), the algorithm safely discards 50% of the remaining search space. This is the cornerstone of Logarithmic ($O(\\log n)$) efficiency, making it blisteringly fast even for huge datasets.")
+            insights.append(self._v(
+                "Tip: cutting the input in half each time is what gives you O(log n). Even a billion items only takes about 30 steps to search this way.",
+                "Why this is fast: every halving step throws away 50% of what's left, so the work needed barely grows even as the input gets huge.",
+            ))
         if sig.paradigms.is_two_pointer:
-            insights.append("Algorithmic Technique: Monitoring variables converging upon one another (like pointers approaching from opposite ends) frequently reduces what would be a slow nested $O(n^2)$ loop down to a clean, single-pass $O(n)$ scan.")
+            insights.append(self._v(
+                "Tip: the two-pointer pattern is a common way to turn a slow O(n^2) nested loop into a single O(n) pass -- worth remembering for array/string problems.",
+            ))
+        if sig.paradigms.is_kadane:
+            insights.append(self._v(
+                "This is Kadane's algorithm territory: instead of checking every possible subarray (which would be O(n^2)), it keeps a running best and updates it in one O(n) pass.",
+            ))
+        if sig.paradigms.is_priority_queue:
+            insights.append(self._v(
+                "Heaps (priority queues) keep the smallest/largest item within reach at all times. Pushing or popping costs O(log n) -- much better than sorting the whole thing every time you need the next best item.",
+            ))
         if sig.paradigms.is_brian_kernighan:
-            insights.append("Bitwise Mastery: The bitwise operation here elegantly drops the least significant set bit directly. This allows the algorithm to skip over zeroes completely, counting bits exponentially faster than an iterative scan.")
+            insights.append(self._v(
+                "Neat trick: `n & (n - 1)` clears the lowest set bit. Looping with this only takes as many steps as there are 1-bits, instead of checking every bit position.",
+            ))
         if sig.paradigms.is_memoization_check:
-            insights.append("Dynamic Programming: Intercepting execution to check if a state already exists inside a dictionary or hash map is the essence of Memoization. By instantly returning the saved answer, you drastically prune massive calculation branches off the execution tree.")
+            insights.append(self._v(
+                "This is memoization: before doing real work, the code checks \"have I already solved this exact subproblem?\" If yes, it just returns the saved answer instead of recomputing it -- this is what turns exponential recursion into something much more manageable.",
+            ))
         if sig.paradigms.is_fibonacci_sequence:
-            insights.append("State Advancement: Updating multiple variables on a single line evaluates the right side entirely before assigning to the left, seamlessly shifting the 'sliding window' of mathematical state forward without needing temporary variables.")
+            insights.append(self._v(
+                "Updating both values on one line means the right-hand side is fully computed first, then assigned -- a clean way to slide a two-value \"window\" forward without a temp variable.",
+            ))
         if sig.paradigms.is_combinatorics:
-            insights.append("Combinatorial Math: Operations dealing with permutations or factorials grow at an intensely aggressive rate ($O(n!)$ or worse). They mathematically force the CPU to account for every possible permutation, creating monumental workloads even for small inputs.")
+            insights.append(self._v(
+                "Careful with factorials and permutations -- they grow faster than almost anything else (O(n!)). Even n=15 already means over a trillion possibilities.",
+            ))
+        if sig.paradigms.is_union_find:
+            insights.append(self._v(
+                "Union-Find (Disjoint Set) answers \"are these two things connected?\" in close to O(1) time once you add path compression -- a big upgrade over checking connectivity by searching the whole structure.",
+            ))
         if sig.complexity_signals.quadratic_math:
-            insights.append("Mathematical Overhead: Squaring numbers (`**2`) or dealing with quadratic distance equations introduces heavier arithmetic operations, though modern CPUs pipeline these specific instructions extremely efficiently.")
+            insights.append(self._v(
+                "Squaring a number is simple arithmetic for the CPU, so don't worry about it being a bottleneck by itself.",
+            ))
 
         if sig.memory_signals.geometric_capacity_growth:
-            insights.append("Architectural Warning: Continuously multiplying or adding a sequence to itself inside a loop forces the computer to reallocate exponentially doubling chunks of memory. This turns what appears to be a simple loop into an incredibly slow, volatile process.")
+            insights.append(self._v(
+                "Watch out: growing a list or string by combining it with itself inside a loop causes the memory needed to double repeatedly. That turns an innocent-looking loop into something surprisingly slow.",
+            ))
         elif sig.memory_signals.string_concatenation_in_loop:
-            insights.append("Common Trap: Strings are fully immutable. Appending to a string directly inside a loop forces the system to construct a brand new string from scratch every single cycle. For better performance, append to a list and use `.join()` at the end.")
+            insights.append(self._v(
+                "Common trap: strings can't be changed in place, so `+=` on a string inside a loop rebuilds the whole thing every time. A faster fix: collect the pieces in a list and call `''.join(...)` once at the end.",
+            ))
+        elif sig.memory_signals.uses_join_for_strings:
+            insights.append(self._v(
+                "Good practice: `.join()` builds the final string in one efficient pass, which is exactly why it's preferred over repeatedly gluing strings together with `+=`.",
+            ))
         elif sig.complexity_signals.f_string_usage:
-            insights.append("Best Practice: Utilizing modern interpolation techniques (like f-strings) is exceptionally efficient. It calculates and builds the full string natively in C in one pass, avoiding the creation of slow intermediate memory copies.")
-        
+            insights.append(self._v(
+                "f-strings are efficient -- Python builds the final string in one go, so this isn't something to worry about performance-wise.",
+            ))
+
         if sig.complexity_signals.aggregation_in_loop:
-            insights.append("Bottleneck Risk: Placing aggregation functions like `sum()`, `max()`, or `min()` directly inside a loop causes the engine to secretly scan the entire sub-array over and over. Maintaining a running total variable instead will drastically improve speed.")
-        
+            insights.append(self._v(
+                "Heads up: calling `sum()`, `max()`, or `min()` inside a loop re-scans everything each time it's called. If you just need a running total, track it in a plain variable instead.",
+            ))
+
         if sig.complexity_signals.inefficient_list_pop:
-            insights.append("Data Structure Risk: Triggering a removal at the very start of a standard array is structurally slow. Because elements are packed tightly, the system must manually drag every remaining item one slot to the left. If you need a queue, `collections.deque` provides instant $O(1)$ pops.")
+            insights.append(self._v(
+                "Removing from the front of a list (`pop(0)`) is O(n), because every remaining item has to shift over by one. If you need to pop from the front often, `collections.deque` does it in O(1).",
+            ))
         if sig.complexity_signals.inefficient_list_insert:
-            insights.append("Data Structure Risk: Mechanically inserting an item at the exact start of a populated list forces the system to push all existing elements backward to make room. This is a heavy $O(n)$ operation that stalls large arrays.")
+            insights.append(self._v(
+                "Inserting at the very start of a list is O(n) for the same reason -- everything already there has to shift over to make room.",
+            ))
         if sig.complexity_signals.repeated_sort:
-            insights.append("Bottleneck Risk: Sorting is fundamentally heavy ($O(n \\log n)$). Placing a sorting mechanism directly inside a loop forces the CPU to repeat that intense mathematical lifting unnecessarily. Gather the data first, then sort exactly once outside the loop.")
+            insights.append(self._v(
+                "Sorting costs O(n log n) by itself, so doing it repeatedly inside a loop adds up fast. Try sorting once, outside the loop, whenever you can.",
+            ))
         if sig.complexity_signals.set_mathematical_ops:
-            insights.append("Best Practice: Native Set operations (like unions or intersections) are implemented at the lowest hardware levels. Utilizing them is exponentially faster and cleaner than writing manual nested loops to check for duplication.")
+            insights.append(self._v(
+                "Using built-in set operations (union, intersection, etc.) is usually much faster and cleaner than writing your own nested loops to compare items.",
+            ))
         if sig.complexity_signals.dict_lookup_constant:
-            insights.append("Best Practice: Leveraging specific dictionary getter methods or native hashed lookups yields an instant $O(1)$ data retrieval, bypassing the need to search linearly.")
+            insights.append(self._v(
+                "Dictionary lookups are O(1) on average -- one of the best trade-offs in programming, since it's basically free compared to scanning a list.",
+            ))
+        if sig.complexity_signals.list_reverse_op:
+            insights.append(self._v(
+                "Reversing a list is O(n) -- every element gets touched once, no matter how the list is organized.",
+            ))
+        if sig.complexity_signals.list_count_op:
+            insights.append(self._v(
+                "`.count()` has to scan the whole list to tally matches, so it's O(n). If you're counting things repeatedly, a `Counter` (from `collections`) built once is usually a better fit.",
+            ))
+        if sig.memory_signals.sorted_makes_a_copy:
+            insights.append(self._v(
+                "`sorted()` returns a brand-new list and leaves the original alone, while `.sort()` rearranges the list in place. Same time cost, but different memory trade-off -- worth knowing which one you actually need.",
+            ))
+        if sig.complexity_signals.iteration_helper_usage:
+            insights.append(self._v(
+                "Helpers like `zip()`, `enumerate()`, `map()`, and `filter()` don't change the underlying cost of a loop -- they just make the code cleaner to read and write.",
+            ))
+        if sig.complexity_signals.type_conversion:
+            insights.append(self._v(
+                "Converting between types (like `list()`, `str()`, `set()`) is usually O(1) for a single value, but O(n) if you're converting an entire collection, since every element has to be visited.",
+            ))
+        if sig.complexity_signals.binary_search_module:
+            insights.append(self._v(
+                "The `bisect` module does binary search for you in O(log n) -- no need to write the halving logic by hand.",
+            ))
+        if sig.complexity_signals.itertools_usage:
+            insights.append(self._v(
+                "`itertools` functions are written to be memory-efficient (often lazy), but the number of combinations/permutations they generate can still grow very fast, so the real cost depends on what you do with the output.",
+            ))
         if sig.has_early_exits or sig.has_continue:
-            insights.append("Optimization: Interacting with the loop flow (`break`, `continue`, or `return`) here acts as an excellent functional optimization. It grants the algorithm permission to completely bypass useless iterations the exact moment the logic resolves.")
+            insights.append(self._v(
+                "Using `break`, `continue`, or an early `return` here lets the algorithm skip unnecessary work the moment it knows the answer -- a simple, effective optimization.",
+            ))
 
         if sig.uses_try_except:
             if sig.complexity_signals.exception_control_flow:
-                insights.append("Performance Trap: While `try/except` blocks are powerful, relying on exceptions for standard control flow *inside* a heavy loop is surprisingly slow. Generating a traceback object carries a tangible processing penalty.")
+                insights.append(self._v(
+                    "A small catch: using `try/except` for everyday control flow inside a hot loop is slower than a plain `if` check, since building an exception object isn't free.",
+                ))
             else:
-                insights.append("Robust Engineering: Utilizing a `try/except` block ensures that unpredictable runtime anomalies are gracefully caught, preventing hard application crashes during execution.")
+                insights.append(self._v(
+                    "`try/except` here is good practice -- it catches unexpected problems gracefully instead of letting the whole program crash.",
+                ))
         if sig.uses_context_manager:
-            insights.append("Resource Safety: The `with` statement elegantly guarantees that external connections (like files or database locks) are automatically and securely closed the moment execution leaves the block, even if an error violently halts the program.")
+            insights.append(self._v(
+                "The `with` block automatically cleans up (closing files, releasing locks, etc.) even if an error happens partway through -- safer than doing cleanup manually.",
+            ))
+        if sig.uses_walrus:
+            insights.append(self._v(
+                "The walrus operator (`:=`) lets you assign and use a value in the same expression -- handy for avoiding a duplicate function call or an extra line.",
+            ))
 
         return insights
 
     def _gather_space_insights(self, sig: PatternSignals, mem_state: dict) -> List[str]:
         insights = []
         if sig.paradigms.is_tabulation_setup or sig.memory_signals.array_preallocation:
-            insights.append("Memory Optimization: Pre-allocating an array directly with a specific size (e.g., `[val] * n`) is a highly optimized way to reserve memory. It forces the system to grab exactly what it needs upfront, avoiding the constant reallocation penalties of `.append()`.")
+            insights.append(self._v(
+                "Pre-allocating a list with `[value] * n` reserves exactly the memory you need up front, avoiding the small repeated costs of growing a list one `.append()` at a time.",
+            ))
         if sig.memory_signals.inplace_swap:
-            insights.append("Memory Optimization: This operation modifies the data pointers strictly in-place. Because it doesn't require instantiating a completely new array, it is incredibly friendly to the computer's memory management system.")
-            
+            insights.append(self._v(
+                "Since this swaps values that already exist, no new memory is needed -- nice and lightweight.",
+            ))
+
         if sig.memory_signals.allocates_2d_lists:
-            insights.append("Memory Footprint: Creating nested arrays, such as a grid or a matrix, commands a significantly denser memory reservation from the Operating System than generating a standard flat list.")
+            insights.append(self._v(
+                "A 2D structure like a grid or matrix takes noticeably more memory than a flat list, since you're really storing n separate rows.",
+            ))
         elif sig.memory_signals.allocates_lists or sig.memory_signals.uses_list_comprehension:
-            insights.append("Memory Footprint: When instantiating a new list or array, the computer actively searches for and reserves a fresh, contiguous block of RAM to permanently house the incoming data elements.")
-            
+            insights.append(self._v(
+                "Building a new list means Python reserves a fresh block of memory to hold every element in it.",
+            ))
+
         if sig.memory_signals.allocates_sets or sig.memory_signals.uses_set_comprehension:
-            insights.append("Trade-off: Sets are astonishingly fast for lookups, but they achieve this by generating an invisible 'hash table'. This table intentionally leaves blank memory gaps to prevent data collisions, meaning a Set occupies substantially more raw RAM than a List of the exact same length.")
+            insights.append(self._v(
+                "Sets are fast for lookups, but that speed comes from a hash table that keeps some extra empty space to avoid collisions -- so a set typically uses more memory than a list with the same number of items.",
+            ))
         if sig.memory_signals.performs_slicing:
-            insights.append("Common Trap: Explicit array slicing physically cuts out and copies the targeted data, creating a complete duplicate array in memory. Executing slices inside recursive calls or loops will rapidly exhaust memory.")
+            insights.append(self._v(
+                "Slicing a list or string copies those elements into a brand-new object. Doing this repeatedly inside a loop or recursive call can quietly use a lot of memory.",
+            ))
         if sig.memory_signals.recursive_stack_risk:
-            insights.append("System Risk: Every time a recursive function calls itself, the system saves a 'frame' of the current variable state directly to the call stack. If the sequence plunges thousands of levels deep, it will crash to protect system RAM.")
+            insights.append(self._v(
+                "Every recursive call keeps its own frame on the call stack until it returns. Very deep recursion can use a surprising amount of memory (and may even hit Python's recursion limit).",
+            ))
+        if sig.memory_signals.uses_heap:
+            insights.append(self._v(
+                "A heap stores its elements in a single flat list internally, so it's about as memory-efficient as a regular list, just with a different internal order.",
+            ))
+        if sig.memory_signals.allocates_counter:
+            insights.append(self._v(
+                "A `Counter` is just a dictionary under the hood, storing one entry per unique item -- so its size depends on how many *distinct* items there are, not the total count.",
+            ))
+        if sig.memory_signals.creates_new_list_from_concat:
+            insights.append(self._v(
+                "Combining two lists with `+` builds an entirely new list. If this happens inside a loop, you're paying that copying cost every single time -- `.extend()` in place is usually cheaper.",
+            ))
+        if sig.memory_signals.uses_string_multiplication:
+            insights.append(self._v(
+                "Repeating a string or list with `*` allocates enough memory for the whole repeated result immediately.",
+            ))
+        if sig.memory_signals.allocates_view_object:
+            insights.append(self._v(
+                "`.keys()`, `.values()`, and `.items()` return lightweight views, not full copies -- they barely cost anything to create, though looping through one still takes one step per entry.",
+            ))
 
         if sig.uses_yield:
-            insights.append("Memory Mastery: The `yield` generator paradigm is the pinnacle of space optimization. Instead of allocating massive chunks of RAM to hold an entire array of results, `yield` pauses execution and emits exactly one element at a time, sustaining an astonishing $O(1)$ memory footprint regardless of dataset size.")
+            insights.append(self._v(
+                "`yield` is the memory-efficient choice here: instead of building the whole result list in memory, it hands back one item at a time, keeping space usage at O(1) regardless of how much data there is overall.",
+            ))
 
         if mem_state:
             largest = max(mem_state.items(), key=lambda x: x[1]['size'], default=None)
             if largest and largest[1]['size'] > 1:
-                insights.append(f"Runtime Diagnostic: The internal profiler directly observed that during live execution, the tracked variable `{largest[0]}` aggressively expanded to hold {largest[1]['size']} active elements in memory.")
+                insights.append(self._v(
+                    f"While actually running, `{largest[0]}` grew to hold {largest[1]['size']} element(s) -- the biggest structure observed during this run.",
+                ))
 
         return insights
 
     # =========================================================================
     # OVERALL COMPLEXITY ANALYSIS GENERATOR (REAL MATH ENGINE)
     # =========================================================================
-    
+
     def generate_overall_analysis(self, final_time: str, final_space: str, sig: PatternSignals, details: List[Dict]) -> str:
         """
-        Synthesizes the complete final time and space complexity evaluations into
-        a narrative, educational breakdown, accompanied by asymptotic simplifications.
-        Instead of fake math, this function actively parses the `details` array to
-        construct the real mathematical summation logic exactly as if solving on a whiteboard.
+        Puts together the full time & space verdict for the whole algorithm,
+        walking through the real math step by step (like working it out on a
+        whiteboard) rather than just stating the final answer.
         """
         t_info = self._classify_big_o(final_time)
         s_info = self._classify_big_o(final_space)
-        
-        # Build narrative pieces
+
         time_narrative = self._build_overall_time_narrative(t_info, sig)
         time_simp = self._build_real_simplification(details, "global_time", final_time, is_time=True)
-        
+
         space_narrative = self._build_overall_space_narrative(s_info, sig)
         space_simp = self._build_real_simplification(details, "global_space", final_space, is_time=False)
-        
+
         summary = self._build_complexity_summary(t_info, s_info, sig)
-        
+
         final_md = (
             "### Overall Complexity Analysis\n\n"
-            "#### Overall Time Complexity Analysis\n"
+            "#### Overall Time Complexity\n"
             f"{time_narrative}\n\n"
-            "**Asymptotic Simplification**\n"
+            "**Working Through the Math**\n"
             f"{time_simp}\n\n"
-            "#### Overall Space Complexity Analysis\n"
+            "#### Overall Space Complexity\n"
             f"{space_narrative}\n\n"
-            "**Asymptotic Simplification**\n"
+            "**Working Through the Math**\n"
             f"{space_simp}\n\n"
-            "#### Complexity Summary\n"
+            "#### In Short\n"
             f"{summary}"
         )
         return final_md
 
     def _build_real_simplification(self, details: List[Dict], key: str, final_complexity: str, is_time: bool) -> str:
-        """
-        Extracts the global complexities from every executed line, mathematically sums them, 
-        and explicitly writes out how the final Big-O evaluation is reached line-by-line.
-        """
         valid_ops = []
         recurrence_relation_str = None
-        
+
         for d in details:
             op_name = d.get("operation", "")
             if d.get("color") != "#7f8c8d" and op_name not in ["Definition", "Dead Code", "Comment / Docstring"]:
                 val = str(d.get(key, "O(1)"))
                 valid_ops.append(val)
-                # Check if this is a master recurrence equation
                 if "T(n) =" in val or "T(n)=" in val:
                     recurrence_relation_str = val
 
@@ -857,86 +1321,76 @@ class EducationalInsightGenerator:
             return self._solve_iterative_manually(valid_ops, final_complexity, prefix)
 
     def _solve_recurrence_manually(self, relation: str, final_complexity: str, prefix: str) -> str:
-        """
-        Performs a full manual Master Theorem or Unrolling deduction based strictly on the detected recurrence string.
-        """
         steps = []
-        steps.append(f"**Step 1: Identify the Recurrence Relation**\nThe static analyzer detected recursive branching logic forming the following recurrence relation:\n`{relation}`\n")
-        
+        steps.append(f"**Step 1: Write down the recurrence**\nThe recursive calls in this code follow this pattern:\n`{relation}`\n")
+
         if "T(n/2)" in relation:
             a = "2" if "2T" in relation else "1"
             b = "2"
             fn = "O(n)" if "+ O(n)" in relation else "O(1)"
-            steps.append(f"**Step 2: Apply the Master Theorem**\nThe relation fits the standard divide-and-conquer form: `{prefix} = a{prefix}(n/b) + f(n)`\n- `a` (subproblems per branch) = {a}\n- `b` (division factor) = {b}\n- `f(n)` (work done per level) = {fn}\n")
-            
-            steps.append(f"**Step 3: Calculate the Critical Exponent**\nWe evaluate `n^(log_b(a))`:\n`n^(log_{b}({a}))` = `n^{1 if a=='2' else 0}`\n")
-            
+            steps.append(f"**Step 2: Match it to the divide-and-conquer form**\nThis fits the pattern `{prefix} = a*{prefix}(n/b) + f(n)`, where:\n- `a` = {a} (how many subproblems each call makes)\n- `b` = {b} (how much smaller each subproblem is)\n- `f(n)` = {fn} (work done outside the recursive calls)\n")
+
+            steps.append(f"**Step 3: Compare the growth rates**\nWe check `n^(log_b(a))` against `f(n)`:\n`n^(log_{b}({a}))` = `n^{1 if a=='2' else 0}`\n")
+
             if a == "2" and fn == "O(n)":
-                steps.append(f"**Step 4: Evaluate Master Theorem Cases**\nSince `f(n) = O(n)` grows at the exact same rate as `n^(log_b(a)) = O(n)`, this satisfies **Case 2** of the Master Theorem. We multiply the term by `log n`.\n")
+                steps.append("**Step 4: Apply the Master Theorem**\n`f(n) = O(n)` grows at the same rate as `n^(log_b(a)) = O(n)`. That's Case 2 -- so we add a `log n` factor.\n")
             elif a == "2" and fn == "O(1)":
-                steps.append(f"**Step 4: Evaluate Master Theorem Cases**\nSince `f(n) = O(1)` grows strictly slower than `n^(log_b(a)) = O(n)`, this satisfies **Case 1** of the Master Theorem. The recursive leaves heavily dominate the processing cost.\n")
+                steps.append("**Step 4: Apply the Master Theorem**\n`f(n) = O(1)` grows slower than `n^(log_b(a)) = O(n)`. That's Case 1 -- the recursive calls themselves dominate the cost.\n")
             elif a == "1" and fn == "O(1)":
-                steps.append(f"**Step 4: Evaluate Master Theorem Cases**\nSince `f(n) = O(1)` is identical to `n^(log_b(a)) = O(1)`, this is **Case 2** of the Master Theorem. We multiply by `log n`.\n")
+                steps.append("**Step 4: Apply the Master Theorem**\n`f(n) = O(1)` matches `n^(log_b(a)) = O(1)`. That's Case 2 -- so we add a `log n` factor.\n")
             elif a == "1" and fn == "O(n)":
-                steps.append(f"**Step 4: Evaluate Master Theorem Cases**\nSince `f(n) = O(n)` grows strictly faster than `n^(log_b(a)) = O(1)`, this satisfies **Case 3** of the Master Theorem. The root level dominates.\n")
-                
+                steps.append("**Step 4: Apply the Master Theorem**\n`f(n) = O(n)` grows faster than `n^(log_b(a)) = O(1)`. That's Case 3 -- the work done outside the recursion dominates.\n")
+
         elif "T(n-1)" in relation and "T(n-2)" in relation:
-            steps.append(f"**Step 2: Unroll the Recursive Tree**\nThis is a multiple-branching linear recurrence (typically seen in Fibonacci sequences). Every execution spawns two additional execution branches: `T(n) → T(n-1) + T(n-2)`.\n")
-            steps.append(f"**Step 3: Establish the Growth Rate**\nBecause the deepest chain of the tree is `n` levels deep and each node structurally branches into roughly 2 child nodes, the total number of nodes grows geometrically as a power of 2.\n")
-            steps.append(f"**Step 4: Evaluate Complexity**\nSumming the nodes yields `2^0 + 2^1 + 2^2 + ... + 2^n`, which simplifies mathematically directly to an exponential upper bound.\n")
-            
+            steps.append("**Step 2: Unroll the recursion tree**\nThis is the classic Fibonacci-style pattern: every call spawns two more calls, `T(n) → T(n-1) + T(n-2)`.\n")
+            steps.append("**Step 3: Count how the tree grows**\nThe tree is about `n` levels deep, and roughly doubles in width at each level.\n")
+            steps.append("**Step 4: Add it up**\nSumming `2^0 + 2^1 + 2^2 + ... + 2^n` gives an exponential total -- this is why naive recursive Fibonacci is so slow.\n")
+
         elif "T(n-1)" in relation:
             fn = "O(n)" if "+ O(n)" in relation else ("O(log n)" if "+ O(log n)" in relation else "O(1)")
             multiplier = "n *" if "n * T" in relation else ""
-            steps.append(f"**Step 2: Unroll the Substitution Method**\nThis represents a linear chain of recursive calls. The function executes exactly `n` times (representing the depth of the call stack).\n")
-            
+            steps.append("**Step 2: Unroll the chain**\nThis is a straight chain of recursive calls, one level deep for each unit of `n` -- so the call stack ends up `n` levels deep.\n")
+
             if multiplier:
-                steps.append(f"**Step 3: Evaluate Factorial Expansion**\nBecause the work physically multiplies at each sequential level `n * (n-1) * (n-2)...`, this directly represents the strict mathematical definition of a factorial expansion.\n")
+                steps.append("**Step 3: Multiply across levels**\nSince the work multiplies at each level (`n * (n-1) * (n-2) * ...`), this is exactly the definition of a factorial.\n")
             elif fn == "O(n)":
-                steps.append(f"**Step 3: Evaluate Arithmetic Series**\nAt each level `i` (from `n` down to 1), it performs `O(i)` work. Summing this yields an arithmetic series: `n + (n-1) + (n-2) ... + 1`.\n")
-                steps.append(f"**Step 4: Closed-Form Formula**\nThis is a standard arithmetic progression summing to `(n * (n + 1)) / 2`, which mathematically expands and bounds to `O(n^2)`.\n")
+                steps.append("**Step 3: Add up the work at each level**\nAt each of the `n` levels, `O(i)` work happens. Adding these up (`n + (n-1) + (n-2) + ... + 1`) is a classic arithmetic series.\n")
+                steps.append("**Step 4: Simplify the series**\nThat series sums to `n * (n + 1) / 2`, which simplifies to `O(n^2)`.\n")
             else:
-                steps.append(f"**Step 3: Evaluate Constant Accumulation**\nAt each of the `n` recursive levels, it performs strictly `{fn}` work. The total algebraic work is simply `n` multiplied by `{fn}`.\n")
+                steps.append(f"**Step 3: Multiply levels by cost**\nEach of the `n` levels does `{fn}` of work, so the total is `n` multiplied by `{fn}`.\n")
 
         else:
-            steps.append(f"**Step 2: Algebraic Deduction**\nThe static engine maps this custom relation dynamically against known expansion limits.\n")
+            steps.append("**Step 2: Work it out**\nThe recursion doesn't match one of the standard textbook shapes, so the engine evaluates it against known growth patterns directly.\n")
 
-        steps.append(f"**Final Asymptotic Complexity:**\n`{prefix} = {final_complexity}`\n")
+        steps.append(f"**Final answer:**\n`{prefix} = {final_complexity}`\n")
         return "\n".join(steps)
 
     def _solve_iterative_manually(self, valid_ops: List[str], final_complexity: str, prefix: str) -> str:
-        """
-        Performs a full manual algebraic summation and cancellation of iterative Big-O terms.
-        """
         steps = []
-        
-        # Determine if we even have ops
-        if not valid_ops:
-            return f"**Step 1: Evaluation**\nNo substantial complexity factors detected.\n\n**Final Asymptotic Complexity:**\n`{prefix} = O(1)`\n"
 
-        # Step 1: Raw Polynomial
-        steps.append(f"**Step 1: Line-by-Line Cost Extraction**\nWe extract the maximum asymptotic bounds for each executed statement in the structural block.\n")
+        if not valid_ops:
+            return f"**Step 1:**\nThere's no meaningful cost to add up here.\n\n**Final answer:**\n`{prefix} = O(1)`\n"
+
+        steps.append("**Step 1: List each line's cost**\nWe take the worst-case cost of every executed line:\n")
         raw_eq_terms = [t if t.startswith("O(") else f"O({t})" for t in valid_ops]
         steps.append(f"`{prefix} = " + " + ".join(raw_eq_terms) + "`\n")
-        
-        # Step 2: Grouping
+
         counts = {}
         for op in valid_ops:
             val = op.replace("O(", "").replace(")", "").strip()
-            if val == "1 amortized": val = "1"
-            if "T(" in val: val = val # Do not touch recurrence placeholders
+            if val == "1 amortized":
+                val = "1"
             counts[val] = counts.get(val, 0) + 1
-        
+
         grouped_terms = []
         for term, count in counts.items():
             if "T(" in term:
                 grouped_terms.append(f"{count} * {term}" if count > 1 else term)
             else:
                 grouped_terms.append(f"{count} * O({term})")
-        
-        steps.append(f"**Step 2: Grouping Similar Terms**\nCombine mathematically identical terms to form the aggregate cost equation:\n`{prefix} = " + " + ".join(grouped_terms) + "`\n")
-        
-        # Step 3: Dropping Constants
+
+        steps.append("**Step 2: Group matching terms**\nCombine the terms that are the same order of growth:\n" + f"`{prefix} = " + " + ".join(grouped_terms) + "`\n")
+
         dropped_consts = []
         for t, c in counts.items():
             if "T(" in t:
@@ -944,133 +1398,205 @@ class EducationalInsightGenerator:
             else:
                 dropped_consts.append(f"O({t})")
 
-        steps.append(f"**Step 3: Asymptotic Simplification (Dropping Constants)**\nIn Big-O analysis, constant multipliers (like structural coefficients) do not affect the rate of growth towards infinity and are discarded:\n`{prefix} = " + " + ".join(dropped_consts) + "`\n")
-        
-        # Step 4: Dominance Evaluation
+        steps.append("**Step 3: Drop the constant multipliers**\nIn Big-O, a fixed number of repeats (like `3 *`) doesn't change the growth rate, so we drop it:\n" + f"`{prefix} = " + " + ".join(dropped_consts) + "`\n")
+
         hierarchy = ["1", "log min", "log", "sqrt", "n", "m", "V", "V + E", "n log n", "n^2", "n * m", "n^3", "2^n", "3^n", "n!", "n * n!"]
         def get_rank(v):
             for i, h in enumerate(reversed(hierarchy)):
-                if h in v: return len(hierarchy) - i
+                if h in v:
+                    return len(hierarchy) - i
             return -1
 
         sorted_dropped = sorted(dropped_consts, key=lambda x: get_rank(x), reverse=True)
         dominant_term = sorted_dropped[0]
-        
+
         if len(sorted_dropped) > 1:
             lower_terms = sorted_dropped[1:]
-            explanation = "We compare the growth rates of the remaining terms. As the input variables approach infinity:\n"
+            explanation = "Comparing how fast each term grows as the input gets large:\n"
             for lower in lower_terms:
-                explanation += f"- `{dominant_term}` grows strictly faster than `{lower}`. We drop `{lower}`.\n"
-            steps.append(f"**Step 4: Applying Dominance Rules (Dropping Lower-Order Terms)**\n{explanation}\n`{prefix} = {dominant_term}`\n")
+                explanation += f"- `{dominant_term}` grows faster than `{lower}`, so we drop `{lower}`.\n"
+            steps.append(f"**Step 4: Keep only the fastest-growing term**\n{explanation}\n`{prefix} = {dominant_term}`\n")
         else:
-            steps.append(f"**Step 4: Dominance Evaluation**\nThere is only one unique term class in the equation, so no lower-order terms need to be dropped.\n`{prefix} = {dominant_term}`\n")
-            
-        # Step 5: Adjust for Engine Overrides
-        # We replace whitespace to avoid mismatching "O(log n)" and "O(logn)"
+            steps.append(f"**Step 4: Only one term to begin with**\nThere's nothing else to compare it against.\n`{prefix} = {dominant_term}`\n")
+
         if dominant_term.replace(" ", "") != final_complexity.replace(" ", ""):
-            steps.append(f"**Step 5: Contextual Bounds Adjustment**\nFactoring in architectural loop nesting depth and the global bounds limits strictly evaluated by the traversal engine, the definitive complexity heavily scales to:\n`{prefix} = {final_complexity}`\n")
+            steps.append(f"**Step 5: Adjust for the surrounding structure**\nTaking the loop nesting and overall bounds into account, this settles at:\n`{prefix} = {final_complexity}`\n")
         else:
-            steps.append(f"**Final Asymptotic Complexity:**\n`{prefix} = {final_complexity}`\n")
+            steps.append(f"**Final answer:**\n`{prefix} = {final_complexity}`\n")
 
         return "\n".join(steps)
 
     def _build_overall_time_narrative(self, t_info: BigOInfo, sig: PatternSignals) -> str:
         family = t_info.family
         narrative = []
-        
+
         if family == "logarithmic" or sig.paradigms.is_halving:
-            narrative.append(f"The overall runtime of this algorithm is {t_info.raw}. The primary reason is that the algorithm never examines every element individually. During its core execution phase, the search boundary is aggressively halved on each iteration, allowing the engine to rapidly zero in on the target region.")
-            narrative.append("The most expensive operations are these logarithmic reduction steps. While the function contains several assignments, conditional comparisons, and return statements, those execute in pure constant time and contribute very little to the overall runtime. Because Big-O analysis strictly focuses on the fastest-growing dominant term, these scalar operations do not alter the final complexity.")
+            narrative.append(self._v(
+                f"This algorithm runs in {t_info.raw}. The reason is simple: it never has to look at every element. Each step throws away a chunk of the remaining problem, so it homes in on the answer fast.",
+            ))
+            narrative.append(self._v(
+                "The halving steps are the only thing that really matters for speed here. There are a few assignments and comparisons along the way, but those are all O(1), so they don't change the big picture -- Big-O only cares about the fastest-growing part.",
+            ))
         elif family == "polynomial" and sig.nested_loops:
-            narrative.append(f"The overall runtime evaluates to a heavy {t_info.raw}. The primary bottleneck here is the nested loop structure. Because the inner loop fires completely for every single pass of the outer loop, the workload multiplies quadratically.")
-            narrative.append("While there are minor variable assignments happening outside or inside these loops, the massive repetition caused by the nested loops completely eclipses them. The dominant computational activity is entirely dictated by the deepest loop level.")
+            narrative.append(self._v(
+                f"This algorithm runs in {t_info.raw}. The bottleneck is the nested loops: for every single pass of the outer loop, the inner loop runs all the way through too, so the work multiplies.",
+            ))
+            narrative.append(self._v(
+                "There may be small extra steps outside the loops, but they're tiny compared to how much the nested loops repeat. The deepest loop is really what decides the final speed.",
+            ))
         elif family == "linearithmic" or sig.complexity_signals.repeated_sort:
-            narrative.append(f"The overall execution speed settles at {t_info.raw}. The algorithm's performance is strictly anchored by heavy structural reorganizations—most notably, sorting operations or 'Divide and Conquer' recursion trees.")
-            narrative.append("Operations like linear scans or direct assignments may exist alongside it, but the logarithmic branching attached to a linear sweep naturally dominates the execution cost, creating the primary bottleneck.")
+            narrative.append(self._v(
+                f"This algorithm runs in {t_info.raw}. That's the signature of sorting or a divide-and-conquer approach -- faster than nested loops, but a bit more than a single pass.",
+            ))
+            narrative.append(self._v(
+                "Any plain loops or lookups elsewhere are cheap by comparison. The sort (or recursive split-and-combine) is what really drives the cost here.",
+            ))
         elif family in ["exponential", "super_exponential", "recursive_branching"] and sig.has_recursion:
-            narrative.append(f"The runtime of this algorithm experiences explosive combinatorial growth, landing at a severe {t_info.raw}. The execution time is overwhelmingly dominated by the recursive branching pattern.")
-            narrative.append("Because each function call blindly spawns multiple subsequent calls without safely caching prior results, it forces a massive cascade of redundant mathematical operations. This branching behavior completely defines the performance ceiling.")
+            narrative.append(self._v(
+                f"This algorithm runs in {t_info.raw}, which grows extremely fast. That's because the recursion branches into multiple calls at every step.",
+            ))
+            narrative.append(self._v(
+                "Since each call doesn't remember answers from earlier calls, the same subproblems get solved again and again. That repeated, branching work is what defines the runtime here -- adding memoization would help a lot.",
+            ))
         elif family == "linear" or sig.loop_depth == 1:
-            narrative.append(f"The overall runtime of this algorithm scales exactly proportionally to the input, resulting in {t_info.raw}. The performance ceiling is explicitly governed by the primary loop that must touch every single element at least once.")
-            narrative.append("The primary bottleneck is this sequential traversal. All associated flat assignments or boolean checks execute in constant time, meaning the dominant activity dictating the algorithmic limit is the loop's required linear sweep.")
+            narrative.append(self._v(
+                f"This algorithm runs in {t_info.raw} -- the time it takes grows directly with the size of the input.",
+            ))
+            narrative.append(self._v(
+                "The main loop, which touches every element once, is what sets this. Everything else (assignments, simple checks) is O(1) and doesn't change the overall picture.",
+            ))
+        elif family == "graph":
+            narrative.append(self._v(
+                f"This algorithm runs in {t_info.raw} -- that's the standard cost of visiting every node (V) and every edge (E) in a graph exactly once.",
+                f"This algorithm runs in {t_info.raw}. That's what you get from a traversal like BFS or DFS: each node gets visited once, and each edge gets checked once.",
+            ))
+            narrative.append(self._v(
+                "This is considered efficient for graph problems -- you genuinely can't do much better than looking at every node and edge at least once if you need to explore the whole graph.",
+            ))
         else:
-            narrative.append(f"The total runtime complexity evaluates to a pristine {t_info.raw}. The engine successfully manages the data without invoking any dynamically scaling loops or exhaustive iteration structures.")
-            narrative.append("Every calculation, variable assignment, and lookup resolves directly in constant time. Because there are no iterative bottlenecks dragging performance down, the algorithm functions at optimal execution speeds.")
+            narrative.append(self._v(
+                f"This algorithm runs in {t_info.raw}. There's no loop or recursion scaling with the input here.",
+            ))
+            narrative.append(self._v(
+                "Every step is a fixed-cost operation -- assignments, lookups, simple math -- so the whole thing runs in constant time no matter how big the input gets.",
+            ))
 
         if family == "constant":
-            narrative.append("From an efficiency perspective, the algorithm behaves perfectly. Because it completely ignores the size of the incoming dataset, it will process ten elements exactly as fast as it processes ten million elements, offering flawless scalability.")
+            narrative.append(self._v(
+                "That's about as good as it gets: this algorithm takes exactly as long whether the input has 10 items or 10 million.",
+            ))
         elif family == "logarithmic":
-            narrative.append("From an efficiency perspective, the algorithm exhibits phenomenal scalability. As the dataset doubles in size, the algorithm requires merely one additional processing step. By strategically discarding large portions of the problem space, it safely sustains high speeds even under massive data loads.")
+            narrative.append(self._v(
+                "This scales beautifully. Doubling the input only adds about one more step, so it stays fast even on huge datasets.",
+            ))
         elif family == "linear":
-            narrative.append("As the input size grows, the required processing time increases at a stable, predictable 1:1 ratio. While it is highly efficient and avoids redundant comparisons, its performance is fundamentally tethered to the sheer volume of elements it must inspect.")
+            narrative.append(self._v(
+                "This scales predictably: double the input, double the time. It's efficient, but it will always depend directly on how much data there is.",
+            ))
         elif family == "linearithmic":
-            narrative.append("The algorithm handles scaling moderately well. While heavier than a standard linear pass, it gracefully avoids catastrophic quadratic collapse, allowing it to securely organize and process massive datasets efficiently.")
+            narrative.append(self._v(
+                "This scales well. It's a bit heavier than linear, but nowhere near as bad as quadratic, so it can comfortably handle large datasets.",
+            ))
+        elif family == "graph":
+            narrative.append(self._v(
+                "This scales about as well as a linear algorithm does, as long as the graph doesn't have an extreme number of edges -- doubling the nodes and edges roughly doubles the work.",
+            ))
         else:
-            narrative.append("Unfortunately, as the dataset expands, the required processing power violently spikes. This algorithmic behavior struggles to scale safely, meaning that while it solves small inputs easily, larger datasets will quickly force the system to stall or freeze entirely.")
+            narrative.append(self._v(
+                "This one scales poorly. Small inputs run fine, but as the input grows, the running time increases much faster than the input does, so large inputs can get slow quickly.",
+            ))
 
         return "\n\n".join(narrative)
 
     def _build_overall_space_narrative(self, s_info: BigOInfo, sig: PatternSignals) -> str:
         family = s_info.family
         narrative = []
-        
-        if family == "constant":
-            narrative.append(f"The overall memory consumption of the algorithm is highly optimized at {s_info.raw}. It only stores a fixed number of scalar variables throughout its entire execution lifecycle.")
-            narrative.append("No additional arrays, large dictionaries, or dynamically growing structures are created. It safely reuses existing reference pointers and operates exactly within its initial bounds, guaranteeing that there is no memory bottleneck.")
-        elif family == "linear":
-            if sig.has_recursion:
-                narrative.append(f"The algorithm hits an overall spatial footprint of {s_info.raw}. The primary memory bottleneck is heavily dictated by the recursive call stack. Every time the function calls itself, the system is strictly forced to preserve a suspended 'frame' of the variables in RAM.")
-            else:
-                narrative.append(f"The algorithm scales its memory usage directly proportional to the input size, landing at {s_info.raw}. The primary spatial bottleneck is the explicit allocation of new data structures—such as lists, dictionaries, or dynamic string arrays.")
-            narrative.append("While basic pointer variables exist, they are functionally negligible. The dominant spatial factor is strictly the collection mapping required to hold the newly generated data payload.")
-        elif family == "polynomial":
-            narrative.append(f"The overall spatial requirement forcefully balloons to a dense {s_info.raw}. The core memory bottleneck here is the instantiation of multi-dimensional arrays, dense matrices, or 2D tabulation grids.")
-            narrative.append("Because the data footprint is growing by a power of the input, the algorithm requests massive, contiguous blocks of RAM from the operating system, completely overshadowing any standard 1D list allocations.")
-        else:
-            narrative.append(f"The overall spatial limit is strictly evaluated at {s_info.raw}. Memory is aggressively claimed to support the algorithm's active operational state.")
 
         if family == "constant":
-            narrative.append("Because the algorithm aggressively avoids cloning the input data, the footprint remains immaculately stable. Whether processing a dozen items or ten million, the auxiliary memory used remains virtually unchanged.")
+            narrative.append(self._v(
+                f"Memory use here is {s_info.raw} -- only a handful of fixed variables are used, no matter the input size.",
+            ))
+            narrative.append(self._v(
+                "No lists, dictionaries, or other growing structures are being built. The algorithm just reuses the same small amount of space the whole time.",
+            ))
         elif family == "linear":
-            narrative.append("The memory consumption scales predictably. If the input data doubles, the required background memory doubles alongside it. While generally safe on modern systems, extremely large datasets could eventually trigger out-of-memory errors.")
+            if sig.has_recursion:
+                narrative.append(self._v(
+                    f"Memory use here is {s_info.raw}, mainly because of the recursive call stack -- every call in progress keeps its own small frame in memory until it returns.",
+                ))
+            else:
+                narrative.append(self._v(
+                    f"Memory use here is {s_info.raw}, growing directly with the input. That's from building a new list, dictionary, or similar structure sized to match the data.",
+                ))
+            narrative.append(self._v(
+                "Simple pointer variables barely matter here -- the real memory cost comes from whatever data structure is holding all the new information.",
+            ))
         elif family == "polynomial":
-            narrative.append("This spatial behavior is notoriously dangerous to scale. A simple doubling of the input size will violently quadruple the required RAM, meaning this algorithm will rapidly exhaust the computer's available memory limits on larger datasets.")
+            narrative.append(self._v(
+                f"Memory use jumps up to {s_info.raw}. That usually means a 2D structure -- a grid, matrix, or table -- is being built, which takes a lot more space than a flat list.",
+            ))
+            narrative.append(self._v(
+                "Because the space needed grows with the square (or more) of the input, this can use up memory fast on larger inputs.",
+            ))
+        elif family == "graph":
+            narrative.append(self._v(
+                f"Memory use here is {s_info.raw} -- typically from a visited set and/or a structure tracking distances or parents for every node in the graph.",
+            ))
+            narrative.append(self._v(
+                "That's normal for graph traversal: you generally need to remember something about every node you've visited, so memory grows with the size of the graph.",
+            ))
         else:
-            narrative.append("The spatial logic deployed here creates an extremely heavy footprint, severely limiting its capability to handle larger system inputs without crashing.")
+            narrative.append(self._v(f"Memory use here comes out to {s_info.raw}."))
+
+        if family == "constant":
+            narrative.append(self._v(
+                "Because nothing here scales with the input, the memory footprint stays exactly the same whether you're processing a dozen items or a million.",
+            ))
+        elif family == "linear":
+            narrative.append(self._v(
+                "Memory grows in step with the input -- double the data, double the memory needed. That's normal and usually fine, though very large inputs are worth keeping an eye on.",
+            ))
+        elif family == "polynomial":
+            narrative.append(self._v(
+                "This is worth watching: doubling the input roughly quadruples the memory needed, so large inputs can use up available memory surprisingly fast.",
+            ))
+        else:
+            narrative.append(self._v(
+                "This uses a fairly heavy amount of memory, which is worth keeping in mind for larger inputs.",
+            ))
 
         return "\n\n".join(narrative)
 
     def _build_complexity_summary(self, t_info: BigOInfo, s_info: BigOInfo, sig: PatternSignals) -> str:
-        summary = ""
-        
         if t_info.family in ["constant", "logarithmic", "linear"] and s_info.family in ["constant", "logarithmic", "linear"]:
-            summary = "This algorithm achieves an excellent level of overall scalability. "
+            summary = "Overall, this algorithm scales well. "
         elif t_info.family in ["polynomial", "exponential", "factorial"] or s_info.family in ["polynomial", "exponential"]:
-            summary = "This algorithm faces severe limitations regarding large-scale operations. "
+            summary = "Overall, this algorithm will struggle with large inputs. "
         else:
-            summary = "This algorithm is functionally sound but requires careful attention to dataset constraints. "
+            summary = "Overall, this algorithm is reasonably solid, but keep an eye on how large your input can get. "
 
-        summary += f"The final dominant factor influencing performance is the algorithmic structure driving its `{t_info.raw}` processing time, "
-        
+        summary += f"The main thing driving the runtime is `{t_info.raw}` time, "
+
         if s_info.family == "constant":
-            summary += f"while the dominant factor influencing memory is its highly optimized absence of expanding data structures, anchoring space at `{s_info.raw}`. "
+            summary += f"and memory use stays flat at `{s_info.raw}` since nothing grows with the input. "
         else:
-            summary += f"alongside a spatial expansion constraint that drives its memory footprint directly to `{s_info.raw}`. "
+            summary += f"paired with `{s_info.raw}` space as the data structures involved grow. "
 
-        summary += f"Consequently, the final definitive asymptotic complexities are **{t_info.raw} Time** and **{s_info.raw} Space**."
-        
+        summary += f"**Bottom line: {t_info.raw} time, {s_info.raw} space.**"
+
         return summary
 
+    # -------------------------------------------------------------------
+    # Main entry point: builds the full per-line explanation pair
+    # -------------------------------------------------------------------
     def generate_explanations(self, node, local_t, global_t, local_s, global_s, is_dead, code_snippet, hits=0, mem_state=None):
         if is_dead and hits == 0:
             t_desc = (
-                f"**Local & Global Analysis:**\nThe targeted sequence `{code_snippet}` is classified strictly as Dead Code. Because the fundamental logic "
-                f"mechanically forbids execution flow from ever traversing inside this block, it contributes absolute zero processing overhead, "
-                f"resolving its impact to an immaculate $O(1)$ runtime penalty."
+                f"**Local & Global:**\nThis line (`{code_snippet}`) is dead code -- there's no way for the program to ever reach it, "
+                f"so it never runs and costs nothing: O(1)."
             )
             s_desc = (
-                "**Local & Global Analysis:**\nDue to the structural impossibility of triggering this block, the engine never requests memory allocations "
-                "for it. The spatial footprint remains completely unblemished at $O(1)$."
+                "**Local & Global:**\nSince this code never executes, it never needs any memory either -- O(1)."
             )
             return t_desc, s_desc
 
@@ -1085,28 +1611,28 @@ class EducationalInsightGenerator:
         time_intro = self._build_action_intro(node, code_snippet, sig)
         time_local = self._build_local_time_explanation(l_time_info, sig)
         time_global = self._build_global_time_explanation(l_time_info, g_time_info, sig)
-        
+
         time_insights = self._gather_time_insights(sig, str(local_t))
-        time_insight_text = "\n\n**Educational Insight:**\n" + "\n\n".join(time_insights) if time_insights else ""
-        time_hits = f"\n\n*Profiler verified this line executed {hits} times during the last run.*" if hits > 0 else ""
+        time_insight_text = "\n\n**Worth Knowing:**\n" + "\n\n".join(time_insights) if time_insights else ""
+        time_hits = f"\n\n*This line actually ran {hits} time(s) during the last test.*" if hits > 0 else ""
 
         full_time_desc = (
             f"{time_intro}\n\n"
-            f"**Local Analysis:**\n{time_local}\n\n"
-            f"**Global Impact:**\n{time_global}"
+            f"**On Its Own:**\n{time_local}\n\n"
+            f"**In the Bigger Picture:**\n{time_global}"
             f"{time_insight_text}"
             f"{time_hits}"
         )
 
         space_local = self._build_local_space_explanation(l_space_info, sig)
         space_global = self._build_global_space_explanation(l_space_info, g_space_info, sig)
-        
+
         space_insights = self._gather_space_insights(sig, mem_state)
-        space_insight_text = "\n\n**Educational Insight:**\n" + "\n\n".join(space_insights) if space_insights else ""
+        space_insight_text = "\n\n**Worth Knowing:**\n" + "\n\n".join(space_insights) if space_insights else ""
 
         full_space_desc = (
-            f"**Local Analysis:**\n{space_local}\n\n"
-            f"**Global Impact:**\n{space_global}"
+            f"**On Its Own:**\n{space_local}\n\n"
+            f"**In the Bigger Picture:**\n{space_global}"
             f"{space_insight_text}"
         )
 
@@ -1114,41 +1640,67 @@ class EducationalInsightGenerator:
 
     def get_time_bottleneck_warning(self, operation: str, final_time: str) -> str:
         op_lower = operation.lower()
-        
+
         if "loop" in op_lower:
-            return f"\n\n**Bottleneck Warning:** The primary reason this algorithm evaluates to {final_time} is the massive volume of repetitions mathematically forced by this {op_lower}. It acts as the anchor dragging performance down."
+            return self._v(
+                f"\n\n**Where the Time Goes:** The reason this ends up at {final_time} is simply how many times this {op_lower} repeats. That's the real bottleneck.",
+            )
         elif "recur" in op_lower or "call" in op_lower:
-            return f"\n\n**Bottleneck Warning:** Because this {op_lower} aggressively creates overlapping sub-problems without remembering past answers, it forces a massive cascade of redundant mathematical operations causing a severe {final_time} delay."
+            return self._v(
+                f"\n\n**Where the Time Goes:** This {op_lower} keeps solving overlapping subproblems from scratch instead of reusing earlier answers, which is what pushes the time up to {final_time}.",
+            )
         elif "comprehension" in op_lower:
-            return f"\n\n**Bottleneck Warning:** Do not be computationally fooled by its one-line elegance. Physically expanding this {op_lower} requires intense, hidden iteration under the hood, heavily defining the {final_time} runtime performance ceiling."
+            return self._v(
+                f"\n\n**Where the Time Goes:** Even though this {op_lower} fits on one line, it's still doing real iteration underneath -- that hidden looping is what sets the {final_time} cost.",
+            )
         elif "sort" in op_lower:
-            return f"\n\n**Bottleneck Warning:** Sorting arrays is a fundamentally heavy mathematical task. Relying on this {op_lower} acts as a massive execution barrier, strictly preventing the algorithm from running any faster than {final_time}."
+            return self._v(
+                f"\n\n**Where the Time Goes:** Sorting is inherently O(n log n) work. This {op_lower} is the main reason the algorithm can't run faster than {final_time}.",
+            )
         else:
-            return f"\n\n**Bottleneck Warning:** The most computationally intensive work happens entirely within this {op_lower}, ruthlessly dictating the final systemic {final_time} time complexity."
+            return self._v(
+                f"\n\n**Where the Time Goes:** Most of the actual work happens inside this {op_lower}, which is what decides the final {final_time} time complexity.",
+            )
 
     def get_space_bottleneck_warning(self, operation: str, final_space: str) -> str:
         op_lower = operation.lower()
-        
+
         if "recur" in op_lower or "call" in op_lower:
-            return f"\n\n**Space Bottleneck:** Every single functional jump deep inside this {op_lower} mandates a completely new required block of memory on the call stack, violently driving the peak system memory directly up to {final_space}."
+            return self._v(
+                f"\n\n**Where the Memory Goes:** Every call inside this {op_lower} keeps its own frame on the stack until it finishes, which drives peak memory use up to {final_space}.",
+            )
         elif "comprehension" in op_lower or "list" in op_lower or "assignment" in op_lower or "expansion" in op_lower:
-            return f"\n\n**Space Bottleneck:** Rather than intelligently shuffling data lightly in-place, this {op_lower} forcefully clones memory structures entirely, absolutely ensuring the systemic memory requirements escalate to {final_space}."
+            return self._v(
+                f"\n\n**Where the Memory Goes:** Rather than reusing existing memory, this {op_lower} builds a brand-new structure, which is what pushes memory use up to {final_space}.",
+            )
         elif "slice" in op_lower or "string" in op_lower or "concat" in op_lower:
-            return f"\n\n**Space Bottleneck:** Because array slicing and string building forcefully creates duplicate memory clones rather than relying on simple reference pointers, this {op_lower} heavily balloons the peak spatial limits to {final_space}."
+            return self._v(
+                f"\n\n**Where the Memory Goes:** Slicing and string-building both copy data into new memory rather than reusing what's there, so this {op_lower} is what drives peak memory use to {final_space}.",
+            )
         else:
-            return f"\n\n**Space Bottleneck:** The sheer volume of newly generated intermediate data that must strictly be held actively in RAM because of this {op_lower} brutally causes the overall capacity to reach {final_space}."
+            return self._v(
+                f"\n\n**Where the Memory Goes:** The new data this {op_lower} has to hold onto is what pushes total memory use up to {final_space}.",
+            )
 
     def get_time_optimization_praise(self, operation: str, global_time: str) -> str:
         time_lower = global_time.lower()
-        
+
         if "log" in time_lower:
-            return f"\n\n**Algorithmic Mastery:** Systematically halving the problem space is a truly brilliant mathematical optimization. By proactively discarding half the unneeded data at every step, this deeply refined {operation.lower()} absolutely boasts hyper-scalable {global_time} pristine execution speeds."
+            return self._v(
+                f"\n\n**Nice Work Here:** Cutting the problem in half at each step is a genuinely great optimization. This {operation.lower()} scales impressively well, landing at {global_time}.",
+            )
         elif "√" in time_lower or "sqrt" in time_lower:
-            return f"\n\n**Algorithmic Mastery:** Phenomenal logical optimization. By recognizing that you legitimately only need to verify factors up to the numeric square root, this {operation.lower()} intelligently bypasses staggering amounts of useless cyclic iterations, cleanly locking in a fast {global_time} boundary."
+            return self._v(
+                f"\n\n**Nice Work Here:** Smart move -- only checking up to the square root avoids a huge number of unnecessary checks. This {operation.lower()} runs in a solid {global_time}.",
+            )
         elif "1" in time_lower:
-            return f"\n\n**Algorithmic Mastery:** Pristine operational execution. By intelligently grabbing target values absolutely instantly through hashed memory keys or explicitly direct index pointers, this refined {operation.lower()} completely avoids redundant sequential scanning, elegantly executing at a mathematically perfect {global_time} rating."
+            return self._v(
+                f"\n\n**Nice Work Here:** About as efficient as it gets -- grabbing values directly by key or index means this {operation.lower()} runs in constant time, {global_time}.",
+            )
         else:
-            return f"\n\n**Algorithmic Mastery:** The internal processing logic embedded deeply inside this {operation.lower()} is exceptionally well-structured. By cleanly sidestepping bloated redundant execution cycles, it successfully maintains a highly optimal {global_time} processing speed."
+            return self._v(
+                f"\n\n**Nice Work Here:** This {operation.lower()} is well structured, avoiding unnecessary repeated work and keeping the cost down to {global_time}.",
+            )
 
     def _format_recurrence_relation(self, relation: str) -> str:
         return relation
