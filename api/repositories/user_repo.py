@@ -7,7 +7,7 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT id, name, email, password, status, role, is_admin FROM users WHERE email = %s', (email,))
+        cursor.execute('SELECT id, name, email, password, status, role, is_admin, onboarding_state FROM users WHERE email = %s', (email,))
         user = cursor.fetchone()
         
         if not user:
@@ -24,6 +24,7 @@ class UserRepository:
         cursor.execute('SELECT data FROM assessments WHERE email = %s LIMIT 1', (email,))
         assessment_row = cursor.fetchone()
         user_dict["assessments"] = assessment_row["data"] if assessment_row else {}
+        user_dict["onboarding_state"] = user_dict.get("onboarding_state") or {}
         
         cursor.close()
         conn.close()
@@ -174,6 +175,17 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('UPDATE users SET password = %s WHERE email = %s', (hashed_password, email))
+        rowcount = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return rowcount
+
+    @staticmethod
+    def update_onboarding_state(email: str, onboarding_state: dict):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE users SET onboarding_state = %s WHERE email = %s', (json.dumps(onboarding_state or {}), email))
         rowcount = cursor.rowcount
         conn.commit()
         cursor.close()

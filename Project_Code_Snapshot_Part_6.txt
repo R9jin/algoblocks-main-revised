@@ -1,7 +1,387 @@
 ﻿--- PROJECT SNAPSHOT (PART 6 OF 10) ---
 
---- TIMESTAMP: 2026-07-13 17:14:56 ---
+--- TIMESTAMP: 2026-07-14 21:48:37 ---
 
+
+--- FILE: frontend/src/components/LogoutConfirmModal.jsx ---
+
+// frontend/src/components/LogoutConfirmModal.jsx
+import "../styles/LogoutConfirmModal.css";
+
+export default function LogoutConfirmModal({ isOpen, onClose, onLogoutClick }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="logout-modal-overlay">
+      <div className="logout-modal">
+        <h2>Logout Confirmation</h2>
+        <p>Are you sure you want to sign out of AlgoBlocks?</p>
+        <div className="logout-modal-actions">
+          <button className="logout-btn" onClick={onLogoutClick}>Confirm</button>
+          <button className="logout-btn logout-btn-cancel" onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+--- FILE: frontend/src/components/MemoryVisualizer.jsx ---
+
+// MemoryVisualizer.jsx
+import { useMemo, useState } from 'react';
+import {
+  FaCodeBranch,
+  FaCube,
+  FaFont,
+  FaHashtag,
+  FaInfoCircle,
+  FaLayerGroup,
+  FaMemory,
+  FaRegHdd,
+  FaSitemap
+} from 'react-icons/fa';
+import '../styles/MemoryVisualizer.css';
+import { formatComplexity } from '../utils/formatters';
+
+const MemoryVisualizer = ({ analysisData, currentStep }) => {
+  const [hoveredAlloc, setHoveredAlloc] = useState(null);
+
+  // Safely extract the current line's memory state
+  const currentMemoryState = useMemo(() => {
+    if (!analysisData || analysisData.length === 0 || currentStep < 0) return {};
+    const stepData = analysisData[currentStep];
+    return stepData?.memory_state || {};
+  }, [analysisData, currentStep]);
+
+  // Helper to map python data types to appropriate React Icons and Categories
+  const getTypeConfig = (type) => {
+    const t = (type || '').toLowerCase();
+    if (['int', 'float', 'bool', 'complex'].includes(t)) {
+      return { icon: <FaHashtag />, category: 'Primitive', color: '#3498db' }; // Blue
+    }
+    if (t === 'str') {
+      return { icon: <FaFont />, category: 'String', color: '#9b59b6' }; // Purple
+    }
+    if (['list', 'tuple', 'deque'].includes(t)) {
+      return { icon: <FaLayerGroup />, category: 'Linear Structure', color: '#2ecc71' }; // Green
+    }
+    if (['dict', 'set', 'defaultdict'].includes(t)) {
+      return { icon: <FaSitemap />, category: 'Hash Structure', color: '#e74c3c' }; // Red
+    }
+    return { icon: <FaCube />, category: 'Object/Reference', color: '#f1c40f' }; // Yellow
+  };
+
+  const variables = Object.entries(currentMemoryState);
+
+  if (!analysisData || analysisData.length === 0) {
+    return (
+      <div className="memory-visualizer empty-state">
+        <FaRegHdd className="empty-icon" />
+        <p>Awaiting analysis data to map memory footprint...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="memory-visualizer">
+      <div className="memory-header">
+        <div className="header-title">
+          <FaMemory className="header-icon" />
+          <h3>Memory Allocation Visualizer</h3>
+        </div>
+        <div className="trace-depth-badge">
+          <FaCodeBranch />
+          <span>Trace Depth: {currentStep >= 0 ? currentStep : 0}</span>
+        </div>
+      </div>
+
+      <div className="memory-grid">
+        {variables.length === 0 ? (
+          <div className="no-vars">
+            <FaRegHdd className="dim-icon" />
+            <span>No active memory allocations at this step.</span>
+          </div>
+        ) : (
+          variables.map(([varName, varData], index) => {
+            const config = getTypeConfig(varData.type);
+            const isHovered = hoveredAlloc === varName;
+            const size = varData.size || 1;
+            
+            // Limit rendering to 50 blocks so massive arrays don't crash the browser
+            const visualBlocks = Array.from({ length: Math.min(size, 50) });
+            const hasOverflow = size > 50;
+
+            return (
+              <div 
+                key={`${varName}-${index}`}
+                className={`memory-card ${isHovered ? 'hovered' : ''}`}
+                onMouseEnter={() => setHoveredAlloc(varName)}
+                onMouseLeave={() => setHoveredAlloc(null)}
+                style={{ borderTopColor: config.color }}
+              >
+                <div className="card-top">
+                  <div className="card-name-group">
+                    <span className="card-icon" style={{ color: config.color }}>{config.icon}</span>
+                    <span className="card-name">{varName}</span>
+                  </div>
+                  <div className="card-stats">
+                    <span>(Type: {varData.type || 'Unknown'}, Size: {size})</span>
+                  </div>
+                </div>
+
+                <div className="memory-segments-wrapper">
+                  <span className="segment-label">(0)</span>
+                  <div className="segment-blocks">
+                    {visualBlocks.map((_, i) => (
+                      <div 
+                        key={i} 
+                        className="segment-block" 
+                        style={{ backgroundColor: config.color, opacity: 0.8 }}
+                      ></div>
+                    ))}
+                    {hasOverflow && <span className="segment-overflow">...</span>}
+                  </div>
+                  <span className="segment-label">({size})</span>
+                </div>
+
+                {/* Educational Insight Explanation */}
+                {varData.explanation && (
+                  <div className="card-explanation" style={{ borderLeftColor: config.color }}>
+                    <FaInfoCircle className="explanation-icon" style={{ color: config.color }} />
+                    <span className="explanation-text">{varData.explanation}</span>
+                  </div>
+                )}
+
+                {varData.complexity && (
+                  <div className="card-bottom">
+                     <span className="space-complexity">Complexity: {formatComplexity(varData.complexity)}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default MemoryVisualizer;
+
+--- FILE: frontend/src/components/OfflineIndicator.jsx ---
+
+// frontend/src/components/OfflineIndicator.jsx
+import { useEffect, useRef, useState } from 'react';
+
+// Global variable to enforce a Strict Singleton pattern.
+// This guarantees only ONE popup can ever exist in the DOM, 
+// even if the component is accidentally rendered in multiple files.
+let activeInstanceId = null;
+
+export default function OfflineIndicator() {
+    const [status, setStatus] = useState('online'); 
+    const [isVisible, setIsVisible] = useState(false);
+    const [isPrimary, setIsPrimary] = useState(false);
+    
+    const statusRef = useRef('online');
+    const hideTimeoutRef = useRef(null);
+    const abortControllerRef = useRef(null);
+    const instanceId = useRef(Math.random().toString(36).substring(2, 9));
+
+    useEffect(() => {
+        // --- Singleton Logic ---
+        if (!activeInstanceId) {
+            activeInstanceId = instanceId.current;
+            setIsPrimary(true);
+        } else if (activeInstanceId !== instanceId.current) {
+            return; // A primary instance already exists. Ignore this duplicate.
+        }
+
+        // --- Network Logic ---
+        const triggerOnline = () => {
+            if (statusRef.current === 'offline') {
+                statusRef.current = 'restored';
+                setStatus('restored');
+                setIsVisible(true);
+
+                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+
+                hideTimeoutRef.current = setTimeout(() => {
+                    setIsVisible(false);
+                    setTimeout(() => {
+                        if (statusRef.current === 'restored') {
+                            statusRef.current = 'online';
+                            setStatus('online');
+                        }
+                    }, 400); 
+                }, 3000);
+            }
+        };
+
+        const triggerOffline = () => {
+            if (statusRef.current !== 'offline') {
+                statusRef.current = 'offline';
+                setStatus('offline');
+                setIsVisible(true);
+                
+                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+
+                hideTimeoutRef.current = setTimeout(() => {
+                    setIsVisible(false);
+                }, 10000); 
+            }
+        };
+
+        const handleOnline = () => {
+            checkRealConnectivity();
+        };
+
+        const handleOffline = () => {
+            // Instantly cancel any pending background checks to prevent race conditions
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            triggerOffline();
+        };
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        const checkRealConnectivity = async () => {
+            if (!navigator.onLine) {
+                triggerOffline();
+                return;
+            }
+
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            abortControllerRef.current = new AbortController();
+            const signal = abortControllerRef.current.signal;
+
+            try {
+                // Add a 3 second timeout so the fetch doesn't hang indefinitely on poor networks
+                const timeoutId = setTimeout(() => {
+                    if (abortControllerRef.current) abortControllerRef.current.abort();
+                }, 3000);
+
+                await fetch('https://www.google.com/favicon.ico?t=' + Date.now(), {
+                    mode: 'no-cors',
+                    cache: 'no-store',
+                    signal: signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!signal.aborted) {
+                    triggerOnline();
+                }
+            } catch (error) {
+                if (!signal.aborted) {
+                    triggerOffline();
+                }
+            }
+        };
+
+        const pollingInterval = setInterval(checkRealConnectivity, 5000);
+        checkRealConnectivity();
+
+        return () => {
+            if (activeInstanceId === instanceId.current) {
+                activeInstanceId = null;
+                window.removeEventListener('online', handleOnline);
+                window.removeEventListener('offline', handleOffline);
+                clearInterval(pollingInterval);
+                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+                if (abortControllerRef.current) abortControllerRef.current.abort();
+            }
+        };
+    }, []);
+
+    // If this is a duplicate mount, render absolutely nothing!
+    if (!isPrimary) return null;
+
+    return (
+        <div className={`network-popup ${status} ${isVisible ? 'show' : 'hide'}`}>
+            <div className="network-popup-content">
+                {status === 'offline' ? (
+                    <>
+                        <span className="network-icon">âš ï¸</span>
+                        <div>
+                            <strong>Connection Lost</strong>
+                            <p>You are working offline. Changes will sync later.</p>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <span className="network-icon">âœ…</span>
+                        <div>
+                            <strong>Back Online</strong>
+                            <p>Your connection has been restored.</p>
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
+
+--- FILE: frontend/src/components/PythonCodeEditor.jsx ---
+
+// frontend/src/components/PythonCodeEditor.jsx
+import Editor from "@monaco-editor/react";
+import { handleEditorWillMount } from "../utils/asymptoticParser.jsx";
+import FloatingErrorDropdown from "./FloatingErrorDropdown.jsx";
+
+export default function PythonCodeEditor({
+  viewMode = "workspace",
+  pythonCode = "",
+  isEditingCode = false,
+  syntaxErrors = [],
+  onSyncToBlocks,
+  onChangeCode,
+  onMountEditor
+}) {
+  const hasSyntaxErrors = syntaxErrors && syntaxErrors.length > 0;
+
+  return (
+    <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"}>
+      <div className="python-header">
+        <span className="python-sync-status">
+          {isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}
+        </span>
+        <button
+          onClick={onSyncToBlocks}
+          disabled={!isEditingCode || hasSyntaxErrors}
+          className={`python-sync-btn ${isEditingCode && !hasSyntaxErrors ? "active" : "disabled"}`}
+        >
+          Sync to Blocks
+        </button>
+      </div>
+
+      <div className="editor-wrapper">
+        <Editor
+          height="100%"
+          language="python"
+          theme="algoblocks-light"
+          beforeMount={handleEditorWillMount}
+          onMount={onMountEditor}
+          value={pythonCode}
+          onChange={onChangeCode}
+          options={{
+            minimap: { enabled: false },
+            fontSize: 15,
+            fontFamily: "Consolas, 'Courier New', monospace",
+            scrollBeyondLastLine: false,
+            wordWrap: "on",
+            padding: { top: 16 }
+          }}
+        />
+        <FloatingErrorDropdown syntaxErrors={syntaxErrors} />
+      </div>
+    </div>
+  );
+}
 
 --- FILE: frontend/src/components/TestCaseTester.jsx ---
 
@@ -260,12 +640,13 @@ import {
   LuUser
 } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
+import TourHelpButton from "./TourHelpButton";
 import "../styles/UserHeader.css";
 import { startBackgroundSync } from "../utils/syncManager.js";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 
 // FIX: Added onLogoutClick to the component props
-export default function UserHeader({ user, onLogoutClick }) {
+export default function UserHeader({ user, onLogoutClick, tour, tourPageId }) {
   const [open, setOpen] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
   const menuRef = useRef(null);
@@ -331,6 +712,7 @@ export default function UserHeader({ user, onLogoutClick }) {
         </div>
 
         <div className="nav-links">
+          <TourHelpButton pageId={tourPageId} tour={tour} label="Replay home tour" />
           <div className="user-menu" ref={menuRef}>
             <button
               type="button"
@@ -450,6 +832,7 @@ export default function WorkspaceFooterBar({
 // frontend/src/components/WorkspaceHeader.jsx
 import { FiArrowLeft, FiCode, FiDownload, FiGrid, FiPlay, FiSave, FiUpload } from "react-icons/fi";
 import { Link } from "react-router-dom";
+import TourHelpButton from "./TourHelpButton";
 import "../styles/MainApp.css";
 
 export default function WorkspaceHeader({
@@ -461,7 +844,9 @@ export default function WorkspaceHeader({
   handleSaveToDB,
   currentProjectTitle,
   isEvaluating,
-  isGuest
+  isGuest,
+  tour,
+  tourPageId,
 }) {
   return (
     <header className="workspace-header-purple">
@@ -494,6 +879,7 @@ export default function WorkspaceHeader({
       </div>
 
       <div className="wh-right">
+        <TourHelpButton pageId={tourPageId} tour={tour} label="Replay workspace tour" />
         {!isGuest && (
           <div className="wh-file-actions">
             <button className="wh-action-icon" onClick={handleExport} title="Export JSON">
@@ -1303,2862 +1689,3 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </React.StrictMode>,
 );
-
---- FILE: frontend/src/pages/ActivityApp.jsx ---
-
-import DOMPurify from "dompurify";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { FiActivity, FiBookOpen, FiChevronLeft, FiChevronRight, FiGrid, FiInfo, FiPlay, FiTerminal } from "react-icons/fi";
-import { useNavigate, useParams } from "react-router-dom";
-import Split from "react-split";
-import BigOModal from "../components/BigOModal.jsx";
-import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
-import ConfirmModal from "../components/ConfirmModal.jsx";
-import DockedBottomPanel from "../components/DockedBottomPanel.jsx";
-import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
-import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
-import { usePyodide } from "../context/PyodideContext.jsx";
-import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
-import "../styles/ActivityApp.css";
-import { getComplexityWeight, sanitizePythonCode, usePanelResizer } from "../utils/asymptoticParser.jsx";
-import { translatePythonError } from "../utils/errorTranslator.js";
-import { formatComplexity } from "../utils/formatters";
-
-// ULTIMATE FALLBACK: Completely bypasses syncQueueDB errors by using native localStorage queue
-const pushToSyncQueue = (key, data) => {
-  try {
-    if (syncQueueDB && typeof syncQueueDB.setItem === 'function') {
-        syncQueueDB.setItem(key, data);
-        return;
-    }
-  } catch(e) {}
-  
-  try {
-    const queue = JSON.parse(localStorage.getItem("offline_sync_queue") || "[]");
-    queue.push({ key, data, timestamp: Date.now() });
-    localStorage.setItem("offline_sync_queue", JSON.stringify(queue));
-  } catch (e) { console.error("Sync queue failed:", e); }
-};
-
-const renderFormattedTask = (text) => {
-  if (!text) return null;
-  const parseStr = (str) => {
-    let out = str.replace(/\n/g, "<br/>");
-    out = out.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--purple-main);">$1</strong>');
-    out = out.replace(/\$([^$]+)\$/g, (match, math) => {
-      let cleanMath = math.replace(/\\log\b/g, "log").replace(/\\/g, "");
-      cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-      return `<span class="nlg-math-badge">${cleanMath}</span>`;
-    });
-    out = out.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
-    return out;
-  };
-
-  if (Array.isArray(text)) {
-    return (
-      <div className="activity-task-description">
-        {text.map((line, idx) => (
-          <p key={idx} style={{ minHeight: line === "" ? "1rem" : "auto", margin: "4px 0", color: "var(--text-main)", fontSize: "0.9rem", lineHeight: "1.6" }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseStr(line)) }} />
-        ))}
-      </div>
-    );
-  }
-  if (typeof text !== "string") return null;
-  return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseStr(text)) }} />;
-};
-
-const ActivityAppInner = ({ moduleId, activityId }) => {
-  const API_BASE = import.meta.env.VITE_API_URL || "";
-  const navigate = useNavigate();
-  const { worker, isEngineReady, resetWorker } = usePyodide();
-  
-  const isReadyRef = useRef(false);
-  const isWorkspaceLoadedRef = useRef(false);
-  const isUnmountingRef = useRef(false); 
-  const loadTimeRef = useRef(0); 
-  
-  const workspaceRef = useRef(null);
-  const workerRef = useRef(null);
-  const workerMessageHandler = useRef(null);
-  const runTimeoutRef = useRef(null);
-  const renderIntervalRef = useRef(null);
-  const outputCountRef = useRef(0);
-  const pendingOutputRef = useRef("");
-  const saveDraftTimeoutRef = useRef(null);
-  const latestBlocksJsonRef = useRef(null);
-  const testResolveRef = useRef(null);
-  const testRejectRef = useRef(null);
-  const outputAccumulatorRef = useRef("");
-
-  const latestStateRef = useRef({
-    userId: null, json: null, pythonCode: "# Drag blocks to generate Python code",
-    score: 0, passed: 0, testResults: [], actualTime: "O(n^2)", actualSpace: "O(1)",
-    status: "draft", type: "activity", targetTime: "O(n)", targetSpace: "O(1)",
-    initial_aes: null, final_aes: null
-  });
-
-  const [currentAes, setCurrentAes] = useState(0);
-  const [currentRog, setCurrentRog] = useState(0);
-  const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? window.navigator.onLine : true);
-  const [toast, setToast] = useState({ show: false, message: "", type: "" });
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [isSyncingBlocks, setIsSyncingBlocks] = useState(false);
-  const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
-  const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
-  const [viewMode, setViewMode] = useState("workspace");
-  const [passedTests, setPassedTests] = useState(0);
-  const [isLeftPanelVisible, setIsLeftPanelVisible] = useState(true);
-  const [isRightPanelVisible, setIsRightPanelVisible] = useState(true);
-  const [expandedTests, setExpandedTests] = useState({});
-  const [bottomPanel, setBottomPanel] = useState(null);
-  const [consoleTab, setConsoleTab] = useState("output");
-  const [activeComplexityTab, setActiveComplexityTab] = useState("overall");
-  const [isWaitingForInput, setIsWaitingForInput] = useState(false);
-  const [userInput, setUserInput] = useState("");
-  
-  const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} });
-  const [analysisTime, setAnalysisTime] = useState("0.0");
-  const [lineExecutions, setLineExecutions] = useState({});
-  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null });
-  const [isEditingCode, setIsEditingCode] = useState(false);
-
-  const [syntaxErrors, setSyntaxErrors] = useState([]);
-  const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
-
-  const { panelHeight, handleDragStart } = usePanelResizer(300);
-
-  const [activityDataResolved, setActivityDataResolved] = useState(null);
-  const [topicIdResolved, setTopicIdResolved] = useState(null);
-  const [lessonActivitiesResolved, setLessonActivitiesResolved] = useState([]);
-
-  const editorRef = useRef(null);
-  const monacoRef = useRef(null);
-
-  useEffect(() => {
-    if (workspaceRef.current && viewMode === "workspace") {
-      setTimeout(() => workspaceRef.current.resize(), 50);
-      setTimeout(() => workspaceRef.current.resize(), 300);
-    }
-  }, [viewMode, isLeftPanelVisible, isRightPanelVisible]);
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
-        e.preventDefault();
-        triggerFinalSave();
-        showToast("Draft saved locally and queued for sync.", "success");
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [moduleId, activityId]);
-
-  const processedTestCases = useMemo(() => {
-    if (!activityDataResolved) return [];
-    const originalTests = activityDataResolved.testCasesList || [];
-    const visibleTests = originalTests.filter((tc) => !tc.isHidden);
-    const hiddenTests = originalTests.filter((tc) => tc.isHidden);
-    const timeTarget = activityDataResolved.targetTimeComplexity || "O(n)";
-    const spaceTarget = activityDataResolved.targetSpaceComplexity || "O(n)";
-    return [
-      ...visibleTests,
-      { isComplexityTest: true, title: "Time Complexity Check", target: timeTarget, call: "Static Code Analysis", expected: `<= ${timeTarget}`, isHidden: false },
-      { isComplexityTest: true, title: "Space Complexity Check", target: spaceTarget, call: "Static Code Analysis", expected: `<= ${spaceTarget}`, isHidden: false },
-      ...hiddenTests
-    ];
-  }, [activityDataResolved]);
-
-  const totalTests = processedTestCases.length;
-
-  const showToast = (message, type = "success") => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
-  };
-
-  useEffect(() => {
-    const handleOnline = () => { setIsOnline(true); showToast("Connection restored. Syncing drafts...", "success"); };
-    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Saving drafts locally.", "error"); };
-    window.addEventListener("online", handleOnline); window.addEventListener("offline", handleOffline);
-    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
-  }, []);
-
-  workerMessageHandler.current = (event) => {
-    const { type, data, counts } = event.data;
-    if (type === "ANALYZE_RESULT") {
-      if (data.status === "success") {
-        setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
-        setAnalysisResult({
-          total: data.total,
-          space_total: data.space_total || "O(1)",
-          overall_explanation: data.overall_explanation || "",
-          lines: data.lines || [],
-          call_graph: data.call_graph || {},
-          is_recursive: data.is_recursive || false
-        });
-        
-        latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
-        const initialCounts = {};
-        (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-        setLineExecutions((prev) => ({ ...prev, ...initialCounts }));
-        setSyntaxErrors([]);
-      } else {
-        if (data.multiple_errors && data.multiple_errors.length > 0) {
-          const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: `${err.message}. ${translatePythonError(err.message)}` }));
-          setSyntaxErrors(mappedErrors);
-        } else {
-          setSyntaxErrors([{ line: data.line, message: `${data.message}. ${translatePythonError(data.message)}` }]);
-        }
-      }
-    } else if (type === "RUN_RESULT") {
-      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-      if (testResolveRef.current) {
-        setTimeout(() => {
-          const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-          outputAccumulatorRef.current += flushed + (data !== undefined && data !== null ? data : "");
-          if (counts) setLineExecutions((prev) => { const next = { ...prev }; Object.keys(counts).forEach((k) => (next[k] = Math.max(next[k] || 0, counts[k]))); return next; });
-          if (testResolveRef.current) testResolveRef.current(outputAccumulatorRef.current);
-          testResolveRef.current = null; testRejectRef.current = null;
-        }, 50);
-      } else {
-        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const resultData = data !== undefined && data !== null && data !== "" ? `\n${String(data)}` : "";
-        const finalOutput = flushed + resultData;
-        let notice = "";
-        
-        if (finalOutput.trim() === "") {
-          notice = "\n> (Note: Code executed successfully, but no output was printed. Did you call your function?)";
-        }
-        
-        setConsoleOutput((prev) => prev + finalOutput + "\n> Program finished." + notice + "\n");
-        if (counts) setLineExecutions((prev) => { const next = { ...prev }; Object.keys(counts).forEach((k) => (next[k] = Math.max(next[k] || 0, counts[k]))); return next; });
-        setIsEvaluating(false); setIsWaitingForInput(false);
-      }
-    } else if (type === "OUTPUT") {
-      outputCountRef.current += 1; pendingOutputRef.current += data;
-      if (outputCountRef.current > 5000) {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); resetWorker();
-        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const floodMsg = "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n";
-        if (testRejectRef.current) { testRejectRef.current(new Error(floodMsg)); testResolveRef.current = null; testRejectRef.current = null; }
-        else { setConsoleOutput((prev) => prev + flushed + floodMsg); setIsEvaluating(false); setIsWaitingForInput(false); }
-        outputCountRef.current = 0;
-      } else if (!renderIntervalRef.current && !testResolveRef.current) {
-        renderIntervalRef.current = setInterval(() => { if (pendingOutputRef.current) { setConsoleOutput((prev) => prev + pendingOutputRef.current); pendingOutputRef.current = ""; } }, 100);
-      }
-    } else if (type === "INPUT_REQUEST") {
-      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-      const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-      setConsoleOutput((prev) => prev + flushed + data.prompt);
-      setIsWaitingForInput(true);
-    } else if (type === "ERROR") {
-      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-      if (testResolveRef.current) {
-        pendingOutputRef.current += data;
-      } else {
-        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const hint = translatePythonError(data);
-        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
-        setIsEvaluating(false); setIsWaitingForInput(false);
-      }
-    }
-  };
-
-  useEffect(() => { 
-    if (worker) { 
-      workerRef.current = worker; 
-      workerRef.current.onmessage = (event) => workerMessageHandler.current(event); 
-    } 
-  }, [worker]);
-
-  const toggleTest = (index) => setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] }));
-  const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
-
-  const fetchJsonWithCache = async (cacheKey, url) => {
-    try {
-      const res = await fetch(`${url}?t=${new Date().getTime()}`);
-      if (res.ok) {
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const json = await res.json();
-          try { await templatesDB.setItem(cacheKey, json); } catch (e) { }
-          return json;
-        } else throw new Error("Response is not JSON format");
-      } else throw new Error(`HTTP error ${res.status}`);
-    } catch (e) { console.warn(`Network fetch failed for ${url}, falling back to cache.`, e); }
-    try {
-      const cached = await templatesDB.getItem(cacheKey);
-      if (cached) return cached;
-    } catch (e) { }
-    throw new Error(`Fetch failed for ${url} and no cache available.`);
-  };
-
-  const resolveActivityFromModule = async () => {
-    const mid = String(moduleId).replace(/[^0-9]/g, "");
-    if (!mid) throw new Error("Invalid moduleId");
-    const activitiesJson = await fetchJsonWithCache(`activities:module_${mid}`, `/data/activities/module_${mid}.json`);
-
-    let foundActivity = null; let foundLessonKey = null; let activitiesInLesson = [];
-    for (const [lessonKey, list] of Object.entries(activitiesJson || {})) {
-      if (!Array.isArray(list)) continue;
-      const matched = list.find((a) => a && a.id === activityId);
-      if (matched) { foundActivity = matched; foundLessonKey = lessonKey; activitiesInLesson = list; break; }
-    }
-
-    if (!foundActivity) throw new Error("Activity not found in module activities JSON");
-
-    const lessonNum = foundLessonKey.replace("lesson_", "");
-    setTopicIdResolved(`lesson-${mid}-${lessonNum}`);
-    setLessonActivitiesResolved(activitiesInLesson);
-
-    return {
-      id: foundActivity.id, title: foundActivity.title || foundLessonKey, task: foundActivity.task,
-      type: foundActivity.type || (foundLessonKey === "optimizations" ? "optimization" : "activity"),
-      difficulty: foundActivity.difficulty || (foundLessonKey === "optimizations" ? "Advanced" : "Easy"),
-      targetTimeComplexity: foundActivity.targetTime || foundActivity.targetTimeComplexity || "O(n)",
-      targetSpaceComplexity: foundActivity.targetSpace || foundActivity.targetSpaceComplexity || "O(n)",
-      testCasesList: (foundActivity.testCasesPool || []).map((tc) => ({ call: tc.call, expected: tc.expected, isHidden: !!tc.isHidden })),
-      templateUrl: foundActivity.templateUrl || null,
-    };
-  };
-
-  const getFailsafeWorkspaceJson = () => {
-    let finalJson = latestStateRef.current.json;
-    if (workspaceRef.current) {
-        try {
-            if (typeof workspaceRef.current.getJson === 'function') {
-                const wsJson = workspaceRef.current.getJson();
-                if (wsJson && Object.keys(wsJson).length > 0) finalJson = wsJson;
-            } else if (typeof workspaceRef.current.getBlocksJson === 'function') {
-                const wsJson = workspaceRef.current.getBlocksJson();
-                if (wsJson && Object.keys(wsJson).length > 0) finalJson = wsJson;
-            }
-        } catch(e) {}
-    }
-    return finalJson;
-  };
-
-  // ANTI-WIPEOUT PROTECTION: Protects against Unmount Destruction
-  const triggerFinalSave = async () => {
-    const state = latestStateRef.current;
-    if (!state.userId) return;
-
-    let currentJson = getFailsafeWorkspaceJson();
-    const isJsonEmpty = !currentJson || Object.keys(currentJson).length === 0 || (currentJson.blocks && currentJson.blocks.blocks && currentJson.blocks.blocks.length === 0);
-    const hasValidPython = state.pythonCode && state.pythonCode !== "# Drag blocks to generate Python code" && state.pythonCode.trim() !== "";
-    
-    // Critical: If blocks are empty due to worker race condition but python is valid, recover blocks from DB
-    if (isJsonEmpty && hasValidPython) {
-        try {
-            const subId = `${state.userId}_${moduleId}_${activityId}`;
-            const existingSub = await submissionsDB.getItem(subId);
-            if (existingSub && existingSub.workspace && existingSub.workspace.blocklyJson) {
-                currentJson = existingSub.workspace.blocklyJson;
-            }
-        } catch(e) {}
-    }
-
-    if (isJsonEmpty && !hasValidPython) return;
-
-    const payload = {
-      userId: state.userId, moduleId: moduleId, activityId: activityId, type: state.type || "activity", status: state.status || "draft",
-      score: state.score, maxScore: 100,
-      initial_aes: state.initial_aes, final_aes: state.final_aes,
-      rog: (state.final_aes || 0) - (state.initial_aes || 0),
-      passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
-      testCases: state.testResults, target_complexity: state.targetTime || "O(n)", actual_complexity: state.actualTime,
-      target_space_complexity: state.targetSpace || "O(1)", actual_space_complexity: state.actualSpace,
-      workspace: { blocklyJson: currentJson || {} }, pythonCode: state.pythonCode, timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: true,
-    };
-
-    const finalSubId = `${state.userId}_${moduleId}_${activityId}`;
-    try { submissionsDB.setItem(finalSubId, { ...payload, isSynced: false }); } catch (e) {}
-
-    if (navigator && navigator.onLine && API_BASE) {
-      try {
-        const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-        fetch(`${API_BASE}/api/sync-submission`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload), keepalive: true });
-      } catch (err) { pushToSyncQueue(`sync_${finalSubId}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); }
-    } else pushToSyncQueue(`sync_${finalSubId}`, { type: "SUBMISSION", action: "UPSERT", data: payload });
-  };
-
-  useEffect(() => {
-    const handleBeforeUnload = () => triggerFinalSave();
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false; 
-    isReadyRef.current = false;
-    isUnmountingRef.current = false;
-
-    const boot = async () => {
-      try {
-        const resolvedActivity = await resolveActivityFromModule();
-        if (cancelled) return;
-        setActivityDataResolved(resolvedActivity);
-        latestStateRef.current.type = resolvedActivity.type; latestStateRef.current.targetTime = resolvedActivity.targetTimeComplexity; latestStateRef.current.targetSpace = resolvedActivity.targetSpaceComplexity;
-
-        const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-        if (!storedUser) { navigate("/learning-path", { replace: true }); return; }
-        const user = JSON.parse(storedUser); latestStateRef.current.userId = user.email;
-
-        const submissionId = `${user.email}_${moduleId}_${activityId}`;
-        let localSubmission = null; try { localSubmission = await submissionsDB.getItem(submissionId); } catch (e) { }
-        let cloudSubmission = null;
-        if (navigator && navigator.onLine && !user.isGuest && API_BASE) {
-          try {
-            const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-            const res = await fetch(`${API_BASE}/api/get-submission?activityId=${activityId}&moduleId=${moduleId}`, { headers: { Authorization: `Bearer ${token}` } });
-            if (res.ok) { const data = await res.json(); if (data && data.submission) cloudSubmission = data.submission; }
-          } catch (e) { }
-        }
-
-        let finalSubmissionToLoad = null;
-        const localCode = localSubmission?.pythonCode || ""; 
-        const cloudCode = cloudSubmission?.pythonCode || "";
-        const isLocalBlank = !localCode || localCode.trim() === "" || localCode === "# Drag blocks to generate Python code";
-        const isCloudBlank = !cloudCode || cloudCode.trim() === "" || cloudCode === "# Drag blocks to generate Python code";
-
-        if (!isLocalBlank && isCloudBlank) {
-            finalSubmissionToLoad = localSubmission; 
-        } else if (isLocalBlank && !isCloudBlank) {
-            finalSubmissionToLoad = cloudSubmission;
-            try { await submissionsDB.setItem(submissionId, cloudSubmission); } catch (e) {}
-        } else if (localSubmission && cloudSubmission) {
-           finalSubmissionToLoad = (localSubmission.timestamp || 0) >= (cloudSubmission.timestamp || 0) ? localSubmission : cloudSubmission;
-        } else if (localSubmission) {
-           finalSubmissionToLoad = localSubmission;
-        } else if (cloudSubmission) {
-           finalSubmissionToLoad = cloudSubmission;
-        }
-
-        const applyWorkspaceData = (json, pythonCode) => {
-          if (workspaceRef.current?.loadTemplate && !cancelled && !isUnmountingRef.current) {
-             workspaceRef.current.loadTemplate(json || {}, pythonCode);
-             loadTimeRef.current = Date.now();
-          } else if (!cancelled && !isUnmountingRef.current) {
-             setTimeout(() => applyWorkspaceData(json, pythonCode), 100);
-          }
-        };
-
-        if (finalSubmissionToLoad && finalSubmissionToLoad.activityId === activityId && !cancelled) {
-          try {
-            const json = finalSubmissionToLoad.workspace?.blocklyJson || finalSubmissionToLoad.blocklyJson || {};
-            const pythonCode = finalSubmissionToLoad.pythonCode;
-            latestStateRef.current.json = json; latestStateRef.current.pythonCode = pythonCode;
-            latestStateRef.current.score = finalSubmissionToLoad.score || 0;
-
-            latestStateRef.current.initial_aes = finalSubmissionToLoad.initial_aes ?? null;
-            latestStateRef.current.final_aes = finalSubmissionToLoad.final_aes ?? null;
-            latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
-            latestStateRef.current.status = finalSubmissionToLoad.status || "draft";
-
-            let loadedScore = finalSubmissionToLoad.score || 0;
-            if (finalSubmissionToLoad.maxScore === 5 && loadedScore <= 5) loadedScore = (loadedScore / 5) * 100;
-
-            const computedAes = Math.min(loadedScore, 100);
-            setCurrentAes(computedAes);
-
-            const loadedInitAes = finalSubmissionToLoad.initial_aes ?? null;
-            if (loadedInitAes !== null) {
-              const calcRog = computedAes - loadedInitAes;
-              setCurrentRog(calcRog > 0 ? calcRog : 0);
-            }
-
-            applyWorkspaceData(json, pythonCode);
-            if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") {
-                setGeneratedPython(pythonCode);
-                
-                const isJsonEmpty = !json || Object.keys(json).length === 0 || (json.blocks && json.blocks.blocks && json.blocks.blocks.length === 0);
-                if (isJsonEmpty) {
-                    setViewMode("python");
-                    setIsEditingCode(true);
-                }
-            }
-          } catch (e) { console.error("Failed to load blocks"); }
-        } else if (resolvedActivity.templateUrl) {
-          try {
-            let fetchUrl = resolvedActivity.templateUrl;
-            if (resolvedActivity.id && resolvedActivity.id.includes('opt')) {
-              fetchUrl = `/data/optimizations/${resolvedActivity.id}.json`;
-            }
-
-            const rawTemplate = await fetchJsonWithCache(`template:${resolvedActivity.id}`, fetchUrl);
-
-            let templateBlocks = rawTemplate;
-            let templatePython = "# Drag blocks to generate Python code";
-
-            if (rawTemplate.type === "algoblocks_project") {
-              templateBlocks = rawTemplate.blocklyJson;
-              templatePython = rawTemplate.pythonCode || templatePython;
-            } else if (rawTemplate.workspace && rawTemplate.workspace.blocklyJson) {
-              templateBlocks = rawTemplate.workspace.blocklyJson;
-              templatePython = rawTemplate.pythonCode || templatePython;
-            }
-
-            latestStateRef.current.json = templateBlocks;
-            latestStateRef.current.pythonCode = templatePython;
-
-            applyWorkspaceData(templateBlocks, templatePython);
-
-            if (templatePython && templatePython !== "# Drag blocks to generate Python code") {
-              setGeneratedPython(templatePython);
-            }
-          } catch (err) { console.error("Template load error:", err); }
-        }
-
-        const savedTests = localStorage.getItem(`activity_tests_${moduleId}_${activityId}`);
-        if (savedTests && !cancelled) {
-          try { const { consoleOutput: savedOut, passedTests: savedPassed } = JSON.parse(savedTests); if (savedOut) setConsoleOutput(savedOut); if (savedPassed !== undefined) setPassedTests(savedPassed); } catch (e) { }
-        }
-        if (!cancelled) isReadyRef.current = true;
-      } catch (e) { console.error("Activity bootstrap failed:", e); if (!cancelled) navigate("/learning-path", { replace: true }); }
-    };
-    boot();
-    return () => { 
-        isUnmountingRef.current = true; 
-        cancelled = true; 
-        triggerFinalSave(); 
-        if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current); 
-    };
-  }, [moduleId, activityId]);
-
-  const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false) => {
-    if (!latestStateRef.current.userId) return;
-    const finalScore = score !== null ? score : latestStateRef.current.score;
-    const finalPassed = passed !== null ? passed : latestStateRef.current.passed;
-    const finalTestResults = testResults !== null ? testResults : latestStateRef.current.testResults;
-    const finalStatus = isDraft ? (finalScore >= 50 ? "passed" : "draft") : (finalScore >= 50 ? "passed" : "failed");
-
-    let safeJson = json;
-    const isBlocksEmpty = !safeJson || Object.keys(safeJson).length === 0 || (safeJson.blocks && safeJson.blocks.blocks && safeJson.blocks.blocks.length === 0);
-    const hasValidPython = pythonCode && pythonCode !== "# Drag blocks to generate Python code" && pythonCode.trim() !== "";
-
-    // ANTI-WIPEOUT: Secure recovery if json is empty but code exists
-    const submissionId = `${latestStateRef.current.userId}_${moduleId}_${activityId}`;
-    if (isBlocksEmpty && hasValidPython) {
-        try {
-            const existingSub = await submissionsDB.getItem(submissionId);
-            if (existingSub && existingSub.workspace && existingSub.workspace.blocklyJson && Object.keys(existingSub.workspace.blocklyJson).length > 0) {
-                safeJson = existingSub.workspace.blocklyJson;
-            }
-        } catch(e) {}
-    }
-
-    latestStateRef.current.json = safeJson; 
-    latestStateRef.current.pythonCode = pythonCode; 
-    latestStateRef.current.score = finalScore; 
-    latestStateRef.current.passed = finalPassed; 
-    latestStateRef.current.testResults = finalTestResults; 
-    latestStateRef.current.status = finalStatus;
-
-    const payload = {
-      userId: latestStateRef.current.userId, moduleId: moduleId, activityId: activityId, type: latestStateRef.current.type || "activity", status: finalStatus,
-      score: finalScore, maxScore: 100,
-      initial_aes: latestStateRef.current.initial_aes, final_aes: latestStateRef.current.final_aes,
-      rog: (latestStateRef.current.final_aes || 0) - (latestStateRef.current.initial_aes || 0),
-      passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total, testCases: finalTestResults, target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime, target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace, workspace: { blocklyJson: safeJson || {} }, pythonCode: pythonCode || "", timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false,
-    };
-
-    try { await submissionsDB.setItem(submissionId, payload); window.dispatchEvent(new Event("localDataSynced")); } catch (e) { }
-
-    if (navigator && !navigator.onLine) { pushToSyncQueue(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); return; }
-
-    try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-      if (API_BASE) {
-        const response = await fetch(`${API_BASE}/api/sync-submission`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ ...payload, isSynced: true }) });
-        if (response.ok) {
-           try { await submissionsDB.setItem(submissionId, { ...payload, isSynced: true }); } catch(e) {}
-        } else throw new Error("Server rejected submission");
-      }
-    } catch (err) { pushToSyncQueue(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); }
-  };
-
-  const handleWorkspaceAutoSave = (json, pythonCode) => {
-    if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
-    saveDraftTimeoutRef.current = setTimeout(async () => {
-      if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") {
-        await saveSubmission(json, pythonCode, null, null, totalTests, null, latestStateRef.current.actualTime, latestStateRef.current.actualSpace, true);
-      }
-    }, 1500);
-  };
-
-  useEffect(() => {
-    if (!isReadyRef.current || isUnmountingRef.current) return;
-    if (isOnline && isEngineReady && workerRef.current && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
-      const timeoutId = setTimeout(() => {
-        workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython) });
-      }, 800);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [generatedPython, isOnline, isEngineReady]);
-
-  const handleWorkspaceChange = async (json, incomingPythonCode, isUnsynced = false) => {
-    if (isUnmountingRef.current || !isReadyRef.current) return;
-
-    const isIncomingBlocksEmpty = !json || Object.keys(json).length === 0 || (json.blocks && json.blocks.blocks && json.blocks.blocks.length === 0);
-    const isIncomingCodeEmpty = !incomingPythonCode || incomingPythonCode.trim() === "" || incomingPythonCode === "# Drag blocks to generate Python code";
-    
-    // Ignore early ghost wipeout events generated by Blockly's debouncer
-    if ((isIncomingBlocksEmpty || isIncomingCodeEmpty) && Date.now() - loadTimeRef.current < 3000) {
-        return;
-    }
-
-    latestBlocksJsonRef.current = json;
-    let codeToSave = incomingPythonCode;
-    
-    if (isIncomingCodeEmpty && generatedPython && generatedPython.trim() !== "" && generatedPython !== "# Drag blocks to generate Python code") {
-        if (Date.now() - loadTimeRef.current < 4000 || !isEditingCode) {
-             codeToSave = generatedPython; 
-        }
-    }
-
-    if (isEditingCode && !isUnsynced) codeToSave = generatedPython;
-
-    const oldCode = (generatedPython || "").trim(); 
-    const newCode = (codeToSave || "").trim();
-
-    latestStateRef.current.json = json; 
-    latestStateRef.current.pythonCode = codeToSave;
-    handleWorkspaceAutoSave(json, codeToSave);
-
-    if (isUnsynced) {
-      setIsEditingCode(true);
-      if (oldCode !== newCode) { setGeneratedPython(codeToSave); setLineExecutions({}); }
-    } else if (!isEditingCode && oldCode !== newCode) {
-      setGeneratedPython(codeToSave); setLineExecutions({});
-    }
-  };
-
-  const handleSyncToBlocks = async () => {
-    if (workspaceRef.current && generatedPython) {
-      setIsSyncingBlocks(true);
-      try {
-        await workspaceRef.current.loadFromPython(sanitizePythonCode(generatedPython));
-        loadTimeRef.current = Date.now(); // Reset protection timer
-        setIsEditingCode(false); 
-        setViewMode("workspace");
-        showToast("Python code successfully converted into blocks!", "success");
-      } catch (e) {
-        setModalConfig({ isOpen: true, title: "Sync Error", message: "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
-      } finally {
-        setIsSyncingBlocks(false);
-      }
-    }
-  };
-
-  const handleActivityRun = async () => {
-    if (isEvaluating) return;
-    if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
-    }
-    clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); setIsEvaluating(true); setLineExecutions({});
-    setBottomPanel("console"); setConsoleTab("output"); setConsoleOutput((prev) => prev + "\n> Running the program...\n");
-
-    outputCountRef.current = 0; pendingOutputRef.current = "";
-    runTimeoutRef.current = setTimeout(() => {
-      resetWorker(); const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-      setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
-      setIsEvaluating(false); setIsWaitingForInput(false);
-    }, 10000);
-
-    workerRef.current?.postMessage({ type: "RUN_CODE", code: sanitizePythonCode(generatedPython) });
-  };
-
-  const handleSendInput = (e) => {
-    if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
-      setConsoleOutput((prev) => prev + userInput + "\n");
-      workerRef.current.postMessage({ type: "INPUT_RESPONSE", data: userInput });
-      outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
-
-      runTimeoutRef.current = setTimeout(() => {
-        resetWorker(); const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
-        setIsEvaluating(false); setIsWaitingForInput(false);
-      }, 10000);
-    }
-  };
-
-  const savePartialProgress = async (lessonId, score) => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (!storedUser) return;
-    const user = JSON.parse(storedUser);
-    if (!user.progress) user.progress = {};
-    user.progress[lessonId] = Math.max(user.progress[lessonId] || 0, score);
-    localStorage.setItem("user", JSON.stringify(user));
-
-    const payload = { email: user.email, lesson_id: lessonId, score: user.progress[lessonId] };
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-
-    try { await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: false }); } catch(e) {}
-
-    if (navigator && navigator.onLine && !user.isGuest && API_BASE) {
-      try {
-        const res = await fetch(`${API_BASE}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
-        if (res.ok) {
-           try { await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: true }); } catch (e) {}
-        } else throw new Error("Sync failed with status: " + res.status);
-      } catch (error) { pushToSyncQueue(`sync_prog_${lessonId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload }); }
-    } else if (!user.isGuest) pushToSyncQueue(`sync_prog_${lessonId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload });
-  };
-
-  const completeFullTopic = async (topicId) => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (!storedUser) return;
-    const user = JSON.parse(storedUser);
-    if (!user.progress) user.progress = {};
-    user.progress[topicId] = true;
-    localStorage.setItem("user", JSON.stringify(user));
-
-    const payload = { email: user.email, lesson_id: topicId, score: 100, completed: true };
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-
-    try { await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: false }); } catch(e) {}
-
-    if (navigator && navigator.onLine && !user.isGuest && API_BASE) {
-      try {
-        const res = await fetch(`${API_BASE}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
-        if (res.ok) {
-            try { await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: true }); } catch (e) {}
-        } else throw new Error("Sync failed with status: " + res.status);
-      } catch (error) { pushToSyncQueue(`sync_prog_${topicId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload }); }
-    } else if (!user.isGuest) pushToSyncQueue(`sync_prog_${topicId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload });
-  };
-
-  const executeTest = async (codeToRun) => {
-    return new Promise((resolve, reject) => {
-      outputAccumulatorRef.current = ""; testResolveRef.current = resolve; testRejectRef.current = reject;
-      runTimeoutRef.current = setTimeout(() => {
-        resetWorker();
-        if (testRejectRef.current) {
-          testRejectRef.current(new Error("Infinite Loop detected. Execution timed out after 10 seconds."));
-          testResolveRef.current = null; testRejectRef.current = null;
-        }
-      }, 10000);
-      workerRef.current.postMessage({ type: "RUN_CODE", code: codeToRun });
-    });
-  };
-
-  // INSTANT PROGRESS FIX: Now accurately checks user.progress from localStorage to eliminate API DB sync delays
-  const checkLessonCompletion = async (currentActivityId = null, currentScore = null) => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (!storedUser || !lessonActivitiesResolved.length) return { passedCount: 0, threshold: 1, isCompleted: false };
-    
-    const user = JSON.parse(storedUser);
-    const userProgress = user.progress || {};
-
-    const diffs = lessonActivitiesResolved.map(a => (a.difficulty || 'Easy').toLowerCase());
-    const types = lessonActivitiesResolved.map(a => (a.type || 'activity').toLowerCase());
-
-    let threshold = 3;
-    if (types.includes('optimization') || lessonActivitiesResolved.some(a => a.id.includes('opt'))) threshold = 2;
-    else if (diffs.includes('hard') || diffs.includes('advanced')) threshold = 1;
-    else if (diffs.includes('medium') || diffs.includes('intermediate')) threshold = 2;
-
-    threshold = Math.min(threshold, lessonActivitiesResolved.length);
-
-    let passedCount = 0;
-    for (const act of lessonActivitiesResolved) {
-      if (currentActivityId === String(act.id)) {
-         if (currentScore >= 50) passedCount++;
-         continue;
-      }
-
-      const lessonKey = `${moduleId}:${act.id}`;
-      // Instant read from dict
-      if (userProgress[lessonKey] >= 50) {
-          passedCount++;
-      } else {
-          // Backup fetch just in case it's missing from dict but in IndexedDB
-          const subId = `${user.email}_${moduleId}_${act.id}`;
-          try {
-            const sub = await submissionsDB.getItem(subId);
-            if (sub && sub.score >= 50) passedCount++;
-          } catch (e) { }
-      }
-    }
-    return { passedCount, threshold, isCompleted: passedCount >= threshold };
-  };
-
-  const handleSuccess = async (aesScore, funcPassed, funcTotal, currentRog) => {
-    const currentIndex = lessonActivitiesResolved.findIndex((a) => a.id === activityId);
-    const isLast = currentIndex === lessonActivitiesResolved.length - 1;
-    const nextActivity = !isLast ? lessonActivitiesResolved[currentIndex + 1] : null;
-
-    const completionData = await checkLessonCompletion(activityId, aesScore);
-    const meetsThreshold = completionData.isCompleted;
-
-    if (meetsThreshold && topicIdResolved) {
-        try { await completeFullTopic(topicIdResolved); } catch(e) {}
-    }
-
-    let promptMsg = "";
-    if (aesScore === 100) {
-      promptMsg = `Perfect execution!\nYou earned an Algorithmic Efficiency Score (AES) of 100%.\n\nYou passed all functional tests and completely mastered both the target Time and Space complexity!`;
-    } else if (funcPassed < funcTotal) {
-      promptMsg = `Keep trying!\nYour logic is incomplete. You passed ${funcPassed}/${funcTotal} functional test cases.\nFocus on fixing your syntax and logic before worrying about complexity.`;
-    } else if (aesScore >= 75) {
-      promptMsg = `Great job!\nYou earned an AES of ${aesScore}%.\n\nYou passed all functional tests, but your algorithm is slightly suboptimal in Time or Space complexity.\nCan you optimize it further to reach 100%?`;
-    } else {
-      promptMsg = `Good effort.\nYou earned an AES of ${aesScore}%.\n\nYour code works and passed all functional tests! However, it requires a lot more execution time or memory than the optimal solution.\nCan you make it faster or leaner?`;
-    }
-
-    if (currentRog > 0) {
-      promptMsg += `\n\nOptimization recognized: Your refactoring improved your score by +${currentRog} ROG points!`;
-    }
-
-    if (meetsThreshold) promptMsg += `\n\nLesson Unlocked! You've successfully passed ${completionData.passedCount}/${completionData.threshold} required activities to advance.`;
-    else promptMsg += `\n\nProgress: ${completionData.passedCount}/${completionData.threshold} required activities passed to advance.`;
-
-    if (!isLast && nextActivity) {
-      if (meetsThreshold) {
-        setModalConfig({ isOpen: true, title: "Lesson Unlocked!", message: promptMsg + "\n\nYou can move on to the next lesson now, or stay here to complete the remaining optional practice activities.", confirmText: "Go to Next Lesson", cancelText: "Continue Practicing", isDanger: false, onConfirmAction: () => { closeModal(); navigate("/learning-path"); }, onCancelAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); } });
-      } else {
-        setModalConfig({ isOpen: true, title: "Activity Evaluated", message: promptMsg + "\n\nReady for the next challenge?", confirmText: "Next Activity", cancelText: "Stay Here", isDanger: false, onConfirmAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal });
-      }
-    } else {
-      setModalConfig({ isOpen: true, title: "Section Completed!", message: `${promptMsg}\n\nIncredible! You have finished all activities in this section.\nReturn to the learning path to explore the next topic.`, confirmText: "Finish", cancelText: "Stay Here", isDanger: false, onConfirmAction: async () => { closeModal(); navigate("/learning-path"); }, onCancelAction: closeModal });
-    }
-  };
-
-  const runTestCases = async () => {
-    if (isEvaluating || isSyncingBlocks) return;
-    if (!processedTestCases.length) return;
-    if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
-    }
-
-    setIsEvaluating(true); setLineExecutions({});
-    setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
-    setBottomPanel("console"); setConsoleTab("output");
-
-    const cleanPayload = sanitizePythonCode(generatedPython);
-    try { await executeTest(cleanPayload); } catch (failure) {
-      const errorMsg = `Test Execution Prevented:\n\n${failure.error || failure.message}`;
-      setConsoleOutput(errorMsg); setBottomPanel("console"); setIsEvaluating(false);
-      localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: errorMsg, passedTests: 0 })); return;
-    }
-
-    setBottomPanel("console"); setConsoleOutput("\n> --- Running Test Cases ---\n\n"); setPassedTests(0);
-
-    let passed = 0; let functionalPassed = 0; let functionalTotal = 0;
-    let fullOutput = "\n> --- Running Test Cases ---\n";
-
-    for (let i = 0; i < totalTests; i++) {
-      const tc = processedTestCases[i];
-      if (tc.isComplexityTest) {
-        const actualVal = tc.title.includes("Time") ? analysisResult.total : analysisResult.space_total;
-        const actualWeight = getComplexityWeight(actualVal); const targetWeight = getComplexityWeight(tc.target);
-        const testPassed = actualWeight > 0 && actualWeight <= targetWeight;
-
-        if (testPassed) passed++;
-        fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n  Metric: ${tc.title}\n  Expected: <= ${formatComplexity(tc.target)}\n  Actual: ${formatComplexity(actualVal)}\n\n`;
-        setConsoleOutput(fullOutput); setPassedTests(passed); continue;
-      }
-
-      functionalTotal++;
-      const isFunctionCall = tc.call?.includes("(") && tc.call?.includes(")");
-      const taskId = activityDataResolved?.id || ""; const isIntroLevel = taskId === "l1-t1" || taskId === "l1-t3";
-      let codeToRun = "";
-
-      if (isFunctionCall && !isIntroLevel) {
-          codeToRun = cleanPayload + `\n\ntry:\n    __student_res = ${tc.call}\n    if __student_res == ${tc.expected}:\n        print("TEST_PASSED_FLAG")\n    else:\n        print(f"TEST_FAILED_FLAG:{__student_res}")\nexcept Exception as e:\n    print(f"TEST_ERROR_FLAG:{type(e).__name__}: {str(e)}")`;
-      } else {
-          codeToRun = `${cleanPayload}\n${tc.call || ""}`;
-      }
-
-      try {
-        const rawOutput = await executeTest(codeToRun); 
-        const actualOutput = rawOutput.trim();
-        const expected = String(tc.expected).replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n").trim();
-        let testPassed = false;
-        let displayActual = actualOutput;
-
-        if (isFunctionCall && !isIntroLevel) {
-          if (actualOutput.includes("TEST_PASSED_FLAG")) {
-             passed++; functionalPassed++; testPassed = true;
-          } else if (actualOutput.includes("TEST_FAILED_FLAG:")) {
-             displayActual = actualOutput.split("TEST_FAILED_FLAG:").pop().trim();
-          } else if (actualOutput.includes("TEST_ERROR_FLAG:")) {
-             displayActual = "Error: " + actualOutput.split("TEST_ERROR_FLAG:").pop().trim();
-          } else {
-             displayActual = actualOutput;
-          }
-        } else {
-          if (actualOutput.trim() === expected) { 
-             passed++; functionalPassed++; testPassed = true; 
-          }
-        }
-
-        fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
-        if (!testPassed) {
-          if (tc.isHidden) fullOutput += `  [Hidden Test Case] Expected values and inputs are omitted.\n`;
-          else fullOutput += `  Expected: ${expected}\n  Actual: ${displayActual || "(No Output)"}\n`;
-        }
-        fullOutput += "\n";
-        setConsoleOutput(fullOutput); setPassedTests(passed);
-      } catch (err) { 
-        fullOutput += `Test ${i + 1}: ERROR\n  Message: ${err.message}\n\n`; 
-        setConsoleOutput(fullOutput); 
-        break;
-      }
-    }
-
-    setIsEvaluating(false);
-
-    const tsr = functionalTotal > 0 ? (functionalPassed / functionalTotal) : 1.0;
-    const targetTimeWeight = getComplexityWeight(activityDataResolved?.targetTimeComplexity || "O(n)");
-    const actualTimeWeight = getComplexityWeight(analysisResult.total || "O(n^2)");
-
-    const targetSpaceWeight = getComplexityWeight(activityDataResolved?.targetSpaceComplexity || "O(1)");
-    const actualSpaceWeight = getComplexityWeight(analysisResult.space_total || "O(n)");
-
-    const safeActualTime = actualTimeWeight > 0 ? actualTimeWeight : 6;
-    const safeActualSpace = actualSpaceWeight > 0 ? actualSpaceWeight : 6;
-
-    let timeRatio = targetTimeWeight / safeActualTime;
-    if (timeRatio > 1.0) timeRatio = 1.0;
-
-    let spaceRatio = targetSpaceWeight / safeActualSpace;
-    if (spaceRatio > 1.0) spaceRatio = 1.0;
-
-    const averageEfficiency = (timeRatio + spaceRatio) / 2;
-    let aes = Math.floor((tsr * averageEfficiency) * 100);
-
-    setCurrentAes(aes);
-
-    let initialAes = latestStateRef.current.initial_aes;
-
-    if (initialAes === null || initialAes === undefined) {
-      if (activityDataResolved?.type === "optimization") {
-        initialAes = 50;
-      } else {
-        initialAes = aes;
-      }
-    }
-
-    if (aes < initialAes && latestStateRef.current.status !== "passed") {
-      initialAes = aes;
-    }
-
-    latestStateRef.current.initial_aes = initialAes;
-    latestStateRef.current.final_aes = aes;
-
-    const calculatedRog = aes - initialAes;
-    setCurrentRog(calculatedRog > 0 ? calculatedRog : 0);
-
-    const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
-
-    const trueFinalJsonToSave = getFailsafeWorkspaceJson() || latestStateRef.current.json;
-
-    try { await saveSubmission(trueFinalJsonToSave, generatedPython, aes, passed, totalTests, testResults, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", false); } catch(e) { console.error(e) }
-    try { localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: aes })); } catch(e) {}
-
-    const lessonKey = `${moduleId}:${activityId}`;
-    try { await savePartialProgress(lessonKey, aes); } catch(e) { console.error(e) }
-
-    await handleSuccess(aes, functionalPassed, functionalTotal, calculatedRog);
-  };
-
-  return (
-    <div className="activity-app-container">
-      {toast.show && <div className={`toast-notification ${toast.type === "error" ? "toast-error" : "toast-success"}`}>{toast.message}</div>}
-
-      <header className="workspace-header-purple">
-        <div className="wh-left">
-          <button className="wh-back-btn" onClick={() => navigate("/learning-path")}><FiChevronLeft size={18} /> Back</button>
-          <div className="wh-divider"></div>
-          <h1 className="wh-project-title">Activity: {activityDataResolved?.title || "Loading..."}</h1>
-        </div>
-        <div className="wh-center">
-          <div className="wh-view-toggle">
-            <button className={`wh-toggle-btn ${viewMode === "workspace" ? "active" : ""}`} onClick={() => setViewMode("workspace")}><FiGrid size={14} /> Workspace</button>
-            <button className={`wh-toggle-btn ${viewMode === "python" ? "active" : ""}`} onClick={() => setViewMode("python")}><FiTerminal size={14} /> Python Code</button>
-          </div>
-        </div>
-        <div className="wh-right">
-          <button className="wh-btn-save" onClick={handleActivityRun} disabled={isEvaluating || isSyncingBlocks} title="Run code without submitting to test cases">
-            <FiTerminal size={16} /> {isEvaluating ? "..." : "Run Code"}
-          </button>
-          <button className={`wh-btn-run ${isEvaluating ? "running" : ""}`} onClick={runTestCases} disabled={isEvaluating || isSyncingBlocks}>
-            <FiPlay size={16} /> {isEvaluating ? "..." : isSyncingBlocks ? "Syncing..." : "Evaluate Efficiency (AES)"}
-          </button>
-        </div>
-      </header>
-
-      <Split className={`workspace-split activity-split ${!isLeftPanelVisible ? "left-hidden" : ""} ${!isRightPanelVisible ? "right-hidden" : ""}`} sizes={[20, 60, 20]} minSize={[isLeftPanelVisible ? 250 : 0, 400, isRightPanelVisible ? 250 : 0]} gutterSize={8}>
-
-        <aside className="activity-left-panel">
-          {lessonActivitiesResolved.length > 0 && (
-            <div className="activity-selector-container">
-              <label className="activity-selector-label"><FiBookOpen size={16} /> Lesson Outline</label>
-              <select className="activity-selector-dropdown" value={activityId} onChange={(e) => navigate(`/activity/${moduleId}/${e.target.value}`)}>
-                {lessonActivitiesResolved.map((act, index) => (<option key={act.id} value={act.id}>{index + 1}. {act.title}</option>))}
-              </select>
-            </div>
-          )}
-          <div className="activity-panel-header">
-            <h2><FiInfo size={20} /> Description</h2>
-          </div>
-          <div className="activity-panel-content">
-            <div className="activity-task-header">
-              <h2 className="activity-title-text">{activityDataResolved?.title || "Loading..."}</h2>
-              <span className={`difficulty-badge ${activityDataResolved?.difficulty?.toLowerCase() || "easy"}`}>{activityDataResolved?.difficulty || "Easy"}</span>
-            </div>
-            <div className="activity-card">
-              {renderFormattedTask(activityDataResolved?.task || "Loading activity...")}
-            </div>
-          </div>
-        </aside>
-
-        <main className="workspace-main activity-center-panel">
-          <button className={`sidebar-toggle-btn ${!isLeftPanelVisible ? "closed" : ""}`} onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)} title="Toggle Instructions">
-            <FiChevronRight className="toggle-icon" />
-          </button>
-          <button className={`sidebar-toggle-btn right-panel-toggle ${!isRightPanelVisible ? "closed" : ""}`} onClick={() => setIsRightPanelVisible(!isRightPanelVisible)} title="Toggle Test Cases">
-            <FiChevronLeft className="toggle-icon" />
-          </button>
-
-          <div className="editor-container">
-            <div className={viewMode === "workspace" ? "workspace-view d-block" : "workspace-view d-none"} style={{ width: "100%", height: "100%" }}>
-              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={null} />
-            </div>
-            <PythonCodeEditor
-              viewMode={viewMode}
-              pythonCode={generatedPython}
-              isEditingCode={isEditingCode}
-              syntaxErrors={syntaxErrors || []}
-              onSyncToBlocks={handleSyncToBlocks}
-              onChangeCode={(value) => {
-                if (isUnmountingRef.current) return;
-                const newCode = sanitizePythonCode(value);
-                setGeneratedPython(newCode); setIsEditingCode(true); setSyntaxErrors([]);
-                latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(getFailsafeWorkspaceJson() || latestStateRef.current.json, newCode);
-              }}
-              onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
-            />
-          </div>
-
-          {bottomPanel && (
-            <DockedBottomPanel
-              bottomPanel={bottomPanel}
-              onClosePanel={() => setBottomPanel(null)}
-              panelHeight={panelHeight}
-              onDragStart={handleDragStart}
-              consoleTab={consoleTab}
-              onConsoleTabChange={setConsoleTab}
-              consoleOutput={consoleOutput}
-              onClearConsole={() => setConsoleOutput("Ready to run...\n")}
-              isWaitingForInput={isWaitingForInput}
-              userInput={userInput}
-              setUserInput={setUserInput}
-              onSendInput={handleSendInput}
-              pythonCode={generatedPython}
-              lineExecutions={lineExecutions}
-              activeComplexityTab={activeComplexityTab}
-              onComplexityTabChange={setActiveComplexityTab}
-              analysisResult={analysisResult}
-              analysisTime={analysisTime}
-              defaultWeight={6}
-              analysisTimeLabel="Analyzed In:"
-              analysisBadgeStyle={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
-              analysisLabelStyle={{ color: '#64748B' }}
-              analysisValStyle={{ color: '#0F172A' }}
-              extraBadges={
-                <>
-                  <span className="total-badge aes-badge" style={{ position: 'relative' }}>
-                    <span className="total-label">AES:</span>
-                    <span className="total-val">{currentAes}%</span>
-                    <div className="info-tooltip">
-                      <FiInfo size={14} />
-                      <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
-                        <span className="tooltip-title">Algorithmic Efficiency Score</span>
-                        Measures how efficiently your code solves the problem compared to the target optimal Time and Space complexity.
-                      </span>
-                    </div>
-                  </span>
-                  {currentRog > 0 && (
-                    <span className="total-badge rog-badge" style={{ position: 'relative' }}>
-                      <span className="total-label">ROG:</span>
-                      <span className="total-val">+{currentRog}</span>
-                      <div className="info-tooltip">
-                        <FiInfo size={14} />
-                        <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
-                          <span className="tooltip-title">Refactoring Optimization Gain</span>
-                          Points earned by refactoring and improving your initial solution's performance. Great job!
-                        </span>
-                      </div>
-                    </span>
-                  )}
-                </>
-              }
-            />
-          )}
-
-          <WorkspaceFooterBar
-            bottomPanel={bottomPanel}
-            onTogglePanel={(panel) => setBottomPanel(bottomPanel === panel ? null : panel)}
-            onOpenBigOModal={() => setIsBigOModalOpen(true)}
-          >
-            <button
-              className="footer-action-icon clear-btn"
-              title="Restart Activity"
-              onClick={() =>
-                setModalConfig({
-                  isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.",
-                  confirmText: "Restart", cancelText: "Cancel", isDanger: true,
-                  onConfirmAction: async () => {
-                    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-                    if (storedUser) { const user = JSON.parse(storedUser); try { await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } catch(e){} }
-                    localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`);
-                    await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true);
-                    window.location.reload();
-                  }, onCancelAction: closeModal
-                })
-              }
-            >
-              <FiActivity size={16} /> Restart
-            </button>
-          </WorkspaceFooterBar>
-        </main>
-
-        <aside className="activity-right-panel">
-          <div className="activity-panel-header">
-            <h3>Test Cases</h3>
-            <span className="test-cases-counter">{passedTests}/{totalTests} passed</span>
-          </div>
-          <div className="activity-panel-content">
-            {processedTestCases.map((tc, i) => {
-              const testIdentifier = `Test ${i + 1}`;
-              const isPassing = consoleOutput.includes(`${testIdentifier}: PASSED`);
-              const isFailing = consoleOutput.includes(`${testIdentifier}: FAILED`);
-              const isError = consoleOutput.includes(`${testIdentifier}: ERROR`);
-              const isExpanded = expandedTests[i];
-              const statusClass = isPassing ? "passing" : isFailing || isError ? "failing" : "";
-              const displayTitle = tc.isComplexityTest ? tc.title : tc.isHidden ? `Hidden Test` : `Test ${i + 1}`;
-
-              return (
-                <div key={i} className={`test-case-card ${statusClass}`}>
-                  <div className="test-case-header" onClick={() => !tc.isHidden && toggleTest(i)} style={{ cursor: tc.isHidden ? "default" : "pointer" }}>
-                    <div className="test-case-header-left">
-                      <div className={`test-case-indicator ${statusClass}`}></div>
-                      <strong className="test-case-title">{displayTitle}</strong>
-                    </div>
-                    {tc.isHidden ? <span style={{ fontSize: "0.85rem", opacity: 0.6 }}>[Locked]</span> : <FiChevronRight size={16} className={`test-case-chevron ${isExpanded ? "open" : ""}`} />}
-                  </div>
-                  {isExpanded && !tc.isHidden && (
-                    <div className="test-case-details">
-                      <div className="test-case-row">
-                        <span className="test-case-label">{tc.isComplexityTest ? "Metric Constraint:" : "Input:"}</span>
-                        <code className="test-case-code">{tc.call}</code>
-                      </div>
-                      <div className="test-case-row">
-                        <span className="test-case-label">{tc.isComplexityTest ? "Requirement:" : "Expected Output:"}</span>
-                        <code className="test-case-code">{tc.expected}</code>
-                      </div>
-                      {(isPassing || isFailing || isError) && (
-                        <div className="test-case-status-row">
-                          <span className="test-case-label">Result:</span>
-                          <span style={{ fontWeight: "bold", color: isPassing ? "#10B981" : "#EF4444" }}>{isPassing ? "Passed" : isFailing ? "Failed (Incorrect)" : "Failed (Syntax Error)"}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </aside>
-      </Split>
-
-      <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} cancelText={modalConfig.cancelText} isDanger={modalConfig.isDanger} onCancel={modalConfig.onCancelAction || closeModal} onConfirm={modalConfig.onConfirmAction} />
-      <BigOModal isOpen={isBigOModalOpen} onClose={() => setIsBigOModalOpen(false)} />
-    </div>
-  );
-};
-
-const ActivityApp = () => {
-  const { moduleId, activityId } = useParams();
-  return <ActivityAppInner key={`${moduleId}-${activityId}`} moduleId={moduleId} activityId={activityId} />;
-};
-
-export default ActivityApp;
-
---- FILE: frontend/src/pages/AdminUserManagement.jsx ---
-
-// frontend/src/pages/AdminUserManagement.jsx
-import { useEffect, useMemo, useState } from "react";
-import {
-  LuBan,
-  LuCheck,
-  LuFilter,
-  LuRefreshCw,
-  LuSearch,
-  LuShield,
-  LuTrash2,
-  LuTriangleAlert,
-  LuUser,
-  LuUsers,
-  LuX
-} from "react-icons/lu";
-import DashboardHeader from "../components/DashboardHeader";
-import "../styles/AdminUserManagement.css";
-
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
-
-const AdminUserManagement = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // Search and Filter States
-  const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all"); 
-  const [statusFilter, setStatusFilter] = useState("all"); 
-
-  // Custom Modal State
-  const [modalConfig, setModalConfig] = useState({
-    isOpen: false,
-    type: "alert", // 'alert' | 'confirm' | 'prompt'
-    title: "",
-    message: "",
-    isPassword: true,
-    isDanger: false,
-    onConfirm: null
-  });
-  const [modalInputValue, setModalInputValue] = useState("");
-
-  const currentUser = useMemo(() => {
-    try {
-      const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
-      if (!stored || stored === "undefined") return {};
-      return JSON.parse(stored);
-    } catch (e) {
-      return {};
-    }
-  }, []);
-
-  const fetchUsers = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-      const response = await fetch(`${API_BASE}/api/admin/users`, {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
-      
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Failed to fetch users");
-      
-      if (data && Array.isArray(data.users)) {
-        setUsers(data.users);
-      } else if (Array.isArray(data)) {
-        setUsers(data);
-      } else {
-        setUsers([]);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const filteredUsers = useMemo(() => {
-    if (!Array.isArray(users)) return []; 
-    
-    return users.filter(user => {
-      const matchesSearch = 
-        (user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (user.email || "").toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const isUserAdmin = user.isAdmin === true || user.role === "admin";
-      const matchesRole = 
-        roleFilter === "all" ? true : 
-        roleFilter === "admin" ? isUserAdmin : !isUserAdmin;
-      
-      const matchesStatus = 
-        statusFilter === "all" ? true : 
-        statusFilter === "active" ? user.status !== "Suspended" : user.status === "Suspended";
-        
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  }, [users, searchTerm, roleFilter, statusFilter]);
-
-  // Modal Handlers
-  const showModal = (config) => {
-    setModalInputValue("");
-    setModalConfig({ ...modalConfig, isOpen: true, ...config });
-  };
-
-  const closeModal = () => {
-    setModalConfig((prev) => ({ ...prev, isOpen: false }));
-    setModalInputValue("");
-  };
-
-  const handleModalConfirm = () => {
-    if (modalConfig.onConfirm) {
-      modalConfig.onConfirm(modalConfig.type === 'prompt' ? modalInputValue : null);
-    }
-    closeModal();
-  };
-
-  // Action Handlers
-  const handleStatusToggle = (email, currentStatus) => {
-    if (currentUser.email && email === currentUser.email) {
-      showModal({
-        type: "alert",
-        title: "Security Restriction",
-        message: "You cannot modify your own administrative account status."
-      });
-      return;
-    }
-
-    const newStatus = currentStatus === "Active" || !currentStatus ? "Suspended" : "Active";
-    
-    showModal({
-      type: "confirm",
-      title: "Confirm Status Change",
-      message: `Are you sure you want to change this account's status to ${newStatus}?`,
-      isDanger: newStatus === "Suspended",
-      onConfirm: async () => {
-        try {
-          const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-          const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}/status`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify({ status: newStatus })
-          });
-
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.detail || "Failed to update status");
-
-          setUsers(users.map(u => 
-            u.email === email ? { ...u, status: newStatus } : u
-          ));
-        } catch (err) {
-          showModal({
-            type: "alert",
-            title: "Error",
-            message: err.message
-          });
-        }
-      }
-    });
-  };
-
-  const handleDelete = (email) => {
-    if (currentUser.email && email === currentUser.email) {
-      showModal({
-        type: "alert",
-        title: "Critical Security Boundary",
-        message: "You cannot delete your own active administrator profile."
-      });
-      return;
-    }
-
-    showModal({
-      type: "prompt",
-      title: "Security Verification Required",
-      message: `To permanently delete account (${email}), please re-enter your current Admin password:`,
-      isPassword: true,
-      isDanger: true,
-      onConfirm: async (passwordPrompt) => {
-        if (!passwordPrompt || !passwordPrompt.trim()) {
-          setTimeout(() => {
-            showModal({
-              type: "alert",
-              title: "Deletion Aborted",
-              message: "Password cannot be blank."
-            });
-          }, 300); // slight delay to allow first modal to close cleanly
-          return;
-        }
-
-        try {
-          const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-          
-          const verifyRes = await fetch(`${API_BASE}/api/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: currentUser.email, password: passwordPrompt })
-          });
-          
-          const verifyData = await verifyRes.json();
-          if (!verifyRes.ok || verifyData.status !== "success") {
-            throw new Error("Incorrect administrator password. Deletion cancelled.");
-          }
-
-          const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}`, {
-            method: "DELETE",
-            headers: {
-              "Authorization": `Bearer ${token}`
-            }
-          });
-
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.detail || "Failed to delete user");
-
-          setUsers(users.filter(u => u.email !== email));
-          setTimeout(() => {
-            showModal({
-              type: "alert",
-              title: "Success",
-              message: "User account successfully purged from the system."
-            });
-          }, 300);
-          
-        } catch (err) {
-          setTimeout(() => {
-            showModal({
-              type: "alert",
-              title: "Authorization Error",
-              message: err.message
-            });
-          }, 300);
-        }
-      }
-    });
-  };
-
-  return (
-    <div className="admin-page-wrapper">
-      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
-      
-      <div className="admin-page-container">
-        
-        <div className="admin-header">
-          <div className="admin-header-left">
-            <h1><LuUsers size={38} color="#5A1398" /> System User Management</h1>
-            <p>Monitor, filter, and securely manage all registered student and administrator accounts across the AlgoBlocks platform.</p>
-          </div>
-          <button onClick={fetchUsers} className="admin-refresh-btn">
-            <LuRefreshCw size={20} /> Sync Directory
-          </button>
-        </div>
-
-        <div className="admin-toolbar">
-          <div className="admin-search-wrapper">
-            <LuSearch className="admin-search-icon" size={20} />
-            <input 
-              type="text" 
-              placeholder="Search directory by name or email address..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="admin-search-input"
-            />
-          </div>
-
-          <div className="admin-filter-container">
-            <LuFilter size={20} color="#5b5675" />
-            <select 
-              value={roleFilter} 
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="admin-filter-select"
-            >
-              <option value="all">View All Roles</option>
-              <option value="admin">Administrators Only</option>
-              <option value="user">Standard Users Only</option>
-            </select>
-
-            <select 
-              value={statusFilter} 
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="admin-filter-select"
-            >
-              <option value="all">View All Statuses</option>
-              <option value="active">Active Accounts</option>
-              <option value="suspended">Suspended Accounts</option>
-            </select>
-          </div>
-        </div>
-
-        {error && (
-          <div className="admin-message-box error">
-            <LuBan size={24} />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="admin-loading-state">
-            <LuRefreshCw size={48} className="spinner-icon" style={{ animation: 'spin 2s linear infinite' }} />
-            <span>Fetching secure directory...</span>
-          </div>
-        ) : (
-          <div className="admin-table-container">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Identity</th>
-                  <th>System Role</th>
-                  <th>Access Status</th>
-                  <th className="th-actions">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user) => (
-                  <tr key={user.email || Math.random()}>
-                    <td>
-                      <div className="admin-user-info">
-                        <span className="admin-user-name">{user.name || "Unnamed Profile"}</span>
-                        <span className="admin-user-email">{user.email}</span>
-                      </div>
-                    </td>
-                    <td>
-                      {user.isAdmin || user.role === "admin" ? (
-                        <span className="admin-badge badge-admin">
-                          <LuShield size={16} /> Administrator
-                        </span>
-                      ) : (
-                        <span className="admin-badge badge-user">
-                          <LuUser size={16} /> Student User
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      {user.status === "Suspended" ? (
-                        <span className="admin-badge badge-suspended">
-                          <LuBan size={16} /> Suspended
-                        </span>
-                      ) : (
-                        <span className="admin-badge badge-active">
-                          <LuCheck size={16} /> Active Access
-                        </span>
-                      )}
-                    </td>
-                    <td className="td-actions">
-                      <div className="admin-actions">
-                        <button 
-                          onClick={() => handleStatusToggle(user.email, user.status)}
-                          title={user.status === "Active" ? "Suspend Account Access" : "Restore Account Access"}
-                          className={`admin-action-btn ${user.status === "Active" ? "suspend" : "activate"}`}
-                        >
-                          {user.status === "Active" ? <LuBan size={20} /> : <LuCheck size={20} />}
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(user.email)}
-                          title="Purge Account (Requires Admin Verification)"
-                          className="admin-action-btn delete"
-                        >
-                          <LuTrash2 size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredUsers.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan="4">
-                      <div className="admin-empty-state">
-                        No accounts match your current search and filter criteria.
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* CUSTOM ADMIN MODAL OVERLAY */}
-      {modalConfig.isOpen && (
-        <div className="admin-modal-overlay" onClick={(e) => {
-           if(e.target.className === 'admin-modal-overlay') closeModal();
-        }}>
-          <div className="admin-modal-card">
-            <div className={`admin-modal-header ${modalConfig.isDanger ? 'danger' : ''}`}>
-              <div className="admin-modal-title">
-                {modalConfig.isDanger ? <LuTriangleAlert size={22} /> : <LuShield size={22} />}
-                <h3>{modalConfig.title}</h3>
-              </div>
-              <button className="admin-modal-close" onClick={closeModal}>
-                <LuX size={20} />
-              </button>
-            </div>
-            
-            <div className="admin-modal-body">
-              <p>{modalConfig.message}</p>
-              {modalConfig.type === 'prompt' && (
-                <div className="admin-modal-input-wrapper">
-                  <input
-                    type={modalConfig.isPassword ? "password" : "text"}
-                    value={modalInputValue}
-                    onChange={(e) => setModalInputValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleModalConfirm();
-                    }}
-                    className="admin-modal-prompt-input"
-                    placeholder="Enter required credentials..."
-                    autoFocus
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="admin-modal-footer">
-              {modalConfig.type !== 'alert' && (
-                <button className="admin-btn-cancel" onClick={closeModal}>
-                  Cancel
-                </button>
-              )}
-              <button
-                className={`admin-btn-confirm ${modalConfig.isDanger ? 'danger' : ''}`}
-                onClick={handleModalConfirm}
-              >
-                {modalConfig.type === 'alert' ? 'Acknowledge' : 'Confirm Action'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default AdminUserManagement;
-
---- FILE: frontend/src/pages/AssessmentPage.jsx ---
-
-// frontend/src/pages/AssessmentPage.jsx
-import { useEffect, useRef, useState } from "react";
-import { FiAlertTriangle, FiAward, FiBarChart2, FiBookOpen, FiCheck, FiCheckCircle, FiChevronLeft, FiChevronRight, FiClock, FiFileText, FiInfo, FiLock, FiSave, FiTarget, FiTrendingUp, FiX } from "react-icons/fi";
-import { useNavigate, useParams } from "react-router-dom";
-import DashboardHeader from "../components/DashboardHeader";
-import { assessmentsDB, progressDB, syncQueueDB } from "../db";
-import "../styles/AssessmentPage.css";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
-// BUG-09 Fix: Scope draft keys by user email
-const getDraftKey = (moduleId, type) => {
-  const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-  const user = JSON.parse(userStr || "{}");
-  const userEmail = user.email || "anonymous";
-  return `algoblocks_draft_${userEmail}_${moduleId}_${type}`;
-};
-
-function saveDraft(moduleId, type, payload) {
-  try {
-    localStorage.setItem(getDraftKey(moduleId, type), JSON.stringify(payload));
-  } catch (e) {
-    console.warn("Could not save draft:", e);
-  }
-}
-
-function loadDraft(moduleId, type) {
-  try {
-    const raw = localStorage.getItem(getDraftKey(moduleId, type));
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function clearDraft(moduleId, type) {
-  try {
-    localStorage.removeItem(getDraftKey(moduleId, type));
-  } catch {
-    // ignore
-  }
-}
-
-function shuffleArray(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function CodeBlock({ code }) {
-  if (!code) return null;
-  return (
-    <div className="question-code-block">
-      <div className="code-block-header">
-        <span className="code-block-label">Python</span>
-      </div>
-      <pre className="code-block-pre">
-        <code>{code}</code>
-      </pre>
-    </div>
-  );
-}
-
-export default function AssessmentPage() {
-  const { moduleId, type } = useParams();
-  const navigate = useNavigate();
-
-  const [questions, setQuestions] = useState([]);
-  const [moduleTitle, setModuleTitle] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [submitted, setSubmitted] = useState(false);
-  const [score, setScore] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [timeElapsed, setTimeElapsed] = useState(0);
-  const [lastSavedAt, setLastSavedAt] = useState(null);
-  const [hasDraft, setHasDraft] = useState(false);
-  const [prevResult, setPrevResult] = useState(null);
-  const [isLocked, setIsLocked] = useState(false);
-
-  const timerRef = useRef(null);
-  const autoSaveRef = useRef(null);
-
-  const isGlobalPreTest = moduleId === "course-pre-test";
-  const isGlobalPostTest = moduleId === "course-post-test";
-  const moduleNum = (isGlobalPreTest || isGlobalPostTest) ? "Overall" : moduleId?.split("-").pop();
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const assessmentKey = `${moduleId}_${type}_assessment`;
-        const existingResult = await assessmentsDB.getItem(assessmentKey);
-        
-        if (existingResult) {
-          const normalized = existingResult.data ? { ...existingResult, ...existingResult.data } : existingResult;
-          setPrevResult(normalized);
-
-          if (isGlobalPreTest || isGlobalPostTest) {
-            setIsLocked(true);
-            setLoading(false);
-            return;
-          }
-        }
-
-        const res = await fetch(`/data/assessments/${moduleId}.json`);
-        if (!res.ok) throw new Error("Assessment not found");
-        const data = await res.json();
-
-        const draft = loadDraft(moduleId, type);
-        if (draft && draft.questionIds) {
-          const idMap = Object.fromEntries(data.questions.map((q) => [q.id, q]));
-          const restored = draft.questionIds.map((id) => idMap[id]).filter(Boolean);
-          if (restored.length === data.questions.length) {
-            setQuestions(restored);
-            setSelectedAnswers(draft.selectedAnswers || {});
-            setCurrentIndex(draft.currentIndex || 0);
-            setTimeElapsed(draft.timeElapsed || 0);
-            setHasDraft(true);
-            setModuleTitle(data.moduleTitle);
-            setLoading(false);
-            return;
-          }
-        }
-
-        const shuffled = shuffleArray(data.questions);
-        setQuestions(shuffled);
-        setModuleTitle(data.moduleTitle);
-      } catch (err) {
-        console.error("Failed to load assessment:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [moduleId, type, isGlobalPreTest, isGlobalPostTest]);
-
-  useEffect(() => {
-    if (submitted || loading || questions.length === 0 || isLocked) return;
-
-    autoSaveRef.current = setInterval(() => {
-      const draft = {
-        moduleId,
-        type,
-        questionIds: questions.map((q) => q.id),
-        selectedAnswers,
-        currentIndex,
-        timeElapsed,
-        savedAt: new Date().toISOString(),
-      };
-      saveDraft(moduleId, type, draft);
-      setLastSavedAt(new Date().toISOString());
-    }, 10_000);
-
-    return () => clearInterval(autoSaveRef.current);
-  }, [submitted, loading, questions, selectedAnswers, currentIndex, timeElapsed, moduleId, type, isLocked]);
-
-  useEffect(() => {
-    if (submitted || loading || questions.length === 0 || isLocked) return;
-    timerRef.current = setInterval(() => {
-      setTimeElapsed((t) => t + 1);
-    }, 1000);
-    return () => clearInterval(timerRef.current);
-  }, [submitted, loading, questions.length, isLocked]);
-
-  useEffect(() => {
-    if (isLocked) return;
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden" && !submitted && questions.length > 0) {
-        const draft = {
-          moduleId,
-          type,
-          questionIds: questions.map((q) => q.id),
-          selectedAnswers,
-          currentIndex,
-          timeElapsed,
-          savedAt: new Date().toISOString(),
-        };
-        saveDraft(moduleId, type, draft);
-      }
-    };
-    const handleBeforeUnload = (e) => {
-      if (!submitted && Object.keys(selectedAnswers).length > 0) {
-        const draft = {
-          moduleId,
-          type,
-          questionIds: questions.map((q) => q.id),
-          selectedAnswers,
-          currentIndex,
-          timeElapsed,
-          savedAt: new Date().toISOString(),
-        };
-        saveDraft(moduleId, type, draft);
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [submitted, questions, selectedAnswers, currentIndex, timeElapsed, moduleId, type, isLocked]);
-
-  const formatTime = (secs) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, "0");
-    const s = (secs % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
-  };
-
-  const getScoreLabel = (s) => {
-    if (s >= 90) return { label: "Excellent!", color: "#22c55e", icon: <FiAward size={20} /> };
-    if (s >= 75) return { label: "Proficient", color: "#3b82f6", icon: <FiTarget size={20} /> };
-    if (s >= 60) return { label: "Developing", color: "#f97316", icon: <FiTrendingUp size={20} /> };
-    return { label: "Needs Review", color: "#ef4444", icon: <FiBookOpen size={20} /> };
-  };
-
-  const handleSelectAnswer = (optionIndex) => {
-    if (submitted || isLocked) return;
-
-    const updated = { ...selectedAnswers, [currentIndex] : optionIndex };
-    setSelectedAnswers(updated);
-
-    const draft = {
-      moduleId,
-      type,
-      questionIds: questions.map((q) => q.id),
-      selectedAnswers: updated,
-      currentIndex,
-      timeElapsed,
-      savedAt: new Date().toISOString(),
-    };
-    saveDraft(moduleId, type, draft);
-    setLastSavedAt(new Date().toISOString());
-  };
-
-  const handleSubmit = async () => {
-    clearInterval(timerRef.current);
-    clearInterval(autoSaveRef.current);
-
-    let correct = 0;
-    questions.forEach((q, i) => {
-      if (selectedAnswers[i] === q.answer) correct++;
-    });
-
-    const finalScore = Math.round((correct / questions.length) * 100);
-    setScore(finalScore);
-    setSubmitted(true);
-
-    const assessmentKey = `${moduleId}_${type}_assessment`;
-    const result = {
-      moduleId,
-      type,
-      score: finalScore,
-      correct,
-      total: questions.length,
-      timeElapsed,
-      completedAt: new Date().toISOString(),
-      attempts: (prevResult?.attempts ?? 0) + 1,
-    };
-
-    await assessmentsDB.setItem(assessmentKey, result);
-    await progressDB.setItem(assessmentKey, { score: finalScore });
-
-    const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-    const user = JSON.parse(userStr || "{}");
-    
-    user.assessments = user.assessments || {};
-    user.assessments[assessmentKey] = result;
-    user.progress = user.progress || {};
-    user.progress[assessmentKey] = finalScore;
-    
-    if (localStorage.getItem("user")) localStorage.setItem("user", JSON.stringify(user));
-    if (sessionStorage.getItem("user")) sessionStorage.setItem("user", JSON.stringify(user));
-
-    clearDraft(moduleId, type);
-
-    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken"); 
-    const API_TARGET = `${API_BASE.replace(/\/$/, '')}/api`;
-
-    const queuePayloadAssm = {
-        url: `${API_TARGET}/update-assessment`,
-        method: "POST",
-        payload: { email: user.email, key: assessmentKey, assessment_key: assessmentKey, ...result },
-        type: "assessment",
-        timestamp: Date.now()
-    };
-    
-    const queuePayloadProg = {
-        url: `${API_TARGET}/update-progress`,
-        method: "POST",
-        payload: { email: user.email, key: assessmentKey, lesson_id: assessmentKey, score: finalScore },
-        type: "progress",
-        timestamp: Date.now()
-    };
-
-    if (navigator.onLine && user.email && !user.isGuest) {
-      try {
-        const res = await fetch(`${API_TARGET}/update-assessment`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify(queuePayloadAssm.payload)
-        });
-        
-        const progRes = await fetch(`${API_TARGET}/update-progress`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify(queuePayloadProg.payload)
-        });
-
-        if (res.ok && progRes.ok) {
-          await assessmentsDB.setItem(assessmentKey, { ...result, isSynced: true });
-          await progressDB.setItem(assessmentKey, { score: finalScore, isSynced: true });
-        } else {
-          throw new Error("Sync failed");
-        }
-      } catch {
-        const syncId = `sync_${Date.now()}`;
-        await syncQueueDB.setItem(`${syncId}_assm`, queuePayloadAssm);
-        await syncQueueDB.setItem(`${syncId}_prog`, queuePayloadProg);
-      }
-    } else if (user.email && !user.isGuest) {
-        const syncId = `sync_${Date.now()}`;
-        await syncQueueDB.setItem(`${syncId}_assm`, queuePayloadAssm);
-        await syncQueueDB.setItem(`${syncId}_prog`, queuePayloadProg);
-    }
-  };
-
-  const handleProceed = () => {
-    navigate("/learning-path");
-  };
-
-  const handleRetake = () => {
-    clearDraft(moduleId, type);
-    setSubmitted(false);
-    setSelectedAnswers({});
-    setCurrentIndex(0);
-    setTimeElapsed(0);
-    setLastSavedAt(null);
-    setHasDraft(false);
-    setQuestions((prev) => shuffleArray(prev));
-  };
-
-  const handleDiscardDraft = () => {
-    clearDraft(moduleId, type);
-    setSelectedAnswers({});
-    setCurrentIndex(0);
-    setTimeElapsed(0);
-    setHasDraft(false);
-    setQuestions((prev) => shuffleArray(prev));
-  };
-
-  const answeredCount = Object.keys(selectedAnswers).length;
-  const currentQuestion = questions[currentIndex];
-
-  if (loading) {
-    return (
-      <div className="assessment-page">
-        <DashboardHeader />
-        <div className="assessment-loading">Loading assessment...</div>
-      </div>
-    );
-  }
-
-  if (isLocked) {
-    const { label, color, icon } = getScoreLabel(prevResult?.score || 0);
-    return (
-      <div className="assessment-page">
-        <DashboardHeader />
-        <div className="assessment-results-wrapper">
-          <div className="results-card">
-            <div className="results-header">
-              <div className="results-badge" style={{ borderColor: color }}>
-                <span className="results-icon" style={{ display: "inline-flex", color }}>{icon}</span>
-                <span className="results-label" style={{ color }}>{label}</span>
-              </div>
-              <h1 className="results-score" style={{ color }}>{prevResult?.score || 0}%</h1>
-              <p className="results-subtitle" style={{ fontSize: "1.2rem", fontWeight: "bold" }}>
-                {isGlobalPreTest ? "Course Diagnostic Completed" : "Final Exam Completed"}
-              </p>
-              <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "#fef2f2", borderLeft: "4px solid #ef4444", borderRadius: "0 8px 8px 0" }}>
-                <p className="results-note" style={{ display: "flex", alignItems: "center", gap: "8px", color: "#b91c1c", margin: 0, fontWeight: "600", fontSize: "0.95rem" }}>
-                  <FiLock size={18} style={{ flexShrink: 0 }} /> For research and data integrity purposes, this assessment can only be taken once. Your score has been securely recorded.
-                </p>
-              </div>
-            </div>
-            <div className="results-actions" style={{ marginTop: "30px", justifyContent: "center" }}>
-              <button className="btn-proceed" onClick={handleProceed}>
-                Return to Learning Path â†’
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (questions.length === 0) {
-    return (
-      <div className="assessment-page">
-        <DashboardHeader />
-        <div className="assessment-loading">Assessment not available for this module.</div>
-      </div>
-    );
-  }
-
-  if (submitted) {
-    const { label, color, icon } = getScoreLabel(score);
-    const correctCount = Math.round((score / 100) * questions.length);
-    return (
-      <div className="assessment-page">
-        <DashboardHeader />
-        <div className="assessment-results-wrapper">
-          <div className="results-card">
-            <div className="results-header">
-              <div className="results-badge" style={{ borderColor: color }}>
-                <span className="results-icon" style={{ display: "inline-flex", color }}>{icon}</span>
-                <span className="results-label" style={{ color }}>{label}</span>
-              </div>
-              <h1 className="results-score" style={{ color }}>{score}%</h1>
-              <p className="results-subtitle">
-                {isGlobalPreTest ? "Comprehensive Course Diagnostic" : isGlobalPostTest ? "Comprehensive Course Final Exam" : `Module ${moduleNum} Quiz: ${moduleTitle}`}
-              </p>
-              <p className="results-attempt">
-                Attempt #{(prevResult?.attempts ?? 0) + 1} &nbsp;Â·&nbsp; {formatTime(timeElapsed)} taken
-              </p>
-            </div>
-
-            <div className="results-stats">
-              <div className="stat-box">
-                <span className="stat-number">{correctCount}</span>
-                <span className="stat-label">Correct</span>
-              </div>
-              <div className="stat-box">
-                <span className="stat-number">{questions.length - correctCount}</span>
-                <span className="stat-label">Incorrect</span>
-              </div>
-              <div className="stat-box">
-                <span className="stat-number">{questions.length}</span>
-                <span className="stat-label">Total</span>
-              </div>
-            </div>
-
-            <div className="results-review">
-              <h3>Answer Review</h3>
-              <div className="review-list">
-                {questions.map((q, i) => {
-                  const userAnswer = selectedAnswers[i];
-                  const correct = userAnswer === q.answer;
-                  return (
-                    <div key={q.id} className={`review-item ${correct ? "correct" : "incorrect"}`}>
-                      <div className="review-item-header">
-                        <span className="review-num">Q{i + 1}</span>
-                        <span className="review-icon">
-                          {correct ? <FiCheck color="#22c55e" /> : <FiX color="#ef4444" />}
-                        </span>
-                        <span className="review-question">
-                          {q.type === "code" && <span className="review-code-tag">CODE</span>}
-                          {q.question}
-                        </span>
-                      </div>
-                      {!correct && (
-                        <div className="review-answer-detail">
-                          {q.code && (
-                            <div className="review-code-snippet">
-                              <pre>{q.code}</pre>
-                            </div>
-                          )}
-                          <span className="your-answer">
-                            Your answer: <em>{userAnswer !== undefined ? q.options[userAnswer] : "Not answered"}</em>
-                          </span>
-                          <span className="correct-answer">
-                            Correct: <em>{q.options[q.answer]}</em>
-                          </span>
-                          <span className="explanation-text" style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                            <FiInfo style={{ marginTop: "3px", flexShrink: 0, color: "#eab308" }} /> {q.explanation}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="results-actions">
-              {!(isGlobalPreTest || isGlobalPostTest) && (
-                <button className="btn-retake" onClick={handleRetake}>Retake Assessment</button>
-              )}
-              <button className="btn-proceed" onClick={handleProceed}>
-                {isGlobalPreTest ? "Start Curriculum â†’" : "Back to Learning Path â†’"}
-              </button>
-            </div>
-
-            {isGlobalPreTest && (
-              <p className="results-note" style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
-                <FiInfo size={18} style={{ flexShrink: 0, marginTop: "2px" }} />
-                <span>
-                  The curriculum is now fully unlocked. Use this score as a baseline to track your growth over the course! <br/> 
-                  <strong>Note: This pre-test has now been locked.</strong>
-                </span>
-              </p>
-            )}
-            {isGlobalPostTest && (
-              <p className="results-note" style={{ display: "flex", alignItems: "flex-start", gap: "8px", color: "#f59e0b", fontSize: "1.1rem" }}>
-                <FiCheckCircle size={20} style={{ flexShrink: 0, marginTop: "2px" }} />
-                <span>
-                  Congratulations on completing the AlgoBlocks curriculum! You have proven your mastery of algorithmic foundations.<br/>
-                  <strong>Note: This post-test has now been locked.</strong>
-                </span>
-              </p>
-            )}
-            {!(isGlobalPreTest || isGlobalPostTest) && score >= 75 && (
-              <p className="results-note" style={{ display: "flex", alignItems: "center", gap: "8px", color: "#22c55e" }}>
-                <FiCheckCircle size={18} style={{ flexShrink: 0 }} /> Great performance! You've demonstrated strong understanding of Module {moduleNum} concepts.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="assessment-page">
-      <DashboardHeader />
-
-      <div className="assessment-wrapper">
-        <div className="assessment-header">
-          <div className="assessment-title-block">
-            <div className="assessment-tag">{isGlobalPreTest ? "DIAGNOSTIC EXAM" : isGlobalPostTest ? "FINAL EXAM" : "QUIZ"}</div>
-            <h1>{isGlobalPreTest ? "Comprehensive Course Pre-Test" : isGlobalPostTest ? "Comprehensive Course Post-Test" : `Module ${moduleNum}: ${moduleTitle}`}</h1>
-            <p className="assessment-subtitle">
-              {isGlobalPreTest
-                ? "This assessment measures your prior knowledge across the entire course. It does not affect your grades. NOTE: For data validity, this test can only be taken ONCE."
-                : isGlobalPostTest
-                ? "This final assessment evaluates your complete mastery of algorithms across all modules. NOTE: For data validity, this test can only be taken ONCE."
-                : "This assessment evaluates your understanding after completing the module."}
-            </p>
-          </div>
-          <div className="assessment-meta">
-            <div className="meta-pill" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-              <FiClock size={14} /> {formatTime(timeElapsed)}
-            </div>
-            <div className="meta-pill" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-              <FiFileText size={14} /> {answeredCount}/{questions.length} answered
-            </div>
-            {lastSavedAt && (
-              <div className="meta-pill saved" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                <FiSave size={14} />
-                Saved {new Date(lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {hasDraft && (
-          <div className="draft-banner">
-            <span>ðŸ”„ Your previous session was restored â€” {answeredCount} answer{answeredCount !== 1 ? "s" : ""} recovered.</span>
-            <button className="draft-discard-btn" onClick={handleDiscardDraft}>
-              Start Fresh
-            </button>
-          </div>
-        )}
-
-        {prevResult && !hasDraft && (
-          <div className="prev-result-banner">
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-              <FiBarChart2 /> You previously scored <strong>{prevResult.score}%</strong> on this assessment
-              (Attempt #{prevResult.attempts}).
-            </span>
-          </div>
-        )}
-
-        <div className="assessment-progress-bar">
-          <div
-            className="assessment-progress-fill"
-            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-          />
-        </div>
-
-        <div className="assessment-body">
-          <aside className="question-navigator">
-            <h4>Questions</h4>
-            <div className="question-nav-grid">
-              {questions.map((q, i) => (
-                <button
-                  key={i}
-                  className={`nav-dot ${i === currentIndex ? "active" : ""} ${
-                    selectedAnswers[i] !== undefined ? "answered" : ""
-                  } ${q.type === "code" ? "code-q" : ""}`}
-                  onClick={() => setCurrentIndex(i)}
-                  title={q.type === "code" ? "Code analysis question" : ""}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-            <div className="nav-legend">
-              <span className="legend-dot answered" /> Answered
-              <span className="legend-dot active" /> Current
-              <span className="legend-dot" /> Unanswered
-              <span className="legend-dot code-q" /> Code Q
-            </div>
-          </aside>
-
-          <main className="question-main">
-            <div className="question-card">
-              <div className="question-counter-row">
-                <span className="question-counter">Question {currentIndex + 1} of {questions.length}</span>
-                {currentQuestion.type === "code" && (
-                  <span className="code-question-badge">ðŸ’» Code Analysis</span>
-                )}
-              </div>
-
-              {currentQuestion.type === "code" && currentQuestion.code && (
-                <CodeBlock code={currentQuestion.code} />
-              )}
-
-              <h2 className="question-text">{currentQuestion.question}</h2>
-
-              <div className="options-list">
-                {currentQuestion.options.map((opt, i) => (
-                  <button
-                    key={i}
-                    className={`option-btn ${selectedAnswers[currentIndex] === i ? "selected" : ""}`}
-                    onClick={() => handleSelectAnswer(i)}
-                    disabled={submitted}
-                  >
-                    <span className="option-letter">{String.fromCharCode(65 + i)}</span>
-                    <span className="option-text">{opt}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="question-nav-row">
-                <button
-                  className="nav-btn"
-                  disabled={currentIndex === 0}
-                  onClick={() => setCurrentIndex((i) => i - 1)}
-                >
-                  <FiChevronLeft /> Previous
-                </button>
-
-                {currentIndex < questions.length - 1 ? (
-                  <button
-                    className="nav-btn primary"
-                    onClick={() => setCurrentIndex((i) => i + 1)}
-                  >
-                    Next <FiChevronRight />
-                  </button>
-                ) : (
-                  <button
-                    className="nav-btn submit"
-                    onClick={handleSubmit}
-                    disabled={answeredCount < questions.length}
-                    title={
-                      answeredCount < questions.length
-                        ? `Answer all ${questions.length} questions to submit`
-                        : ""
-                    }
-                  >
-                    <FiAward /> Submit Assessment
-                  </button>
-                )}
-              </div>
-
-              {answeredCount < questions.length && currentIndex === questions.length - 1 && (
-                <p className="submit-warning" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                  <FiAlertTriangle size={16} /> Please answer all {questions.length} questions before submitting.
-                  ({questions.length - answeredCount} remaining)
-                </p>
-              )}
-            </div>
-          </main>
-        </div>
-      </div>
-    </div>
-  );
-}
-
---- FILE: frontend/src/pages/Dashboard.jsx ---
-
-// frontend/src/pages/Dashboard.jsx
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiLock, FiRefreshCw } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
-import DashboardHeader from "../components/DashboardHeader";
-import curriculumIndex from "../data/curriculumIndex";
-import { progressDB, projectsDB, templatesDB } from "../db";
-import "../styles/Dashboard.css";
-
-const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-
-const SYSTEM_TEMPLATES = {
-  sorting: [
-    { name: "Bubble Sort", path: "sort/bubble_sort", desc: "Repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order.", icon: "/assets/sort-icon.png", isSystem: true },
-    { name: "Selection Sort", path: "sort/selection_sort", desc: "Repeatedly selects the smallest element from the unsorted sublist and swaps it with the leftmost unsorted element.", icon: "/assets/sort-icon.png", isSystem: true },
-    { name: "Insertion Sort", path: "sort/insertion_sort", desc: "Builds the final sorted array one item at a time by comparing the current element to the sorted portion.", icon: "/assets/sort-icon.png", isSystem: true },
-    { name: "Merge Sort", path: "sort/merge_sort", desc: "A highly efficient divide-and-conquer algorithm that recursively splits and merges lists.", icon: "/assets/sort-icon.png", isSystem: true },
-    { name: "Quick Sort", path: "sort/quick_sort", desc: "Uses a divide-and-conquer approach by picking a pivot and partitioning the array around it.", icon: "/assets/sort-icon.png", isSystem: true },
-  ],
-  recursion: [
-    { name: "Factorial", path: "recursive/recursive_factorial", desc: "Calculates the product of an integer and all the integers below it.", icon: "/assets/recursive-icon.png", isSystem: true },
-    { name: "Fibonacci Sequence", path: "recursive/recursive_fibonacci", desc: "Generates the Fibonacci sequence where each number is the sum of the two preceding ones.", icon: "/assets/recursive-icon.png", isSystem: true },
-    { name: "Tower of Hanoi", path: "recursive/recursive_tower_of_hanoi", desc: "A mathematical puzzle where the objective is to move a stack of disks from one peg to another.", icon: "/assets/recursive-icon.png", isSystem: true },
-    { name: "Permutations", path: "recursive/recursive_permutation", desc: "Generates all possible arrangements of a given set of elements.", icon: "/assets/recursive-icon.png", isSystem: true },
-  ],
-  search: [
-    { name: "Linear Search", path: "search/linear_search", desc: "Sequentially checks each element of the list until a match is found.", icon: "/assets/search-icon.png", isSystem: true },
-    { name: "Binary Search", path: "search/binary_search", desc: "Efficiently searches a sorted array by repeatedly dividing the search interval in half.", icon: "/assets/search-icon.png", isSystem: true },
-    { name: "Exponential Search", path: "search/exponential_search", desc: "Finds the range where the element should be, then performs a binary search.", icon: "/assets/search-icon.png", isSystem: true },
-  ]
-};
-
-const FAQ_ITEMS = [
-  {
-    question: "What is AlgoBlocks and how do I use the Workspace?",
-    answer: "AlgoBlocks is an interactive educational platform designed to teach data structures and algorithm analysis. By clicking 'Blank Workspace', you enter a block-based coding environment where you can drag, drop, and connect logical blocks to build your algorithm visually."
-  },
-  {
-    question: "How does the platform calculate Time Complexity (Big-O)?",
-    answer: "The platform analyzes the internal structure of your algorithm (like nested loops and recursive calls) to determine its mathematical Time Complexity. Once it identifies the Big-O classification (e.g., O(N), O(NÂ²)), the Complexity Graph visualizes this by drawing the standard mathematical curve for that specific class, showing you visually how your algorithm will scale."
-  },
-  {
-    question: "Can I visualize memory usage or Space Complexity?",
-    answer: "Yes! The platform includes a Memory Visualizer that actively tracks the allocation of variables, arrays, and recursive call stacks as your algorithm runs. This helps you visually differentiate between in-place algorithms and those that consume extra memory."
-  },
-  {
-    question: "What is the difference between System and Custom Templates?",
-    answer: "System Templates are foundational algorithms (like Merge Sort or Binary Search) pre-built by our platform to serve as starting points. Custom Templates are your personal creations that you have built and saved to easily load or modify later."
-  },
-  {
-    question: "How do the Optimization Challenges work in the Learning Path?",
-    answer: "In these activities, you are given a functioning but inefficient algorithm. Your task is to apply concepts learned in the module to refactor the blocks and achieve an optimal Time or Space Complexity."
-  },
-  {
-    question: "Can I view the actual code my blocks represent?",
-    answer: "Absolutely. The platform features an integrated Code Snippet view. As you manipulate the visual blocks, it dynamically translates your logic into structured programming code."
-  },
-  {
-    question: "What happens if I lose my internet connection?",
-    answer: "AlgoBlocks supports offline learning. If your connection drops, your progress and workspace edits are securely saved locally on your device. The system will automatically sync your progress back to the cloud as soon as you are online."
-  },
-  {
-    question: "Do I need to install any external software?",
-    answer: "No installation is necessary. All execution, profiling, and complexity calculations happen securely and natively within your web browser."
-  }
-];
-
-const PlusIcon = () => (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-  </svg>
-);
-
-const CodeIcon = () => (
-  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-  </svg>
-);
-
-const ClockIcon = () => (
-  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-const ArrowRightIcon = () => (
-  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-  </svg>
-);
-
-const ChevronDownIcon = ({ expanded }) => (
-  <svg 
-    width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-    style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }}
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-  </svg>
-);
-
-export default function Dashboard() {
-  const navigate = useNavigate();
-  const [recentProjects, setRecentProjects] = useState([]);
-  const [systemTemplates, setSystemTemplates] = useState(SYSTEM_TEMPLATES);
-  const [userTemplates, setUserTemplates] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isSyncingLive, setIsSyncingLive] = useState(false);
-  const [expandedFaq, setExpandedFaq] = useState(null);
-
-  const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-  
-  const currentUser = useMemo(() => {
-    return storedUserStr ? JSON.parse(storedUserStr) : null;
-  }, [storedUserStr]);
-
-  const isGuest = currentUser?.isGuest === true;
-
-  const [progressData, setProgressData] = useState({
-    percent: 0,
-    moduleTitle: "Welcome",
-    moduleBadge: "Up Next â€¢ Module 0",
-    moduleDesc: "Start your journey into algorithm visualization and complexity analysis."
-  });
-
-  const loadDashboardData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const user = currentUser ? { ...currentUser } : null;
-
-      // Ensure user progress is heavily merged from local IndexedDB 
-      if (user) {
-        if (!user.progress) user.progress = {};
-        try {
-          const allLocalProgress = await progressDB.getAll();
-          allLocalProgress.forEach(p => {
-            const key = p.lesson_id || p.id;
-            if (key) {
-              if (p.completed) user.progress[key] = true;
-              else if (p.score !== undefined) user.progress[key] = Math.max(user.progress[key] || 0, p.score);
-            }
-          });
-        } catch (e) {
-          console.warn("Could not read local progressDB", e);
-        }
-      }
-
-      if (navigator.onLine && user && !user.isGuest && API_BASE) {
-        try {
-          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-          const headers = {
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
-          };
-
-          // FIXED: Aggressively fetch progress from Cloud API directly on load so it never gets stuck at 0%
-          const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
-          if (progRes.ok && progRes.headers.get("content-type")?.includes("application/json")) {
-            const progData = await progRes.json();
-            if (progData.progress) {
-              user.progress = { ...user.progress, ...progData.progress };
-              localStorage.setItem("user", JSON.stringify(user));
-            }
-          }
-
-          const pRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
-          if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
-            const pData = await pRes.json();
-            const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
-            for (const cp of cloudProjects) {
-              if (cp.owner_id === user.email || cp.userId === user.email) {
-                await projectsDB.save({ ...cp, projectId: cp.projectId || cp._id, isSynced: true });
-              }
-            }
-          }
-
-          const tRes = await fetch(`${API_BASE}/api/templates?userId=${encodeURIComponent(user.email)}`, { headers });
-          if (tRes.ok && tRes.headers.get("content-type")?.includes("application/json")) {
-            const tData = await tRes.json();
-            const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
-            for (const ct of cloudTemplates) {
-              if (ct.owner_id === user.email || ct.userId === user.email) {
-                await templatesDB.save({ ...ct, templateId: ct.templateId || ct._id, isSynced: true });
-              }
-            }
-          }
-
-        } catch (fetchErr) {
-          console.warn("Cloud sync check dropped to local cache:", fetchErr);
-        }
-      }
-
-      let totalLessons = 0;
-      let completedLessons = 0;
-      let nextMod = curriculumIndex[0];
-      let foundNext = false;
-
-      // Track individual activities inside lessons to provide partial UI bumps
-      let activityCount = 0;
-      if (user && user.progress) {
-        Object.entries(user.progress).forEach(([k, v]) => {
-          if (k.includes(':') && typeof v === 'number' && v >= 50) activityCount++;
-        });
-      }
-
-      for (const mod of curriculumIndex) {
-        let modCompleted = 0;
-        for (const les of mod.lessons) {
-          totalLessons++;
-          if (user && user.progress && user.progress[les.lessonId]) {
-            completedLessons++;
-            modCompleted++;
-          }
-        }
-        if (modCompleted < mod.lessons.length && !foundNext) {
-          nextMod = mod;
-          foundNext = true;
-        }
-      }
-
-      if (!foundNext && curriculumIndex.length > 0) {
-        nextMod = curriculumIndex[curriculumIndex.length - 1]; 
-      }
-
-      let percent = totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
-
-      // UX FIX: If they only did 1-2 activities and haven't fully passed a lesson yet, give them a visual fractional bump so the progress bar doesn't look dead.
-      if (percent === 0 && activityCount > 0) {
-        percent = Math.min(5, activityCount * 2);
-      }
-
-      const modDescriptions = {
-        "module-0": "Start your journey into algorithm visualization and complexity analysis.",
-        "module-1": "Understand Big-O notation, Time, and Space Complexity boundaries.",
-        "module-2": "Explore Brute Force strategies and basic searching & sorting.",
-        "module-3": "Master recursive decomposition and logarithmic time complexity boundaries.",
-        "module-4": "Learn how to make locally optimal choices to solve global problems.",
-        "module-5": "Solve complex problems by breaking them down into overlapping subproblems.",
-        "module-6": "Explore all possible solutions efficiently using backtracking techniques."
-      };
-
-      setProgressData({
-        percent,
-        moduleTitle: nextMod?.title || "Algorithms",
-        moduleBadge: `Up Next â€¢ ${nextMod?.moduleId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Module"}`,
-        moduleDesc: nextMod ? modDescriptions[nextMod.moduleId] || "Continue your algorithm learning journey." : "Continue your algorithm learning journey."
-      });
-
-      const allProjects = await projectsDB.getAll();
-      const userProjects = allProjects.filter((value) => !user || value.owner_id === user.email || value.userId === user.email);
-      const sortedProjects = userProjects.sort((a, b) => new Date(b.updatedAt || b.timestamp || 0) - new Date(a.updatedAt || a.timestamp || 0));
-      setRecentProjects(sortedProjects.slice(0, 5));
-
-      const allTemplates = await templatesDB.getAll();
-      const userTpls = allTemplates.filter((value) => !user || value.owner_id === user.email || value.userId === user.email).map(value => ({
-        ...value,
-        isSystem: false,
-        icon: "/assets/blocks-icon.png", 
-        desc: value.description || "User-created template",
-        name: value.title || value.name || "Untitled Template"
-      }));
-      const sortedTemplates = userTpls.sort((a, b) => new Date(b.updatedAt || b.timestamp || 0) - new Date(a.updatedAt || a.timestamp || 0));
-      setUserTemplates(sortedTemplates);
-
-    } catch (error) {
-      console.error("Failed to load dashboard data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser]);
-
-  useEffect(() => {
-    loadDashboardData();
-
-    const onSyncTrigger = () => loadDashboardData();
-    const onStart = () => setIsSyncingLive(true);
-    const onEnd = () => { setIsSyncingLive(false); loadDashboardData(); };
-
-    window.addEventListener("localDataSynced", onSyncTrigger);
-    window.addEventListener("online", onSyncTrigger);
-    window.addEventListener("sync-start", onStart);
-    window.addEventListener("sync-end", onEnd);
-    return () => {
-      window.removeEventListener("localDataSynced", onSyncTrigger);
-      window.removeEventListener("online", onSyncTrigger);
-      window.removeEventListener("sync-start", onStart);
-      window.removeEventListener("sync-end", onEnd);
-    };
-  }, [loadDashboardData]);
-
-  const handleTryTemplate = async (template) => {
-    try {
-      if (template.isSystem) {
-        const response = await fetch(`/templates/${template.path}.json`);
-        if (!response.ok) throw new Error("Template file not found");
-        const data = await response.json();
-        
-        const proj = { 
-          data: data, 
-          isTemplate: true, 
-          templateId: template.path, 
-          name: template.name,
-          title: template.name 
-        };
-        navigate("/workspace", { state: { projectToLoad: proj } });
-      } else {
-        const proj = { 
-          data: template.blocks || template.data || template.workspace?.blocklyJson, 
-          isTemplate: true, 
-          templateId: template.templateId || template._id, 
-          name: template.name || template.title,
-          title: template.name || template.title 
-        };
-        navigate("/workspace", { state: { projectToLoad: proj } });
-      }
-    } catch (err) {
-      console.error("Error loading template:", err);
-      alert("Failed to load template.");
-    }
-  };
-
-  const toggleFaq = (index) => {
-    if (expandedFaq === index) {
-      setExpandedFaq(null);
-    } else {
-      setExpandedFaq(index);
-    }
-  };
-
-  return (
-    <div className="bento-dashboard-layout">
-      <style>{`
-        @keyframes dashSpin { 100% { transform: rotate(360deg); } }
-        .dash-spin-anim { animation: dashSpin 1s linear infinite; }
-      `}</style>
-
-      <DashboardHeader />
-      
-      <main className="bento-dashboard-content">
-        <div className="bento-grid-container">
-          
-          <div className="bento-main-column">
-            
-            <section className="bento-hero-card">
-              <div className="hero-text">
-                <h1 className="hero-title">Welcome to AlgoBlocks!</h1>
-                <p className="hero-subtitle">
-                  An interactive platform to build, visualize, and analyze algorithms with real-time Big-O feedback.
-                </p>
-              </div>
-              <button className="hero-primary-btn" onClick={() => navigate("/workspace")}>
-                <PlusIcon />
-                <span>Blank Workspace</span>
-              </button>
-            </section>
-
-            <section className="bento-learning-card">
-              <div className="learning-content">
-                <span className="module-badge">
-                  {isGuest ? "Locked â€¢ Guest Explorer" : progressData.moduleBadge}
-                </span>
-                <h3 className="learning-title">
-                  {isGuest ? "Curriculum Locked" : progressData.moduleTitle}
-                </h3>
-                <p className="learning-desc">
-                  {isGuest 
-                    ? "The structured learning path and assessments are disabled in Guest Mode. Please create a full account to track your progress and access the curriculum." 
-                    : progressData.moduleDesc}
-                </p>
-                {!isGuest && (
-                  <div className="progress-container">
-                    <div className="progress-header">
-                      <span>Course Progress</span>
-                      <span>{progressData.percent}%</span>
-                    </div>
-                    <div className="progress-bar-bg">
-                      <div className="progress-bar-fill" style={{ width: `${progressData.percent}%` }}></div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="learning-action">
-                <button 
-                  className="banner-icon-btn" 
-                  onClick={() => { if (!isGuest) navigate("/learning-path"); }}
-                  style={isGuest ? { backgroundColor: '#F1F5F9', cursor: 'not-allowed', boxShadow: 'none', border: '1px solid #E2E8F0' } : {}}
-                  disabled={isGuest}
-                >
-                  {isGuest ? (
-                    <FiLock size={32} color="#94A3B8" />
-                  ) : (
-                    <img src="/assets/learning-icon.png" alt="Learning Path" className="learning-path-img" />
-                  )}
-                </button>
-              </div>
-            </section>
-
-            <section className="bento-library-section" style={{ marginTop: "20px" }}>
-              <div className="section-header">
-                <h2>Your Custom Templates</h2>
-                <p>Templates you have designed and saved for reuse.</p>
-              </div>
-
-              {userTemplates.length === 0 ? (
-                <div className="bento-empty-state" style={{ padding: "30px", background: "rgba(255,255,255,0.02)", borderRadius: "12px", border: "1px dashed rgba(255,255,255,0.05)" }}>
-                  <p>You haven't saved any custom templates yet.</p>
-                  <span style={{ fontSize: "0.85rem", color: "#888" }}>Build an algorithm in the workspace and save it as a template!</span>
-                </div>
-              ) : (
-                <div className="bento-category-group">
-                  <div className="bento-template-grid">
-                    {userTemplates.map((tpl, i) => (
-                      <div key={tpl.templateId || i} className="bento-template-card custom-template-card" onClick={() => handleTryTemplate(tpl)} style={{ borderTop: "3px solid #db7fff" }}>
-                        <div className="template-card-header">
-                          <div className="template-icon-wrapper" style={{ background: "rgba(108, 92, 231, 0.2)" }}>
-                            <img src={tpl.icon} alt="icon" className="template-icon" />
-                          </div>
-                          <h4 className="template-name">{tpl.name}</h4>
-                        </div>
-                        <p className="template-desc">{tpl.desc}</p>
-                        <div className="template-card-footer">
-                          <span className="template-action-text" style={{ color: "#db7fff" }}>Load Custom</span>
-                          <ArrowRightIcon />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
-
-            <section className="bento-library-section" style={{ marginTop: "20px" }}>
-              <div className="section-header">
-                <h2>System Algorithm Library</h2>
-                <p>Start with a pre-built structure and explore its complexity.</p>
-              </div>
-
-              {Object.entries(systemTemplates).map(([category, items]) => (
-                <div key={category} className="bento-category-group">
-                  <h3 className="category-title">{category.toUpperCase()}</h3>
-                  <div className="bento-template-grid">
-                    {items.map((tpl, i) => (
-                      <div key={i} className="bento-template-card" onClick={() => handleTryTemplate(tpl)}>
-                        <div className="template-card-header">
-                          <div className="template-icon-wrapper">
-                            <img src={tpl.icon} alt="icon" className="template-icon" />
-                          </div>
-                          <h4 className="template-name">{tpl.name}</h4>
-                        </div>
-                        <p className="template-desc">{tpl.desc}</p>
-                        <div className="template-card-footer">
-                          <span className="template-action-text">Load Template</span>
-                          <ArrowRightIcon />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </section>
-
-            <section className="bento-help-section" style={{ marginTop: "20px", marginBottom: "40px" }}>
-              <div className="section-header">
-                <h2>Help & Resources</h2>
-                <p>Frequently asked questions and guides to get you started.</p>
-              </div>
-              <div className="bento-faq-container">
-                {FAQ_ITEMS.map((faq, index) => (
-                  <div key={index} className={`bento-faq-item ${expandedFaq === index ? "expanded" : ""}`}>
-                    <button className="bento-faq-question" onClick={() => toggleFaq(index)}>
-                      <span>{faq.question}</span>
-                      <ChevronDownIcon expanded={expandedFaq === index} />
-                    </button>
-                    <div className="bento-faq-answer" style={{ maxHeight: expandedFaq === index ? "500px" : "0", opacity: expandedFaq === index ? 1 : 0, padding: expandedFaq === index ? "0 20px 20px 20px" : "0 20px" }}>
-                      <p>{faq.answer}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-          </div>
-
-          <aside className="bento-sidebar-column">
-            <div className="bento-recent-card">
-              
-              <div className="recent-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <h3>Recent Projects</h3>
-                  {(loading || isSyncingLive) && (
-                    <FiRefreshCw className="dash-spin-anim" size={14} style={{ color: "#60A5FA" }} title="Synchronizing cloud..." />
-                  )}
-                </div>
-                <span className="recent-badge">{recentProjects.length}</span>
-              </div>
-
-              {recentProjects.length > 0 && (
-                <button className="view-all-projects-btn" onClick={() => navigate("/projects")}>
-                  View All Projects
-                </button>
-              )}
-
-              <div className="recent-projects-container">
-                {loading ? (
-                  <div className="bento-empty-state">Loading workspace data...</div>
-                ) : recentProjects.length === 0 ? (
-                  <div className="bento-empty-state">
-                    <div className="empty-icon"><CodeIcon /></div>
-                    <p>No recent projects.</p>
-                    <span>Your saved work will appear here.</span>
-                  </div>
-                ) : (
-                  <div className="bento-recent-list">
-                    {recentProjects.map((proj) => (
-                      <div key={proj.projectId || proj._id} className="bento-recent-item" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
-                        <div className="recent-item-icon">
-                          <CodeIcon />
-                        </div>
-                        <div className="recent-item-content">
-                          <h4 className="recent-item-title">{proj.title || proj.name}</h4>
-                          <div className="recent-item-meta">
-                            <ClockIcon />
-                            <span>{new Date(proj.updatedAt || proj.timestamp || Date.now()).toLocaleDateString()}</span>
-                            <span className="dot-separator">â€¢</span>
-                            <span className={`sync-status ${proj.synced || proj.isSynced ? "synced" : "local"}`}>
-                              {proj.synced || proj.isSynced ? "Cloud" : "Local"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-            </div>
-          </aside>
-
-        </div>
-      </main>
-    </div>
-  );
-}

@@ -116,6 +116,28 @@ export default function MainApp() {
   const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
   const updateTab = (id, updates) => setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
 
+  const workspaceTour = {
+    id: "workspace-tour",
+    pageId: "workspace",
+    title: "Workspace Tour",
+    steps: [
+      { target: ".wh-toggle-btn.active", title: "Switch views", description: "Move between Blockly blocks and generated Python code." },
+      { target: ".sidebar-search input", title: "Find templates", description: "Search built-in templates and your saved work from the sidebar." },
+      { target: ".editor-tab-bar", title: "Manage tabs", description: "Open multiple projects and keep them organized side by side." },
+      { target: ".footer-tab:nth-child(1)", title: "Open the console", description: "Bring up the console panel to inspect output from your code.", onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); } },
+      { target: ".bottom-docked-panel .clear-console-btn", title: "Clear console output", description: "Use the clear button when you want to reset the output area.", onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); } },
+      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(2)", title: "View line executions", description: "See frequency counts for each generated line of code.", onEnter: () => { setBottomPanel("console"); setConsoleTab("executions"); } },
+      { target: ".footer-tab:nth-child(2)", title: "Open complexity analysis", description: "Switch to the complexity panel to review time, space, and recursion feedback.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("overall"); } },
+      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(2)", title: "Inspect local complexity", description: "Compare the local cost of each line to the rest of the workspace.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("local"); } },
+      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(3)", title: "Inspect global complexity", description: "Review the full algorithm cost as the analysis flows through the code.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("global"); } },
+      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(4)", title: "Inspect memory map", description: "See how memory changes while the code executes.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("memory"); } },
+      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(5)", title: "Inspect the call graph", description: "Trace recursive calls and control flow through the call graph.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("callgraph"); } },
+      { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you want a quick concept refresher.", onEnter: () => setIsBigOModalOpen(true) },
+      { target: ".big-o-modal-content", title: "Reference library", description: "Browse the complexity definitions and examples inside the modal." },
+      { target: ".big-o-accordion .big-o-row-trigger", title: "Expandable complexity rows", description: "Open any row to read the definition, analogy, and examples for a specific Big-O class." },
+    ],
+  };
+
   const currentUser = getUser();
   const isAdmin = !!currentUser?.isAdmin;
   const isGuest = currentUser?.isGuest === true;
@@ -808,6 +830,8 @@ export default function MainApp() {
         isEvaluating={isEvaluating} 
         isAdmin={isAdmin}
         isGuest={isGuest}
+        tour={workspaceTour}
+        tourPageId="workspace"
       />
 
       <Split className={`workspace-split ${!isSidebarVisible ? "sidebar-hidden" : ""}`} sizes={[20, 80]} minSize={[isSidebarVisible ? 250 : 0, 400]} gutterSize={8}>

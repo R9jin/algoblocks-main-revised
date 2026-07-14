@@ -15,6 +15,7 @@ import {
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
+import { useOnboarding } from "../context/OnboardingContext";
 import curriculumIndex from "../data/curriculumIndex";
 import { assessmentsDB, curriculumCacheDB, progressDB, submissionsDB } from "../db";
 import "../styles/LearningPath.css";
@@ -72,6 +73,7 @@ const moduleIcons = {
 
 export default function LearningPath() {
   const navigate = useNavigate();
+  const { state: onboardingState } = useOnboarding();
   const [expandedModules, setExpandedModules] = useState(new Set());
   const [userProgress, setUserProgress] = useState({});
   const [assessments, setAssessments] = useState({});
@@ -94,6 +96,23 @@ export default function LearningPath() {
   const userEmail = storedUser.email || "";
   const isGuest = storedUser.isGuest === true;
   const isAdmin = storedUser.role === "admin" || storedUser.isAdmin === true;
+
+  const learningPathTour = {
+    id: "learning-path-tour",
+    pageId: "learning-path",
+    title: "Learning Path Tour",
+    steps: [
+      { target: ".learning-path-header", title: "Curriculum overview", description: "See where you are in the course and what the page is built to guide you through." },
+      { target: ".btn-assessment.start", title: "Start the pre-test", description: "Use the course diagnostic to unlock the curriculum when you are ready." },
+      { target: ".module-card-v2", title: "Explore modules", description: "Open a module to inspect lessons, activities, and post-assessments." },
+    ],
+  };
+
+  useEffect(() => {
+    if (!storedUser.email || isGuest) return;
+    const seen = onboardingState?.pages?.["learning-path"]?.seen;
+    if (!seen && onboardingState?.tourSeen) return;
+  }, [storedUser.email, isGuest, onboardingState]);
 
   const checkActivityDone = (moduleId, actId) => {
     const sub = submissions[moduleId]?.[actId];
@@ -348,7 +367,7 @@ export default function LearningPath() {
 
   return (
     <div className="learning-path-page">
-      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" tour={learningPathTour} tourPageId="learning-path" />
       <div className="learning-path-container">
         <div className="learning-path-header">
           <h1>Learning Path</h1>

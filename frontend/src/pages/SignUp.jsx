@@ -76,7 +76,8 @@ export default function SignUp() {
           role: "user",
           isAdmin: false,
           progress: {},
-          assessments: {}
+          assessments: {},
+          onboarding_state: data.onboarding_state || { tourSeen: false, completedAt: null, pages: {} }
         }));
         
         navigate("/dashboard");
@@ -127,7 +128,8 @@ export default function SignUp() {
         role: data.role || "user",
         isAdmin: data.isAdmin === true || data.is_admin === true || data.role === "admin" || data.role === "Admin",
         progress: data.progress || {},
-        assessments: data.assessments || {}
+        assessments: data.assessments || {},
+        onboarding_state: data.onboarding_state || { tourSeen: false, completedAt: null, pages: {} }
       }));
 
       navigate("/dashboard");

@@ -40,6 +40,17 @@ const AdminUserManagement = () => {
   });
   const [modalInputValue, setModalInputValue] = useState("");
 
+  const adminTour = {
+    id: "admin-users-tour",
+    pageId: "admin-users",
+    title: "Admin Tour",
+    steps: [
+      { target: ".dashboard-header, .page-header", title: "Admin overview", description: "Use the top controls to search, filter, and refresh the user list." },
+      { target: ".admin-table, .users-table, .user-card-list", title: "Manage accounts", description: "Review user records and apply status or deletion actions carefully." },
+      { target: ".custom-modal, .modal-overlay", title: "Confirm changes", description: "Sensitive actions always route through a confirmation dialog." },
+    ],
+  };
+
   const currentUser = useMemo(() => {
     try {
       const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -244,7 +255,7 @@ const AdminUserManagement = () => {
 
   return (
     <div className="admin-page-wrapper">
-      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" tour={adminTour} tourPageId="admin-users" />
       
       <div className="admin-page-container">
         

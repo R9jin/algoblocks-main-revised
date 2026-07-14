@@ -4,6 +4,7 @@ import { FiLock, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
+import { useOnboarding } from "../context/OnboardingContext";
 import { progressDB, projectsDB, templatesDB } from "../db";
 import "../styles/Dashboard.css";
 
@@ -100,6 +101,7 @@ const ChevronDownIcon = ({ expanded }) => (
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { state: onboardingState, startTour, markSystemSeen } = useOnboarding();
   const [recentProjects, setRecentProjects] = useState([]);
   const [systemTemplates, setSystemTemplates] = useState(SYSTEM_TEMPLATES);
   const [userTemplates, setUserTemplates] = useState([]);
@@ -121,6 +123,30 @@ export default function Dashboard() {
     moduleBadge: "Up Next • Module 0",
     moduleDesc: "Start your journey into algorithm visualization and complexity analysis."
   });
+
+  const dashboardTour = {
+    id: "dashboard-tour",
+    pageId: "dashboard",
+    title: "Dashboard Tour",
+    steps: [
+      { target: ".bento-hero-card", title: "Start here", description: "Launch a blank workspace or continue from the main entry point for the app." },
+      { target: ".bento-learning-card", title: "Track learning progress", description: "See your next module, lesson progress, and what is currently unlocked." },
+      { target: ".view-all-projects-btn", title: "Open saved work", description: "Jump back into saved projects and templates from one place." },
+      { target: ".bento-help-section", title: "Help and references", description: "Use the built-in FAQs when you want a refresher without leaving the page." },
+    ],
+  };
+
+  useEffect(() => {
+    if (!currentUser || currentUser.isGuest) return;
+    const seen = onboardingState?.tourSeen === true || Boolean(onboardingState?.pages?.dashboard?.seen);
+    if (!seen) {
+      const timer = setTimeout(() => {
+        startTour(dashboardTour);
+        markSystemSeen();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [currentUser, onboardingState, startTour, markSystemSeen]);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -333,7 +359,7 @@ export default function Dashboard() {
         .dash-spin-anim { animation: dashSpin 1s linear infinite; }
       `}</style>
 
-      <DashboardHeader />
+      <DashboardHeader tour={dashboardTour} tourPageId="dashboard" />
       
       <main className="bento-dashboard-content">
         <div className="bento-grid-container">

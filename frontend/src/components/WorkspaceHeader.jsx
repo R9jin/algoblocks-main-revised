@@ -1,6 +1,7 @@
 // frontend/src/components/WorkspaceHeader.jsx
 import { FiArrowLeft, FiCode, FiDownload, FiGrid, FiPlay, FiSave, FiUpload } from "react-icons/fi";
 import { Link } from "react-router-dom";
+import TourHelpButton from "./TourHelpButton";
 import "../styles/MainApp.css";
 
 export default function WorkspaceHeader({
@@ -12,7 +13,9 @@ export default function WorkspaceHeader({
   handleSaveToDB,
   currentProjectTitle,
   isEvaluating,
-  isGuest
+  isGuest,
+  tour,
+  tourPageId,
 }) {
   return (
     <header className="workspace-header-purple">
@@ -45,6 +48,7 @@ export default function WorkspaceHeader({
       </div>
 
       <div className="wh-right">
+        <TourHelpButton pageId={tourPageId} tour={tour} label="Replay workspace tour" />
         {!isGuest && (
           <div className="wh-file-actions">
             <button className="wh-action-icon" onClick={handleExport} title="Export JSON">

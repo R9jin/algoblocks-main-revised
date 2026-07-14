@@ -153,6 +153,17 @@ export default function Projects() {
 
   const isActivelySyncing = syncState.syncing || globalSyncing;
 
+  const projectsTour = {
+    id: "projects-tour",
+    pageId: "projects",
+    title: "Projects Tour",
+    steps: [
+      { target: ".projects-hero", title: "Start a workspace", description: "Create a blank project when you want to begin from scratch." },
+      { target: ".projects-list-section", title: "Browse saved projects", description: "Review and reopen your stored projects and templates here." },
+      { target: ".view-all-projects-btn, .empty-action-btn", title: "Load or create", description: "Use the main action to open the workspace from the project library." },
+    ],
+  };
+
   return (
     <div className="projects-bento-layout">
       <style>{`
@@ -160,7 +171,7 @@ export default function Projects() {
         .spin-anim { animation: projSpin 1s linear infinite; }
       `}</style>
 
-      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" tour={projectsTour} tourPageId="projects" />
 
       <main className="projects-bento-content">
         <div className="projects-grid-container">

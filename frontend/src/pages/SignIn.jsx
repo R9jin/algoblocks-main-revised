@@ -105,7 +105,8 @@ export default function SignIn() {
         role: data.role || "user",
         isAdmin: data.isAdmin === true || data.is_admin === true || data.role === "admin" || data.role === "Admin",
         progress: data.progress || {},
-        assessments: data.assessments || {}
+        assessments: data.assessments || {},
+        onboarding_state: data.onboarding_state || { tourSeen: false, completedAt: null, pages: {} }
       })); 
 
       await syncUserCloudData(data.email, data.token); 
@@ -140,7 +141,8 @@ export default function SignIn() {
         role: "guest",
         isAdmin: false,
         progress: {},
-        assessments: {}
+        assessments: {},
+        onboarding_state: { tourSeen: true, completedAt: new Date().toISOString(), pages: {} }
       })); 
 
       navigate("/dashboard"); 
@@ -184,7 +186,8 @@ export default function SignIn() {
         role: data.role || "user",
         isAdmin: data.isAdmin === true || data.is_admin === true || data.role === "admin" || data.role === "Admin",
         progress: data.progress || {},
-        assessments: data.assessments || {}
+        assessments: data.assessments || {},
+        onboarding_state: data.onboarding_state || { tourSeen: false, completedAt: null, pages: {} }
       }));
 
       await syncUserCloudData(data.email, data.token);

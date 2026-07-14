@@ -34,6 +34,17 @@ export default function ProfilePage() {
   const [userRank, setUserRank] = useState("Novice Coder");
   const [loading, setLoading] = useState(true);
 
+  const profileTour = {
+    id: "profile-tour",
+    pageId: "profile",
+    title: "Profile Tour",
+    steps: [
+      { target: ".profile-summary-card, .profile-header", title: "Your overview", description: "See your rank, activity, and overall learning snapshot." },
+      { target: ".module-mastery-list, .module-mastery-card", title: "Module mastery", description: "Review how each module is progressing and where you can improve." },
+      { target: ".achievements-panel, .milestones-panel", title: "Assessments and milestones", description: "Track diagnostic and post-test milestones across the course." },
+    ],
+  };
+
   // Global Milestones State
   const [milestones, setMilestones] = useState({
     preTest: null,
@@ -326,7 +337,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="profile-page-v2">
-        <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
+        <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" tour={profileTour} tourPageId="profile" />
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
           <div className="loading-spinner"></div>
         </div>
@@ -336,7 +347,7 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page-v2">
-      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" tour={profileTour} tourPageId="profile" />
 
       <div className="profile-container-v2">
         <div className="profile-cover">

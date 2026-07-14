@@ -56,6 +56,7 @@ def init_db():
     # plus its expiry, so a leaked database never exposes a usable token.
     cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_hash VARCHAR(255)')
     cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ')
+    cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_state JSONB DEFAULT '{}'::jsonb")
 
     # HYBRID: Projects Table (Relational Sync/Keys + JSONB Blockly Data)
     cursor.execute('''

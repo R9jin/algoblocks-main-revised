@@ -1,7 +1,521 @@
 ﻿--- PROJECT SNAPSHOT (PART 1 OF 10) ---
 
---- TIMESTAMP: 2026-07-13 17:14:56 ---
+--- TIMESTAMP: 2026-07-14 21:48:37 ---
 
+
+--- FILE: frontend/src/components/OnboardingTour.jsx ---
+
+import { useEffect, useMemo, useState } from "react";
+import { FiChevronLeft, FiChevronRight, FiX } from "react-icons/fi";
+import { useOnboarding } from "../context/OnboardingContext";
+import "../styles/OnboardingTour.css";
+
+const resolveTarget = (selector) => {
+  if (!selector || typeof document === "undefined") return null;
+  return document.querySelector(selector);
+};
+
+export default function OnboardingTour() {
+  const { tour, closeTour, markSystemSeen, markPageSeen, markPageReplay } = useOnboarding();
+  const [stepIndex, setStepIndex] = useState(0);
+  const [targetRect, setTargetRect] = useState(null);
+
+  const steps = tour?.steps || [];
+  const activeStep = steps[stepIndex] || null;
+  const isLastStep = stepIndex === steps.length - 1;
+  const isFirstStep = stepIndex === 0;
+
+  const currentTarget = useMemo(() => resolveTarget(activeStep?.target), [activeStep?.target, stepIndex]);
+
+  useEffect(() => {
+    setStepIndex(0);
+  }, [tour?.id]);
+
+  useEffect(() => {
+    if (!tour || !currentTarget) {
+      setTargetRect(null);
+      return;
+    }
+
+    const updateRect = () => {
+      const rect = currentTarget.getBoundingClientRect();
+      setTargetRect({
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+      });
+    };
+
+    updateRect();
+    const raf = window.requestAnimationFrame(updateRect);
+    window.addEventListener("resize", updateRect);
+    window.addEventListener("scroll", updateRect, true);
+
+    const timer = window.setInterval(updateRect, 250);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.clearInterval(timer);
+      window.removeEventListener("resize", updateRect);
+      window.removeEventListener("scroll", updateRect, true);
+    };
+  }, [tour, currentTarget, stepIndex]);
+
+  if (!tour || !activeStep) return null;
+
+  const finishTour = (completed = true) => {
+    if (tour.pageId) {
+      markPageReplay(tour.pageId, completed);
+      if (completed) markPageSeen(tour.pageId);
+    } else if (completed) {
+      markSystemSeen();
+    }
+    closeTour();
+  };
+
+  const nextStep = () => {
+    if (isLastStep) {
+      finishTour(true);
+      return;
+    }
+    setStepIndex((value) => Math.min(value + 1, steps.length - 1));
+  };
+
+  const prevStep = () => setStepIndex((value) => Math.max(value - 1, 0));
+
+  const overlayStyle = targetRect
+    ? {
+        clipPath: `polygon(0 0, 0 100%, ${Math.max(0, targetRect.left - 10)}px 100%, ${Math.max(0, targetRect.left - 10)}px ${Math.max(0, targetRect.top - 10)}px, ${Math.max(0, targetRect.left + targetRect.width + 10)}px ${Math.max(0, targetRect.top - 10)}px, ${Math.max(0, targetRect.left + targetRect.width + 10)}px ${Math.max(0, targetRect.top + targetRect.height + 10)}px, ${Math.max(0, targetRect.left - 10)}px ${Math.max(0, targetRect.top + targetRect.height + 10)}px, ${Math.max(0, targetRect.left - 10)}px 100%, 100% 100%, 100% 0)`
+      }
+    : {};
+
+  const bubbleStyle = targetRect
+    ? {
+        top: `${Math.max(16, Math.min(window.innerHeight - 220, targetRect.top + targetRect.height + 16))}px`,
+        left: `${Math.max(16, Math.min(window.innerWidth - 360, targetRect.left))}px`,
+      }
+    : { top: "64px", left: "64px" };
+
+  return (
+    <>
+      <div className="onboarding-overlay" style={overlayStyle} />
+      <div className="onboarding-highlight" style={targetRect ? { top: `${Math.max(0, targetRect.top - 10)}px`, left: `${Math.max(0, targetRect.left - 10)}px`, width: `${targetRect.width + 20}px`, height: `${targetRect.height + 20}px` } : undefined} />
+      <div className="onboarding-bubble" style={bubbleStyle} role="dialog" aria-modal="true" aria-live="polite">
+        <div className="onboarding-bubble-top">
+          <div>
+            <span className="onboarding-step-count">{stepIndex + 1} / {steps.length}</span>
+            <h3>{activeStep.title}</h3>
+          </div>
+          <button type="button" className="onboarding-close-btn" onClick={() => finishTour(false)} aria-label="Skip tour">
+            <FiX />
+          </button>
+        </div>
+        <p>{activeStep.description}</p>
+        <div className="onboarding-actions">
+          <button type="button" className="onboarding-skip-btn" onClick={() => finishTour(false)}>Skip Tour</button>
+          <div className="onboarding-nav-btns">
+            <button type="button" onClick={prevStep} disabled={isFirstStep} className="onboarding-nav-btn">
+              <FiChevronLeft /> Previous
+            </button>
+            <button type="button" onClick={nextStep} className="onboarding-nav-btn primary">
+              {isLastStep ? "Finish" : "Next"} <FiChevronRight />
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+--- FILE: frontend/src/components/TourHelpButton.jsx ---
+
+import { FiHelpCircle } from "react-icons/fi";
+import { useOnboarding } from "../context/OnboardingContext";
+
+export default function TourHelpButton({ pageId, label = "Help tour", tour }) {
+  const { startTour, markPageReplay } = useOnboarding();
+
+  if (!tour) return null;
+
+  const handleClick = () => {
+    if (pageId) {
+      markPageReplay(pageId, false);
+    }
+    startTour(tour);
+  };
+
+  return (
+    <button
+      type="button"
+      className="tour-help-btn"
+      onClick={handleClick}
+      aria-label={label}
+      title={label}
+    >
+      <FiHelpCircle />
+    </button>
+  );
+}
+
+--- FILE: frontend/src/context/OnboardingContext.jsx ---
+
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+
+const STORAGE_PREFIX = "algoblocks_onboarding";
+const OnboardingContext = createContext(null);
+
+const getUserKey = (user) => {
+  const email = user?.email || user?.name || "anonymous";
+  return `${STORAGE_PREFIX}_${email}`;
+};
+
+const normalizeState = (state = {}) => ({
+  tourSeen: state.tourSeen === true,
+  completedAt: state.completedAt || null,
+  pages: state.pages && typeof state.pages === "object" ? state.pages : {},
+});
+
+const readStoredState = (userKey) => {
+  try {
+    const raw = localStorage.getItem(userKey);
+    if (!raw) return normalizeState();
+    return normalizeState(JSON.parse(raw));
+  } catch {
+    return normalizeState();
+  }
+};
+
+const writeStoredState = (userKey, state) => {
+  try {
+    localStorage.setItem(userKey, JSON.stringify(normalizeState(state)));
+  } catch {
+    // Ignore storage failures; the in-memory state still works for the session.
+  }
+};
+
+export function OnboardingProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [state, setState] = useState(() => normalizeState());
+  const [tour, setTour] = useState(null);
+  const pendingSyncRef = useRef(false);
+
+  const userKey = useMemo(() => getUserKey(user), [user]);
+
+  useEffect(() => {
+    const handleAuthChange = () => {
+      try {
+        const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
+        if (!stored || stored === "undefined" || stored === "null") {
+          setUser(null);
+          setState(normalizeState());
+          return;
+        }
+        const parsed = JSON.parse(stored);
+        setUser(parsed);
+        const localState = readStoredState(getUserKey(parsed));
+        const merged = normalizeState({ ...(parsed.onboarding_state || {}), ...localState });
+        setState(merged);
+      } catch {
+        setUser(null);
+        setState(normalizeState());
+      }
+    };
+
+    handleAuthChange();
+    window.addEventListener("storage", handleAuthChange);
+    window.addEventListener("focus", handleAuthChange);
+    window.addEventListener("localDataSynced", handleAuthChange);
+    return () => {
+      window.removeEventListener("storage", handleAuthChange);
+      window.removeEventListener("focus", handleAuthChange);
+      window.removeEventListener("localDataSynced", handleAuthChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    writeStoredState(userKey, state);
+
+    try {
+      const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
+      if (stored && stored !== "undefined" && stored !== "null") {
+        const parsed = JSON.parse(stored);
+        const nextUser = { ...parsed, onboarding_state: state };
+        const activeStorage = localStorage.getItem("user") ? localStorage : sessionStorage;
+        activeStorage.setItem("user", JSON.stringify(nextUser));
+      }
+    } catch {
+      // Best-effort only.
+    }
+
+    const syncRemote = async () => {
+      if (!user?.email || user.isGuest || pendingSyncRef.current) return;
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+      const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+      if (!token || !apiBase) return;
+      pendingSyncRef.current = true;
+      try {
+        await fetch(`${apiBase}/api/update-onboarding`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ onboarding_state: state }),
+        });
+      } catch {
+        // Ignore sync failures; local persistence still keeps the user experience consistent.
+      } finally {
+        pendingSyncRef.current = false;
+      }
+    };
+
+    syncRemote();
+  }, [state, user, userKey]);
+
+  const startTour = (tourConfig) => setTour(tourConfig);
+  const closeTour = () => setTour(null);
+
+  const markSystemSeen = (completedAt = new Date().toISOString()) => {
+    setState((prev) => ({ ...normalizeState(prev), tourSeen: true, completedAt }));
+  };
+
+  const markPageSeen = (pageId, completedAt = new Date().toISOString()) => {
+    if (!pageId) return;
+    setState((prev) => ({
+      ...normalizeState(prev),
+      tourSeen: true,
+      completedAt: prev.completedAt || completedAt,
+      pages: {
+        ...normalizeState(prev).pages,
+        [pageId]: {
+          seen: true,
+          replayCount: Number(normalizeState(prev).pages?.[pageId]?.replayCount || 0),
+          lastSeenAt: completedAt,
+        },
+      },
+    }));
+  };
+
+  const markPageReplay = (pageId, completed = false) => {
+    if (!pageId) return;
+    setState((prev) => {
+      const currentPage = normalizeState(prev).pages?.[pageId] || {};
+      return {
+        ...normalizeState(prev),
+        pages: {
+          ...normalizeState(prev).pages,
+          [pageId]: {
+            ...currentPage,
+            seen: true,
+            replayCount: Number(currentPage.replayCount || 0) + 1,
+            lastOpenedAt: new Date().toISOString(),
+            lastCompletedAt: completed ? new Date().toISOString() : currentPage.lastCompletedAt || null,
+          },
+        },
+      };
+    });
+  };
+
+  const api = useMemo(() => ({
+    user,
+    setUser,
+    state,
+    tour,
+    startTour,
+    closeTour,
+    markSystemSeen,
+    markPageSeen,
+    markPageReplay,
+    setState,
+  }), [user, state, tour]);
+
+  return <OnboardingContext.Provider value={api}>{children}</OnboardingContext.Provider>;
+}
+
+export function useOnboarding() {
+  const value = useContext(OnboardingContext);
+  if (!value) {
+    throw new Error("useOnboarding must be used within an OnboardingProvider");
+  }
+  return value;
+}
+
+--- FILE: frontend/src/styles/OnboardingTour.css ---
+
+.tour-help-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(90, 19, 152, 0.18);
+  background: rgba(255, 255, 255, 0.92);
+  color: #5a1398;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(90, 19, 152, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.tour-help-btn:hover {
+  transform: translateY(-1px);
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(90, 19, 152, 0.14);
+}
+
+.tour-help-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 10, 21, 0.58);
+  backdrop-filter: blur(2px);
+  z-index: 9997;
+  pointer-events: none;
+}
+
+.onboarding-highlight {
+  position: fixed;
+  z-index: 9998;
+  border-radius: 18px;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8), 0 0 0 9999px rgba(121, 40, 202, 0.08);
+  outline: 2px solid rgba(121, 40, 202, 0.75);
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.onboarding-bubble {
+  position: fixed;
+  z-index: 9999;
+  width: min(360px, calc(100vw - 32px));
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(90, 19, 152, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.22);
+  padding: 18px;
+  color: #241b52;
+}
+
+.onboarding-bubble-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.onboarding-bubble h3 {
+  margin: 4px 0 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.onboarding-step-count {
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7c5cff;
+  background: rgba(124, 92, 255, 0.1);
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+
+.onboarding-close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.onboarding-bubble p {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.onboarding-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.onboarding-skip-btn,
+.onboarding-nav-btn {
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.onboarding-skip-btn {
+  background: rgba(90, 19, 152, 0.08);
+  color: #5a1398;
+  padding: 10px 14px;
+}
+
+.onboarding-nav-btns {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.onboarding-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #f1f5f9;
+  color: #1f2937;
+}
+
+.onboarding-nav-btn.primary {
+  background: linear-gradient(135deg, #5a1398 0%, #7c5cff 100%);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(90, 19, 152, 0.18);
+}
+
+.onboarding-nav-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .onboarding-bubble {
+    left: 16px !important;
+    right: 16px !important;
+    width: auto;
+  }
+
+  .onboarding-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .onboarding-nav-btns {
+    width: 100%;
+  }
+
+  .onboarding-nav-btns .onboarding-nav-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
 
 --- FILE: README.md ---
 
@@ -657,7 +1171,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _is_amortized_inner_loop(self, node):
         try:
-            if self.loop_depth == 0 and len(self.loop_stack) == 0: return False
+            # FIX: Only apply amortized logic to truly nested inner loops.
+            # An outermost loop (depth 1) should be evaluated normally to prevent
+            # overriding binary search or standard traversals.
+            if self.loop_depth <= 1: return False
             if not isinstance(node, (ast.While, ast.For)): return False
             
             pops_container = False
@@ -1211,7 +1728,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     if t in ['set', 'dict']: is_hash_map = True
                     elif any(k in comp.id.lower() for k in ['memo', 'cache', 'visit', 'set', 'map', 'dp']): is_hash_map = True
                 elif isinstance(comp, (ast.Set, ast.Dict, ast.SetComp, ast.DictComp)): is_hash_map = True
-                elif isinstance(comp, ast.Call) and isinstance(getattr(comp, 'func', None), ast.Name) and comp.func.id in ['set', 'dict']: is_hash_map = True
+                elif isinstance(comp, ast.Call) and isinstance(getattr(comp, 'func', None), ast.Name) and comp.func.id in ['set', 'dict', 'defaultdict', 'Counter', 'OrderedDict']: is_hash_map = True
                 elif isinstance(comp, ast.Call) and isinstance(getattr(comp, 'func', None), ast.Attribute) and comp.func.attr in ['keys', 'values']: is_hash_map = True
                 elif isinstance(comp, (ast.List, ast.Tuple)):
                     all_const = True
@@ -1275,6 +1792,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
         is_dead = node.name not in self.reachable_funcs
         self.record_line(node, time_override="O(1)" if is_dead else "Definition", space_override="O(1)")
+        
+        # Ensure we capture the exact index to avoid IndexError during update mapping
+        found_idx = None
+        for i in range(len(self._details)-1, -1, -1):
+            if self._details[i]["lineno"] == getattr(node, 'lineno', -1):
+                found_idx = i
+                break
+        if found_idx is not None:
+            start_idx = found_idx
+        
         prev_dead = self.in_dead_code; self.in_dead_code = is_dead or prev_dead
         self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
         self.in_dead_code = prev_dead
@@ -1412,33 +1939,34 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.custom_functions[node.name] = relation
 
         call_idx = 0
-        for i in range(start_idx, len(self._details)):
-            is_placeholder = False
-            loc_time = str(self._details[i]["local_time"])
-            if loc_time == "T(placeholder)" or loc_time.startswith("T("): 
-                current_call_cost = "T(n-1)"
-                if "T(n/2)" in relation or relation == "O(log n)":
-                    current_call_cost = "T(n/2)"
-                elif "T(n-1) + T(n-2)" in relation:
-                    current_call_cost = "T(n-1)" if call_idx == 0 else "T(n-2)"
-                elif "T(n-1)" in relation:
+        if start_idx < len(self._details):
+            for i in range(start_idx, len(self._details)):
+                is_placeholder = False
+                loc_time = str(self._details[i]["local_time"])
+                if loc_time == "T(placeholder)" or loc_time.startswith("T("): 
                     current_call_cost = "T(n-1)"
-                
-                self._details[i]["local_time"] = current_call_cost
-                self._details[i]["global_time"] = current_call_cost 
-                is_placeholder = True
-
-            if is_placeholder:
-                call_idx += 1
-
-            if str(self._details[i]["local_space"]).startswith("S("):
-                self._details[i]["local_space"] = "O(1)"
-            if str(self._details[i]["global_space"]).startswith("S("):
-                self._details[i]["global_space"] = "O(1)" 
-                
-            if is_placeholder and "T(placeholder)" in str(self._details[i].get("time_explanation", "")) and SemanticNLGEngine:
-                formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
-                self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
+                    if "T(n/2)" in relation or relation == "O(log n)":
+                        current_call_cost = "T(n/2)"
+                    elif "T(n-1) + T(n-2)" in relation:
+                        current_call_cost = "T(n-1)" if call_idx == 0 else "T(n-2)"
+                    elif "T(n-1)" in relation:
+                        current_call_cost = "T(n-1)"
+                    
+                    self._details[i]["local_time"] = current_call_cost
+                    self._details[i]["global_time"] = current_call_cost 
+                    is_placeholder = True
+    
+                if is_placeholder:
+                    call_idx += 1
+    
+                if str(self._details[i]["local_space"]).startswith("S("):
+                    self._details[i]["local_space"] = "O(1)"
+                if str(self._details[i]["global_space"]).startswith("S("):
+                    self._details[i]["global_space"] = "O(1)" 
+                    
+                if is_placeholder and "T(placeholder)" in str(self._details[i].get("time_explanation", "")) and SemanticNLGEngine:
+                    formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
+                    self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
 
         if self.recursive_calls_count > 0 or self.has_recursion_in_loop or is_indirect or is_segment_tree_query:
             resolved_rel = relation
@@ -1449,34 +1977,36 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             
             heavy_ops = {"Loop", "Array Slicing", "List Comprehension", "Set Comprehension", "Dict Comprehension", "Generator Expression", "Sort", "Sorted", "Deep Copy Allocation", "Row Allocation", "2D Array Allocation", "List Repetition", "Set Operation", "Slice Assignment"}
             
-            for i in range(start_idx + 1, len(self._details)):
-                loc_t = str(self._details[i]["local_time"])
-                op = self._details[i]["operation"]
-                
-                if op == "Dead Code":
-                    self._details[i]["global_time"] = "O(1)"
-                    self._details[i]["weight"] = self._get_weight("O(1)")
-                    continue
+            if start_idx < len(self._details):
+                for i in range(start_idx + 1, len(self._details)):
+                    loc_t = str(self._details[i]["local_time"])
+                    op = self._details[i]["operation"]
                     
-                is_rec_call = loc_t.startswith("T(") or loc_t == "T(placeholder)" or "Recursive Call" in op
-                is_heavy_op = op in heavy_ops or (loc_t not in ["O(1)", "Definition", "Dead Code"])
-                
-                if is_rec_call or is_heavy_op:
-                    self._details[i]["global_time"] = resolved_rel
-                    self._details[i]["weight"] = self._get_weight(resolved_rel, False)
-                elif not getattr(self, 'in_graph_context', False):
-                    if self._details[i]["global_time"] == "O(1)" and relation not in ["O(1)", "O(log n)"]:
-                        if "2T(" in relation or "T(n-1) + T(n-2)" in relation or self.recursive_calls_count >= 2:
-                            self._details[i]["global_time"] = "O(n)"
-                            self._details[i]["weight"] = self._get_weight("O(n)")
+                    if op == "Dead Code":
+                        self._details[i]["global_time"] = "O(1)"
+                        self._details[i]["weight"] = self._get_weight("O(1)")
+                        continue
+                        
+                    is_rec_call = loc_t.startswith("T(") or loc_t == "T(placeholder)" or "Recursive Call" in op
+                    is_heavy_op = op in heavy_ops or (loc_t not in ["O(1)", "Definition", "Dead Code"])
+                    
+                    if is_rec_call or is_heavy_op:
+                        self._details[i]["global_time"] = resolved_rel
+                        self._details[i]["weight"] = self._get_weight(resolved_rel, False)
+                    elif not getattr(self, 'in_graph_context', False):
+                        if self._details[i]["global_time"] == "O(1)" and relation not in ["O(1)", "O(log n)"]:
+                            if "2T(" in relation or "T(n-1) + T(n-2)" in relation or self.recursive_calls_count >= 2:
+                                self._details[i]["global_time"] = "O(n)"
+                                self._details[i]["weight"] = self._get_weight("O(n)")
 
-        self._details[start_idx]["local_time"] = "O(1)"
-        self._details[start_idx]["global_time"] = "O(1)"
-        self._details[start_idx]["local_space"] = "O(1)"
-        self._details[start_idx]["global_space"] = "O(1)"
-        self._details[start_idx]["weight"] = 1
-        self._details[start_idx]["time_explanation"] = "Function declaration."
-        self._details[start_idx]["space_explanation"] = "O(1) memory overhead."
+        if start_idx < len(self._details):
+            self._details[start_idx]["local_time"] = "O(1)"
+            self._details[start_idx]["global_time"] = "O(1)"
+            self._details[start_idx]["local_space"] = "O(1)"
+            self._details[start_idx]["global_space"] = "O(1)"
+            self._details[start_idx]["weight"] = 1
+            self._details[start_idx]["time_explanation"] = "Function declaration."
+            self._details[start_idx]["space_explanation"] = "O(1) memory overhead."
 
         if not is_dead:
             self.max_exp, self.max_graph_ve = max(prev_data[5], self.max_exp), max(prev_data[6], self.max_graph_ve)
@@ -1488,9 +2018,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if self.max_space_weight >= 2:
             final_sp_upgrade = "O(n^2)"
 
-        for i in range(start_idx, len(self._details)):
-            if final_sp_upgrade and self._details[i].get("global_space") == "O(n)":
-                self._details[i]["global_space"] = final_sp_upgrade
+        if start_idx < len(self._details):
+            for i in range(start_idx, len(self._details)):
+                if final_sp_upgrade and self._details[i].get("global_space") == "O(n)":
+                    self._details[i]["global_space"] = final_sp_upgrade
 
         self.current_function_name = None; self.in_graph_context = False; self.recursive_calls_count = 0 
         self.tree_traversal_calls = 0
@@ -1843,7 +2374,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             f_id = self.aliases.get(f_id, f_id)
             
             if f_id in self.builtin_complexities and f_id in bare_builtins:
-                if f_id in ['set', 'list', 'dict', 'deque', 'tuple']:
+                if f_id in ['set', 'list', 'dict', 'deque', 'tuple', 'defaultdict', 'Counter', 'OrderedDict']:
                     has_args = bool(getattr(node, 'args', []))
                     is_single_arg = False
                     is_constant_init = False
@@ -1918,7 +2449,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     return
                 else:
                     self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Append (Worst-Case)")
-                    
+            elif func_node.attr == '__contains__':
+                is_hash_map = isinstance(getattr(func_node, 'value', None), ast.Name) and self.var_types.get(func_node.value.id) in ['set', 'dict']
+                t_ov = "O(n)" if getattr(self, 'in_graph_context', False) and not is_hash_map else ("O(1)" if is_hash_map else "O(n)")
+                self.record_line(node, time_override=t_ov, space_override="O(1)", custom_op="Membership Check")
             elif func_node.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'keys', 'values', 'items']:
                 b = self.builtin_complexities.get(func_node.attr, {'time': 'O(n)', 'space': 'O(1)'})
                 self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=func_node.attr.capitalize())
@@ -1934,6 +2468,23 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def visit_Assign(self, node):
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple):
             self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Input Unpacking / Swap")
+            
+            # Properly unpack the types into the ast tuple mapping
+            if isinstance(node.value, ast.Tuple):
+                for target in node.targets:
+                    if isinstance(target, ast.Tuple):
+                        for i, elt in enumerate(target.elts):
+                            if isinstance(elt, ast.Name) and i < len(node.value.elts):
+                                val = node.value.elts[i]
+                                if isinstance(val, (ast.List, ast.ListComp)): self.var_types[elt.id] = 'list'
+                                elif isinstance(val, (ast.Dict, ast.DictComp)): self.var_types[elt.id] = 'dict'
+                                elif isinstance(val, (ast.Set, ast.SetComp)): self.var_types[elt.id] = 'set'
+                                elif isinstance(val, ast.Tuple): self.var_types[elt.id] = 'tuple'
+                                elif isinstance(val, ast.Constant) and isinstance(val.value, str): self.var_types[elt.id] = 'str'
+                                elif isinstance(val, ast.Call) and getattr(getattr(val, 'func', None), 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple', 'defaultdict', 'Counter', 'OrderedDict']:
+                                    mapped_type = 'dict' if val.func.id in ['defaultdict', 'Counter', 'OrderedDict'] else val.func.id
+                                    self.var_types[elt.id] = mapped_type
+            self.generic_visit(node)
             return 
             
         for target in node.targets:
@@ -1943,8 +2494,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 elif isinstance(node.value, (ast.Set, ast.SetComp)): self.var_types[target.id] = 'set'
                 elif isinstance(node.value, ast.Tuple): self.var_types[target.id] = 'tuple'
                 elif isinstance(node.value, ast.Constant) and isinstance(node.value.value, str): self.var_types[target.id] = 'str'
-                elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple']:
-                    self.var_types[target.id] = node.value.func.id
+                elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple', 'defaultdict', 'Counter', 'OrderedDict']:
+                    mapped_type = 'dict' if node.value.func.id in ['defaultdict', 'Counter', 'OrderedDict'] else node.value.func.id
+                    self.var_types[target.id] = mapped_type
 
         s_ov, t_ov = "O(1)", "O(1)"
         custom_op = None
@@ -2068,7 +2620,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     custom_op = "Tuple Init"
             elif isinstance(node.value, ast.Call):
                 func_name = getattr(node.value.func, 'id', getattr(node.value.func, 'attr', ''))
-                if func_name in ['set', 'list', 'dict', 'deque', 'tuple', 'set2']: 
+                if func_name in ['set', 'list', 'dict', 'deque', 'tuple', 'set2', 'defaultdict', 'Counter', 'OrderedDict']: 
                     f_name = 'set' if func_name == 'set2' else func_name
                     if not getattr(node.value, 'args', []):
                         custom_op = f"{f_name.capitalize()} Init"
@@ -3284,6 +3836,7 @@ def init_db():
     # plus its expiry, so a leaked database never exposes a usable token.
     cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_hash VARCHAR(255)')
     cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ')
+    cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_state JSONB DEFAULT '{}'::jsonb")
 
     # HYBRID: Projects Table (Relational Sync/Keys + JSONB Blockly Data)
     cursor.execute('''
@@ -3689,488 +4242,3 @@ class SyncResponse(BaseModel):
     status: str
     message: str
     synced_items: int
-
---- FILE: api/repositories/project_repo.py ---
-
-from database import get_db_connection
-import json
-import uuid
-
-class ProjectRepository:
-    @staticmethod
-    def find_by_user(user_id: str):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM projects WHERE "userId" = %s OR owner_id = %s', (user_id, user_id))
-        projects = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        
-        result = []
-        for proj in projects:
-            p = dict(proj)
-            # Unpack the JSON blockly_data back into the root dictionary for the frontend
-            blockly_data = p.pop("blockly_data", {})
-            p.update(blockly_data)
-            
-            p["_id"] = str(p["id"])
-            if "userId" not in p and "owner_id" in p:
-                p["userId"] = p["owner_id"]
-            if "owner_id" not in p and "userId" in p:
-                p["owner_id"] = p["userId"]
-            result.append(p)
-        return result
-
-    @staticmethod
-    def insert(project_data: dict):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        user_id = project_data.get("userId")
-        owner_id = project_data.get("owner_id", user_id)
-        project_id = project_data.get("projectId")
-        
-        # Generate a safe UUID if the frontend stripped the ID or sent a local temp ID
-        if not project_id or str(project_id).startswith("local_"):
-            project_id = str(uuid.uuid4())
-            
-        is_synced = project_data.get("isSynced", False)
-        timestamp = project_data.get("timestamp", 0)
-        
-        # Package the dynamic elements back into a JSON object
-        blockly_data = {
-            "title": project_data.get("title", "Untitled"),
-            "name": project_data.get("name", "Untitled"),
-            "description": project_data.get("description", ""),
-            "workspace": project_data.get("workspace", {}),
-            "pythonCode": project_data.get("pythonCode", "")
-        }
-        
-        cursor.execute('''
-            INSERT INTO projects ("projectId", "userId", owner_id, "isSynced", timestamp, blockly_data)
-            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
-        ''', (
-            project_id,
-            user_id,
-            owner_id,
-            is_synced,
-            timestamp,
-            json.dumps(blockly_data)
-        ))
-        
-        inserted_id = cursor.fetchone()["id"]
-        cursor.close()
-        conn.close()
-        return str(inserted_id)
-
-    @staticmethod
-    def update(project_id: str, user_id: str, data: dict):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        is_synced = data.get("isSynced")
-        timestamp = data.get("timestamp")
-        
-        # Extract fields destined for the JSONB payload
-        blockly_updates = {}
-        for key in ["title", "name", "description", "workspace", "pythonCode"]:
-            if key in data:
-                blockly_updates[key] = data[key]
-                
-        set_clauses = []
-        values = []
-        
-        if is_synced is not None:
-            set_clauses.append('"isSynced" = %s')
-            values.append(is_synced)
-            
-        if timestamp is not None:
-            set_clauses.append('timestamp = %s')
-            values.append(timestamp)
-            
-        if blockly_updates:
-            # Safely merge updates into the JSONB object natively using PostgreSQL concatenation (||)
-            set_clauses.append("blockly_data = blockly_data || %s::jsonb")
-            values.append(json.dumps(blockly_updates))
-                
-        if not set_clauses:
-            return None
-            
-        set_clause_str = ", ".join(set_clauses)
-        
-        try:
-            p_id = int(project_id)
-            query = f'UPDATE projects SET {set_clause_str} WHERE id = %s AND ("userId" = %s OR owner_id = %s)'
-            values.extend([p_id, user_id, user_id])
-        except ValueError:
-            query = f'UPDATE projects SET {set_clause_str} WHERE "projectId" = %s AND ("userId" = %s OR owner_id = %s)'
-            values.extend([project_id, user_id, user_id])
-            
-        cursor.execute(query, tuple(values))
-        rowcount = cursor.rowcount
-        cursor.close()
-        conn.close()
-        return rowcount
-
-    @staticmethod
-    def delete(project_id: str, user_id: str):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        try:
-            p_id = int(project_id)
-            query = 'DELETE FROM projects WHERE id = %s AND ("userId" = %s OR owner_id = %s)'
-            cursor.execute(query, (p_id, user_id, user_id))
-        except ValueError:
-            query = 'DELETE FROM projects WHERE "projectId" = %s AND ("userId" = %s OR owner_id = %s)'
-            cursor.execute(query, (project_id, user_id, user_id))
-            
-        rowcount = cursor.rowcount
-        cursor.close()
-        conn.close()
-        return rowcount
-
---- FILE: api/repositories/template_repo.py ---
-
-# api/repositories/template_repo.py
-from database import get_db_connection
-import json
-import uuid
-
-class TemplateRepository:
-    @staticmethod
-    def find_by_category(category: str):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM templates WHERE category = %s', (category,))
-        templates = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        
-        result = []
-        for tpl in templates:
-            t = dict(tpl)
-            # Unpack blockly_data back to root
-            blockly_data = t.pop("blockly_data", {})
-            t.update(blockly_data)
-            t["_id"] = str(t["id"])
-            result.append(t)
-        return result
-
-    @staticmethod
-    def find_all():
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM templates')
-        templates = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        
-        result = []
-        for tpl in templates:
-            t = dict(tpl)
-            blockly_data = t.pop("blockly_data", {})
-            t.update(blockly_data)
-            t["_id"] = str(t["id"])
-            result.append(t)
-        return result
-
-    @staticmethod
-    def save(template_data: dict):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        template_id = template_data.get("templateId")
-        
-        # Generate a safe UUID if the frontend stripped the ID or sent a local temp ID
-        if not template_id or str(template_id).startswith("local_"):
-            template_id = str(uuid.uuid4())
-            
-        category = template_data.get("category", "Custom")
-        user_id = template_data.get("userId")
-        owner_id = template_data.get("owner_id", user_id)
-        is_synced = template_data.get("isSynced", False)
-        timestamp = template_data.get("timestamp", 0)
-        
-        # Package blockly and metadata into JSONB
-        blockly_data = {
-            "title": template_data.get("title", "Untitled Template"),
-            "name": template_data.get("name", "Untitled Template"),
-            "description": template_data.get("description", ""),
-            "workspace": template_data.get("workspace", {}),
-            "pythonCode": template_data.get("pythonCode", "")
-        }
-        
-        cursor.execute('''
-            INSERT INTO templates ("templateId", category, "userId", owner_id, "isSynced", timestamp, blockly_data)
-            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
-        ''', (
-            template_id,
-            category,
-            user_id,
-            owner_id,
-            is_synced,
-            timestamp,
-            json.dumps(blockly_data)
-        ))
-        
-        inserted_id = cursor.fetchone()["id"]
-        cursor.close()
-        conn.close()
-        return str(inserted_id)
-
-    @staticmethod
-    def update(template_id: str, template_data: dict):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Check if exists by string templateId or int id
-        try:
-            t_id = int(template_id)
-            cursor.execute('SELECT id, blockly_data FROM templates WHERE id = %s', (t_id,))
-        except ValueError:
-            cursor.execute('SELECT id, blockly_data FROM templates WHERE "templateId" = %s', (template_id,))
-            
-        existing = cursor.fetchone()
-        
-        if existing:
-            blockly_updates = {}
-            for key in ["title", "name", "description", "workspace", "pythonCode"]:
-                if key in template_data:
-                    blockly_updates[key] = template_data[key]
-                    
-            set_clauses = []
-            values = []
-            
-            if "category" in template_data:
-                set_clauses.append("category = %s")
-                values.append(template_data["category"])
-            if "isSynced" in template_data:
-                set_clauses.append('"isSynced" = %s')
-                values.append(template_data["isSynced"])
-            if "timestamp" in template_data:
-                set_clauses.append("timestamp = %s")
-                values.append(template_data["timestamp"])
-                
-            for key, val in blockly_updates.items():
-                set_clauses.append(f"blockly_data = jsonb_set(blockly_data, %s, %s, true)")
-                values.extend([f'{{{key}}}', json.dumps(val)])
-                
-            if set_clauses:
-                set_clause_str = ", ".join(set_clauses)
-                query = f'UPDATE templates SET {set_clause_str} WHERE id = %s'
-                values.append(existing["id"])
-                cursor.execute(query, tuple(values))
-                
-            cursor.close()
-            conn.close()
-            return str(existing["id"])
-        else:
-            cursor.close()
-            conn.close()
-            # If not found, insert
-            return TemplateRepository.save(template_data)
-
---- FILE: api/repositories/user_repo.py ---
-
-from database import get_db_connection
-import json
-
-class UserRepository:
-    @staticmethod
-    def find_by_email(email: str):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('SELECT id, name, email, password, status, role, is_admin FROM users WHERE email = %s', (email,))
-        user = cursor.fetchone()
-        
-        if not user:
-            cursor.close()
-            conn.close()
-            return None
-            
-        user_dict = dict(user)
-        
-        cursor.execute('SELECT data FROM progress WHERE email = %s LIMIT 1', (email,))
-        progress_row = cursor.fetchone()
-        user_dict["progress"] = progress_row["data"] if progress_row else {}
-        
-        cursor.execute('SELECT data FROM assessments WHERE email = %s LIMIT 1', (email,))
-        assessment_row = cursor.fetchone()
-        user_dict["assessments"] = assessment_row["data"] if assessment_row else {}
-        
-        cursor.close()
-        conn.close()
-        return user_dict
-
-    @staticmethod
-    def insert(user_data: dict):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        is_admin = user_data.get("isAdmin", user_data.get("is_admin", False))
-        cursor.execute('''
-            INSERT INTO users (name, email, password, status, role, is_admin)
-            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
-        ''', (
-            user_data.get("name"),
-            user_data.get("email"),
-            user_data.get("password"),
-            user_data.get("status", "active"),
-            user_data.get("role", "user"),
-            is_admin
-        ))
-        inserted_id = cursor.fetchone()["id"]
-        
-        email = user_data.get("email")
-        progress = user_data.get("progress", {})
-        assessments = user_data.get("assessments", {})
-        
-        cursor.execute('INSERT INTO progress (email, data) VALUES (%s, %s)', (email, json.dumps(progress)))
-        cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s)', (email, json.dumps(assessments)))
-        
-        conn.commit() # <--- CRITICAL FIX: Save the transaction!
-        cursor.close()
-        conn.close()
-        return str(inserted_id)
-
-    @staticmethod
-    def update_progress(email: str, lesson_id: str, score: int):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            UPDATE progress 
-            SET data = jsonb_set(data, %s, %s, true)
-            WHERE email = %s
-        ''', (f'{{{lesson_id}}}', json.dumps(score), email))
-        
-        if cursor.rowcount == 0:
-            cursor.execute('INSERT INTO progress (email, data) VALUES (%s, %s)', (email, json.dumps({lesson_id: score})))
-            
-        conn.commit() # <--- CRITICAL FIX: Save the transaction!
-        cursor.close()
-        conn.close()
-
-    @staticmethod
-    def update_assessment(email: str, assessment_key: str, data: dict):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            UPDATE assessments 
-            SET data = jsonb_set(data, %s, %s, true)
-            WHERE email = %s
-        ''', (f'{{{assessment_key}}}', json.dumps(data), email))
-        
-        if cursor.rowcount == 0:
-             cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s)', (email, json.dumps({assessment_key: data})))
-             
-        conn.commit() # <--- CRITICAL FIX: Save the transaction!
-        cursor.close()
-        conn.close()
-        
-    @staticmethod
-    def find_all_users():
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, name, email, status, role, is_admin
-            FROM users
-        ''')
-        users = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
-        return [dict(u) for u in users]
-
-    @staticmethod
-    def update_user_status(email: str, status: str):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('UPDATE users SET status = %s WHERE email = %s', (status, email))
-        rowcount = cursor.rowcount
-        conn.commit() # <--- CRITICAL FIX: Save the transaction!
-        cursor.close()
-        conn.close()
-        return rowcount
-
-    @staticmethod
-    def delete_user(email: str):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('DELETE FROM users WHERE email = %s', (email,))
-        rowcount = cursor.rowcount
-        conn.commit() # <--- CRITICAL FIX: Save the transaction!
-        cursor.close()
-        conn.close()
-        return rowcount
-
-    @staticmethod
-    def set_reset_token(email: str, token_hash: str, expires_at):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE users SET reset_token_hash = %s, reset_token_expires = %s WHERE email = %s
-        ''', (token_hash, expires_at, email))
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-    @staticmethod
-    def find_by_reset_token_hash(token_hash: str):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT id, name, email, reset_token_expires
-            FROM users
-            WHERE reset_token_hash = %s
-        ''', (token_hash,))
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        return dict(user) if user else None
-
-    @staticmethod
-    def clear_reset_token(email: str):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE users SET reset_token_hash = NULL, reset_token_expires = NULL WHERE email = %s
-        ''', (email,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-    @staticmethod
-    def update_password(email: str, hashed_password: str):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('UPDATE users SET password = %s WHERE email = %s', (hashed_password, email))
-        rowcount = cursor.rowcount
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return rowcount
-
---- FILE: api/requirements.txt ---
-
-fastapi==0.135.3
-uvicorn[standard]==0.44.0
-websockets==12.0
-pydantic==2.13.0
-psycopg2-binary==2.9.9
-python-dotenv==1.0.1
-requests==2.32.3
-slowapi==0.1.9
-pydantic[email]
-passlib[bcrypt]
-PyJWT
-anyio==4.13.0
-click==8.3.2
-colorama==0.4.6
-h11==0.16.0
-idna==3.11
-google-auth==2.35.0
