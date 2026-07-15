@@ -5,6 +5,7 @@ import logging
 
 from security import get_current_admin_user
 from repositories.user_repo import UserRepository
+from services.admin_analytics_service import AdminAnalyticsService
 from limiter import limiter
 
 router = APIRouter()
@@ -79,3 +80,61 @@ def delete_user(
     except Exception as e:
         logger.error(f"Error deleting user from PostgreSQL: {str(e)}")
         raise HTTPException(status_code=500, detail="Error deleting user")
+
+
+@router.get("/users/{email}/metrics")
+@limiter.limit("30/minute")
+def get_user_metrics(
+    email: str,
+    request: Request,
+    admin_email: str = Depends(get_current_admin_user)
+):
+    """
+    Per-user breakdown of the same metrics a learner sees on their own
+    Profile page: Task Success Rate (TSR), Algorithmic Efficiency Score
+    (AES), Refactoring Optimization Gain (ROG), pre-test/post-test
+    milestone scores, and recorded progress entries.
+    """
+    try:
+        result = AdminAnalyticsService.get_user_metrics(email)
+        if result is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error computing user metrics: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error computing user metrics")
+
+
+@router.get("/analytics/overview")
+@limiter.limit("20/minute")
+def get_analytics_overview(
+    request: Request,
+    emails: str = None,
+    admin_email: str = Depends(get_current_admin_user)
+):
+    """
+    Cohort-wide dashboard combining:
+      - System-generated measures: average TSR, AES, ROG across all
+        recorded activity submissions.
+      - Assessment-based measures: Mean/SD of pre-test and post-test
+        scores, Paired Samples t-Test, Cohen's d effect size, and Hake's
+        Normalized Learning Gain (g) -- exactly as defined in the study's
+        Statistical Treatment of Data section.
+
+    Administrator accounts are always excluded from these computations.
+
+    Pass `?emails=a@x.com,b@x.com` to restrict the computation to a
+    specific set of standard-user respondents -- useful during a live
+    data-gathering session where only certain accounts should count
+    toward the study's results. Omit it to include every standard user.
+    """
+    try:
+        selected_emails = None
+        if emails:
+            selected_emails = [e.strip() for e in emails.split(",") if e.strip()]
+        return AdminAnalyticsService.get_cohort_overview(selected_emails=selected_emails)
+    except Exception as e:
+        logger.error(f"Error computing analytics overview: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error computing analytics overview")
