@@ -35,16 +35,19 @@ export const getComplexityColor = (complexity) => {
   return "#64748B";
 };
 
+// Weight scale rebuilt to match the analyzer's actual recognized scope: it
+// reliably recognizes O(1), O(log n), O(sqrt n), O(n), O(V+E), O(n log n),
+// O(n^2), O(2^n), and O(n!) — 9 classes total. Ordering (log n < sqrt n < n)
+// mirrors the backend's own internal _get_weight() ordering in api/analyzer.py.
+// There is no partial-credit tier for n^3/n^4/n^2 log n since the analyzer
+// does not reliably distinguish those from its 9 supported classes.
 export const getComplexityWeight = (complexity, defaultWeight = 0) => {
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, "");
   if (comp.includes("n!") || comp.includes("n*t(n-1)")) return 9;
   if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("c^n") || comp.includes("t(n-1)+t(n-2)")) return 8;
-  if (comp.includes("n^4") || comp.includes("n⁴")) return 7.5;
-  if (comp.includes("n^3") || comp.includes("n³") || comp.includes("n*n*n")) return 7;
-  if (comp.includes("n^2log") || comp.includes("n²log")) return 6.5;
-  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*n") || comp.includes("n*m") || comp.includes("m*n") || comp.includes("t(n-1)+o(n)")) return 6;
-  if (comp.includes("nlogn") || comp.includes("n*log") || comp.includes("nlog") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(log")) return 5;
-  if (comp.includes("v+e") || comp.includes("e+v") || comp.includes("n+m") || comp.includes("m+n")) return 4.5;
+  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*n") || comp.includes("n*m") || comp.includes("m*n") || comp.includes("t(n-1)+o(n)")) return 7;
+  if (comp.includes("nlogn") || comp.includes("n*log") || comp.includes("nlog") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(log")) return 6;
+  if (comp.includes("v+e") || comp.includes("e+v") || comp.includes("n+m") || comp.includes("m+n")) return 5;
   if (comp.includes("o(n)") || comp.includes("o(m)") || comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)") || comp.includes("t(n-1)+o(1)")) return 4;
   if (comp.includes("√n") || comp.includes("sqrt")) return 3;
   if (comp.includes("logn") || comp.includes("log(n)") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 2;

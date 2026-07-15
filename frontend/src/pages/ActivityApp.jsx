@@ -1077,7 +1077,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
               onComplexityTabChange={setActiveComplexityTab}
               analysisResult={analysisResult}
               analysisTime={analysisTime}
-              defaultWeight={6}
+              defaultWeight={7}
               analysisTimeLabel="Analyzed In:"
               analysisBadgeStyle={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
               analysisLabelStyle={{ color: '#64748B' }}

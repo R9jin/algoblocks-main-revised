@@ -59,15 +59,6 @@ const BIG_O_DATA = [
     link: "https://www.khanacademy.org/computing/computer-science/algorithms/merge-sort/a/analysis-of-merge-sort"
   },
   {
-    complexity: "O(n * m)",
-    name: "Multi-Variable Linear Time",
-    color: "bad",
-    def: "The execution time depends on two distinct input sizes (like rows and columns) interacting with each other. Functionally similar to quadratic time if n and m scale together.",
-    analogy: "Painting every single tile on a rectangular floor that is 'n' tiles wide and 'm' tiles long.",
-    example: "Traversing a non-square 2D grid/matrix, or classic 2D Dynamic Programming (like the Longest Common Subsequence).",
-    link: "https://www.geeksforgeeks.org/understanding-time-complexity-simple-examples/"
-  },
-  {
     complexity: "O(n²)",
     name: "Quadratic Time",
     color: "bad",
@@ -77,15 +68,6 @@ const BIG_O_DATA = [
     link: "https://www.geeksforgeeks.org/bubble-sort/"
   },
   {
-    complexity: "O(n³)",
-    name: "Cubic Time",
-    color: "bad",
-    def: "The execution time grows proportionally to the cube of the input size. Typically caused by three levels of nested loops. This becomes unusably slow even for medium-sized inputs.",
-    analogy: "At that same networking event, every time two people shake hands, a third person is brought over to take a group photo for every possible trio.",
-    example: "Naive matrix multiplication, or finding all possible triplets in an array.",
-    link: "https://www.geeksforgeeks.org/understanding-time-complexity-simple-examples/"
-  },
-  {
     complexity: "O(2ⁿ)",
     name: "Exponential Time",
     color: "bad",
@@ -93,15 +75,6 @@ const BIG_O_DATA = [
     analogy: "Trying to crack a binary combination lock by blindly guessing every single possible combination sequence one by one.",
     example: "Naive recursive calculation of Fibonacci numbers, or solving the Tower of Hanoi problem.",
     link: "https://www.geeksforgeeks.org/exponential-time-complexity/"
-  },
-  {
-    complexity: "O(n^d)",
-    name: "Recursive Branching Time",
-    color: "bad",
-    def: "The execution time grows exponentially relative to a variable depth 'd'. This commonly happens in recursive functions placed inside loops, where the depth of the recursion tree directly determines the mathematical exponent.",
-    analogy: "A nested doll where each doll contains 'n' more identical dolls inside it, and the pattern repeats for 'd' layers deep.",
-    example: "Complex recursive backtracking without memoization, or calculating dynamic sub-problems inside iteration branches.",
-    link: "https://www.geeksforgeeks.org/time-complexity-and-space-complexity/"
   },
   {
     complexity: "O(n!)",
