@@ -1,13 +1,21 @@
 // frontend/src/pages/AdminUserManagement.jsx
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
+  LuActivity,
+  LuAward,
   LuBan,
+  LuChartBar,
   LuCheck,
+  LuChevronDown,
+  LuChevronUp,
   LuFilter,
+  LuFlaskConical,
   LuRefreshCw,
   LuSearch,
   LuShield,
+  LuTarget,
   LuTrash2,
+  LuTrendingUp,
   LuTriangleAlert,
   LuUser,
   LuUsers,
@@ -39,6 +47,17 @@ const AdminUserManagement = () => {
     onConfirm: null
   });
   const [modalInputValue, setModalInputValue] = useState("");
+
+  // Per-user metrics dropdown state
+  const [expandedEmail, setExpandedEmail] = useState(null);
+  const [userMetricsCache, setUserMetricsCache] = useState({});
+  const [metricsLoadingEmail, setMetricsLoadingEmail] = useState(null);
+  const [metricsError, setMetricsError] = useState({});
+
+  // Cohort-wide analytics dashboard state
+  const [overview, setOverview] = useState(null);
+  const [overviewLoading, setOverviewLoading] = useState(true);
+  const [overviewError, setOverviewError] = useState(null);
 
   const adminTour = {
     id: "admin-users-tour",
@@ -91,7 +110,51 @@ const AdminUserManagement = () => {
 
   useEffect(() => {
     fetchUsers();
+    fetchOverview();
   }, []);
+
+  const fetchOverview = async () => {
+    setOverviewLoading(true);
+    setOverviewError(null);
+    try {
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const response = await fetch(`${API_BASE}/api/admin/analytics/overview`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to fetch analytics overview");
+      setOverview(data);
+    } catch (err) {
+      setOverviewError(err.message);
+    } finally {
+      setOverviewLoading(false);
+    }
+  };
+
+  const toggleUserMetrics = async (email) => {
+    if (expandedEmail === email) {
+      setExpandedEmail(null);
+      return;
+    }
+    setExpandedEmail(email);
+    if (userMetricsCache[email]) return; // already fetched, just showing cached data
+
+    setMetricsLoadingEmail(email);
+    setMetricsError((prev) => ({ ...prev, [email]: null }));
+    try {
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}/metrics`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to fetch user metrics");
+      setUserMetricsCache((prev) => ({ ...prev, [email]: data }));
+    } catch (err) {
+      setMetricsError((prev) => ({ ...prev, [email]: err.message }));
+    } finally {
+      setMetricsLoadingEmail(null);
+    }
+  };
 
   const filteredUsers = useMemo(() => {
     if (!Array.isArray(users)) return []; 
@@ -269,6 +332,111 @@ const AdminUserManagement = () => {
           </button>
         </div>
 
+        <div className="admin-analytics-dashboard">
+          <div className="analytics-dashboard-header">
+            <h2><LuChartBar size={22} /> Overall Learning Impact</h2>
+            <button onClick={fetchOverview} className="admin-refresh-btn small">
+              <LuRefreshCw size={16} /> Refresh
+            </button>
+          </div>
+
+          {overviewLoading ? (
+            <div className="admin-loading-state compact">
+              <LuRefreshCw size={28} className="spinner-icon" style={{ animation: 'spin 2s linear infinite' }} />
+              <span>Computing cohort analytics...</span>
+            </div>
+          ) : overviewError ? (
+            <div className="admin-message-box error">
+              <LuBan size={24} />
+              <span>{overviewError}</span>
+            </div>
+          ) : overview ? (
+            <>
+              <div className="analytics-section-label">System-Generated Learning Performance (all users, all activities)</div>
+              <div className="analytics-card-grid">
+                <div className="analytics-card">
+                  <div className="analytics-card-icon tsr"><LuActivity size={20} /></div>
+                  <div className="analytics-card-body">
+                    <span className="analytics-card-value">{overview.system_generated.tsr !== null ? `${overview.system_generated.tsr}%` : "--"}</span>
+                    <span className="analytics-card-label">Avg Task Success Rate (TSR)</span>
+                  </div>
+                </div>
+                <div className="analytics-card">
+                  <div className="analytics-card-icon aes"><LuTarget size={20} /></div>
+                  <div className="analytics-card-body">
+                    <span className="analytics-card-value">{overview.system_generated.aes !== null ? `${overview.system_generated.aes}%` : "--"}</span>
+                    <span className="analytics-card-label">Avg Algorithmic Efficiency Score (AES)</span>
+                  </div>
+                </div>
+                <div className="analytics-card">
+                  <div className="analytics-card-icon rog"><LuTrendingUp size={20} /></div>
+                  <div className="analytics-card-body">
+                    <span className="analytics-card-value">{overview.system_generated.rog !== null ? `+${overview.system_generated.rog}` : "--"}</span>
+                    <span className="analytics-card-label">Avg Refactoring Optimization Gain (ROG)</span>
+                  </div>
+                </div>
+                <div className="analytics-card">
+                  <div className="analytics-card-icon count"><LuUsers size={20} /></div>
+                  <div className="analytics-card-body">
+                    <span className="analytics-card-value">{overview.user_count}</span>
+                    <span className="analytics-card-label">Registered Users</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="analytics-section-label">Assessment-Based Learning Measures (paired pre-test / post-test, n = {overview.paired_test_takers})</div>
+              {overview.paired_test_takers === 0 ? (
+                <div className="analytics-empty-note">No users have completed both the pre-test and post-test yet, so no paired statistics are available.</div>
+              ) : (
+                <div className="analytics-card-grid">
+                  <div className="analytics-card">
+                    <div className="analytics-card-icon mean"><LuAward size={20} /></div>
+                    <div className="analytics-card-body">
+                      <span className="analytics-card-value">{overview.assessment_based.mean_pretest}% &rarr; {overview.assessment_based.mean_posttest}%</span>
+                      <span className="analytics-card-label">Mean Pre-test &rarr; Post-test</span>
+                    </div>
+                  </div>
+                  <div className="analytics-card">
+                    <div className="analytics-card-icon sd"><LuChartBar size={20} /></div>
+                    <div className="analytics-card-body">
+                      <span className="analytics-card-value">SD {overview.assessment_based.sd_pretest} / {overview.assessment_based.sd_posttest}</span>
+                      <span className="analytics-card-label">Standard Deviation (Pre / Post)</span>
+                    </div>
+                  </div>
+                  <div className="analytics-card">
+                    <div className="analytics-card-icon ttest"><LuFlaskConical size={20} /></div>
+                    <div className="analytics-card-body">
+                      <span className="analytics-card-value">
+                        t = {overview.assessment_based.t_value ?? "--"} (df = {overview.assessment_based.degrees_of_freedom ?? "--"})
+                      </span>
+                      <span className="analytics-card-label">
+                        Paired Samples t-Test
+                        {overview.assessment_based.p_value !== null && (
+                          <> &middot; p = {overview.assessment_based.p_value} &middot; {overview.assessment_based.significant_at_0_05 ? "Significant (α=.05)" : "Not significant (α=.05)"}</>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="analytics-card">
+                    <div className="analytics-card-icon cohend"><LuTarget size={20} /></div>
+                    <div className="analytics-card-body">
+                      <span className="analytics-card-value">d = {overview.assessment_based.cohens_d ?? "--"}</span>
+                      <span className="analytics-card-label">Cohen's d &middot; {overview.assessment_based.cohens_d_interpretation || "--"}</span>
+                    </div>
+                  </div>
+                  <div className="analytics-card">
+                    <div className="analytics-card-icon hakesg"><LuTrendingUp size={20} /></div>
+                    <div className="analytics-card-body">
+                      <span className="analytics-card-value">g = {overview.assessment_based.hakes_g ?? "--"}</span>
+                      <span className="analytics-card-label">Hake's Normalized Gain &middot; {overview.assessment_based.hakes_g_interpretation || "--"}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : null}
+        </div>
+
         <div className="admin-toolbar">
           <div className="admin-search-wrapper">
             <LuSearch className="admin-search-icon" size={20} />
@@ -325,12 +493,20 @@ const AdminUserManagement = () => {
                   <th>Identity</th>
                   <th>System Role</th>
                   <th>Access Status</th>
+                  <th className="th-metrics">Metrics</th>
                   <th className="th-actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
-                  <tr key={user.email || Math.random()}>
+                {filteredUsers.map((user) => {
+                  const isExpanded = expandedEmail === user.email;
+                  const cached = userMetricsCache[user.email];
+                  const isLoadingMetrics = metricsLoadingEmail === user.email;
+                  const rowError = metricsError[user.email];
+
+                  return (
+                  <Fragment key={user.email || Math.random()}>
+                  <tr>
                     <td>
                       <div className="admin-user-info">
                         <span className="admin-user-name">{user.name || "Unnamed Profile"}</span>
@@ -359,6 +535,16 @@ const AdminUserManagement = () => {
                         </span>
                       )}
                     </td>
+                    <td className="td-metrics">
+                      <button
+                        onClick={() => toggleUserMetrics(user.email)}
+                        className={`admin-metrics-toggle-btn ${isExpanded ? "expanded" : ""}`}
+                        title="View this user's AES, ROG, TSR, and learning path metrics"
+                      >
+                        <LuChartBar size={16} /> View Metrics
+                        {isExpanded ? <LuChevronUp size={16} /> : <LuChevronDown size={16} />}
+                      </button>
+                    </td>
                     <td className="td-actions">
                       <div className="admin-actions">
                         <button 
@@ -378,10 +564,62 @@ const AdminUserManagement = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  {isExpanded && (
+                    <tr className="admin-metrics-row">
+                      <td colSpan="5">
+                        <div className="admin-metrics-panel">
+                          {isLoadingMetrics ? (
+                            <div className="admin-metrics-loading">
+                              <LuRefreshCw size={18} className="spinner-icon" style={{ animation: 'spin 2s linear infinite' }} />
+                              <span>Loading this user's metrics...</span>
+                            </div>
+                          ) : rowError ? (
+                            <div className="admin-message-box error compact">
+                              <LuBan size={18} />
+                              <span>{rowError}</span>
+                            </div>
+                          ) : cached ? (
+                            <div className="admin-metrics-grid">
+                              <div className="admin-metric-pill">
+                                <span className="metric-pill-label">TSR</span>
+                                <span className="metric-pill-value">{cached.metrics.tsr !== null ? `${cached.metrics.tsr}%` : "No data"}</span>
+                              </div>
+                              <div className="admin-metric-pill">
+                                <span className="metric-pill-label">AES</span>
+                                <span className="metric-pill-value">{cached.metrics.aes !== null ? `${cached.metrics.aes}%` : "No data"}</span>
+                              </div>
+                              <div className="admin-metric-pill">
+                                <span className="metric-pill-label">ROG</span>
+                                <span className="metric-pill-value">{cached.metrics.rog !== null ? `+${cached.metrics.rog}` : "No data"}</span>
+                              </div>
+                              <div className="admin-metric-pill">
+                                <span className="metric-pill-label">Activities</span>
+                                <span className="metric-pill-value">{cached.metrics.activities_passed} / {cached.metrics.activities_attempted} passed</span>
+                              </div>
+                              <div className="admin-metric-pill">
+                                <span className="metric-pill-label">Pre-Test</span>
+                                <span className="metric-pill-value">{cached.milestones.preTest !== null ? `${Math.round(cached.milestones.preTest)}%` : "Not taken"}</span>
+                              </div>
+                              <div className="admin-metric-pill">
+                                <span className="metric-pill-label">Post-Test</span>
+                                <span className="metric-pill-value">{cached.milestones.postTest !== null ? `${Math.round(cached.milestones.postTest)}%` : "Not taken"}</span>
+                              </div>
+                              <div className="admin-metric-pill">
+                                <span className="metric-pill-label">Progress Entries</span>
+                                <span className="metric-pill-value">{cached.metrics.progress_entries}</span>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
+                  );
+                })}
                 {filteredUsers.length === 0 && !loading && (
                   <tr>
-                    <td colSpan="4">
+                    <td colSpan="5">
                       <div className="admin-empty-state">
                         No accounts match your current search and filter criteria.
                       </div>
