@@ -39,9 +39,10 @@ export default function ProfilePage() {
     pageId: "profile",
     title: "Profile Tour",
     steps: [
-      { target: ".profile-summary-card, .profile-header", title: "Your overview", description: "See your rank, activity, and overall learning snapshot." },
-      { target: ".module-mastery-list, .module-mastery-card", title: "Module mastery", description: "Review how each module is progressing and where you can improve." },
-      { target: ".achievements-panel, .milestones-panel", title: "Assessments and milestones", description: "Track diagnostic and post-test milestones across the course." },
+      { target: ".profile-header-card", title: "Your overview", description: "See your rank, avatar, and account details at a glance." },
+      { target: ".profile-sidebar", title: "Performance metrics", description: "Track lessons completed, your average AES and ROG, and total evaluations recorded." },
+      { target: ".mastery-list", title: "Module mastery", description: "Review how each module is progressing and where you can improve." },
+      { target: ".milestone-card-container", title: "Assessments and milestones", description: "Track diagnostic and post-test milestones across the course." },
     ],
   };
 

@@ -124,6 +124,7 @@
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px rgba(60, 45, 118, 0.02);
   height: 100%;
+  box-sizing: border-box;
 }
 
 .bento-project-card:hover {
