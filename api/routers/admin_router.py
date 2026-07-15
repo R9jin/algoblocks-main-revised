@@ -111,6 +111,7 @@ def get_user_metrics(
 @limiter.limit("20/minute")
 def get_analytics_overview(
     request: Request,
+    emails: str = None,
     admin_email: str = Depends(get_current_admin_user)
 ):
     """
@@ -121,9 +122,19 @@ def get_analytics_overview(
         scores, Paired Samples t-Test, Cohen's d effect size, and Hake's
         Normalized Learning Gain (g) -- exactly as defined in the study's
         Statistical Treatment of Data section.
+
+    Administrator accounts are always excluded from these computations.
+
+    Pass `?emails=a@x.com,b@x.com` to restrict the computation to a
+    specific set of standard-user respondents -- useful during a live
+    data-gathering session where only certain accounts should count
+    toward the study's results. Omit it to include every standard user.
     """
     try:
-        return AdminAnalyticsService.get_cohort_overview()
+        selected_emails = None
+        if emails:
+            selected_emails = [e.strip() for e in emails.split(",") if e.strip()]
+        return AdminAnalyticsService.get_cohort_overview(selected_emails=selected_emails)
     except Exception as e:
         logger.error(f"Error computing analytics overview: {str(e)}")
         raise HTTPException(status_code=500, detail="Error computing analytics overview")

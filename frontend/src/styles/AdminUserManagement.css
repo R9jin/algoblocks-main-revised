@@ -710,3 +710,139 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   RESPONDENT SCOPE INDICATOR + PICKER (analytics dashboard)
+========================================================= */
+.analytics-dashboard-header {
+  align-items: flex-start;
+}
+
+.analytics-scope-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #5b5675;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.analytics-scope-reset {
+  background: none;
+  border: none;
+  color: #5A1398;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.analytics-dashboard-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.admin-refresh-btn.small.outline {
+  background: #ffffff;
+  color: #5A1398;
+  border: 1px solid #d8cbff;
+  box-shadow: none;
+}
+
+.admin-refresh-btn.small.outline:hover {
+  background: #ede6ff;
+  transform: none;
+  box-shadow: none;
+}
+
+/* --- Respondent picker modal --- */
+.respondent-picker-card {
+  max-width: 520px;
+  width: 100%;
+}
+
+.respondent-picker-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 14px;
+  flex-wrap: wrap;
+}
+
+.respondent-picker-link {
+  background: none;
+  border: none;
+  color: #5A1398;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.respondent-picker-divider {
+  color: #cbd5e1;
+}
+
+.respondent-picker-count {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.respondent-picker-list {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #ece8f8;
+  border-radius: 10px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.respondent-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.respondent-picker-item:hover {
+  background: #f8f8fb;
+}
+
+.respondent-picker-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #5A1398;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.respondent-picker-name {
+  font-weight: 600;
+  color: #241b52;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.respondent-picker-email {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .analytics-dashboard-actions {
+    flex-wrap: wrap;
+  }
+}

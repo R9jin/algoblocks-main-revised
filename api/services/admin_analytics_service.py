@@ -253,18 +253,48 @@ class AdminAnalyticsService:
         }
 
     @staticmethod
-    def get_cohort_overview() -> Dict[str, Any]:
-        users = UserRepository.find_all_users()
+    def get_cohort_overview(selected_emails: Optional[List[str]] = None) -> Dict[str, Any]:
+        """
+        Computes the cohort-wide learning impact metrics.
+
+        Administrator accounts are always excluded -- the study's learning
+        impact measures are about student/respondent performance, and an
+        admin account has no pre-test/post-test or activity history that
+        should count toward it anyway.
+
+        If `selected_emails` is provided (e.g. during a live data-gathering
+        session where only certain respondents should count), the
+        computation is restricted to that subset of standard-user emails.
+        Otherwise every non-admin user is included.
+        """
+        all_users = UserRepository.find_all_users()
+        standard_users = [
+            u for u in all_users
+            if not u.get("is_admin") and (u.get("role") or "user") != "admin"
+        ]
+        standard_emails = {u.get("email") for u in standard_users if u.get("email")}
+
+        if selected_emails:
+            requested = {e for e in selected_emails if e}
+            target_emails = standard_emails & requested
+        else:
+            target_emails = standard_emails
+
         submission_rows = _fetch_all_submission_rows()
         assessment_rows = _fetch_all_assessment_rows()
 
-        all_submissions = [row.get("data") for row in submission_rows if row.get("data")]
+        all_submissions = [
+            row.get("data") for row in submission_rows
+            if row.get("data") and row.get("email") in target_emails
+        ]
         cohort_submission_metrics = _submission_metrics(all_submissions)
 
         pre_scores: Dict[str, float] = {}
         post_scores: Dict[str, float] = {}
         for row in assessment_rows:
             email = row.get("email")
+            if email not in target_emails:
+                continue
             data = row.get("data") or {}
             pre = _find_milestone(data, PRETEST_KEYWORDS)
             post = _find_milestone(data, POSTTEST_KEYWORDS)
@@ -303,7 +333,9 @@ class AdminAnalyticsService:
 
         return {
             "status": "success",
-            "user_count": len(users),
+            "user_count": len(target_emails),
+            "total_standard_users": len(standard_emails),
+            "is_filtered": bool(selected_emails),
             "paired_test_takers": n,
             "system_generated": cohort_submission_metrics,
             "assessment_based": {

@@ -10,6 +10,7 @@ import {
   LuChevronUp,
   LuFilter,
   LuFlaskConical,
+  LuListChecks,
   LuRefreshCw,
   LuSearch,
   LuShield,
@@ -18,6 +19,7 @@ import {
   LuTrendingUp,
   LuTriangleAlert,
   LuUser,
+  LuUserCheck,
   LuUsers,
   LuX
 } from "react-icons/lu";
@@ -58,6 +60,40 @@ const AdminUserManagement = () => {
   const [overview, setOverview] = useState(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [overviewError, setOverviewError] = useState(null);
+
+  // Respondent selection state (for scoping "Overall Learning Impact" to
+  // specific accounts during a live data-gathering session)
+  const [isSelectingRespondents, setIsSelectingRespondents] = useState(false);
+  const [selectedRespondents, setSelectedRespondents] = useState([]); // emails currently applied to the dashboard
+  const [pendingRespondents, setPendingRespondents] = useState([]); // emails checked in the picker, not yet applied
+
+  const standardUsers = useMemo(
+    () => (Array.isArray(users) ? users.filter(u => !(u.isAdmin || u.role === "admin")) : []),
+    [users]
+  );
+
+  const openRespondentPicker = () => {
+    setPendingRespondents(selectedRespondents.length > 0 ? selectedRespondents : standardUsers.map(u => u.email));
+    setIsSelectingRespondents(true);
+  };
+
+  const toggleRespondent = (email) => {
+    setPendingRespondents((prev) =>
+      prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]
+    );
+  };
+
+  const applyRespondentSelection = () => {
+    setSelectedRespondents(pendingRespondents);
+    setIsSelectingRespondents(false);
+    fetchOverview(pendingRespondents);
+  };
+
+  const resetToAllRespondents = () => {
+    setSelectedRespondents([]);
+    setIsSelectingRespondents(false);
+    fetchOverview();
+  };
 
   const adminTour = {
     id: "admin-users-tour",
@@ -113,12 +149,15 @@ const AdminUserManagement = () => {
     fetchOverview();
   }, []);
 
-  const fetchOverview = async () => {
+  const fetchOverview = async (emailsOverride) => {
     setOverviewLoading(true);
     setOverviewError(null);
     try {
       const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-      const response = await fetch(`${API_BASE}/api/admin/analytics/overview`, {
+      const emailsParam = Array.isArray(emailsOverride) && emailsOverride.length > 0
+        ? `?emails=${encodeURIComponent(emailsOverride.join(","))}`
+        : "";
+      const response = await fetch(`${API_BASE}/api/admin/analytics/overview${emailsParam}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
@@ -334,10 +373,31 @@ const AdminUserManagement = () => {
 
         <div className="admin-analytics-dashboard">
           <div className="analytics-dashboard-header">
-            <h2><LuChartBar size={22} /> Overall Learning Impact</h2>
-            <button onClick={fetchOverview} className="admin-refresh-btn small">
-              <LuRefreshCw size={16} /> Refresh
-            </button>
+            <div>
+              <h2><LuChartBar size={22} /> Overall Learning Impact</h2>
+              <div className="analytics-scope-indicator">
+                {selectedRespondents.length > 0 ? (
+                  <>
+                    <LuUserCheck size={14} />
+                    Scoped to {selectedRespondents.length} selected respondent{selectedRespondents.length === 1 ? "" : "s"}
+                    <button className="analytics-scope-reset" onClick={resetToAllRespondents}>Reset to all</button>
+                  </>
+                ) : (
+                  <>
+                    <LuUsers size={14} />
+                    All standard users{overview ? ` (n=${overview.total_standard_users})` : ""} &middot; admin accounts excluded
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="analytics-dashboard-actions">
+              <button onClick={openRespondentPicker} className="admin-refresh-btn small outline">
+                <LuListChecks size={16} /> Select Respondents
+              </button>
+              <button onClick={() => fetchOverview(selectedRespondents.length > 0 ? selectedRespondents : undefined)} className="admin-refresh-btn small">
+                <LuRefreshCw size={16} /> Refresh
+              </button>
+            </div>
           </div>
 
           {overviewLoading ? (
@@ -352,7 +412,7 @@ const AdminUserManagement = () => {
             </div>
           ) : overview ? (
             <>
-              <div className="analytics-section-label">System-Generated Learning Performance (all users, all activities)</div>
+              <div className="analytics-section-label">System-Generated Learning Performance (standard users only, all activities)</div>
               <div className="analytics-card-grid">
                 <div className="analytics-card">
                   <div className="analytics-card-icon tsr"><LuActivity size={20} /></div>
@@ -379,7 +439,7 @@ const AdminUserManagement = () => {
                   <div className="analytics-card-icon count"><LuUsers size={20} /></div>
                   <div className="analytics-card-body">
                     <span className="analytics-card-value">{overview.user_count}</span>
-                    <span className="analytics-card-label">Registered Users</span>
+                    <span className="analytics-card-label">Respondents Included{overview.is_filtered ? " (Selected)" : ""}</span>
                   </div>
                 </div>
               </div>
@@ -678,6 +738,63 @@ const AdminUserManagement = () => {
                 onClick={handleModalConfirm}
               >
                 {modalConfig.type === 'alert' ? 'Acknowledge' : 'Confirm Action'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RESPONDENT SELECTION MODAL (scope the Overall Learning Impact dashboard) */}
+      {isSelectingRespondents && (
+        <div className="admin-modal-overlay" onClick={(e) => {
+          if (e.target.className === 'admin-modal-overlay') setIsSelectingRespondents(false);
+        }}>
+          <div className="admin-modal-card respondent-picker-card">
+            <div className="admin-modal-header">
+              <div className="admin-modal-title">
+                <LuListChecks size={22} />
+                <h3>Select Respondents</h3>
+              </div>
+              <button className="admin-modal-close" onClick={() => setIsSelectingRespondents(false)}>
+                <LuX size={20} />
+              </button>
+            </div>
+
+            <div className="admin-modal-body">
+              <p>Choose which standard-user accounts count toward the Overall Learning Impact dashboard. Administrator accounts are never included.</p>
+
+              <div className="respondent-picker-toolbar">
+                <button className="respondent-picker-link" onClick={() => setPendingRespondents(standardUsers.map(u => u.email))}>Select All</button>
+                <span className="respondent-picker-divider">&middot;</span>
+                <button className="respondent-picker-link" onClick={() => setPendingRespondents([])}>Clear All</button>
+                <span className="respondent-picker-count">{pendingRespondents.length} / {standardUsers.length} selected</span>
+              </div>
+
+              <div className="respondent-picker-list">
+                {standardUsers.length === 0 ? (
+                  <div className="admin-empty-state">No standard-user accounts found.</div>
+                ) : (
+                  standardUsers.map((u) => (
+                    <label key={u.email} className="respondent-picker-item">
+                      <input
+                        type="checkbox"
+                        checked={pendingRespondents.includes(u.email)}
+                        onChange={() => toggleRespondent(u.email)}
+                      />
+                      <span className="respondent-picker-name">{u.name || "Unnamed Profile"}</span>
+                      <span className="respondent-picker-email">{u.email}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="admin-modal-footer">
+              <button className="admin-btn-cancel" onClick={() => setIsSelectingRespondents(false)}>
+                Cancel
+              </button>
+              <button className="admin-btn-confirm" onClick={applyRespondentSelection}>
+                Apply Selection
               </button>
             </div>
           </div>
