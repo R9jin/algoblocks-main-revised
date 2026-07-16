@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { FiChevronRight, FiClock, FiCloud, FiFileText, FiFolder, FiHardDrive, FiPlus, FiRefreshCw, FiTrash2 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import ConfirmModal from "../components/ConfirmModal.jsx";
 import DashboardHeader from "../components/DashboardHeader";
 import { projectsDB, syncQueueDB } from "../db";
 import "../styles/Projects.css";
@@ -15,6 +16,9 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
   const [globalSyncing, setGlobalSyncing] = useState(false);
   const [syncState, setSyncState] = useState({ syncing: false, pendingCount: 0, lastSynced: null });
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", isDanger: false, onConfirmAction: null });
+
+  const closeModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }));
 
   useEffect(() => {
     loadProjects();
@@ -99,8 +103,11 @@ export default function Projects() {
       }
 
       // 2. CHECK QUEUE COUNT
-      const queueKeys = await syncQueueDB.keys ? await syncQueueDB.keys() : [];
-      const pendingUploads = queueKeys.filter(k => k.includes("local_proj") || k.startsWith("sync_project") || k.startsWith("local_"));
+      // syncQueueDB (../db) only exposes add/getAll/remove/clear — there is
+      // no .keys() method, so this previously always evaluated to an empty
+      // array and silently showed "0 Local Pending" no matter what was
+      // actually queued.
+      const queuedActions = await syncQueueDB.getAll();
 
       // 3. READ LOCAL IDB RECONCILED STATE
       const loadedProjects = [];
@@ -108,13 +115,22 @@ export default function Projects() {
         if (value.owner_id === user.email || value.userId === user.email) {
           loadedProjects.push({
             ...value,
+            // The IndexedDB store's keyPath is "projectId" (see db.js), not
+            // "_id" — local-only (not-yet-synced) projects never receive an
+            // "_id" until they've been pushed to the backend. Normalize a
+            // single canonical identifier here so the rest of this page
+            // never has to guess which field is populated.
+            id: value.projectId || value._id,
             updatedAt: normalizeEpoch(value.updatedAt || value.updated_at || value.timestamp)
           });
         }
       });
 
+      const unsyncedProjects = loadedProjects.filter(p => !p.isSynced && !p.synced);
+      const pendingCount = unsyncedProjects.length + queuedActions.length;
+
       setProjects(loadedProjects.sort((a, b) => b.updatedAt - a.updatedAt));
-      setSyncState({ syncing: false, pendingCount: pendingUploads.length, lastSynced: new Date() });
+      setSyncState({ syncing: false, pendingCount, lastSynced: new Date() });
     } catch (error) {
       console.error("Failed to load projects:", error);
       setSyncState(prev => ({ ...prev, syncing: false }));
@@ -131,23 +147,59 @@ export default function Projects() {
     await loadProjects();
   };
 
-  const handleDeleteProject = async (e, projectId) => {
+  const handleDeleteProject = (e, proj) => {
     e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this project? This action cannot be undone.")) return;
+    const id = proj.id || proj.projectId || proj._id;
+    if (!id) {
+      console.error("Cannot delete project: no identifier found on record", proj);
+      return;
+    }
+
+    setModalConfig({
+      isOpen: true,
+      title: "Delete Project?",
+      message: `Are you sure you want to delete "${proj.title || proj.name || "this project"}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      isDanger: true,
+      onConfirmAction: () => confirmDeleteProject(id),
+    });
+  };
+
+  const confirmDeleteProject = async (id) => {
+    closeModal();
+    // Optimistically drop it from the visible list right away so the UI
+    // never looks like the delete "didn't do anything".
+    setProjects(prev => prev.filter(p => (p.id || p.projectId || p._id) !== id));
 
     try {
-      await projectsDB.removeItem(projectId);
-      if (projectId.startsWith('local_')) {
-        await syncQueueDB.removeItem(projectId);
-      } else {
-        await syncQueueDB.setItem(`delete_${projectId}`, {
-          type: 'PROJECT', action: 'DELETE', data: { _id: projectId }
-        });
-      }
-      setProjects(projects.filter(p => p._id !== projectId));
-      loadProjects();
+      // syncQueueDB (from ../db) only exposes add/getAll/remove/clear — it
+      // has no setItem/removeItem methods, so calling those here (as this
+      // used to) threw and aborted the delete before the UI ever updated.
+      // syncManager.queueProjectDeletion() is the real, working code path:
+      // it removes the record from IndexedDB, attempts an immediate DELETE
+      // against the backend when online, and transparently falls back to
+      // the offline action queue (processed later by processSyncQueue)
+      // when it's not.
+      await syncManager.queueProjectDeletion(id);
+      await refreshPendingCount();
     } catch (error) {
       console.error("Failed to delete project:", error);
+      // Deletion failed outright — reload from source of truth so the
+      // project reappears rather than leaving the UI in a false state.
+      loadProjects();
+    }
+  };
+
+  const refreshPendingCount = async () => {
+    try {
+      const queuedActions = await syncQueueDB.getAll();
+      let unsyncedCount = 0;
+      await projectsDB.iterate((value) => {
+        if (!value.isSynced && !value.synced) unsyncedCount++;
+      });
+      setSyncState(prev => ({ ...prev, pendingCount: unsyncedCount + queuedActions.length, lastSynced: new Date() }));
+    } catch (error) {
+      console.warn("Failed to refresh pending sync count:", error);
     }
   };
 
@@ -170,6 +222,17 @@ export default function Projects() {
         @keyframes projSpin { 100% { transform: rotate(360deg); } }
         .spin-anim { animation: projSpin 1s linear infinite; }
       `}</style>
+
+      <ConfirmModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        confirmText={modalConfig.confirmText}
+        cancelText="Cancel"
+        isDanger={modalConfig.isDanger}
+        onCancel={closeModal}
+        onConfirm={modalConfig.onConfirmAction}
+      />
 
       <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" tour={projectsTour} tourPageId="projects" />
 
@@ -234,10 +297,10 @@ export default function Projects() {
             ) : (
               <div className="projects-bento-grid">
                 {projects.map(proj => (
-                  <div key={proj._id} className="bento-project-card" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
+                  <div key={proj.id} className="bento-project-card" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
                     <div className="project-card-top">
                       <div className="project-icon-wrapper"><FiFolder size={24} /></div>
-                      <button className="btn-delete-project" title="Delete Project" onClick={(e) => handleDeleteProject(e, proj._id)}>
+                      <button className="btn-delete-project" title="Delete Project" onClick={(e) => handleDeleteProject(e, proj)}>
                         <FiTrash2 size={18} />
                       </button>
                     </div>

@@ -8,6 +8,32 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* Self-contained overlay backdrop for this page's modals (Inspect AST /
+   Understand Metric Percentages). This page is lazy-loaded as its own
+   route chunk, so it can NOT rely on the .modal-overlay rule defined in
+   MainApp.css / ConfirmModal.css being present — whether that CSS has
+   loaded depends on which other pages happened to load first in the
+   session. Defining it here guarantees position:fixed centering works
+   every time, regardless of navigation history. */
+.eval-suite-container .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 24px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
 /* Rotates the FiRefreshCw icon used as a loading indicator on this page.
    Self-contained here (rather than relying on Projects.css's .spinner,
    which is a different border-circle loading element and isn't loaded
@@ -1312,6 +1338,8 @@
 /* --- CODE INSPECTION MODAL --- */
 .eval-modal-content {
   max-width: 680px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   background-color: #FFFFFF;
   color: #0F172A;
   border: 1px solid #CBD5E1;
