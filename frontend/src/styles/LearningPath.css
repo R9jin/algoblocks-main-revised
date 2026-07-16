@@ -423,3 +423,108 @@ html {
   background: #ede9ff;
   border-color: #5A1398;
 }
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width: 768px) {
+  .learning-path-container {
+    padding: 32px 16px 100px;
+  }
+
+  .learning-path-header {
+    margin-bottom: 36px;
+  }
+
+  .learning-path-header h1 {
+    font-size: 2rem;
+  }
+
+  .learning-path-header p {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .module-card-v2 {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .module-card-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .module-card-title {
+    font-size: 1.05rem;
+  }
+
+  .module-card-description {
+    font-size: 0.88rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .learning-path-header h1 {
+    font-size: 1.6rem;
+  }
+
+  .module-card-v2 {
+    align-items: flex-start;
+  }
+
+  .module-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .module-card-chevron {
+    align-self: flex-end;
+    margin-top: -28px;
+  }
+
+  /* Lesson rows: stack info above actions instead of forcing a fixed
+     50px lesson-number + title + two buttons into one row */
+  .dropdown-lesson-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .lesson-info {
+    width: 100%;
+  }
+
+  .lesson-actions {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .btn-read-lesson, .btn-start-activity {
+    flex: 1;
+    text-align: center;
+  }
+
+  .module-dropdown-footer .view-all-lessons {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Assessment rows: same stacking treatment */
+  .assessment-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .assessment-row-right {
+    width: 100%;
+  }
+
+  .btn-assessment {
+    width: 100%;
+    text-align: center;
+  }
+}

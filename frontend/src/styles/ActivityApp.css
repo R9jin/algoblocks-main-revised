@@ -92,3 +92,40 @@
 .info-tooltip:hover .tooltip-text { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0); }
 .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--dark-surface) transparent transparent transparent; }
 .tooltip-title { display: block; font-weight: bold; margin-bottom: 6px; color: #FFFFFF; font-size: 0.85rem;}
+/* =========================================================
+   RESPONSIVE
+   The side panels now default to collapsed below ~900px viewport width
+   (see ActivityApp.jsx), so the Blockly canvas gets the room it actually
+   needs instead of the 3-panel Split.js layout forcing a 900px minimum
+   width and a horizontal scrollbar on tablets/phones.
+========================================================= */
+@media (max-width: 900px) {
+  .activity-panel-header {
+    padding: 14px 16px;
+  }
+
+  .activity-panel-content {
+    padding: 14px 16px;
+  }
+
+  .activity-title-text {
+    font-size: 1.15rem;
+  }
+
+  /* A 240px fixed-width tooltip can run off the edge of a narrow
+     viewport when the trigger icon sits near the panel edge */
+  .tooltip-text {
+    width: min(240px, calc(100vw - 40px));
+  }
+}
+
+@media (max-width: 480px) {
+  .activity-task-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .activity-title-text {
+    font-size: 1.05rem;
+  }
+}

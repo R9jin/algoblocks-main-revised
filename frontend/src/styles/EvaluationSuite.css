@@ -8,18 +8,53 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* --- HEADER OVERRIDES & PILLS --- */
-.eval-exit-link {
-  color: #EBE4FF !important;
-  font-weight: 600;
+/* Rotates the FiRefreshCw icon used as a loading indicator on this page.
+   Self-contained here (rather than relying on Projects.css's .spinner,
+   which is a different border-circle loading element and isn't loaded
+   on this route anyway) so the icon actually animates. */
+.spinner {
+  animation: eval-spin 1s linear infinite;
 }
 
-.eval-exit-link:hover {
-  color: #FFFFFF !important;
+@keyframes eval-spin {
+  to { transform: rotate(360deg); }
 }
 
-.eval-wh-title {
-  color: #FFFFFF !important;
+/* --- PAGE TOOLBAR (title + Execute Benchmark control) --- */
+.eval-page-toolbar {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.eval-page-toolbar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eval-page-title {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #241b52;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.eval-page-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #5b5675;
 }
 
 .wh-benchmark-badge {
@@ -29,7 +64,6 @@
   font-weight: 800;
   padding: 4px 10px;
   border-radius: 6px;
-  margin-left: 12px;
   letter-spacing: 0.5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   vertical-align: middle;
@@ -46,6 +80,7 @@
   border: none;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .eval-run-ready {
@@ -130,10 +165,10 @@
 }
 
 .dataset-btn.active-ds {
-  background-color: #7928CA;
+  background-color: #5A1398;
   color: #FFFFFF;
-  border-color: #7928CA;
-  box-shadow: 0 2px 6px rgba(121, 40, 202, 0.25);
+  border-color: #5A1398;
+  box-shadow: 0 2px 6px rgba(90, 19, 152, 0.25);
 }
 
 .dataset-btn:disabled {
@@ -157,7 +192,7 @@
 
 .line-stats-banner {
   background-color: #F8FAFC;
-  border-left: 4px solid #7928CA;
+  border-left: 4px solid #5A1398;
 }
 
 .eval-status-group {
@@ -178,7 +213,7 @@
 }
 
 .eval-status-target {
-  color: #7928CA;
+  color: #5A1398;
   font-weight: 700;
 }
 
@@ -219,7 +254,7 @@
 }
 
 .eval-progress-fill {
-  background-color: #7928CA;
+  background-color: #5A1398;
   height: 100%;
   transition: width 0.2s ease;
 }
@@ -306,7 +341,7 @@
 
 .eval-btn-metrics-help {
   background-color: #F8FAFC;
-  color: #7928CA;
+  color: #5A1398;
   border: 1px solid #E9D5FF;
   padding: 9px 16px;
   border-radius: 8px;
@@ -317,13 +352,13 @@
   align-items: center;
   gap: 8px;
   transition: all 0.15s ease;
-  box-shadow: 0 1px 2px rgba(121, 40, 202, 0.05);
+  box-shadow: 0 1px 2px rgba(90, 19, 152, 0.05);
 }
 
 .eval-btn-metrics-help:hover {
-  background-color: #7928CA;
+  background-color: #5A1398;
   color: #FFFFFF;
-  border-color: #7928CA;
+  border-color: #5A1398;
   transform: translateY(-1px);
 }
 
@@ -381,7 +416,7 @@
 
 .td-class-code {
   font-family: Consolas, monospace;
-  color: #7928CA !important;
+  color: #5A1398 !important;
   font-weight: 800 !important;
 }
 
@@ -609,7 +644,7 @@
 
 .slider-group input[type="range"] {
   width: 100%;
-  accent-color: #7928CA;
+  accent-color: #5A1398;
   cursor: pointer;
 }
 
@@ -665,7 +700,7 @@
 }
 
 .sandbox-live-commentary svg {
-  color: #7928CA;
+  color: #5A1398;
   flex-shrink: 0;
 }
 
@@ -875,10 +910,10 @@
 }
 
 .eval-btn-inspect:hover {
-  background-color: #7928CA;
+  background-color: #5A1398;
   color: #FFFFFF;
-  border-color: #7928CA;
-  box-shadow: 0 2px 4px rgba(121, 40, 202, 0.2);
+  border-color: #5A1398;
+  box-shadow: 0 2px 4px rgba(90, 19, 152, 0.2);
 }
 
 .eval-btn-dropdown {
@@ -961,7 +996,7 @@
 }
 
 .dbh-icon {
-  color: #7928CA;
+  color: #5A1398;
 }
 
 .dbh-left strong {
@@ -1242,8 +1277,8 @@
 }
 
 .eval-btn-close:hover {
-  background-color: #7928CA;
-  box-shadow: 0 4px 12px rgba(121, 40, 202, 0.25);
+  background-color: #5A1398;
+  box-shadow: 0 4px 12px rgba(90, 19, 152, 0.25);
 }
 
 .btn-dropdown-error {
@@ -1255,4 +1290,29 @@
 .btn-dropdown-error:hover {
   background-color: #FEE2E2 !important;
   color: #7F1D1D !important;
+}
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width: 768px) {
+  .eval-main-wrapper {
+    padding: 0 16px;
+    margin: 20px auto;
+  }
+
+  .eval-page-toolbar {
+    padding: 16px 18px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .eval-page-title {
+    font-size: 1.1rem;
+    flex-wrap: wrap;
+  }
+
+  .eval-btn-run {
+    width: 100%;
+    justify-content: center;
+  }
 }

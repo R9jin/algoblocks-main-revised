@@ -214,3 +214,34 @@
         transform: translateY(0);
     }
 }
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width: 480px) {
+  .big-o-modal-header {
+    padding: 14px 16px;
+  }
+
+  .big-o-modal-header h2 {
+    font-size: 1.05rem;
+  }
+
+  .big-o-accordion {
+    padding: 10px;
+    max-height: 75vh;
+  }
+
+  .big-o-list-header span:nth-child(1),
+  .o-badge {
+    width: 78px;
+    font-size: 0.85rem;
+  }
+
+  .big-o-list-header span:nth-child(3) {
+    width: 20px;
+  }
+
+  .big-o-row-trigger {
+    padding: 12px 10px;
+  }
+}

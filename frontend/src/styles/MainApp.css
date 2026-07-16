@@ -565,3 +565,97 @@ body {
 
 .save-modal-confirm-btn { padding: 10px 20px; border-radius: 8px; border: none; background: var(--purple-main); color: white; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(121, 40, 202, 0.3); }
 .save-modal-confirm-btn:hover { background: var(--purple-hover); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(121, 40, 202, 0.4); }
+/* =========================================================
+   RESPONSIVE
+   Note: the 3-panel Split.js workspace (blocks palette / canvas /
+   code+console panel) is a precision drag-and-drop, resizable-pane IDE.
+   That interaction model is inherently a desktop/tablet paradigm --
+   these rules make the header and panel chrome hold together down to
+   tablet widths without clipping or overlapping, and keep phone widths
+   usable rather than pretending the block-drag canvas itself becomes a
+   phone-optimized UI.
+========================================================= */
+@media (max-width: 1024px) {
+  .workspace-header-purple {
+    padding: 0 14px;
+    gap: 10px;
+  }
+
+  .wh-left { gap: 10px; }
+  .wh-right { gap: 8px; }
+
+  .wh-project-title {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .wh-toggle-btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+
+  .wh-btn-save, .wh-btn-run {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .workspace-header-purple {
+    height: auto;
+    min-height: 60px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+  }
+
+  .wh-left, .wh-right {
+    flex: 0 1 auto;
+  }
+
+  .wh-center {
+    order: 3;
+    flex: 1 1 100%;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  .wh-divider {
+    display: none;
+  }
+
+  .wh-project-title {
+    max-width: 100px;
+  }
+
+  .wh-back-btn span {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .wh-file-actions {
+    border-right: none;
+    padding-right: 0;
+    margin-right: 0;
+  }
+
+  .wh-btn-save:not(.engine-loading) span,
+  .wh-btn-run:not(.engine-loading) span {
+    display: none;
+  }
+
+  .wh-btn-save.engine-loading,
+  .wh-btn-run.engine-loading {
+    white-space: normal;
+    text-align: left;
+    font-size: 0.72rem;
+    max-width: 150px;
+    line-height: 1.3;
+  }
+
+  .wh-project-title {
+    display: none;
+  }
+}

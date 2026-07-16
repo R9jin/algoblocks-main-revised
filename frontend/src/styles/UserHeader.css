@@ -172,3 +172,13 @@
 .user-homepage .user-dd-divider { background: #d8dee4; }
 .user-homepage .user-dd-item.danger { color: #cf222e; }
 .user-homepage .user-dd-item.danger:hover { color: #a40e26; background: #ffebe9; }
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width: 400px) {
+  .user-dropdown {
+    width: min(240px, calc(100vw - 24px));
+    right: -8px;
+  }
+}

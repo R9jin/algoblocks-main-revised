@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import {
   FiActivity,
-  FiArrowLeft,
   FiArrowRight,
   FiBarChart2,
   FiCheckCircle,
@@ -19,10 +18,10 @@ import {
   FiTrendingUp,
   FiXCircle, FiZap
 } from "react-icons/fi";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import DashboardHeader from "../components/DashboardHeader";
 import { usePyodide } from "../context/PyodideContext";
 import "../styles/EvaluationSuite.css";
-import "../styles/MainApp.css";
 
 export default function EvaluationSuite() {
   const navigate = useNavigate();
@@ -635,18 +634,17 @@ export default function EvaluationSuite() {
         </div>
       )}
 
-      <header className="workspace-header-purple">
-        <div className="wh-left">
-          <Link to="/dashboard" className="wh-back-btn eval-exit-link">
-            <FiArrowLeft size={18} /><span>Dashboard</span>
-          </Link>
-          <div className="wh-divider"></div>
-          <h2 className="wh-project-title eval-wh-title">
-            System Complexity Analyzer Benchmark<span className="wh-benchmark-badge">Benchmark Testing</span>
-          </h2>
-        </div>
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
 
-        <div className="wh-right">
+      <div className="eval-main-wrapper">
+        <div className="eval-page-toolbar">
+          <div className="eval-page-toolbar-left">
+            <h2 className="eval-page-title">
+              System Complexity Analyzer Benchmark
+              <span className="wh-benchmark-badge">Benchmark Testing</span>
+            </h2>
+            <p className="eval-page-subtitle">Run the AST-based analyzer against the ground-truth dataset and review classification performance.</p>
+          </div>
           <button
             onClick={handleStartEvaluation}
             disabled={isRunning || !isEngineReady}
@@ -656,9 +654,7 @@ export default function EvaluationSuite() {
             <span>{isRunning ? `Running Benchmark (${progress}%)...` : "Execute Benchmark"}</span>
           </button>
         </div>
-      </header>
 
-      <div className="eval-main-wrapper">
         <div className="eval-dataset-selector-box">
           <div className="eval-dataset-info">
             <FiDatabase style={{ color: "#7928CA" }} size={24} />

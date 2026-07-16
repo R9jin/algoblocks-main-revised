@@ -70,7 +70,7 @@ export default function WorkspaceHeader({
 
         {!isGuest && (
           <button className="wh-btn-save" type="button" onClick={handleSaveToDB}>
-            <FiSave size={16} /> Save
+            <FiSave size={16} /> <span>Save</span>
           </button>
         )}
 
@@ -84,12 +84,12 @@ export default function WorkspaceHeader({
           {!isEngineReady ? (
             <>
               <span className="engine-loading-spinner" />
-              {engineProgress?.stage || "Preparing engine..."} {typeof engineProgress?.percent === "number" ? `(${engineProgress.percent}%)` : ""}
+              <span>{engineProgress?.stage || "Preparing engine..."} {typeof engineProgress?.percent === "number" ? `(${engineProgress.percent}%)` : ""}</span>
             </>
           ) : (
             <>
               <FiPlay size={16} fill={isEvaluating ? "transparent" : "currentColor"} /> 
-              {isEvaluating ? "Running..." : "Run Code"}
+              <span>{isEvaluating ? "Running..." : "Run Code"}</span>
             </>
           )}
         </button>

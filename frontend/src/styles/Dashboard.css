@@ -1,51 +1,14 @@
 /* frontend/src/styles/Dashboard.css */
 
-/* =========================================================
-   1. Dashboard Header
-========================================================= */
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 30px;
-  border-bottom: 1px solid rgba(60, 45, 118, 0.08);
-  background: #FFFFFF;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.dashboard-header .header-left,
-.dashboard-header .header-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.back-home {
-  text-decoration: none;
-  color: #5A1398;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: color 0.2s ease;
-}
-
-.back-home:hover {
-  color: #7F57F9;
-}
-
-.btn-open-project {
-  background: transparent;
-  color: #5A1398;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+/* NOTE: .dashboard-header / .header-left / .header-right now live in
+   DashboardHeader.css, co-located with the DashboardHeader component that
+   actually renders them. That component is shared across 6 pages
+   (Dashboard, Projects, ProfilePage, AssessmentPage, LearningPath,
+   AdminUserManagement), but only Dashboard.jsx imports this stylesheet --
+   so keeping the header's layout rules here meant the header rendered
+   completely unstyled on any of those other pages if the user landed on
+   them directly (route-based code-splitting via React.lazy means this
+   file was never guaranteed to load elsewhere). */
 
 /* =========================================================
    2. Base Layout & Bento Grid

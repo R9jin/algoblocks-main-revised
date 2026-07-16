@@ -100,8 +100,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
   const [viewMode, setViewMode] = useState("workspace");
   const [passedTests, setPassedTests] = useState(0);
-  const [isLeftPanelVisible, setIsLeftPanelVisible] = useState(true);
-  const [isRightPanelVisible, setIsRightPanelVisible] = useState(true);
+  const [isLeftPanelVisible, setIsLeftPanelVisible] = useState(() => typeof window === "undefined" || window.innerWidth >= 900);
+  const [isRightPanelVisible, setIsRightPanelVisible] = useState(() => typeof window === "undefined" || window.innerWidth >= 900);
   const [expandedTests, setExpandedTests] = useState({});
   const [bottomPanel, setBottomPanel] = useState(null);
   const [consoleTab, setConsoleTab] = useState("output");
@@ -1005,18 +1005,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         </div>
         <div className="wh-right">
           <TourHelpButton pageId={activityTour.pageId} tour={activityTour} label="Replay activity tour" />
-          <button className="wh-btn-save" onClick={handleActivityRun} disabled={isEvaluating || isSyncingBlocks || !isEngineReady} title={!isEngineReady ? (engineProgress?.stage || "Preparing Python engine...") : "Run code without submitting to test cases"}>
+          <button className={`wh-btn-save ${!isEngineReady ? "engine-loading" : ""}`} onClick={handleActivityRun} disabled={isEvaluating || isSyncingBlocks || !isEngineReady} title={!isEngineReady ? (engineProgress?.stage || "Preparing Python engine...") : "Run code without submitting to test cases"}>
             {!isEngineReady ? (
-              <><span className="engine-loading-spinner" /> {engineProgress?.stage || "Preparing..."} {typeof engineProgress?.percent === "number" ? `(${engineProgress.percent}%)` : ""}</>
+              <><span className="engine-loading-spinner" /> <span>{engineProgress?.stage || "Preparing..."} {typeof engineProgress?.percent === "number" ? `(${engineProgress.percent}%)` : ""}</span></>
             ) : (
-              <><FiTerminal size={16} /> {isEvaluating ? "..." : "Run Code"}</>
+              <><FiTerminal size={16} /> <span>{isEvaluating ? "..." : "Run Code"}</span></>
             )}
           </button>
           <button className={`wh-btn-run ${isEvaluating ? "running" : ""} ${!isEngineReady ? "engine-loading" : ""}`} onClick={runTestCases} disabled={isEvaluating || isSyncingBlocks || !isEngineReady} title={!isEngineReady ? (engineProgress?.stage || "Preparing Python engine...") : undefined}>
             {!isEngineReady ? (
-              <><span className="engine-loading-spinner" /> {engineProgress?.stage || "Preparing..."} {typeof engineProgress?.percent === "number" ? `(${engineProgress.percent}%)` : ""}</>
+              <><span className="engine-loading-spinner" /> <span>{engineProgress?.stage || "Preparing..."} {typeof engineProgress?.percent === "number" ? `(${engineProgress.percent}%)` : ""}</span></>
             ) : (
-              <><FiPlay size={16} /> {isEvaluating ? "..." : isSyncingBlocks ? "Syncing..." : "Evaluate Efficiency (AES)"}</>
+              <><FiPlay size={16} /> <span>{isEvaluating ? "..." : isSyncingBlocks ? "Syncing..." : "Evaluate Efficiency (AES)"}</span></>
             )}
           </button>
         </div>

@@ -79,7 +79,7 @@ export default function MainApp() {
   const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? window.navigator.onLine : true);
   const [bottomPanel, setBottomPanel] = useState(null);
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(() => typeof window === "undefined" || window.innerWidth >= 700);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
