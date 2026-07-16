@@ -32,6 +32,40 @@ const writeStoredState = (userKey, state) => {
   }
 };
 
+// Combines the onboarding state that came back from the backend (the source of
+// truth, tied to the user's account) with whatever is cached locally in this
+// browser. This must be a non-destructive UNION, never a plain overwrite:
+// logging out clears localStorage (see UserHeader/UserHomePage/index.jsx logout
+// handlers), which would otherwise wipe the local cache back to "not seen" and,
+// on the next login, stomp on the correct "already seen" flag that the backend
+// just supplied. By OR-ing/merging fields instead of letting one side blindly
+// replace the other, a tour that was ever marked seen (locally OR remotely)
+// stays marked seen no matter how many times the user logs out and back in.
+const mergeOnboardingStates = (remoteState, localState) => {
+  const remote = normalizeState(remoteState);
+  const local = normalizeState(localState);
+
+  const pageIds = new Set([...Object.keys(remote.pages), ...Object.keys(local.pages)]);
+  const pages = {};
+  pageIds.forEach((pageId) => {
+    const r = remote.pages[pageId] || {};
+    const l = local.pages[pageId] || {};
+    pages[pageId] = {
+      seen: r.seen === true || l.seen === true,
+      replayCount: Math.max(Number(r.replayCount || 0), Number(l.replayCount || 0)),
+      lastSeenAt: r.lastSeenAt || l.lastSeenAt || null,
+      lastOpenedAt: r.lastOpenedAt || l.lastOpenedAt || null,
+      lastCompletedAt: r.lastCompletedAt || l.lastCompletedAt || null,
+    };
+  });
+
+  return normalizeState({
+    tourSeen: remote.tourSeen === true || local.tourSeen === true,
+    completedAt: remote.completedAt || local.completedAt || null,
+    pages,
+  });
+};
+
 export function OnboardingProvider({ children }) {
   const [user, setUser] = useState(null);
   const [state, setState] = useState(() => normalizeState());
@@ -52,8 +86,14 @@ export function OnboardingProvider({ children }) {
         const parsed = JSON.parse(stored);
         setUser(parsed);
         const localState = readStoredState(getUserKey(parsed));
-        const merged = normalizeState({ ...(parsed.onboarding_state || {}), ...localState });
+        // Union, don't overwrite: a wiped-out local cache (e.g. right after a
+        // fresh login post-logout) must never downgrade a tour that the
+        // backend already knows was seen.
+        const merged = mergeOnboardingStates(parsed.onboarding_state, localState);
         setState(merged);
+        // Immediately re-persist the merged/reconciled result locally so this
+        // device's cache reflects the union rather than staying stale.
+        writeStoredState(getUserKey(parsed), merged);
       } catch {
         setUser(null);
         setState(normalizeState());
