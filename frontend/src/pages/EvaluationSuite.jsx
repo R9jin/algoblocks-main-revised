@@ -1,5 +1,5 @@
 // frontend/src/pages/EvaluationSuite.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FiActivity,
   FiArrowRight,
@@ -12,16 +12,104 @@ import {
   FiDownload,
   FiHelpCircle, FiLayers,
   FiList,
+  FiPieChart,
   FiPlay,
   FiRefreshCw,
   FiTrendingDown,
   FiTrendingUp,
   FiXCircle, FiZap
 } from "react-icons/fi";
+import {
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis
+} from "recharts";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import { usePyodide } from "../context/PyodideContext";
 import "../styles/EvaluationSuite.css";
+
+// Stable color palette for Big-O complexity classes so the same class always
+// renders with the same color across every pie chart in the suite.
+const BIGO_COLOR_MAP = {
+  "O(1)": "#10B981",
+  "O(log n)": "#0EA5E9",
+  "O(sqrt n)": "#22D3EE",
+  "O(n)": "#3B82F6",
+  "O(n log n)": "#7928CA",
+  "O(n^2)": "#F59E0B",
+  "O(n^4)": "#F97316",
+  "O(2^n)": "#EF4444",
+  "O(V + E)": "#EC4899",
+  "O(V)": "#DB2777",
+  "O(E)": "#BE185D",
+};
+const BIGO_FALLBACK_COLORS = ["#7928CA", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#22D3EE"];
+const getBigOColor = (label, idx) => BIGO_COLOR_MAP[label] || BIGO_FALLBACK_COLORS[idx % BIGO_FALLBACK_COLORS.length];
+
+// Small hover-triggered popover that reveals a Big-O distribution pie chart
+// on top of a metric stat card. Purely CSS-driven (:hover) so it never
+// interferes with click handlers elsewhere on the page.
+function MetricPieHoverCard({ label, data, total, children }) {
+  const hasData = data && data.length > 0 && total > 0;
+  return (
+    <div className="metric-hover-wrapper">
+      {children}
+      {hasData && (
+        <div className="metric-hover-popover">
+          <div className="metric-hover-popover-header">
+            <FiPieChart size={13} />
+            <span>{label} &mdash; Big-O Breakdown</span>
+          </div>
+          <div className="metric-hover-popover-body">
+            <div style={{ width: 130, height: 130, flexShrink: 0 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={data}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={28}
+                    outerRadius={58}
+                    paddingAngle={2}
+                    stroke="#FFFFFF"
+                    strokeWidth={1}
+                  >
+                    {data.map((entry, idx) => (
+                      <Cell key={`cell-${entry.name}-${idx}`} fill={getBigOColor(entry.name, idx)} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip
+                    formatter={(value, name) => [`${value} case${value === 1 ? "" : "s"} (${((value / total) * 100).toFixed(1)}%)`, name]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <ul className="metric-hover-legend">
+              {data.map((entry, idx) => (
+                <li key={`legend-${entry.name}-${idx}`}>
+                  <span className="legend-dot" style={{ backgroundColor: getBigOColor(entry.name, idx) }} />
+                  <span className="legend-label">{entry.name}</span>
+                  <span className="legend-value">{entry.value} <small>({((entry.value / total) * 100).toFixed(0)}%)</small></span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function EvaluationSuite() {
   const navigate = useNavigate();
@@ -465,6 +553,61 @@ export default function EvaluationSuite() {
   const processedTimeReport = results?.timeReport ? processReport(results.timeReport) : null;
   const processedSpaceReport = results?.spaceReport ? processReport(results.spaceReport) : null;
 
+  // --- Big-O distributions powering the hover-pie-charts on the accuracy cards ---
+  const toDistribution = (perClass) => {
+    if (!perClass) return [];
+    return Object.keys(perClass)
+      .map((cKey) => ({ name: cKey, value: perClass[cKey].support || 0 }))
+      .filter((d) => d.value > 0)
+      .sort((a, b) => b.value - a.value);
+  };
+
+  const overallTimeDistribution = useMemo(
+    () => toDistribution(processedTimeReport?.perClass),
+    [processedTimeReport]
+  );
+  const overallSpaceDistribution = useMemo(
+    () => toDistribution(processedSpaceReport?.perClass),
+    [processedSpaceReport]
+  );
+
+  // Line-level ground-truth distributions aren't precomputed by the worker,
+  // so tally them here from every statement's ground-truth Big-O class.
+  const tallyLineDistribution = (details, keys) => {
+    const counts = {};
+    (details || []).forEach((row) => {
+      (row.lineValidationResults || []).forEach((l) => {
+        if (!l.hasGroundTruth) return;
+        const val = getProp(l, keys, null);
+        if (!val || val === "MISSING" || val === "-") return;
+        counts[val] = (counts[val] || 0) + 1;
+      });
+    });
+    return Object.keys(counts)
+      .map((k) => ({ name: k, value: counts[k] }))
+      .sort((a, b) => b.value - a.value);
+  };
+
+  const lineTimeDistribution = useMemo(
+    () => tallyLineDistribution(results?.details, ["expGlobalTime", "expectedGlobalTime", "expTime"]),
+    [results]
+  );
+  const lineSpaceDistribution = useMemo(
+    () => tallyLineDistribution(results?.details, ["expGlobalSpace", "expectedGlobalSpace", "expSpace"]),
+    [results]
+  );
+
+  // --- Per-snippet processing time series powering the "Processing Time Across Dataset" chart ---
+  const processingTimeChartData = useMemo(() => {
+    if (!results?.details) return [];
+    return results.details.map((d, idx) => ({
+      idx: idx + 1,
+      id: d.id,
+      name: d.name,
+      ms: d.processingTimeMs || 0,
+    }));
+  }, [results]);
+
   return (
     <div className="eval-suite-container">
 
@@ -716,12 +859,14 @@ export default function EvaluationSuite() {
             </div>
 
             <div className="eval-stats-grid">
-              <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
-                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Overall Time Accuracy</div>
-                <div className={`eval-stat-value ${results.timeAccuracyRate >= 65 ? "val-success" : "val-warning"}`}>
-                  {results.timeAccuracyRate}%
+              <MetricPieHoverCard label="Overall Time Accuracy" data={overallTimeDistribution} total={processedTimeReport?.totalSupport}>
+                <div className="eval-stat-card eval-stat-card-hoverable" style={{ borderTop: "4px solid #10B981" }}>
+                  <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Overall Time Accuracy <FiPieChart className="stat-hover-hint-icon" size={11} /></div>
+                  <div className={`eval-stat-value ${results.timeAccuracyRate >= 65 ? "val-success" : "val-warning"}`}>
+                    {results.timeAccuracyRate}%
+                  </div>
                 </div>
-              </div>
+              </MetricPieHoverCard>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
                 <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Overall Time Error Rate</div>
                 <div className="eval-stat-value val-danger">
@@ -736,12 +881,14 @@ export default function EvaluationSuite() {
                 <div className="eval-stat-title">Overall Time Mismatches</div>
                 <div className={`eval-stat-value ${results.timeFailed > 0 ? "val-danger" : "val-muted"}`}>{results.timeFailed}</div>
               </div>
-              <div className="eval-stat-card" style={{ borderTop: "4px solid #0EA5E9" }}>
-                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Overall Space Accuracy</div>
-                <div className="eval-stat-value" style={{ color: results.spaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
-                  {results.spaceAccuracyRate}%
+              <MetricPieHoverCard label="Overall Space Accuracy" data={overallSpaceDistribution} total={processedSpaceReport?.totalSupport}>
+                <div className="eval-stat-card eval-stat-card-hoverable" style={{ borderTop: "4px solid #0EA5E9" }}>
+                  <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Overall Space Accuracy <FiPieChart className="stat-hover-hint-icon" size={11} /></div>
+                  <div className="eval-stat-value" style={{ color: results.spaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
+                    {results.spaceAccuracyRate}%
+                  </div>
                 </div>
-              </div>
+              </MetricPieHoverCard>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
                 <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Overall Space Error Rate</div>
                 <div className="eval-stat-value val-danger">
@@ -774,12 +921,14 @@ export default function EvaluationSuite() {
             </div>
 
             <div className="eval-stats-grid">
-              <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
-                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Line Time Accuracy</div>
-                <div className={`eval-stat-value ${results.lineTimeAccuracyRate >= 65 ? "val-success" : "val-warning"}`}>
-                  {results.totalLinesTested > 0 ? results.lineTimeAccuracyRate : "0.0"}%
+              <MetricPieHoverCard label="Line Time Accuracy" data={lineTimeDistribution} total={results.totalLinesTested}>
+                <div className="eval-stat-card eval-stat-card-hoverable" style={{ borderTop: "4px solid #10B981" }}>
+                  <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Line Time Accuracy <FiPieChart className="stat-hover-hint-icon" size={11} /></div>
+                  <div className={`eval-stat-value ${results.lineTimeAccuracyRate >= 65 ? "val-success" : "val-warning"}`}>
+                    {results.totalLinesTested > 0 ? results.lineTimeAccuracyRate : "0.0"}%
+                  </div>
                 </div>
-              </div>
+              </MetricPieHoverCard>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
                 <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Line Time Error Rate</div>
                 <div className="eval-stat-value val-danger">
@@ -794,12 +943,14 @@ export default function EvaluationSuite() {
                 <div className="eval-stat-title">Line Time Mismatches</div>
                 <div className={`eval-stat-value ${lineTimeFailed > 0 ? "val-danger" : "val-muted"}`}>{lineTimeFailed}</div>
               </div>
-              <div className="eval-stat-card" style={{ borderTop: "4px solid #0EA5E9" }}>
-                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Line Space Accuracy</div>
-                <div className="eval-stat-value" style={{ color: results.lineSpaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
-                  {results.totalLinesTested > 0 ? results.lineSpaceAccuracyRate : "0.0"}%
+              <MetricPieHoverCard label="Line Space Accuracy" data={lineSpaceDistribution} total={results.totalLinesTested}>
+                <div className="eval-stat-card eval-stat-card-hoverable" style={{ borderTop: "4px solid #0EA5E9" }}>
+                  <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Line Space Accuracy <FiPieChart className="stat-hover-hint-icon" size={11} /></div>
+                  <div className="eval-stat-value" style={{ color: results.lineSpaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
+                    {results.totalLinesTested > 0 ? results.lineSpaceAccuracyRate : "0.0"}%
+                  </div>
                 </div>
-              </div>
+              </MetricPieHoverCard>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
                 <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Line Space Error Rate</div>
                 <div className="eval-stat-value val-danger">
@@ -876,6 +1027,70 @@ export default function EvaluationSuite() {
                   Average Memory: {results.efficiency.meanAstMemKB} KB
                 </span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {processingTimeChartData.length > 0 && (
+          <div className="eval-sklearn-container" style={{ marginBottom: "24px" }}>
+            <div className="eval-sklearn-header">
+              <div className="eval-sklearn-header-left">
+                <strong className="eval-sklearn-title">
+                  <FiBarChart2 style={{ display: "inline", color: "#3B82F6", marginRight: "8px" }} /> Processing Time Across Dataset
+                </strong>
+                <span className="eval-sklearn-subtitle">
+                  AST processing time (ms) for every one of the {processingTimeChartData.length} code snippets tested, in run order. Hover any point for the exact snippet and timing.
+                </span>
+              </div>
+            </div>
+
+            <div className="processing-time-chart-wrapper">
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={processingTimeChartData} margin={{ top: 12, right: 24, left: 8, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                  <XAxis
+                    dataKey="idx"
+                    tick={{ fontSize: 11, fill: "#64748B" }}
+                    label={{ value: "Snippet # (run order)", position: "insideBottom", offset: -4, fontSize: 12, fill: "#64748B" }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#64748B" }}
+                    label={{ value: "Processing Time (ms)", angle: -90, position: "insideLeft", fontSize: 12, fill: "#64748B" }}
+                  />
+                  <RechartsTooltip
+                    formatter={(value) => [`${value} ms`, "Processing Time"]}
+                    labelFormatter={(_, payload) => {
+                      const item = payload && payload[0] && payload[0].payload;
+                      return item ? `${item.name} (${item.id})` : "";
+                    }}
+                  />
+                  {results?.efficiency && (
+                    <ReferenceLine
+                      y={results.efficiency.meanTimeMs}
+                      stroke="#7928CA"
+                      strokeDasharray="4 4"
+                      label={{ value: `Mean: ${results.efficiency.meanTimeMs}ms`, position: "right", fontSize: 11, fill: "#7928CA" }}
+                    />
+                  )}
+                  {results?.efficiency && (
+                    <ReferenceLine
+                      y={results.efficiency.p95TimeMs}
+                      stroke="#EC4899"
+                      strokeDasharray="4 4"
+                      label={{ value: `P95: ${results.efficiency.p95TimeMs}ms`, position: "right", fontSize: 11, fill: "#EC4899" }}
+                    />
+                  )}
+                  <Line
+                    type="monotone"
+                    dataKey="ms"
+                    stroke="#3B82F6"
+                    strokeWidth={1.5}
+                    dot={processingTimeChartData.length <= 60}
+                    activeDot={{ r: 5 }}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
         )}

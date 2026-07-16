@@ -301,6 +301,135 @@
 .val-standard{ color: #0F172A; }
 .val-muted   { color: #94A3B8; }
 
+/* --- HOVER PIE-CHART BREAKDOWN (accuracy cards) --- */
+.metric-hover-wrapper {
+  position: relative;
+}
+
+.eval-stat-card-hoverable {
+  cursor: default;
+}
+
+.stat-hover-hint-icon {
+  display: inline-block;
+  margin-left: 5px;
+  color: #94A3B8;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+.metric-hover-wrapper:hover .stat-hover-hint-icon {
+  color: #7928CA;
+  opacity: 1;
+}
+
+.metric-hover-popover {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%) translateY(6px);
+  width: 300px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 20px 30px -8px rgba(15, 23, 42, 0.22), 0 4px 10px -4px rgba(15, 23, 42, 0.12);
+  padding: 14px 16px 16px;
+  z-index: 50;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+}
+
+.metric-hover-popover::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: #FFFFFF;
+  filter: drop-shadow(0 2px 1px rgba(15, 23, 42, 0.06));
+}
+
+.metric-hover-wrapper:hover .metric-hover-popover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.metric-hover-popover-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #7928CA;
+  border-bottom: 1px solid #F1F5F9;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.metric-hover-popover-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.metric-hover-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 130px;
+  overflow-y: auto;
+}
+
+.metric-hover-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.metric-hover-legend .legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.metric-hover-legend .legend-label {
+  flex: 1;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metric-hover-legend .legend-value {
+  font-weight: 700;
+  color: #0F172A;
+  white-space: nowrap;
+}
+
+.metric-hover-legend .legend-value small {
+  font-weight: 500;
+  color: #94A3B8;
+}
+
+/* --- PROCESSING TIME ACROSS DATASET CHART --- */
+.processing-time-chart-wrapper {
+  padding: 8px 4px 4px;
+}
+
 /* --- SCIKIT-LEARN AUTHENTIC CLASSIFICATION MATRIX CARD --- */
 .eval-sklearn-container {
   background-color: #FFFFFF;
