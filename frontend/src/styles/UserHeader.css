@@ -45,7 +45,7 @@
   top: 130%;
   right: 0;
   width: 240px;
-  background: rgba(20, 10, 40, 0.85); /* Dark translucent */
+  background: rgba(255, 255, 255, 0.85); /* Dark translucent */
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
