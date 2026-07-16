@@ -71,7 +71,7 @@ export default function MainApp() {
   
   const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
-  const { worker, isEngineReady, resetWorker } = usePyodide();
+  const { worker, isEngineReady, resetWorker, progress: engineProgress, engineError } = usePyodide();
 
   const [tabs, setTabs] = useState([createInitialTab(location.state)]);
   const [activeTabId, setActiveTabId] = useState(tabs[0].id);
@@ -483,6 +483,10 @@ export default function MainApp() {
 
   const handleRunCode = async () => {
     if (isEvaluating) return;
+    if (!isEngineReady) {
+      showToast(engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment.", "error");
+      return;
+    }
     if (!activeTab.pythonCode || activeTab.pythonCode.trim() === "" || activeTab.pythonCode === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
     }
@@ -649,7 +653,24 @@ export default function MainApp() {
         if (res.status === 404) {
            res = await fetch(`${API_BASE}${fallbackEndpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
         }
-        
+
+        if (res.status === 403) {
+          // Account has hit its project/template limit -- this is a real,
+          // final rejection, not a connectivity issue, so don't fall back
+          // to an offline save+retry (that would just keep failing forever
+          // and give the false impression the save succeeded). Also remove
+          // the local copy written above so it doesn't linger as an
+          // orphaned item that some later background sync keeps retrying.
+          let limitMessage = `You've reached the maximum number of ${saveModal.saveType === "template" ? "templates" : "projects"} allowed per account.`;
+          try {
+            const errData = await res.json();
+            if (errData?.detail) limitMessage = errData.detail;
+          } catch (e) {}
+          await db.removeItem(id);
+          showToast(limitMessage, "error");
+          return;
+        }
+
         if (res.ok) {
           let responseData = {};
           try { responseData = await res.json(); } catch(e) {}
@@ -826,6 +847,8 @@ export default function MainApp() {
         handleSaveToDB={openSaveModal} 
         currentProjectId={activeTab.currentLoadedId} 
         currentProjectTitle={activeTab.title} 
+        isEngineReady={isEngineReady}
+        engineProgress={engineProgress}
         handleUpdateDB={openSaveModal} 
         isEvaluating={isEvaluating} 
         isAdmin={isAdmin}

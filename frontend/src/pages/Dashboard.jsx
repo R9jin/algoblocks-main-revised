@@ -7,6 +7,7 @@ import curriculumIndex from "../data/curriculumIndex";
 import { useOnboarding } from "../context/OnboardingContext";
 import { progressDB, projectsDB, templatesDB } from "../db";
 import "../styles/Dashboard.css";
+import "../styles/Skeleton.css";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
@@ -178,35 +179,48 @@ export default function Dashboard() {
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           };
 
-          // FIXED: Aggressively fetch progress from Cloud API directly on load so it never gets stuck at 0%
-          const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
-          if (progRes.ok && progRes.headers.get("content-type")?.includes("application/json")) {
-            const progData = await progRes.json();
-            if (progData.progress) {
-              user.progress = { ...user.progress, ...progData.progress };
-              localStorage.setItem("user", JSON.stringify(user));
-            }
-          }
+          // These three endpoints are independent of each other, so fire them
+          // concurrently instead of one-after-another -- on a slow connection,
+          // awaiting them serially was adding up to 3x the round-trip latency
+          // before the dashboard could finish loading.
+          const [progResult, pResult, tResult] = await Promise.allSettled([
+            fetch(`${API_BASE}/api/get-progress`, { headers }),
+            fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers }),
+            fetch(`${API_BASE}/api/templates?userId=${encodeURIComponent(user.email)}`, { headers }),
+          ]);
 
-          const pRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
-          if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
-            const pData = await pRes.json();
-            const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
-            for (const cp of cloudProjects) {
-              if (cp.owner_id === user.email || cp.userId === user.email) {
-                await projectsDB.save({ ...cp, projectId: cp.projectId || cp._id, isSynced: true });
+          if (progResult.status === "fulfilled") {
+            const progRes = progResult.value;
+            if (progRes.ok && progRes.headers.get("content-type")?.includes("application/json")) {
+              const progData = await progRes.json();
+              if (progData.progress) {
+                user.progress = { ...user.progress, ...progData.progress };
+                localStorage.setItem("user", JSON.stringify(user));
               }
             }
           }
 
-          const tRes = await fetch(`${API_BASE}/api/templates?userId=${encodeURIComponent(user.email)}`, { headers });
-          if (tRes.ok && tRes.headers.get("content-type")?.includes("application/json")) {
-            const tData = await tRes.json();
-            const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
-            for (const ct of cloudTemplates) {
-              if (ct.owner_id === user.email || ct.userId === user.email) {
-                await templatesDB.save({ ...ct, templateId: ct.templateId || ct._id, isSynced: true });
-              }
+          if (pResult.status === "fulfilled") {
+            const pRes = pResult.value;
+            if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
+              const pData = await pRes.json();
+              const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
+              await Promise.all(cloudProjects
+                .filter(cp => cp.owner_id === user.email || cp.userId === user.email)
+                .map(cp => projectsDB.save({ ...cp, projectId: cp.projectId || cp._id, isSynced: true }))
+              );
+            }
+          }
+
+          if (tResult.status === "fulfilled") {
+            const tRes = tResult.value;
+            if (tRes.ok && tRes.headers.get("content-type")?.includes("application/json")) {
+              const tData = await tRes.json();
+              const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
+              await Promise.all(cloudTemplates
+                .filter(ct => ct.owner_id === user.email || ct.userId === user.email)
+                .map(ct => templatesDB.save({ ...ct, templateId: ct.templateId || ct._id, isSynced: true }))
+              );
             }
           }
 
@@ -527,7 +541,17 @@ export default function Dashboard() {
 
               <div className="recent-projects-container">
                 {loading ? (
-                  <div className="bento-empty-state">Loading workspace data...</div>
+                  <>
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="dash-skeleton-item">
+                        <div className="skeleton skeleton-circle" />
+                        <div className="dash-skeleton-item-body">
+                          <div className="skeleton skeleton-line" />
+                          <div className="skeleton skeleton-line" />
+                        </div>
+                      </div>
+                    ))}
+                  </>
                 ) : recentProjects.length === 0 ? (
                   <div className="bento-empty-state">
                     <div className="empty-icon"><CodeIcon /></div>

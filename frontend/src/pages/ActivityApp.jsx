@@ -63,7 +63,7 @@ const renderFormattedTask = (text) => {
 const ActivityAppInner = ({ moduleId, activityId }) => {
   const API_BASE = import.meta.env.VITE_API_URL || "";
   const navigate = useNavigate();
-  const { worker, isEngineReady, resetWorker } = usePyodide();
+  const { worker, isEngineReady, resetWorker, progress: engineProgress } = usePyodide();
   
   const isReadyRef = useRef(false);
   const isWorkspaceLoadedRef = useRef(false);
@@ -666,6 +666,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const handleActivityRun = async () => {
     if (isEvaluating) return;
+    if (!isEngineReady) {
+      setConsoleOutput(`Still preparing the Python engine${engineProgress?.stage ? ` (${engineProgress.stage})` : ""}. Please wait a moment and try again.`);
+      setBottomPanel("console"); setConsoleTab("output");
+      return;
+    }
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
     }
@@ -840,6 +845,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const runTestCases = async () => {
     if (isEvaluating || isSyncingBlocks) return;
+    if (!isEngineReady) {
+      setConsoleOutput(`Still preparing the Python engine${engineProgress?.stage ? ` (${engineProgress.stage})` : ""}. Please wait a moment and try again.`);
+      setBottomPanel("console"); setConsoleTab("output");
+      return;
+    }
     if (!processedTestCases.length) return;
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
@@ -995,11 +1005,19 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         </div>
         <div className="wh-right">
           <TourHelpButton pageId={activityTour.pageId} tour={activityTour} label="Replay activity tour" />
-          <button className="wh-btn-save" onClick={handleActivityRun} disabled={isEvaluating || isSyncingBlocks} title="Run code without submitting to test cases">
-            <FiTerminal size={16} /> {isEvaluating ? "..." : "Run Code"}
+          <button className="wh-btn-save" onClick={handleActivityRun} disabled={isEvaluating || isSyncingBlocks || !isEngineReady} title={!isEngineReady ? (engineProgress?.stage || "Preparing Python engine...") : "Run code without submitting to test cases"}>
+            {!isEngineReady ? (
+              <><span className="engine-loading-spinner" /> {engineProgress?.stage || "Preparing..."} {typeof engineProgress?.percent === "number" ? `(${engineProgress.percent}%)` : ""}</>
+            ) : (
+              <><FiTerminal size={16} /> {isEvaluating ? "..." : "Run Code"}</>
+            )}
           </button>
-          <button className={`wh-btn-run ${isEvaluating ? "running" : ""}`} onClick={runTestCases} disabled={isEvaluating || isSyncingBlocks}>
-            <FiPlay size={16} /> {isEvaluating ? "..." : isSyncingBlocks ? "Syncing..." : "Evaluate Efficiency (AES)"}
+          <button className={`wh-btn-run ${isEvaluating ? "running" : ""} ${!isEngineReady ? "engine-loading" : ""}`} onClick={runTestCases} disabled={isEvaluating || isSyncingBlocks || !isEngineReady} title={!isEngineReady ? (engineProgress?.stage || "Preparing Python engine...") : undefined}>
+            {!isEngineReady ? (
+              <><span className="engine-loading-spinner" /> {engineProgress?.stage || "Preparing..."} {typeof engineProgress?.percent === "number" ? `(${engineProgress.percent}%)` : ""}</>
+            ) : (
+              <><FiPlay size={16} /> {isEvaluating ? "..." : isSyncingBlocks ? "Syncing..." : "Evaluate Efficiency (AES)"}</>
+            )}
           </button>
         </div>
       </header>

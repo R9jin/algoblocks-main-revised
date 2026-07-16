@@ -1,5 +1,8 @@
 # api/services/template_service.py
 from repositories.template_repo import TemplateRepository
+from fastapi import HTTPException
+
+MAX_TEMPLATES_PER_USER = 20
 
 class TemplateService:
     @staticmethod
@@ -34,6 +37,14 @@ class TemplateService:
                 "templateId": updated_id
             }
         else:
+            user_id = template_data.get("userId")
+            if user_id:
+                existing_count = TemplateRepository.count_by_user(user_id)
+                if existing_count >= MAX_TEMPLATES_PER_USER:
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"Template limit reached ({MAX_TEMPLATES_PER_USER} max per account). Please delete an existing template before creating a new one."
+                    )
             inserted_id = TemplateRepository.save(template_data)
             return {
                 "status": "success", 

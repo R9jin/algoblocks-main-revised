@@ -20,6 +20,7 @@ import { useOnboarding } from "../context/OnboardingContext";
 import curriculumIndex from "../data/curriculumIndex";
 import { assessmentsDB, curriculumCacheDB, progressDB } from "../db";
 import "../styles/LessonViewer.css";
+import "../styles/Skeleton.css";
 
 function formatText(text) {
   if (!text) return null;
@@ -383,7 +384,29 @@ export default function LessonViewer() {
   const currentActivityId = lesson?.activities?.[0]?.id;
 
   if (Object.keys(lessonDetails).length === 0) {
-    return <div className="lesson-loading">Loading curriculum data...</div>;
+    return (
+      <div className="lesson-skeleton-wrapper">
+        <aside className="lesson-skeleton-sidebar">
+          <div className="skeleton skeleton-line" style={{ width: "70%", height: 16, marginBottom: 24 }} />
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="lesson-skeleton-module">
+              <div className="skeleton skeleton-line" style={{ width: "85%", height: 14 }} />
+              <div className="skeleton skeleton-line" style={{ width: "65%", marginLeft: 20 }} />
+              <div className="skeleton skeleton-line" style={{ width: "65%", marginLeft: 20 }} />
+            </div>
+          ))}
+        </aside>
+        <main className="lesson-skeleton-content">
+          <div className="skeleton skeleton-title" />
+          <div className="skeleton skeleton-line" />
+          <div className="skeleton skeleton-line" />
+          <div className="skeleton skeleton-line short" />
+          <div className="skeleton skeleton-block lesson-skeleton-codeblock" />
+          <div className="skeleton skeleton-line" />
+          <div className="skeleton skeleton-line short" />
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -523,8 +546,13 @@ export default function LessonViewer() {
             </button>
           </div>
         ) : loading ? (
-          <div style={{ display: "flex", flex: 1, justifyContent: "center", alignItems: "center", height: "100%", color: "#7c5cff" }}>
-            <h3>Loading lesson content...</h3>
+          <div className="lesson-content-skeleton">
+            <div className="skeleton skeleton-title" />
+            <div className="skeleton skeleton-line" />
+            <div className="skeleton skeleton-line" />
+            <div className="skeleton skeleton-line short" />
+            <div className="skeleton skeleton-block lesson-skeleton-codeblock" />
+            <div className="skeleton skeleton-line" />
           </div>
         ) : (
           <>

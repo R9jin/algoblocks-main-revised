@@ -19,7 +19,12 @@ def get_all_templates(userId: Optional[str] = Query(None)):
 @router.post("/save")
 def save_template(req: TemplateSyncRequest, current_user: str = Depends(get_current_user_email)):
     try:
+        req.userId = current_user
+        if not req.owner_id:
+            req.owner_id = current_user
         return TemplateService.save_template(req)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

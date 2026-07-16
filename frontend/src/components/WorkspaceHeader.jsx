@@ -16,6 +16,8 @@ export default function WorkspaceHeader({
   isGuest,
   tour,
   tourPageId,
+  isEngineReady = true,
+  engineProgress,
 }) {
   return (
     <header className="workspace-header-purple">
@@ -73,13 +75,23 @@ export default function WorkspaceHeader({
         )}
 
         <button 
-          className={`wh-btn-run ${isEvaluating ? 'running' : ''}`} 
+          className={`wh-btn-run ${isEvaluating ? 'running' : ''} ${!isEngineReady ? 'engine-loading' : ''}`} 
           type="button"
           onClick={runCode}
-          disabled={isEvaluating}
+          disabled={isEvaluating || !isEngineReady}
+          title={!isEngineReady ? (engineProgress?.stage || "Preparing Python engine...") : undefined}
         >
-          <FiPlay size={16} fill={isEvaluating ? "transparent" : "currentColor"} /> 
-          {isEvaluating ? "Running..." : "Run Code"}
+          {!isEngineReady ? (
+            <>
+              <span className="engine-loading-spinner" />
+              {engineProgress?.stage || "Preparing engine..."} {typeof engineProgress?.percent === "number" ? `(${engineProgress.percent}%)` : ""}
+            </>
+          ) : (
+            <>
+              <FiPlay size={16} fill={isEvaluating ? "transparent" : "currentColor"} /> 
+              {isEvaluating ? "Running..." : "Run Code"}
+            </>
+          )}
         </button>
       </div>
     </header>
