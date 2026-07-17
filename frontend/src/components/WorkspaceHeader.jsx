@@ -14,6 +14,7 @@ export default function WorkspaceHeader({
   currentProjectTitle,
   isEvaluating,
   isGuest,
+  isAdmin,
   tour,
   tourPageId,
   isEngineReady = true,
@@ -51,7 +52,7 @@ export default function WorkspaceHeader({
 
       <div className="wh-right">
         <TourHelpButton pageId={tourPageId} tour={tour} label="Replay workspace tour" />
-        {!isGuest && (
+        {!isGuest && isAdmin && (
           <div className="wh-file-actions">
             <button className="wh-action-icon" onClick={handleExport} title="Export JSON">
               <FiDownload size={18} />

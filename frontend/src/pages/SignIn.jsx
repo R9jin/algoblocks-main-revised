@@ -1,6 +1,6 @@
 // frontend/src/pages/SignIn.jsx
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { projectsDB, syncQueueDB, templatesDB } from "../db";
@@ -20,6 +20,20 @@ export default function SignIn() {
   const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
   const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
+
+  // Guards against a rapid Sign In -> navigate-away-to-Sign-Up race: without
+  // this, a login request that's still in flight when the user clicks away
+  // keeps running after this component unmounts, and later resolves by
+  // writing the OLD account's data into storage/IndexedDB on top of the
+  // brand new session the user just created elsewhere. Every storage write
+  // and navigate() below is gated on this still being true.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const showToast = (message, type = "error") => {
     setToast({ visible: true, message, type });
@@ -83,6 +97,11 @@ export default function SignIn() {
 
       const data = await response.json(); 
 
+      // The user navigated away (e.g. clicked "Sign up") before this
+      // request resolved — do not let this stale response overwrite
+      // whatever session now lives in storage.
+      if (!isMountedRef.current) return;
+
       if (!response.ok || data.status !== "success") {
         showToast(data.detail || "Invalid email or password"); 
         setIsLoading(false);
@@ -110,13 +129,20 @@ export default function SignIn() {
       })); 
 
       await syncUserCloudData(data.email, data.token); 
+
+      // Re-check after the second await — syncUserCloudData clears and
+      // repopulates projectsDB/templatesDB, which must never happen after
+      // a newer sign-in/sign-up has already taken over this browser tab.
+      if (!isMountedRef.current) return;
+
       navigate("/dashboard"); 
       
     } catch (error) {
+      if (!isMountedRef.current) return;
       console.error(error); 
       showToast("Server not reachable. Check backend connection."); 
     } finally {
-      setIsLoading(false); 
+      if (isMountedRef.current) setIsLoading(false); 
     }
   };
 
@@ -128,6 +154,8 @@ export default function SignIn() {
         templatesDB.clear(),
         syncQueueDB.clear()
       ]); 
+
+      if (!isMountedRef.current) return;
 
       localStorage.removeItem("authToken");
       sessionStorage.removeItem("authToken");
@@ -147,10 +175,11 @@ export default function SignIn() {
 
       navigate("/dashboard"); 
     } catch (error) {
+      if (!isMountedRef.current) return;
       console.error("Guest login failed:", error); 
       showToast("Failed to initialize guest session.");
     } finally {
-      setIsLoading(false); 
+      if (isMountedRef.current) setIsLoading(false); 
     }
   };
 
@@ -164,6 +193,8 @@ export default function SignIn() {
       });
 
       const data = await response.json();
+
+      if (!isMountedRef.current) return;
 
       if (!response.ok || data.status !== "success") {
         showToast(data.detail || "Google authentication failed");
@@ -191,13 +222,17 @@ export default function SignIn() {
       }));
 
       await syncUserCloudData(data.email, data.token);
+
+      if (!isMountedRef.current) return;
+
       navigate("/dashboard");
       
     } catch (error) {
+      if (!isMountedRef.current) return;
       console.error("Google Authentication error:", error);
       showToast("Server not reachable. Check backend connection.");
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
   };
 
@@ -299,8 +334,19 @@ export default function SignIn() {
           </form>
 
           <div className="auth-links">
-            <Link to="/forgot-password">Forgot password?</Link>
-            <p>Don't have an account? <Link to="/signup">Sign up</Link></p>
+            {isLoading ? (
+              <span className="auth-link-disabled" aria-disabled="true" title="Please wait for sign in to finish">Forgot password?</span>
+            ) : (
+              <Link to="/forgot-password">Forgot password?</Link>
+            )}
+            <p>
+              Don't have an account?{" "}
+              {isLoading ? (
+                <span className="auth-link-disabled" aria-disabled="true" title="Please wait for sign in to finish">Sign up</span>
+              ) : (
+                <Link to="/signup">Sign up</Link>
+              )}
+            </p>
           </div> 
         </div>
       </div>

@@ -71,7 +71,25 @@ export default function OnboardingTour() {
 
   if (!tour || !activeStep) return null;
 
+  // Some steps' onEnter opens page-level UI (e.g. the Big-O reference modal)
+  // to make their target visible. Without a matching cleanup, that UI used
+  // to stay stuck open forever — including after clicking "Previous", which
+  // made it look like the tour wasn't reverting to the earlier explanation
+  // at all (the leftover dialog just sat on top of it). Steps can define an
+  // onExit that undoes whatever onEnter did; we run it for the step we're
+  // currently leaving, whichever direction we're headed.
+  const runOnExit = () => {
+    if (typeof activeStep.onExit === "function") {
+      try {
+        activeStep.onExit();
+      } catch {
+        // Best-effort cleanup only.
+      }
+    }
+  };
+
   const finishTour = (completed = true) => {
+    runOnExit();
     if (tour.pageId) {
       markPageReplay(tour.pageId, completed);
       if (completed) markPageSeen(tour.pageId);
@@ -86,10 +104,14 @@ export default function OnboardingTour() {
       finishTour(true);
       return;
     }
+    runOnExit();
     setStepIndex((value) => Math.min(value + 1, steps.length - 1));
   };
 
-  const prevStep = () => setStepIndex((value) => Math.max(value - 1, 0));
+  const prevStep = () => {
+    runOnExit();
+    setStepIndex((value) => Math.max(value - 1, 0));
+  };
 
   const overlayStyle = targetRect
     ? {

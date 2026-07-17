@@ -131,7 +131,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(3)", title: "Global complexity", description: "Switch to the global analysis view for the whole algorithm.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("global"); } },
       { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(4)", title: "Memory map", description: "Open the memory map to visualize how state changes over time.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("memory"); } },
       { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(5)", title: "Call graph", description: "Follow recursion and call flow in the call graph view.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("callgraph"); } },
-      { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you need a reminder of the notation.", onEnter: () => setIsBigOModalOpen(true) },
+      { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you need a reminder of the notation.", onEnter: () => setIsBigOModalOpen(true), onExit: () => setIsBigOModalOpen(false) },
       { target: ".big-o-modal-content", title: "Reference library", description: "Browse the reference table and expand entries for deeper details." },
       { target: ".big-o-accordion .big-o-row-trigger", title: "Expandable complexity rows", description: "Open any row to inspect the definition, analogy, and examples behind a complexity class." },
     ],

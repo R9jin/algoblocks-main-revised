@@ -132,7 +132,7 @@ export default function MainApp() {
       { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(3)", title: "Inspect global complexity", description: "Review the full algorithm cost as the analysis flows through the code.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("global"); } },
       { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(4)", title: "Inspect memory map", description: "See how memory changes while the code executes.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("memory"); } },
       { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(5)", title: "Inspect the call graph", description: "Trace recursive calls and control flow through the call graph.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("callgraph"); } },
-      { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you want a quick concept refresher.", onEnter: () => setIsBigOModalOpen(true) },
+      { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you want a quick concept refresher.", onEnter: () => setIsBigOModalOpen(true), onExit: () => setIsBigOModalOpen(false) },
       { target: ".big-o-modal-content", title: "Reference library", description: "Browse the complexity definitions and examples inside the modal." },
       { target: ".big-o-accordion .big-o-row-trigger", title: "Expandable complexity rows", description: "Open any row to read the definition, analogy, and examples for a specific Big-O class." },
     ],

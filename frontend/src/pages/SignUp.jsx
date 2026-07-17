@@ -1,6 +1,6 @@
 // frontend/src/pages/SignUp.jsx
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/Auth.css";
@@ -21,6 +21,19 @@ export default function SignUp() {
   const rawApiUrl = import.meta.env.VITE_API_URL || "";
   const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  // Mirrors the same guard in SignIn.jsx: if the user navigates away (e.g.
+  // clicks "Sign in") before this request resolves, this component unmounts
+  // but the in-flight request keeps running. Without this check, its
+  // eventual response would write a stale session into storage on top of
+  // whatever the user has since signed into.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const showToast = (message, type = "error") => {
     setToast({ visible: true, message, type });
@@ -55,6 +68,8 @@ export default function SignUp() {
 
       const data = await response.json();
 
+      if (!isMountedRef.current) return;
+
       if (!response.ok || data.status !== "success") {
         showToast(data.detail || "Registration failed");
         setIsLoading(false);
@@ -83,14 +98,17 @@ export default function SignUp() {
         navigate("/dashboard");
       } else {
         showToast("Registration successful! Redirecting to login...", "success");
-        setTimeout(() => navigate("/signin"), 2000);
+        setTimeout(() => {
+          if (isMountedRef.current) navigate("/signin");
+        }, 2000);
       }
       
     } catch (error) {
+      if (!isMountedRef.current) return;
       console.error(error);
       showToast("Server not reachable. Check backend connection.");
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
   };
 
@@ -108,6 +126,8 @@ export default function SignUp() {
       });
 
       const data = await response.json();
+
+      if (!isMountedRef.current) return;
 
       if (!response.ok || data.status !== "success") {
         showToast(data.detail || "Google Registration failed");
@@ -135,10 +155,11 @@ export default function SignUp() {
       navigate("/dashboard");
       
     } catch (error) {
+      if (!isMountedRef.current) return;
       console.error("Google Authentication error:", error);
       showToast("Server not reachable. Check backend connection.");
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
   };
 
@@ -254,7 +275,14 @@ export default function SignUp() {
           </form>
 
           <div className="auth-links">
-            <p>Already have an account? <Link to="/signin">Sign in</Link></p>
+            <p>
+              Already have an account?{" "}
+              {isLoading ? (
+                <span className="auth-link-disabled" aria-disabled="true" title="Please wait for sign up to finish">Sign in</span>
+              ) : (
+                <Link to="/signin">Sign in</Link>
+              )}
+            </p>
           </div> 
         </div>
       </div>
