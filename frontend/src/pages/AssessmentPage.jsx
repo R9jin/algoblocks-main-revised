@@ -6,7 +6,7 @@ import DashboardHeader from "../components/DashboardHeader";
 import { assessmentsDB, progressDB, syncQueueDB } from "../db";
 import "../styles/AssessmentPage.css";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // BUG-09 Fix: Scope draft keys by user email
 const getDraftKey = (moduleId, type) => {

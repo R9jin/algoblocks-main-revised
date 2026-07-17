@@ -26,7 +26,22 @@ import {
 import DashboardHeader from "../components/DashboardHeader";
 import "../styles/AdminUserManagement.css";
 
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
+// Every fetch below used to check ONLY localStorage for the auth token
+// (localStorage.getItem("token") || localStorage.getItem("authToken")).
+// SignIn.jsx stores the session in sessionStorage whenever "Remember Me"
+// is unchecked, so on any device/browser using a session-only login, that
+// lookup silently returned null, every request here sent
+// "Authorization: Bearer null", and the backend correctly rejected it with
+// a 401 — which is exactly what showed up as "fails to fetch" on other
+// devices. This helper checks both storages, matching how currentUser is
+// already read a few lines below.
+const getAuthToken = () =>
+  localStorage.getItem("token") ||
+  sessionStorage.getItem("token") ||
+  localStorage.getItem("authToken") ||
+  sessionStorage.getItem("authToken");
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -120,7 +135,7 @@ const AdminUserManagement = () => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE}/api/admin/users`, {
         headers: {
           "Authorization": `Bearer ${token}`
@@ -153,7 +168,7 @@ const AdminUserManagement = () => {
     setOverviewLoading(true);
     setOverviewError(null);
     try {
-      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const token = getAuthToken();
       const emailsParam = Array.isArray(emailsOverride) && emailsOverride.length > 0
         ? `?emails=${encodeURIComponent(emailsOverride.join(","))}`
         : "";
@@ -181,7 +196,7 @@ const AdminUserManagement = () => {
     setMetricsLoadingEmail(email);
     setMetricsError((prev) => ({ ...prev, [email]: null }));
     try {
-      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}/metrics`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -254,7 +269,7 @@ const AdminUserManagement = () => {
       isDanger: newStatus === "Suspended",
       onConfirm: async () => {
         try {
-          const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+          const token = getAuthToken();
           const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}/status`, {
             method: "PATCH",
             headers: {
@@ -310,7 +325,7 @@ const AdminUserManagement = () => {
         }
 
         try {
-          const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+          const token = getAuthToken();
           
           const verifyRes = await fetch(`${API_BASE}/api/login`, {
             method: "POST",
