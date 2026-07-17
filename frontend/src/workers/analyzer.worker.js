@@ -218,12 +218,14 @@ async function initPyodide() {
   if (!pyodidePromise) {
     pyodidePromise = (async () => {
       try {
+        self.postMessage({ type: "ENGINE_PROGRESS", stage: "Downloading Python runtime...", percent: 10 });
         const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
         const module = await import(/* @vite-ignore */ pyodideUrl);
         const loadPyodide = module.loadPyodide;
         const tempPyodide = await loadPyodide();
         const cacheBuster = "?t=" + Date.now();
 
+        self.postMessage({ type: "ENGINE_PROGRESS", stage: "Loading analyzer modules...", percent: 65 });
         const [analyzerCode, astCode, nlgCode, tracerCode] = await Promise.all([
           fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
           fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
@@ -235,6 +237,7 @@ async function initPyodide() {
             throw new Error("Service Worker served Vite's index.html fallback instead of the Python backend files!");
         }
 
+        self.postMessage({ type: "ENGINE_PROGRESS", stage: "Finalizing engine...", percent: 90 });
         tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
         tempPyodide.FS.writeFile("blockly_ast.py", astCode);
         tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
@@ -262,7 +265,10 @@ self.onmessage = async (e) => {
 
   if (type === 'INIT_ENGINE') {
     try { await initPyodide(); self.postMessage({ type: 'ENGINE_READY' }); } 
-    catch (err) { console.error(err); }
+    catch (err) {
+      console.error(err);
+      self.postMessage({ type: 'ENGINE_ERROR', message: err?.message || "Failed to load the Python engine." });
+    }
     return;
   }
 

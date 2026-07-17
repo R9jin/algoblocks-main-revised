@@ -4,6 +4,16 @@ import uuid
 
 class ProjectRepository:
     @staticmethod
+    def count_by_user(user_id: str) -> int:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) AS count FROM projects WHERE "userId" = %s OR owner_id = %s', (user_id, user_id))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return row["count"] if row else 0
+
+    @staticmethod
     def find_by_user(user_id: str):
         conn = get_db_connection()
         cursor = conn.cursor()

@@ -23,6 +23,123 @@ def extract_constant(node):
     if getattr(ast, 'Str', None) and isinstance(node, ast.Str): return node.s
     return None
 
+# Whole-token identifier vocabulary used to detect memoization/DP/graph
+# "visited" naming conventions. IMPORTANT: this must be matched against
+# tokenized identifier PARTS (see _name_hints_memo_or_graph), never as a raw
+# substring -- a bare `in` check would false-positive on any identifier that
+# merely happens to contain these letters in sequence, e.g. "findPeakUtil"
+# contains "dp", "endpoint" contains "dp", "revisited"/"provision" style
+# words contain "visit"-adjacent runs, etc.
+_MEMO_GRAPH_NAME_TOKENS = {
+    "dp", "memo", "memoize", "memoized", "memoization",
+    "cache", "cached", "caching",
+    "visit", "visited", "visiting", "visitor",
+}
+
+
+def _name_hints_memo_or_graph(identifier):
+    """
+    True if `identifier`, split into its snake_case/camelCase word tokens,
+    contains a whole token that's a memoization/DP/graph-visited naming
+    convention (e.g. `dp`, `memo_table` -> "memo", `visited` -> "visited").
+    Deliberately requires a full-token match rather than a substring match,
+    so names like `findPeakUtil` (contains "dp" mid-word) or `endpoint`
+    (also contains "dp") are correctly NOT treated as memoized/DP functions.
+    """
+    tokens = re.findall(r'[A-Za-z][a-z0-9]*', identifier)
+    return any(t.lower() in _MEMO_GRAPH_NAME_TOKENS for t in tokens)
+
+
+def _detect_factorial_branching(func_node):
+    """
+    Structural detector for "T(n) = n * T(n-1)"-style branching recursion
+    (permutation/subsequence-style enumeration), which is asymptotically
+    O(n!) -- as distinct from a recursive call sitting inside a loop with a
+    fixed/constant branching factor, which multiplies out to a constant-base
+    exponential O(b^n) (bucketed as O(2^n) by this engine's taxonomy).
+
+    Previously this distinction was made purely by checking whether the
+    function's own NAME contained "permutation"/"permute", which misses any
+    equivalently-shaped recursion that isn't literally named that way (e.g.
+    a helper called `generate`). Here we instead look for the actual
+    structural signature: a `for` loop bounded by `range(len(X))` (X being
+    one of the function's own parameters, or a local derived from one),
+    whose body both (a) recursively calls this same function and (b)
+    visibly removes/excludes one element from X (via `.remove(`, `.pop(`,
+    or a slice-and-recombine like `x[:i] + x[i+1:]`) before passing it
+    down. That shrink-by-one-per-branch pattern is what makes the branching
+    factor equal to the (shrinking) remaining input size at every
+    recursion depth -- the defining trait of factorial growth -- rather
+    than a fixed constant multiplied out at every depth.
+    """
+    func_name = func_node.name
+    param_names = {a.arg for a in func_node.args.args}
+
+    def loop_bound_name(for_node):
+        it = for_node.iter
+        if isinstance(it, ast.Call) and getattr(getattr(it, 'func', None), 'id', '') == 'range' and it.args:
+            last_arg = it.args[-1]
+            if isinstance(last_arg, ast.Call) and getattr(getattr(last_arg, 'func', None), 'id', '') == 'len' and last_arg.args:
+                base = last_arg.args[0]
+                if isinstance(base, ast.Name):
+                    return base.id
+        return None
+
+    def scan(node):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.For):
+                bound_name = loop_bound_name(child)
+                if bound_name:
+                    derived_names = {bound_name} | param_names
+
+                    # First pass: find any local variables that are just a
+                    # copy of the base collection (e.g. `t = list(s).copy()`,
+                    # `t = s[:]`), since the "remove one element" mutation
+                    # typically happens on a fresh copy, not the original.
+                    for sub in ast.walk(child):
+                        if isinstance(sub, ast.Assign) and len(sub.targets) == 1 and isinstance(sub.targets[0], ast.Name):
+                            tgt_name = sub.targets[0].id
+                            val = sub.value
+                            if isinstance(val, ast.Call) and getattr(getattr(val, 'func', None), 'attr', '') == 'copy':
+                                val = getattr(val.func, 'value', val)
+                            if isinstance(val, ast.Call) and getattr(getattr(val, 'func', None), 'id', '') in ('list', 'set', 'sorted') and val.args:
+                                arg0 = val.args[0]
+                                if isinstance(arg0, ast.Name) and arg0.id in derived_names:
+                                    derived_names.add(tgt_name)
+                            elif isinstance(val, ast.Name) and val.id in derived_names:
+                                derived_names.add(tgt_name)
+                            elif isinstance(val, ast.Subscript) and isinstance(getattr(val, 'value', None), ast.Name) and val.value.id in derived_names:
+                                derived_names.add(tgt_name)
+
+                    has_recursive_call = False
+                    has_shrink_op = False
+                    for sub in ast.walk(child):
+                        if isinstance(sub, ast.Call):
+                            fid = getattr(getattr(sub, 'func', None), 'id', None)
+                            fattr = getattr(getattr(sub, 'func', None), 'attr', None)
+                            fval = getattr(getattr(sub, 'func', None), 'value', None)
+                            if fid == func_name:
+                                has_recursive_call = True
+                            if fattr in ('remove', 'pop') and isinstance(fval, ast.Name) and fval.id in derived_names:
+                                has_shrink_op = True
+                        if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.Add):
+                            bin_names = {n.id for n in ast.walk(sub) if isinstance(n, ast.Name)}
+                            if bin_names & derived_names:
+                                has_shrink_op = True
+                    if has_recursive_call and has_shrink_op:
+                        return True
+                if scan(child):
+                    return True
+            else:
+                if scan(child):
+                    return True
+        return False
+
+    try:
+        return scan(func_node)
+    except Exception:
+        return False
+
 def preprocess_source(source_code):
     """
     Sanitizes raw algorithms by seamlessly patching Python 2 legacy syntax 
@@ -81,7 +198,7 @@ def safe_walk(node):
 
 class ComplexityAnalyzer(ast.NodeVisitor):
     RECURRENCE_RESOLVER = {
-        "T(n) = n * T(n-1)": "O(2^n)", 
+        "T(n) = n * T(n-1)": "O(n!)", 
         "T(n) = 2T(n/2) + O(n)": "O(n log n)",
         "T(n) = 2T(n/2) + O(1)": "O(n)", 
         "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
@@ -100,8 +217,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         "O(n * m)": "O(n^2)",
         "O(3^n)": "O(2^n)", 
         "O(2^n)": "O(2^n)", 
-        "O(n * n!)": "O(2^n)", 
-        "O(n!)": "O(2^n)", 
+        "O(n * n!)": "O(n!)", 
+        "O(n!)": "O(n!)", 
         "O(n)": "O(n)", 
         "O(log n)": "O(log n)", 
         "O(1)": "O(1)",
@@ -198,6 +315,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.max_log = 0                 
         self.max_sqrt = 0                
         self.max_exp = 0
+        self.max_fact = 0
         self.max_graph_ve = 0                 
         self.max_space_weight = 0        
         
@@ -215,6 +333,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_dead_code = False
         self.in_graph_context = False        
         self.has_recursion_in_loop = False  
+        self.has_factorial_branching = False
         self.has_slicing = False            
         self.has_partitioning = False
         self.has_division = False           
@@ -241,23 +360,33 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if is_recurrence: return 200
         if complexity_str in ["O(1)", "Definition", "Dead Code"]: return 1 if complexity_str != "Dead Code" else -1
         w = 0
-        if "2^n" in complexity_str or "2ⁿ" in complexity_str: w = 100
+        if "n!" in complexity_str: w = 150
+        elif "2^n" in complexity_str or "2ⁿ" in complexity_str: w = 100
         elif "n^2" in complexity_str or "n²" in complexity_str: w = 20
         elif "n log n" in complexity_str: w = 15
         elif "V + E" in complexity_str or "V" in complexity_str: w = 12
-        elif "n" in complexity_str: w = 10
+        # NOTE: "sqrt n" and "log n" both contain the plain substring "n", so
+        # these two checks MUST come before the generic "n" check below --
+        # otherwise every O(sqrt n)/O(log n) complexity silently falls into
+        # the O(n) bucket and the two branches beneath become dead code.
         elif "sqrt n" in complexity_str or "√n" in complexity_str: w = 7
         elif "log n" in complexity_str: w = 5
+        elif "n" in complexity_str: w = 10
         return w
 
     def _get_space_weight(self, complexity_str):
         if complexity_str == "S(placeholder)": return 0
         s_w = 0
-        if "2^n" in complexity_str or "2ⁿ" in complexity_str: s_w = 4
+        if "n!" in complexity_str: s_w = 5
+        elif "2^n" in complexity_str or "2ⁿ" in complexity_str: s_w = 4
         elif "n^2" in complexity_str or "n²" in complexity_str: s_w = 2
         elif "V + E" in complexity_str or "V" in complexity_str: s_w = 3
-        elif "n" in complexity_str: s_w = 1 
-        elif "log n" in complexity_str: s_w = 0.5  
+        # Same substring-ordering fix as _get_weight above: "sqrt n" and
+        # "log n" both contain "n", so they must be checked first or they're
+        # unreachable and get silently upgraded to the O(n) weight (1).
+        elif "sqrt n" in complexity_str or "√n" in complexity_str: s_w = 0.7
+        elif "log n" in complexity_str: s_w = 0.5
+        elif "n" in complexity_str: s_w = 1
         return s_w
 
     def _apply_bottlenecks(self):
@@ -402,8 +531,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         except Exception:
             return []
 
-    def _build_time_str(self, poly_dims, log, sqrt=0, exp=0, graph=0, gcd_vars=None):
+    def _build_time_str(self, poly_dims, log, sqrt=0, exp=0, graph=0, gcd_vars=None, fact=0):
         try:
+            if fact > 0: return "O(n!)"
             if exp > 0: return "O(2^n)"
             if graph > 0: return "O(V + E)"
 
@@ -534,22 +664,44 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         if isinstance(sub, ast.Call) and getattr(getattr(sub, 'func', None), 'id', '') == node.name: has_recursive_for = True
                 if isinstance(child, ast.Call):
                     if isinstance(getattr(child, 'func', None), ast.Attribute):
-                        if child.func.attr in ['add', 'append'] and isinstance(getattr(child.func, 'value', None), ast.Name) and 'visit' in child.func.value.id.lower(): has_visited_set = True
+                        if child.func.attr in ['add', 'append'] and isinstance(getattr(child.func, 'value', None), ast.Name) and any(kw in child.func.value.id.lower() for kw in ['visit', 'seen', 'explored', 'marked', 'color']): has_visited_set = True
                     if isinstance(getattr(child, 'func', None), ast.Name) and child.func.id == node.name:
                         rec_calls += 1
+                # Also catch the equally-common "mark visited via assignment"
+                # idiom -- visited[i][j] = True / seen[node] = 1 / marked[x]
+                # = True -- not just the `.add()`/`.append()` call style above.
+                # This is real evidence of a memoized/bounded traversal, and
+                # broadening it here reduces the risk of regressions from
+                # tightening the name-hint requirement below.
+                if isinstance(child, ast.Assign):
+                    for t in child.targets:
+                        base = t.value if isinstance(t, ast.Subscript) else t
+                        if isinstance(base, ast.Name) and any(kw in base.id.lower() for kw in ['visit', 'seen', 'explored', 'marked', 'color']):
+                            has_visited_set = True
                 if isinstance(child, ast.Compare) and any(isinstance(op, (ast.Lt, ast.LtE, ast.Gt, ast.GtE)) for op in getattr(child, 'ops', [])):
                     if any(getattr(n, 'id', '') in ['row', 'col', 'grid', 'matrix'] for n in safe_walk(child)):
                         has_grid_checks = True
 
         func_name = getattr(node, 'name', '').lower()
-        if 'tree' in func_name and not ('graph' in func_name or 'maze' in func_name):
+        if re.search(r'\b(bst|binary_?tree|tree_?node)\b', func_name) and not ('graph' in func_name or 'maze' in func_name):
             return False 
             
         name_hints = any(re.search(rf'\b{k}\b', func_name) for k in ['maze', 'graph', 'dfs', 'bfs', 'flood', 'fill', 'island', 'rotten', 'grid', 'matrix', 'adj', 'mirror'])
         
+        # A name like "DFS"/"BFS"/"grid"/"matrix" alone is NOT sufficient
+        # evidence of a bounded O(V+E) traversal -- unbounded exponential
+        # backtracking searches (e.g. word-search over a grid, N-Queens,
+        # Sudoku solvers) are routinely named this way too, and without a
+        # visited/seen marker (or a genuine neighbor-list style loop) to
+        # prevent revisiting states, the real complexity is exponential, not
+        # linear in V+E. Bare index-range checks (`0 <= row < ROWS`) are
+        # NOT that evidence either -- they're just bounds validation and
+        # appear in both bounded graph traversals and unbounded backtracking
+        # alike, so they no longer count as corroboration on their own.
         return (has_queue_while and (has_neighbor_for or has_visited_set)) or \
                (has_recursive_for and (has_neighbor_for or has_visited_set)) or \
-               (rec_calls >= 2 and (has_visited_set or has_grid_checks)) or name_hints
+               (rec_calls >= 2 and has_visited_set) or \
+               (name_hints and (has_visited_set or has_neighbor_for))
 
     def _is_graph_while_loop(self, node):
         try:
@@ -764,6 +916,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 if isinstance(child, ast.Call):
                     func_id = getattr(getattr(child, 'func', None), 'id', '')
                     if func_id == 'sqrt' or (isinstance(getattr(child, 'func', None), ast.Attribute) and child.func.attr == 'sqrt'): return True
+                    if func_id == 'pow' and getattr(child, 'args', None) and len(child.args) >= 2:
+                        exp_val = extract_constant(child.args[1])
+                        if isinstance(exp_val, (int, float)) and abs(exp_val - 0.5) < 1e-9: return True
+                if isinstance(child, ast.BinOp) and isinstance(child.op, ast.Pow):
+                    exp_val = extract_constant(child.right)
+                    if isinstance(exp_val, (int, float)) and abs(exp_val - 0.5) < 1e-9: return True
                 if isinstance(child, ast.Name) and self.variable_complexities.get(child.id) == "sqrt": return True
 
             if isinstance(node, ast.While) and isinstance(node.test, ast.Compare):
@@ -937,7 +1095,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 elif "O(n^2)" in time_override or "n²" in time_override: node_dims.extend(['n', 'n'])
                 elif "O(3^n)" in time_override: self.max_exp = 1 
                 elif "O(2^n)" in time_override or "2ⁿ" in time_override: self.max_exp = 1
-                elif "O(n!)" in time_override or "n!" in time_override: self.max_exp = 1
+                elif "O(n!)" in time_override or "n!" in time_override: self.max_fact = 1
                 elif "O(n)" in time_override: node_dims.append('n')
                 elif "O(m)" in time_override: node_dims.append('m')
 
@@ -980,10 +1138,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     global_t = str(time_override)
                     tot_dims = [d for d in node_dims if d != 'n'] if time_override != "O(n^2)" else ['n', 'n']
                 elif local_t == "O(1)" and not is_recursive_call: 
-                    global_t = str(self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars))
+                    global_t = str(self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars, self.max_fact))
                 else:
                     if is_recurrence: global_t = str(time_override)
-                    else: global_t = str(self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars))
+                    else: global_t = str(self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars, self.max_fact))
             
             local_s = str(space_override) if space_override else "O(1)"
             
@@ -1024,7 +1182,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         s_w = self._get_space_weight(global_s)
 
         if not is_dead and time_override != "Definition":
-            overall_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars)
+            overall_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars, self.max_fact)
             
             context_w = self._get_weight(overall_t, False)
             
@@ -1212,14 +1370,15 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif isinstance(dec, ast.Call) and getattr(getattr(dec, 'func', None), 'id', '') in ['lru_cache', 'cache']: is_memoized_or_graph = True
         
         for child in safe_walk(node):
-            if isinstance(child, ast.Name) and any(k in child.id.lower() for k in ['memo', 'cache', 'dp', 'visit']):
+            if isinstance(child, ast.Name) and _name_hints_memo_or_graph(child.id):
                 is_memoized_or_graph = True
 
         if is_memoized_or_graph: self.memoized_funcs.add(node.name)
+        self.has_factorial_branching = _detect_factorial_branching(node)
 
         start_idx = len(self._details)
-        prev_data = (self.max_complexity, getattr(self, 'max_space_weight', 0), self.max_poly_str, self.max_log, self.max_sqrt, self.max_exp, getattr(self, 'max_graph_ve', 0))
-        self.max_complexity = self.max_space_weight = self.max_log = self.max_sqrt = self.max_exp = self.max_graph_ve = 0
+        prev_data = (self.max_complexity, getattr(self, 'max_space_weight', 0), self.max_poly_str, self.max_log, self.max_sqrt, self.max_exp, getattr(self, 'max_graph_ve', 0), getattr(self, 'max_fact', 0))
+        self.max_complexity = self.max_space_weight = self.max_log = self.max_sqrt = self.max_exp = self.max_graph_ve = self.max_fact = 0
         self.max_poly_str = "O(1)"
         self.function_gcd_vars = None
         
@@ -1290,7 +1449,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.has_division = True
 
         if is_memoized_or_graph and (self.recursive_calls_count > 0 or self.has_recursion_in_loop):
-            if self.in_graph_context or 'visit' in node.name.lower():
+            if self.in_graph_context or any(t in ('visit', 'visited', 'visiting', 'visitor') for t in re.findall(r'[A-Za-z][a-z0-9]*', node.name.lower())):
                 relation = "O(V + E)"
                 self.custom_space[node.name] = "O(V + E)"
             elif is_2d_memo:
@@ -1304,7 +1463,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 relation = "O(log n)"
             elif is_indirect:
                 relation = "T(n) = T(n-1) + O(1)" 
-            elif any(k in node.name.lower() for k in ['permutation', 'permute']) and self.recursive_calls_count > 0:
+            elif self.has_factorial_branching or (any(k in node.name.lower() for k in ['permutation', 'permute']) and self.recursive_calls_count > 0):
                 relation = "T(n) = n * T(n-1)"
             elif self.has_recursion_in_loop: 
                 if self.in_graph_context:
@@ -1358,7 +1517,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     else:
                         relation = "O(2^n)"
             else: 
-                relation = "O(2^n)" if self.max_exp > 0 else (self.max_poly_str if self.max_poly_str != "O(1)" else self._build_time_str([], self.max_log, self.max_sqrt, 0, self.max_graph_ve))
+                relation = "O(n!)" if self.max_fact > 0 else ("O(2^n)" if self.max_exp > 0 else (self.max_poly_str if self.max_poly_str != "O(1)" else self._build_time_str([], self.max_log, self.max_sqrt, 0, self.max_graph_ve)))
             
             if node.name not in self.custom_space:
                 if not is_indirect:
@@ -1458,9 +1617,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         if not is_dead:
             self.max_exp, self.max_graph_ve = max(prev_data[5], self.max_exp), max(prev_data[6], self.max_graph_ve)
+            self.max_fact = max(prev_data[7] if len(prev_data) > 7 else 0, getattr(self, 'max_fact', 0))
             self.max_complexity, self.max_space_weight = max(prev_data[0], self.max_complexity), max(prev_data[1], self.max_space_weight)
             self.max_poly_str, self.max_log, self.max_sqrt = prev_data[2] if prev_data[2] != "O(1)" else self.max_poly_str, max(prev_data[3], self.max_log), max(prev_data[4], self.max_sqrt)
-        else: self.max_complexity, self.max_space_weight, self.max_poly_str, self.max_log, self.max_sqrt, self.max_exp, self.max_graph_ve = prev_data
+        else:
+            self.max_complexity, self.max_space_weight, self.max_poly_str, self.max_log, self.max_sqrt, self.max_exp, self.max_graph_ve = prev_data[:7]
+            self.max_fact = prev_data[7] if len(prev_data) > 7 else 0
         
         final_sp_upgrade = None
         if self.max_space_weight >= 2:
@@ -1808,7 +1970,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             break
 
                 self.first_rec_line = min(self.first_rec_line, getattr(node, 'lineno', float('inf')))
-                if len(self.active_poly_dims) > 0 or self.log_loop_depth > 0: 
+                if self.loop_depth > 0:
                     self.has_recursion_in_loop = True  
 
                 self.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
@@ -2319,8 +2481,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         raw_code = re.sub(r'//.*|#.*|/\*[\s\S]*?\*/', '', "\n".join(self.source_lines)).lower()
 
+        if "n!" in all_comps: return "O(n!)"
         if "2^n" in all_comps or "2ⁿ" in all_comps: return "O(2^n)"
-        if "V + E" in all_comps or "o(v + e)" in all_comps or 'dfs(' in raw_code or 'bfs(' in raw_code: return "O(V + E)"
+        if "V + E" in all_comps or "o(v + e)" in all_comps: return "O(V + E)"
         if "n^2" in all_comps or "n²" in all_comps: return "O(n^2)"
         if "n log n" in all_comps or re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: return "O(n log n)"
         if "sqrt n" in all_comps: return "O(sqrt n)"
@@ -2334,15 +2497,17 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for space_val in self.custom_space.values(): all_spaces += " " + space_val
         raw_code = re.sub(r'//.*|#.*|/\*[\s\S]*?\*/', '', "\n".join(self.source_lines)).lower()
             
-        if self.max_space_weight >= 4: all_spaces += " O(2^n)"
+        if self.max_space_weight >= 5: all_spaces += " O(n!)"
+        elif self.max_space_weight >= 4: all_spaces += " O(2^n)"
         elif self.max_space_weight >= 3: all_spaces += " O(V + E)"
         elif self.max_space_weight >= 2: all_spaces += " O(n^2)"
         elif self.max_space_weight >= 1: all_spaces += " O(n)"
         elif self.max_space_weight >= 0.5: all_spaces += " O(1)"
         
+        if "n!" in all_spaces: return "O(n!)"
         if "2^n" in all_spaces or "2ⁿ" in all_spaces: return "O(2^n)"
         if "n^2" in all_spaces or "n²" in all_spaces: return "O(n^2)"
-        if "V + E" in all_spaces or "adj =" in raw_code or "graph =" in raw_code or "O(V)" in all_spaces or "dfs(" in raw_code or "bfs(" in raw_code: return "O(V + E)"
+        if "V + E" in all_spaces or "O(V)" in all_spaces: return "O(V + E)"
         if "O(n)" in all_spaces: return "O(n)"
         if "sqrt n" in all_spaces: return "O(sqrt n)"
         if "log n" in all_spaces: return "O(log n)"

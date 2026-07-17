@@ -17,6 +17,7 @@ import { projectsDB, templatesDB } from "../db.js";
 import "../styles/MainApp.css";
 
 import { FiChevronRight, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
+import { useOnboarding } from "../context/OnboardingContext.jsx";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { sanitizePythonCode, usePanelResizer } from "../utils/asymptoticParser.jsx";
 import { translatePythonError } from "../utils/errorTranslator.js";
@@ -71,7 +72,7 @@ export default function MainApp() {
   
   const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
-  const { worker, isEngineReady, resetWorker } = usePyodide();
+  const { worker, isEngineReady, resetWorker, progress: engineProgress, engineError } = usePyodide();
 
   const [tabs, setTabs] = useState([createInitialTab(location.state)]);
   const [activeTabId, setActiveTabId] = useState(tabs[0].id);
@@ -79,7 +80,7 @@ export default function MainApp() {
   const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? window.navigator.onLine : true);
   const [bottomPanel, setBottomPanel] = useState(null);
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(() => typeof window === "undefined" || window.innerWidth >= 700);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
@@ -132,7 +133,7 @@ export default function MainApp() {
       { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(3)", title: "Inspect global complexity", description: "Review the full algorithm cost as the analysis flows through the code.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("global"); } },
       { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(4)", title: "Inspect memory map", description: "See how memory changes while the code executes.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("memory"); } },
       { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(5)", title: "Inspect the call graph", description: "Trace recursive calls and control flow through the call graph.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("callgraph"); } },
-      { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you want a quick concept refresher.", onEnter: () => setIsBigOModalOpen(true) },
+      { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you want a quick concept refresher.", onEnter: () => setIsBigOModalOpen(true), onExit: () => setIsBigOModalOpen(false) },
       { target: ".big-o-modal-content", title: "Reference library", description: "Browse the complexity definitions and examples inside the modal." },
       { target: ".big-o-accordion .big-o-row-trigger", title: "Expandable complexity rows", description: "Open any row to read the definition, analogy, and examples for a specific Big-O class." },
     ],
@@ -141,6 +142,25 @@ export default function MainApp() {
   const currentUser = getUser();
   const isAdmin = !!currentUser?.isAdmin;
   const isGuest = currentUser?.isGuest === true;
+
+  const { state: onboardingState, startTour } = useOnboarding();
+
+  // Auto-show the workspace tour only the first time this user opens the
+  // free-form workspace. Tracked under its own "workspace" pageId, so it
+  // is completely independent of the Dashboard/Learning Path/activity
+  // tours. As with those, OnboardingTour only marks this "seen" once the
+  // user reaches the final step — exiting early leaves it unseen so it
+  // reappears next visit.
+  useEffect(() => {
+    if (!currentUser || isGuest) return;
+    const seen = Boolean(onboardingState?.pages?.workspace?.seen);
+    if (seen) return;
+    const timer = setTimeout(() => {
+      startTour(workspaceTour);
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.email, isGuest, onboardingState]);
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -483,6 +503,10 @@ export default function MainApp() {
 
   const handleRunCode = async () => {
     if (isEvaluating) return;
+    if (!isEngineReady) {
+      showToast(engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment.", "error");
+      return;
+    }
     if (!activeTab.pythonCode || activeTab.pythonCode.trim() === "" || activeTab.pythonCode === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
     }
@@ -649,7 +673,24 @@ export default function MainApp() {
         if (res.status === 404) {
            res = await fetch(`${API_BASE}${fallbackEndpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
         }
-        
+
+        if (res.status === 403) {
+          // Account has hit its project/template limit -- this is a real,
+          // final rejection, not a connectivity issue, so don't fall back
+          // to an offline save+retry (that would just keep failing forever
+          // and give the false impression the save succeeded). Also remove
+          // the local copy written above so it doesn't linger as an
+          // orphaned item that some later background sync keeps retrying.
+          let limitMessage = `You've reached the maximum number of ${saveModal.saveType === "template" ? "templates" : "projects"} allowed per account.`;
+          try {
+            const errData = await res.json();
+            if (errData?.detail) limitMessage = errData.detail;
+          } catch (e) {}
+          await db.removeItem(id);
+          showToast(limitMessage, "error");
+          return;
+        }
+
         if (res.ok) {
           let responseData = {};
           try { responseData = await res.json(); } catch(e) {}
@@ -826,6 +867,8 @@ export default function MainApp() {
         handleSaveToDB={openSaveModal} 
         currentProjectId={activeTab.currentLoadedId} 
         currentProjectTitle={activeTab.title} 
+        isEngineReady={isEngineReady}
+        engineProgress={engineProgress}
         handleUpdateDB={openSaveModal} 
         isEvaluating={isEvaluating} 
         isAdmin={isAdmin}

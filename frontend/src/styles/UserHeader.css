@@ -45,7 +45,7 @@
   top: 130%;
   right: 0;
   width: 240px;
-  background: rgba(20, 10, 40, 0.85); /* Dark translucent */
+  background: rgba(255, 255, 255, 0.85); /* Dark translucent */
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -172,3 +172,13 @@
 .user-homepage .user-dd-divider { background: #d8dee4; }
 .user-homepage .user-dd-item.danger { color: #cf222e; }
 .user-homepage .user-dd-item.danger:hover { color: #a40e26; background: #ffebe9; }
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width: 400px) {
+  .user-dropdown {
+    width: min(240px, calc(100vw - 24px));
+    right: -8px;
+  }
+}

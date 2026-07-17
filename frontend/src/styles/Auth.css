@@ -272,6 +272,13 @@
   text-decoration: underline;
 }
 
+.auth-link-disabled {
+  color: #6B6280;
+  font-weight: 600;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 /* Custom Toast Notification */
 .custom-toast {
   position: fixed;

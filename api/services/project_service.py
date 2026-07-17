@@ -5,6 +5,8 @@ from fastapi import HTTPException
 from datetime import datetime
 import time
 
+MAX_PROJECTS_PER_USER = 20
+
 class ProjectService:
     @staticmethod
     def get_user_projects(user_id: str):
@@ -36,6 +38,12 @@ class ProjectService:
                 raise HTTPException(status_code=404, detail="Project not found or unauthorized")
             return {"status": "success", "projectId": req.projectId, "synced": True}
         else:
+            existing_count = ProjectRepository.count_by_user(req.userId)
+            if existing_count >= MAX_PROJECTS_PER_USER:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Project limit reached ({MAX_PROJECTS_PER_USER} max per account). Please delete an existing project before creating a new one."
+                )
             project_id = ProjectRepository.insert(update_data)
             return {"status": "success", "projectId": project_id, "synced": True}
 

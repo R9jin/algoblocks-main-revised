@@ -88,7 +88,7 @@ export default function DashboardHeader({
         <div className="header-left">
           <Link to={backTo} className="back-home">
             <img src="/assets/back-icon.png" alt="Back" className="btn-icon-open" />
-            {backText}
+            <span className="back-home-text">{backText}</span>
           </Link>
           <div className="logo-container">
             <Link to="/dashboard" className="logo-link">

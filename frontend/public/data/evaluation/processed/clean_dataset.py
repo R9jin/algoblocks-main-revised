@@ -14,8 +14,7 @@ def clean_dataset():
         r'nnlogk',
         r'nlognlogv', 
         r'n\+klogn',
-        r'nlog2n',
-        r'sqrtn'
+        r'nlog2n'
     ]
     
     # Compile a regex pattern to match any of the niche complexities
