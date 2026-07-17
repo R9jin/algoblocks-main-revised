@@ -155,15 +155,14 @@ export function OnboardingProvider({ children }) {
   const startTour = (tourConfig) => setTour(tourConfig);
   const closeTour = () => setTour(null);
 
-  const markSystemSeen = (completedAt = new Date().toISOString()) => {
-    setState((prev) => ({ ...normalizeState(prev), tourSeen: true, completedAt }));
-  };
-
-  // Marks a single page/activity tour as completed. This intentionally does
-  // NOT touch the global `tourSeen` flag — page-specific tours must be
-  // tracked independently, so finishing the Dashboard tour (for example)
-  // must never cause an unrelated activity tour to be treated as seen.
-  const markPageSeen = (pageId, completedAt = new Date().toISOString()) => {
+  // Records that a tour was opened (auto-shown or manually replayed), purely
+  // for bookkeeping (replayCount / lastOpenedAt). This must NEVER set
+  // `seen: true` — "seen" means the tour was actually completed, and is the
+  // only flag anything should gate auto-showing on. Getting this backwards
+  // (marking seen the moment a tour merely starts) is what previously let
+  // people dismiss/skip/refresh past a tour and never see it again even
+  // though they'd never finished it.
+  const markPageOpened = (pageId) => {
     if (!pageId) return;
     setState((prev) => {
       const currentPage = normalizeState(prev).pages?.[pageId] || {};
@@ -173,40 +172,35 @@ export function OnboardingProvider({ children }) {
           ...normalizeState(prev).pages,
           [pageId]: {
             ...currentPage,
-            seen: true,
-            replayCount: Number(currentPage.replayCount || 0),
-            lastSeenAt: completedAt,
-            lastCompletedAt: completedAt,
-          },
-        },
-      };
-    });
-  };
-
-  // Records that a page/activity tour was opened, and only flips `seen` to
-  // true when the tour was actually completed (reached its final step).
-  // If the user exits, closes, refreshes, or otherwise abandons the tour
-  // early, `completed` is false here and `seen` must stay whatever it was
-  // before — an interrupted tour must reappear next time the page loads,
-  // not be silently marked as done just because it was opened.
-  const markPageReplay = (pageId, completed = false) => {
-    if (!pageId) return;
-    setState((prev) => {
-      const currentPage = normalizeState(prev).pages?.[pageId] || {};
-      return {
-        ...normalizeState(prev),
-        pages: {
-          ...normalizeState(prev).pages,
-          [pageId]: {
-            ...currentPage,
-            seen: completed === true ? true : currentPage.seen === true,
             replayCount: Number(currentPage.replayCount || 0) + 1,
             lastOpenedAt: new Date().toISOString(),
-            lastCompletedAt: completed ? new Date().toISOString() : currentPage.lastCompletedAt || null,
           },
         },
       };
     });
+  };
+
+  // Records that a tour was actually completed — the user reached the final
+  // step and clicked Finish. This is the ONLY thing that should ever set a
+  // page's `seen` flag, since `seen` is what pages check before deciding
+  // whether to auto-show a tour again.
+  const markPageCompleted = (pageId, completedAt = new Date().toISOString()) => {
+    if (!pageId) return;
+    setState((prev) => ({
+      ...normalizeState(prev),
+      tourSeen: true,
+      completedAt: prev.completedAt || completedAt,
+      pages: {
+        ...normalizeState(prev).pages,
+        [pageId]: {
+          ...(normalizeState(prev).pages?.[pageId] || {}),
+          seen: true,
+          replayCount: Number(normalizeState(prev).pages?.[pageId]?.replayCount || 0),
+          lastSeenAt: completedAt,
+          lastCompletedAt: completedAt,
+        },
+      },
+    }));
   };
 
   const api = useMemo(() => ({
@@ -216,9 +210,8 @@ export function OnboardingProvider({ children }) {
     tour,
     startTour,
     closeTour,
-    markSystemSeen,
-    markPageSeen,
-    markPageReplay,
+    markPageOpened,
+    markPageCompleted,
     setState,
   }), [user, state, tour]);
 

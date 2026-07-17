@@ -9,7 +9,7 @@ const resolveTarget = (selector) => {
 };
 
 export default function OnboardingTour() {
-  const { tour, closeTour, markSystemSeen, markPageSeen, markPageReplay } = useOnboarding();
+  const { tour, closeTour, markPageOpened, markPageCompleted } = useOnboarding();
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState(null);
   const lastActionRef = useRef({ tourId: null, stepIndex: -1 });
@@ -23,6 +23,18 @@ export default function OnboardingTour() {
 
   useEffect(() => {
     setStepIndex(0);
+  }, [tour?.id]);
+
+  // Record that this tour was opened (bookkeeping only — replayCount /
+  // lastOpenedAt). This fires once per genuine open, since `tour` always
+  // passes through `null` (via closeTour) before a new one starts, making
+  // `tour?.id` a real dependency change each time. It must NOT mark the
+  // tour "seen"/completed — only reaching the final step does that below.
+  useEffect(() => {
+    if (tour?.pageId) {
+      markPageOpened(tour.pageId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tour?.id]);
 
   useEffect(() => {
@@ -88,13 +100,14 @@ export default function OnboardingTour() {
     }
   };
 
+  // A tour only counts as "completed" — and therefore only stops
+  // auto-showing in the future — when the user reaches the final step and
+  // finishes it. Skipping, closing the "x", refreshing mid-tour, or
+  // navigating away all leave it unmarked, so it presents again next visit.
   const finishTour = (completed = true) => {
     runOnExit();
-    if (tour.pageId) {
-      markPageReplay(tour.pageId, completed);
-      if (completed) markPageSeen(tour.pageId);
-    } else if (completed) {
-      markSystemSeen();
+    if (completed && tour.pageId) {
+      markPageCompleted(tour.pageId);
     }
     closeTour();
   };

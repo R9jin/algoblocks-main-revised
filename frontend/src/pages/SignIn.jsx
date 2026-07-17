@@ -135,6 +135,14 @@ export default function SignIn() {
       // a newer sign-in/sign-up has already taken over this browser tab.
       if (!isMountedRef.current) return;
 
+      // OnboardingContext (and a few other pages) only re-read storage on
+      // mount or on this event — without it, navigating to /dashboard here
+      // is a client-side transition, so OnboardingContext keeps whatever
+      // stale state it had *before* this login and re-shows the dashboard
+      // tour even though the account we just logged into already finished
+      // it server-side.
+      window.dispatchEvent(new Event("localDataSynced"));
+
       navigate("/dashboard"); 
       
     } catch (error) {
@@ -172,6 +180,8 @@ export default function SignIn() {
         assessments: {},
         onboarding_state: { tourSeen: true, completedAt: new Date().toISOString(), pages: {} }
       })); 
+
+      window.dispatchEvent(new Event("localDataSynced"));
 
       navigate("/dashboard"); 
     } catch (error) {
@@ -224,6 +234,8 @@ export default function SignIn() {
       await syncUserCloudData(data.email, data.token);
 
       if (!isMountedRef.current) return;
+
+      window.dispatchEvent(new Event("localDataSynced"));
 
       navigate("/dashboard");
       

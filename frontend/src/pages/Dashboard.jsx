@@ -1,5 +1,5 @@
 // frontend/src/pages/Dashboard.jsx
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiLock, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
@@ -137,19 +137,26 @@ export default function Dashboard() {
     ],
   };
 
+  // Guards the one-time auto-show attempt for this mount. Without this,
+  // every state update while the tour is open (e.g. markPageOpened
+  // recording that it started) changes `onboardingState`'s reference,
+  // re-running this effect — and since completion is only recorded on a
+  // genuine Finish, re-evaluating mid-tour (or right after Skip/X) would
+  // just schedule startTour() again, snapping the tour back open. Once
+  // we've attempted an auto-show this mount, we leave it alone; a fresh
+  // attempt only happens on the next real visit (new mount) to this page.
+  const dashboardTourAttemptedRef = useRef(false);
+
   useEffect(() => {
     if (!currentUser || currentUser.isGuest) return;
-    // Only the per-page "dashboard" flag matters here, and OnboardingTour
-    // only flips it to true once the user reaches the final step. Do NOT
-    // mark the tour as seen here at start time — that would hide the tour
-    // on next login even if the user closed it before finishing.
-    const seen = Boolean(onboardingState?.pages?.dashboard?.seen);
-    if (!seen) {
-      const timer = setTimeout(() => {
-        startTour(dashboardTour);
-      }, 350);
-      return () => clearTimeout(timer);
-    }
+    if (dashboardTourAttemptedRef.current) return;
+    const completed = Boolean(onboardingState?.pages?.dashboard?.seen);
+    if (completed) return;
+    const timer = setTimeout(() => {
+      dashboardTourAttemptedRef.current = true;
+      startTour(dashboardTour);
+    }, 350);
+    return () => clearTimeout(timer);
   }, [currentUser, onboardingState, startTour]);
 
   const loadDashboardData = useCallback(async () => {
