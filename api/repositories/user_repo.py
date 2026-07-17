@@ -182,12 +182,62 @@ class UserRepository:
         return rowcount
 
     @staticmethod
-    def update_onboarding_state(email: str, onboarding_state: dict):
+    def get_onboarding_state(email: str):
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('UPDATE users SET onboarding_state = %s WHERE email = %s', (json.dumps(onboarding_state or {}), email))
+        cursor.execute('SELECT onboarding_state FROM users WHERE email = %s', (email,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return (row["onboarding_state"] if row else None) or {}
+
+    @staticmethod
+    def update_onboarding_state(email: str, onboarding_state: dict):
+        # Merge (never blind-overwrite) so that a stale write from one device
+        # can't clobber progress another device already persisted. Locking
+        # the row for the read+write keeps two concurrent requests (e.g. two
+        # tabs/devices syncing at the same moment) from racing each other.
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT onboarding_state FROM users WHERE email = %s FOR UPDATE', (email,))
+        row = cursor.fetchone()
+        if row is None:
+            cursor.close()
+            conn.close()
+            return 0
+
+        existing = row["onboarding_state"] or {}
+        merged = UserRepository._merge_onboarding_state(existing, onboarding_state or {})
+
+        cursor.execute('UPDATE users SET onboarding_state = %s WHERE email = %s', (json.dumps(merged), email))
         rowcount = cursor.rowcount
         conn.commit()
         cursor.close()
         conn.close()
         return rowcount
+
+    @staticmethod
+    def _merge_onboarding_state(existing: dict, incoming: dict):
+        existing = existing if isinstance(existing, dict) else {}
+        incoming = incoming if isinstance(incoming, dict) else {}
+
+        existing_pages = existing.get("pages") if isinstance(existing.get("pages"), dict) else {}
+        incoming_pages = incoming.get("pages") if isinstance(incoming.get("pages"), dict) else {}
+
+        merged_pages = {}
+        for page_id in set(existing_pages.keys()) | set(incoming_pages.keys()):
+            e = existing_pages.get(page_id) or {}
+            i = incoming_pages.get(page_id) or {}
+            merged_pages[page_id] = {
+                "seen": bool(e.get("seen")) or bool(i.get("seen")),
+                "replayCount": max(int(e.get("replayCount") or 0), int(i.get("replayCount") or 0)),
+                "lastSeenAt": e.get("lastSeenAt") or i.get("lastSeenAt") or None,
+                "lastOpenedAt": e.get("lastOpenedAt") or i.get("lastOpenedAt") or None,
+                "lastCompletedAt": e.get("lastCompletedAt") or i.get("lastCompletedAt") or None,
+            }
+
+        return {
+            "tourSeen": bool(existing.get("tourSeen")) or bool(incoming.get("tourSeen")),
+            "completedAt": existing.get("completedAt") or incoming.get("completedAt") or None,
+            "pages": merged_pages,
+        }

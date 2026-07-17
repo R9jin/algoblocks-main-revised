@@ -102,7 +102,7 @@ const ChevronDownIcon = ({ expanded }) => (
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { state: onboardingState, startTour } = useOnboarding();
+  const { state: onboardingState, isHydrated, startTour } = useOnboarding();
   const [recentProjects, setRecentProjects] = useState([]);
   const [systemTemplates, setSystemTemplates] = useState(SYSTEM_TEMPLATES);
   const [userTemplates, setUserTemplates] = useState([]);
@@ -150,6 +150,11 @@ export default function Dashboard() {
   useEffect(() => {
     if (!currentUser || currentUser.isGuest) return;
     if (dashboardTourAttemptedRef.current) return;
+    // Don't decide anything until the authoritative server fetch has
+    // resolved (or given up) — otherwise a fresh sign-in (especially right
+    // after clearing local storage) can momentarily read "not seen" and
+    // auto-show a tour the account already completed on another device.
+    if (!isHydrated) return;
     const completed = Boolean(onboardingState?.pages?.dashboard?.seen);
     if (completed) return;
     const timer = setTimeout(() => {
@@ -157,7 +162,7 @@ export default function Dashboard() {
       startTour(dashboardTour);
     }, 350);
     return () => clearTimeout(timer);
-  }, [currentUser, onboardingState, startTour]);
+  }, [currentUser, onboardingState, isHydrated, startTour]);
 
   const loadDashboardData = useCallback(async () => {
     try {

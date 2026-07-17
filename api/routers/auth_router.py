@@ -65,3 +65,8 @@ def get_all_submissions(request: Request, trusted_email: str = Depends(get_curre
 def update_onboarding(request: Request, payload: Dict[str, Any], trusted_email: str = Depends(get_current_user_email)):
     onboarding_state = payload.get("onboarding_state", {}) if isinstance(payload, dict) else {}
     return AuthService.update_onboarding(trusted_email, onboarding_state)
+
+@router.get("/get-onboarding")
+@limiter.limit("30/minute")
+def get_onboarding(request: Request, trusted_email: str = Depends(get_current_user_email)):
+    return AuthService.get_onboarding(trusted_email)

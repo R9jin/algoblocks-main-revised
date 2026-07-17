@@ -491,6 +491,16 @@ class AuthService:
         }
 
     @staticmethod
+    def get_onboarding(email: str):
+        if not email:
+            return {"status": "ignored", "onboarding_state": {}}
+
+        return {
+            "status": "success",
+            "onboarding_state": UserRepository.get_onboarding_state(email),
+        }
+
+    @staticmethod
     def batch_sync(payload: dict, trusted_email: str):
         if "guest" in trusted_email.lower():
             return {"status": "success", "message": "Ignored: Guest account", "synced_items": 0}

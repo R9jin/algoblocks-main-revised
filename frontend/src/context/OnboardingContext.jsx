@@ -70,9 +70,56 @@ export function OnboardingProvider({ children }) {
   const [user, setUser] = useState(null);
   const [state, setState] = useState(() => normalizeState());
   const [tour, setTour] = useState(null);
+  const [isHydrated, setIsHydrated] = useState(false);
   const pendingSyncRef = useRef(false);
+  const hydrateRequestIdRef = useRef(0);
 
   const userKey = useMemo(() => getUserKey(user), [user]);
+
+  // Explicitly re-fetches onboarding progress from Postgres and reconciles it
+  // into state. This is the authoritative source: the onboarding_state
+  // embedded in the login/signup response can go stale (e.g. a previous
+  // sync from another tab/device landed after that response was generated),
+  // so every auth-change re-confirms against the server rather than trusting
+  // only what was cached at login time or in localStorage.
+  const hydrateFromServer = (parsedUser) => {
+    const requestId = ++hydrateRequestIdRef.current;
+    if (!parsedUser?.email || parsedUser.isGuest) {
+      setIsHydrated(true);
+      return;
+    }
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+    const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+    if (!token || !apiBase) {
+      setIsHydrated(true);
+      return;
+    }
+
+    fetch(`${apiBase}/api/get-onboarding`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        // A newer auth-change (e.g. a second, faster login) started after
+        // this request went out — drop this stale response instead of
+        // clobbering whatever the newer request already resolved.
+        if (requestId !== hydrateRequestIdRef.current) return;
+        if (data?.onboarding_state) {
+          setState((prev) => {
+            const merged = mergeOnboardingStates(data.onboarding_state, prev);
+            writeStoredState(getUserKey(parsedUser), merged);
+            return merged;
+          });
+        }
+      })
+      .catch(() => {
+        // Offline or the request failed: fall back to whatever was already
+        // merged from the login payload + local cache. Don't block forever.
+      })
+      .finally(() => {
+        if (requestId === hydrateRequestIdRef.current) setIsHydrated(true);
+      });
+  };
 
   useEffect(() => {
     const handleAuthChange = () => {
@@ -81,6 +128,7 @@ export function OnboardingProvider({ children }) {
         if (!stored || stored === "undefined" || stored === "null") {
           setUser(null);
           setState(normalizeState());
+          setIsHydrated(true);
           return;
         }
         const parsed = JSON.parse(stored);
@@ -94,9 +142,12 @@ export function OnboardingProvider({ children }) {
         // Immediately re-persist the merged/reconciled result locally so this
         // device's cache reflects the union rather than staying stale.
         writeStoredState(getUserKey(parsed), merged);
+        setIsHydrated(false);
+        hydrateFromServer(parsed);
       } catch {
         setUser(null);
         setState(normalizeState());
+        setIsHydrated(true);
       }
     };
 
@@ -207,13 +258,14 @@ export function OnboardingProvider({ children }) {
     user,
     setUser,
     state,
+    isHydrated,
     tour,
     startTour,
     closeTour,
     markPageOpened,
     markPageCompleted,
     setState,
-  }), [user, state, tour]);
+  }), [user, state, isHydrated, tour]);
 
   return <OnboardingContext.Provider value={api}>{children}</OnboardingContext.Provider>;
 }

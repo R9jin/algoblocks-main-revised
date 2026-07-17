@@ -66,7 +66,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const API_BASE = import.meta.env.VITE_API_URL || "";
   const navigate = useNavigate();
   const { worker, isEngineReady, resetWorker, progress: engineProgress } = usePyodide();
-  const { state: onboardingState, startTour } = useOnboarding();
+  const { state: onboardingState, isHydrated, startTour } = useOnboarding();
   
   const isReadyRef = useRef(false);
   const isWorkspaceLoadedRef = useRef(false);
@@ -162,6 +162,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const user = JSON.parse(storedUser);
     if (user.isGuest) return;
     if (activityTourAttemptedRef.current) return;
+    if (!isHydrated) return;
     const completed = Boolean(onboardingState?.pages?.[resolvedActivityTour.pageId]?.seen);
     if (completed) return;
     const timer = setTimeout(() => {
@@ -170,7 +171,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     }, 450);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onboardingState, startTour, resolvedActivityTour.pageId]);
+  }, [onboardingState, isHydrated, startTour, resolvedActivityTour.pageId]);
 
   const { panelHeight, handleDragStart } = usePanelResizer(300);
 
@@ -1048,7 +1049,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             {!isEngineReady ? (
               <><span className="engine-loading-spinner" /> <span>{engineProgress?.stage || "Preparing..."} {typeof engineProgress?.percent === "number" ? `(${engineProgress.percent}%)` : ""}</span></>
             ) : (
-              <><FiPlay size={16} /> <span>{isEvaluating ? "..." : isSyncingBlocks ? "Syncing..." : "Evaluate Efficiency (AES)"}</span></>
+              <><FiPlay size={16} /> <span>{isEvaluating ? "..." : isSyncingBlocks ? "Syncing..." : "Submit"}</span></>
             )}
           </button>
         </div>
