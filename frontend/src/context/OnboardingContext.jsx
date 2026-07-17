@@ -159,24 +159,11 @@ export function OnboardingProvider({ children }) {
     setState((prev) => ({ ...normalizeState(prev), tourSeen: true, completedAt }));
   };
 
+  // Marks a single page/activity tour as completed. This intentionally does
+  // NOT touch the global `tourSeen` flag — page-specific tours must be
+  // tracked independently, so finishing the Dashboard tour (for example)
+  // must never cause an unrelated activity tour to be treated as seen.
   const markPageSeen = (pageId, completedAt = new Date().toISOString()) => {
-    if (!pageId) return;
-    setState((prev) => ({
-      ...normalizeState(prev),
-      tourSeen: true,
-      completedAt: prev.completedAt || completedAt,
-      pages: {
-        ...normalizeState(prev).pages,
-        [pageId]: {
-          seen: true,
-          replayCount: Number(normalizeState(prev).pages?.[pageId]?.replayCount || 0),
-          lastSeenAt: completedAt,
-        },
-      },
-    }));
-  };
-
-  const markPageReplay = (pageId, completed = false) => {
     if (!pageId) return;
     setState((prev) => {
       const currentPage = normalizeState(prev).pages?.[pageId] || {};
@@ -187,6 +174,32 @@ export function OnboardingProvider({ children }) {
           [pageId]: {
             ...currentPage,
             seen: true,
+            replayCount: Number(currentPage.replayCount || 0),
+            lastSeenAt: completedAt,
+            lastCompletedAt: completedAt,
+          },
+        },
+      };
+    });
+  };
+
+  // Records that a page/activity tour was opened, and only flips `seen` to
+  // true when the tour was actually completed (reached its final step).
+  // If the user exits, closes, refreshes, or otherwise abandons the tour
+  // early, `completed` is false here and `seen` must stay whatever it was
+  // before — an interrupted tour must reappear next time the page loads,
+  // not be silently marked as done just because it was opened.
+  const markPageReplay = (pageId, completed = false) => {
+    if (!pageId) return;
+    setState((prev) => {
+      const currentPage = normalizeState(prev).pages?.[pageId] || {};
+      return {
+        ...normalizeState(prev),
+        pages: {
+          ...normalizeState(prev).pages,
+          [pageId]: {
+            ...currentPage,
+            seen: completed === true ? true : currentPage.seen === true,
             replayCount: Number(currentPage.replayCount || 0) + 1,
             lastOpenedAt: new Date().toISOString(),
             lastCompletedAt: completed ? new Date().toISOString() : currentPage.lastCompletedAt || null,

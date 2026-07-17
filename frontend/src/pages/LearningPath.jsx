@@ -73,7 +73,7 @@ const moduleIcons = {
 
 export default function LearningPath() {
   const navigate = useNavigate();
-  const { state: onboardingState } = useOnboarding();
+  const { state: onboardingState, startTour } = useOnboarding();
   const [expandedModules, setExpandedModules] = useState(new Set());
   const [userProgress, setUserProgress] = useState({});
   const [assessments, setAssessments] = useState({});
@@ -110,8 +110,13 @@ export default function LearningPath() {
 
   useEffect(() => {
     if (!storedUser.email || isGuest) return;
-    const seen = onboardingState?.pages?.["learning-path"]?.seen;
-    if (!seen && onboardingState?.tourSeen) return;
+    const seen = Boolean(onboardingState?.pages?.["learning-path"]?.seen);
+    if (seen) return;
+    const timer = setTimeout(() => {
+      startTour(learningPathTour);
+    }, 350);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storedUser.email, isGuest, onboardingState]);
 
   const checkActivityDone = (moduleId, actId) => {

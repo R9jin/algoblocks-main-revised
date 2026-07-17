@@ -102,7 +102,7 @@ const ChevronDownIcon = ({ expanded }) => (
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { state: onboardingState, startTour, markSystemSeen } = useOnboarding();
+  const { state: onboardingState, startTour } = useOnboarding();
   const [recentProjects, setRecentProjects] = useState([]);
   const [systemTemplates, setSystemTemplates] = useState(SYSTEM_TEMPLATES);
   const [userTemplates, setUserTemplates] = useState([]);
@@ -139,15 +139,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!currentUser || currentUser.isGuest) return;
-    const seen = onboardingState?.tourSeen === true || Boolean(onboardingState?.pages?.dashboard?.seen);
+    // Only the per-page "dashboard" flag matters here, and OnboardingTour
+    // only flips it to true once the user reaches the final step. Do NOT
+    // mark the tour as seen here at start time — that would hide the tour
+    // on next login even if the user closed it before finishing.
+    const seen = Boolean(onboardingState?.pages?.dashboard?.seen);
     if (!seen) {
       const timer = setTimeout(() => {
         startTour(dashboardTour);
-        markSystemSeen();
       }, 350);
       return () => clearTimeout(timer);
     }
-  }, [currentUser, onboardingState, startTour, markSystemSeen]);
+  }, [currentUser, onboardingState, startTour]);
 
   const loadDashboardData = useCallback(async () => {
     try {

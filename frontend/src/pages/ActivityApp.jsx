@@ -10,6 +10,7 @@ import DockedBottomPanel from "../components/DockedBottomPanel.jsx";
 import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
 import TourHelpButton from "../components/TourHelpButton";
 import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
+import { useOnboarding } from "../context/OnboardingContext.jsx";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
 import "../styles/ActivityApp.css";
@@ -64,6 +65,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const API_BASE = import.meta.env.VITE_API_URL || "";
   const navigate = useNavigate();
   const { worker, isEngineReady, resetWorker, progress: engineProgress } = usePyodide();
+  const { state: onboardingState, startTour } = useOnboarding();
   
   const isReadyRef = useRef(false);
   const isWorkspaceLoadedRef = useRef(false);
@@ -115,34 +117,74 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null });
   const [isEditingCode, setIsEditingCode] = useState(false);
 
-  const activityTour = {
-    id: "activity-tour",
-    pageId: `activity-${moduleId}-${activityId}`,
-    title: "Activity Tour",
-    steps: [
-      { target: ".wh-toggle-btn.active", title: "Change the view", description: "Switch between the visual Blockly workspace and generated Python code." },
-      { target: ".wh-btn-save", title: "Run the code", description: "Quickly execute your current code without submitting it to the activity grader." },
-      { target: ".wh-btn-run", title: "Grade the activity", description: "Run the full evaluation when you are ready to submit your solution." },
-      { target: ".footer-tab:nth-child(1)", title: "Open the console", description: "Inspect output, prompts, and execution traces in the console panel.", onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); } },
-      { target: ".bottom-docked-panel .clear-console-btn", title: "Clear the console", description: "Clear output before rerunning a test or experiment.", onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(2)", title: "Line executions", description: "Check the frequency count for each line in the current solution.", onEnter: () => { setBottomPanel("console"); setConsoleTab("executions"); } },
-      { target: ".footer-tab:nth-child(2)", title: "Open complexity analysis", description: "Switch to the complexity panel for time and space analysis.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("overall"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(2)", title: "Local complexity", description: "Inspect local cost per line and see how each step contributes.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("local"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(3)", title: "Global complexity", description: "Switch to the global analysis view for the whole algorithm.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("global"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(4)", title: "Memory map", description: "Open the memory map to visualize how state changes over time.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("memory"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(5)", title: "Call graph", description: "Follow recursion and call flow in the call graph view.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("callgraph"); } },
-      { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you need a reminder of the notation.", onEnter: () => setIsBigOModalOpen(true), onExit: () => setIsBigOModalOpen(false) },
-      { target: ".big-o-modal-content", title: "Reference library", description: "Browse the reference table and expand entries for deeper details." },
-      { target: ".big-o-accordion .big-o-row-trigger", title: "Expandable complexity rows", description: "Open any row to inspect the definition, analogy, and examples behind a complexity class." },
+  const [activityDataResolved, setActivityDataResolved] = useState(null);
+
+  // Which activities count as a learner's introduction to the workspace.
+  // Mirrors the isIntroLevel check used elsewhere in this file for grading
+  // leniency — l1-t1 and l1-t3 are the first hands-on activities a student
+  // reaches, so they're the ones that get a dedicated, detailed walkthrough
+  // instead of the general workspace tour.
+  const introActivityId = activityDataResolved?.id;
+  const isIntroActivity = introActivityId === "l1-t1" || introActivityId === "l1-t3";
+
+  const activityTourStepsByActivity = {
+    "l1-t1": [
+      { target: ".activity-task-description", title: "Read the task", description: "Start every activity here — this describes exactly what your solution needs to do." },
+      { target: ".wh-toggle-btn.active", title: "Change the view", description: "Toggle between the drag-and-drop Blockly workspace and the Python code it generates." },
+      { target: ".wh-btn-save", title: "Run the code", description: "Use this to quickly try your code without submitting it for grading yet." },
+      { target: ".wh-btn-run", title: "Grade the activity", description: "When you're confident in your solution, run it against the test cases here." },
+      { target: ".footer-tab:nth-child(1)", title: "Check the console", description: "Errors and printed output show up here — check it whenever something looks off.", onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); } },
+      { target: ".footer-tab:nth-child(2)", title: "See the complexity breakdown", description: "After running, this panel shows the time and space complexity AlgoBlocks detected for your code.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("overall"); } },
+      { target: ".big-o-btn", title: "Big-O reference", description: "Not sure what a complexity class means yet? Open this any time for definitions and examples.", onEnter: () => setIsBigOModalOpen(true), onExit: () => setIsBigOModalOpen(false) },
+    ],
+    "l1-t3": [
+      { target: ".activity-task-description", title: "The task changes, the workflow doesn't", description: "Every activity follows the same loop: read the task, build a solution, then run and grade it." },
+      { target: ".wh-toggle-btn.active", title: "Workspace vs. Python", description: "You can build visually with blocks or, once comfortable, switch to editing the generated Python directly." },
+      { target: ".footer-tab:nth-child(2)", title: "Compare against the target complexity", description: "This activity has a target time/space complexity — the complexity panel shows how your solution measures up.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("overall"); } },
+      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(5)", title: "Trace recursive calls", description: "If your solution uses recursion, the call graph here helps you visualize each call.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("callgraph"); } },
+      { target: ".wh-btn-run", title: "Submit for grading", description: "Once your solution passes your own checks, submit it here to see your official results." },
     ],
   };
+
+  const genericActivityTourSteps = [
+    { target: ".wh-toggle-btn.active", title: "Change the view", description: "Switch between the visual Blockly workspace and generated Python code." },
+    { target: ".wh-btn-save", title: "Run the code", description: "Quickly execute your current code without submitting it to the activity grader." },
+    { target: ".wh-btn-run", title: "Grade the activity", description: "Run the full evaluation when you are ready to submit your solution." },
+    { target: ".footer-tab:nth-child(2)", title: "Open complexity analysis", description: "Switch to the complexity panel for time and space analysis.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("overall"); } },
+    { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you need a reminder of the notation.", onEnter: () => setIsBigOModalOpen(true), onExit: () => setIsBigOModalOpen(false) },
+  ];
+
+  const activityTourPageId = `activity-${moduleId}-${activityId}`;
+
+  const activityTour = {
+    id: "activity-tour",
+    pageId: activityTourPageId,
+    title: isIntroActivity ? "Getting Started With This Activity" : "Activity Tour",
+    steps: (introActivityId && activityTourStepsByActivity[introActivityId]) || genericActivityTourSteps,
+  };
+
+  // Auto-show the tour only the first time this specific activity is
+  // opened. Each activity is tracked under its own pageId, so finishing
+  // (or skipping) one activity's tour never affects another activity's
+  // onboarding status. The tour is only ever marked "seen" by OnboardingTour
+  // itself, and only once the user reaches the final step — see
+  // OnboardingContext.markPageReplay/markPageSeen.
+  useEffect(() => {
+    if (!activityDataResolved) return;
+    const seen = Boolean(onboardingState?.pages?.[activityTourPageId]?.seen);
+    if (seen) return;
+    const timer = setTimeout(() => {
+      startTour(activityTour);
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activityDataResolved, onboardingState, activityTourPageId]);
 
   const [syntaxErrors, setSyntaxErrors] = useState([]);
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
 
   const { panelHeight, handleDragStart } = usePanelResizer(300);
 
-  const [activityDataResolved, setActivityDataResolved] = useState(null);
   const [topicIdResolved, setTopicIdResolved] = useState(null);
   const [lessonActivitiesResolved, setLessonActivitiesResolved] = useState([]);
 
