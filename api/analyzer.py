@@ -23,123 +23,6 @@ def extract_constant(node):
     if getattr(ast, 'Str', None) and isinstance(node, ast.Str): return node.s
     return None
 
-# Whole-token identifier vocabulary used to detect memoization/DP/graph
-# "visited" naming conventions. IMPORTANT: this must be matched against
-# tokenized identifier PARTS (see _name_hints_memo_or_graph), never as a raw
-# substring -- a bare `in` check would false-positive on any identifier that
-# merely happens to contain these letters in sequence, e.g. "findPeakUtil"
-# contains "dp", "endpoint" contains "dp", "revisited"/"provision" style
-# words contain "visit"-adjacent runs, etc.
-_MEMO_GRAPH_NAME_TOKENS = {
-    "dp", "memo", "memoize", "memoized", "memoization",
-    "cache", "cached", "caching",
-    "visit", "visited", "visiting", "visitor",
-}
-
-
-def _name_hints_memo_or_graph(identifier):
-    """
-    True if `identifier`, split into its snake_case/camelCase word tokens,
-    contains a whole token that's a memoization/DP/graph-visited naming
-    convention (e.g. `dp`, `memo_table` -> "memo", `visited` -> "visited").
-    Deliberately requires a full-token match rather than a substring match,
-    so names like `findPeakUtil` (contains "dp" mid-word) or `endpoint`
-    (also contains "dp") are correctly NOT treated as memoized/DP functions.
-    """
-    tokens = re.findall(r'[A-Za-z][a-z0-9]*', identifier)
-    return any(t.lower() in _MEMO_GRAPH_NAME_TOKENS for t in tokens)
-
-
-def _detect_factorial_branching(func_node):
-    """
-    Structural detector for "T(n) = n * T(n-1)"-style branching recursion
-    (permutation/subsequence-style enumeration), which is asymptotically
-    O(n!) -- as distinct from a recursive call sitting inside a loop with a
-    fixed/constant branching factor, which multiplies out to a constant-base
-    exponential O(b^n) (bucketed as O(2^n) by this engine's taxonomy).
-
-    Previously this distinction was made purely by checking whether the
-    function's own NAME contained "permutation"/"permute", which misses any
-    equivalently-shaped recursion that isn't literally named that way (e.g.
-    a helper called `generate`). Here we instead look for the actual
-    structural signature: a `for` loop bounded by `range(len(X))` (X being
-    one of the function's own parameters, or a local derived from one),
-    whose body both (a) recursively calls this same function and (b)
-    visibly removes/excludes one element from X (via `.remove(`, `.pop(`,
-    or a slice-and-recombine like `x[:i] + x[i+1:]`) before passing it
-    down. That shrink-by-one-per-branch pattern is what makes the branching
-    factor equal to the (shrinking) remaining input size at every
-    recursion depth -- the defining trait of factorial growth -- rather
-    than a fixed constant multiplied out at every depth.
-    """
-    func_name = func_node.name
-    param_names = {a.arg for a in func_node.args.args}
-
-    def loop_bound_name(for_node):
-        it = for_node.iter
-        if isinstance(it, ast.Call) and getattr(getattr(it, 'func', None), 'id', '') == 'range' and it.args:
-            last_arg = it.args[-1]
-            if isinstance(last_arg, ast.Call) and getattr(getattr(last_arg, 'func', None), 'id', '') == 'len' and last_arg.args:
-                base = last_arg.args[0]
-                if isinstance(base, ast.Name):
-                    return base.id
-        return None
-
-    def scan(node):
-        for child in ast.iter_child_nodes(node):
-            if isinstance(child, ast.For):
-                bound_name = loop_bound_name(child)
-                if bound_name:
-                    derived_names = {bound_name} | param_names
-
-                    # First pass: find any local variables that are just a
-                    # copy of the base collection (e.g. `t = list(s).copy()`,
-                    # `t = s[:]`), since the "remove one element" mutation
-                    # typically happens on a fresh copy, not the original.
-                    for sub in ast.walk(child):
-                        if isinstance(sub, ast.Assign) and len(sub.targets) == 1 and isinstance(sub.targets[0], ast.Name):
-                            tgt_name = sub.targets[0].id
-                            val = sub.value
-                            if isinstance(val, ast.Call) and getattr(getattr(val, 'func', None), 'attr', '') == 'copy':
-                                val = getattr(val.func, 'value', val)
-                            if isinstance(val, ast.Call) and getattr(getattr(val, 'func', None), 'id', '') in ('list', 'set', 'sorted') and val.args:
-                                arg0 = val.args[0]
-                                if isinstance(arg0, ast.Name) and arg0.id in derived_names:
-                                    derived_names.add(tgt_name)
-                            elif isinstance(val, ast.Name) and val.id in derived_names:
-                                derived_names.add(tgt_name)
-                            elif isinstance(val, ast.Subscript) and isinstance(getattr(val, 'value', None), ast.Name) and val.value.id in derived_names:
-                                derived_names.add(tgt_name)
-
-                    has_recursive_call = False
-                    has_shrink_op = False
-                    for sub in ast.walk(child):
-                        if isinstance(sub, ast.Call):
-                            fid = getattr(getattr(sub, 'func', None), 'id', None)
-                            fattr = getattr(getattr(sub, 'func', None), 'attr', None)
-                            fval = getattr(getattr(sub, 'func', None), 'value', None)
-                            if fid == func_name:
-                                has_recursive_call = True
-                            if fattr in ('remove', 'pop') and isinstance(fval, ast.Name) and fval.id in derived_names:
-                                has_shrink_op = True
-                        if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.Add):
-                            bin_names = {n.id for n in ast.walk(sub) if isinstance(n, ast.Name)}
-                            if bin_names & derived_names:
-                                has_shrink_op = True
-                    if has_recursive_call and has_shrink_op:
-                        return True
-                if scan(child):
-                    return True
-            else:
-                if scan(child):
-                    return True
-        return False
-
-    try:
-        return scan(func_node)
-    except Exception:
-        return False
-
 def preprocess_source(source_code):
     """
     Sanitizes raw algorithms by seamlessly patching Python 2 legacy syntax 
@@ -333,7 +216,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_dead_code = False
         self.in_graph_context = False        
         self.has_recursion_in_loop = False  
-        self.has_factorial_branching = False
         self.has_slicing = False            
         self.has_partitioning = False
         self.has_division = False           
@@ -365,13 +247,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         elif "n^2" in complexity_str or "n²" in complexity_str: w = 20
         elif "n log n" in complexity_str: w = 15
         elif "V + E" in complexity_str or "V" in complexity_str: w = 12
-        # NOTE: "sqrt n" and "log n" both contain the plain substring "n", so
-        # these two checks MUST come before the generic "n" check below --
-        # otherwise every O(sqrt n)/O(log n) complexity silently falls into
-        # the O(n) bucket and the two branches beneath become dead code.
+        elif "n" in complexity_str: w = 10
         elif "sqrt n" in complexity_str or "√n" in complexity_str: w = 7
         elif "log n" in complexity_str: w = 5
-        elif "n" in complexity_str: w = 10
         return w
 
     def _get_space_weight(self, complexity_str):
@@ -381,12 +259,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: s_w = 4
         elif "n^2" in complexity_str or "n²" in complexity_str: s_w = 2
         elif "V + E" in complexity_str or "V" in complexity_str: s_w = 3
-        # Same substring-ordering fix as _get_weight above: "sqrt n" and
-        # "log n" both contain "n", so they must be checked first or they're
-        # unreachable and get silently upgraded to the O(n) weight (1).
-        elif "sqrt n" in complexity_str or "√n" in complexity_str: s_w = 0.7
-        elif "log n" in complexity_str: s_w = 0.5
-        elif "n" in complexity_str: s_w = 1
+        elif "n" in complexity_str: s_w = 1 
+        elif "log n" in complexity_str: s_w = 0.5  
         return s_w
 
     def _apply_bottlenecks(self):
@@ -667,17 +541,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         if child.func.attr in ['add', 'append'] and isinstance(getattr(child.func, 'value', None), ast.Name) and any(kw in child.func.value.id.lower() for kw in ['visit', 'seen', 'explored', 'marked', 'color']): has_visited_set = True
                     if isinstance(getattr(child, 'func', None), ast.Name) and child.func.id == node.name:
                         rec_calls += 1
-                # Also catch the equally-common "mark visited via assignment"
-                # idiom -- visited[i][j] = True / seen[node] = 1 / marked[x]
-                # = True -- not just the `.add()`/`.append()` call style above.
-                # This is real evidence of a memoized/bounded traversal, and
-                # broadening it here reduces the risk of regressions from
-                # tightening the name-hint requirement below.
-                if isinstance(child, ast.Assign):
-                    for t in child.targets:
-                        base = t.value if isinstance(t, ast.Subscript) else t
-                        if isinstance(base, ast.Name) and any(kw in base.id.lower() for kw in ['visit', 'seen', 'explored', 'marked', 'color']):
-                            has_visited_set = True
                 if isinstance(child, ast.Compare) and any(isinstance(op, (ast.Lt, ast.LtE, ast.Gt, ast.GtE)) for op in getattr(child, 'ops', [])):
                     if any(getattr(n, 'id', '') in ['row', 'col', 'grid', 'matrix'] for n in safe_walk(child)):
                         has_grid_checks = True
@@ -688,20 +551,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             
         name_hints = any(re.search(rf'\b{k}\b', func_name) for k in ['maze', 'graph', 'dfs', 'bfs', 'flood', 'fill', 'island', 'rotten', 'grid', 'matrix', 'adj', 'mirror'])
         
-        # A name like "DFS"/"BFS"/"grid"/"matrix" alone is NOT sufficient
-        # evidence of a bounded O(V+E) traversal -- unbounded exponential
-        # backtracking searches (e.g. word-search over a grid, N-Queens,
-        # Sudoku solvers) are routinely named this way too, and without a
-        # visited/seen marker (or a genuine neighbor-list style loop) to
-        # prevent revisiting states, the real complexity is exponential, not
-        # linear in V+E. Bare index-range checks (`0 <= row < ROWS`) are
-        # NOT that evidence either -- they're just bounds validation and
-        # appear in both bounded graph traversals and unbounded backtracking
-        # alike, so they no longer count as corroboration on their own.
         return (has_queue_while and (has_neighbor_for or has_visited_set)) or \
                (has_recursive_for and (has_neighbor_for or has_visited_set)) or \
-               (rec_calls >= 2 and has_visited_set) or \
-               (name_hints and (has_visited_set or has_neighbor_for))
+               (rec_calls >= 2 and (has_visited_set or has_grid_checks)) or name_hints
 
     def _is_graph_while_loop(self, node):
         try:
@@ -1370,11 +1222,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif isinstance(dec, ast.Call) and getattr(getattr(dec, 'func', None), 'id', '') in ['lru_cache', 'cache']: is_memoized_or_graph = True
         
         for child in safe_walk(node):
-            if isinstance(child, ast.Name) and _name_hints_memo_or_graph(child.id):
+            if isinstance(child, ast.Name) and any(k in child.id.lower() for k in ['memo', 'cache', 'dp', 'visit']):
                 is_memoized_or_graph = True
 
         if is_memoized_or_graph: self.memoized_funcs.add(node.name)
-        self.has_factorial_branching = _detect_factorial_branching(node)
 
         start_idx = len(self._details)
         prev_data = (self.max_complexity, getattr(self, 'max_space_weight', 0), self.max_poly_str, self.max_log, self.max_sqrt, self.max_exp, getattr(self, 'max_graph_ve', 0), getattr(self, 'max_fact', 0))
@@ -1449,7 +1300,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.has_division = True
 
         if is_memoized_or_graph and (self.recursive_calls_count > 0 or self.has_recursion_in_loop):
-            if self.in_graph_context or any(t in ('visit', 'visited', 'visiting', 'visitor') for t in re.findall(r'[A-Za-z][a-z0-9]*', node.name.lower())):
+            if self.in_graph_context or 'visit' in node.name.lower():
                 relation = "O(V + E)"
                 self.custom_space[node.name] = "O(V + E)"
             elif is_2d_memo:
@@ -1463,7 +1314,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 relation = "O(log n)"
             elif is_indirect:
                 relation = "T(n) = T(n-1) + O(1)" 
-            elif self.has_factorial_branching or (any(k in node.name.lower() for k in ['permutation', 'permute']) and self.recursive_calls_count > 0):
+            elif any(k in node.name.lower() for k in ['permutation', 'permute']) and self.recursive_calls_count > 0:
                 relation = "T(n) = n * T(n-1)"
             elif self.has_recursion_in_loop: 
                 if self.in_graph_context:
@@ -1970,7 +1821,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             break
 
                 self.first_rec_line = min(self.first_rec_line, getattr(node, 'lineno', float('inf')))
-                if self.loop_depth > 0:
+                if len(self.active_poly_dims) > 0 or self.log_loop_depth > 0: 
                     self.has_recursion_in_loop = True  
 
                 self.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
@@ -2483,7 +2334,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         if "n!" in all_comps: return "O(n!)"
         if "2^n" in all_comps or "2ⁿ" in all_comps: return "O(2^n)"
-        if "V + E" in all_comps or "o(v + e)" in all_comps: return "O(V + E)"
+        if "V + E" in all_comps or "o(v + e)" in all_comps or 'dfs(' in raw_code or 'bfs(' in raw_code: return "O(V + E)"
         if "n^2" in all_comps or "n²" in all_comps: return "O(n^2)"
         if "n log n" in all_comps or re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: return "O(n log n)"
         if "sqrt n" in all_comps: return "O(sqrt n)"
@@ -2507,7 +2358,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if "n!" in all_spaces: return "O(n!)"
         if "2^n" in all_spaces or "2ⁿ" in all_spaces: return "O(2^n)"
         if "n^2" in all_spaces or "n²" in all_spaces: return "O(n^2)"
-        if "V + E" in all_spaces or "O(V)" in all_spaces: return "O(V + E)"
+        if "V + E" in all_spaces or "adj =" in raw_code or "graph =" in raw_code or "O(V)" in all_spaces or "dfs(" in raw_code or "bfs(" in raw_code: return "O(V + E)"
         if "O(n)" in all_spaces: return "O(n)"
         if "sqrt n" in all_spaces: return "O(sqrt n)"
         if "log n" in all_spaces: return "O(log n)"

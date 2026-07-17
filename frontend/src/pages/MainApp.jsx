@@ -17,7 +17,6 @@ import { projectsDB, templatesDB } from "../db.js";
 import "../styles/MainApp.css";
 
 import { FiChevronRight, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
-import { useOnboarding } from "../context/OnboardingContext.jsx";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { sanitizePythonCode, usePanelResizer } from "../utils/asymptoticParser.jsx";
 import { translatePythonError } from "../utils/errorTranslator.js";
@@ -142,25 +141,6 @@ export default function MainApp() {
   const currentUser = getUser();
   const isAdmin = !!currentUser?.isAdmin;
   const isGuest = currentUser?.isGuest === true;
-
-  const { state: onboardingState, startTour } = useOnboarding();
-
-  // Auto-show the workspace tour only the first time this user opens the
-  // free-form workspace. Tracked under its own "workspace" pageId, so it
-  // is completely independent of the Dashboard/Learning Path/activity
-  // tours. As with those, OnboardingTour only marks this "seen" once the
-  // user reaches the final step — exiting early leaves it unseen so it
-  // reappears next visit.
-  useEffect(() => {
-    if (!currentUser || isGuest) return;
-    const seen = Boolean(onboardingState?.pages?.workspace?.seen);
-    if (seen) return;
-    const timer = setTimeout(() => {
-      startTour(workspaceTour);
-    }, 400);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.email, isGuest, onboardingState]);
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });

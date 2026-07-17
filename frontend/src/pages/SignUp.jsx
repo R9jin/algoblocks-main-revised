@@ -95,6 +95,8 @@ export default function SignUp() {
           onboarding_state: data.onboarding_state || { tourSeen: false, completedAt: null, pages: {} }
         }));
         
+        window.dispatchEvent(new Event("localDataSynced"));
+
         navigate("/dashboard");
       } else {
         showToast("Registration successful! Redirecting to login...", "success");
@@ -151,6 +153,8 @@ export default function SignUp() {
         assessments: data.assessments || {},
         onboarding_state: data.onboarding_state || { tourSeen: false, completedAt: null, pages: {} }
       }));
+
+      window.dispatchEvent(new Event("localDataSynced"));
 
       navigate("/dashboard");
       

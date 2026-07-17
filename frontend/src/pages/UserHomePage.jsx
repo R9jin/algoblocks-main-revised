@@ -16,7 +16,6 @@ import Footer from "../components/Footer";
 import UserHeader from "../components/UserHeader";
 import curriculumIndex from "../data/curriculumIndex";
 import { progressDB } from "../db";
-import { useOnboarding } from "../context/OnboardingContext.jsx";
 import "../styles/UserHomePage.css";
 
 const allLessons = curriculumIndex.flatMap((module) =>
@@ -144,8 +143,6 @@ export default function UserHomePage() {
   const [learningStatus, setLearningStatus] = useState(() => getLearningStatus());
   const navigate = useNavigate();
 
-  const { state: onboardingState, startTour } = useOnboarding();
-
   const userHomeTour = {
     id: "user-home-tour",
     pageId: "home",
@@ -156,21 +153,6 @@ export default function UserHomePage() {
       { target: ".user-home-feature-grid, .explore-features-grid", title: "Explore tools", description: "Review the major learning tools and what each one does." },
     ],
   };
-
-  // Auto-show the home tour only the first time this user lands here.
-  // Tracked under its own "home" pageId, independent of every other tour.
-  // `user` loads asynchronously below, so this waits for it before
-  // deciding whether to show anything.
-  useEffect(() => {
-    if (!user || user.isGuest) return;
-    const seen = Boolean(onboardingState?.pages?.home?.seen);
-    if (seen) return;
-    const timer = setTimeout(() => {
-      startTour(userHomeTour);
-    }, 400);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.email, onboardingState]);
 
   useEffect(() => {
     let cancelled = false;

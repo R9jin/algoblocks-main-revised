@@ -70,9 +70,56 @@ export function OnboardingProvider({ children }) {
   const [user, setUser] = useState(null);
   const [state, setState] = useState(() => normalizeState());
   const [tour, setTour] = useState(null);
+  const [isHydrated, setIsHydrated] = useState(false);
   const pendingSyncRef = useRef(false);
+  const hydrateRequestIdRef = useRef(0);
 
   const userKey = useMemo(() => getUserKey(user), [user]);
+
+  // Explicitly re-fetches onboarding progress from Postgres and reconciles it
+  // into state. This is the authoritative source: the onboarding_state
+  // embedded in the login/signup response can go stale (e.g. a previous
+  // sync from another tab/device landed after that response was generated),
+  // so every auth-change re-confirms against the server rather than trusting
+  // only what was cached at login time or in localStorage.
+  const hydrateFromServer = (parsedUser) => {
+    const requestId = ++hydrateRequestIdRef.current;
+    if (!parsedUser?.email || parsedUser.isGuest) {
+      setIsHydrated(true);
+      return;
+    }
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+    const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+    if (!token || !apiBase) {
+      setIsHydrated(true);
+      return;
+    }
+
+    fetch(`${apiBase}/api/get-onboarding`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        // A newer auth-change (e.g. a second, faster login) started after
+        // this request went out — drop this stale response instead of
+        // clobbering whatever the newer request already resolved.
+        if (requestId !== hydrateRequestIdRef.current) return;
+        if (data?.onboarding_state) {
+          setState((prev) => {
+            const merged = mergeOnboardingStates(data.onboarding_state, prev);
+            writeStoredState(getUserKey(parsedUser), merged);
+            return merged;
+          });
+        }
+      })
+      .catch(() => {
+        // Offline or the request failed: fall back to whatever was already
+        // merged from the login payload + local cache. Don't block forever.
+      })
+      .finally(() => {
+        if (requestId === hydrateRequestIdRef.current) setIsHydrated(true);
+      });
+  };
 
   useEffect(() => {
     const handleAuthChange = () => {
@@ -81,6 +128,7 @@ export function OnboardingProvider({ children }) {
         if (!stored || stored === "undefined" || stored === "null") {
           setUser(null);
           setState(normalizeState());
+          setIsHydrated(true);
           return;
         }
         const parsed = JSON.parse(stored);
@@ -94,9 +142,12 @@ export function OnboardingProvider({ children }) {
         // Immediately re-persist the merged/reconciled result locally so this
         // device's cache reflects the union rather than staying stale.
         writeStoredState(getUserKey(parsed), merged);
+        setIsHydrated(false);
+        hydrateFromServer(parsed);
       } catch {
         setUser(null);
         setState(normalizeState());
+        setIsHydrated(true);
       }
     };
 
@@ -155,15 +206,14 @@ export function OnboardingProvider({ children }) {
   const startTour = (tourConfig) => setTour(tourConfig);
   const closeTour = () => setTour(null);
 
-  const markSystemSeen = (completedAt = new Date().toISOString()) => {
-    setState((prev) => ({ ...normalizeState(prev), tourSeen: true, completedAt }));
-  };
-
-  // Marks a single page/activity tour as completed. This intentionally does
-  // NOT touch the global `tourSeen` flag — page-specific tours must be
-  // tracked independently, so finishing the Dashboard tour (for example)
-  // must never cause an unrelated activity tour to be treated as seen.
-  const markPageSeen = (pageId, completedAt = new Date().toISOString()) => {
+  // Records that a tour was opened (auto-shown or manually replayed), purely
+  // for bookkeeping (replayCount / lastOpenedAt). This must NEVER set
+  // `seen: true` — "seen" means the tour was actually completed, and is the
+  // only flag anything should gate auto-showing on. Getting this backwards
+  // (marking seen the moment a tour merely starts) is what previously let
+  // people dismiss/skip/refresh past a tour and never see it again even
+  // though they'd never finished it.
+  const markPageOpened = (pageId) => {
     if (!pageId) return;
     setState((prev) => {
       const currentPage = normalizeState(prev).pages?.[pageId] || {};
@@ -173,54 +223,49 @@ export function OnboardingProvider({ children }) {
           ...normalizeState(prev).pages,
           [pageId]: {
             ...currentPage,
-            seen: true,
-            replayCount: Number(currentPage.replayCount || 0),
-            lastSeenAt: completedAt,
-            lastCompletedAt: completedAt,
-          },
-        },
-      };
-    });
-  };
-
-  // Records that a page/activity tour was opened, and only flips `seen` to
-  // true when the tour was actually completed (reached its final step).
-  // If the user exits, closes, refreshes, or otherwise abandons the tour
-  // early, `completed` is false here and `seen` must stay whatever it was
-  // before — an interrupted tour must reappear next time the page loads,
-  // not be silently marked as done just because it was opened.
-  const markPageReplay = (pageId, completed = false) => {
-    if (!pageId) return;
-    setState((prev) => {
-      const currentPage = normalizeState(prev).pages?.[pageId] || {};
-      return {
-        ...normalizeState(prev),
-        pages: {
-          ...normalizeState(prev).pages,
-          [pageId]: {
-            ...currentPage,
-            seen: completed === true ? true : currentPage.seen === true,
             replayCount: Number(currentPage.replayCount || 0) + 1,
             lastOpenedAt: new Date().toISOString(),
-            lastCompletedAt: completed ? new Date().toISOString() : currentPage.lastCompletedAt || null,
           },
         },
       };
     });
+  };
+
+  // Records that a tour was actually completed — the user reached the final
+  // step and clicked Finish. This is the ONLY thing that should ever set a
+  // page's `seen` flag, since `seen` is what pages check before deciding
+  // whether to auto-show a tour again.
+  const markPageCompleted = (pageId, completedAt = new Date().toISOString()) => {
+    if (!pageId) return;
+    setState((prev) => ({
+      ...normalizeState(prev),
+      tourSeen: true,
+      completedAt: prev.completedAt || completedAt,
+      pages: {
+        ...normalizeState(prev).pages,
+        [pageId]: {
+          ...(normalizeState(prev).pages?.[pageId] || {}),
+          seen: true,
+          replayCount: Number(normalizeState(prev).pages?.[pageId]?.replayCount || 0),
+          lastSeenAt: completedAt,
+          lastCompletedAt: completedAt,
+        },
+      },
+    }));
   };
 
   const api = useMemo(() => ({
     user,
     setUser,
     state,
+    isHydrated,
     tour,
     startTour,
     closeTour,
-    markSystemSeen,
-    markPageSeen,
-    markPageReplay,
+    markPageOpened,
+    markPageCompleted,
     setState,
-  }), [user, state, tour]);
+  }), [user, state, isHydrated, tour]);
 
   return <OnboardingContext.Provider value={api}>{children}</OnboardingContext.Provider>;
 }

@@ -147,7 +147,26 @@ export const SyncManager = {
                 }
             }
 
-            // 5. Process Offline Action Queue (e.g. Project or Template Deletions)
+            // 5. Push onboarding tour completion state (guards against the
+            // OnboardingContext's own POST never firing in this tab/session,
+            // e.g. a stale tab that never re-mounted the provider).
+            try {
+                const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+                if (storedUser && storedUser !== "null" && storedUser !== "undefined") {
+                    const parsedUser = JSON.parse(storedUser);
+                    if (parsedUser?.onboarding_state) {
+                        await fetch(`${API_BASE_URL}/update-onboarding`, {
+                            method: "POST",
+                            headers,
+                            body: JSON.stringify({ onboarding_state: parsedUser.onboarding_state })
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to sync onboarding state", e);
+            }
+
+            // 6. Process Offline Action Queue (e.g. Project or Template Deletions)
             const queue = await syncQueueDB.getAll();
             for (const task of queue) {
                 try {
@@ -301,6 +320,31 @@ export const SyncManager = {
                     }
                 }
             }
+            // Pull Onboarding Tour Progress
+            const onboardingRes = await fetch(`${API_BASE_URL}/get-onboarding`, { headers });
+            if (onboardingRes.ok) {
+                const onboardingData = await onboardingRes.json();
+                if (onboardingData.onboarding_state) {
+                    const activeStorage = localStorage.getItem("user") ? localStorage : sessionStorage;
+                    const storedUser = activeStorage.getItem("user");
+                    if (storedUser && storedUser !== "null" && storedUser !== "undefined") {
+                        try {
+                            const parsedUser = JSON.parse(storedUser);
+                            activeStorage.setItem("user", JSON.stringify({
+                                ...parsedUser,
+                                onboarding_state: onboardingData.onboarding_state,
+                            }));
+                            // OnboardingContext listens for this event and re-merges
+                            // the freshly pulled server state with its local cache,
+                            // which is what actually suppresses a tour on this
+                            // device once another device has completed it.
+                            window.dispatchEvent(new Event("localDataSynced"));
+                        } catch (e) {
+                            console.error("Failed to apply pulled onboarding state", e);
+                        }
+                    }
+                }
+            }
         } catch (error) {
             console.error("Failed to pull remote Postgres state:", error);
         }
@@ -323,6 +367,7 @@ export const startBackgroundSync = (intervalMs = 30000) => {
     // Set interval for periodic syncing
     syncIntervalId = setInterval(() => {
         SyncManager.syncDataWithServer();
+        SyncManager.pullRemoteState();
     }, intervalMs);
 };
 
