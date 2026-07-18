@@ -327,6 +327,168 @@
 .val-standard{ color: #0F172A; }
 .val-muted   { color: #94A3B8; }
 
+/* --- VISUAL METRIC PANELS (Overall / Line-level accuracy) --- */
+.eval-metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 4px 20px 24px;
+}
+
+.eval-metric-panel {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 20px 22px 18px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.eval-metric-panel-hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07);
+}
+
+.eval-metric-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1E293B;
+  margin-bottom: 16px;
+}
+
+.eval-metric-panel-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.eval-metric-panel-body {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.eval-metric-ring-visual {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.eval-metric-ring-svg {
+  transform: rotate(-90deg);
+}
+
+.eval-metric-ring-track {
+  fill: none;
+  stroke: #EEF2F7;
+}
+
+.eval-metric-ring-progress {
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.eval-metric-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eval-metric-ring-percent {
+  font-size: 19px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.eval-metric-panel-stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.eval-metric-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.eval-metric-stat-row-muted {
+  padding-top: 6px;
+  margin-top: 2px;
+  border-top: 1px dashed #E2E8F0;
+}
+
+.eval-metric-stat-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.eval-metric-stat-dot-pass {
+  background: rgba(16, 185, 129, 0.14);
+  color: #10B981;
+}
+
+.eval-metric-stat-dot-fail {
+  background: rgba(239, 68, 68, 0.12);
+  color: #EF4444;
+}
+
+.eval-metric-stat-name {
+  color: #64748B;
+  font-weight: 600;
+}
+
+.eval-metric-stat-num {
+  margin-left: auto;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.eval-metric-num-pass { color: #0F9F6E; }
+.eval-metric-num-fail { color: #DC4646; }
+
+.eval-metric-panel-bar {
+  height: 6px;
+  border-radius: 4px;
+  background: #EEF2F7;
+  margin-top: 16px;
+  overflow: hidden;
+}
+
+.eval-metric-panel-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 720px) {
+  .eval-metric-grid {
+    grid-template-columns: 1fr;
+  }
+  .eval-metric-panel-body {
+    flex-wrap: wrap;
+  }
+}
+
 /* --- HOVER PIE-CHART BREAKDOWN (accuracy cards) --- */
 .metric-hover-wrapper {
   position: relative;
@@ -1103,6 +1265,85 @@
   color: #64748B;
   font-weight: 500;
   font-size: 15px;
+}
+
+/* --- Google-style results pagination --- */
+.eval-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-top: 1px solid #E2E8F0;
+}
+
+.eval-pagination-range {
+  font-size: 13px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.eval-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.eval-page-arrow,
+.eval-page-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.eval-page-arrow:hover:not(:disabled),
+.eval-page-num:hover:not(.eval-page-num-active) {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+}
+
+.eval-page-arrow:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.eval-page-num-active {
+  background: #10B981;
+  border-color: #10B981;
+  color: #FFFFFF;
+}
+
+.eval-page-dots {
+  min-width: 24px;
+  text-align: center;
+  color: #94A3B8;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 640px) {
+  .eval-pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .eval-pagination-controls {
+    margin-left: 0;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
 }
 
 /* --- REVEALING LINE CHECKING DROPDOWN MATRIX --- */

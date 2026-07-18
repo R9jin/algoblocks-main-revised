@@ -6,6 +6,7 @@ import {
   FiBarChart2,
   FiCheckCircle,
   FiChevronDown, FiChevronUp,
+  FiChevronLeft, FiChevronRight,
   FiClock, FiCode,
   FiCornerDownRight,
   FiCpu, FiDatabase,
@@ -54,6 +55,37 @@ const BIGO_COLOR_MAP = {
 };
 const BIGO_FALLBACK_COLORS = ["#7928CA", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#22D3EE"];
 const getBigOColor = (label, idx) => BIGO_COLOR_MAP[label] || BIGO_FALLBACK_COLORS[idx % BIGO_FALLBACK_COLORS.length];
+
+// Builds a Google-search-style page number list: always shows the first and
+// last page, a window around the current page, and "..." markers to bridge
+// any gaps -- instead of rendering every single page number when there are
+// dozens of them.
+function getPaginationRange(current, total) {
+  const delta = 2;
+  const range = [];
+  const withDots = [];
+  let last;
+
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i);
+    }
+  }
+
+  range.forEach((i) => {
+    if (last) {
+      if (i - last === 2) {
+        withDots.push(last + 1);
+      } else if (i - last > 2) {
+        withDots.push("...");
+      }
+    }
+    withDots.push(i);
+    last = i;
+  });
+
+  return withDots;
+}
 
 // Small hover-triggered popover that reveals a Big-O distribution pie chart
 // on top of a metric stat card. Purely CSS-driven (:hover) so it never
@@ -111,6 +143,76 @@ function MetricPieHoverCard({ label, data, total, children }) {
   );
 }
 
+// Visual ring + stat-pill panel for a single Time/Space metric, matching the
+// simplified user-facing AccuracyOverview page's visual language so admins
+// get the same at-a-glance readability instead of a dense grid of bare
+// number tiles. This is purely presentational -- it renders whatever
+// accuracy/errorRate/passed/mismatches numbers it's given, same data as
+// before, just laid out as a ring with supporting stats instead of 4
+// separate tiles. Meant to be wrapped in <MetricPieHoverCard> so the
+// existing hover-to-see-Big-O-breakdown behavior keeps working unchanged.
+function EvalMetricPanel({ title, icon, tint, accuracy, errorRate, passed, mismatches, hoverable }) {
+  const size = 108;
+  const strokeWidth = 10;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, accuracy ?? 0));
+  const offset = circumference * (1 - clamped / 100);
+  const c = size / 2;
+  const total = (passed ?? 0) + (mismatches ?? 0);
+  const passPct = total > 0 ? (passed / total) * 100 : 0;
+
+  return (
+    <div className={`eval-metric-panel ${hoverable ? "eval-metric-panel-hoverable" : ""}`}>
+      <div className="eval-metric-panel-head">
+        <span className="eval-metric-panel-icon" style={{ background: `${tint}1F`, color: tint }}>
+          {icon}
+        </span>
+        <span>{title}</span>
+        {hoverable && <FiPieChart className="stat-hover-hint-icon" size={11} />}
+      </div>
+
+      <div className="eval-metric-panel-body">
+        <div className="eval-metric-ring-visual" style={{ width: size, height: size }}>
+          <svg viewBox={`0 0 ${size} ${size}`} className="eval-metric-ring-svg" style={{ width: size, height: size }}>
+            <circle cx={c} cy={c} r={radius} className="eval-metric-ring-track" strokeWidth={strokeWidth} />
+            <circle
+              cx={c} cy={c} r={radius}
+              className="eval-metric-ring-progress"
+              strokeWidth={strokeWidth}
+              style={{ stroke: tint, strokeDasharray: circumference, strokeDashoffset: offset }}
+            />
+          </svg>
+          <div className="eval-metric-ring-center">
+            <span className="eval-metric-ring-percent">{clamped.toFixed(1)}%</span>
+          </div>
+        </div>
+
+        <div className="eval-metric-panel-stats">
+          <div className="eval-metric-stat-row">
+            <span className="eval-metric-stat-dot eval-metric-stat-dot-pass"><FiCheckCircle size={11} /></span>
+            <span className="eval-metric-stat-name">Passed</span>
+            <strong className="eval-metric-stat-num eval-metric-num-pass">{passed?.toLocaleString?.() ?? passed}</strong>
+          </div>
+          <div className="eval-metric-stat-row">
+            <span className="eval-metric-stat-dot eval-metric-stat-dot-fail"><FiXCircle size={11} /></span>
+            <span className="eval-metric-stat-name">Mismatches</span>
+            <strong className="eval-metric-stat-num eval-metric-num-fail">{mismatches?.toLocaleString?.() ?? mismatches}</strong>
+          </div>
+          <div className="eval-metric-stat-row eval-metric-stat-row-muted">
+            <span className="eval-metric-stat-name">Error rate</span>
+            <strong className="eval-metric-stat-num">{errorRate}%</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="eval-metric-panel-bar" aria-hidden="true">
+        <div className="eval-metric-panel-bar-fill" style={{ width: `${passPct}%`, background: tint }} />
+      </div>
+    </div>
+  );
+}
+
 export default function EvaluationSuite() {
   const navigate = useNavigate();
   const { worker, isEngineReady } = usePyodide();
@@ -131,6 +233,12 @@ export default function EvaluationSuite() {
 
   const [expandedRows, setExpandedRows] = useState({});
 
+  // Pagination for the results table at the bottom -- Google-style, fixed
+  // page size, reset to page 1 whenever the active filter tab changes so
+  // the person never lands on a now-nonexistent page.
+  const RESULTS_PAGE_SIZE = 20;
+  const [currentPage, setCurrentPage] = useState(1);
+
   // Explainer Modal State & Interactive Sandbox State
   const [isMetricsHelpOpen, setIsMetricsHelpOpen] = useState(false);
 
@@ -143,6 +251,10 @@ export default function EvaluationSuite() {
   const simRecall = sandboxTP / (sandboxTP + sandboxFN) || 0;
   const simF1 = (simPrecision + simRecall > 0) ?
     (2 * simPrecision * simRecall) / (simPrecision + simRecall) : 0;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, results]);
 
   const toggleRowDropdown = (rowId) => {
     setExpandedRows((prev) => ({
@@ -458,6 +570,13 @@ export default function EvaluationSuite() {
     if (activeTab === "line_mismatch") return hasLineMismatch;
     return true;
   });
+
+  const totalResultPages = Math.max(1, Math.ceil(filteredDetails.length / RESULTS_PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalResultPages);
+  const pageDetails = filteredDetails.slice(
+    (safeCurrentPage - 1) * RESULTS_PAGE_SIZE,
+    safeCurrentPage * RESULTS_PAGE_SIZE
+  );
 
   const overallPassCount = results?.details.filter(d => d.isCompletelyCorrect).length || 0;
   const overallMismatchCount = results?.details.filter(d => !d.isCompletelyCorrect).length || 0;
@@ -858,51 +977,31 @@ export default function EvaluationSuite() {
               </div>
             </div>
 
-            <div className="eval-stats-grid">
+            <div className="eval-metric-grid">
               <MetricPieHoverCard label="Overall Time Accuracy" data={overallTimeDistribution} total={processedTimeReport?.totalSupport}>
-                <div className="eval-stat-card eval-stat-card-hoverable" style={{ borderTop: "4px solid #10B981" }}>
-                  <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Overall Time Accuracy <FiPieChart className="stat-hover-hint-icon" size={11} /></div>
-                  <div className={`eval-stat-value ${results.timeAccuracyRate >= 65 ? "val-success" : "val-warning"}`}>
-                    {results.timeAccuracyRate}%
-                  </div>
-                </div>
+                <EvalMetricPanel
+                  title="Time Complexity"
+                  icon={<FiClock size={16} />}
+                  tint="#10B981"
+                  accuracy={results.timeAccuracyRate}
+                  errorRate={results.timeErrorRate}
+                  passed={results.timePassed}
+                  mismatches={results.timeFailed}
+                  hoverable={overallTimeDistribution?.length > 0}
+                />
               </MetricPieHoverCard>
-              <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
-                <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Overall Time Error Rate</div>
-                <div className="eval-stat-value val-danger">
-                  {results.timeErrorRate}%
-                </div>
-              </div>
-              <div className="eval-stat-card">
-                <div className="eval-stat-title">Overall Time Passed</div>
-                <div className="eval-stat-value val-success">{results.timePassed}</div>
-              </div>
-              <div className="eval-stat-card">
-                <div className="eval-stat-title">Overall Time Mismatches</div>
-                <div className={`eval-stat-value ${results.timeFailed > 0 ? "val-danger" : "val-muted"}`}>{results.timeFailed}</div>
-              </div>
               <MetricPieHoverCard label="Overall Space Accuracy" data={overallSpaceDistribution} total={processedSpaceReport?.totalSupport}>
-                <div className="eval-stat-card eval-stat-card-hoverable" style={{ borderTop: "4px solid #0EA5E9" }}>
-                  <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Overall Space Accuracy <FiPieChart className="stat-hover-hint-icon" size={11} /></div>
-                  <div className="eval-stat-value" style={{ color: results.spaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
-                    {results.spaceAccuracyRate}%
-                  </div>
-                </div>
+                <EvalMetricPanel
+                  title="Space Complexity"
+                  icon={<FiCpu size={16} />}
+                  tint="#0EA5E9"
+                  accuracy={results.spaceAccuracyRate}
+                  errorRate={results.spaceErrorRate}
+                  passed={results.spacePassed}
+                  mismatches={results.spaceFailed}
+                  hoverable={overallSpaceDistribution?.length > 0}
+                />
               </MetricPieHoverCard>
-              <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
-                <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Overall Space Error Rate</div>
-                <div className="eval-stat-value val-danger">
-                  {results.spaceErrorRate}%
-                </div>
-              </div>
-              <div className="eval-stat-card">
-                <div className="eval-stat-title">Overall Space Passed</div>
-                <div className="eval-stat-value" style={{ color: "#0EA5E9" }}>{results.spacePassed}</div>
-              </div>
-              <div className="eval-stat-card">
-                <div className="eval-stat-title">Overall Space Mismatches</div>
-                <div className={`eval-stat-value ${results.spaceFailed > 0 ? "val-danger" : "val-muted"}`}>{results.spaceFailed}</div>
-              </div>
             </div>
           </div>
         )}
@@ -920,51 +1019,31 @@ export default function EvaluationSuite() {
               </div>
             </div>
 
-            <div className="eval-stats-grid">
+            <div className="eval-metric-grid">
               <MetricPieHoverCard label="Line Time Accuracy" data={lineTimeDistribution} total={results.totalLinesTested}>
-                <div className="eval-stat-card eval-stat-card-hoverable" style={{ borderTop: "4px solid #10B981" }}>
-                  <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Line Time Accuracy <FiPieChart className="stat-hover-hint-icon" size={11} /></div>
-                  <div className={`eval-stat-value ${results.lineTimeAccuracyRate >= 65 ? "val-success" : "val-warning"}`}>
-                    {results.totalLinesTested > 0 ? results.lineTimeAccuracyRate : "0.0"}%
-                  </div>
-                </div>
+                <EvalMetricPanel
+                  title="Time Complexity"
+                  icon={<FiClock size={16} />}
+                  tint="#10B981"
+                  accuracy={results.totalLinesTested > 0 ? results.lineTimeAccuracyRate : 0}
+                  errorRate={results.totalLinesTested > 0 ? lineTimeErrorRate : "0.0"}
+                  passed={results.lineTimePassed}
+                  mismatches={lineTimeFailed}
+                  hoverable={lineTimeDistribution?.length > 0}
+                />
               </MetricPieHoverCard>
-              <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
-                <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Line Time Error Rate</div>
-                <div className="eval-stat-value val-danger">
-                  {lineTimeErrorRate}%
-                </div>
-              </div>
-              <div className="eval-stat-card">
-                <div className="eval-stat-title">Line Time Passed</div>
-                <div className="eval-stat-value val-success">{results.lineTimePassed}</div>
-              </div>
-              <div className="eval-stat-card">
-                <div className="eval-stat-title">Line Time Mismatches</div>
-                <div className={`eval-stat-value ${lineTimeFailed > 0 ? "val-danger" : "val-muted"}`}>{lineTimeFailed}</div>
-              </div>
               <MetricPieHoverCard label="Line Space Accuracy" data={lineSpaceDistribution} total={results.totalLinesTested}>
-                <div className="eval-stat-card eval-stat-card-hoverable" style={{ borderTop: "4px solid #0EA5E9" }}>
-                  <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Line Space Accuracy <FiPieChart className="stat-hover-hint-icon" size={11} /></div>
-                  <div className="eval-stat-value" style={{ color: results.lineSpaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
-                    {results.totalLinesTested > 0 ? results.lineSpaceAccuracyRate : "0.0"}%
-                  </div>
-                </div>
+                <EvalMetricPanel
+                  title="Space Complexity"
+                  icon={<FiCpu size={16} />}
+                  tint="#0EA5E9"
+                  accuracy={results.totalLinesTested > 0 ? results.lineSpaceAccuracyRate : 0}
+                  errorRate={results.totalLinesTested > 0 ? lineSpaceErrorRate : "0.0"}
+                  passed={results.lineSpacePassed}
+                  mismatches={lineSpaceFailed}
+                  hoverable={lineSpaceDistribution?.length > 0}
+                />
               </MetricPieHoverCard>
-              <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
-                <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Line Space Error Rate</div>
-                <div className="eval-stat-value val-danger">
-                  {lineSpaceErrorRate}%
-                </div>
-              </div>
-              <div className="eval-stat-card">
-                <div className="eval-stat-title">Line Space Passed</div>
-                <div className="eval-stat-value" style={{ color: "#0EA5E9" }}>{results.lineSpacePassed}</div>
-              </div>
-              <div className="eval-stat-card">
-                <div className="eval-stat-title">Line Space Mismatches</div>
-                <div className={`eval-stat-value ${lineSpaceFailed > 0 ? "val-danger" : "val-muted"}`}>{lineSpaceFailed}</div>
-              </div>
             </div>
           </div>
         )}
@@ -1254,7 +1333,7 @@ export default function EvaluationSuite() {
                 </tr>
               </thead>
               <tbody>
-                {filteredDetails.map((row, idx) => {
+                {pageDetails.map((row, idx) => {
                   const isExpanded = !!expandedRows[row.id];
                   const gtLines = row.lineValidationResults?.filter(l => l.hasGroundTruth) || [];
                   const lineFails = gtLines.filter(l => !l.isPassed).length;
@@ -1449,6 +1528,52 @@ export default function EvaluationSuite() {
 
             {filteredDetails.length === 0 && (
               <div className="eval-empty-state">No algorithms match the selected filter.</div>
+            )}
+
+            {filteredDetails.length > 0 && totalResultPages > 1 && (
+              <div className="eval-pagination">
+                <span className="eval-pagination-range">
+                  Showing {(safeCurrentPage - 1) * RESULTS_PAGE_SIZE + 1}
+                  &ndash;{Math.min(safeCurrentPage * RESULTS_PAGE_SIZE, filteredDetails.length)} of {filteredDetails.length}
+                </span>
+                <div className="eval-pagination-controls">
+                  <button
+                    type="button"
+                    className="eval-page-arrow"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={safeCurrentPage === 1}
+                    aria-label="Previous page"
+                  >
+                    <FiChevronLeft />
+                  </button>
+
+                  {getPaginationRange(safeCurrentPage, totalResultPages).map((p, i) =>
+                    p === "..." ? (
+                      <span key={`dots-${i}`} className="eval-page-dots">&hellip;</span>
+                    ) : (
+                      <button
+                        type="button"
+                        key={p}
+                        className={`eval-page-num ${p === safeCurrentPage ? "eval-page-num-active" : ""}`}
+                        onClick={() => setCurrentPage(p)}
+                        aria-current={p === safeCurrentPage ? "page" : undefined}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+
+                  <button
+                    type="button"
+                    className="eval-page-arrow"
+                    onClick={() => setCurrentPage((p) => Math.min(totalResultPages, p + 1))}
+                    disabled={safeCurrentPage === totalResultPages}
+                    aria-label="Next page"
+                  >
+                    <FiChevronRight />
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}

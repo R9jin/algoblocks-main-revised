@@ -95,7 +95,7 @@ export default function MainApp() {
   const [activeTabId, setActiveTabId] = useState(tabs[0].id);
 
   const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? window.navigator.onLine : true);
-  const [bottomPanel, setBottomPanel] = useState(null);
+  const [openPanelIds, setOpenPanelIds] = useState(() => new Set(["blockly", "python", "console", "complexity"]));
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
   const [isSidebarVisible, setIsSidebarVisible] = useState(() => typeof window === "undefined" || window.innerWidth >= 700);
   const [searchTerm, setSearchTerm] = useState("");
@@ -111,10 +111,20 @@ export default function MainApp() {
 
   const dockRef = useRef(null);
   // Brings a panel's tab to the front in whichever region it's currently
-  // docked in, regardless of how the user has rearranged the layout. Used
-  // by the footer buttons, the guided tour, and "Run Code" (which needs to
-  // reveal the console even if the user has since moved it elsewhere).
-  const focusDockPanel = (panelId) => dockRef.current?.focusPanel?.(panelId);
+  // docked in — and re-opens it first if the user had closed it. Used by
+  // the footer buttons, the guided tour, and "Run Code" (which needs to
+  // reveal the console even if it's been closed or moved elsewhere).
+  const focusDockPanel = (panelId) => dockRef.current?.openPanel?.(panelId);
+  // Console/Complexity footer buttons: close the panel if it's currently
+  // open, or open+focus it if it's closed — restoring the original
+  // show/hide toggle behavior on top of the new docking system.
+  const toggleDockPanel = (panelId) => {
+    if (dockRef.current?.isPanelOpen?.(panelId)) {
+      dockRef.current.closePanel(panelId);
+    } else {
+      dockRef.current?.openPanel?.(panelId);
+    }
+  };
 
   const [leaveModal, setLeaveModal] = useState({ isOpen: false, tx: null, targetPath: null });
   const isNavigatingAwayRef = useRef(false);
@@ -834,6 +844,7 @@ export default function MainApp() {
       id: "console",
       title: "Console",
       icon: <FiTerminal size={14} />,
+      closable: true,
       content: (
         <ConsolePanelContent
           consoleTab={consoleTab}
@@ -853,6 +864,7 @@ export default function MainApp() {
       id: "complexity",
       title: "Complexity",
       icon: <FiActivity size={14} />,
+      closable: true,
       content: (
         <ComplexityPanelContent
           activeComplexityTab={activeComplexityTab}
@@ -988,13 +1000,14 @@ export default function MainApp() {
                 layoutKey="mainapp-workspace"
                 panels={dockPanels}
                 defaultLayout={DEFAULT_DOCK_LAYOUT}
+                onLayoutChange={({ openPanelIds: ids }) => setOpenPanelIds(ids)}
               />
             </div>
           </div>
 
           <WorkspaceFooterBar
-            bottomPanel={bottomPanel}
-            onTogglePanel={(panel) => { setBottomPanel(panel); focusDockPanel(panel); }}
+            openPanelIds={openPanelIds}
+            onTogglePanel={toggleDockPanel}
             onOpenBigOModal={() => setIsBigOModalOpen(true)}
           >
             <button className="footer-action-icon reset-layout-btn" onClick={() => dockRef.current?.reset()} title="Restore the default panel layout and sizes">

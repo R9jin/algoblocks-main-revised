@@ -41,6 +41,10 @@ function cloneLayout(layout) {
 // and makes sure every known panel appears exactly once somewhere (falling
 // back to "center") — so a stale localStorage entry, or a future change to
 // the panel list, can never leave a panel undockable or duplicated.
+// `lastRegion` remembers which region each panel was most recently docked
+// in (even after it's closed), so re-opening a closed panel puts it back
+// roughly where the user last had it instead of always defaulting to one
+// fixed spot.
 function reconcileLayout(rawLayout, panels) {
   const validIds = panels.map((p) => p.id);
   const validSet = new Set(validIds);
@@ -69,7 +73,15 @@ function reconcileLayout(rawLayout, panels) {
     activeTab[key] = ids.includes(savedActive) ? savedActive : (ids[0] || null);
   }
 
-  return { regions, activeTab };
+  const lastRegion = {};
+  for (const id of validIds) {
+    let region = REGION_KEYS.find((key) => regions[key].panelIds.includes(id));
+    if (!region) region = rawLayout?.lastRegion?.[id];
+    if (!region || !REGION_KEYS.includes(region)) region = "bottom";
+    lastRegion[id] = region;
+  }
+
+  return { regions, activeTab, lastRegion };
 }
 
 function loadLayout(layoutKey, defaultLayout, panels) {
@@ -126,7 +138,7 @@ function DropOverlay({ quadrant }) {
 }
 
 const DockableWorkspace = forwardRef(function DockableWorkspace(
-  { layoutKey, panels, defaultLayout, className = "" },
+  { layoutKey, panels, defaultLayout, className = "", onLayoutChange },
   ref
 ) {
   const panelsById = useMemo(() => {
@@ -156,6 +168,56 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
     }
   }, [layout, layoutKey]);
 
+  // Lets the host page reactively know which panels are currently open
+  // (docked anywhere) — e.g. to highlight a "Console" footer button only
+  // while the console panel is actually open.
+  useEffect(() => {
+    if (!onLayoutChange) return;
+    const openIds = new Set();
+    for (const key of REGION_KEYS) {
+      layout.regions[key].panelIds.forEach((id) => openIds.add(id));
+    }
+    onLayoutChange({ openPanelIds: openIds });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout]);
+
+  const isPanelOpenInLayout = (currentLayout, panelId) =>
+    REGION_KEYS.some((key) => currentLayout.regions[key].panelIds.includes(panelId));
+
+  const closePanelInternal = (panelId) => {
+    setLayout((prev) => {
+      const fromRegion = REGION_KEYS.find((key) => prev.regions[key].panelIds.includes(panelId));
+      if (!fromRegion) return prev;
+      const next = cloneLayout(prev);
+      next.regions[fromRegion].panelIds = next.regions[fromRegion].panelIds.filter((id) => id !== panelId);
+      if (next.activeTab[fromRegion] === panelId) {
+        next.activeTab[fromRegion] = next.regions[fromRegion].panelIds[0] || null;
+      }
+      next.lastRegion[panelId] = fromRegion;
+      return next;
+    });
+  };
+
+  const openPanelInternal = (panelId) => {
+    setLayout((prev) => {
+      if (isPanelOpenInLayout(prev, panelId)) {
+        return REGION_KEYS.reduce((acc, key) => {
+          if (acc.regions[key].panelIds.includes(panelId) && acc.activeTab[key] !== panelId) {
+            return { ...acc, activeTab: { ...acc.activeTab, [key]: panelId } };
+          }
+          return acc;
+        }, prev);
+      }
+      const targetRegion = (prev.lastRegion?.[panelId] && REGION_KEYS.includes(prev.lastRegion[panelId]))
+        ? prev.lastRegion[panelId]
+        : "bottom";
+      const next = cloneLayout(prev);
+      next.regions[targetRegion].panelIds.push(panelId);
+      next.activeTab[targetRegion] = panelId;
+      return next;
+    });
+  };
+
   useImperativeHandle(ref, () => ({
     reset: () => {
       try {
@@ -180,6 +242,17 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
         return prev;
       });
     },
+    // Fully removes panelId from the layout (it disappears from every
+    // region, and that region collapses if it was the last panel in it) —
+    // this is the "close" behavior the console/complexity tabs used to
+    // have. Remembers where it was so openPanel() can restore it there.
+    closePanel: closePanelInternal,
+    // Re-docks a previously closed panel into whichever region it was last
+    // in (defaulting to "bottom" if it's never been docked at all) and
+    // brings it to the front. No-op if it's already open.
+    openPanel: openPanelInternal,
+    // True if panelId is currently docked anywhere (i.e. open, not closed).
+    isPanelOpen: (panelId) => isPanelOpenInLayout(layout, panelId),
   }));
 
   const setActiveTab = (regionKey, panelId) => {
@@ -245,6 +318,7 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
         next.regions[targetRegion].panelIds.push(panelId);
       }
       next.activeTab[targetRegion] = panelId;
+      next.lastRegion[panelId] = targetRegion;
       return next;
     });
 
@@ -302,6 +376,20 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
                 >
                   {panel.icon}
                   <span className="dock-tab-title">{panel.title}</span>
+                  {panel.closable && (
+                    <span
+                      className="dock-tab-close"
+                      role="button"
+                      tabIndex={-1}
+                      title={`Close ${panel.title}`}
+                      onClick={(e) => { e.stopPropagation(); closePanelInternal(pid); }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M1 1L10 10M10 1L1 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                      </svg>
+                    </span>
+                  )}
                 </div>
               );
             })}
