@@ -9,18 +9,36 @@ import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
-import DockedBottomPanel from "../components/DockedBottomPanel.jsx";
+import DockableWorkspace from "../components/DockableWorkspace.jsx";
+import ComplexityPanelContent from "../components/panelContent/ComplexityPanelContent.jsx";
+import ConsolePanelContent from "../components/panelContent/ConsolePanelContent.jsx";
 import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
 import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
 import WorkspaceHeader from "../components/WorkspaceHeader.jsx";
 import { projectsDB, templatesDB } from "../db.js";
 import "../styles/MainApp.css";
 
-import { FiChevronRight, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
+import { FiActivity, FiChevronRight, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
 import { usePyodide } from "../context/PyodideContext.jsx";
-import { sanitizePythonCode, usePanelResizer } from "../utils/asymptoticParser.jsx";
+import { sanitizePythonCode } from "../utils/asymptoticParser.jsx";
 import { translatePythonError } from "../utils/errorTranslator.js";
 import { syncManager } from "../utils/syncManager.js";
+
+// Default docking arrangement: Blocks and Python are tabbed together in the
+// main center region (mirroring the old toggle button), Console and
+// Complexity are tabbed together docked at the bottom. Any panel can be
+// dragged to any other region at runtime; "Reset Workspace Layout" restores
+// exactly this.
+const DEFAULT_DOCK_LAYOUT = {
+  regions: {
+    top: { panelIds: [], size: 200 },
+    left: { panelIds: [], size: 280 },
+    center: { panelIds: ["blockly", "python"], size: 0 },
+    right: { panelIds: [], size: 340 },
+    bottom: { panelIds: ["console", "complexity"], size: 280 },
+  },
+  activeTab: { top: null, left: null, center: "blockly", right: null, bottom: "console" },
+};
 
 const SIDEBAR_TEMPLATES = [
   { name: "Linear Search", path: "search/linear_search", desc: "Sequentially checks each element.", category: "Search" },
@@ -91,7 +109,12 @@ export default function MainApp() {
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", isDanger: false, onConfirmAction: null });
 
-  const { panelHeight, handleDragStart } = usePanelResizer(300);
+  const dockRef = useRef(null);
+  // Brings a panel's tab to the front in whichever region it's currently
+  // docked in, regardless of how the user has rearranged the layout. Used
+  // by the footer buttons, the guided tour, and "Run Code" (which needs to
+  // reveal the console even if the user has since moved it elsewhere).
+  const focusDockPanel = (panelId) => dockRef.current?.focusPanel?.(panelId);
 
   const [leaveModal, setLeaveModal] = useState({ isOpen: false, tx: null, targetPath: null });
   const isNavigatingAwayRef = useRef(false);
@@ -124,14 +147,14 @@ export default function MainApp() {
       { target: ".wh-toggle-btn.active", title: "Switch views", description: "Move between Blockly blocks and generated Python code." },
       { target: ".sidebar-search input", title: "Find templates", description: "Search built-in templates and your saved work from the sidebar." },
       { target: ".editor-tab-bar", title: "Manage tabs", description: "Open multiple projects and keep them organized side by side." },
-      { target: ".footer-tab:nth-child(1)", title: "Open the console", description: "Bring up the console panel to inspect output from your code.", onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); } },
-      { target: ".bottom-docked-panel .clear-console-btn", title: "Clear console output", description: "Use the clear button when you want to reset the output area.", onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(2)", title: "View line executions", description: "See frequency counts for each generated line of code.", onEnter: () => { setBottomPanel("console"); setConsoleTab("executions"); } },
-      { target: ".footer-tab:nth-child(2)", title: "Open complexity analysis", description: "Switch to the complexity panel to review time, space, and recursion feedback.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("overall"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(2)", title: "Inspect local complexity", description: "Compare the local cost of each line to the rest of the workspace.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("local"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(3)", title: "Inspect global complexity", description: "Review the full algorithm cost as the analysis flows through the code.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("global"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(4)", title: "Inspect memory map", description: "See how memory changes while the code executes.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("memory"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(5)", title: "Inspect the call graph", description: "Trace recursive calls and control flow through the call graph.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("callgraph"); } },
+      { target: ".footer-tab:nth-child(1)", title: "Open the console", description: "Bring up the console panel to inspect output from your code.", onEnter: () => { focusDockPanel("console"); setConsoleTab("output"); } },
+      { target: ".console-content-wrapper .clear-console-btn", title: "Clear console output", description: "Use the clear button when you want to reset the output area.", onEnter: () => { focusDockPanel("console"); setConsoleTab("output"); } },
+      { target: ".console-content-wrapper .tab-btn-group .tab-btn:nth-child(2)", title: "View line executions", description: "See frequency counts for each generated line of code.", onEnter: () => { focusDockPanel("console"); setConsoleTab("executions"); } },
+      { target: ".footer-tab:nth-child(2)", title: "Open complexity analysis", description: "Switch to the complexity panel to review time, space, and recursion feedback.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("overall"); } },
+      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(2)", title: "Inspect local complexity", description: "Compare the local cost of each line to the rest of the workspace.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("local"); } },
+      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(3)", title: "Inspect global complexity", description: "Review the full algorithm cost as the analysis flows through the code.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("global"); } },
+      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(4)", title: "Inspect memory map", description: "See how memory changes while the code executes.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("memory"); } },
+      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(5)", title: "Inspect the call graph", description: "Trace recursive calls and control flow through the call graph.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("callgraph"); } },
       { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you want a quick concept refresher.", onEnter: () => setIsBigOModalOpen(true), onExit: () => setIsBigOModalOpen(false) },
       { target: ".big-o-modal-content", title: "Reference library", description: "Browse the complexity definitions and examples inside the modal." },
       { target: ".big-o-accordion .big-o-row-trigger", title: "Expandable complexity rows", description: "Open any row to read the definition, analogy, and examples for a specific Big-O class." },
@@ -268,11 +291,11 @@ export default function MainApp() {
   }, []);
 
   useEffect(() => {
-    if (workspaceRefs.current[activeTabId] && activeTab?.viewMode === "workspace") {
+    if (workspaceRefs.current[activeTabId]) {
       setTimeout(() => workspaceRefs.current[activeTabId].resize(), 50);
       setTimeout(() => workspaceRefs.current[activeTabId].resize(), 300);
     }
-  }, [activeTabId, activeTab?.viewMode, isSidebarVisible]);
+  }, [activeTabId, isSidebarVisible]);
 
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map((t) => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
@@ -475,7 +498,6 @@ export default function MainApp() {
             isDirty: false,
             ignoreDirtyUntil: Date.now() + 1200
           });
-          setBottomPanel(null);
         }
       },
     });
@@ -488,11 +510,11 @@ export default function MainApp() {
       return;
     }
     if (!activeTab.pythonCode || activeTab.pythonCode.trim() === "" || activeTab.pythonCode === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
+      setConsoleOutput("Error: No code to execute."); focusDockPanel("console"); setConsoleTab("output"); return;
     }
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
     setIsEvaluating(true); updateTab(activeTabId, { lineExecutions: {} });
-    setBottomPanel("console"); setConsoleTab("output"); setConsoleOutput((prev) => prev + "\n> Running the program...\n");
+    focusDockPanel("console"); setConsoleTab("output"); setConsoleOutput((prev) => prev + "\n> Running the program...\n");
 
     outputCountRef.current = 0; pendingOutputRef.current = "";
     renderIntervalRef.current = setInterval(() => {
@@ -766,34 +788,82 @@ export default function MainApp() {
     return acc;
   }, {});
 
-  const renderEditorArea = () => (
-    <>
-      <div className={activeTab.viewMode === "workspace" ? "workspace-view d-flex" : "workspace-view d-none"} style={{ width: "100%", height: "100%" }}>
-        {tabs.map((tab) => (
-          <div key={tab.id} className={activeTabId === tab.id ? "d-block" : "d-none"} style={{ width: "100%", height: "100%" }}>
-            <BlocklyWorkspace
-              initialJson={tab.blocklyJson}
-              ref={(el) => (workspaceRefs.current[tab.id] = el)}
-              onChange={(json, py) => handleBlocklyChange(tab.id, json, py)}
-            />
-          </div>
-        ))}
-      </div>
-
-      <PythonCodeEditor
-        viewMode={activeTab.viewMode}
-        pythonCode={activeTab.pythonCode}
-        isEditingCode={activeTab.isEditingCode}
-        syntaxErrors={activeTab.syntaxErrors || []}
-        onSyncToBlocks={handleSyncToBlocks}
-        onChangeCode={(value) => {
-          const cleanValue = sanitizePythonCode(value);
-          updateTab(activeTabId, { pythonCode: cleanValue, isEditingCode: true, syntaxErrors: [], isDirty: true });
-        }}
-        onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
-      />
-    </>
-  );
+  // Every panel that DockableWorkspace can dock/redock. Blockly stays
+  // mounted for every tab (not just the active one) exactly as before —
+  // BlocklyWorkspace's own ResizeObserver keeps it correctly sized no
+  // matter which region it ends up docked in.
+  const dockPanels = [
+    {
+      id: "blockly",
+      title: "Blocks",
+      icon: <FiGrid size={14} />,
+      content: (
+        <div className="workspace-view" style={{ width: "100%", height: "100%" }}>
+          {tabs.map((tab) => (
+            <div key={tab.id} className={activeTabId === tab.id ? "d-block" : "d-none"} style={{ width: "100%", height: "100%" }}>
+              <BlocklyWorkspace
+                initialJson={tab.blocklyJson}
+                ref={(el) => (workspaceRefs.current[tab.id] = el)}
+                onChange={(json, py) => handleBlocklyChange(tab.id, json, py)}
+              />
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: "python",
+      title: "Python",
+      icon: <FiTerminal size={14} />,
+      content: (
+        <PythonCodeEditor
+          viewMode="python"
+          pythonCode={activeTab.pythonCode}
+          isEditingCode={activeTab.isEditingCode}
+          syntaxErrors={activeTab.syntaxErrors || []}
+          onSyncToBlocks={handleSyncToBlocks}
+          onChangeCode={(value) => {
+            const cleanValue = sanitizePythonCode(value);
+            updateTab(activeTabId, { pythonCode: cleanValue, isEditingCode: true, syntaxErrors: [], isDirty: true });
+          }}
+          onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
+        />
+      ),
+    },
+    {
+      id: "console",
+      title: "Console",
+      icon: <FiTerminal size={14} />,
+      content: (
+        <ConsolePanelContent
+          consoleTab={consoleTab}
+          onConsoleTabChange={setConsoleTab}
+          consoleOutput={consoleOutput}
+          onClearConsole={() => setConsoleOutput("Ready to run...\n")}
+          isWaitingForInput={isWaitingForInput}
+          userInput={userInput}
+          setUserInput={setUserInput}
+          onSendInput={handleSendInput}
+          pythonCode={activeTab.pythonCode}
+          lineExecutions={activeTab.lineExecutions}
+        />
+      ),
+    },
+    {
+      id: "complexity",
+      title: "Complexity",
+      icon: <FiActivity size={14} />,
+      content: (
+        <ComplexityPanelContent
+          activeComplexityTab={activeComplexityTab}
+          onComplexityTabChange={setActiveComplexityTab}
+          analysisResult={activeTab.analysisResult}
+          analysisTime={activeTab.analysisTime}
+          defaultWeight={0}
+        />
+      ),
+    },
+  ];
 
   return (
     <div className="workspace-app-container">
@@ -840,7 +910,7 @@ export default function MainApp() {
 
       <WorkspaceHeader 
         viewMode={activeTab.viewMode} 
-        setViewMode={(mode) => updateTab(activeTabId, { viewMode: mode })} 
+        setViewMode={(mode) => { updateTab(activeTabId, { viewMode: mode }); focusDockPanel(mode === "python" ? "python" : "blockly"); }} 
         runCode={handleRunCode} 
         handleExport={handleExportJson} 
         handleImport={handleImportJson} 
@@ -912,38 +982,24 @@ export default function MainApp() {
           </div>
 
           <div className="editor-split-vertical">
-            <div className="editor-container">{renderEditorArea()}</div>
-
-            {bottomPanel && (
-              <DockedBottomPanel
-                bottomPanel={bottomPanel}
-                onClosePanel={() => setBottomPanel(null)}
-                panelHeight={panelHeight}
-                onDragStart={handleDragStart}
-                consoleTab={consoleTab}
-                onConsoleTabChange={setConsoleTab}
-                consoleOutput={consoleOutput}
-                onClearConsole={() => setConsoleOutput("Ready to run...\n")}
-                isWaitingForInput={isWaitingForInput}
-                userInput={userInput}
-                setUserInput={setUserInput}
-                onSendInput={handleSendInput}
-                pythonCode={activeTab.pythonCode}
-                lineExecutions={activeTab.lineExecutions}
-                activeComplexityTab={activeComplexityTab}
-                onComplexityTabChange={setActiveComplexityTab}
-                analysisResult={activeTab.analysisResult}
-                analysisTime={activeTab.analysisTime}
-                defaultWeight={0}
+            <div className="editor-container">
+              <DockableWorkspace
+                ref={dockRef}
+                layoutKey="mainapp-workspace"
+                panels={dockPanels}
+                defaultLayout={DEFAULT_DOCK_LAYOUT}
               />
-            )}
+            </div>
           </div>
 
           <WorkspaceFooterBar
             bottomPanel={bottomPanel}
-            onTogglePanel={(panel) => setBottomPanel(bottomPanel === panel ? null : panel)}
+            onTogglePanel={(panel) => { setBottomPanel(panel); focusDockPanel(panel); }}
             onOpenBigOModal={() => setIsBigOModalOpen(true)}
           >
+            <button className="footer-action-icon reset-layout-btn" onClick={() => dockRef.current?.reset()} title="Restore the default panel layout and sizes">
+              <FiLayers size={16} /> Reset Workspace Layout
+            </button>
             <button className="footer-action-icon clear-btn" onClick={handleClear} title="Clear Current Tab Workspace">
               <FiTrash2 size={16} /> Clear Workspace
             </button>

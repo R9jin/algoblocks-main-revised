@@ -1,0 +1,226 @@
+/* frontend/src/styles/DockableWorkspace.css */
+
+.dock-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.dock-middle-row {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dock-region {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  background: var(--panel-bg);
+}
+
+.dock-region-left,
+.dock-region-right {
+  background: var(--dark-bg);
+}
+
+.dock-region-top,
+.dock-region-bottom {
+  background: var(--dark-bg);
+}
+
+.dock-region-center {
+  background: var(--panel-bg);
+}
+
+.dock-region-drag-over {
+  outline: 2px dashed var(--purple-main);
+  outline-offset: -2px;
+}
+
+/* --- Tab bar (also doubles as the drag handle row) --- */
+.dock-tab-bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: stretch;
+  background: var(--dark-surface);
+  border-bottom: 1px solid var(--dark-border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.dock-region-center .dock-tab-bar {
+  background: #EEF2FF;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.dock-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-on-dark-muted);
+  cursor: grab;
+  white-space: nowrap;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  user-select: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.dock-tab:active {
+  cursor: grabbing;
+}
+
+.dock-tab:hover {
+  color: var(--text-on-dark);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dock-tab.active {
+  color: var(--text-on-dark);
+  background: rgba(121, 40, 202, 0.35);
+  border-bottom: 2px solid var(--purple-main);
+}
+
+.dock-region-center .dock-tab {
+  color: var(--text-muted);
+  border-right-color: var(--border-light);
+}
+
+.dock-region-center .dock-tab:hover {
+  color: var(--text-main);
+  background: rgba(121, 40, 202, 0.08);
+}
+
+.dock-region-center .dock-tab.active {
+  color: var(--purple-hover);
+  background: #FFFFFF;
+  border-bottom: 2px solid var(--purple-main);
+}
+
+.dock-tab-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Panel content area --- */
+.dock-region-body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  position: relative;
+}
+
+.dock-panel-slot {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dock-empty-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 24px;
+  text-align: center;
+}
+
+/* --- Splitters --- */
+.dock-splitter {
+  flex-shrink: 0;
+  background: var(--border-light);
+  transition: background-color 0.15s ease;
+  z-index: 20;
+}
+
+.dock-splitter-x {
+  width: 5px;
+  cursor: col-resize;
+}
+
+.dock-splitter-y {
+  height: 5px;
+  cursor: row-resize;
+}
+
+.dock-splitter:hover,
+.dock-splitter:active {
+  background: var(--purple-main);
+}
+
+/* --- Drag-and-dock drop indicator overlay --- */
+.dock-drop-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  background: rgba(121, 40, 202, 0.06);
+}
+
+.dock-drop-indicator {
+  position: absolute;
+  background: rgba(121, 40, 202, 0.45);
+  border: 2px solid var(--purple-main);
+  border-radius: 4px;
+}
+
+.dock-drop-center {
+  inset: 12%;
+}
+
+.dock-drop-left {
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: 34%;
+}
+
+.dock-drop-right {
+  top: 4px;
+  bottom: 4px;
+  right: 4px;
+  width: 34%;
+}
+
+.dock-drop-top {
+  left: 4px;
+  right: 4px;
+  top: 4px;
+  height: 34%;
+}
+
+.dock-drop-bottom {
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  height: 34%;
+}
+
+@media (max-width: 900px) {
+  .dock-tab {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}

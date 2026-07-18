@@ -29,7 +29,7 @@
  * @param {object} handlers - component-level state setters this tour's
  *   steps need to reveal the right panel/tab before highlighting it.
  * @param {(open: boolean) => void} handlers.setIsBigOModalOpen
- * @param {(panel: "console"|"complexity"|null) => void} handlers.setBottomPanel
+ * @param {(panel: "console"|"complexity"|null) => void} handlers.focusDockPanel
  * @param {(tab: string) => void} handlers.setConsoleTab
  * @param {(tab: string) => void} handlers.setActiveComplexityTab
  * @returns {{ id: string, pageId: string, title: string, steps: object[] } | null}
@@ -40,7 +40,7 @@ export function getIntroActivityTour(activityId, moduleId, handlers) {
   const builder = INTRO_ACTIVITY_TOUR_BUILDERS[activityId];
   if (!builder) return null;
 
-  const { setIsBigOModalOpen, setBottomPanel, setConsoleTab, setActiveComplexityTab } = handlers;
+  const { setIsBigOModalOpen, focusDockPanel, setConsoleTab, setActiveComplexityTab } = handlers;
 
   const bigOStep = {
     target: ".big-o-btn",
@@ -54,7 +54,7 @@ export function getIntroActivityTour(activityId, moduleId, handlers) {
     id: `intro-${activityId}`,
     pageId: `activity-${moduleId}-${activityId}`,
     title: builder.title,
-    steps: builder.steps({ setBottomPanel, setConsoleTab, setActiveComplexityTab, bigOStep }),
+    steps: builder.steps({ focusDockPanel, setConsoleTab, setActiveComplexityTab, bigOStep }),
   };
 }
 
@@ -65,7 +65,7 @@ const INTRO_ACTIVITY_TOUR_BUILDERS = {
   // later activity (curated or generic) builds on.
   m0_l1_a1: {
     title: "Your First Program — Guided Tour",
-    steps: ({ setBottomPanel, setConsoleTab, setActiveComplexityTab, bigOStep }) => [
+    steps: ({ focusDockPanel, setConsoleTab, setActiveComplexityTab, bigOStep }) => [
       {
         target: ".activity-left-panel",
         title: "Read the challenge",
@@ -90,7 +90,7 @@ const INTRO_ACTIVITY_TOUR_BUILDERS = {
         target: ".footer-tab:nth-child(1)",
         title: "Check the console",
         description: "Anything your program prints, or any error it raises, shows up here after you run it. Get comfortable checking this every time.",
-        onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); },
+        onEnter: () => { focusDockPanel("console"); setConsoleTab("output"); },
       },
       {
         target: ".right-panel-toggle",
@@ -111,7 +111,7 @@ const INTRO_ACTIVITY_TOUR_BUILDERS = {
         target: ".footer-tab:nth-child(2)",
         title: "Review your complexity",
         description: "After grading, switch to this tab to see your algorithm's measured Big-O for time and space, right alongside your test results.",
-        onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("overall"); },
+        onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("overall"); },
       },
       bigOStep,
     ],
@@ -121,7 +121,7 @@ const INTRO_ACTIVITY_TOUR_BUILDERS = {
   // storing and reading variables.
   m0_l2_a1: {
     title: "Storing Data in Variables — Guided Tour",
-    steps: ({ setBottomPanel, setConsoleTab, bigOStep }) => [
+    steps: ({ focusDockPanel, setConsoleTab, bigOStep }) => [
       {
         target: ".activity-left-panel",
         title: "New concept: variables",
@@ -141,7 +141,7 @@ const INTRO_ACTIVITY_TOUR_BUILDERS = {
         target: ".footer-tab:nth-child(1)",
         title: "Confirm the output",
         description: "Your variable's value (or whatever your program prints) shows up here. Compare it against the expected output in the task description.",
-        onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); },
+        onEnter: () => { focusDockPanel("console"); setConsoleTab("output"); },
       },
       {
         target: ".right-panel-toggle",
@@ -161,7 +161,7 @@ const INTRO_ACTIVITY_TOUR_BUILDERS = {
   // measuring how fast code runs (time complexity).
   m0_l3_a1: {
     title: "Checking How Fast Code Runs — Guided Tour",
-    steps: ({ setBottomPanel, setActiveComplexityTab, bigOStep }) => [
+    steps: ({ focusDockPanel, setActiveComplexityTab, bigOStep }) => [
       {
         target: ".activity-left-panel",
         title: "New concept: time complexity",
@@ -181,19 +181,19 @@ const INTRO_ACTIVITY_TOUR_BUILDERS = {
         target: ".footer-tab:nth-child(2)",
         title: "Open Complexity Analysis",
         description: "This is the panel this whole lesson is about. After grading, it shows your algorithm's overall measured time complexity, like O(n) or O(n^2).",
-        onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("overall"); },
+        onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("overall"); },
       },
       {
-        target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(2)",
+        target: ".complexity-content .tab-btn-group .tab-btn:nth-child(2)",
         title: "See the cost per line",
         description: "Switch to Local to see how much each individual line contributes — this is where you'll spot exactly which part of your code is the slow one.",
-        onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("local"); },
+        onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("local"); },
       },
       {
-        target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(3)",
+        target: ".complexity-content .tab-btn-group .tab-btn:nth-child(3)",
         title: "See the combined total",
         description: "Global shows the single Big-O class for the whole algorithm — the number that actually gets graded.",
-        onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("global"); },
+        onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("global"); },
       },
       bigOStep,
     ],
@@ -203,7 +203,7 @@ const INTRO_ACTIVITY_TOUR_BUILDERS = {
   // memory usage.
   m0_l4_a1: {
     title: "Memory Usage — Guided Tour",
-    steps: ({ setBottomPanel, setActiveComplexityTab, bigOStep }) => [
+    steps: ({ focusDockPanel, setActiveComplexityTab, bigOStep }) => [
       {
         target: ".activity-left-panel",
         title: "New concept: memory",
@@ -218,13 +218,13 @@ const INTRO_ACTIVITY_TOUR_BUILDERS = {
         target: ".footer-tab:nth-child(2)",
         title: "Open Complexity Analysis",
         description: "Memory data lives inside the same Complexity panel you used for time complexity — after grading, switch here first.",
-        onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("overall"); },
+        onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("overall"); },
       },
       {
-        target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(4)",
+        target: ".complexity-content .tab-btn-group .tab-btn:nth-child(4)",
         title: "Open the Memory Map",
         description: "This tab visualizes how variables and arrays are allocated and change over time as your program executes — the core tool for this lesson.",
-        onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("memory"); },
+        onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("memory"); },
       },
       bigOStep,
     ],

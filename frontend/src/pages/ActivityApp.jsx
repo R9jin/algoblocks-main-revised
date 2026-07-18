@@ -1,12 +1,14 @@
 import DOMPurify from "dompurify";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FiActivity, FiBookOpen, FiChevronLeft, FiChevronRight, FiGrid, FiInfo, FiPlay, FiTerminal } from "react-icons/fi";
+import { FiActivity, FiBookOpen, FiChevronLeft, FiChevronRight, FiGrid, FiInfo, FiLayers, FiPlay, FiTerminal } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
-import DockedBottomPanel from "../components/DockedBottomPanel.jsx";
+import DockableWorkspace from "../components/DockableWorkspace.jsx";
+import ComplexityPanelContent from "../components/panelContent/ComplexityPanelContent.jsx";
+import ConsolePanelContent from "../components/panelContent/ConsolePanelContent.jsx";
 import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
 import TourHelpButton from "../components/TourHelpButton";
 import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
@@ -15,9 +17,24 @@ import { usePyodide } from "../context/PyodideContext.jsx";
 import { getIntroActivityTour } from "../data/introActivityTours.js";
 import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
 import "../styles/ActivityApp.css";
-import { getComplexityWeight, sanitizePythonCode, usePanelResizer } from "../utils/asymptoticParser.jsx";
+import { getComplexityWeight, sanitizePythonCode } from "../utils/asymptoticParser.jsx";
 import { translatePythonError } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
+
+// Default docking arrangement, mirrored from MainApp.jsx: Blocks and Python
+// tabbed together in the center (mirrors the old toggle button), Console
+// and Complexity tabbed together at the bottom. Any panel can be dragged to
+// any other region at runtime; "Reset Workspace Layout" restores this.
+const DEFAULT_DOCK_LAYOUT = {
+  regions: {
+    top: { panelIds: [], size: 200 },
+    left: { panelIds: [], size: 280 },
+    center: { panelIds: ["blockly", "python"], size: 0 },
+    right: { panelIds: [], size: 340 },
+    bottom: { panelIds: ["console", "complexity"], size: 280 },
+  },
+  activeTab: { top: null, left: null, center: "blockly", right: null, bottom: "console" },
+};
 
 // ULTIMATE FALLBACK: Completely bypasses syncQueueDB errors by using native localStorage queue
 const pushToSyncQueue = (key, data) => {
@@ -126,14 +143,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       { target: ".wh-toggle-btn.active", title: "Change the view", description: "Switch between the visual Blockly workspace and generated Python code." },
       { target: ".wh-btn-save", title: "Run the code", description: "Quickly execute your current code without submitting it to the activity grader." },
       { target: ".wh-btn-run", title: "Grade the activity", description: "Run the full evaluation when you are ready to submit your solution." },
-      { target: ".footer-tab:nth-child(1)", title: "Open the console", description: "Inspect output, prompts, and execution traces in the console panel.", onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); } },
-      { target: ".bottom-docked-panel .clear-console-btn", title: "Clear the console", description: "Clear output before rerunning a test or experiment.", onEnter: () => { setBottomPanel("console"); setConsoleTab("output"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(2)", title: "Line executions", description: "Check the frequency count for each line in the current solution.", onEnter: () => { setBottomPanel("console"); setConsoleTab("executions"); } },
-      { target: ".footer-tab:nth-child(2)", title: "Open complexity analysis", description: "Switch to the complexity panel for time and space analysis.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("overall"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(2)", title: "Local complexity", description: "Inspect local cost per line and see how each step contributes.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("local"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(3)", title: "Global complexity", description: "Switch to the global analysis view for the whole algorithm.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("global"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(4)", title: "Memory map", description: "Open the memory map to visualize how state changes over time.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("memory"); } },
-      { target: ".bottom-docked-panel .tab-btn-group .tab-btn:nth-child(5)", title: "Call graph", description: "Follow recursion and call flow in the call graph view.", onEnter: () => { setBottomPanel("complexity"); setActiveComplexityTab("callgraph"); } },
+      { target: ".footer-tab:nth-child(1)", title: "Open the console", description: "Inspect output, prompts, and execution traces in the console panel.", onEnter: () => { focusDockPanel("console"); setConsoleTab("output"); } },
+      { target: ".console-content-wrapper .clear-console-btn", title: "Clear the console", description: "Clear output before rerunning a test or experiment.", onEnter: () => { focusDockPanel("console"); setConsoleTab("output"); } },
+      { target: ".console-content-wrapper .tab-btn-group .tab-btn:nth-child(2)", title: "Line executions", description: "Check the frequency count for each line in the current solution.", onEnter: () => { focusDockPanel("console"); setConsoleTab("executions"); } },
+      { target: ".footer-tab:nth-child(2)", title: "Open complexity analysis", description: "Switch to the complexity panel for time and space analysis.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("overall"); } },
+      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(2)", title: "Local complexity", description: "Inspect local cost per line and see how each step contributes.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("local"); } },
+      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(3)", title: "Global complexity", description: "Switch to the global analysis view for the whole algorithm.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("global"); } },
+      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(4)", title: "Memory map", description: "Open the memory map to visualize how state changes over time.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("memory"); } },
+      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(5)", title: "Call graph", description: "Follow recursion and call flow in the call graph view.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("callgraph"); } },
       { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you need a reminder of the notation.", onEnter: () => setIsBigOModalOpen(true), onExit: () => setIsBigOModalOpen(false) },
       { target: ".big-o-modal-content", title: "Reference library", description: "Browse the reference table and expand entries for deeper details." },
       { target: ".big-o-accordion .big-o-row-trigger", title: "Expandable complexity rows", description: "Open any row to inspect the definition, analogy, and examples behind a complexity class." },
@@ -143,11 +160,16 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [syntaxErrors, setSyntaxErrors] = useState([]);
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
 
+  const dockRef = useRef(null);
+  // Brings a panel's tab to the front in whichever region it's currently
+  // docked in, regardless of how the user has rearranged the layout.
+  const focusDockPanel = (panelId) => dockRef.current?.focusPanel?.(panelId);
+
   // A curated tour (see introActivityTours.js) exists only for the first
   // activity of each Module 0 lesson. Every other activity falls back to
   // the generic activityTour defined above.
   const introTour = getIntroActivityTour(activityId, moduleId, {
-    setIsBigOModalOpen, setBottomPanel, setConsoleTab, setActiveComplexityTab,
+    setIsBigOModalOpen, focusDockPanel, setConsoleTab, setActiveComplexityTab,
   });
   const resolvedActivityTour = introTour || activityTour;
 
@@ -173,8 +195,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onboardingState, isHydrated, startTour, resolvedActivityTour.pageId]);
 
-  const { panelHeight, handleDragStart } = usePanelResizer(300);
-
   const [activityDataResolved, setActivityDataResolved] = useState(null);
   const [topicIdResolved, setTopicIdResolved] = useState(null);
   const [lessonActivitiesResolved, setLessonActivitiesResolved] = useState([]);
@@ -183,11 +203,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const monacoRef = useRef(null);
 
   useEffect(() => {
-    if (workspaceRef.current && viewMode === "workspace") {
+    if (workspaceRef.current) {
       setTimeout(() => workspaceRef.current.resize(), 50);
       setTimeout(() => workspaceRef.current.resize(), 300);
     }
-  }, [viewMode, isLeftPanelVisible, isRightPanelVisible]);
+  }, [isLeftPanelVisible, isRightPanelVisible]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -521,6 +541,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                 const isJsonEmpty = !json || Object.keys(json).length === 0 || (json.blocks && json.blocks.blocks && json.blocks.blocks.length === 0);
                 if (isJsonEmpty) {
                     setViewMode("python");
+                    focusDockPanel("python");
                     setIsEditingCode(true);
                 }
             }
@@ -688,6 +709,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         loadTimeRef.current = Date.now(); // Reset protection timer
         setIsEditingCode(false); 
         setViewMode("workspace");
+        focusDockPanel("blockly");
         showToast("Python code successfully converted into blocks!", "success");
       } catch (e) {
         setModalConfig({ isOpen: true, title: "Sync Error", message: "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
@@ -701,14 +723,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (isEvaluating) return;
     if (!isEngineReady) {
       setConsoleOutput(`Still preparing the Python engine${engineProgress?.stage ? ` (${engineProgress.stage})` : ""}. Please wait a moment and try again.`);
-      setBottomPanel("console"); setConsoleTab("output");
+      focusDockPanel("console"); setConsoleTab("output");
       return;
     }
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
+      setConsoleOutput("Error: No code to execute."); focusDockPanel("console"); setConsoleTab("output"); return;
     }
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); setIsEvaluating(true); setLineExecutions({});
-    setBottomPanel("console"); setConsoleTab("output"); setConsoleOutput((prev) => prev + "\n> Running the program...\n");
+    focusDockPanel("console"); setConsoleTab("output"); setConsoleOutput((prev) => prev + "\n> Running the program...\n");
 
     outputCountRef.current = 0; pendingOutputRef.current = "";
     runTimeoutRef.current = setTimeout(() => {
@@ -880,26 +902,26 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (isEvaluating || isSyncingBlocks) return;
     if (!isEngineReady) {
       setConsoleOutput(`Still preparing the Python engine${engineProgress?.stage ? ` (${engineProgress.stage})` : ""}. Please wait a moment and try again.`);
-      setBottomPanel("console"); setConsoleTab("output");
+      focusDockPanel("console"); setConsoleTab("output");
       return;
     }
     if (!processedTestCases.length) return;
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
+      setConsoleOutput("Error: No code to execute."); focusDockPanel("console"); setConsoleTab("output"); return;
     }
 
     setIsEvaluating(true); setLineExecutions({});
     setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
-    setBottomPanel("console"); setConsoleTab("output");
+    focusDockPanel("console"); setConsoleTab("output");
 
     const cleanPayload = sanitizePythonCode(generatedPython);
     try { await executeTest(cleanPayload); } catch (failure) {
       const errorMsg = `Test Execution Prevented:\n\n${failure.error || failure.message}`;
-      setConsoleOutput(errorMsg); setBottomPanel("console"); setIsEvaluating(false);
+      setConsoleOutput(errorMsg); focusDockPanel("console"); setIsEvaluating(false);
       localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: errorMsg, passedTests: 0 })); return;
     }
 
-    setBottomPanel("console"); setConsoleOutput("\n> --- Running Test Cases ---\n\n"); setPassedTests(0);
+    focusDockPanel("console"); setConsoleOutput("\n> --- Running Test Cases ---\n\n"); setPassedTests(0);
 
     let passed = 0; let functionalPassed = 0; let functionalTotal = 0;
     let fullOutput = "\n> --- Running Test Cases ---\n";
@@ -1020,6 +1042,108 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     await handleSuccess(aes, functionalPassed, functionalTotal, calculatedRog);
   };
 
+  // Every panel DockableWorkspace can dock/redock. BlocklyWorkspace stays
+  // mounted regardless of which region currently hosts it (its own
+  // ResizeObserver — see BlocklyWorkspace.jsx — keeps it correctly sized).
+  const dockPanels = [
+    {
+      id: "blockly",
+      title: "Blocks",
+      icon: <FiGrid size={14} />,
+      content: (
+        <div className="workspace-view" style={{ width: "100%", height: "100%" }}>
+          <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={null} />
+        </div>
+      ),
+    },
+    {
+      id: "python",
+      title: "Python",
+      icon: <FiTerminal size={14} />,
+      content: (
+        <PythonCodeEditor
+          viewMode="python"
+          pythonCode={generatedPython}
+          isEditingCode={isEditingCode}
+          syntaxErrors={syntaxErrors || []}
+          onSyncToBlocks={handleSyncToBlocks}
+          onChangeCode={(value) => {
+            if (isUnmountingRef.current) return;
+            const newCode = sanitizePythonCode(value);
+            setGeneratedPython(newCode); setIsEditingCode(true); setSyntaxErrors([]);
+            latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(getFailsafeWorkspaceJson() || latestStateRef.current.json, newCode);
+          }}
+          onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
+        />
+      ),
+    },
+    {
+      id: "console",
+      title: "Console",
+      icon: <FiTerminal size={14} />,
+      content: (
+        <ConsolePanelContent
+          consoleTab={consoleTab}
+          onConsoleTabChange={setConsoleTab}
+          consoleOutput={consoleOutput}
+          onClearConsole={() => setConsoleOutput("Ready to run...\n")}
+          isWaitingForInput={isWaitingForInput}
+          userInput={userInput}
+          setUserInput={setUserInput}
+          onSendInput={handleSendInput}
+          pythonCode={generatedPython}
+          lineExecutions={lineExecutions}
+        />
+      ),
+    },
+    {
+      id: "complexity",
+      title: "Complexity",
+      icon: <FiActivity size={14} />,
+      content: (
+        <ComplexityPanelContent
+          activeComplexityTab={activeComplexityTab}
+          onComplexityTabChange={setActiveComplexityTab}
+          analysisResult={analysisResult}
+          analysisTime={analysisTime}
+          defaultWeight={7}
+          analysisTimeLabel="Analyzed In:"
+          analysisBadgeStyle={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
+          analysisLabelStyle={{ color: '#64748B' }}
+          analysisValStyle={{ color: '#0F172A' }}
+          extraBadges={
+            <>
+              <span className="total-badge aes-badge" style={{ position: 'relative' }}>
+                <span className="total-label">AES:</span>
+                <span className="total-val">{currentAes}%</span>
+                <div className="info-tooltip">
+                  <FiInfo size={14} />
+                  <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
+                    <span className="tooltip-title">Algorithmic Efficiency Score</span>
+                    Measures how efficiently your code solves the problem compared to the target optimal Time and Space complexity.
+                  </span>
+                </div>
+              </span>
+              {currentRog > 0 && (
+                <span className="total-badge rog-badge" style={{ position: 'relative' }}>
+                  <span className="total-label">ROG:</span>
+                  <span className="total-val">+{currentRog}</span>
+                  <div className="info-tooltip">
+                    <FiInfo size={14} />
+                    <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
+                      <span className="tooltip-title">Refactoring Optimization Gain</span>
+                      Points earned by refactoring and improving your initial solution's performance. Great job!
+                    </span>
+                  </div>
+                </span>
+              )}
+            </>
+          }
+        />
+      ),
+    },
+  ];
+
   return (
     <div className="activity-app-container">
       {toast.show && <div className={`toast-notification ${toast.type === "error" ? "toast-error" : "toast-success"}`}>{toast.message}</div>}
@@ -1032,8 +1156,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         </div>
         <div className="wh-center">
           <div className="wh-view-toggle">
-            <button className={`wh-toggle-btn ${viewMode === "workspace" ? "active" : ""}`} onClick={() => setViewMode("workspace")}><FiGrid size={14} /> Workspace</button>
-            <button className={`wh-toggle-btn ${viewMode === "python" ? "active" : ""}`} onClick={() => setViewMode("python")}><FiTerminal size={14} /> Python Code</button>
+            <button className={`wh-toggle-btn ${viewMode === "workspace" ? "active" : ""}`} onClick={() => { setViewMode("workspace"); focusDockPanel("blockly"); }}><FiGrid size={14} /> Workspace</button>
+            <button className={`wh-toggle-btn ${viewMode === "python" ? "active" : ""}`} onClick={() => { setViewMode("python"); focusDockPanel("python"); }}><FiTerminal size={14} /> Python Code</button>
           </div>
         </div>
         <div className="wh-right">
@@ -1089,86 +1213,22 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           </button>
 
           <div className="editor-container">
-            <div className={viewMode === "workspace" ? "workspace-view d-block" : "workspace-view d-none"} style={{ width: "100%", height: "100%" }}>
-              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={null} />
-            </div>
-            <PythonCodeEditor
-              viewMode={viewMode}
-              pythonCode={generatedPython}
-              isEditingCode={isEditingCode}
-              syntaxErrors={syntaxErrors || []}
-              onSyncToBlocks={handleSyncToBlocks}
-              onChangeCode={(value) => {
-                if (isUnmountingRef.current) return;
-                const newCode = sanitizePythonCode(value);
-                setGeneratedPython(newCode); setIsEditingCode(true); setSyntaxErrors([]);
-                latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(getFailsafeWorkspaceJson() || latestStateRef.current.json, newCode);
-              }}
-              onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
+            <DockableWorkspace
+              ref={dockRef}
+              layoutKey={`activity-workspace-${moduleId}-${activityId}`}
+              panels={dockPanels}
+              defaultLayout={DEFAULT_DOCK_LAYOUT}
             />
           </div>
 
-          {bottomPanel && (
-            <DockedBottomPanel
-              bottomPanel={bottomPanel}
-              onClosePanel={() => setBottomPanel(null)}
-              panelHeight={panelHeight}
-              onDragStart={handleDragStart}
-              consoleTab={consoleTab}
-              onConsoleTabChange={setConsoleTab}
-              consoleOutput={consoleOutput}
-              onClearConsole={() => setConsoleOutput("Ready to run...\n")}
-              isWaitingForInput={isWaitingForInput}
-              userInput={userInput}
-              setUserInput={setUserInput}
-              onSendInput={handleSendInput}
-              pythonCode={generatedPython}
-              lineExecutions={lineExecutions}
-              activeComplexityTab={activeComplexityTab}
-              onComplexityTabChange={setActiveComplexityTab}
-              analysisResult={analysisResult}
-              analysisTime={analysisTime}
-              defaultWeight={7}
-              analysisTimeLabel="Analyzed In:"
-              analysisBadgeStyle={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
-              analysisLabelStyle={{ color: '#64748B' }}
-              analysisValStyle={{ color: '#0F172A' }}
-              extraBadges={
-                <>
-                  <span className="total-badge aes-badge" style={{ position: 'relative' }}>
-                    <span className="total-label">AES:</span>
-                    <span className="total-val">{currentAes}%</span>
-                    <div className="info-tooltip">
-                      <FiInfo size={14} />
-                      <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
-                        <span className="tooltip-title">Algorithmic Efficiency Score</span>
-                        Measures how efficiently your code solves the problem compared to the target optimal Time and Space complexity.
-                      </span>
-                    </div>
-                  </span>
-                  {currentRog > 0 && (
-                    <span className="total-badge rog-badge" style={{ position: 'relative' }}>
-                      <span className="total-label">ROG:</span>
-                      <span className="total-val">+{currentRog}</span>
-                      <div className="info-tooltip">
-                        <FiInfo size={14} />
-                        <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
-                          <span className="tooltip-title">Refactoring Optimization Gain</span>
-                          Points earned by refactoring and improving your initial solution's performance. Great job!
-                        </span>
-                      </div>
-                    </span>
-                  )}
-                </>
-              }
-            />
-          )}
-
           <WorkspaceFooterBar
             bottomPanel={bottomPanel}
-            onTogglePanel={(panel) => setBottomPanel(bottomPanel === panel ? null : panel)}
+            onTogglePanel={(panel) => { setBottomPanel(panel); focusDockPanel(panel); }}
             onOpenBigOModal={() => setIsBigOModalOpen(true)}
           >
+            <button className="footer-action-icon reset-layout-btn" onClick={() => dockRef.current?.reset()} title="Restore the default panel layout and sizes">
+              <FiLayers size={16} /> Reset Workspace Layout
+            </button>
             <button
               className="footer-action-icon clear-btn"
               title="Restart Activity"
