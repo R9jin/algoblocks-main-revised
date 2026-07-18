@@ -1,11 +1,11 @@
 // frontend/src/components/DashboardHeader.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LuActivity, LuFolder, LuLayoutDashboard, LuLogOut, LuRefreshCw, LuUser, LuUsers } from "react-icons/lu";
+import { LuActivity, LuFolder, LuGauge, LuLayoutDashboard, LuLogOut, LuRefreshCw, LuUser, LuUsers } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
-import TourHelpButton from "./TourHelpButton";
 import "../styles/DashboardHeader.css";
 import { stopBackgroundSync, syncManager } from "../utils/syncManager";
 import LogoutConfirmModal from "./LogoutConfirmModal";
+import TourHelpButton from "./TourHelpButton";
 
 export default function DashboardHeader({
   backTo = "/home",
@@ -137,6 +137,9 @@ export default function DashboardHeader({
                 <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/projects"); }} role="menuitem">
                   <LuFolder size={18} /> Projects
                 </button>
+                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/accuracy"); }} role="menuitem">
+                  <LuGauge size={18} /> System Accuracy
+                </button>
 
                 {/* RESTRICTED: Admin-only features */}
                 {isUserAdmin && (
@@ -149,7 +152,7 @@ export default function DashboardHeader({
                       onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
                       role="menuitem"
                     >
-                      <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
+                      <LuActivity size={18} aria-hidden="true" /> Analyzer Benchmark
                     </button>
                     <button 
                       type="button" 

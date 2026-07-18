@@ -9,6 +9,7 @@ import { startBackgroundSync, stopBackgroundSync } from "./utils/syncManager";
 
 // Lazy load ALL pages to prevent circular dependency crashes and reduce the initial load payload
 const AdminUserManagement = lazy(() => import('./pages/AdminUserManagement'));
+const AccuracyOverview = lazy(() => import('./pages/AccuracyOverview'));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const EvaluationSuite = lazy(() => import("./pages/EvaluationSuite"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
@@ -97,6 +98,14 @@ function App() {
           <Route path="/home" element={<ProtectedRoute><UserHomePage /></ProtectedRoute>} />
           <Route path="/assessment/:moduleId/:type" element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          {/*
+            Simplified, student-friendly accuracy overview -- open to every
+            signed-in user. It reuses the same Pyodide worker as the admin
+            evaluation suite below, so it needs the same provider, but the
+            page itself only ever shows two headline percentages plus plain
+            language -- no tables, no per-class breakdowns.
+          */}
+          <Route path="/accuracy" element={<ProtectedRoute><PyodideProvider><AccuracyOverview /></PyodideProvider></ProtectedRoute>} />
           
           {/* Protected Admin Routes */}
           <Route path="/admin/users" element={<ProtectedRoute><AdminUserManagement /></ProtectedRoute>} />

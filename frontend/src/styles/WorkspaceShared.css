@@ -383,6 +383,7 @@ body {
   background: transparent; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-on-dark-muted); font-weight: 600; transition: all 0.2s; padding: 8px 12px; border-radius: 8px; gap: 8px;
 }
 .footer-action-icon:hover { background: rgba(239, 68, 68, 0.2); color: #FCA5A5; }
+.footer-action-icon.reset-layout-btn:hover { background: rgba(121, 40, 202, 0.25); color: #D8B4FE; }
 
 /* UTILITIES */
 .d-none { display: none !important; }

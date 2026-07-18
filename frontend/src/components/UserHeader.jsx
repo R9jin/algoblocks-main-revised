@@ -1,17 +1,18 @@
 // frontend/src/components/UserHeader.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  LuActivity,
-  LuFolder,
-  LuLayoutDashboard,
-  LuLogOut,
-  LuUser
+    LuActivity,
+    LuFolder,
+    LuGauge,
+    LuLayoutDashboard,
+    LuLogOut,
+    LuUser
 } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
-import TourHelpButton from "./TourHelpButton";
 import "../styles/UserHeader.css";
 import { startBackgroundSync } from "../utils/syncManager.js";
 import LogoutConfirmModal from "./LogoutConfirmModal";
+import TourHelpButton from "./TourHelpButton";
 
 // FIX: Added onLogoutClick to the component props
 export default function UserHeader({ user, onLogoutClick, tour, tourPageId }) {
@@ -117,6 +118,9 @@ export default function UserHeader({ user, onLogoutClick, tour, tourPageId }) {
                 <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/projects"); }} role="menuitem">
                   <LuFolder size={18} aria-hidden="true" /> Projects
                 </button>
+                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/accuracy"); }} role="menuitem">
+                  <LuGauge size={18} aria-hidden="true" /> System Accuracy
+                </button>
                 
                 {isAdmin && (
                   <>
@@ -128,7 +132,7 @@ export default function UserHeader({ user, onLogoutClick, tour, tourPageId }) {
                       onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
                       role="menuitem"
                     >
-                      <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
+                      <LuActivity size={18} aria-hidden="true" /> Analyzer Benchmark
                     </button>
                   </>
                 )}

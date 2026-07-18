@@ -760,7 +760,7 @@ export default function UserHeader({ user, onLogoutClick, tour, tourPageId }) {
                       onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
                       role="menuitem"
                     >
-                      <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
+                      <LuActivity size={18} aria-hidden="true" /> Analyzer Benchmark
                     </button>
                   </>
                 )}
