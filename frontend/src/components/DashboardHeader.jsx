@@ -1,6 +1,6 @@
 // frontend/src/components/DashboardHeader.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LuActivity, LuFolder, LuLayoutDashboard, LuLogOut, LuRefreshCw, LuUser, LuUsers } from "react-icons/lu";
+import { LuActivity, LuFolder, LuGauge, LuLayoutDashboard, LuLogOut, LuRefreshCw, LuUser, LuUsers } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/DashboardHeader.css";
 import { stopBackgroundSync, syncManager } from "../utils/syncManager";
@@ -136,6 +136,9 @@ export default function DashboardHeader({
                 </button>
                 <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/projects"); }} role="menuitem">
                   <LuFolder size={18} /> Projects
+                </button>
+                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/accuracy"); }} role="menuitem">
+                  <LuGauge size={18} /> System Accuracy
                 </button>
 
                 {/* RESTRICTED: Admin-only features */}

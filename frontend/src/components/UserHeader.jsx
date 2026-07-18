@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
     LuActivity,
     LuFolder,
+    LuGauge,
     LuLayoutDashboard,
     LuLogOut,
     LuUser
@@ -116,6 +117,9 @@ export default function UserHeader({ user, onLogoutClick, tour, tourPageId }) {
                 </button>
                 <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/projects"); }} role="menuitem">
                   <LuFolder size={18} aria-hidden="true" /> Projects
+                </button>
+                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/accuracy"); }} role="menuitem">
+                  <LuGauge size={18} aria-hidden="true" /> System Accuracy
                 </button>
                 
                 {isAdmin && (
