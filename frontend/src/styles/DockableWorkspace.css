@@ -31,39 +31,27 @@
   background: var(--panel-bg);
 }
 
-.dock-region-left,
-.dock-region-right {
-  background: var(--dark-bg);
-}
-
-.dock-region-top,
-.dock-region-bottom {
-  background: var(--dark-bg);
-}
-
-.dock-region-center {
-  background: var(--panel-bg);
-}
-
 .dock-region-drag-over {
   outline: 2px dashed var(--purple-main);
   outline-offset: -2px;
 }
 
-/* --- Tab bar (also doubles as the drag handle row) --- */
+/* --- Tab bar (also doubles as the drag handle row) ---
+   Matches the app's light theme everywhere: the original bottom panel
+   (.bottom-docked-panel) was always light — only the console's own inner
+   terminal box (.console-container) is dark — so every dock region uses
+   the same light chrome regardless of which panels it hosts. This also
+   keeps the Complexity tab's badges (Total Time/Space/Analysis), which
+   are translucent light fills with dark text, readable: they were never
+   designed to sit on a dark background. */
 .dock-tab-bar {
   display: flex;
   flex-shrink: 0;
   align-items: stretch;
-  background: var(--dark-surface);
-  border-bottom: 1px solid var(--dark-border);
+  background: var(--app-bg);
+  border-bottom: 1px solid var(--border-light);
   overflow-x: auto;
   scrollbar-width: thin;
-}
-
-.dock-region-center .dock-tab-bar {
-  background: #EEF2FF;
-  border-bottom: 1px solid var(--border-light);
 }
 
 .dock-tab {
@@ -72,11 +60,11 @@
   gap: 6px;
   padding: 8px 14px;
   font-size: 13px;
-  font-weight: 500;
-  color: var(--text-on-dark-muted);
+  font-weight: 600;
+  color: var(--text-muted);
   cursor: grab;
   white-space: nowrap;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid var(--border-light);
   user-select: none;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
@@ -86,35 +74,37 @@
 }
 
 .dock-tab:hover {
-  color: var(--text-on-dark);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+  background: rgba(121, 40, 202, 0.06);
 }
 
 .dock-tab.active {
-  color: var(--text-on-dark);
-  background: rgba(121, 40, 202, 0.35);
-  border-bottom: 2px solid var(--purple-main);
-}
-
-.dock-region-center .dock-tab {
-  color: var(--text-muted);
-  border-right-color: var(--border-light);
-}
-
-.dock-region-center .dock-tab:hover {
-  color: var(--text-main);
-  background: rgba(121, 40, 202, 0.08);
-}
-
-.dock-region-center .dock-tab.active {
   color: var(--purple-hover);
-  background: #FFFFFF;
+  background: var(--panel-bg);
   border-bottom: 2px solid var(--purple-main);
 }
 
 .dock-tab-title {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.dock-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  padding: 2px;
+  border-radius: 4px;
+  color: inherit;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+.dock-tab-close:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
 }
 
 /* --- Panel content area --- */

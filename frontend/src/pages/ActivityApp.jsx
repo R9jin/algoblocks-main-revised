@@ -123,7 +123,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [isLeftPanelVisible, setIsLeftPanelVisible] = useState(() => typeof window === "undefined" || window.innerWidth >= 900);
   const [isRightPanelVisible, setIsRightPanelVisible] = useState(() => typeof window === "undefined" || window.innerWidth >= 900);
   const [expandedTests, setExpandedTests] = useState({});
-  const [bottomPanel, setBottomPanel] = useState(null);
+  const [openPanelIds, setOpenPanelIds] = useState(() => new Set(["blockly", "python", "console", "complexity"]));
   const [consoleTab, setConsoleTab] = useState("output");
   const [activeComplexityTab, setActiveComplexityTab] = useState("overall");
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
@@ -162,8 +162,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const dockRef = useRef(null);
   // Brings a panel's tab to the front in whichever region it's currently
-  // docked in, regardless of how the user has rearranged the layout.
-  const focusDockPanel = (panelId) => dockRef.current?.focusPanel?.(panelId);
+  // docked in — and re-opens it first if the user had closed it.
+  const focusDockPanel = (panelId) => dockRef.current?.openPanel?.(panelId);
+  // Console/Complexity footer buttons: close the panel if it's currently
+  // open, or open+focus it if it's closed — restoring the original
+  // show/hide toggle behavior on top of the new docking system.
+  const toggleDockPanel = (panelId) => {
+    if (dockRef.current?.isPanelOpen?.(panelId)) {
+      dockRef.current.closePanel(panelId);
+    } else {
+      dockRef.current?.openPanel?.(panelId);
+    }
+  };
 
   // A curated tour (see introActivityTours.js) exists only for the first
   // activity of each Module 0 lesson. Every other activity falls back to
@@ -1081,6 +1091,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       id: "console",
       title: "Console",
       icon: <FiTerminal size={14} />,
+      closable: true,
       content: (
         <ConsolePanelContent
           consoleTab={consoleTab}
@@ -1100,6 +1111,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       id: "complexity",
       title: "Complexity",
       icon: <FiActivity size={14} />,
+      closable: true,
       content: (
         <ComplexityPanelContent
           activeComplexityTab={activeComplexityTab}
@@ -1218,12 +1230,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
               layoutKey={`activity-workspace-${moduleId}-${activityId}`}
               panels={dockPanels}
               defaultLayout={DEFAULT_DOCK_LAYOUT}
+              onLayoutChange={({ openPanelIds: ids }) => setOpenPanelIds(ids)}
             />
           </div>
 
           <WorkspaceFooterBar
-            bottomPanel={bottomPanel}
-            onTogglePanel={(panel) => { setBottomPanel(panel); focusDockPanel(panel); }}
+            openPanelIds={openPanelIds}
+            onTogglePanel={toggleDockPanel}
             onOpenBigOModal={() => setIsBigOModalOpen(true)}
           >
             <button className="footer-action-icon reset-layout-btn" onClick={() => dockRef.current?.reset()} title="Restore the default panel layout and sizes">
