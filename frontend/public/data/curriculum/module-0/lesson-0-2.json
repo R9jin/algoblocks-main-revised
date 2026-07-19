@@ -2,61 +2,36 @@
   "lessonId": "lesson-0-2",
   "moduleId": "module-0",
   "title": "Core Blockly Components",
-  "description": "Understand the fundamental Blockly components used to build algorithms visually. This lesson deeply covers variables, loops, conditionals, arrays, and math operations. By the end, you will know how to select and combine these components to solve problems ranging from simple calculations to complex data processing tasks.",
+  "description": "The five building blocks of every algorithm you'll write here: variables, loops, conditionals, arrays, and math operations.",
   "difficulty": "Beginner",
-  "estimatedTime": "25 min",
+  "estimatedTime": "18 min",
   "prerequisites": "The Workspace",
-  "tags": [
-    "blockly",
-    "variables",
-    "loops",
-    "conditions",
-    "arrays"
-  ],
+  "tags": ["blockly", "variables", "loops", "conditions", "arrays"],
   "activities": [
-    {
-      "id": "m0_l2_a1",
-      "title": "Storing Data in Variables"
-    },
-    {
-      "id": "m0_l2_a2",
-      "title": "Making Decisions (If/Else)"
-    },
-    {
-      "id": "m0_l2_a3",
-      "title": "Repeating Actions (Loops)"
-    },
-    {
-      "id": "m0_l2_a4",
-      "title": "Defensive Programming: Safe Array Access"
-    },
-    {
-      "id": "m0_l2_a5",
-      "title": "Adding to a List"
-    }
+    { "id": "m0_l2_a1", "title": "Storing Data in Variables" },
+    { "id": "m0_l2_a2", "title": "Making Decisions (If/Else)" },
+    { "id": "m0_l2_a3", "title": "Repeating Actions (Loops)" },
+    { "id": "m0_l2_a4", "title": "Defensive Programming: Safe Array Access" },
+    { "id": "m0_l2_a5", "title": "Adding to a List" }
   ],
   "sections": [
     {
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Blockly components help students build algorithms through visual programming. Each block represents a core programming instruction. By combining these blocks, learners can create complete algorithms without managing typographical syntax.",
+      "content": "Every algorithm in this course is built from the same handful of core constructs, each shown as connectable, color-coded blocks.",
       "subsections": [
-        {
-          "id": "intro-what-are-components",
-          "title": "What are Core Components?",
-          "content": "Just as an engineer relies on specific tools, a programmer relies on fundamental logical constructs. In computer science, almost every application is built using the same core elements. These elements are represented as connectable, color-coded blocks."
-        },
+        { "id": "intro-what-are-components", "title": "What are Core Components?", "content": "Just like a mechanic has a standard toolkit, almost every program -- however complex -- is assembled from the same small set of building blocks." },
         {
           "id": "intro-the-five-pillars",
           "title": "The Five Pillars of Programming",
-          "content": "To solve programming problems effectively, you must master these five core component types:",
+          "content": "Master these five and you can build almost anything:",
           "bullets": [
-            "**Variables:** The allocated memory of your program.",
-            "**Loops:** The engines of repetition.",
-            "**Conditionals:** The decision-makers.",
-            "**Arrays:** The organizers of data.",
-            "**Math Operations:** The execution of calculations."
+            "**Variables:** your program's memory.",
+            "**Loops:** repetition.",
+            "**Conditionals:** decisions.",
+            "**Arrays:** organized collections of data.",
+            "**Math Operations:** calculations."
           ]
         }
       ]
@@ -65,73 +40,57 @@
       "id": "variables",
       "type": "concept",
       "title": "Variables: The Program's Memory",
-      "content": "Variables store information temporarily while an algorithm runs. Without variables, a program has no memory of past events or inputs.",
+      "content": "Variables hold information while your algorithm runs -- without them, a program can't remember anything.",
       "subsections": [
-        {
-          "id": "var-concept",
-          "title": "Concept: Allocated Storage",
-          "content": "Think of a variable as a labeled container in the computer's memory. You assign the container a recognizable name, and you can retrieve or overwrite its contents at any point during execution."
-        },
+        { "id": "var-concept", "title": "Concept: Allocated Storage", "content": "Think of a variable as a labeled box in memory: give it a name, then read or overwrite what's inside whenever you like." },
         {
           "id": "var-data-types",
           "title": "Common Data Types",
-          "content": "A variable can hold different types of information. The blocks adapt to handle:",
+          "content": "A variable can hold:",
           "bullets": [
-            "**Numbers:** Used for mathematical operations and loop counting.",
-            "**Strings:** Used for text, words, and characters.",
-            "**Booleans:** Used for binary logic, holding strictly True or False states."
+            "**Numbers:** math and loop counters.",
+            "**Strings:** text.",
+            "**Booleans:** True or False."
           ]
         },
         {
           "id": "var-operations",
           "title": "Variable Operations",
-          "content": "In the Variables toolbox, you will perform three primary actions:",
+          "content": "Three actions cover most of what you'll do:",
           "bullets": [
-            "**Create:** Defining a new variable and assigning it a descriptive identifier.",
-            "**Set (Initialization):** Assigning a variable its starting baseline value.",
-            "**Change (Update):** Modifying an existing variable based on its current value, such as incrementing a counter by 1."
+            "**Create:** define a new variable with a name.",
+            "**Set:** give it a starting value.",
+            "**Change:** update it based on its current value (e.g. increment by 1)."
           ]
         },
-        {
-          "id": "var-best-practices",
-          "title": "Best Practices",
-          "content": "Always initialize your variables at the top of your algorithm. Attempting to modify a variable before it has been set will cause a runtime error, as the system does not have a baseline value to manipulate."
-        }
+        { "id": "var-best-practices", "title": "Best Practices", "content": "Always set a variable before you try to change it -- modifying an unset variable throws a runtime error, since there's no baseline value yet." }
       ]
     },
     {
       "id": "loops",
       "type": "deep_dive",
       "title": "Loops: The Engines of Repetition",
-      "content": "Loops allow algorithms to execute instructions repeatedly. Instead of manually stacking the same operation multiple times, a programmer uses a single loop. This keeps algorithms efficient and scalable.",
+      "content": "A loop replaces a stack of repeated blocks with one reusable one -- keeping your algorithms compact and scalable.",
       "subsections": [
         {
           "id": "loops-types",
           "title": "Types of Loops",
-          "content": "There are three primary loop structures available in the toolbox:",
+          "content": "Three loop shapes, three use cases:",
           "bullets": [
-            "**The Repeat Loop (Counted):** Executes a specific number of times. Use this when the exact number of iterations is known in advance.",
-            "**The While Loop (Conditional):** Executes continuously as long as a specific condition evaluates to True. Use this when the required number of iterations is dynamic or unknown.",
-            "**The For-Each Loop (Iterative):** Automatically traverses every single item in an array sequentially."
+            "**Repeat (Counted):** runs a fixed number of times -- use when you know the count upfront.",
+            "**While (Conditional):** runs until a condition goes False -- use when the count is dynamic.",
+            "**For-Each (Iterative):** automatically visits every item in an array."
           ]
         },
-        {
-          "id": "micro-transition-loops",
-          "title": "Micro-Transition: The Clock Analogy",
-          "content": "Before constructing nested loops, where one loop resides inside another, it helps to understand their behavior mechanically. Consider a clock where the minute hand must complete 60 full iterations before the hour hand increments once. Ensure you are comfortable executing and observing a single loop before attempting to nest them."
-        },
-        {
-          "id": "loops-pointer-paradigm",
-          "title": "The Pointer Paradigm",
-          "content": "As you advance, you must often transition from automatic For-Each loops to manual state manipulation. Using a While loop combined with custom variables allows you to traverse arrays from both ends simultaneously. This manual control is a fundamental technique for writing optimized algorithms."
-        },
+        { "id": "micro-transition-loops", "title": "Micro-Transition: The Clock Analogy", "content": "Before nesting loops, get comfortable with a single one -- like a minute hand needing 60 full turns before the hour hand ticks once." },
+        { "id": "loops-pointer-paradigm", "title": "The Pointer Paradigm", "content": "Sometimes you need more control than For-Each gives you -- a While loop with your own tracking variables lets you walk an array from both ends at once, a key technique for optimized algorithms." },
         {
           "id": "loops-pitfalls",
           "title": "Common Pitfalls to Avoid",
-          "content": "When working with loops, carefully monitor your termination conditions:",
+          "content": "Watch your termination conditions:",
           "bullets": [
-            "**Infinite Loops:** Occurs in a 'While' loop if the condition never resolves to False. Ensure there is an operation inside the loop that updates the target variable.",
-            "**Off-By-One Errors:** Occurs when a loop executes one iteration too many or one iteration too few due to incorrect boundary conditions."
+            "**Infinite Loops:** a While condition that never goes False -- make sure something inside the loop actually updates it.",
+            "**Off-By-One Errors:** running one iteration too many or too few from a boundary mistake."
           ]
         }
       ]
@@ -140,113 +99,89 @@
       "id": "conditions",
       "type": "concept",
       "title": "Conditional Logic: Making Decisions",
-      "content": "Conditional logic allows algorithms to branch into different execution paths. Using these blocks, your program can evaluate its current state and select the appropriate operation dynamically.",
+      "content": "Conditionals let your program branch -- checking its current state and picking the right path.",
       "subsections": [
         {
           "id": "cond-toolbox",
           "title": "The Logic Toolbox",
-          "content": "Decisions are driven by evaluating conditions that result in either True or False. There are two categories of logic blocks to build these evaluations:",
+          "content": "Decisions boil down to True/False evaluations, built from:",
           "bullets": [
-            "**Comparisons:** Blocks that assess the relationship between two values, such as equality or magnitude.",
-            "**Boolean Operators:** Blocks that combine multiple conditions, utilizing strict AND, OR, and NOT logic."
+            "**Comparisons:** equality, greater/less-than.",
+            "**Boolean Operators:** AND, OR, NOT to combine conditions."
           ]
         },
         {
           "id": "cond-structures",
           "title": "Structural Variants",
-          "content": "The execution path is shaped by specific conditional structures:",
+          "content": "Three shapes of branching:",
           "bullets": [
-            "**If Block:** A single path that executes exclusively when the condition is true.",
-            "**If / Else Block:** A standard bifurcation. It executes the first path if true, and defaults to the second path if false.",
-            "**If / Else-If / Else Block:** A multi-path decision. Evaluates conditions sequentially from top to bottom."
+            "**If:** runs only when true.",
+            "**If / Else:** one path or the other.",
+            "**If / Else-If / Else:** checks multiple conditions top to bottom."
           ]
         },
-        {
-          "id": "cond-nested",
-          "title": "Nested Conditionals",
-          "content": "Placing an 'If' block inside another 'If' block allows the algorithm to evaluate secondary sub-conditions. For example, verifying a user's administrative status before checking their secondary permissions."
-        }
+        { "id": "cond-nested", "title": "Nested Conditionals", "content": "An If inside an If lets you check a sub-condition -- e.g. confirm admin status, then check a more specific permission." }
       ]
     },
     {
       "id": "arrays",
       "type": "concept",
       "title": "Arrays: Organizing Collections",
-      "content": "Arrays store multiple related values inside a single, ordered structure. Instead of creating numerous independent variables for a dataset, data is consolidated into a single array block.",
+      "content": "An array holds many related values in one ordered structure, instead of a separate variable for each one.",
       "subsections": [
         {
           "id": "arr-zero-index",
           "title": "Zero-Based Indexing",
-          "content": "In computational systems, indexing begins at 0. The position of an item inside an array is its index.",
-          "bullets": [
-            "The initial item in the array is located at Index 0.",
-            "The second item is located at Index 1.",
-            "The final item is located at the total length of the array minus 1."
-          ]
+          "content": "Indexing starts at 0:",
+          "bullets": ["First item → index 0.", "Second item → index 1.", "Last item → length − 1."]
         },
-        {
-          "id": "micro-transition-arrays",
-          "title": "Micro-Transition: Safe Array Reading",
-          "content": "Modifying items in an array can introduce complex logical errors. A recommended method is to practice reading from a list using a standard loop first. Small, safe steps prevent your program from crashing."
-        },
+        { "id": "micro-transition-arrays", "title": "Micro-Transition: Safe Array Reading", "content": "Practice *reading* from a list with a simple loop before you start modifying it -- small safe steps avoid crashes." },
         {
           "id": "arr-operations",
           "title": "Array Operations",
-          "content": "The Arrays toolbox provides blocks to manipulate collections dynamically:",
+          "content": "Core moves in the Arrays toolbox:",
           "bullets": [
-            "**Get / Set at Index:** Retrieve the value at a specific position, or overwrite it.",
-            "**Append / Insert:** Insert a new item at the terminal end of the array or within a specific index.",
-            "**Length:** Calculate the total number of items currently housed within the array structure."
+            "**Get / Set at Index:** read or overwrite a specific position.",
+            "**Append / Insert:** add an item at the end or at a specific index.",
+            "**Length:** count how many items are in the array."
           ]
         },
-        {
-          "id": "arr-iteration",
-          "title": "Iterating Through Arrays",
-          "content": "Arrays and loops naturally complement one another. The most standard algorithmic pattern involves applying a 'For-Each' loop to an array, allowing the program to systematically evaluate or process every item contained within the collection."
-        }
+        { "id": "arr-iteration", "title": "Iterating Through Arrays", "content": "Arrays and loops go together naturally -- a For-Each loop over an array is the most common pattern you'll use." }
       ]
     },
     {
       "id": "math-operations",
       "type": "real_world_connection",
       "title": "Math Operations: The Engine of Calculation",
-      "content": "Algorithms frequently rely on math operations to manipulate variables, score data, control loop increments, and process array boundaries.",
+      "content": "Math blocks drive score-keeping, loop counters, and array boundary checks throughout your algorithms.",
       "subsections": [
-        {
-          "id": "math-available",
-          "title": "Available Math Blocks",
-          "content": "The Math toolbox provides comprehensive support for standard arithmetic, advanced operators such as Modulo and Exponents, utility functions for rounding, and random integer generation."
-        },
-        {
-          "id": "math-order",
-          "title": "Order of Operations",
-          "content": "Math blocks snap together horizontally, and their execution strictly follows standard mathematical order of operations. The innermost nested block is calculated first, resolving outward. This structural hierarchy is vital when chaining multiple blocks into complex formulas."
-        }
+        { "id": "math-available", "title": "Available Math Blocks", "content": "Standard arithmetic plus Modulo, Exponents, rounding utilities, and random integer generation." },
+        { "id": "math-order", "title": "Order of Operations", "content": "Math blocks snap together horizontally and follow standard order of operations -- innermost block resolves first, working outward." }
       ]
     },
     {
       "id": "beyond-the-core",
       "type": "deep_dive",
       "title": "Exploring Beyond the Core Components",
-      "content": "While variables, loops, conditionals, arrays, and math establish the foundation of algorithmic logic, the toolbox contains additional categories necessary for advanced applications.",
+      "content": "The five pillars are the foundation -- a few more toolbox categories round out what you can build.",
       "subsections": [
         {
           "id": "other-categories",
           "title": "Other Toolbox Categories",
-          "content": "Depending on the activity requirements, supplementary toolboxes are provided:",
+          "content": "As activities need them:",
           "bullets": [
-            "**Input / Output (I/O):** Blocks utilized to print messages to the console or request user input during execution.",
-            "**Text / Strings:** Blocks configured to manipulate alphabetical data, concatenate sentences, evaluate string length, or adjust case formatting.",
-            "**Functions (Procedures):** Advanced components that bundle complex groups of instructions into a single, reusable custom block."
+            "**Input / Output:** print to console, prompt for input.",
+            "**Text / Strings:** concatenate, measure length, change case.",
+            "**Functions:** bundle instructions into a reusable custom block."
           ]
         },
         {
           "id": "power-of-experimentation",
           "title": "The Power of Experimentation",
-          "content": "The most effective method for understanding a new component is structural experimentation.",
+          "content": "The fastest way to learn a new block:",
           "bullets": [
-            "**Direct Manipulation:** Place an unfamiliar block onto the canvas, input test values, and execute the code to observe the console output.",
-            "**Python Observation:** Monitor the real-time Python panel. Deploying a new visual block and reviewing its instantaneous translation into Python syntax provides immediate insight into language operations."
+            "**Direct Manipulation:** drop it on the canvas, feed it test values, run it, read the output.",
+            "**Python Observation:** watch the live Python panel to see exactly what it translates to."
           ]
         }
       ]
@@ -255,31 +190,25 @@
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",
-      "content": "You have now mastered the theory behind the five core components and learned how to explore the remaining toolbox categories. Constructing robust algorithms requires evaluating how these individual components synthesize with one another.",
+      "content": "Real algorithms combine these five pillars together. Here's what that looks like for finding the highest score in a classroom:",
       "subsections": [
         {
           "id": "sum-combining",
           "title": "Combining Components",
-          "content": "A complete algorithm rarely uses just one component type. Consider an algorithm designed to find the highest score in a classroom:",
+          "content": "Step by step:",
           "bullets": [
-            "1. **(Arrays)** Create a list of all student scores.",
-            "2. **(Variables)** Create a variable representing the highest score and set it to 0.",
-            "3. **(Loops)** Use a For-Each loop to evaluate every score in the array.",
-            "4. **(Conditionals)** Inside the loop, use an IF block to check if the current score is greater than the recorded highest variable.",
-            "5. **(Variables)** If true, update the highest variable to equal the current score."
+            "1. **(Arrays)** Build a list of student scores.",
+            "2. **(Variables)** Create a \"highest\" variable, set to 0.",
+            "3. **(Loops)** For-Each over the scores.",
+            "4. **(Conditionals)** If the current score beats \"highest\"...",
+            "5. **(Variables)** ...update \"highest\" to the current score."
           ]
         }
       ]
     }
   ],
   "references": [
-    {
-      "title": "Blockly Official Documentation",
-      "url": "https://developers.google.com/blockly"
-    },
-    {
-      "title": "Programiz — Python Programming Basics",
-      "url": "https://www.programiz.com/python-programming"
-    }
+    { "title": "Blockly Official Documentation", "url": "https://developers.google.com/blockly" },
+    { "title": "Programiz — Python Programming Basics", "url": "https://www.programiz.com/python-programming" }
   ]
 }

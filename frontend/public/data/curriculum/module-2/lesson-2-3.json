@@ -2,185 +2,110 @@
   "lessonId": "lesson-2-3",
   "moduleId": "module-2",
   "title": "Simple Sorting",
-  "description": "Examine the mechanics of fundamental sorting algorithms. This lesson provides a rigorous technical walkthrough of adjacent displacement (Bubble Sort) and extrema isolation (Selection Sort), analyzing their implementation logic and quadratic computational boundaries.",
+  "description": "Bubble Sort and Selection Sort: how they rearrange data, why they're both O(n²), and where they still make sense.",
   "difficulty": "Beginner",
-  "estimatedTime": "40 min",
+  "estimatedTime": "28 min",
   "prerequisites": "Linear Search",
-  "tags": [
-    "sorting",
-    "bubble sort",
-    "selection sort",
-    "arrays",
-    "quadratic complexity",
-    "in-place algorithms"
-  ],
+  "tags": ["sorting", "bubble sort", "selection sort", "arrays", "quadratic complexity", "in-place algorithms"],
   "activities": [
-    {
-      "id": "m2_l3_a1",
-      "title": "Bubble Sort Ascending"
-    },
-    {
-      "id": "m2_l3_a2",
-      "title": "Selection Sort Ascending"
-    },
-    {
-      "id": "m2_l3_a3",
-      "title": "Bubble Sort Descending"
-    },
-    {
-      "id": "m2_l3_a4",
-      "title": "Selection Sort Descending"
-    },
-    {
-      "id": "m2_l3_a5",
-      "title": "Visual Sort Tracking"
-    }
+    { "id": "m2_l3_a1", "title": "Bubble Sort Ascending" },
+    { "id": "m2_l3_a2", "title": "Selection Sort Ascending" },
+    { "id": "m2_l3_a3", "title": "Bubble Sort Descending" },
+    { "id": "m2_l3_a4", "title": "Selection Sort Descending" },
+    { "id": "m2_l3_a5", "title": "Visual Sort Tracking" }
   ],
   "sections": [
     {
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction to Algorithmic Sorting",
-      "content": "Sorting algorithms are designed to systematically rearrange data into a strictly defined relational order, typically a monotonically increasing (ascending) or monotonically decreasing (descending) sequence. Sorting represents one of the most critical operations in computer science because organizing unstructured data is a mandatory pre-processing step for deploying highly efficient search heuristics and complex relational database queries.\n\nAt a macro level, robust software systems fundamentally depend on sorting. An e-commerce backend must sort product inventories by scalar price values; a high-frequency trading platform must sort transaction timestamps sequentially. When a dataset is mathematically ordered, algorithms can leverage structural properties to execute logarithmic search paradigms (like Binary Search). If a dataset remains unsorted, operations are strictly limited to inefficient O(n) linear scans.\n\nWhile enterprise-level systems utilize advanced linearithmic sorting architectures—such as Timsort or Merge Sort executing in O(n log n) time—this lesson focuses on foundational quadratic algorithms: Bubble Sort and Selection Sort. Although these algorithms scale poorly in production environments, studying their mechanics is essential for understanding nested iteration, in-place memory mutations, and the mathematical reality of quadratic computational growth."
+      "content": "Sorting rearranges data into ascending or descending order -- a near-mandatory prerequisite for fast search and clean database queries.\n\nAn e-commerce backend sorts products by price; a trading platform sorts transactions by timestamp. Sorted data unlocks fast searches like Binary Search; unsorted data is stuck with O(n) linear scans.\n\nProduction systems usually reach for O(n log n) sorts (Timsort, Merge Sort). This lesson covers the simpler, slower O(n²) ones -- Bubble Sort and Selection Sort -- because their mechanics (nested loops, in-place swapping) are the foundation everything else builds on."
     },
     {
       "id": "why-sorting-matters",
       "type": "concept",
       "title": "The Strategic Value of Organized Data",
-      "content": "To understand the necessity of sorting, consider the computational disparity between querying an unstructured memory block versus an ordered array. Searching for a specific string within 1,000,000 unsorted records requires a brute force linear sequence evaluating up to 1,000,000 nodes. However, if those records are strictly alphabetized, a logarithmic search architecture can pinpoint the exact string in approximately 20 evaluations.\n\nSorting establishes the structural foundation required for system optimization, data normalization, deduplication, and statistical mapping. The fundamental procedures underlying any sorting algorithm rely on three core algorithmic operations:",
+      "content": "Searching 1,000,000 unsorted records for a string: up to 1,000,000 checks. Sorted (alphabetized) first: ~20 checks with a logarithmic search.\n\nEvery sorting algorithm boils down to the same three moves:",
       "bullets": [
-        "**Relational Evaluation:** Comparing two discrete elements in memory to determine their mathematical hierarchy.",
-        "**Sequence Validation:** Deciding whether the current spatial orientation of the elements violates the target order (ascending or descending).",
-        "**In-Place Mutation (Swapping):** Reallocating memory addresses to exchange the physical positions of out-of-order elements.",
-        "**Iterative State Propagation:** Executing continuous passes across the dataset until no sequence violations remain."
+        "**Compare:** check two elements against each other.",
+        "**Validate:** decide if the current order is wrong.",
+        "**Swap:** exchange out-of-order elements in place.",
+        "**Repeat:** keep passing over the data until nothing's out of order."
       ]
     },
     {
       "id": "what-is-bubble-sort",
       "type": "deep_dive",
       "title": "Algorithm Profile: Bubble Sort",
-      "content": "Bubble Sort is a foundational comparison-based sorting algorithm defined by its strategy of continuous adjacent displacement. The algorithm traverses the dataset sequentially, isolating pairs of adjacent elements and applying a strict inequality check. If the pair violates the targeted sequence (e.g., the left integer is greater than the right integer in an ascending model), the algorithm forces an immediate in-place swap.\n\nThis localized swapping mechanism inherently forces the most extreme remaining value (the largest in an ascending sort, or the smallest in a descending sort) to shift continuously to the right during each iteration. By the conclusion of a single complete traversal—known as a \"pass\"—the algorithm guarantees that the absolute maximum value within the unsorted boundary has been pushed into its correct, permanent terminal index.\n\nBecause each pass solidifies the position of one element at the tail of the array, the subsequent pass effectively ignores that terminal index, shrinking the unsorted boundary by one. This process iterates until the unsorted boundary collapses entirely."
+      "content": "Bubble Sort compares each pair of adjacent elements and swaps them if they're in the wrong order (e.g. left > right for ascending).\n\nThat repeated local swapping pushes the largest remaining value steadily rightward -- by the end of one full pass, the single largest value is guaranteed to be in its correct final spot.\n\nSince each pass locks one more element in place at the end, the next pass can ignore it -- the unsorted region shrinks by one each time, until nothing's left to sort."
     },
     {
       "id": "what-is-selection-sort",
       "type": "deep_dive",
       "title": "Algorithm Profile: Selection Sort",
-      "content": "In contrast to Bubble Sort's continuous adjacent swapping, Selection Sort minimizes memory writing operations through a strategy of extrema isolation. The algorithm structurally partitions the array into two distinct logical segments: a fully sorted boundary on the left, and an unsorted boundary on the right.\n\nDuring execution, Selection Sort initializes an index pointer at the boundary edge and scans the entire remaining unsorted segment to locate the absolute extremum (the minimum value for ascending, or the maximum for descending). Rather than swapping elements continuously as it scans, it simply updates a tracker variable with the memory address of the extremum. Once the scan concludes, the algorithm executes exactly one highly efficient in-place swap, exchanging the found extremum with the element residing at the current sorted boundary.\n\nThis approach guarantees exactly one memory swap per pass, drastically reducing the physical write-to-memory overhead compared to Bubble Sort, despite maintaining the same overarching theoretical time complexity."
+      "content": "Instead of swapping constantly, Selection Sort splits the array into a sorted left side and unsorted right side, and does just one swap per pass.\n\nIt scans the whole unsorted region for the minimum (or maximum) value, tracking its *index* as it goes -- not swapping yet. Once the scan finishes, it swaps that extremum into place at the boundary.\n\nOne swap per pass, versus Bubble Sort's many -- far less memory writing, same overall O(n²) time."
     },
     {
       "id": "walkthrough",
       "type": "deep_dive",
       "title": "Execution Trace: The Single Pass Invariant",
-      "content": "Understanding the internal state changes during algorithm execution requires tracking the array after specific iterations. \n\n**Bubble Sort Single Pass Execution:**\nConsider tracking a single pass of Bubble Sort on the array `[5, 2, 8, 1]` targeting ascending order.\n1. Evaluate indices 0 and 1 (`5` and `2`). `5 > 2`, violation detected. Swap executed: `[2, 5, 8, 1]`.\n2. Evaluate indices 1 and 2 (`5` and `8`). `5 < 8`, valid sequence. No swap: `[2, 5, 8, 1]`.\n3. Evaluate indices 2 and 3 (`8` and `1`). `8 > 1`, violation detected. Swap executed: `[2, 5, 1, 8]`.\n**Invariant Result:** After one complete pass, the absolute maximum value (`8`) has been successfully propagated to the final index. The unsorted boundary now restricts to the first three elements.\n\n**Selection Sort Single Pass Execution:**\nConsider the same array `[5, 2, 8, 1]` targeting ascending order.\n1. Set the sorted boundary at index 0 (value `5`). Assume index 0 is the minimum.\n2. Scan the remaining unsorted segment `[2, 8, 1]`. The absolute minimum value discovered is `1` at index 3.\n3. Execute a single swap between the boundary index (0) and the minimum index (3).\n**Invariant Result:** The array mutates to `[1, 2, 8, 5]`. The sorted boundary advances by one index, locking `1` into its permanent position with minimal write operations."
+      "content": "**Bubble Sort**, one pass on `[5, 2, 8, 1]` (ascending):\n1. Compare 5, 2 → swap → `[2, 5, 8, 1]`.\n2. Compare 5, 8 → no swap → `[2, 5, 8, 1]`.\n3. Compare 8, 1 → swap → `[2, 5, 1, 8]`.\n**Result:** the max (8) is now locked in the last slot. The unsorted region shrinks to the first three elements.\n\n**Selection Sort**, same array:\n1. Assume index 0 (`5`) is the min.\n2. Scan `[2, 8, 1]` -- the true min is `1` at index 3.\n3. Swap index 0 and index 3.\n**Result:** `[1, 2, 8, 5]` -- one swap, `1` locked in, sorted boundary advances by one."
     },
     {
       "id": "implementation",
       "type": "concept",
       "title": "Architectural Implementation in Python",
-      "content": "Implementing these algorithms necessitates highly controlled nested iteration. The outer loop is responsible for tracking the shrinking boundary of the unsorted segment, while the inner loop executes the localized scanning and condition evaluation.\n\nIn Bubble Sort, the inner loop strictly bounds itself to `len(arr) - pass_index - 1` to prevent redundant evaluations against already sorted terminal elements. In Selection Sort, the inner loop utilizes pointer indirection—tracking the abstract index of the target value rather than manipulating the integers themselves until the final swap operation.\n\nBy inverting the conditional logic (`>` converted to `<`), the architecture natively pivots from ascending generation to descending generation.",
+      "content": "The outer loop tracks the shrinking unsorted boundary; the inner loop does the scanning and comparing.\n\nBubble Sort's inner loop stops at `len(arr) - pass_index - 1` to skip already-sorted elements. Selection Sort's inner loop tracks an index (`min_idx`), not values, deferring the actual swap until the scan is done.\n\nFlipping `>` to `<` flips ascending to descending.",
       "codeSnippets": [
-        {
-          "title": "Bubble Sort: Ascending Execution",
-          "language": "python",
-          "code": "def bubble_sort_asc(arr):\n    result = arr[:]\n    for pass_index in range(len(result)):\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] > result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n    return result"
-        },
-        {
-          "title": "Bubble Sort: Descending Execution",
-          "language": "python",
-          "code": "def bubble_sort_desc(arr):\n    result = arr[:]\n    for pass_index in range(len(result)):\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] < result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n    return result"
-        },
-        {
-          "title": "Selection Sort: Ascending Execution",
-          "language": "python",
-          "code": "def selection_sort_asc(arr):\n    result = arr[:]\n    for i in range(len(result)):\n        min_idx = i\n        for j in range(i + 1, len(result)):\n            if result[j] < result[min_idx]:\n                min_idx = j\n        result[i], result[min_idx] = result[min_idx], result[i]\n    return result"
-        },
-        {
-          "title": "Sort Execution Tracking: Single Pass Isolation",
-          "language": "python",
-          "code": "def single_pass(arr):\n    result = arr[:]\n    for i in range(len(result) - 1):\n        if result[i] > result[i + 1]:\n            result[i], result[i + 1] = result[i + 1], result[i]\n    return result"
-        }
+        { "title": "Bubble Sort: Ascending Execution", "language": "python", "code": "def bubble_sort_asc(arr):\n    result = arr[:]\n    for pass_index in range(len(result)):\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] > result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n    return result" },
+        { "title": "Bubble Sort: Descending Execution", "language": "python", "code": "def bubble_sort_desc(arr):\n    result = arr[:]\n    for pass_index in range(len(result)):\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] < result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n    return result" },
+        { "title": "Selection Sort: Ascending Execution", "language": "python", "code": "def selection_sort_asc(arr):\n    result = arr[:]\n    for i in range(len(result)):\n        min_idx = i\n        for j in range(i + 1, len(result)):\n            if result[j] < result[min_idx]:\n                min_idx = j\n        result[i], result[min_idx] = result[min_idx], result[i]\n    return result" },
+        { "title": "Sort Execution Tracking: Single Pass Isolation", "language": "python", "code": "def single_pass(arr):\n    result = arr[:]\n    for i in range(len(result) - 1):\n        if result[i] > result[i + 1]:\n            result[i], result[i + 1] = result[i + 1], result[i]\n    return result" }
       ]
     },
     {
       "id": "complexity-analysis",
       "type": "deep_dive",
       "title": "Mathematical Complexity and Quadratic Constraints",
-      "content": "The defining characteristic of simple sorting algorithms is their reliance on nested iteration structures, which uniformly degrade into a catastrophic **O(n²) Quadratic Time Complexity**. \n\nThe mathematical derivation stems from an arithmetic progression. During the first pass, the inner loop executes roughly $N$ comparisons. The second pass executes $N-1$, the third $N-2$, regressing linearly toward $1$. The sum of this sequential series is expressed via Gauss's formula as $\\frac{N(N-1)}{2}$. In asymptotic Big-O notation, the non-dominant constants and divisions are dropped, yielding an undeniable $O(n^2)$ worst-case and average-case upper bound.\n\nTo contextualize this inefficiency: sorting a minuscule 10,000-element array forces these algorithms to execute approximately 50,000,000 discrete iterations. Conversely, an optimized $O(n \\log n)$ linearithmic algorithm (like Python's native Timsort) resolves the exact same array in approximately 132,000 iterations.\n\nFrom a memory management perspective, both Bubble Sort and Selection Sort function perfectly in-place. Because they allocate zero dynamic lists and strictly mutate existing memory arrays via temporary pointers, they secure an optimal **O(1) Auxiliary Space Complexity**.",
+      "content": "Both algorithms nest a nearly-full loop inside another, degrading to **O(n²)**.\n\nWhy: pass 1 does ~n comparisons, pass 2 does n-1, pass 3 does n-2, and so on down to 1. That sum is n(n-1)/2 -- drop the constants and lower terms, and you're left with O(n²).\n\nAt n=10,000, that's ~50,000,000 iterations. Timsort (O(n log n)) solves the same array in ~132,000.\n\nBoth are still **O(1) auxiliary space** -- no new arrays, just in-place swaps via temp pointers.",
       "chart": {
         "title": "Quadratic Degradation of Simple Sorting",
-        "description": "Visualizing the O(n²) curve illustrates how minor increases in input size generate catastrophic surges in processing requirements when relying on nested iterative structures.",
+        "description": "The O(n²) curve shows how fast nested-loop sorting blows up as input grows.",
         "maxN": 32,
         "normalize": true,
-        "curves": [
-          "O(n)",
-          "O(n log n)",
-          "O(n^2)"
-        ]
+        "curves": ["O(n)", "O(n log n)", "O(n^2)"]
       }
     },
     {
       "id": "sorting-vs-searching",
       "type": "concept",
       "title": "Architectural Trade-offs: Sorting vs. Searching",
-      "content": "In system design, sorting operates as a highly expensive prerequisite for optimizing subsequent search queries. Sorting algorithms fundamentally restructure memory addresses, whereas searching algorithms passively scan them.\n\nA frequent architectural decision involves determining if the heavy computational tax of sorting is mathematically justified. If a server must execute thousands of rapid queries against a static user database, absorbing a one-time $O(n \\log n)$ sorting penalty to unlock perpetual $O(\\log n)$ Binary Searches yields massive performance gains.\n\nHowever, if an application requires only a singular, isolated lookup on a volatile array, the calculus inverts. Subjecting the dataset to an $O(n \\log n)$ (or worse, $O(n^2)$) sort simply to run a single fast search is architecturally flawed. Executing a raw $O(n)$ Linear Search is demonstrably faster than processing the heavy initialization overhead of sorting."
+      "content": "Sorting restructures data; searching just scans it -- and sorting is expensive enough that it's worth asking whether it's justified.\n\nRunning thousands of repeated queries against a static dataset? Pay the one-time O(n log n) sort to unlock O(log n) searches forever after -- a clear win.\n\nJust one lookup on data that changes constantly? Sorting first (O(n log n) or worse) just to search once is a net loss -- a plain O(n) linear search wins."
     },
     {
       "id": "advantages-limitations",
       "type": "concept",
       "title": "Algorithm Evaluation Profile",
       "subsections": [
-        {
-          "id": "advantages",
-          "title": "Engineering Merits",
-          "bullets": [
-            "**In-Place Operation:** Modifies data streams natively, utilizing absolute minimum O(1) auxiliary space.",
-            "**Architectural Simplicity:** Bypasses complex recursion trees and pivot selections.",
-            "**Educational Viability:** Demonstrates core logical invariants, boundary checking, and state tracking.",
-            "**Stability:** Bubble sort guarantees that identical integers retain their original relative sequences."
-          ]
-        },
-        {
-          "id": "limitations",
-          "title": "System Vulnerabilities",
-          "bullets": [
-            "**Catastrophic Scalability:** The strict O(n²) time constraint renders them useless on datasets exceeding 1,000 nodes.",
-            "**High Write Saturation:** Bubble sort generates immense I/O memory friction due to continuous redundant swapping.",
-            "**Non-Adaptive Execution:** Standard implementations blindly run logic sequences even on partially pre-sorted datasets."
-          ]
-        }
+        { "id": "advantages", "title": "Engineering Merits", "bullets": ["**In-Place:** O(1) auxiliary space.", "**Simple:** no recursion, no pivot selection.", "**Educational:** clean invariants, easy to trace.", "**Stable (Bubble Sort):** equal elements keep their original order."] },
+        { "id": "limitations", "title": "System Vulnerabilities", "bullets": ["**O(n²) scaling** falls apart past ~1,000 items.", "**Bubble Sort writes a lot** -- heavy swap overhead.", "**Not adaptive** -- doesn't notice data that's already mostly sorted."] }
       ]
     },
     {
       "id": "applications",
       "type": "real_world_connection",
       "title": "Real-World Integration Constraints",
-      "content": "Due to aggressive quadratic scaling, Bubble Sort and Selection Sort are strictly prohibited in enterprise-level backend environments or high-density relational databases. However, they maintain niche utility in strictly bounded, ultra-low memory scenarios.\n\nIn embedded engineering (such as programming microcontrollers or IoT sensory nodes), dynamic memory allocation is restricted, and arrays rarely exceed 10 to 20 elements. In these hyper-constrained environments, the lightweight instruction set of a Selection Sort requires vastly less CPU cache overhead than initializing a recursive Merge Sort, making the \"inefficient\" quadratic algorithm practically faster for microscopic datasets.\n\nFurthermore, these algorithms are universally deployed as academic baseline architectures. Developing them allows programmers to visually interpret how theoretical nested iterations manifest into undeniable runtime bottlenecks, serving as the required proof-of-concept before advancing to sophisticated linearithmic paradigms."
+      "content": "Enterprise backends avoid these entirely -- O(n²) is a nonstarter at scale.\n\nBut in embedded systems (microcontrollers, IoT sensors) with arrays of maybe 10-20 items and tight memory, Selection Sort's low overhead can genuinely beat a recursive Merge Sort's setup cost.\n\nMostly, though, they're the standard teaching tool -- a hands-on way to see nested loops turn into real runtime cost before moving to faster algorithms."
     },
     {
       "id": "misconceptions",
       "type": "key_concept",
       "title": "Common Implementation Errors",
       "subsections": [
-        {
-          "id": "one-pass",
-          "title": "Vulnerability: Assuming Single Pass Resolution",
-          "content": "A critical misunderstanding involves assuming a single iterative pass successfully organizes an array. A single traversal guarantees only the isolation of the extreme value to the terminal boundary. The entirety of the unsorted segment strictly requires subsequent nested passes to fully resolve."
-        },
-        {
-          "id": "loop-boundaries",
-          "title": "Vulnerability: Redundant Boundary Scanning",
-          "content": "Failing to aggressively decrement the inner loop boundary (e.g., omitting `- pass_index`) forces the algorithm to continuously re-evaluate elements that are already locked into their final sorted positions. While this does not break the code, it doubles the execution redundancy."
-        },
-        {
-          "id": "pointer-indirection",
-          "title": "Vulnerability: Value Swapping vs. Pointer Indirection",
-          "content": "When implementing Selection Sort, developers frequently attempt to swap elements aggressively during the inner scanning phase. This degrades Selection Sort into a misconfigured Bubble Sort. Selection Sort must strictly track the abstract *index* (`min_idx`) during the scan and defer the physical memory mutation until the scan entirely concludes."
-        },
-        {
-          "id": "ignoring-complexity",
-          "title": "Vulnerability: Disregarding Quadratic Reality",
-          "content": "Simple algorithms appear near-instantaneous on trivial test arrays (N=10). Extrapolating this performance to production data without conducting mathematical complexity analysis guarantees software latency locks. Hardware speed cannot outrun quadratic mathematical growth."
-        }
+        { "id": "one-pass", "title": "Vulnerability: Assuming Single Pass Resolution", "content": "One pass only locks in the extreme value at the boundary -- the rest of the array still needs more passes." },
+        { "id": "loop-boundaries", "title": "Vulnerability: Redundant Boundary Scanning", "content": "Skip the `- pass_index` shrink on the inner loop and you'll keep re-checking elements that are already sorted -- not wrong, just wasteful." },
+        { "id": "pointer-indirection", "title": "Vulnerability: Value Swapping vs. Pointer Indirection", "content": "Swapping during Selection Sort's scan itself turns it into a clumsy Bubble Sort. Track the index (`min_idx`), swap once, after the scan." },
+        { "id": "ignoring-complexity", "title": "Vulnerability: Disregarding Quadratic Reality", "content": "Looks instant at n=10. Extrapolating that to production data without checking the actual complexity is how you get a slow system." }
       ]
     },
     {
@@ -188,26 +113,17 @@
       "type": "summary",
       "title": "Key Engineering Takeaways",
       "bullets": [
-        "**Bubble Sort** operates via continuous adjacent condition evaluation and immediate memory reallocation.",
-        "**Selection Sort** minimizes physical write operations through extrema tracking and deferred boundary swapping.",
-        "The **Single Pass Invariant** dictates that after one iteration, the maximum (or minimum) value is permanently locked into its terminal index.",
-        "Relying on heavily nested traversal architectures mathematically condemns these algorithms to a severe **O(n²) Worst-Case Time Complexity**.",
-        "Both algorithms exhibit optimal **O(1) Auxiliary Space**, mutating data sequences safely in-place without triggering memory bloat."
+        "**Bubble Sort** swaps adjacent out-of-order pairs continuously.",
+        "**Selection Sort** finds the extremum first, swaps once per pass.",
+        "The **Single Pass Invariant**: one pass locks the extreme value into its final spot.",
+        "Both are **O(n²)** worst-case and average-case time.",
+        "Both are **O(1)** auxiliary space -- safe, in-place mutation."
       ]
     }
   ],
   "references": [
-    {
-      "title": "MIT OpenCourseWare - Introduction to Algorithms",
-      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
-    },
-    {
-      "title": "Programiz - Bubble Sort",
-      "url": "https://www.programiz.com/dsa/bubble-sort"
-    },
-    {
-      "title": "GeeksforGeeks - Selection Sort",
-      "url": "https://www.geeksforgeeks.org/selection-sort/"
-    }
+    { "title": "MIT OpenCourseWare - Introduction to Algorithms", "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/" },
+    { "title": "Programiz - Bubble Sort", "url": "https://www.programiz.com/dsa/bubble-sort" },
+    { "title": "GeeksforGeeks - Selection Sort", "url": "https://www.geeksforgeeks.org/selection-sort/" }
   ]
 }

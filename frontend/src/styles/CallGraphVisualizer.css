@@ -94,6 +94,42 @@
   min-height: 100%;
 }
 
+/* Explanatory hover tooltip */
+.callgraph-hover-tooltip {
+  position: absolute;
+  z-index: 50;
+  max-width: 240px;
+  background: rgba(15, 23, 42, 0.96);
+  color: #F1F5F9;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: none;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  animation: cgTooltipFadeIn 0.12s ease-out;
+}
+
+.callgraph-hover-tooltip-title {
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #A78BFA;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.callgraph-hover-tooltip-line {
+  color: #CBD5E1;
+  margin-top: 2px;
+}
+
+@keyframes cgTooltipFadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .callgraph-svg {
   position: absolute;
   top: 0;

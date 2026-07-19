@@ -2,140 +2,91 @@
   "lessonId": "lesson-0-3",
   "moduleId": "module-0",
   "title": "The Complexity Analyzer",
-  "description": "Learn how the Complexity Analyzer evaluates algorithm efficiency and performance scalability. This lesson introduces time complexity, space complexity, and Big-O notation. By the end, you will understand why certain algorithmic structures degrade processing speed, how block arrangements dictate memory consumption, and how to utilize the system's analytical readouts to engineer optimized solutions.",
+  "description": "How the built-in Complexity Analyzer reads your blocks and reports Time and Space Big-O -- and how to act on what it tells you.",
   "difficulty": "Beginner",
-  "estimatedTime": "25 min",
+  "estimatedTime": "15 min",
   "prerequisites": "Core Blockly Components",
-  "tags": [
-    "complexity",
-    "performance",
-    "analysis"
-  ],
+  "tags": ["complexity", "performance", "analysis"],
   "activities": [
-    {
-      "id": "m0_l3_a1",
-      "title": "Checking How Fast Code Runs"
-    },
-    {
-      "id": "m0_l3_a2",
-      "title": "Loops Make Code Take Longer"
-    },
-    {
-      "id": "m0_l3_a3",
-      "title": "Loops Inside Loops"
-    },
-    {
-      "id": "m0_l3_a4",
-      "title": "Checking Both Paths"
-    },
-    {
-      "id": "m0_l3_a5",
-      "title": "Math is Faster than Loops"
-    }
+    { "id": "m0_l3_a1", "title": "Checking How Fast Code Runs" },
+    { "id": "m0_l3_a2", "title": "Loops Make Code Take Longer" },
+    { "id": "m0_l3_a3", "title": "Loops Inside Loops" },
+    { "id": "m0_l3_a4", "title": "Checking Both Paths" },
+    { "id": "m0_l3_a5", "title": "Math is Faster than Loops" }
   ],
   "sections": [
     {
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction to Scalability",
-      "content": "Developing efficient algorithms is critical because modern software systems must process massive datasets seamlessly. An algorithm that functions adequately with 10 elements may cause a system timeout when subjected to 10,000 elements.\n\nSoftware engineering extends beyond merely achieving the correct output. It requires analyzing how the computational workload scales when the input size expands. This involves recognizing unnecessary iteration and identifying redundant memory allocations.",
+      "content": "Code that's fine for 10 items can time out at 10,000. Writing correct output isn't enough -- you need to know how the work scales as input grows.",
       "subsections": [
-        {
-          "id": "intro-analyzer",
-          "title": "The Complexity Tab",
-          "content": "The workspace features a dedicated Complexity tab designed to evaluate the structural efficiency of the visual blocks placed on the canvas. Activating this panel triggers an automated mathematical analysis of your algorithm.\n\nIt computes two primary metrics: Time Complexity, representing the scaling of operational steps, and Space Complexity, representing the scaling of supplementary memory usage. These metrics are expressed using standard Big-O notation."
-        },
-        {
-          "id": "intro-graph",
-          "title": "The Complexity Graph",
-          "content": "Beneath the metric scores, the interface renders a Complexity Graph. This chart is a theoretical visualization rather than a real-time execution monitor.\n\nIt provides a standardized representation of the Big-O mathematical curve associated with your logic. If an algorithm evaluates to O(n²), the graph displays a steep quadratic trajectory. This visual aid is intended to clarify how aggressive performance degradation becomes within specific complexity classes as data volume increases."
-        }
+        { "id": "intro-analyzer", "title": "The Complexity Tab", "content": "The workspace's Complexity tab automatically analyzes your blocks and reports two numbers in Big-O: **Time Complexity** (how operations scale) and **Space Complexity** (how memory use scales)." },
+        { "id": "intro-graph", "title": "The Complexity Graph", "content": "Below the scores, the Complexity Graph plots the theoretical Big-O curve for your logic -- not a live execution trace. An O(n²) result shows a steep curve, making it easy to see how badly performance degrades at scale." }
       ]
     },
     {
       "id": "time-complexity",
       "type": "concept",
       "title": "Understanding Time Complexity",
-      "content": "Time complexity measures the theoretical escalation in computational operations relative to the input size, denoted as 'n'. It evaluates the worst-case scenario and omits constant multipliers, focusing entirely on the underlying growth trend.",
+      "content": "Time complexity measures how the number of operations grows with input size `n` -- worst case, constants dropped, focused purely on the trend.",
       "subsections": [
         {
           "id": "tc-common",
           "title": "Standard Time Complexities",
-          "content": "The analyzer categorizes algorithmic logic into several foundational growth patterns:",
+          "content": "The four you'll see constantly:",
           "bullets": [
-            "**O(1) Constant Time:** The operation requires a fixed amount of work regardless of the input size. Example: Evaluating a mathematical formula or accessing a specific array index.",
-            "**O(n) Linear Time:** The required operations scale in direct, one-to-one proportion with the input size. Example: A single loop iterating sequentially through a dataset.",
-            "**O(n²) Quadratic Time:** The operational workload scales with the square of the input size. Example: A nested loop structure, where the inner loop executes fully for every single iteration of the outer loop.",
-            "**O(log n) Logarithmic Time:** A highly efficient growth rate where the algorithm systematically fractions the dataset, discarding a portion of the workload during each step. Example: Binary Search."
+            "**O(1) Constant:** fixed work no matter the input -- e.g. a formula, or an index lookup.",
+            "**O(n) Linear:** work scales 1-to-1 with input -- e.g. one loop through a dataset.",
+            "**O(n²) Quadratic:** scales with the square of the input -- e.g. a loop nested inside a loop.",
+            "**O(log n) Logarithmic:** the dataset shrinks each step -- e.g. Binary Search."
           ]
         },
-        {
-          "id": "micro-transition-o-n-squared",
-          "title": "Visualizing Quadratic Growth",
-          "content": "To conceptualize O(n²) scaling, consider a networking protocol where every node must communicate with every other node. If a network contains 5 nodes, the system must process 25 distinct interactions. When nested loops are constructed in the workspace, the Complexity Graph will immediately reflect this compounding operational cost."
-        }
+        { "id": "micro-transition-o-n-squared", "title": "Visualizing Quadratic Growth", "content": "Picture every node in a network talking to every other node: 5 nodes → 25 interactions. Build a nested loop in the workspace and the Complexity Graph shows that same compounding cost immediately." }
       ]
     },
     {
       "id": "space-complexity",
       "type": "concept",
       "title": "Understanding Space Complexity",
-      "content": "Space Complexity evaluates the supplementary memory allocation required by an algorithm to complete its execution. Managing memory efficiently is a hallmark of optimized software design.",
+      "content": "Space complexity measures the extra memory your algorithm needs to run -- managing it well is a mark of solid design.",
       "subsections": [
-        {
-          "id": "sc-memory-allocation",
-          "title": "Allocation versus Mutation",
-          "content": "When a program utilizes blocks that dynamically append elements to an array based on an input parameter, it requests new physical memory addresses. Because this memory requirement scales alongside the data, the analyzer assigns an O(n) Space metric.\n\nConversely, when an algorithm updates an existing variable or swaps data within an existing array structure, it modifies the data in-place. Because no new scalable memory is provisioned, the analyzer recognizes this efficiency with an O(1) Space metric."
-        }
+        { "id": "sc-memory-allocation", "title": "Allocation versus Mutation", "content": "Appending to an array as input grows requests new memory each time -- that's **O(n) Space**. Updating an existing variable or swapping values in place needs no new memory -- that's **O(1) Space**." }
       ]
     },
     {
       "id": "system-tools",
       "type": "deep_dive",
       "title": "System Tools for Optimization",
-      "content": "The learning environment is equipped with utilities to assist in resolving performance bottlenecks.",
+      "content": "Two tools help you fix what the analyzer flags:",
       "subsections": [
-        {
-          "id": "tool-bigo-modal",
-          "title": "The Big O Reference Modal",
-          "content": "Located in the workspace footer, the 'Big O Reference' button opens a comprehensive analytical table. This modal serves as a static academic resource detailing the definitions, examples, and graphical representations of distinct complexity classes."
-        },
-        {
-          "id": "tool-bottlenecks",
-          "title": "Resolving Algorithmic Bottlenecks",
-          "content": "A bottleneck is a localized segment of logic that severely degrades overall performance. For instance, calculating the sum of a sequence via iteration forces an O(n) linear operation. Recognizing that mathematical formulas can bypass this iteration allows the developer to substitute the loop with a static equation, successfully neutralizing the bottleneck and attaining O(1) execution."
-        }
+        { "id": "tool-bigo-modal", "title": "The Big O Reference Modal", "content": "The **Big O Reference** button in the footer opens a reference table of every complexity class, with definitions, examples, and graphs." },
+        { "id": "tool-bottlenecks", "title": "Resolving Algorithmic Bottlenecks", "content": "A bottleneck is the one piece of logic dragging down your whole algorithm. Summing a sequence with a loop is O(n) -- swapping in a closed-form formula instead collapses that to O(1)." }
       ]
     },
     {
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",
-      "content": "The Complexity Analyzer dictates how algorithm design impacts systemic scalability. Consistent optimization requires a balanced evaluation of both Time and Space metrics.",
+      "content": "The analyzer turns block structure directly into a scalability verdict. Optimizing means watching both Time and Space, not just one.",
       "subsections": [
         {
           "id": "sum-workflow",
           "title": "Analytical Workflow",
-          "content": "Apply the following process when refining algorithms:",
+          "content": "A simple loop to follow:",
           "bullets": [
-            "1. Construct the initial logic utilizing the workspace canvas.",
-            "2. Activate the Complexity tab to review the automated Big-O classifications.",
-            "3. Analyze the theoretical growth trajectory presented in the Complexity Graph.",
-            "4. If severe degradation such as O(n²) is detected, isolate and refactor the nested logic structures.",
-            "5. Use the Big O Reference table in the footer to learn about efficient alternative approaches."
+            "1. Build your logic on the canvas.",
+            "2. Open the Complexity tab to see the Big-O verdict.",
+            "3. Check the growth curve on the Complexity Graph.",
+            "4. If it's steep (e.g. O(n²)), isolate and refactor the nested logic.",
+            "5. Check the Big O Reference table for a faster alternative."
           ]
         }
       ]
     }
   ],
   "references": [
-    {
-      "title": "GeeksforGeeks — Analysis of Algorithms",
-      "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/"
-    },
-    {
-      "title": "Programiz — Time Complexity",
-      "url": "https://www.programiz.com/dsa/time-complexity"
-    }
+    { "title": "GeeksforGeeks — Analysis of Algorithms", "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/" },
+    { "title": "Programiz — Time Complexity", "url": "https://www.programiz.com/dsa/time-complexity" }
   ]
 }

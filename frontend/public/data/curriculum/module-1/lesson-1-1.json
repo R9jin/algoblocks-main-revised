@@ -2,9 +2,9 @@
   "lessonId": "lesson-1-1",
   "moduleId": "module-1",
   "title": "Asymptotic Notations and Complexity Analysis",
-  "description": "Learn the universal language of algorithm performance. This comprehensive lesson introduces Asymptotic Analysis, the primary performance bounds (Best, Average, and Worst Case), and deeply explores all common and special-case Big-O complexities detected by the system's mathematical analyzer.",
+  "description": "The universal language for measuring algorithm performance -- Big-O, Big-Omega, Big-Theta, and the full catalog of growth rates the analyzer detects.",
   "difficulty": "Beginner",
-  "estimatedTime": "45 min",
+  "estimatedTime": "30 min",
   "prerequisites": "The Complexity Analyzer",
   "tags": [
     "big-o",
@@ -15,59 +15,44 @@
     "space complexity"
   ],
   "activities": [
-    {
-      "id": "m1_l1_a1",
-      "title": "Creating Your First List"
-    },
-    {
-      "id": "m1_l1_a2",
-      "title": "Finding the List Length"
-    },
-    {
-      "id": "m1_l1_a3",
-      "title": "Getting the First Item"
-    },
-    {
-      "id": "m1_l1_a4",
-      "title": "Changing Items in a List"
-    },
-    {
-      "id": "m1_l1_a5",
-      "title": "Adding Items to the End"
-    }
+    { "id": "m1_l1_a1", "title": "Creating Your First List" },
+    { "id": "m1_l1_a2", "title": "Finding the List Length" },
+    { "id": "m1_l1_a3", "title": "Getting the First Item" },
+    { "id": "m1_l1_a4", "title": "Changing Items in a List" },
+    { "id": "m1_l1_a5", "title": "Adding Items to the End" }
   ],
   "sections": [
     {
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction to Algorithm Complexity",
-      "content": "The framework for efficiency analysis focuses on the order of growth of the algorithm's basic operation count. The running time value increases as the input value 'n' increases in the order of growth. The input value n is directly proportional to the complexity of an algorithm. Formal notation is used for discussing and categorizing functions, allowing you to compare the 'sizes' of different functions.\n\nWhy study algorithm complexity? First, performance matters. Inefficient algorithms waste CPU cycles, battery life, and computational resources. Second, scalability and competitiveness. When n grows from 1,000 to 1,000,000, an O(n²) routine slows by a factor of 1,000, whereas an O(n log n) algorithm slows by only about 20 times. Third, hardware independence. Asymptotic analysis lets us compare designs without relying on specific machines or programming languages."
+      "content": "Big-O measures how an algorithm's workload grows as its input size `n` grows -- not how fast it runs on your machine today, but how it'll hold up as data scales.\n\nWhy bother? Three reasons: **Performance** -- slow algorithms waste real time and resources. **Scalability** -- going from 1,000 to 1,000,000 items slows an O(n²) algorithm 1,000x, but an O(n log n) one only ~20x. **Portability** -- it lets you compare algorithms without caring what hardware or language they run on."
     },
     {
       "id": "cost-models",
       "type": "concept",
       "title": "Cost Models & Basic Terminology",
-      "content": "To accurately measure an algorithm, we define specific terms to standardize our mathematical evaluation and clearly define what we are calculating:",
+      "content": "A few terms you'll see constantly:",
       "subsections": [
         {
           "id": "operation-cost",
           "title": "Operation Cost",
-          "content": "We count a dominant primitive (such as a mathematical comparison, a memory assignment, or a basic arithmetic operation) as exactly 1 'step'. We do not concern ourselves with the microscopic timing differences between addition and multiplication at the hardware level."
+          "content": "One comparison, assignment, or basic arithmetic op = 1 \"step.\" We don't split hairs over add vs. multiply at the hardware level."
         },
         {
           "id": "input-size",
           "title": "Input Size (n)",
-          "content": "The number of items being processed by the algorithm. This could be an array length, the total number of vertices in a graph, or the number of digits in a mathematical calculation."
+          "content": "Whatever you're processing: array length, node count in a graph, digit count in a number."
         },
         {
           "id": "running-time",
           "title": "Running-Time Function f(n)",
-          "content": "This mathematical function determines exactly how many steps the algorithm performs as a direct, computable function of the input size n."
+          "content": "The formula for exactly how many steps the algorithm takes, as a function of n."
         },
         {
           "id": "space-complexity-def",
           "title": "Space Complexity",
-          "content": "The peak additional memory required by the algorithm beyond the storage of the input data itself. This tracks auxiliary arrays, hash maps, and the recursive call stack."
+          "content": "The extra memory an algorithm needs beyond the input itself -- auxiliary arrays, hash maps, the recursion stack."
         }
       ]
     },
@@ -75,28 +60,28 @@
       "id": "need-for-asymptotic",
       "type": "concept",
       "title": "The Need for Asymptotic Analysis",
-      "content": "When comparing two algorithms, measuring execution time with a physical stopwatch is a highly unreliable metric. Timing-based analysis depends heavily on hardware (CPU clock speed, available RAM), the specific compiler used, and background operating system processes. Two algorithms might run equally fast on 10 items, but one might completely freeze your computer when given 1,000,000 items.\n\nTo solve this, software engineers use Asymptotic Analysis. This is the study of how an algorithm performs as the input size approaches infinity. By abstracting away machine-dependent details and focusing purely on the mathematical growth trend, you can predict scalability and ensure your algorithms perform reliably at a massive scale, ignoring lower-order terms to concentrate on what is truly important."
+      "content": "A stopwatch is a bad way to compare algorithms -- results depend on your CPU, your compiler, and whatever else is running in the background. Two algorithms might tie at n=10 and one might freeze your machine at n=1,000,000.\n\nAsymptotic analysis sidesteps all of that: it studies how an algorithm behaves as n approaches infinity, ignoring machine-specific noise and lower-order terms to focus on the trend that actually matters at scale."
     },
     {
       "id": "the-three-bounds",
       "type": "concept",
       "title": "Best, Average, and Worst-Case Scenarios",
-      "content": "An algorithm's performance can fluctuate wildly based on the exact arrangement of the input data. To accurately describe these variations, computer scientists compute and identify three distinct mathematical bounds:",
+      "content": "Performance can swing wildly depending on how the input is arranged. Three bounds capture that:",
       "subsections": [
         {
           "id": "omega-bound",
           "title": "Big-Omega (Ω): The Best-Case Scenario",
-          "content": "Big-Omega represents the lower bound of an algorithm's running time. It describes the minimum resources the algorithm will require in the absolute most favorable scenario. It is identified by analyzing the exact data arrangement that triggers an early exit. For example, in a Linear Search, if the target item is sitting at the very first index of the array, the search stops instantly. This best-case performance is written as **Ω(1)**. While theoretically useful for understanding absolute mathematical limits, relying on best-case scenarios is highly dangerous in production software because you cannot guarantee ideal data conditions."
+          "content": "The minimum work required, under the most favorable input. In a Linear Search, if the target is the very first item, that's **Ω(1)**. Useful in theory, but risky to design around -- you can't count on lucky data."
         },
         {
           "id": "theta-bound",
           "title": "Big-Theta (Θ): The Average-Case Scenario",
-          "content": "Big-Theta represents a tight bound. It describes the expected performance over all possible random inputs, or when the upper and lower bounds grow at the exact same mathematical rate. It is computed by assuming a probability distribution of your inputs. For a Linear Search, assuming random distribution, the target is usually found somewhere randomly in the middle of the list. Checking half the list requires `n/2` operations, which simplifies asymptotically to an expected average-case of **Θ(n)**."
+          "content": "The expected performance across typical, randomly-distributed inputs. A Linear Search usually finds its target somewhere near the middle, giving an average of `n/2` steps -- which simplifies to **Θ(n)**."
         },
         {
           "id": "o-bound",
           "title": "Big-O (O): The Worst-Case Scenario",
-          "content": "Big-O Notation expresses the absolute upper bound of an algorithm's growth rate. It is computed by assuming the data is arranged in the worst possible way, forcing the algorithm to do the maximum amount of work. In a Linear Search, the worst-case occurs when the item is at the very end of the list or entirely missing, forcing you to check every single item. This evaluates to **O(n)**.\n\n**System Note:** The Complexity Analyzer built into your workspace is programmed exclusively to compute the **Worst-Case Big-O**. In software engineering, preparing for the worst-case is the strict industry standard because it guarantees that your program will never perform worse than its Big-O rating. It provides a safe, unbreakable mathematical ceiling for your application."
+          "content": "The absolute upper bound -- the most work the algorithm could ever do. For Linear Search, that's when the target is last (or missing entirely): **O(n)**.\n\n**System Note:** The Complexity Analyzer in your workspace always computes **Worst-Case Big-O**. That's the industry standard, because it's the one guarantee you can build on: your program will never do worse than its Big-O rating."
         }
       ]
     },
@@ -104,32 +89,32 @@
       "id": "properties",
       "type": "concept",
       "title": "Properties of Asymptotic Notations",
-      "content": "When evaluating Big-O mathematically, we rely on established mathematical properties to streamline our analysis. We do not care about exact numbers; we only care about the dominant trend as n approaches infinity.",
+      "content": "A few simplification rules let you skip the tedious algebra and jump straight to the dominant trend:",
       "subsections": [
         {
           "id": "general-properties",
           "title": "1. General Properties (Simplification Rules)",
-          "content": "If an algorithm requires `3n + 2` operations, we drop the constant multipliers and additions, simply calling it O(n). As n increases, the constant is ignored because the scalar multiplier becomes irrelevant compared to the scale of the data. Furthermore, high-order terms dominate, and low-order terms are discarded. If an algorithm performs an O(n²) nested loop followed by an O(n) single loop, the total time is technically n² + n. However, as n becomes massive, the n² portion explodes so rapidly that the n portion becomes effectively zero by comparison. Thus, O(n² + n) simplifies strictly to O(n²)."
+          "content": "Drop constants and low-order terms. `3n + 2` becomes O(n); `n² + n` becomes O(n²) -- once n is large, the n² term makes the rest irrelevant."
         },
         {
           "id": "transitive",
           "title": "2. Transitive Properties",
-          "content": "If f(n) is O(g(n)) and g(n) is O(h(n)) then f(n) is O(h(n)). If Algorithm A is bounded by Algorithm B, and Algorithm B is bounded by Algorithm C, then Algorithm A is strictly bounded by Algorithm C. This allows us to chain complexity comparisons logically."
+          "content": "If f(n) is O(g(n)) and g(n) is O(h(n)), then f(n) is O(h(n)) -- comparisons chain."
         },
         {
           "id": "reflexive",
           "title": "3. Reflexive Properties",
-          "content": "If f(n) is given, then f(n) is O(f(n)). Therefore, an algorithm's performance function will always serve as its own maximal bounding value."
+          "content": "f(n) is always O(f(n)) -- an algorithm trivially bounds itself."
         },
         {
           "id": "symmetric",
           "title": "4. Symmetric Properties",
-          "content": "If f(n) is Θ(g(n)) then g(n) is Θ(f(n)). This applies exclusively to the tight bound notation. If two algorithms have the exact same tight bound, their growth rates are completely interchangeable."
+          "content": "If f(n) is Θ(g(n)), then g(n) is Θ(f(n)) -- tight bounds go both ways."
         },
         {
           "id": "transpose-symmetric",
           "title": "5. Transpose Symmetric Properties",
-          "content": "If f(n) is O(g(n)) then g(n) is Ω(f(n)). This formally connects upper bounds and lower bounds mathematically. If Algorithm A's upper limit is Algorithm B, then Algorithm B's lower limit is inherently Algorithm A."
+          "content": "If f(n) is O(g(n)), then g(n) is Ω(f(n)) -- upper and lower bounds mirror each other."
         }
       ]
     },
@@ -137,119 +122,55 @@
       "id": "common-classes",
       "type": "deep_dive",
       "title": "Common Big-O Complexity Classes",
-      "content": "These are the standard, universal complexity classes you will frequently encounter when analyzing fundamental algorithmic structures. They are categorized based on their order of growth from most efficient to least efficient:",
+      "content": "The growth rates you'll see constantly, from fastest to slowest:",
       "subsections": [
         {
           "id": "o-1",
           "title": "O(1) Constant Time",
-          "content": "**Description:** The algorithm takes the exact same amount of time regardless of how large the input size is. It is the pinnacle of scalability. \n\n**Data Structure Foundations:** Many foundational array operations execute in O(1) time. For instance, allocating a fixed-size array requires a single contiguous block of memory. Modern arrays maintain their length as internal metadata, meaning checking list length is an O(1) retrieval rather than a linear count. Because arrays occupy contiguous memory, accessing or modifying an item via a zero-based index involves an instant mathematical address calculation. Finally, dynamically appending an item to the tail of an array operates in amortized O(1) time because it does not require shifting existing elements.\n\n**Example:** Accessing an array index, mutating a value in-place, evaluating list metadata, pushing to a stack, or performing basic arithmetic.\n\n**Loop:** No loops involved, or an artificial loop that strictly executes a fixed, constant number of times.",
-          "chart": {
-            "title": "O(1) Constant Time Growth",
-            "description": "Notice how the execution time remains perfectly flat regardless of the input size (n).",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(1)"
-            ]
-          }
+          "content": "**Description:** Same runtime no matter the input size -- as scalable as it gets.\n\n**Example:** Array index access, checking `len()`, pushing to a stack.\n\n**Loop:** None, or a loop with a fixed number of iterations.",
+          "chart": { "title": "O(1) Constant Time Growth", "description": "Flat, regardless of input size.", "maxN": 20, "normalize": true, "curves": ["O(1)"] }
         },
         {
           "id": "o-log-n",
           "title": "O(log n) Logarithmic Time",
-          "content": "**Description:** Highly efficient. The algorithm repeatedly divides the problem size by a fraction (usually in half) at each step. Doubling the input size only adds one extra operation. All of the input or even a fixed portion of it cannot be fully inspected by a logarithmic algorithm.\n\n**Example:** Binary Search on a sorted list, or finding an element in a balanced binary search tree.\n\n**Loop:** A `while` or `for` loop where the main tracking variable is repeatedly multiplied, divided, or bit-shifted (e.g., `i = i * 2` or `n = n / 2`).",
-          "chart": {
-            "title": "O(log n) Logarithmic Time Growth",
-            "description": "The curve rises very slowly as data increases, representing extreme efficiency at scale.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(log n)"
-            ]
-          }
+          "content": "**Description:** Cuts the problem down by a fraction (usually half) each step -- doubling n only adds one extra step.\n\n**Example:** Binary Search, lookups in a balanced BST.\n\n**Loop:** Tracking variable is multiplied, divided, or bit-shifted each pass (`i *= 2`, `n //= 2`).",
+          "chart": { "title": "O(log n) Logarithmic Time Growth", "description": "Rises slowly -- highly efficient at scale.", "maxN": 20, "normalize": true, "curves": ["O(log n)"] }
         },
         {
           "id": "o-n",
           "title": "O(n) Linear Time",
-          "content": "**Description:** The workload scales directly in proportion to the input size. If the data doubles, the required work exactly doubles. Any algorithm that must inspect all input elements will have a running time that is at least linear.\n\n**Example:** Linear Search, summing all elements in an array, finding the maximum value in an unsorted list, or copying a collection.\n\n**Loop:** A standard, single loop that iterates from 0 to n sequentially.",
-          "chart": {
-            "title": "O(n) Linear Time Growth",
-            "description": "The execution time climbs steadily and diagonally in direct correlation to the input.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(n)"
-            ]
-          }
+          "content": "**Description:** Work scales 1-to-1 with input size -- double the data, double the work.\n\n**Example:** Linear Search, summing an array, finding the max of an unsorted list.\n\n**Loop:** One straightforward loop from 0 to n.",
+          "chart": { "title": "O(n) Linear Time Growth", "description": "Climbs steadily, in direct proportion to input.", "maxN": 20, "normalize": true, "curves": ["O(n)"] }
         },
         {
           "id": "o-n-log-n",
           "title": "O(n log n) Linearithmic Time",
-          "content": "**Description:** Linear processing combined with logarithmic division. This is typically the absolute best possible worst-case time for highly efficient sorting algorithms utilizing the divide-and-conquer strategy.\n\n**Example:** Merge Sort, Heap Sort, Timsort.\n\n**Loop:** An outer `O(n)` loop containing an inner `O(log n)` loop, or a recursive divide-and-conquer function that performs a linear amount of merging work per logarithmic recursive level.",
-          "chart": {
-            "title": "O(n log n) Linearithmic Time Growth",
-            "description": "The curve bends slightly upward from linear, representing the cost of the logarithmic operation applied across the linear dataset.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(n log n)"
-            ]
-          }
+          "content": "**Description:** Linear work combined with logarithmic splitting -- the best achievable worst-case for comparison-based sorting.\n\n**Example:** Merge Sort, Heap Sort, Timsort.\n\n**Loop:** An O(n) pass containing O(log n) work, or divide-and-conquer with linear merge cost per level.",
+          "chart": { "title": "O(n log n) Linearithmic Time Growth", "description": "Bends slightly above linear.", "maxN": 20, "normalize": true, "curves": ["O(n log n)"] }
         },
         {
           "id": "o-n-squared",
           "title": "O(n²) Quadratic Time",
-          "content": "**Description:** The computational work grows exponentially with the square of the input size. The efficiency of algorithms with two embedded loops is typically described in this way. Very inefficient and unscalable for large datasets.\n\n**Example:** Standard educational sorting algorithms like Bubble Sort, Selection Sort, or Insertion Sort, and specific `n x n` matrix traversal operations.\n\n**Loop:** A loop perfectly nested inside another loop, where both the outer and inner loops iterate dependently on the input size `n`.",
-          "chart": {
-            "title": "O(n²) Quadratic Time Growth",
-            "description": "The graph shoots up steeply. For a dataset of 10, it takes 100 operations. For 100, it takes 10,000.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(n^2)"
-            ]
-          }
+          "content": "**Description:** Work grows with the square of n. Typical of two nested loops. Inefficient at scale.\n\n**Example:** Bubble Sort, Selection Sort, Insertion Sort, naive n×n matrix traversal.\n\n**Loop:** A loop nested inside another loop, both scaling with n.",
+          "chart": { "title": "O(n²) Quadratic Time Growth", "description": "Steep: n=10 → 100 ops, n=100 → 10,000 ops.", "maxN": 20, "normalize": true, "curves": ["O(n^2)"] }
         },
         {
           "id": "o-n-cubed",
           "title": "O(n³) Cubic Time",
-          "content": "**Description:** An extremely slow polynomial time where the workload grows with the cube of the input. Generally, the effectiveness of algorithms with three embedded loops is described by this class. It includes a number of nontrivial linear algebraic algorithms.\n\n**Example:** Dense graph operations, basic unoptimized matrix multiplication, or solving specific 3D mathematical coordinate arrangements.\n\n**Loop:** Three perfectly nested loops that all directly traverse or depend on the dataset size `n`.",
-          "chart": {
-            "title": "O(n³) Cubic Time Growth",
-            "description": "The curve is even steeper than quadratic, rendering the algorithm useless for even moderately sized datasets.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(n^3)"
-            ]
-          }
+          "content": "**Description:** Three nested loops. Slow, but shows up in some dense linear-algebra algorithms.\n\n**Example:** Naive matrix multiplication, dense graph algorithms.\n\n**Loop:** Three loops nested together, all scaling with n.",
+          "chart": { "title": "O(n³) Cubic Time Growth", "description": "Explosive growth from three nested loops.", "maxN": 20, "normalize": true, "curves": ["O(n^3)"] }
         },
         {
           "id": "o-2-n",
           "title": "O(2^n) Exponential Time",
-          "content": "**Description:** A dangerous complexity where the workload doubles with every single new item added to the input. It is common for algorithms that produce all subsets of an n-element set. It will quickly freeze modern computers for inputs greater than n=40.\n\n**Example:** Naive recursive Fibonacci sequences without optimization, generating power sets, or solving the Towers of Hanoi problem.\n\n**Loop:** A recursive function that calls itself multiple times per execution branch, leading to a massive, exponentially growing binary execution tree.",
-          "chart": {
-            "title": "O(2^n) Exponential Time Growth",
-            "description": "The graph explodes vertically almost instantly. Adding just a single data point drastically alters the execution time.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(2^n)"
-            ]
-          }
+          "content": "**Description:** Work doubles with every added item. Freezes a computer past roughly n=40.\n\n**Example:** Naive recursive Fibonacci, generating all subsets, Towers of Hanoi.\n\n**Loop:** A function that recursively calls itself multiple times per branch.",
+          "chart": { "title": "O(2^n) Exponential Time Growth", "description": "Explodes almost instantly.", "maxN": 20, "normalize": true, "curves": ["O(2^n)"] }
         },
         {
           "id": "o-n-factorial",
           "title": "O(n!) Factorial Time",
-          "content": "**Description:** The slowest common complexity class. It is typical for algorithms to produce all possible combinations or permutations from an n-element set. The total amount of operations multiplies drastically with each new input.\n\n**Example:** The brute-force solution to the Traveling Salesman Problem or generating all permutations of an array using sheer brute force.\n\n**Loop:** Advanced recursive back-tracking structures placed inside loops to systematically generate every mathematical arrangement.",
-          "chart": {
-            "title": "O(n!) Factorial Time Growth",
-            "description": "The absolute worst scalability limit in software engineering. Execution is strictly limited to microscopic inputs.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(n!)"
-            ]
-          }
+          "content": "**Description:** The slowest common class -- generating every possible ordering of n items.\n\n**Example:** Brute-force Traveling Salesman, generating all permutations.\n\n**Loop:** Recursive backtracking that generates every arrangement.",
+          "chart": { "title": "O(n!) Factorial Time Growth", "description": "Usable only for tiny inputs.", "maxN": 20, "normalize": true, "curves": ["O(n!)"] }
         }
       ]
     },
@@ -257,105 +178,49 @@
       "id": "special-cases",
       "type": "deep_dive",
       "title": "Special Case Big-O Notations",
-      "content": "Beyond the standard classes, the system's internal Complexity Analyzer utilizes advanced structural tracking to detect highly specific mathematical edge cases based on recursive interactions and multidimensional data. These bounds reflect specialized computational patterns:",
+      "content": "The analyzer also detects a handful of specialized growth patterns:",
       "subsections": [
         {
           "id": "o-sqrt-n",
           "title": "O(sqrt n) Square Root Time",
-          "content": "**Description:** The workload scales with the square root of the input. It sits comfortably between Logarithmic and Linear time, remaining highly efficient for mathematical evaluations.\n\n**Example:** Algorithms heavily used in cryptography and number theory, such as checking if a number is prime by only testing factors up to its mathematical square root.\n\n**Loop:** Identified by a loop condition where tracking variables are multiplied by themselves or squared against the boundary limit (e.g., `while i * i <= n`).",
-          "chart": {
-            "title": "O(sqrt n) Square Root Growth",
-            "description": "Notice how it bridges the gap between the speed of O(log n) and the diagonal march of O(n).",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(sqrt n)"
-            ]
-          }
+          "content": "**Description:** Scales with the square root of n -- sits between logarithmic and linear.\n\n**Example:** Primality testing by checking factors up to √n.\n\n**Loop:** Condition like `while i * i <= n`.",
+          "chart": { "title": "O(sqrt n) Square Root Growth", "description": "Between O(log n) and O(n).", "maxN": 20, "normalize": true, "curves": ["O(sqrt n)"] }
         },
         {
           "id": "o-n-m",
           "title": "O(n * m) Multi-Variable Time",
-          "content": "**Description:** Occurs when an algorithm's performance is strictly bound by two distinctly different input dimensions, rather than a single unified input parameter.\n\n**Example:** Processing a rectangular 2D matrix (rows and columns), or performing string matching between two distinct words of different lengths.\n\n**Loop:** An outer loop running `n` times containing an inner loop running `m` times.",
-          "chart": {
-            "title": "Multi-Variable Growth Representation",
-            "description": "Often visualized identically to Quadratic time, assuming worst-case where n approximately equals m.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(n^2)"
-            ]
-          }
+          "content": "**Description:** Bound by two different input sizes instead of one.\n\n**Example:** Processing a rows × columns matrix, comparing two strings of different lengths.\n\n**Loop:** Outer loop of n, inner loop of m.",
+          "chart": { "title": "Multi-Variable Growth Representation", "description": "Looks quadratic when n ≈ m.", "maxN": 20, "normalize": true, "curves": ["O(n^2)"] }
         },
         {
           "id": "o-v-e",
           "title": "O(V + E) Graph Traversal Time",
-          "content": "**Description:** The standard benchmark metric for Graph algorithms. Performance scales based on both the total number of Vertices (V) and the total number of Edges (E) across the network structure.\n\n**Example:** Breadth-First Search (BFS) and Depth-First Search (DFS) traversals across an adjacency list.\n\n**Loop:** A `while` loop popping nodes from a queue or stack (evaluating V), containing a nested `for` loop that strictly iterates over only the specific adjacent neighbors of the current node (evaluating E across the entire run).",
-          "chart": {
-            "title": "Graph Traversal Growth",
-            "description": "Growth is largely linear in relation to the combined structural components of the graph.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(n)"
-            ]
-          }
+          "content": "**Description:** The standard metric for graph algorithms -- scales with Vertices (V) plus Edges (E).\n\n**Example:** BFS and DFS over an adjacency list.\n\n**Loop:** A queue/stack loop over nodes (V), with a nested loop over each node's neighbors (E).",
+          "chart": { "title": "Graph Traversal Growth", "description": "Roughly linear in graph size.", "maxN": 20, "normalize": true, "curves": ["O(n)"] }
         },
         {
           "id": "o-euclidean",
           "title": "O(log min(a, b)) Euclidean Modulo Time",
-          "content": "**Description:** A highly specialized logarithmic reduction that occurs when using modulo operations to rapidly shrink two distinct numerical inputs simultaneously.\n\n**Example:** Finding the Greatest Common Divisor (GCD) using the classic Euclidean algorithm.\n\n**Loop:** A recursive call or `while` loop where tracking variables are continuously updated by swapping the remainder via the modulo operator.",
-          "chart": {
-            "title": "Euclidean Reduction Growth",
-            "description": "A logarithmic reduction that scales against the smallest constraint provided to the algorithm.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(log n)"
-            ]
-          }
+          "content": "**Description:** A fast logarithmic reduction from repeatedly applying modulo to two numbers.\n\n**Example:** Euclid's GCD algorithm.\n\n**Loop:** Recursion or a `while` loop swapping in the remainder each step.",
+          "chart": { "title": "Euclidean Reduction Growth", "description": "Scales against the smaller input.", "maxN": 20, "normalize": true, "curves": ["O(log n)"] }
         },
         {
           "id": "o-log-quadratic",
           "title": "O(n² log n) Log-Quadratic Time",
-          "content": "**Description:** A hybrid complexity class that occurs when a quadratic operation sequence is combined directly with a logarithmic scale-down or binary splitting mechanism.\n\n**Example:** Sorting a 2D matrix of elements row by row using an advanced linearithmic sort on each row, or solving highly specialized computational geometry problems.\n\n**Loop:** A quadratic nested loop structure that internally executes a logarithmic search, or an outer linear loop managing inner O(n log n) operations.",
-          "chart": {
-            "title": "O(n² log n) Log-Quadratic Growth",
-            "description": "Grows slightly faster than pure quadratic, acting as an expensive hybrid penalty.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(n^2 log n)"
-            ]
-          }
+          "content": "**Description:** A quadratic pass combined with a logarithmic step, like sorting inside a nested loop.\n\n**Example:** Sorting every row of a matrix, some computational-geometry algorithms.\n\n**Loop:** Nested O(n²) loop with an O(log n) operation inside.",
+          "chart": { "title": "O(n² log n) Log-Quadratic Growth", "description": "Slightly worse than pure quadratic.", "maxN": 20, "normalize": true, "curves": ["O(n^2 log n)"] }
         },
         {
           "id": "o-polynomial-d",
           "title": "O(n^d) Higher Polynomial Time",
-          "content": "**Description:** Any polynomial time where the exponent `d` is strictly greater than 3. Extremely slow and practically unusable for most real-world engineering scenarios.\n\n**Example:** Highly complex brute-force combination generation or unoptimized dynamic programming tables with excessive dimensions.\n\n**Loop:** Deeply nested loop architectures where four or more separate loops explicitly and sequentially depend on the scaling data size.",
-          "chart": {
-            "title": "Higher Polynomial Growth",
-            "description": "Rapid acceleration demonstrating the unscalable nature of deep, unoptimized loop structures.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(n^4)"
-            ]
-          }
+          "content": "**Description:** Any polynomial with exponent d > 3 -- rarely usable in practice.\n\n**Example:** Brute-force combination generation, over-dimensioned DP tables.\n\n**Loop:** Four or more nested loops, all scaling with n.",
+          "chart": { "title": "Higher Polynomial Growth", "description": "Deep nested loops, rapid blow-up.", "maxN": 20, "normalize": true, "curves": ["O(n^4)"] }
         },
         {
           "id": "o-n-n-factorial",
           "title": "O(n * n!) Extreme Factorial Time",
-          "content": "**Description:** An explosive, catastrophic complexity class triggered when a factorial permutation structure is needlessly multiplied by a linear accumulation, copying, or shifting process.\n\n**Example:** Poorly optimized combinatorial generations where full deep copies or massive linear array shifts occur sequentially on every single permutation step.\n\n**Loop:** A recursive factorial generator dynamically bound inside an outer linear loop structure, multiplying the factorial branching by an extra scaling factor of n.",
-          "chart": {
-            "title": "O(n * n!) Extreme Factorial Growth",
-            "description": "The ultimate anti-pattern. Growth renders execution impossible beyond single-digit data inputs.",
-            "maxN": 20,
-            "normalize": true,
-            "curves": [
-              "O(n!)"
-            ]
-          }
+          "content": "**Description:** Factorial growth multiplied by an extra linear pass, e.g. copying data on every permutation.\n\n**Example:** Combinatorial generation with a full array copy at each step.\n\n**Loop:** A recursive factorial generator wrapped in an extra linear loop.",
+          "chart": { "title": "O(n * n!) Extreme Factorial Growth", "description": "The worst practical anti-pattern.", "maxN": 20, "normalize": true, "curves": ["O(n!)"] }
         }
       ]
     },
@@ -363,22 +228,22 @@
       "id": "space-complexity",
       "type": "concept",
       "title": "Understanding Space Complexity",
-      "content": "Space Complexity refers to the total amount of auxiliary memory used by an algorithm with respect to the input size n. We must consider both time and space complexity while solving a problem because the software may be executed on a system with insufficient memory but ample processing power, or vice versa.",
+      "content": "Space complexity is the extra memory an algorithm uses relative to n. It matters just as much as time -- a system might have plenty of CPU but very little RAM, or vice versa.",
       "subsections": [
         {
           "id": "space-why-matters",
           "title": "Why Space Complexity Matters",
-          "content": "Memory constraints are vital on mobile, embedded, and IoT systems which have strictly limited RAM. Scalability is also a major concern; big data algorithms may outright fail and crash the system due to excessive, unoptimized memory allocations. Furthermore, we often face trade-offs where we can intentionally use more space to save processing time (Memoization), or minimize space at the cost of execution time."
+          "content": "Mobile and embedded systems have tight RAM limits. Big-data algorithms can crash a system through excessive allocation. And time/space are often a trade-off: memoization spends memory to save time; an in-place algorithm does the reverse."
         },
         {
           "id": "types-of-space",
           "title": "Types of Space",
-          "content": "Algorithm memory is divided into the fixed part and the variable part. The fixed part is independent of the input size (like loop counters, basic index trackers, and primitive pointers) and occupies O(1) constant space. The variable part explicitly depends on the input scaling (like allocating new arrays, hash maps, dictionaries, or utilizing the call stack in deep recursion) and typically occupies O(n) or O(n²) space."
+          "content": "**Fixed part:** independent of n -- loop counters, primitive pointers. O(1). **Variable part:** scales with n -- new arrays, hash maps, or the call stack in recursion. Usually O(n) or O(n²)."
         },
         {
           "id": "in-place-memory",
           "title": "In-Place Execution and The Call Stack",
-          "content": "In-place algorithms use O(1) extra memory because they modify the existing structures directly (e.g., swapping items in an array without creating a duplicate array). However, when writing recursive algorithms, the system must push execution frames onto the Call Stack. This recursion depth often yields O(log n) or O(n) additional space overhead, representing hidden memory costs that must be mathematically evaluated by engineers."
+          "content": "In-place algorithms modify existing data directly, using O(1) extra memory (e.g. swapping in an array). Recursive algorithms, though, push a frame onto the call stack per call -- often adding O(log n) or O(n) hidden memory cost."
         }
       ]
     },
@@ -386,22 +251,22 @@
       "id": "pitfalls-and-misconceptions",
       "type": "key_concept",
       "title": "Pitfalls & Misconceptions",
-      "content": "When beginning complexity analysis, several common pitfalls can derail your evaluation.",
+      "content": "A few traps beginners fall into:",
       "subsections": [
         {
           "id": "pitfall-constants",
           "title": "Misconception: Constants Never Matter",
-          "content": "While Big-O strictly ignores constants for theoretical scaling, in practical application, constants can dominate. A highly optimized O(n²) algorithm may actually run faster than a poorly written O(n log n) algorithm on very small datasets (e.g., n = 10). For real-time or embedded systems dealing with strictly small inputs, you must still measure and optimize constant overhead."
+          "content": "Big-O ignores constants asymptotically, but on small inputs a well-tuned O(n²) can beat a sloppy O(n log n). For small, fixed-size or embedded workloads, constant-factor overhead still matters."
         },
         {
           "id": "pitfall-average",
           "title": "Misconception: Average Case is the 'Typical' Case",
-          "content": "The Average Case (Θ) mathematically assumes a uniform probability distribution of your inputs. However, in the real world, data is rarely uniformly random. If your system frequently receives partially sorted data or specifically clustered inputs, the true 'typical' runtime might skew closer to the Best-Case or Worst-Case mathematically."
+          "content": "Θ assumes uniformly random input, but real data rarely is. Partially-sorted or clustered inputs can push actual performance closer to best- or worst-case."
         },
         {
           "id": "pitfall-addition",
           "title": "Misconception: O(f(n) + g(n)) Simply Drops the Smaller Term",
-          "content": "Asymptotically, this is true (e.g., O(n² + n) simplifies to O(n²)). However, if the discarded term relies on a significantly more expensive hardware operation (such as heavy disk I/O or network requests), dropping it from your mental model might cause you to overlook massive real-world latency bottlenecks. Always reconsider the physical cost of dropped terms."
+          "content": "Mathematically true (O(n² + n) → O(n²)), but if the dropped term is something expensive in the real world (disk I/O, network calls), ignoring it can hide a real bottleneck."
         }
       ]
     },
@@ -409,35 +274,26 @@
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",
-      "content": "Algorithm analysis is the study of an algorithm's efficiency in terms of time (execution steps) and space (memory usage) as a mathematically defined function of input size. It is the core, essential language for comparing algorithms, predicting performance on large inputs, and confidently choosing the most suitable solution.",
+      "content": "Algorithm analysis measures efficiency in time (steps) and space (memory) as functions of input size -- the shared language for comparing algorithms and predicting how they'll behave at scale.",
       "subsections": [
         {
           "id": "sum-key-takeaways",
           "title": "Key Takeaways",
-          "content": "Keep these concepts in mind as you begin evaluating algorithms:",
+          "content": "Keep these in mind:",
           "bullets": [
-            "The Complexity Analyzer strictly evaluates the Worst-Case Scenario (Big-O) to guarantee a secure, unbreakable performance ceiling.",
-            "Always drop constants and non-dominant terms during mathematical calculation to uncover the true theoretical curve.",
-            "Watch out for loop structures! A single loop is usually O(n), nested loops create O(n²), and looping with multiplication/division creates O(log n).",
-            "Specialized operations (like 2D grids, Graphs, or Modulo math) generate unique, multi-variable complexity classes like O(V + E) or O(n * m).",
-            "Always evaluate Space Complexity. Generating new lists or utilizing deep recursion requires scaling memory allocations that can crash a system if ignored."
+            "The analyzer always evaluates Worst-Case (Big-O) -- a guaranteed performance ceiling.",
+            "Drop constants and non-dominant terms to find the true growth trend.",
+            "One loop ≈ O(n). Nested loops ≈ O(n²). Multiply/divide loops ≈ O(log n).",
+            "Special structures (grids, graphs, modulo math) produce classes like O(V + E) or O(n * m).",
+            "Don't forget space -- new lists or deep recursion can crash a system just as easily as slow time can."
           ]
         }
       ]
     }
   ],
   "references": [
-    {
-      "title": "GeeksforGeeks — Big-O Notation",
-      "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/"
-    },
-    {
-      "title": "Programiz — Time Complexity",
-      "url": "https://www.programiz.com/dsa/time-complexity"
-    },
-    {
-      "title": "MIT OpenCourseWare — Introduction to Algorithms",
-      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
-    }
+    { "title": "GeeksforGeeks — Big-O Notation", "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/" },
+    { "title": "Programiz — Time Complexity", "url": "https://www.programiz.com/dsa/time-complexity" },
+    { "title": "MIT OpenCourseWare — Introduction to Algorithms", "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/" }
   ]
 }

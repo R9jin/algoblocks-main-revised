@@ -8,6 +8,11 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
   const [containerSize, setContainerSize] = useState({ width: 800, height: 600 });
   const [hoveredNode, setHoveredNode] = useState(null);
 
+  // Explanatory hover tooltip: shows a brief plain-language blurb for
+  // whichever node or edge the cursor is currently over.
+  const [hoverInfo, setHoverInfo] = useState(null); // { title, lines: string[] } | null
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+
   // Pan and Zoom State
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
@@ -15,6 +20,27 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
   
   const lastMousePos = useRef({ x: 0, y: 0 });
   const hintTimeoutRef = useRef(null);
+
+  // Track the container's REAL, live size via ResizeObserver rather than a
+  // one-shot read of clientWidth/clientHeight at mount time. The panel this
+  // graph lives in is only mounted while its tab is active and can still be
+  // mid-layout (0-size, or a stale pre-flex size) at the instant the mount
+  // effect runs, and there's no other signal that fires when the panel is
+  // later resized -- both are why the view could get stuck zoomed out.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) {
+        setContainerSize({ width, height });
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Theme Colors
   const themePurple = "#7928CA";
@@ -157,11 +183,31 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
 
   }, [graphSignature, isEmpty]);
 
+  // Per-node call stats for the hover tooltip: how many distinct call sites
+  // invoke this function, how many total times it actually ran, and how
+  // many other functions it calls out to.
+  const nodeStats = useMemo(() => {
+    const stats = {};
+    nodes.forEach((n) => { stats[n.id] = { incomingSites: 0, incomingHits: 0, outgoingCalls: 0 }; });
+    edges.forEach((e) => {
+      if (stats[e.target]) {
+        stats[e.target].incomingSites += 1;
+        stats[e.target].incomingHits += (e.hits || 0);
+      }
+      if (stats[e.source]) {
+        stats[e.source].outgoingCalls += 1;
+      }
+    });
+    return stats;
+  }, [nodes, edges]);
+
   // Center Graph on Load
   const resetView = () => {
-    if (containerRef.current && layoutWidth > 0 && layoutHeight > 0) {
-      const cw = containerRef.current.clientWidth;
-      const ch = containerRef.current.clientHeight;
+    if (layoutWidth > 0 && layoutHeight > 0) {
+      const cw = containerSize.width || containerRef.current?.clientWidth || 0;
+      const ch = containerSize.height || containerRef.current?.clientHeight || 0;
+      if (cw <= 0 || ch <= 0) return; // container isn't laid out yet -- the ResizeObserver will re-fire once it is
+
       const fitScale = Math.min(cw / layoutWidth, ch / layoutHeight, 1) * 0.9;
 
       setTransform({
@@ -174,7 +220,8 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
 
   useEffect(() => {
     resetView();
-  }, [graphSignature, layoutWidth, layoutHeight]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graphSignature, layoutWidth, layoutHeight, containerSize.width, containerSize.height]);
 
   // --- PAN AND ZOOM HANDLERS ---
   const handleMouseDown = (e) => {
@@ -183,6 +230,10 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
   };
 
   const handleMouseMove = (e) => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    }
     if (!isDragging) return;
     const dx = e.clientX - lastMousePos.current.x;
     const dy = e.clientY - lastMousePos.current.y;
@@ -323,6 +374,24 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
           <button onClick={() => manualZoom(0.8)} style={controlBtnStyle} title="Zoom Out"><FaSearchMinus /></button>
         </div>
 
+        {/* Explanatory hover tooltip -- follows the cursor over whichever
+            node or edge is currently hovered, flipping to stay on-screen
+            near the container's edges. */}
+        {hoverInfo && (
+          <div
+            className="callgraph-hover-tooltip"
+            style={{
+              left: cursorPos.x > containerSize.width - 220 ? cursorPos.x - 210 : cursorPos.x + 16,
+              top: cursorPos.y > containerSize.height - 110 ? cursorPos.y - 100 : cursorPos.y + 16,
+            }}
+          >
+            <div className="callgraph-hover-tooltip-title">{hoverInfo.title}</div>
+            {hoverInfo.lines.map((line, i) => (
+              <div className="callgraph-hover-tooltip-line" key={i}>{line}</div>
+            ))}
+          </div>
+        )}
+
         {/* Pure SVG Implementation */}
         <svg 
           ref={svgRef}
@@ -375,15 +444,28 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
 
               const isHighlighted = hoveredNode === source || hoveredNode === target;
 
+              const edgeExplanation = isSelf
+                ? [`Line ${line}: this function calls itself (recursion).`, `Ran ${hits || 0} time${hits === 1 ? "" : "s"} during execution.`]
+                : isBack
+                  ? [`Line ${line}: calls back to an earlier point in the call tree.`, `Ran ${hits || 0} time${hits === 1 ? "" : "s"} -- often part of a loop or recursive pattern.`]
+                  : [`Line ${line}: "${source}()" calls "${target}()".`, `Ran ${hits || 0} time${hits === 1 ? "" : "s"} while your code executed. A higher count usually means it's inside a loop.`];
+
               return (
-                <g key={edge.id}>
+                <g
+                  key={edge.id}
+                  onMouseEnter={() => setHoverInfo({ title: `${source}() → ${target}()`, lines: edgeExplanation })}
+                  onMouseLeave={() => setHoverInfo(null)}
+                  style={{ cursor: 'default' }}
+                >
+                  {/* Wider invisible path underneath, just to make the thin edge easier to hover */}
+                  <path d={pathData} fill="none" stroke="transparent" strokeWidth="16" />
                   <path
                     d={pathData}
                     fill="none"
                     stroke={isHighlighted ? themeRed : themeEdge}
                     strokeWidth={isHighlighted ? "3" : "2"}
                     markerEnd={`url(#${isHighlighted ? 'arrowhead-highlight' : 'arrowhead'})`}
-                    style={{ transition: 'stroke 0.3s, stroke-width 0.3s' }}
+                    style={{ transition: 'stroke 0.3s, stroke-width 0.3s', pointerEvents: 'none' }}
                   />
                   
                   {/* Floating Metadata Badge for the Edge */}
@@ -436,13 +518,23 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
               }
 
               const titleText = isMain ? "Main Program" : `${node.id}()`;
+              const stats = nodeStats[node.id] || { incomingSites: 0, incomingHits: 0, outgoingCalls: 0 };
+
+              const nodeExplanation = isMain
+                ? [`This is where your program's execution starts.`, `Makes ${stats.outgoingCalls} outgoing call${stats.outgoingCalls === 1 ? "" : "s"} to other functions.`]
+                : isExternal
+                  ? [`Called but not defined in your analyzed code`, `(e.g. a built-in or external function).`]
+                  : [
+                      `Called from ${stats.incomingSites} call site${stats.incomingSites === 1 ? "" : "s"}, totaling ${stats.incomingHits} execution${stats.incomingHits === 1 ? "" : "s"}.`,
+                      `Makes ${stats.outgoingCalls} outgoing call${stats.outgoingCalls === 1 ? "" : "s"} of its own. "Layer ${node.layer}" is how many calls deep it sits from the entry point.`,
+                    ];
 
               return (
                 <g
                   key={node.id}
                   transform={`translate(${node.x}, ${node.y})`}
-                  onMouseEnter={() => setHoveredNode(node.id)}
-                  onMouseLeave={() => setHoveredNode(null)}
+                  onMouseEnter={() => { setHoveredNode(node.id); setHoverInfo({ title: titleText, lines: nodeExplanation }); }}
+                  onMouseLeave={() => { setHoveredNode(null); setHoverInfo(null); }}
                   style={{ cursor: 'pointer' }}
                 >
                   <rect

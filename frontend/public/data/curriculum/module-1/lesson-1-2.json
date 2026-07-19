@@ -2,56 +2,30 @@
   "lessonId": "lesson-1-2",
   "moduleId": "module-1",
   "title": "Time Complexity Classes",
-  "description": "Learn the most common time complexity classes and connect each growth pattern to real programming implementations.",
+  "description": "The common time complexity classes, matched to real code, so you can recognize each growth pattern on sight.",
   "difficulty": "Beginner",
-  "estimatedTime": "40 min",
+  "estimatedTime": "28 min",
   "prerequisites": "Big-O Notation",
-  "tags": [
-    "time complexity",
-    "big-o",
-    "algorithm analysis"
-  ],
+  "tags": ["time complexity", "big-o", "algorithm analysis"],
   "activities": [
-    {
-      "id": "m1_l2_a1",
-      "title": "Adding Up a List"
-    },
-    {
-      "id": "m1_l2_a2",
-      "title": "Finding the Biggest Number"
-    },
-    {
-      "id": "m1_l2_a3",
-      "title": "Counting Specific Items (Evens)"
-    },
-    {
-      "id": "m1_l2_a4",
-      "title": "Does the List Have This Number?"
-    },
-    {
-      "id": "m1_l2_a5",
-      "title": "Copying a List"
-    }
+    { "id": "m1_l2_a1", "title": "Adding Up a List" },
+    { "id": "m1_l2_a2", "title": "Finding the Biggest Number" },
+    { "id": "m1_l2_a3", "title": "Counting Specific Items (Evens)" },
+    { "id": "m1_l2_a4", "title": "Does the List Have This Number?" },
+    { "id": "m1_l2_a5", "title": "Copying a List" }
   ],
   "sections": [
     {
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Not all algorithms grow at the same speed. Some remain fast even with millions of inputs, while others become very slow as the input size grows. Time complexity classes help us categorize algorithms based on how their work grows relative to input size.",
+      "content": "Some algorithms stay fast at millions of inputs; others fall apart. Complexity classes group algorithms by how their workload grows with input size.",
       "subsections": [
         {
           "id": "intro-shapes",
           "title": "Characteristic Shapes",
-          "content": "Each complexity class has a characteristic shape. These shapes tell you whether an algorithm will work for 1,000 items or 1 billion items. Instead of memorizing formulas, programmers learn to recognize these patterns by looking at code. This lesson will teach you to identify each complexity class and understand when each one is appropriate in practice.",
-          "bullets": [
-            "O(1) is flat.",
-            "O(log n) rises slowly.",
-            "O(n) climbs steadily.",
-            "O(n log n) curves moderately.",
-            "O(n²) shoots up steeply.",
-            "O(2^n) explodes."
-          ]
+          "content": "Each class has a recognizable shape -- learn to spot it directly in code, not just in a formula:",
+          "bullets": ["O(1) is flat.", "O(log n) rises slowly.", "O(n) climbs steadily.", "O(n log n) curves moderately.", "O(n²) shoots up steeply.", "O(2^n) explodes."]
         }
       ]
     },
@@ -59,23 +33,14 @@
       "id": "why-classes-matter",
       "type": "real_world_connection",
       "title": "Why Complexity Classes Matter",
-      "content": "Imagine two algorithms that solve the same problem. Algorithm A checks every item one by one. Algorithm B repeatedly divides the problem in half. For small inputs, both seem fast. But for very large inputs, the difference becomes enormous.",
+      "content": "Two algorithms, same problem: one checks every item, the other halves the problem each step. At small n they look the same. At large n, they don't.",
       "subsections": [
-        {
-          "id": "why-scale",
-          "title": "Scaling Differences",
-          "content": "Searching through 1 million sorted items with linear search needs up to 1 million checks. Binary search needs only about 20 checks. That is 50,000 times faster. For 1 billion items, linear search is impossible while binary search needs only about 30 steps."
-        },
+        { "id": "why-scale", "title": "Scaling Differences", "content": "Searching 1 million sorted items: linear search needs up to 1 million checks, binary search needs about 20 -- 50,000x faster. At 1 billion items, linear search is hopeless; binary search still only needs ~30 steps." },
         {
           "id": "why-engineering",
           "title": "Engineering Value",
-          "content": "This is why engineers analyze complexity before deploying systems at scale. You cannot just test with small data and assume it will work in production. Complexity analysis is hardware-independent and helps you predict problems early. Understanding complexity classes also helps you communicate with other developers.",
-          "bullets": [
-            "Predict scalability before input sizes become large.",
-            "Compare solutions using operation growth instead of machine speed.",
-            "Reduce infrastructure costs by avoiding unnecessary work.",
-            "Improve user experience by selecting algorithms that remain responsive."
-          ]
+          "content": "This is why engineers analyze complexity before scaling up, not after:",
+          "bullets": ["Predict scalability before input sizes get large.", "Compare solutions independent of machine speed.", "Cut infrastructure costs by avoiding unnecessary work.", "Keep the product responsive by picking the right algorithm."]
         }
       ]
     },
@@ -83,262 +48,139 @@
       "id": "input-size",
       "type": "concept",
       "title": "Understanding Input Size",
-      "content": "Complexity classes are expressed using n, where n represents the input size.",
+      "content": "Complexity classes are written in terms of `n`, the input size.",
       "subsections": [
-        {
-          "id": "input-defining-n",
-          "title": "Defining 'n'",
-          "content": "In programming, n could mean the number of array elements, graph nodes, database records, files, users, or messages being processed. For a 2D matrix, sometimes n means the number of rows, and the total cells are n². Other times, n means the total number of cells. Always clarify what n means when discussing complexity."
-        },
-        {
-          "id": "input-visualizing",
-          "title": "Visualizing Growth",
-          "content": "As n grows, the algorithm's workload may stay flat (O(1)), grow slowly (O(log n)), grow proportionally (O(n)), or grow explosively (O(n²) or O(2^n)). The chart below shows six common complexity classes. Notice how the curves separate as n increases."
-        }
+        { "id": "input-defining-n", "title": "Defining 'n'", "content": "n could be array length, graph nodes, database rows, files, users -- whatever's being processed. For a matrix, n might mean rows (with n² total cells) or all cells -- always clarify which." },
+        { "id": "input-visualizing", "title": "Visualizing Growth", "content": "As n grows, work can stay flat (O(1)), grow slowly (O(log n)), grow proportionally (O(n)), or explode (O(n²), O(2^n)). Watch how these curves separate below." }
       ],
       "chart": {
         "title": "Comparing common time complexity classes",
-        "description": "Use this visual to see why small differences in growth become important when input size gets larger.",
+        "description": "Small differences in growth rate become huge as input size increases.",
         "maxN": 24,
         "normalize": true,
-        "curves": [
-          "O(1)",
-          "O(log n)",
-          "O(n)",
-          "O(n log n)",
-          "O(n^2)",
-          "O(2^n)"
-        ]
+        "curves": ["O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n^2)", "O(2^n)"]
       }
     },
     {
       "id": "constant",
       "type": "concept",
       "title": "Constant Complexity: O(1)",
-      "content": "Constant complexity means the algorithm does the same amount of work no matter the input size. Whether n is 1, 1000, or 1 million, the number of operations stays the same. This is the best possible time complexity.",
+      "content": "Same amount of work no matter the input size -- n=1 or n=1,000,000, doesn't matter. The best possible complexity.",
       "subsections": [
-        {
-          "id": "constant-examples",
-          "title": "Common Examples",
-          "content": "Common O(1) operations include:",
-          "bullets": [
-            "Array indexing like accessing arr at index i.",
-            "Stack push and pop.",
-            "Hash table lookup on average.",
-            "Basic arithmetic and variable assignment."
-          ]
-        },
-        {
-          "id": "constant-catch",
-          "title": "The Catch: Nested Operations",
-          "content": "Even though O(1) operations are fast by themselves, they add up. If you put an O(1) operation inside a loop that runs n times, the whole thing becomes O(n). If you put it inside nested loops, it becomes O(n²). Understanding O(1) helps you realize that the real work of an algorithm comes from loop structures, not from individual operations. The constant time parts are just the building blocks."
-        }
+        { "id": "constant-examples", "title": "Common Examples", "content": "Common O(1) operations:", "bullets": ["Array indexing (`arr[i]`).", "Stack push/pop.", "Hash table lookup, on average.", "Basic arithmetic and assignment."] },
+        { "id": "constant-catch", "title": "The Catch: Nested Operations", "content": "O(1) operations still add up: put one inside an n-times loop and the whole thing becomes O(n); nest two loops and it's O(n²). The loop structure is where the real cost lives." }
       ],
       "codeSnippets": [
-        {
-          "title": "Constant lookup by index",
-          "language": "python",
-          "code": "temperatures = [29, 30, 31, 32, 33, 34]\n\n# This direct access is O(1).\ntoday = temperatures[2]\nprint(today)"
-        }
+        { "title": "Constant lookup by index", "language": "python", "code": "temperatures = [29, 30, 31, 32, 33, 34]\n\n# This direct access is O(1).\ntoday = temperatures[2]\nprint(today)" }
       ]
     },
     {
       "id": "logarithmic",
       "type": "deep_dive",
       "title": "Logarithmic Complexity: O(log n)",
-      "content": "Logarithmic algorithms cut the problem size in half at each step. Binary search is the most common example. Instead of checking every element, it looks at the middle of a sorted list and discards half of the remaining candidates.",
+      "content": "Cuts the problem in half every step. Binary search is the classic example -- check the middle of a sorted list, discard half, repeat.",
       "subsections": [
-        {
-          "id": "log-halving",
-          "title": "Halving the Problem",
-          "content": "A list of 1024 items shrinks to 512, then 256, then 128, then 64, then 32, then 16, then 8, then 4, then 2, then 1. That is only about 10 steps. Doubling the input from 1024 to 2048 adds only one extra step."
-        },
-        {
-          "id": "log-sorting",
-          "title": "The Sorting Prerequisite",
-          "content": "Binary search requires sorted data. If your data is unsorted and you need to search many times, it may be worth sorting once which costs O(n log n) to enable O(log n) searches afterward."
-        },
-        {
-          "id": "log-scale",
-          "title": "Massive Scale Advantage",
-          "content": "For n=1 million, O(log n) takes about 20 steps while O(n) takes 1 million steps. That is a 50,000 times difference. This is why logarithmic algorithms are so valuable for large datasets."
-        }
+        { "id": "log-halving", "title": "Halving the Problem", "content": "1024 → 512 → 256 → ... → 1 is only ~10 steps. Doubling the input to 2048 adds just one more step." },
+        { "id": "log-sorting", "title": "The Sorting Prerequisite", "content": "Binary search needs sorted data. If you'll search repeatedly, sorting once (O(n log n)) to unlock repeated O(log n) searches is usually worth it." },
+        { "id": "log-scale", "title": "Massive Scale Advantage", "content": "At n=1 million: O(log n) ≈ 20 steps, O(n) ≈ 1,000,000 steps -- a 50,000x gap." }
       ],
       "codeSnippets": [
-        {
-          "title": "Binary search demonstrates O(log n)",
-          "language": "python",
-          "code": "def contains(sorted_values, target):\n    low = 0\n    high = len(sorted_values) - 1\n\n    while low <= high:\n        mid = (low + high) // 2\n        if sorted_values[mid] == target:\n            return True\n        if sorted_values[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n\n    return False\n\nprint(contains([3, 8, 12, 18, 25, 31, 44], 25))"
-        }
+        { "title": "Binary search demonstrates O(log n)", "language": "python", "code": "def contains(sorted_values, target):\n    low = 0\n    high = len(sorted_values) - 1\n\n    while low <= high:\n        mid = (low + high) // 2\n        if sorted_values[mid] == target:\n            return True\n        if sorted_values[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n\n    return False\n\nprint(contains([3, 8, 12, 18, 25, 31, 44], 25))" }
       ]
     },
     {
       "id": "linear",
       "type": "concept",
       "title": "Linear Complexity: O(n)",
-      "content": "Linear complexity means the work grows directly with input size. If n doubles, the work roughly doubles. If n triples, the work roughly triples. Linear search is the classic example. It checks each element from start to end until it finds the target or reaches the end.",
+      "content": "Work scales directly with n -- double the input, double the work. Linear search (check each item until found or exhausted) is the classic example.",
       "subsections": [
-        {
-          "id": "linear-patterns",
-          "title": "Linear Patterns: Accumulation, Extrema, and Mapping",
-          "content": "Algorithms commonly utilize specific foundational patterns that require visiting every element sequentially. These include State Accumulation (iterating to sum elements), Extrema Tracking (evaluating each item against a recorded maximum or minimum), Conditional Tracking (isolating items that meet specific criteria, like even numbers), and Data Transformation (mapping or copying elements into a new list mathematically doubled). Because every item must be inspected or modified at least once, these operations strictly execute in O(n) time."
-        },
-        {
-          "id": "linear-limits",
-          "title": "Scale and Limitations",
-          "content": "O(n) is generally considered efficient and acceptable for many real-world applications, especially when n is in the thousands or millions. A loop over 1 million items takes a fraction of a second on modern hardware. The problem arises when n becomes huge, like billions, or when O(n) operations are nested inside other O(n) operations, creating O(n²). For linear search, the best case is O(1) when the target is first, but the worst case is O(n) when the target is last or not present."
-        }
+        { "id": "linear-patterns", "title": "Linear Patterns: Accumulation, Extrema, and Mapping", "content": "Most O(n) patterns visit every item once: **accumulation** (summing), **extrema tracking** (finding max/min), **conditional tracking** (filtering, e.g. evens only), and **mapping** (transforming into a new list)." },
+        { "id": "linear-limits", "title": "Scale and Limitations", "content": "O(n) is generally fine, even at millions of items -- a modern loop over 1 million items takes a fraction of a second. Trouble comes at billions of items, or when O(n) work is nested inside another O(n) loop (→ O(n²)). Linear search: best case O(1) (target first), worst case O(n) (target last or missing)." }
       ],
       "codeSnippets": [
-        {
-          "title": "Linear traversal processes each item",
-          "language": "python",
-          "code": "def total_sales(amounts):\n    total = 0\n    for amount in amounts:\n        total += amount\n    return total\n\nprint(total_sales([120, 75, 210, 90]))"
-        }
+        { "title": "Linear traversal processes each item", "language": "python", "code": "def total_sales(amounts):\n    total = 0\n    for amount in amounts:\n        total += amount\n    return total\n\nprint(total_sales([120, 75, 210, 90]))" }
       ]
     },
     {
       "id": "linearithmic",
       "type": "deep_dive",
       "title": "Linearithmic Complexity: O(n log n)",
-      "content": "Linearithmic complexity combines linear processing with logarithmic splitting. Algorithms with O(n log n) complexity divide the problem into smaller pieces with log n levels of division, then process all n elements at each level.",
+      "content": "Linear work combined with logarithmic splitting -- log n levels of division, each processing all n elements.",
       "subsections": [
-        {
-          "id": "linearithmic-algorithms",
-          "title": "Common Algorithms",
-          "content": "Common O(n log n) algorithms include:",
-          "bullets": [
-            "Merge sort.",
-            "Heap sort.",
-            "Timsort which is Python's built-in sort.",
-            "These are highly scalable for large sorting tasks."
-          ]
-        },
-        {
-          "id": "linearithmic-performance",
-          "title": "Performance Scale",
-          "content": "For n=1 million, O(n) takes 1 million operations. O(n log n) takes about 20 million operations, which is about 20 times slower. O(n²) takes 1 trillion operations, which is 50,000 times slower than O(n log n). While O(n log n) is slower than O(n), it is vastly faster than O(n²). This is why O(n log n) is the standard for sorting in most programming languages. It is considered very efficient for practical use."
-        }
+        { "id": "linearithmic-algorithms", "title": "Common Algorithms", "content": "The go-to for scalable sorting:", "bullets": ["Merge Sort.", "Heap Sort.", "Timsort (Python's built-in sort)."] },
+        { "id": "linearithmic-performance", "title": "Performance Scale", "content": "At n=1 million: O(n) ≈ 1M ops, O(n log n) ≈ 20M ops (~20x slower than O(n)), O(n²) ≈ 1 trillion ops (~50,000x slower than O(n log n)). That gap is why O(n log n) is the standard for sorting." }
       ],
       "codeSnippets": [
-        {
-          "title": "Merge sort divides and merges",
-          "language": "python",
-          "code": "def merge_sort(values):\n    if len(values) <= 1:\n        return values\n\n    middle = len(values) // 2\n    left = merge_sort(values[:middle])\n    right = merge_sort(values[middle:])\n\n    return merge(left, right)\n\n\ndef merge(left, right):\n    result = []\n    i = j = 0\n\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            result.append(left[i])\n            i += 1\n        else:\n            result.append(right[j])\n            j += 1\n\n    return result + left[i:] + right[j:]\n\nprint(merge_sort([9, 4, 7, 1, 3]))"
-        }
+        { "title": "Merge sort divides and merges", "language": "python", "code": "def merge_sort(values):\n    if len(values) <= 1:\n        return values\n\n    middle = len(values) // 2\n    left = merge_sort(values[:middle])\n    right = merge_sort(values[middle:])\n\n    return merge(left, right)\n\n\ndef merge(left, right):\n    result = []\n    i = j = 0\n\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            result.append(left[i])\n            i += 1\n        else:\n            result.append(right[j])\n            j += 1\n\n    return result + left[i:] + right[j:]\n\nprint(merge_sort([9, 4, 7, 1, 3]))" }
       ]
     },
     {
       "id": "quadratic",
       "type": "deep_dive",
       "title": "Quadratic Complexity: O(n^2)",
-      "content": "Quadratic complexity happens when every item interacts with every other item. The classic pattern is a nested loop where the outer loop runs n times and the inner loop also runs n times, giving n * n operations.",
+      "content": "Every item interacts with every other item -- the classic nested loop, outer and inner both scaling with n, giving n × n work.",
       "subsections": [
-        {
-          "id": "micro-transition-nested",
-          "title": "Micro-Transition: Stepping Into Nested Loops",
-          "content": "Before tackling massive nested data or grids, let's understand why O(n²) is so slow. If you have an outer loop running n times, and an inner loop running n times, the work multiplies to n * n. We will start with single O(n) loops to search and copy lists before we ever combine them into slow O(n²) pairs!"
-        },
-        {
-          "id": "quadratic-scale",
-          "title": "The Nested Loop Problem",
-          "content": "For n=10, O(n²) is about 100 operations, which is fine. For n=1000, it is about 1 million operations, which is noticeable. For n=10,000, it is about 100 million operations, which is slow. For n=100,000, it is about 10 billion operations, which is too slow for most uses."
-        },
-        {
-          "id": "quadratic-algorithms",
-          "title": "Common Algorithms",
-          "content": "Common O(n²) algorithms include bubble sort, selection sort, and insertion sort in the worst case. They are good for learning but rarely used in production because O(n log n) sorts are much faster."
-        },
-        {
-          "id": "quadratic-optimization",
-          "title": "Optimization Strategies",
-          "content": "If you see nested loops where both loops depend on the input size, look for ways to optimize. Using a hash set or dictionary can often replace an inner O(n) loop with O(1) average, reducing the complexity to O(n). Sorting the data first costing O(n log n) and then using a linear scan can also help."
-        }
+        { "id": "micro-transition-nested", "title": "Micro-Transition: Stepping Into Nested Loops", "content": "Master single O(n) loops (search, copy) first -- then combine two of them and watch the cost multiply to n × n." },
+        { "id": "quadratic-scale", "title": "The Nested Loop Problem", "content": "n=10 → ~100 ops (fine). n=1,000 → ~1M ops (noticeable). n=10,000 → ~100M ops (slow). n=100,000 → ~10 billion ops (unusable)." },
+        { "id": "quadratic-algorithms", "title": "Common Algorithms", "content": "Bubble Sort, Selection Sort, worst-case Insertion Sort -- good for learning, rarely used in production since O(n log n) sorts are far faster." },
+        { "id": "quadratic-optimization", "title": "Optimization Strategies", "content": "Spot nested loops that both depend on n and look for a way out: a hash set/dict can replace an inner O(n) loop with O(1) average lookups, or sort first (O(n log n)) and scan linearly." }
       ],
       "codeSnippets": [
-        {
-          "title": "Bubble-sort-style nested loops",
-          "language": "python",
-          "code": "def bubble_sort(values):\n    values = values[:]\n\n    for pass_index in range(len(values)):\n        for index in range(0, len(values) - pass_index - 1):\n            if values[index] > values[index + 1]:\n                values[index], values[index + 1] = values[index + 1], values[index]\n\n    return values\n\nprint(bubble_sort([5, 1, 4, 2, 8]))"
-        }
+        { "title": "Bubble-sort-style nested loops", "language": "python", "code": "def bubble_sort(values):\n    values = values[:]\n\n    for pass_index in range(len(values)):\n        for index in range(0, len(values) - pass_index - 1):\n            if values[index] > values[index + 1]:\n                values[index], values[index + 1] = values[index + 1], values[index]\n\n    return values\n\nprint(bubble_sort([5, 1, 4, 2, 8]))" }
       ]
     },
     {
       "id": "exponential",
       "type": "deep_dive",
       "title": "Exponential Complexity: O(2^n)",
-      "content": "Exponential algorithms double their workload with every additional input. Small increases in input size cause enormous increases in runtime.",
+      "content": "Workload doubles with every extra input. Small increases in n cause enormous jumps in runtime.",
       "subsections": [
-        {
-          "id": "exponential-growth",
-          "title": "Explosive Growth",
-          "content": "For n=30, 2 to the 30 is about 1 billion operations, which is borderline. For n=50, it is about 1 quadrillion operations, which is impossible."
-        },
-        {
-          "id": "exponential-fibonacci",
-          "title": "The Fibonacci Example",
-          "content": "A common example is naive recursive Fibonacci without optimization. The function calls itself twice for each call, creating a binary tree of calls. Computing Fibonacci of 40 with this method may take seconds or minutes. Computing Fibonacci of 50 could take hours or days."
-        },
+        { "id": "exponential-growth", "title": "Explosive Growth", "content": "n=30 → ~1 billion ops (borderline). n=50 → ~1 quadrillion ops (impossible)." },
+        { "id": "exponential-fibonacci", "title": "The Fibonacci Example", "content": "Naive recursive Fibonacci calls itself twice per call, forming a binary tree of calls. fib(40) can take seconds to minutes; fib(50) can take hours to days." },
         {
           "id": "exponential-optimization",
           "title": "Optimization Strategies",
-          "content": "If you have an exponential algorithm, you usually need optimization strategies.",
+          "content": "Exponential algorithms almost always need one of these:",
           "bullets": [
-            "Memoization caches results and can reduce naive recursive Fibonacci from O(2^n) to O(n).",
-            "Dynamic programming solves each subproblem once.",
-            "Pruning cuts off branches that cannot lead to an optimal solution.",
-            "The iterative version of Fibonacci is even better, using O(n) time and O(1) space. This dramatic improvement shows why exponential algorithms are unacceptable for production use with any reasonably sized input."
+            "**Memoization:** caches results -- drops naive Fibonacci from O(2^n) to O(n).",
+            "**Dynamic programming:** solves each subproblem once.",
+            "**Pruning:** cuts branches that can't lead anywhere useful.",
+            "**Iteration:** the iterative Fibonacci is O(n) time, O(1) space -- proof that exponential is rarely the only option."
           ]
         }
       ],
       "codeSnippets": [
-        {
-          "title": "Naive recursive Fibonacci repeats work",
-          "language": "python",
-          "code": "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n - 1) + fibonacci(n - 2)\n\nprint(fibonacci(6))"
-        }
+        { "title": "Naive recursive Fibonacci repeats work", "language": "python", "code": "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n - 1) + fibonacci(n - 2)\n\nprint(fibonacci(6))" }
       ]
     },
     {
       "id": "optimizing-space-time",
       "type": "deep_dive",
       "title": "Optimizing Space & Time",
-      "content": "To achieve efficient in-place modifications and avoid slow loops, software engineers rely on specific algorithmic patterns and data structures. Mastering these techniques is the key to passing optimization challenges.",
+      "content": "A few patterns come up constantly when converting a slow first draft into a fast one.",
       "subsections": [
-        {
-          "id": "two-pointer-trick",
-          "title": "The Two-Pointer Trick",
-          "content": "The Two-Pointer technique is a powerful strategy for optimizing array operations without creating new O(n) lists. It involves using two separate index variables (trackers), typically named 'left' and 'right'. The 'left' pointer starts at index 0, and the 'right' pointer starts at the last index. By moving them toward the center simultaneously, you can swap items directly within the original array. This allows you to reverse a list or find matching pairs entirely in-place, keeping Space Complexity at O(1)."
-        },
-        {
-          "id": "hash-sets",
-          "title": "Hash Sets",
-          "content": "When checking for duplicate values, beginners often use a loop inside another loop to compare every item against every other item, resulting in a disastrous O(n²) Time Complexity. Hash Sets provide a mathematical shortcut. A Set is a special data structure designed to reject duplicates instantly. Looking up an item in a Set takes O(1) constant time. By adding items to a Set as you iterate, you can check if you have seen a value before without needing a nested loop, dropping your Time Complexity to a much faster O(n)."
-        },
-        {
-          "id": "math-series",
-          "title": "Mathematical Series Optimization",
-          "content": "Computing the sum of a sequence of integers dynamically utilizing a running loop demands O(n) execution time. However, applying algebraic shortcuts—such as Gauss's arithmetic series formula `n * (n + 1) / 2`—collapses the iteration into a direct calculation, evaluating in highly optimized O(1) constant time. Substituting loops for geometric or arithmetic formulas is a cornerstone of high-performance logic mapping."
-        }
+        { "id": "two-pointer-trick", "title": "The Two-Pointer Trick", "content": "Two index trackers -- `left` starting at 0, `right` at the last index -- move toward the center, swapping in place. Reverses a list or finds matching pairs without allocating a new array, keeping Space at O(1)." },
+        { "id": "hash-sets", "title": "Hash Sets", "content": "Checking for duplicates with a nested loop is O(n²). A Set rejects duplicates and looks up items in O(1) -- add items as you go and check membership, dropping to O(n) overall." },
+        { "id": "math-series", "title": "Mathematical Series Optimization", "content": "Summing a sequence with a loop is O(n). Gauss's formula `n * (n + 1) / 2` gets the same answer in O(1). Swapping a loop for a closed-form formula is a classic optimization." }
       ]
     },
     {
       "id": "comparison",
       "type": "summary",
       "title": "Comparing Common Complexity Classes",
-      "content": "As input size increases, scalability matters much more than small differences on tiny examples. An O(n) algorithm that is 10 times slower than an O(n²) algorithm for n=100 will be 1,000 times faster for n=10,000. This comparison helps developers decide which algorithm is practical for a large-scale system. Always consider the size of data your system will actually handle, not just test cases with small inputs.",
+      "content": "At scale, growth rate matters far more than small constant-factor differences. An algorithm 10x slower at n=100 can be 1,000x *faster* at n=10,000 if its growth rate is better. Design for the data size you'll actually see in production.",
       "subsections": [
         {
           "id": "comparison-tiers",
           "title": "Efficiency Tiers",
-          "content": "Here is a quick reference for how the different classes stack up:",
+          "content": "Quick reference:",
           "bullets": [
-            "O(1) has constant growth and excellent scalability.",
-            "O(log n) grows very slowly and is excellent for large sorted data.",
-            "O(n) grows steadily and is acceptable when every item must be processed.",
-            "O(n log n) grows moderately and is important for efficient sorting.",
-            "O(n²) grows rapidly and is poor for large datasets. For n=10,000, O(n²) performs 100 million operations while O(n log n) performs about 132,000 operations.",
-            "O(2^n) grows explosively and becomes impractical for n greater than 30."
+            "O(1) -- constant, excellent scalability.",
+            "O(log n) -- grows very slowly, excellent for large sorted data.",
+            "O(n) -- grows steadily, fine when every item must be touched.",
+            "O(n log n) -- grows moderately, the standard for efficient sorting.",
+            "O(n²) -- grows fast, poor at scale (n=10,000 → 100M ops vs ~132,000 for O(n log n)).",
+            "O(2^n) -- explodes, impractical past n≈30."
           ]
         }
       ]
@@ -348,26 +190,10 @@
       "type": "key_concept",
       "title": "Common Beginner Misconceptions",
       "subsections": [
-        {
-          "id": "lines-of-code",
-          "title": "Misconception: More lines of code means worse complexity",
-          "content": "Complexity depends on operation growth, loop structure, and recursion behavior. It does not depend on how many lines of code are written. A 10-line algorithm could be O(n²) while a 100-line algorithm could be O(log n)."
-        },
-        {
-          "id": "all-nested-loops",
-          "title": "Misconception: All nested loops are O(n squared)",
-          "content": "Many nested loops are quadratic, but not all. Some nested loops operate on smaller ranges or logarithmic reductions. For example, an outer loop running n times with an inner loop running log n times gives O(n log n), not O(n²)."
-        },
-        {
-          "id": "log-means-tiny",
-          "title": "Misconception: O(log n) means no real work",
-          "content": "Logarithmic algorithms still perform work. For n=1 million, log base 2 of n is about 20, meaning 20 operations. That is tiny, but it is not zero. The work is minimal and scales beautifully, but it still exists."
-        },
-        {
-          "id": "single-blocks-o1",
-          "title": "Misconception: Single Blocks always mean O(1) time",
-          "content": "In visual programming environments, it is easy to assume that a single block executes in constant time. However, blocks like 'Find item in Array' or 'List Count' hide internal O(n) loops. If you place a 'Find' block inside a standard 'For' loop, you are silently creating an O(n²) bottleneck. Always consider the hidden algorithmic costs of the blocks you drag into your workspace."
-        }
+        { "id": "lines-of-code", "title": "Misconception: More lines of code means worse complexity", "content": "Complexity comes from loop structure and recursion, not line count. A 10-line function can be O(n²); a 100-line one can be O(log n)." },
+        { "id": "all-nested-loops", "title": "Misconception: All nested loops are O(n squared)", "content": "Not always -- an outer loop of n with an inner loop of log n gives O(n log n), not O(n²)." },
+        { "id": "log-means-tiny", "title": "Misconception: O(log n) means no real work", "content": "At n=1 million, log₂n ≈ 20 -- small, but not zero. It scales beautifully; it isn't free." },
+        { "id": "single-blocks-o1", "title": "Misconception: Single Blocks always mean O(1) time", "content": "Blocks like \"Find item in Array\" or \"List Count\" hide an internal O(n) loop. Drop one inside a For loop and you've silently built an O(n²) bottleneck." }
       ]
     },
     {
@@ -375,30 +201,18 @@
       "type": "summary",
       "title": "Key Takeaways",
       "bullets": [
-        "Complexity classes describe algorithm growth behavior.",
+        "Complexity classes describe how work grows, not how many lines you wrote.",
         "Efficient algorithms scale better for large inputs.",
-        "O(log n) and O(n log n) are highly useful in professional systems.",
-        "O(n²) and O(2^n) become expensive quickly.",
-        "Complexity analysis helps engineers select practical implementations."
+        "O(log n) and O(n log n) are workhorses in production systems.",
+        "O(n²) and O(2^n) get expensive fast.",
+        "Complexity analysis is how you choose a practical implementation."
       ]
     }
   ],
   "references": [
-    {
-      "title": "Programiz - Time Complexity",
-      "url": "https://www.programiz.com/dsa/time-complexity"
-    },
-    {
-      "title": "Big-O Cheat Sheet",
-      "url": "https://www.bigocheatsheet.com/"
-    },
-    {
-      "title": "W3Schools - DSA Time Complexity",
-      "url": "https://www.w3schools.com/dsa/dsa_timecomplexity.php"
-    },
-    {
-      "title": "Brilliant - Arithmetic Progressions",
-      "url": "https://brilliant.org/wiki/arithmetic-progressions/"
-    }
+    { "title": "Programiz - Time Complexity", "url": "https://www.programiz.com/dsa/time-complexity" },
+    { "title": "Big-O Cheat Sheet", "url": "https://www.bigocheatsheet.com/" },
+    { "title": "W3Schools - DSA Time Complexity", "url": "https://www.w3schools.com/dsa/dsa_timecomplexity.php" },
+    { "title": "Brilliant - Arithmetic Progressions", "url": "https://brilliant.org/wiki/arithmetic-progressions/" }
   ]
 }
