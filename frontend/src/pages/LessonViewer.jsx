@@ -22,12 +22,44 @@ import { assessmentsDB, curriculumCacheDB, progressDB } from "../db";
 import "../styles/LessonViewer.css";
 import "../styles/Skeleton.css";
 
+// This app never renders LaTeX/MathJax anywhere — Big-O notation is always
+// shown as plain styled text (e.g. `O(n log n)`), never `$O(n \log n)$`.
+// If lesson content is authored with LaTeX-style math delimiters out of
+// habit, strip the delimiters and clean up the handful of LaTeX escapes
+// that would otherwise show up as literal backslashes once unwrapped.
+function cleanMathToken(raw) {
+  return raw
+    .replace(/\\log/g, "log")
+    .replace(/\\times/g, "×")
+    .replace(/\\cdot/g, "·")
+    .replace(/\\sqrt\{([^}]*)\}/g, "√($1)")
+    .replace(/\\text\{([^}]*)\}/g, "$1")
+    .replace(/\\,/g, " ")
+    .replace(/\\/g, "")
+    .trim();
+}
+
 function formatText(text) {
   if (!text) return null;
-  const parts = text.split(/(\*\*.*?\*\*)/g);
+  // Tokenizes on **bold**, `code`, and stray $math$ spans in one pass so
+  // precedence between them is unambiguous. Backtick- and $-wrapped spans
+  // both render as the same styled <code> element — .lesson-section-content
+  // code / .lesson-bullet-list code already exist in LessonViewer.css for
+  // exactly this, but nothing ever actually produced a <code> element
+  // before, so both forms of inline complexity notation just printed
+  // literally (backticks and all, or "$O(n log n)$" with visible dollar
+  // signs).
+  const parts = text.split(/(\*\*.*?\*\*|`[^`]+`|\$[^$]+\$)/g);
   return parts.map((part, index) => {
+    if (!part) return null;
     if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
       return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+      return <code key={index}>{part.slice(1, -1)}</code>;
+    }
+    if (part.startsWith("$") && part.endsWith("$") && part.length > 2) {
+      return <code key={index}>{cleanMathToken(part.slice(1, -1))}</code>;
     }
     return part;
   });
