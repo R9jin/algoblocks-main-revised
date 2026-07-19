@@ -137,7 +137,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const activityTour = {
     id: "activity-tour",
-    pageId: `activity-${moduleId}-${activityId}`,
+    pageId: "activity-workspace-tour",
     title: "Activity Tour",
     steps: [
       { target: ".wh-toggle-btn.active", title: "Change the view", description: "Switch between the visual Blockly workspace and generated Python code." },

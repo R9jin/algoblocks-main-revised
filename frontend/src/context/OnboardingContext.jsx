@@ -56,6 +56,7 @@ const mergeOnboardingStates = (remoteState, localState) => {
       lastSeenAt: r.lastSeenAt || l.lastSeenAt || null,
       lastOpenedAt: r.lastOpenedAt || l.lastOpenedAt || null,
       lastCompletedAt: r.lastCompletedAt || l.lastCompletedAt || null,
+      lastSkippedAt: r.lastSkippedAt || l.lastSkippedAt || null,
     };
   });
 
@@ -71,8 +72,33 @@ export function OnboardingProvider({ children }) {
   const [state, setState] = useState(() => normalizeState());
   const [tour, setTour] = useState(null);
   const [isHydrated, setIsHydrated] = useState(false);
-  const pendingSyncRef = useRef(false);
   const hydrateRequestIdRef = useRef(0);
+
+  // Always holds the latest state, read inside the sync loop below so a
+  // request that starts mid-loop never sends a stale snapshot.
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  // dirtyRef tracks whether state has changed since the sync loop's last
+  // request went out; syncLoopPromiseRef tracks whether a loop is
+  // currently in flight. Together these guarantee the backend eventually
+  // receives the *latest* state no matter how many times it changes in
+  // quick succession. The previous implementation used a simple boolean
+  // guard that silently dropped any state change arriving while a request
+  // was already in flight — e.g. markPageOpened's write racing the
+  // markPageCompleted write moments later when a user blows through
+  // Skip/Finish quickly — which is exactly the race condition that let a
+  // completed/skipped tour "come back" on the next activity because the
+  // completion never actually reached Postgres.
+  const dirtyRef = useRef(false);
+  const syncLoopPromiseRef = useRef(null);
 
   const userKey = useMemo(() => getUserKey(user), [user]);
 
@@ -162,6 +188,58 @@ export function OnboardingProvider({ children }) {
     };
   }, []);
 
+  // Sends whatever is currently in stateRef to Postgres. Loops instead of
+  // sending once: if `state` changes again while this request is in flight
+  // (dirtyRef gets set by the effect below, or by a concurrent caller), it
+  // immediately goes around again with the newer snapshot rather than
+  // dropping it. Returns the in-flight promise if a loop is already
+  // running, so callers that need to know the *latest* state has actually
+  // reached the backend (e.g. right after Skip/Finish, before the user can
+  // navigate away) can genuinely await it instead of firing-and-forgetting.
+  const runSyncLoop = () => {
+    dirtyRef.current = true;
+
+    if (syncLoopPromiseRef.current) {
+      return syncLoopPromiseRef.current;
+    }
+
+    const currentUser = userRef.current;
+    if (!currentUser?.email || currentUser.isGuest) return Promise.resolve();
+
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+    const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+    if (!token || !apiBase) return Promise.resolve();
+
+    const loopPromise = (async () => {
+      try {
+        while (dirtyRef.current) {
+          dirtyRef.current = false;
+          const payload = stateRef.current;
+          try {
+            await fetch(`${apiBase}/api/update-onboarding`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ onboarding_state: payload }),
+            });
+          } catch {
+            // Network hiccup — if nothing newer came in while this was in
+            // flight, give up for now; the next state change (or the next
+            // flushOnboardingSync() call) will retry with fresh data.
+            break;
+          }
+        }
+      } finally {
+        syncLoopPromiseRef.current = null;
+      }
+    })();
+
+    syncLoopPromiseRef.current = loopPromise;
+    return loopPromise;
+  };
+
   useEffect(() => {
     if (!user) return;
     writeStoredState(userKey, state);
@@ -178,30 +256,49 @@ export function OnboardingProvider({ children }) {
       // Best-effort only.
     }
 
-    const syncRemote = async () => {
-      if (!user?.email || user.isGuest || pendingSyncRef.current) return;
+    runSyncLoop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, user, userKey]);
+
+  // Lets a caller (e.g. the tour's Skip/Finish handlers) explicitly wait
+  // for the current onboarding state to actually reach Postgres, instead
+  // of relying on the debounced background effect above. This is what
+  // guarantees "the onboarding status is saved immediately after Skip or
+  // Finish" rather than racing whatever the user does next.
+  const flushOnboardingSync = () => runSyncLoop();
+
+  // Last-resort safety net for an actual page unload (closing the tab,
+  // hard refresh, or a full-page navigation like the sign-out buttons)
+  // happening before the in-flight request above resolves. `keepalive`
+  // lets the browser complete a fetch that outlives the page, and unlike
+  // navigator.sendBeacon it still supports the Authorization header this
+  // endpoint requires.
+  useEffect(() => {
+    const flushOnUnload = () => {
+      const currentUser = userRef.current;
+      if (!currentUser?.email || currentUser.isGuest) return;
+      if (!dirtyRef.current) return;
       const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
       const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
       if (!token || !apiBase) return;
-      pendingSyncRef.current = true;
       try {
-        await fetch(`${apiBase}/api/update-onboarding`, {
+        fetch(`${apiBase}/api/update-onboarding`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ onboarding_state: state }),
-        });
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ onboarding_state: stateRef.current }),
+          keepalive: true,
+        }).catch(() => {});
       } catch {
-        // Ignore sync failures; local persistence still keeps the user experience consistent.
-      } finally {
-        pendingSyncRef.current = false;
+        // Best-effort only.
       }
     };
-
-    syncRemote();
-  }, [state, user, userKey]);
+    window.addEventListener("pagehide", flushOnUnload);
+    window.addEventListener("beforeunload", flushOnUnload);
+    return () => {
+      window.removeEventListener("pagehide", flushOnUnload);
+      window.removeEventListener("beforeunload", flushOnUnload);
+    };
+  }, []);
 
   const startTour = (tourConfig) => setTour(tourConfig);
   const closeTour = () => setTour(null);
@@ -232,9 +329,8 @@ export function OnboardingProvider({ children }) {
   };
 
   // Records that a tour was actually completed — the user reached the final
-  // step and clicked Finish. This is the ONLY thing that should ever set a
-  // page's `seen` flag, since `seen` is what pages check before deciding
-  // whether to auto-show a tour again.
+  // step and clicked Finish. Sets `seen: true` (the flag pages check before
+  // auto-showing a tour again) and records lastCompletedAt for analytics.
   const markPageCompleted = (pageId, completedAt = new Date().toISOString()) => {
     if (!pageId) return;
     setState((prev) => ({
@@ -254,6 +350,29 @@ export function OnboardingProvider({ children }) {
     }));
   };
 
+  // Records that a tour was explicitly dismissed via "Skip Tour". Per the
+  // current requirements this ALSO permanently stops it from auto-showing
+  // again (seen: true) — the distinction from markPageCompleted is only
+  // that lastSkippedAt is set instead of lastCompletedAt, so it's still
+  // possible to tell "finished" apart from "skipped" for analytics without
+  // affecting the auto-show gate, which checks `seen` either way.
+  const markPageDismissed = (pageId, dismissedAt = new Date().toISOString()) => {
+    if (!pageId) return;
+    setState((prev) => ({
+      ...normalizeState(prev),
+      pages: {
+        ...normalizeState(prev).pages,
+        [pageId]: {
+          ...(normalizeState(prev).pages?.[pageId] || {}),
+          seen: true,
+          replayCount: Number(normalizeState(prev).pages?.[pageId]?.replayCount || 0),
+          lastSeenAt: dismissedAt,
+          lastSkippedAt: dismissedAt,
+        },
+      },
+    }));
+  };
+
   const api = useMemo(() => ({
     user,
     setUser,
@@ -264,6 +383,8 @@ export function OnboardingProvider({ children }) {
     closeTour,
     markPageOpened,
     markPageCompleted,
+    markPageDismissed,
+    flushOnboardingSync,
     setState,
   }), [user, state, isHydrated, tour]);
 
