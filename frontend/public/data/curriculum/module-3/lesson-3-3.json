@@ -2,183 +2,124 @@
   "lessonId": "lesson-3-3",
   "moduleId": "module-3",
   "title": "Merge Sort & The Auxiliary Array",
-  "description": "Learn how Merge Sort uses Divide and Conquer to recursively split arrays and systematically merge them. Visualize the execution order of the left and right branches on the call stack and how pointers build the sorted result.",
+  "description": "How Merge Sort splits an array recursively and stitches it back together sorted -- tracing the Call Stack's left-first execution and the pointer logic behind the merge.",
   "difficulty": "Beginner",
-  "estimatedTime": "45 min",
+  "estimatedTime": "28 min",
   "prerequisites": "Binary Search, The Call Stack",
-  "tags": [
-    "merge sort",
-    "sorting",
-    "divide and conquer",
-    "call stack",
-    "pointers"
-  ],
+  "tags": ["merge sort", "sorting", "divide and conquer", "call stack", "pointers"],
   "activities": [
-    {
-      "id": "m3_l3_a1",
-      "title": "Visualizing the Halving Tree"
-    },
-    {
-      "id": "m3_l3_a2",
-      "title": "Tracing the Left Branch First"
-    },
-    {
-      "id": "m3_l3_a3",
-      "title": "The Auxiliary Array Pointers"
-    },
-    {
-      "id": "m3_l3_a4",
-      "title": "Merging Bottom-Up"
-    },
-    {
-      "id": "m3_l3_a5",
-      "title": "Full Merge Stack Trace"
-    }
+    { "id": "m3_l3_a1", "title": "Visualizing the Halving Tree" },
+    { "id": "m3_l3_a2", "title": "Tracing the Left Branch First" },
+    { "id": "m3_l3_a3", "title": "The Auxiliary Array Pointers" },
+    { "id": "m3_l3_a4", "title": "Merging Bottom-Up" },
+    { "id": "m3_l3_a5", "title": "Full Merge Stack Trace" }
   ],
   "sections": [
     {
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction to Merge Sort",
-      "content": "Merge Sort is a highly predictable sorting algorithm built entirely on the **Divide and Conquer** strategy. Instead of brute-forcing the entire array with nested loops, Merge Sort repeatedly divides the array into smaller halves, recursively sorts each half, and then physically merges the two sorted halves back together.\n\nThink of it like combining two sorted stacks of exam papers. You look at the top paper of both stacks, take the smaller one, and place it in a new, final stack. You repeat this until both stacks are empty. The recursive splitting continues until every subarray contains only one element, which acts as the base case.\n\nBecause the problem shrinks logarithmically, Merge Sort is incredibly fast. For 1 million items, Bubble Sort takes about 500 billion comparisons. Merge Sort takes about 20 million comparisons. When block sequences are parsed into an Abstract Syntax Tree (AST) to measure time complexity, Merge Sort consistently provides **O(n log n)** performance regardless of how messy the initial data is."
+      "content": "Merge Sort splits an array in half repeatedly, sorts each half recursively, then merges the sorted halves back together -- classic Divide and Conquer.\n\nLike combining two sorted stacks of exam papers: compare the top of each, take the smaller, repeat until both stacks are empty. Splitting continues until every piece is a single element -- the base case.\n\nAt 1 million items, Bubble Sort needs ~500 billion comparisons. Merge Sort needs ~20 million -- **O(n log n)**, reliably, no matter how messy the input."
     },
     {
       "id": "why-merge-sort-matters",
       "type": "concept",
       "title": "Why Merge Sort Matters",
-      "content": "Large systems constantly process enormous amounts of data. Search engines, databases, analytics systems, and recommendation platforms all rely heavily on efficient sorting. Without reliable O(n log n) sorting, these systems would be impossibly slow.\n\nSimple sorting algorithms such as Bubble Sort become physically non-viable for large datasets because their nested loops create quadratic growth. For n equals 1 million, Bubble Sort takes about 500 billion comparisons. Merge Sort takes about 20 million comparisons. That is 25,000 times faster.\n\nMerge Sort remains efficient because it repeatedly reduces problem size through recursive decomposition. It provides highly predictable O(n log n) performance in all cases. Unlike Quick Sort, Merge Sort has no pathological worst-case input that causes O(n squared) behavior.\n\nMerge Sort is also stable, meaning equal elements preserve their original physical order. This is incredibly important for multi-key sorting, like sorting a database by last name and then by first name.",
+      "content": "Search engines, databases, and analytics platforms all lean on fast, reliable sorting -- and simple O(n²) sorts just don't scale.\n\n25,000x is the real gap at n=1 million (500 billion vs 20 million comparisons). And unlike Quick Sort, Merge Sort has no pathological worst case -- it's always O(n log n).\n\nIt's also **stable**: equal elements keep their original order, which matters a lot for multi-key sorts (e.g. sort by last name, then first name).",
       "bullets": [
-        "It scales efficiently for massive datasets.",
-        "It uses strict Divide and Conquer recursion.",
-        "It provides guaranteed, predictable O(n log n) performance.",
-        "It is a stable sorting algorithm."
+        "Scales efficiently to massive datasets.",
+        "Strict **Divide and Conquer** recursion.",
+        "Guaranteed **O(n log n)**, no worst-case surprises.",
+        "**Stable** sort."
       ]
     },
     {
       "id": "core-idea",
       "type": "concept",
       "title": "Core Idea: The Three Phases",
-      "content": "Merge Sort follows three major phases: **divide, conquer, and merge**. These phases map directly to the lines of code executed in the algorithm.\n\n* **Divide:** The algorithm calculates the middle index and physically slices the array into two halves.\n* **Conquer:** The algorithm pushes isolated memory frames onto the Call Stack, repeatedly calling itself on the smaller halves until it hits a base case (an array of size 1).\n* **Merge:** As the stack frames pop, the algorithm allocates new memory and uses two scanning pointers to zipper the broken pieces back together in perfect order.\n\nVisualize it like this. Start with `[8, 3, 5, 1]`. Divide into `[8, 3]` and `[5, 1]`. Divide again into `[8]`, `[3]`, `[5]`, `[1]`. Then merge `[8]` and `[3]` into `[3, 8]`. Merge `[5]` and `[1]` into `[1, 5]`. Finally merge `[3, 8]` and `[1, 5]` into `[1, 3, 5, 8]`. The array becomes fully sorted bottom-up."
+      "content": "Three phases: **divide, conquer, merge**.\n\n**Divide:** find the midpoint, slice into two halves.\n**Conquer:** recurse on each half, pushing stack frames, until hitting size-1 base cases.\n**Merge:** as frames pop, zipper the sorted pieces back together with two scanning pointers.\n\n`[8, 3, 5, 1]` → divide to `[8, 3]`/`[5, 1]` → divide to `[8]`/`[3]`/`[5]`/`[1]` → merge to `[3, 8]`/`[1, 5]` → merge to `[1, 3, 5, 8]`."
     },
     {
       "id": "the-execution-order",
       "type": "deep_dive",
       "title": "The Execution Order: Left Branch First",
-      "content": "A massive beginner trap is assuming that the computer splits the entire array into single pieces all at once. It does not. The computer's Call Stack executes strictly sequentially.\n\nLook at the core recursive logic:\n1. `left_sorted = merge_sort(left_half)`\n2. `right_sorted = merge_sort(right_half)`\n3. `return merge(left_sorted, right_sorted)`\n\nWhen evaluating this line-by-line via AST parsing, the computer **pauses** on line 1. It pushes a new frame for the `left_half` onto the stack. That frame then splits its array and pauses on *its* line 1. \n\n**The computer will completely drill down the left side of the array until it hits a base case (size 1) before the `right_half` block is ever even evaluated.** The right branches are completely suspended in memory until the left branches finish computing and pop off the stack."
+      "content": "Common trap: assuming the whole array splits at once. It doesn't -- the Call Stack runs strictly sequentially.\n\n```\nleft_sorted = merge_sort(left_half)\nright_sorted = merge_sort(right_half)\nreturn merge(left_sorted, right_sorted)\n```\n\nLine 1 pushes a frame for `left_half`, which recurses fully before line 2 ever runs. **The entire left branch drills down to base cases before the right branch is touched at all.**"
     },
     {
       "id": "step-by-step-trace",
       "type": "deep_dive",
       "title": "Tracing the Split and Merge",
-      "content": "Let's trace the physical memory states for the array `[6, 2, 8, 1]`:\n\n**The Left Dive:**\n* **Frame 1:** `merge_sort([6, 2, 8, 1])` splits into `[6, 2]` and `[8, 1]`. Pauses to call left.\n* **Frame 2:** `merge_sort([6, 2])` splits into `[6]` and `[2]`. Pauses to call left.\n* **Frame 3:** `merge_sort([6])`. **Base Case!** Returns `[6]` and pops.\n* **Frame 2 (Resumes):** Now calls right `merge_sort([2])`. Returns `[2]` and pops.\n* **Frame 2 (Merges):** It merges `[6]` and `[2]` into a new array `[2, 6]`. Returns `[2, 6]` and pops.\n\n**The Right Dive:**\n* **Frame 1 (Resumes):** Now calls right `merge_sort([8, 1])`.\n* *(The exact same drill-down happens for `[8, 1]`, eventually returning `[1, 8]`)*\n\n**The Final Combine:**\n* **Frame 1 (Merges):** It has received `[2, 6]` from the left and `[1, 8]` from the right. It merges them by scanning both with pointers to build `[1, 2, 6, 8]`. The stack is empty!"
+      "content": "Tracing `[6, 2, 8, 1]`:\n\n**Left dive:**\n* Frame 1: `[6,2,8,1]` splits to `[6,2]`/`[8,1]`, calls left.\n* Frame 2: `[6,2]` splits to `[6]`/`[2]`, calls left.\n* Frame 3: `[6]` -- base case, returns `[6]`, pops.\n* Frame 2 resumes, calls right → `[2]` returns, pops.\n* Frame 2 merges `[6]`+`[2]` → `[2,6]`, pops.\n\n**Right dive:** Frame 1 resumes, calls right on `[8,1]` -- same process, returns `[1,8]`.\n\n**Final combine:** Frame 1 merges `[2,6]` + `[1,8]` → `[1,2,6,8]`. Stack empty."
     },
     {
       "id": "the-merge-phase",
       "type": "deep_dive",
       "title": "The Auxiliary Array & Pointers",
-      "content": "The division phase only breaks the data down. The actual sorting happens entirely during the **Merge Phase**.\n\nTo combine two sorted arrays (e.g., `left = [2, 6]` and `right = [1, 8]`), the computer must allocate new memory called an **Auxiliary Array**. It then uses two tracking pointers, `i` and `j`:\n\n1.  **Compare:** Is `left[i]` (2) smaller than `right[j]` (1)? No. Append 1 to the new array and move `j` forward.\n2.  **Compare:** Is `left[i]` (2) smaller than `right[j]` (8)? Yes. Append 2 to the new array and move `i` forward.\n3.  **Compare:** Is `left[i]` (6) smaller than `right[j]` (8)? Yes. Append 6 and move `i` forward.\n4.  **Exhaustion:** The left array is empty. Immediately append all remaining elements from the right array (8).\n\nBecause the computer must allocate this temporary array to hold the merged blocks, Merge Sort has a Space Complexity of **O(n)**. This is the direct tradeoff for its incredible speed."
+      "content": "Dividing just breaks things apart -- all the actual sorting happens in the **Merge Phase**.\n\nMerging `left = [2, 6]` and `right = [1, 8]` with pointers `i`, `j`:\n1. `left[i]`=2 vs `right[j]`=1 → 1 is smaller, append it, advance `j`.\n2. `left[i]`=2 vs `right[j]`=8 → 2 is smaller, append it, advance `i`.\n3. `left[i]`=6 vs `right[j]`=8 → 6 is smaller, append it, advance `i`.\n4. Left is exhausted -- append everything left in `right` (8).\n\nThat temporary array is why Merge Sort costs **O(n) space** -- the tradeoff for its speed."
     },
     {
       "id": "implementation",
       "type": "concept",
       "title": "Python Implementation",
-      "content": "Merge Sort implementations rely heavily on managing the Call Stack and allocating the auxiliary array during the merge. Notice how the base case stops the Call Stack from infinitely pushing memory frames.",
+      "content": "The base case is what keeps the Call Stack from growing forever; the merge step is where the auxiliary array gets built.",
       "codeSnippets": [
-        {
-          "title": "Merge Sort & The Auxiliary Merge",
-          "language": "python",
-          "code": "def merge_sort(arr):\n    # Base Case: An array of 1 is physically sorted\n    if len(arr) <= 1:\n        return arr\n\n    # Divide\n    mid = len(arr) // 2\n\n    # Conquer: These push sequentially onto the Call Stack\n    left_sorted = merge_sort(arr[:mid])\n    right_sorted = merge_sort(arr[mid:])\n\n    # Combine\n    return merge(left_sorted, right_sorted)\n\n\ndef merge(left, right):\n    result = [] # The Auxiliary Array\n    i = 0\n    j = 0\n\n    # Pointer tracking to build the merged array\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]: # <= maintains stable sorting\n            result.append(left[i])\n            i += 1\n        else:\n            result.append(right[j])\n            j += 1\n\n    # Append any remaining blocks\n    result.extend(left[i:])\n    result.extend(right[j:])\n\n    return result\n\nprint(merge_sort([6, 2, 8, 1]))"
-        }
+        { "title": "Merge Sort & The Auxiliary Merge", "language": "python", "code": "def merge_sort(arr):\n    # Base Case: An array of 1 is physically sorted\n    if len(arr) <= 1:\n        return arr\n\n    # Divide\n    mid = len(arr) // 2\n\n    # Conquer: These push sequentially onto the Call Stack\n    left_sorted = merge_sort(arr[:mid])\n    right_sorted = merge_sort(arr[mid:])\n\n    # Combine\n    return merge(left_sorted, right_sorted)\n\n\ndef merge(left, right):\n    result = [] # The Auxiliary Array\n    i = 0\n    j = 0\n\n    # Pointer tracking to build the merged array\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]: # <= maintains stable sorting\n            result.append(left[i])\n            i += 1\n        else:\n            result.append(right[j])\n            j += 1\n\n    # Append any remaining blocks\n    result.extend(left[i:])\n    result.extend(right[j:])\n\n    return result\n\nprint(merge_sort([6, 2, 8, 1]))" }
       ]
     },
     {
       "id": "complexity-analysis",
       "type": "deep_dive",
       "title": "Complexity Analysis",
-      "content": "Merge Sort achieves **O(n log n)** complexity in the best, average, and worst cases. This predictable performance is one of its greatest strengths.\n\n* **Time Complexity: O(n log n)**\n    * The recursive halving tree dictates exactly **O(log n)** depth levels.\n    * At every single level, the `merge` function must touch every single element exactly once using the `i` and `j` pointers, which takes **O(n)** time.\n    * O(log n) levels multiplied by O(n) work per level equals strict **O(n log n)** time complexity.\n* **Space Complexity: O(n)**\n    * Space complexity is O(n) for the temporary auxiliary arrays created during merging. The recursion stack uses O(log n) additional space. For n equals 10 million integers, the array takes about 80 megabytes. Merge Sort needs about 160 megabytes total.",
+      "content": "**Time: O(n log n)** in all cases -- the recursive halving gives O(log n) depth levels, and each level's merge touches every element once, O(n) work. log n levels × O(n) work = O(n log n).\n\n**Space: O(n)** for the temporary merge arrays, plus O(log n) for the recursion stack. At n=10 million integers (~80 MB), Merge Sort needs roughly 160 MB total.",
       "chart": {
         "title": "Merge Sort recursive reduction",
-        "description": "Merge Sort repeatedly divides arrays into smaller halves before rebuilding the final sorted result through merging.",
+        "description": "Repeated halving followed by linear-work merges at each level.",
         "maxN": 32,
         "normalize": true,
-        "curves": [
-          "O(log n)",
-          "O(n)",
-          "O(n log n)"
-        ]
+        "curves": ["O(log n)", "O(n)", "O(n log n)"]
       }
     },
     {
       "id": "extra-memory",
       "type": "concept",
       "title": "Why Merge Sort Uses Extra Memory",
-      "content": "Merge Sort temporarily stores left subarrays, right subarrays, and merged results during execution. This extra memory is the price for its guaranteed O(n log n) performance and stability.\n\nIf merging were done in-place without extra memory, elements would overwrite each other as they swapped around. The simplest, fastest solution is to create temporary copies of the subarrays being merged. Each recursive call creates copies of subarrays using slicing in Python. \n\nUnlike in-place algorithms like Bubble Sort and Quick Sort, Merge Sort requires this additional memory while combining arrays. This creates a tradeoff between excellent time efficiency and increased space usage. For most applications, the O(n) space is acceptable, but for embedded systems with very limited RAM, developers must rely on in-place alternatives."
+      "content": "Merging without extra memory would mean elements overwriting each other mid-swap -- so Merge Sort copies subarrays into temporary space instead (Python slicing does this per recursive call).\n\nUnlike in-place sorts (Bubble Sort, Quick Sort), that extra O(n) space is a real tradeoff for guaranteed speed and stability. Fine for most applications; a dealbreaker for very memory-constrained embedded systems."
     },
     {
       "id": "stable-sorting",
       "type": "concept",
       "title": "Stable Sorting",
-      "content": "Merge Sort is considered a **Stable Sorting Algorithm**. Stability means equal elements preserve their original relative order after sorting.\n\nFor example, suppose you have students with names and scores. Alice has 90, Bob has 85, Charlie has 90. If you sort by score, a stable sort will keep Alice before Charlie because Alice appeared first in the original list. An unstable sort might swap them.\n\nMerge Sort achieves stability through the merge operation condition: `if left[i] <= right[j]`. By using strictly \"less than or equal to\", the algorithm prefers the left-side element when a tie occurs. This ensures that elements from the left half, which originally came before elements from the right half, appear before them in the merged result."
+      "content": "**Stability** means equal elements keep their original relative order. Alice (90) before Charlie (90) in the original list stays that way after a stable sort.\n\nMerge Sort's `if left[i] <= right[j]` (using ≤, not <) is what guarantees this -- ties favor the left side, which is where earlier elements live."
     },
     {
       "id": "merge-vs-bubble",
       "type": "concept",
       "title": "Merge Sort vs Bubble Sort",
-      "content": "Bubble Sort repeatedly swaps adjacent elements and produces O(n squared) behavior for large datasets. Merge Sort instead uses recursive decomposition and efficient merging to achieve O(n log n) performance.\n\nFor n equals 1 million, Bubble Sort takes about 500 billion comparisons, which could take days. Merge Sort takes about 20 million comparisons, which completes in seconds. That is 25,000 times faster.\n\nBubble Sort is simple and works in-place with O(1) space. Merge Sort requires O(n) extra space. For very small n under 50, Bubble Sort might be faster due to lower overhead. However, for production sorting of large datasets, Bubble Sort is never used."
+      "content": "Bubble Sort: O(n²), simple, in-place (O(1) space). Merge Sort: O(n log n), needs O(n) extra space.\n\nAt n=1 million: Bubble Sort could take days; Merge Sort finishes in seconds -- 25,000x faster. Below ~50 elements, Bubble Sort's lower overhead can edge it out, but for real production sorting, Bubble Sort is never the answer."
     },
     {
       "id": "advantages-limitations",
       "type": "concept",
       "title": "Advantages and Limitations",
       "subsections": [
-        {
-          "id": "advantages",
-          "title": "Advantages",
-          "bullets": [
-            "Highly efficient for massive datasets.",
-            "Provides guaranteed, predictable O(n log n) performance.",
-            "Uses stable sorting behavior (preserves duplicate order).",
-            "Demonstrates Divide and Conquer recursive decomposition perfectly."
-          ]
-        },
-        {
-          "id": "limitations",
-          "title": "Limitations",
-          "bullets": [
-            "Requires O(n) additional auxiliary memory.",
-            "Recursive flow and stack pushing may confuse beginners.",
-            "Pointer tracking during the merge logic can become difficult.",
-            "Slightly slower than Quick Sort in practice due to memory allocation overhead."
-          ]
-        }
+        { "id": "advantages", "title": "Advantages", "bullets": ["Efficient on **massive datasets**.", "Guaranteed **O(n log n)**.", "**Stable** -- preserves duplicate order.", "A clean example of Divide and Conquer."] },
+        { "id": "limitations", "title": "Limitations", "bullets": ["Needs **O(n) extra memory**.", "Recursive flow can confuse beginners.", "Pointer tracking in the merge takes practice.", "Usually a bit slower than Quick Sort in practice due to allocation overhead."] }
       ]
     },
     {
       "id": "applications",
       "type": "real_world_connection",
       "title": "Real-World Applications",
-      "content": "Merge Sort appears in database engines, distributed computing systems, large-scale analytics, external sorting systems, and parallel processing systems. Its predictable O(n log n) performance and stability make it a go-to choice for many applications.\n\nWhen data does not fit entirely in RAM, systems use **external sorting** powered by Merge Sort. The algorithm loads chunks of data into memory, sorts each chunk, writes them back to disk, and then sequentially merges the sorted chunks. This is how operating systems process massive log files.\n\nMapReduce and Apache Spark use sort-based shuffles that heavily leverage merge sort principles. Python's built-in `sort()` uses Timsort, which is a highly optimized hybrid of Merge Sort and Insertion Sort."
+      "content": "Database engines, distributed systems, large-scale analytics, and external sorting all lean on Merge Sort's predictability and stability.\n\n**External sorting:** when data doesn't fit in RAM, systems sort chunks, write them to disk, then merge the sorted chunks -- exactly how OSes handle massive log files.\n\nMapReduce and Spark's sort-based shuffles lean on the same idea. Python's built-in `sort()` uses Timsort -- a hybrid of Merge Sort and Insertion Sort."
     },
     {
       "id": "misconceptions",
       "type": "key_concept",
       "title": "Common Beginner Mistakes",
       "subsections": [
-        {
-          "id": "division-sorts",
-          "title": "Mistake: Thinking Merge Sort sorts during division",
-          "content": "The division phase only physically breaks the array into smaller parts. It is entirely blind to the values. 100% of the actual sorting logic occurs during the merge phase when the pointers `i` and `j` compare values."
-        },
-        {
-          "id": "simultaneous-execution",
-          "title": "Mistake: Assuming left and right split at the same time",
-          "content": "Because the code is written top-down, it looks like `left` and `right` execute simultaneously. Due to the Call Stack, the `left_sorted` variable must receive a fully resolved, 100% finished array before the computer is even allowed to execute the `right_sorted` line."
-        },
-        {
-          "id": "ignoring-space",
-          "title": "Mistake: Ignoring auxiliary memory",
-          "content": "Merge Sort requires additional arrays during merging, which increases space complexity. Beginners sometimes assume it is in-place like Bubble Sort. Remember that Merge Sort physically copies data into new memory blocks to guarantee O(n log n) time."
-        }
+        { "id": "division-sorts", "title": "Mistake: Thinking Merge Sort sorts during division", "content": "Division just breaks the array apart -- it's blind to values. All actual sorting happens during the merge, where `i` and `j` compare values." },
+        { "id": "simultaneous-execution", "title": "Mistake: Assuming left and right split at the same time", "content": "The code reads top-down, but `left_sorted` must be fully resolved before `right_sorted` even starts -- that's the Call Stack." },
+        { "id": "ignoring-space", "title": "Mistake: Ignoring auxiliary memory", "content": "Merge Sort is NOT in-place like Bubble Sort -- it copies data into new memory during merging, which is the O(n) space cost." }
       ]
     },
     {
@@ -186,27 +127,18 @@
       "type": "summary",
       "title": "Key Takeaways",
       "bullets": [
-        "Merge Sort physically chops the array down to **Base Cases of size 1**.",
-        "The computer strictly drills down the **left branches first** via the Call Stack.",
-        "All sorting logic happens during the bottom-up **Merge Phase**.",
-        "Merging uses tracking pointers to build a temporary **Auxiliary Array**.",
-        "It provides guaranteed **O(n log n)** time complexity at the cost of **O(n)** space complexity.",
-        "It is a **Stable Sort**, preserving the original order of duplicate elements."
+        "Merge Sort splits down to **base cases of size 1**.",
+        "The Call Stack drills down the **left branch first**.",
+        "All sorting happens in the bottom-up **Merge Phase**.",
+        "Merging uses pointers to build a temporary **Auxiliary Array**.",
+        "**O(n log n)** time, **O(n)** space.",
+        "It's a **Stable Sort**."
       ]
     }
   ],
   "references": [
-    {
-      "title": "Programiz - Merge Sort",
-      "url": "https://www.programiz.com/dsa/merge-sort"
-    },
-    {
-      "title": "GeeksforGeeks - Merge Sort",
-      "url": "https://www.geeksforgeeks.org/merge-sort/"
-    },
-    {
-      "title": "VisuAlgo - Sorting Visualizations",
-      "url": "https://visualgo.net/en/sorting"
-    }
+    { "title": "Programiz - Merge Sort", "url": "https://www.programiz.com/dsa/merge-sort" },
+    { "title": "GeeksforGeeks - Merge Sort", "url": "https://www.geeksforgeeks.org/merge-sort/" },
+    { "title": "VisuAlgo - Sorting Visualizations", "url": "https://visualgo.net/en/sorting" }
   ]
 }
