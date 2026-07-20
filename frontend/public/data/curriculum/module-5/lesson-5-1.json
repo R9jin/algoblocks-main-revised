@@ -1,225 +1,234 @@
 {
-  "lessonId": "lesson-5-1",
-  "moduleId": "module-5",
-  "title": "Dynamic Programming Fundamentals",
-  "description": "Learn how **Dynamic Programming** solves overlapping subproblems efficiently by storing and reusing previously computed results.",
-  "difficulty": "Intermediate",
-  "estimatedTime": "50 min",
-  "prerequisites": "Greedy Algorithms",
-  "tags": ["dynamic programming", "memoization", "tabulation", "optimization"],
-  "activities": [
-    {
-      "id": "m5_l1_a1",
-      "title": "Array Caching"
-    },
-    {
-      "id": "m5_l1_a2",
-      "title": "Cache Lookup"
-    },
-    {
-      "id": "m5_l1_a3",
-      "title": "Top-Down Blueprint"
-    },
-    {
-      "id": "m5_l1_a4",
-      "title": "Bottom-Up Build"
-    },
-    {
-      "id": "m5_l1_a5",
-      "title": "Execution Comparison"
-    }
-  ],
-  "sections": [
-    {
-      "id": "introduction",
-      "type": "introduction",
-      "title": "Introduction",
-      "content": "**Dynamic Programming (DP)** is one of the most powerful algorithmic techniques in computer science. It solves complex problems by breaking them into smaller subproblems, solving each subproblem exactly once, and **storing the results for future use**.\n\nImagine calculating the Fibonacci sequence manually:\n* You compute `Fib(5)` = `Fib(4) + Fib(3)`.\n* To compute `Fib(4)`, you need `Fib(3) + Fib(2)`.\n* You end up computing `Fib(3)` multiple times.\n\nA smarter approach is to write down each Fibonacci number as you compute it. When you need `Fib(3)` again, you just look it up. **This is Dynamic Programming.**\n\n* The name was coined by mathematician **Richard Bellman** in the 1950s.\n* \"Programming\" here means planning or optimization (like in linear programming), not writing computer code.\n* \"Dynamic\" refers to the multi-stage decision process.\n\nDynamic Programming dramatically improves efficiency for problems involving repeated recursive computation, overlapping subproblems, and optimization tasks. It is fundamental in AI systems, pathfinding algorithms, financial modeling, and game development."
-    },
-    {
-      "id": "why-dp-matters",
-      "type": "concept",
-      "title": "Why Dynamic Programming Matters",
-      "content": "Some recursive algorithms repeatedly solve the exact same problems over and over. This redundancy creates **exponential time complexity**, making problems impossible to solve for large inputs.\n\nFor example, recursive Fibonacci computation repeatedly recalculates identical values:\n* `Fib(5)` calls `Fib(4)` and `Fib(3)`.\n* `Fib(4)` calls `Fib(3)` and `Fib(2)`.\n* `Fib(3)` is computed twice.\n\nThe inefficiency scales disastrously:\n1.  For `n=40`, naive recursive Fibonacci makes about **331 million calls**.\n2.  For `n=100`, it would take longer than the **age of the universe**.\n\nDynamic Programming solves this by remembering already-computed answers and reusing them. For Fibonacci, this transforms exponential time `O(2^n)` into linear time `O(n)`. For `n=100`, DP takes **microseconds** while naive recursion is impossible.\n\nThis pattern saves computationally heavy problems like shortest paths, sequence alignment, knapsack optimization, and edit distance from being intractable.",
-      "bullets": [
-        "**Avoids** repeated recursive computation.",
-        "**Improves scalability** dramatically from exponential to polynomial.",
-        "**Reduces** unnecessary work by caching.",
-        "**Optimizes** complex multi-stage recursive problems."
-      ]
-    },
-    {
-      "id": "core-idea",
-      "type": "concept",
-      "title": "Core Idea of Dynamic Programming",
-      "content": "Dynamic Programming works using two critical mathematical properties: **Overlapping Subproblems** and **Optimal Substructure**. The algorithm stores intermediate answers so repeated subproblems do not need to be recomputed.\n\nFor any DP problem, you must systematically answer four questions:\n1.  **What are the subproblems?** (e.g., for Fibonacci, the subproblem is `Fib(n)`)\n2.  **How do subproblems relate?** (e.g., `Fib(n) = Fib(n-1) + Fib(n-2)`)\n3.  **What are the base cases?** (e.g., `Fib(0) = 0` and `Fib(1) = 1`)\n4.  **What order should you solve the subproblems?** (e.g., solve from 0 up to n)\n\nBy carefully defining these four steps, larger optimal solutions are seamlessly built from smaller optimal solutions."
-    },
-    {
-      "id": "overlapping-subproblems",
-      "type": "deep_dive",
-      "title": "Overlapping Subproblems",
-      "content": "**Overlapping subproblems** occur when the same smaller problem appears repeatedly during execution. This is the key property that makes Dynamic Programming beneficial.\n\nSuppose we compute Fibonacci of 5. The recursion tree shows:\n* `Fib(3)` appears 2 times.\n* `Fib(2)` appears 3 times.\n* `Fib(1)` appears 5 times.\n\nInstead of recalculating them every time, DP stores previously computed answers and reuses them. Without DP, the number of recursive calls is about `O(2^n)`. With DP, each subproblem is solved exactly once:\n* **n=40 Naive:** ~331 million calls.\n* **n=40 DP:** exactly 41 unique computations.\n\n**How do you detect them?** Draw the recursion tree. If you see the exact same subproblem appearing in multiple branches, you have overlap. (Note: Divide and Conquer algorithms like Merge Sort have *independent* subproblems with no overlap, so DP does not help there)."
-    },
-    {
-      "id": "optimal-substructure",
-      "type": "concept",
-      "title": "Optimal Substructure",
-      "content": "**Optimal Substructure** means the optimal solution to a large problem can be built strictly from optimal solutions to smaller subproblems. This property is essential for both Dynamic Programming and Greedy Algorithms.\n\nExamples of Optimal Substructure:\n* **Shortest Path:** If the shortest path from A to C goes through B, then the path from A to B *must* be the shortest path from A to B. \n* **Fibonacci:** The value of `Fib(n)` depends entirely on the optimal (correct) values of `Fib(n-1)` and `Fib(n-2)`.\n* **Knapsack:** The optimal set of items for capacity W either includes item `i` or not. If it includes item `i`, the remaining capacity must be optimally filled with the remaining items.\n\nBoth Greedy and DP require optimal substructure, but they differ in how they build solutions:\n* **Greedy:** Makes one choice and then solves the remaining subproblem.\n* **DP:** Considers multiple choices, solves all necessary subproblems, and takes the absolute best among them."
-    },
-    {
-      "id": "dp-vs-brute-force",
-      "type": "deep_dive",
-      "title": "Dynamic Programming vs Brute Force",
-      "content": "Brute-force recursive solutions repeatedly expand duplicate branches and recompute identical values. \n\n* **The Naive Trap:** The recursion tree grows exponentially because each call branches into multiple subcalls, and overlapping subproblems are recomputed from scratch each time. For Fibonacci, `T(n) = T(n-1) + T(n-2) + O(1)`, which solves to **O(2^n)**.\n* **The DP Solution:** DP avoids this repetition by caching previous results so each subproblem is solved exactly once.\n\nComplexity Breakdowns for DP:\n* **Memoization DP:** takes `O(n)` time and `O(n)` space.\n* **Tabulation DP:** takes `O(n)` time and `O(n)` space.\n* **Space-Optimized DP:** takes `O(n)` time and `O(1)` space.\n\nThis transforms slow recursive solutions into scalable algorithms. Without DP, recursive Fibonacci for `n=100` would take 10^20 years. With DP, it takes microseconds. The improvement is literally from impossible to instant."
-    },
-    {
-      "id": "redundant-computation",
-      "type": "deep_dive",
-      "title": "Understanding Redundant Computation",
-      "content": "Let us examine redundant computation in detail to understand why DP is so powerful. For `Fib(5)`, the recursion repeatedly computes `Fib(3)` twice, `Fib(2)` three times, `Fib(1)` five times, and `Fib(0)` three times. Total calls are 15.\n\nThe exponential explosion happens because for `Fib(n)`, the number of recursive calls is approximately `2^n`:\n* **Fib(10):** ~100 calls (fine).\n* **Fib(30):** ~1 million calls (slow).\n* **Fib(40):** ~331 million calls (very slow).\n* **Fib(50):** ~1 trillion calls (impossible).\n\nDynamic Programming eliminates duplicate computation by storing answers after they are first solved. Each subproblem is computed exactly once. For `n=40`, naive recursion makes 331 million calls while DP makes only 41 calculations. The savings factor is over **8 million times**."
-    },
-    {
-      "id": "memoization",
-      "type": "concept",
-      "title": "Memoization (Top-Down)",
-      "content": "**Memoization** is a top-down Dynamic Programming approach that uses recursion combined with caching. It is often the most intuitive way to implement DP because it starts from the original problem and recursively breaks it down.\n\nThe Memoization Pattern:\n1.  **Check the cache:** Before solving a subproblem, the algorithm checks whether the answer already exists inside memory (usually a dictionary or array).\n2.  **Return if found:** If the answer already exists, the stored value is reused immediately without further recursion.\n3.  **Compute if missing:** If it is a base case, compute the result directly. Otherwise, combine results from recursive calls on smaller subproblems.\n4.  **Store and Return:** Store the result in the cache and return it.\n\nMemoization is intuitive because it follows natural recursive thinking. It employs **lazy evaluation**—if some subproblems are not needed, they are never computed. However, it incurs recursion overhead and carries the risk of stack overflow errors for excessively deep recursion limits."
-    },
-    {
-      "id": "memoization-workflow",
-      "type": "deep_dive",
-      "title": "Memoization Workflow Trace",
-      "content": "Let us trace through memoization for `Fib(5)` to understand how caching eliminates redundant computation. Initially, the memo dictionary is empty.\n\n1.  Call `fib(5)`. Check cache for 5, not found. Need `fib(4) + fib(3)`.\n2.  Call `fib(4)`. Check cache for 4, not found. Need `fib(3) + fib(2)`.\n3.  Call `fib(3)`. Check cache for 3, not found. Need `fib(2) + fib(1)`.\n4.  Call `fib(2)`. Check cache for 2, not found. Need `fib(1) + fib(0)`.\n5.  Call `fib(1)`. Base case, return 1. **Store memo[1]=1**.\n6.  Call `fib(0)`. Base case, return 0. **Store memo[0]=0**.\n7.  Back to `fib(2)`. `fib(2) = 1 + 0 = 1`. **Store memo[2]=1**.\n8.  Back to `fib(3)`. Need `fib(1)` again. Check cache for 1, **found**, return 1. `fib(3) = 1 + 1 = 2`. **Store memo[3]=2**.\n9.  Back to `fib(4)`. Need `fib(2)` again. Check cache for 2, **found**, return 1. `fib(4) = 2 + 1 = 3`. **Store memo[4]=3**.\n10. Back to `fib(5)`. Need `fib(3)` again. Check cache for 3, **found**, return 2. `fib(5) = 3 + 2 = 5`. **Store memo[5]=5**.\n\nTotal unique computations are only 6 values (0 to 5), compared to 15 calls in naive recursion."
-    },
-    {
-      "id": "trading-space-for-time",
-      "type": "concept",
-      "title": "Trading Space for Time: Memoization",
-      "content": "When a recursive algorithm solves the exact same subproblem multiple times, we can use an Array or Dictionary as a \"notepad\" to save the answer the first time we find it. This technique is known as memoization. By checking this \"notepad\" before doing the underlying math, the algorithm guarantees it never recalculates the same branch twice. You are actively trading memory space (to store the notepad) for execution time. This simple optimization reduces exponential time complexity from $O(2^n)$ down to linear time $O(n)$."
-    },
-    {
-      "id": "tabulation",
-      "type": "concept",
-      "title": "Tabulation (Bottom-Up)",
-      "content": "**Tabulation** is a bottom-up Dynamic Programming approach that builds solutions iteratively from the smallest subproblems upward. It avoids recursion entirely, using loops and arrays instead.\n\nInstead of recursion, the algorithm begins from the smallest subproblems and iteratively builds larger solutions:\n1.  Values are progressively filled inside a table structure (array/matrix).\n2.  Each new value depends strictly on previously computed entries.\n\nFor Fibonacci:\n* Create an array `dp` of size `n+1`.\n* Set base cases: `dp[0] = 0` and `dp[1] = 1`.\n* Loop `i` from `2` to `n`: set `dp[i] = dp[i-1] + dp[i-2]`.\n* Return `dp[n]`.\n\nTabulation has no recursion overhead, no risk of stack overflow, and highly predictable sequential memory usage. However, it *must* solve all subproblems from 0 to n, even if a specific logic path wouldn't necessarily require all of them. It can also be less intuitive than memoization to set up."
-    },
-    {
-      "id": "memoization-vs-tabulation",
-      "type": "deep_dive",
-      "title": "Memoization vs Tabulation",
-      "content": "Both are valid implementations of Dynamic Programming, but they excel in different scenarios:\n\n* **Execution Style:** Memoization uses top-down recursion with caching. Tabulation uses bottom-up iterative table construction.\n* **Subproblem Coverage:** Memoization only solves needed subproblems (lazy). Tabulation eagerly solves all subproblems in sequence.\n* **Memory/Stack:** Memoization relies on the call stack (can cause Stack Overflow on deep trees). Tabulation uses simple loops (no stack limits).\n* **Speed/Overhead:** Memoization carries function call and dictionary lookup overhead. Tabulation uses highly optimized sequential array access (often faster).\n* **Space Optimization:** Memoization is harder to space-optimize. Tabulation can frequently be optimized to `O(1)` space by discarding older row data.\n\n**When to use which:** Use memoization when the recurrence is naturally recursive or only a fraction of the state space will be visited. Use tabulation when all subproblems must be computed anyway, or when absolute maximum performance and recursion safety are required."
-    },
-    {
-      "id": "why-dp-powerful",
-      "type": "concept",
-      "title": "Why Dynamic Programming Is Powerful",
-      "content": "Dynamic Programming can dramatically reduce computational complexity, frequently transforming exponential runtime into linear or polynomial runtime.\n\nComplexity Reductions via DP:\n* **Fibonacci:** Reduces `O(2^n)` to `O(n)`.\n* **Edit Distance:** Reduces `O(3^n)` to `O(m * n)`.\n* **Knapsack:** Reduces `O(2^n)` to `O(n * W)`.\n* **Matrix Chain Multiplication:** Reduces `O(2^n)` to `O(n^3)`.\n\nTo understand this scale, for `n=100`:\n* `O(2^n)` is ~`1.27 × 10^30` operations (**impossible**).\n* `O(n^3)` is `1,000,000` operations (**milliseconds**).\n* `O(n^2)` is `10,000` operations (**instant**).\n* `O(n)` is `100` operations (**instant**).\n\nThis transforms impractical algorithms into scalable real-world solutions used in modern tech.",
-      "chart": {
-        "title": "Dynamic Programming optimization",
-        "description": "Dynamic Programming reduces repeated recursive computation by reusing previously solved subproblems.",
-        "maxN": 32,
-        "normalize": true,
-        "curves": ["O(n)", "O(n^2)", "O(2^n)"]
-      }
-    },
-    {
-      "id": "common-dp-problems",
-      "type": "concept",
-      "title": "Common Dynamic Programming Problems",
-      "content": "Dynamic Programming is the underlying engine for many classic computer science problems:\n\n* **Fibonacci Sequence:** Computes the nth number in `O(n)` time.\n* **Coin Change:** Finds minimum coins for a target in `O(n * amount)` time.\n* **0/1 Knapsack:** Maximizes value within weight capacity in `O(n * W)` time.\n* **Longest Common Subsequence (LCS):** Finds longest sequence common to two strings in `O(m * n)` time.\n* **Edit Distance:** Finds minimum operations to convert strings in `O(m * n)` time.\n* **Matrix Chain Multiplication:** Finds optimal parenthesization in `O(n^3)` time.\n* **Shortest Path:** Bellman-Ford and Floyd-Warshall use DP to route networks.\n\nThese problems teach essential optimization patterns: 1D DP (Fibonacci), 2D DP (Knapsack/LCS), Interval DP (Matrix Chain), and Tree DP."
-    },
-    {
-      "id": "general-dp-pattern",
-      "type": "concept",
-      "title": "General Dynamic Programming Pattern",
-      "content": "Most Dynamic Programming algorithms can be solved by systematically following these 4 steps:\n\n1.  **Define the State:** What smaller problem can you solve to build the larger solution? \n    * *Fibonacci:* `dp[i]` is the ith Fibonacci number.\n    * *Knapsack:* `dp[i][w]` is max value using first `i` items with capacity `w`.\n2.  **Define the Recurrence Relation:** How does the larger solution relate to smaller ones?\n    * *Fibonacci:* `dp[i] = dp[i-1] + dp[i-2]`.\n    * *Knapsack:* `dp[i][w] = max(dp[i-1][w], dp[i-1][w-wt[i]] + val[i])`.\n3.  **Define the Base Cases:** What are the absolute smallest subproblems?\n    * *Fibonacci:* `dp[0] = 0` and `dp[1] = 1`.\n    * *Knapsack:* `dp[0][w] = 0`.\n4.  **Determine Order of Computation:** Choose Top-Down (Memoization) or Bottom-Up (Tabulation)."
-    },
-    {
-      "id": "complexity-improvement",
-      "type": "deep_dive",
-      "title": "Complexity Improvement Example",
-      "content": "Let us analyze the concrete complexity improvement from naive recursion to DP using Fibonacci:\n\n* **Naive Recursive:** `O(1.618^n)`. For `n=40`, this is ~331 million calls.\n* **Memoization:** `O(n)` time, `O(n)` space. For `n=40`, exactly 41 unique calls.\n* **Tabulation:** `O(n)` time, `O(n)` space. Iterative array loop.\n* **Space-Optimized Tabulation:** `O(n)` time, `O(1)` space. Two tracking variables.\n\nExecution Time Impact:\n* `n=40`: Naive takes ~0.5 seconds. DP takes microseconds.\n* `n=50`: Naive takes ~60 seconds. DP takes microseconds.\n* `n=100`: Naive takes over 10^20 years. DP takes microseconds.\n\nDP dramatically reduces recursion depth, repeated computation, and execution time. The difference between exponential and linear is the difference between mathematically impossible and trivial."
-    },
-    {
-      "id": "implementation",
-      "type": "concept",
-      "title": "Python Implementations",
-      "content": "Dynamic Programming implementations commonly use memoization dictionaries or iterative tables to store previously computed results.\n\n* **Memoization:** Uses recursion with a dictionary cache. Before computing `fib(n)`, check if `n` is in the memo. If yes, return it. If not, compute recursively, store, and return.\n* **Tabulation:** Uses an iterative array `dp` of size `n+1`. Set base cases, loop from 2 to n, computing each value from the previous ones.\n* **Space-Optimized Tabulation:** Uses only two variables because each Fibonacci value depends *only* on the two previous values. Update `a` and `b` in a rolling window `O(1)` space.\n\nPython's `@lru_cache(maxsize=None)` decorator from the `functools` module provides built-in memoization for any recursive function.",
-      "codeSnippets": [
+    "lessonId": "lesson-5-1",
+    "moduleId": "module-5",
+    "title": "Dynamic Programming Fundamentals",
+    "description": "Learn how **Dynamic Programming** solves overlapping subproblems efficiently by storing and reusing previously computed results.",
+    "difficulty": "Intermediate",
+    "estimatedTime": "50 min",
+    "prerequisites": "Greedy Algorithms",
+    "tags": [
+        "dynamic programming",
+        "memoization",
+        "tabulation",
+        "optimization"
+    ],
+    "activities": [
         {
-          "title": "Memoized Fibonacci",
-          "language": "python",
-          "code": "memo = {}\n\ndef fib(n):\n    if n in memo:\n        return memo[n]\n\n    if n <= 1:\n        return n\n\n    memo[n] = fib(n - 1) + fib(n - 2)\n    return memo[n]\n\nprint(fib(10))"
+            "id": "m5_l1_a1",
+            "title": "Array Caching"
         },
         {
-          "title": "Tabulation Fibonacci",
-          "language": "python",
-          "code": "def fib(n):\n    if n <= 1:\n        return n\n\n    dp = [0] * (n + 1)\n    dp[1] = 1\n\n    for i in range(2, n + 1):\n        dp[i] = dp[i - 1] + dp[i - 2]\n\n    return dp[n]\n\nprint(fib(10))"
+            "id": "m5_l1_a2",
+            "title": "Cache Lookup"
         },
         {
-          "title": "Simple memoization cache demonstration",
-          "language": "python",
-          "code": "cache = {}\n\ndef square(n):\n    if n in cache:\n        return cache[n]\n\n    cache[n] = n * n\n    return cache[n]\n\nprint(square(5))\nprint(square(5))"
+            "id": "m5_l1_a3",
+            "title": "Top-Down Blueprint"
+        },
+        {
+            "id": "m5_l1_a4",
+            "title": "Bottom-Up Build"
+        },
+        {
+            "id": "m5_l1_a5",
+            "title": "Execution Comparison"
         }
-      ]
-    },
-    {
-      "id": "real-world-applications",
-      "type": "real_world_connection",
-      "title": "Real-World Applications",
-      "content": "Dynamic Programming appears natively in countless real-world engineering systems:\n\n* **Google Maps & Routing:** Uses shortest path algorithms (Bellman-Ford, Floyd-Warshall) to find optimal real-time routes.\n* **Genomics & Biology:** DNA sequence alignment uses DP (Needleman-Wunsch, Smith-Waterman) to find genome similarities. The Human Genome Project relied heavily on DP.\n* **NLP & Word Processing:** Spell check and autocorrect use the DP Edit Distance algorithm to find the closest matching word in a dictionary.\n* **AI & Machine Learning:** Recommendation systems use DP sequence modeling. Game AI uses DP in minimax with transposition tables.\n* **Finance:** DP is used for portfolio optimization and options pricing."
-    },
-    {
-      "id": "misconceptions",
-      "type": "key_concept",
-      "title": "Common Beginner Misconceptions",
-      "subsections": [
+    ],
+    "sections": [
         {
-          "id": "dp-is-recursion",
-          "title": "Mistake: Dynamic Programming is just recursion",
-          "content": "Recursion is only *one* implementation approach (Memoization). The core DP idea is **reusing solved subproblems**. Tabulation uses loops/iteration, not recursion. DP is a strategy for avoiding redundant computation."
+            "id": "introduction",
+            "type": "introduction",
+            "title": "Introduction",
+            "content": "**Dynamic Programming (DP)** is one of the most powerful algorithmic techniques in computer science. It solves complex problems by breaking them into smaller subproblems, solving each subproblem exactly once, and **storing the results for future use**.\n\nImagine calculating the Fibonacci sequence manually:\n* You compute `Fib(5)` = `Fib(4) + Fib(3)`.\n* To compute `Fib(4)`, you need `Fib(3) + Fib(2)`.\n* You end up computing `Fib(3)` multiple times.\n\nA smarter approach is to write down each Fibonacci number as you compute it. When you need `Fib(3)` again, you just look it up. **This is Dynamic Programming.**\n\n* The name was coined by mathematician **Richard Bellman** in the 1950s.\n* \"Programming\" here means planning or optimization (like in linear programming), not writing computer code.\n* \"Dynamic\" refers to the multi-stage decision process.\n\nDynamic Programming dramatically improves efficiency for problems involving repeated recursive computation, overlapping subproblems, and optimization tasks. It is fundamental in AI systems, pathfinding algorithms, financial modeling, and game development."
         },
         {
-          "id": "memo-tab-different",
-          "title": "Mistake: Memoization and tabulation are totally different algorithms",
-          "content": "Both are Dynamic Programming techniques solving the exact same recurrence logic. They solely differ in execution direction (top-down vs bottom-up) and syntax (recursion vs iteration)."
+            "id": "why-dp-matters",
+            "type": "concept",
+            "title": "Why Dynamic Programming Matters",
+            "content": "Some recursive algorithms repeatedly solve the exact same problems over and over. This redundancy creates **exponential time complexity**, making problems impossible to solve for large inputs.\n\nFor example, recursive Fibonacci computation repeatedly recalculates identical values:\n* `Fib(5)` calls `Fib(4)` and `Fib(3)`.\n* `Fib(4)` calls `Fib(3)` and `Fib(2)`.\n* `Fib(3)` is computed twice.\n\nThe inefficiency scales disastrously:\n1.  For `n=40`, naive recursive Fibonacci makes about **331 million calls**.\n2.  For `n=100`, it would take longer than the **age of the universe**.\n\nDynamic Programming solves this by remembering already-computed answers and reusing them. For Fibonacci, this transforms exponential time `O(2^n)` into linear time `O(n)`. For `n=100`, DP takes **microseconds** while naive recursion is impossible.\n\nThis pattern saves computationally heavy problems like shortest paths, sequence alignment, knapsack optimization, and edit distance from being intractable.",
+            "bullets": [
+                "**Avoids** repeated recursive computation.",
+                "**Improves scalability** dramatically from exponential to polynomial.",
+                "**Reduces** unnecessary work by caching.",
+                "**Optimizes** complex multi-stage recursive problems."
+            ]
         },
         {
-          "id": "arrays-only",
-          "title": "Mistake: DP always uses 1D/2D arrays",
-          "content": "Dynamic Programming may use arrays, matrices, hash maps, trees, or graph nodes depending on the problem structure. You must choose the data structure that accurately models your state representation."
+            "id": "core-idea",
+            "type": "concept",
+            "title": "Core Idea of Dynamic Programming",
+            "content": "Dynamic Programming works using two critical mathematical properties: **Overlapping Subproblems** and **Optimal Substructure**. The algorithm stores intermediate answers so repeated subproblems do not need to be recomputed.\n\nFor any DP problem, you must systematically answer four questions:\n1.  **What are the subproblems?** (e.g., for Fibonacci, the subproblem is `Fib(n)`)\n2.  **How do subproblems relate?** (e.g., `Fib(n) = Fib(n-1) + Fib(n-2)`)\n3.  **What are the base cases?** (e.g., `Fib(0) = 0` and `Fib(1) = 1`)\n4.  **What order should you solve the subproblems?** (e.g., solve from 0 up to n)\n\nBy carefully defining these four steps, larger optimal solutions are seamlessly built from smaller optimal solutions."
+        },
+        {
+            "id": "overlapping-subproblems",
+            "type": "deep_dive",
+            "title": "Overlapping Subproblems",
+            "content": "**Overlapping subproblems** occur when the same smaller problem appears repeatedly during execution. This is the key property that makes Dynamic Programming beneficial.\n\nSuppose we compute Fibonacci of 5. The recursion tree shows:\n* `Fib(3)` appears 2 times.\n* `Fib(2)` appears 3 times.\n* `Fib(1)` appears 5 times.\n\nInstead of recalculating them every time, DP stores previously computed answers and reuses them. Without DP, the number of recursive calls is about `O(2^n)`. With DP, each subproblem is solved exactly once:\n* **n=40 Naive:** ~331 million calls.\n* **n=40 DP:** exactly 41 unique computations.\n\n**How do you detect them?** Draw the recursion tree. If you see the exact same subproblem appearing in multiple branches, you have overlap. (Note: Divide and Conquer algorithms like Merge Sort have *independent* subproblems with no overlap, so DP does not help there)."
+        },
+        {
+            "id": "optimal-substructure",
+            "type": "concept",
+            "title": "Optimal Substructure",
+            "content": "**Optimal Substructure** means the optimal solution to a large problem can be built strictly from optimal solutions to smaller subproblems. This property is essential for both Dynamic Programming and Greedy Algorithms.\n\nExamples of Optimal Substructure:\n* **Shortest Path:** If the shortest path from A to C goes through B, then the path from A to B *must* be the shortest path from A to B. \n* **Fibonacci:** The value of `Fib(n)` depends entirely on the optimal (correct) values of `Fib(n-1)` and `Fib(n-2)`.\n* **Knapsack:** The optimal set of items for capacity W either includes item `i` or not. If it includes item `i`, the remaining capacity must be optimally filled with the remaining items.\n\nBoth Greedy and DP require optimal substructure, but they differ in how they build solutions:\n* **Greedy:** Makes one choice and then solves the remaining subproblem.\n* **DP:** Considers multiple choices, solves all necessary subproblems, and takes the absolute best among them."
+        },
+        {
+            "id": "dp-vs-brute-force",
+            "type": "deep_dive",
+            "title": "Dynamic Programming vs Brute Force",
+            "content": "Brute-force recursive solutions repeatedly expand duplicate branches and recompute identical values. \n\n* **The Naive Trap:** The recursion tree grows exponentially because each call branches into multiple subcalls, and overlapping subproblems are recomputed from scratch each time. For Fibonacci, `T(n) = T(n-1) + T(n-2) + O(1)`, which solves to **O(2^n)**.\n* **The DP Solution:** DP avoids this repetition by caching previous results so each subproblem is solved exactly once.\n\nComplexity Breakdowns for DP:\n* **Memoization DP:** takes `O(n)` time and `O(n)` space.\n* **Tabulation DP:** takes `O(n)` time and `O(n)` space.\n* **Space-Optimized DP:** takes `O(n)` time and `O(1)` space.\n\nThis transforms slow recursive solutions into scalable algorithms. Without DP, recursive Fibonacci for `n=100` would take 10^20 years. With DP, it takes microseconds. The improvement is literally from impossible to instant."
+        },
+        {
+            "id": "redundant-computation",
+            "type": "deep_dive",
+            "title": "Understanding Redundant Computation",
+            "content": "Let us examine redundant computation in detail to understand why DP is so powerful. For `Fib(5)`, the recursion repeatedly computes `Fib(3)` twice, `Fib(2)` three times, `Fib(1)` five times, and `Fib(0)` three times. Total calls are 15.\n\nThe exponential explosion happens because for `Fib(n)`, the number of recursive calls is approximately `2^n`:\n* **Fib(10):** ~100 calls (fine).\n* **Fib(30):** ~1 million calls (slow).\n* **Fib(40):** ~331 million calls (very slow).\n* **Fib(50):** ~1 trillion calls (impossible).\n\nDynamic Programming eliminates duplicate computation by storing answers after they are first solved. Each subproblem is computed exactly once. For `n=40`, naive recursion makes 331 million calls while DP makes only 41 calculations. The savings factor is over **8 million times**."
+        },
+        {
+            "id": "memoization",
+            "type": "concept",
+            "title": "Memoization (Top-Down)",
+            "content": "**Memoization** is a top-down Dynamic Programming approach that uses recursion combined with caching. It is often the most intuitive way to implement DP because it starts from the original problem and recursively breaks it down.\n\nThe Memoization Pattern:\n1.  **Check the cache:** Before solving a subproblem, the algorithm checks whether the answer already exists inside memory (usually a dictionary or array).\n2.  **Return if found:** If the answer already exists, the stored value is reused immediately without further recursion.\n3.  **Compute if missing:** If it is a base case, compute the result directly. Otherwise, combine results from recursive calls on smaller subproblems.\n4.  **Store and Return:** Store the result in the cache and return it.\n\nMemoization is intuitive because it follows natural recursive thinking. It employs **lazy evaluation**—if some subproblems are not needed, they are never computed. However, it incurs recursion overhead and carries the risk of stack overflow errors for excessively deep recursion limits."
+        },
+        {
+            "id": "memoization-workflow",
+            "type": "deep_dive",
+            "title": "Memoization Workflow Trace",
+            "content": "Let us trace through memoization for `Fib(5)` to understand how caching eliminates redundant computation. Initially, the memo dictionary is empty.\n\n1.  Call `fib(5)`. Check cache for 5, not found. Need `fib(4) + fib(3)`.\n2.  Call `fib(4)`. Check cache for 4, not found. Need `fib(3) + fib(2)`.\n3.  Call `fib(3)`. Check cache for 3, not found. Need `fib(2) + fib(1)`.\n4.  Call `fib(2)`. Check cache for 2, not found. Need `fib(1) + fib(0)`.\n5.  Call `fib(1)`. Base case, return 1. **Store memo[1]=1**.\n6.  Call `fib(0)`. Base case, return 0. **Store memo[0]=0**.\n7.  Back to `fib(2)`. `fib(2) = 1 + 0 = 1`. **Store memo[2]=1**.\n8.  Back to `fib(3)`. Need `fib(1)` again. Check cache for 1, **found**, return 1. `fib(3) = 1 + 1 = 2`. **Store memo[3]=2**.\n9.  Back to `fib(4)`. Need `fib(2)` again. Check cache for 2, **found**, return 1. `fib(4) = 2 + 1 = 3`. **Store memo[4]=3**.\n10. Back to `fib(5)`. Need `fib(3)` again. Check cache for 3, **found**, return 2. `fib(5) = 3 + 2 = 5`. **Store memo[5]=5**.\n\nTotal unique computations are only 6 values (0 to 5), compared to 15 calls in naive recursion."
+        },
+        {
+            "id": "trading-space-for-time",
+            "type": "concept",
+            "title": "Trading Space for Time: Memoization",
+            "content": "When a recursive algorithm solves the exact same subproblem multiple times, we can use an Array or Dictionary as a \"notepad\" to save the answer the first time we find it. This technique is known as memoization. By checking this \"notepad\" before doing the underlying math, the algorithm guarantees it never recalculates the same branch twice. You are actively trading memory space (to store the notepad) for execution time. This simple optimization reduces exponential time complexity from $O(2^n)$ down to linear time $O(n)$."
+        },
+        {
+            "id": "tabulation",
+            "type": "concept",
+            "title": "Tabulation (Bottom-Up)",
+            "content": "**Tabulation** is a bottom-up Dynamic Programming approach that builds solutions iteratively from the smallest subproblems upward. It avoids recursion entirely, using loops and arrays instead.\n\nInstead of recursion, the algorithm begins from the smallest subproblems and iteratively builds larger solutions:\n1.  Values are progressively filled inside a table structure (array/matrix).\n2.  Each new value depends strictly on previously computed entries.\n\nFor Fibonacci:\n* Create an array `dp` of size `n+1`.\n* Set base cases: `dp[0] = 0` and `dp[1] = 1`.\n* Loop `i` from `2` to `n`: set `dp[i] = dp[i-1] + dp[i-2]`.\n* Return `dp[n]`.\n\nTabulation has no recursion overhead, no risk of stack overflow, and highly predictable sequential memory usage. However, it *must* solve all subproblems from 0 to n, even if a specific logic path wouldn't necessarily require all of them. It can also be less intuitive than memoization to set up."
+        },
+        {
+            "id": "memoization-vs-tabulation",
+            "type": "deep_dive",
+            "title": "Memoization vs Tabulation",
+            "content": "Both are valid implementations of Dynamic Programming, but they excel in different scenarios:\n\n* **Execution Style:** Memoization uses top-down recursion with caching. Tabulation uses bottom-up iterative table construction.\n* **Subproblem Coverage:** Memoization only solves needed subproblems (lazy). Tabulation eagerly solves all subproblems in sequence.\n* **Memory/Stack:** Memoization relies on the call stack (can cause Stack Overflow on deep trees). Tabulation uses simple loops (no stack limits).\n* **Speed/Overhead:** Memoization carries function call and dictionary lookup overhead. Tabulation uses highly optimized sequential array access (often faster).\n* **Space Optimization:** Memoization is harder to space-optimize. Tabulation can frequently be optimized to `O(1)` space by discarding older row data.\n\n**When to use which:** Use memoization when the recurrence is naturally recursive or only a fraction of the state space will be visited. Use tabulation when all subproblems must be computed anyway, or when absolute maximum performance and recursion safety are required."
+        },
+        {
+            "id": "why-dp-powerful",
+            "type": "concept",
+            "title": "Why Dynamic Programming Is Powerful",
+            "content": "Dynamic Programming can dramatically reduce computational complexity, frequently transforming exponential runtime into linear or polynomial runtime.\n\nComplexity Reductions via DP:\n* **Fibonacci:** Reduces `O(2^n)` to `O(n)`.\n* **Edit Distance:** Reduces `O(3^n)` to `O(m * n)`.\n* **Knapsack:** Reduces `O(2^n)` to `O(n * W)`.\n* **Matrix Chain Multiplication:** Reduces `O(2^n)` to `O(n^3)`.\n\nTo understand this scale, for `n=100`:\n* `O(2^n)` is ~`1.27 × 10^30` operations (**impossible**).\n* `O(n^3)` is `1,000,000` operations (**milliseconds**).\n* `O(n^2)` is `10,000` operations (**instant**).\n* `O(n)` is `100` operations (**instant**).\n\nThis transforms impractical algorithms into scalable real-world solutions used in modern tech.",
+            "chart": {
+                "title": "Dynamic Programming optimization",
+                "description": "Dynamic Programming reduces repeated recursive computation by reusing previously solved subproblems.",
+                "maxN": 32,
+                "normalize": true,
+                "curves": [
+                    "O(n)",
+                    "O(n^2)",
+                    "O(2^n)"
+                ]
+            }
+        },
+        {
+            "id": "common-dp-problems",
+            "type": "concept",
+            "title": "Common Dynamic Programming Problems",
+            "content": "Dynamic Programming is the underlying engine for many classic computer science problems:\n\n* **Fibonacci Sequence:** Computes the nth number in `O(n)` time.\n* **Coin Change:** Finds minimum coins for a target in `O(n * amount)` time.\n* **0/1 Knapsack:** Maximizes value within weight capacity in `O(n * W)` time.\n* **Longest Common Subsequence (LCS):** Finds longest sequence common to two strings in `O(m * n)` time.\n* **Edit Distance:** Finds minimum operations to convert strings in `O(m * n)` time.\n* **Matrix Chain Multiplication:** Finds optimal parenthesization in `O(n^3)` time.\n* **Shortest Path:** Bellman-Ford and Floyd-Warshall use DP to route networks.\n\nThese problems teach essential optimization patterns: 1D DP (Fibonacci), 2D DP (Knapsack/LCS), Interval DP (Matrix Chain), and Tree DP."
+        },
+        {
+            "id": "general-dp-pattern",
+            "type": "concept",
+            "title": "General Dynamic Programming Pattern",
+            "content": "Most Dynamic Programming algorithms can be solved by systematically following these 4 steps:\n\n1.  **Define the State:** What smaller problem can you solve to build the larger solution? \n    * *Fibonacci:* `dp[i]` is the ith Fibonacci number.\n    * *Knapsack:* `dp[i][w]` is max value using first `i` items with capacity `w`.\n2.  **Define the Recurrence Relation:** How does the larger solution relate to smaller ones?\n    * *Fibonacci:* `dp[i] = dp[i-1] + dp[i-2]`.\n    * *Knapsack:* `dp[i][w] = max(dp[i-1][w], dp[i-1][w-wt[i]] + val[i])`.\n3.  **Define the Base Cases:** What are the absolute smallest subproblems?\n    * *Fibonacci:* `dp[0] = 0` and `dp[1] = 1`.\n    * *Knapsack:* `dp[0][w] = 0`.\n4.  **Determine Order of Computation:** Choose Top-Down (Memoization) or Bottom-Up (Tabulation)."
+        },
+        {
+            "id": "complexity-improvement",
+            "type": "deep_dive",
+            "title": "Complexity Improvement Example",
+            "content": "Let us analyze the concrete complexity improvement from naive recursion to DP using Fibonacci:\n\n* **Naive Recursive:** `O(1.618^n)`. For `n=40`, this is ~331 million calls.\n* **Memoization:** `O(n)` time, `O(n)` space. For `n=40`, exactly 41 unique calls.\n* **Tabulation:** `O(n)` time, `O(n)` space. Iterative array loop.\n* **Space-Optimized Tabulation:** `O(n)` time, `O(1)` space. Two tracking variables.\n\nExecution Time Impact:\n* `n=40`: Naive takes ~0.5 seconds. DP takes microseconds.\n* `n=50`: Naive takes ~60 seconds. DP takes microseconds.\n* `n=100`: Naive takes over 10^20 years. DP takes microseconds.\n\nDP dramatically reduces recursion depth, repeated computation, and execution time. The difference between exponential and linear is the difference between mathematically impossible and trivial."
+        },
+        {
+            "id": "implementation",
+            "type": "concept",
+            "title": "Python Implementations",
+            "content": "Dynamic Programming implementations commonly use memoization dictionaries or iterative tables to store previously computed results.\n\n* **Memoization:** Uses recursion with a dictionary cache. Before computing `fib(n)`, check if `n` is in the memo. If yes, return it. If not, compute recursively, store, and return.\n* **Tabulation:** Uses an iterative array `dp` of size `n+1`. Set base cases, loop from 2 to n, computing each value from the previous ones.\n* **Space-Optimized Tabulation:** Uses only two variables because each Fibonacci value depends *only* on the two previous values. Update `a` and `b` in a rolling window `O(1)` space.\n\nPython's `@lru_cache(maxsize=None)` decorator from the `functools` module provides built-in memoization for any recursive function.",
+            "codeSnippets": [
+                {
+                    "title": "Memoized Fibonacci",
+                    "language": "python",
+                    "code": "memo = {}\n\ndef fib(n):\n    if n in memo:\n        return memo[n]\n\n    if n <= 1:\n        return n\n\n    memo[n] = fib(n - 1) + fib(n - 2)\n    return memo[n]\n\nprint(fib(10))"
+                },
+                {
+                    "title": "Tabulation Fibonacci",
+                    "language": "python",
+                    "code": "def fib(n):\n    if n <= 1:\n        return n\n\n    dp = [0] * (n + 1)\n    dp[1] = 1\n\n    for i in range(2, n + 1):\n        dp[i] = dp[i - 1] + dp[i - 2]\n\n    return dp[n]\n\nprint(fib(10))"
+                },
+                {
+                    "title": "Simple memoization cache demonstration",
+                    "language": "python",
+                    "code": "cache = {}\n\ndef square(n):\n    if n in cache:\n        return cache[n]\n\n    cache[n] = n * n\n    return cache[n]\n\nprint(square(5))\nprint(square(5))"
+                }
+            ]
+        },
+        {
+            "id": "real-world-applications",
+            "type": "real_world_connection",
+            "title": "Real-World Applications",
+            "content": "Dynamic Programming appears natively in countless real-world engineering systems:\n\n* **Google Maps & Routing:** Uses shortest path algorithms (Bellman-Ford, Floyd-Warshall) to find optimal real-time routes.\n* **Genomics & Biology:** DNA sequence alignment uses DP (Needleman-Wunsch, Smith-Waterman) to find genome similarities. The Human Genome Project relied heavily on DP.\n* **NLP & Word Processing:** Spell check and autocorrect use the DP Edit Distance algorithm to find the closest matching word in a dictionary.\n* **AI & Machine Learning:** Recommendation systems use DP sequence modeling. Game AI uses DP in minimax with transposition tables.\n* **Finance:** DP is used for portfolio optimization and options pricing."
+        },
+        {
+            "id": "misconceptions",
+            "type": "key_concept",
+            "title": "Common Beginner Misconceptions",
+            "subsections": [
+                {
+                    "id": "dp-is-recursion",
+                    "title": "Mistake: Dynamic Programming is just recursion",
+                    "content": "Recursion is only *one* implementation approach (Memoization). The core DP idea is **reusing solved subproblems**. Tabulation uses loops/iteration, not recursion. DP is a strategy for avoiding redundant computation."
+                },
+                {
+                    "id": "memo-tab-different",
+                    "title": "Mistake: Memoization and tabulation are totally different algorithms",
+                    "content": "Both are Dynamic Programming techniques solving the exact same recurrence logic. They solely differ in execution direction (top-down vs bottom-up) and syntax (recursion vs iteration)."
+                },
+                {
+                    "id": "arrays-only",
+                    "title": "Mistake: DP always uses 1D/2D arrays",
+                    "content": "Dynamic Programming may use arrays, matrices, hash maps, trees, or graph nodes depending on the problem structure. You must choose the data structure that accurately models your state representation."
+                }
+            ]
+        },
+        {
+            "id": "takeaways",
+            "type": "summary",
+            "title": "Key Takeaways",
+            "bullets": [
+                "Dynamic Programming **reuses previously computed results**.",
+                "DP solves **overlapping subproblems** highly efficiently.",
+                "**Memoization** uses top-down recursion with caching.",
+                "**Tabulation** uses bottom-up iterative table construction.",
+                "DP dramatically reduces redundant computation from **exponential to polynomial**.",
+                "DP is heavily utilized in modern **optimization, routing, and AI systems**."
+            ]
         }
-      ]
-    },
-    {
-      "id": "takeaways",
-      "type": "summary",
-      "title": "Key Takeaways",
-      "bullets": [
-        "Dynamic Programming **reuses previously computed results**.",
-        "DP solves **overlapping subproblems** highly efficiently.",
-        "**Memoization** uses top-down recursion with caching.",
-        "**Tabulation** uses bottom-up iterative table construction.",
-        "DP dramatically reduces redundant computation from **exponential to polynomial**.",
-        "DP is heavily utilized in modern **optimization, routing, and AI systems**."
-      ]
-    }
-  ],
-  "references": [
-    {
-      "title": "Programiz - Dynamic Programming",
-      "url": "https://www.programiz.com/dsa/dynamic-programming"
-    },
-    {
-      "title": "GeeksforGeeks - Dynamic Programming Introduction",
-      "url": "https://www.geeksforgeeks.org/dynamic-programming/"
-    },
-    {
-      "title": "Wikipedia - Dynamic Programming",
-      "url": "https://en.wikipedia.org/wiki/Dynamic_programming"
-    },
-    {
-      "title": "Cormen, T. H., Leiserson, C. E., Rivest, R. L., & Stein, C. (2009). Introduction to Algorithms (3rd ed.). MIT Press.",
-      "url": "https://mitpress.mit.edu/9780262033848/introduction-to-algorithms/"
-    }
-  ]
+    ],
+    "references": [
+        {
+            "title": "Programiz - Dynamic Programming",
+            "url": "https://www.programiz.com/dsa/dynamic-programming"
+        },
+        {
+            "title": "GeeksforGeeks - Dynamic Programming Introduction",
+            "url": "https://www.geeksforgeeks.org/dynamic-programming/"
+        },
+        {
+            "title": "TutorialsPoint — Dynamic Programming",
+            "url": "https://www.tutorialspoint.com/data_structures_algorithms/dynamic_programming.htm"
+        },
+        {
+            "title": "Cormen, T. H., Leiserson, C. E., Rivest, R. L., & Stein, C. (2009). Introduction to Algorithms (3rd ed.). MIT Press.",
+            "url": "https://mitpress.mit.edu/9780262033848/introduction-to-algorithms/"
+        }
+    ]
 }

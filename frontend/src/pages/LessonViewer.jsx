@@ -65,19 +65,42 @@ function formatText(text) {
   });
 }
 
+// Matches "1. ", "2)  ", "10. " etc. at the start of a (trimmed) line.
+const NUMBERED_LINE_RE = /^(\d+)[.)]\s+(.*)$/;
+
+// Classifies a single line of lesson content so consecutive lines of the
+// same kind can be grouped into one list instead of every line being
+// dumped into the same paragraph. This is what turns numbered walkthroughs
+// like "1. Call fib(5)... 2. Call fib(4)..." -- previously rendered as one
+// dense <p> full of <br> tags -- into an actual <ol>/<ul>.
+function classifyLine(line) {
+  const trimmed = line.trim();
+  if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+    return { type: "bullet", text: trimmed.substring(2).trim() };
+  }
+  const numberedMatch = trimmed.match(NUMBERED_LINE_RE);
+  if (numberedMatch) {
+    return { type: "numbered", text: numberedMatch[2].trim() };
+  }
+  return { type: "text", text: line };
+}
+
 function renderParagraphs(content, className = "lesson-section-content") {
   if (!content) return null;
 
   return (
     <div className={className}>
       {content.split("\n\n").map((paragraph, index) => {
-        const lines = paragraph.split("\n");
+        const lines = paragraph.split("\n").filter((l) => l.trim() !== "");
+        const classified = lines.map(classifyLine);
 
-        const hasBullets = lines.some(
-          (line) => line.trim().startsWith("* ") || line.trim().startsWith("- "),
-        );
+        const isPureBulletList =
+          classified.length > 0 && classified.every((l) => l.type === "bullet");
+        const isPureNumberedList =
+          classified.length > 0 && classified.every((l) => l.type === "numbered");
 
-        if (!hasBullets) {
+        // Simple case: a plain paragraph with no list markers at all.
+        if (classified.every((l) => l.type === "text")) {
           return (
             <p key={index}>
               {lines.map((line, lineIndex) => (
@@ -90,45 +113,61 @@ function renderParagraphs(content, className = "lesson-section-content") {
           );
         }
 
-        const elements = [];
-        let currentList = [];
-
-        lines.forEach((line, i) => {
-          const trimmed = line.trim();
-          if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
-            currentList.push(
-              <li key={`li-${i}`}>
-                {formatText(trimmed.substring(2).trim())}
-              </li>,
-            );
-          } else {
-            if (currentList.length > 0) {
-              elements.push(
-                <ul key={`ul-${i}`} className="lesson-bullet-list">
-                  {currentList}
-                </ul>,
-              );
-              currentList = [];
-            }
-            elements.push(
-              <span key={`span-${i}`}>
-                {formatText(line)}
-                <br />
-              </span>,
-            );
-          }
-        });
-
-        if (currentList.length > 0) {
-          elements.push(
-            <ul key="ul-end" className="lesson-bullet-list">
-              {currentList}
-            </ul>,
+        // Clean case: every line in this paragraph is part of the same
+        // kind of list -- render one tidy <ul> or <ol>.
+        if (isPureBulletList || isPureNumberedList) {
+          const ListTag = isPureNumberedList ? "ol" : "ul";
+          const listClass = isPureNumberedList
+            ? "lesson-numbered-list"
+            : "lesson-bullet-list";
+          return (
+            <ListTag key={index} className={listClass}>
+              {classified.map((l, i) => (
+                <li key={i}>{formatText(l.text)}</li>
+              ))}
+            </ListTag>
           );
         }
 
+        // Mixed case: intro/closing sentences alongside a list. Group
+        // consecutive same-type lines together instead of interleaving
+        // <br>-separated text with list items.
+        const elements = [];
+        let currentList = [];
+        let currentListType = null;
+
+        const flushList = (key) => {
+          if (currentList.length === 0) return;
+          const ListTag = currentListType === "numbered" ? "ol" : "ul";
+          const listClass =
+            currentListType === "numbered"
+              ? "lesson-numbered-list"
+              : "lesson-bullet-list";
+          elements.push(
+            <ListTag key={`list-${key}`} className={listClass}>
+              {currentList}
+            </ListTag>,
+          );
+          currentList = [];
+          currentListType = null;
+        };
+
+        classified.forEach((l, i) => {
+          if (l.type === "bullet" || l.type === "numbered") {
+            if (currentListType && currentListType !== l.type) {
+              flushList(i);
+            }
+            currentListType = l.type;
+            currentList.push(<li key={`li-${i}`}>{formatText(l.text)}</li>);
+          } else {
+            flushList(i);
+            elements.push(<p key={`p-${i}`}>{formatText(l.text)}</p>);
+          }
+        });
+        flushList("end");
+
         return (
-          <div key={index} style={{ marginBottom: "1em" }}>
+          <div key={index} className="lesson-paragraph-group">
             {elements}
           </div>
         );

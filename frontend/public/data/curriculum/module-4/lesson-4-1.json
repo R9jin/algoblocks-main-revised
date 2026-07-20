@@ -1,135 +1,187 @@
 {
-  "lessonId": "lesson-4-1",
-  "moduleId": "module-4",
-  "title": "Greedy Algorithms",
-  "description": "How Greedy Algorithms make locally-optimal choices without ever looking back -- fast and efficient, but not always correct.",
-  "difficulty": "Beginner",
-  "estimatedTime": "24 min",
-  "prerequisites": "Quick Sort",
-  "tags": ["greedy algorithms", "optimization", "algorithm strategies"],
-  "activities": [
-    { "id": "m4_l1_a1", "title": "Largest First" },
-    { "id": "m4_l1_a2", "title": "Smallest First" },
-    { "id": "m4_l1_a3", "title": "Greedy Sum" },
-    { "id": "m4_l1_a4", "title": "Closest Number" },
-    { "id": "m4_l1_a5", "title": "Greedy Path" }
-  ],
-  "sections": [
-    {
-      "id": "introduction",
-      "type": "introduction",
-      "title": "Introduction",
-      "content": "A **Greedy Algorithm** repeatedly takes whatever looks best *right now* -- like grabbing the priciest item you can still fit at a buffet, no planning ahead.\n\nUnlike brute force, it never explores every possibility -- it commits to one local decision and moves on, **no backtracking, no second-guessing**. That's exactly what makes it fast: no exponential search space, no big tables of intermediate results. Most greedy algorithms run in **O(n)** or **O(n log n)**."
-    },
-    {
-      "id": "why-greedy-matters",
-      "type": "concept",
-      "title": "Why Greedy Algorithms Matter",
-      "content": "Real systems -- flight gate scheduling, CPU task queues, GPS routing -- can't afford to test every possibility. Scheduling 100 tasks has 100! possible orderings (~9×10¹⁵⁷) -- far more than atoms in the universe. Exhaustive search is a non-starter; greedy is the practical alternative.\n\n**GPS navigation** (Dijkstra's algorithm) greedily expands the nearest unvisited node. **Data compression** (Huffman coding) greedily merges the least-frequent characters. **Scheduling** (earliest-deadline-first) greedily picks the nearest deadline first.",
-      "bullets": [
-        "**Fast** decisions, no exhaustive search.",
-        "Typically **lower memory** usage.",
-        "Powers many real-world **optimization systems**."
-      ]
-    },
-    {
-      "id": "core-idea",
-      "type": "concept",
-      "title": "Core Idea of Greedy Algorithms",
-      "content": "The pattern: look at your options, pick the locally best one, commit permanently, repeat until done.\n\nMaking 30 cents with US coins: take a quarter (25¢, 5¢ left), then a nickel (5¢) -- 2 coins, optimal.\n\nUnlike Dynamic Programming, greedy doesn't backtrack or explore alternatives -- once chosen, a decision is final. It works precisely when a locally optimal choice leads to a globally optimal result. That's not guaranteed, which is why greedy is a *strategy*, not a universal fix."
-    },
-    {
-      "id": "local-vs-global",
-      "type": "deep_dive",
-      "title": "Local vs Global Optimization",
-      "content": "**Local optimal** = the best immediate option. **Global optimal** = the best overall result. The tension between them is the whole challenge of greedy design.\n\nHiking uphill in the steepest direction (greedy) can strand you on a small local peak, missing the true summit hidden behind a ridge.\n\nCoins `[1, 3, 4]`, target `6`: greedy takes 4 first (2 left), then two 1s -- 3 coins total. But **3 + 3 = 2 coins** is actually better. The greedy choice of 4 blocked it.\n\n**Greedy works for:** canonical coin systems, Activity Selection, Minimum Spanning Tree, Huffman Coding, Dijkstra's (non-negative weights). **Greedy fails for:** arbitrary coin denominations, 0/1 Knapsack, Traveling Salesman."
-    },
-    {
-      "id": "greedy-choice-property",
-      "type": "concept",
-      "title": "Greedy Choice Property",
-      "content": "A problem is safely greedy-solvable if it has the **Greedy Choice Property**: a series of locally optimal choices reliably reaches the global optimum -- no backtracking or exploring alternatives needed.\n\n**Activity Selection** is the textbook case: always pick the activity that finishes earliest. That leaves the most remaining time for everything else -- and it provably leads to the maximum number of activities scheduled.\n\nActivity Selection, Huffman Coding, and Dijkstra's Algorithm all satisfy this property. Recognizing it is the key skill -- without it, greedy can quietly give you a wrong answer."
-    },
-    {
-      "id": "optimal-substructure",
-      "type": "concept",
-      "title": "Optimal Substructure",
-      "content": "**Optimal substructure** means an optimal solution is built from optimal solutions to smaller subproblems -- shared by both greedy and Dynamic Programming.\n\nShortest path A→C through B: the A→B leg and B→C leg must each already be the shortest path for that segment.\n\nThe difference: greedy makes *one* choice and solves what's left. DP considers *multiple* choices and keeps the best. Together, Optimal Substructure (the problem breaks down cleanly) and the Greedy Choice Property (the local choice is provably safe) guarantee greedy reaches the global optimum."
-    },
-    {
-      "id": "coin-example",
-      "type": "deep_dive",
-      "title": "Coin Change Example",
-      "content": "The classic example of greedy succeeding and failing on the same problem shape.\n\n**Canonical system** `[10, 5, 1]`, target 18: take 10 (8 left), take 5 (3 left), take 1 three times → `[10,5,1,1,1]`, 5 coins -- optimal.\n\n**Non-canonical** `[1, 3, 4]`, target 6: greedy takes 4 first (2 left), then two 1s → 3 coins. But `3 + 3` = 2 coins -- better. Greedy's early choice of 4 blocked it.\n\nGreedy is safe for canonical systems (US and Euro coins qualify). For arbitrary denominations, use Dynamic Programming instead."
-    },
-    {
-      "id": "why-greedy-fast",
-      "type": "concept",
-      "title": "Why Greedy Algorithms Are Fast",
-      "content": "No exhaustive search, no backtracking, no testing every combination -- just commit and move on.\n\nActivity Selection: brute force tries all 2ⁿ subsets (O(2^n)). Greedy sorts by end time (O(n log n)) then makes one linear scan (O(n)) -- exponentially faster overall.\n\nCoin change (canonical): greedy is O(n) in the number of denominations. Brute force could be O(amount^n) -- infeasible for large amounts.",
-      "chart": {
-        "title": "Greedy algorithm efficiency",
-        "description": "Greedy avoids exhaustive exploration, scaling far better than brute-force search.",
-        "maxN": 32,
-        "normalize": true,
-        "curves": ["O(n)", "O(n log n)", "O(2^n)"]
-      }
-    },
-    {
-      "id": "when-greedy-fails",
-      "type": "deep_dive",
-      "title": "When Greedy Algorithms Fail",
-      "content": "Knowing when greedy fails matters as much as knowing when it works.\n\n**Coin change (arbitrary denominations):** `[1,3,4]` target 6 -- greedy gives 3 coins, optimal is 2.\n\n**0/1 Knapsack:** taking the best value-per-weight item first can leave unusable leftover capacity that two other items together would have filled better.\n\n**Traveling Salesman (nearest-neighbor):** always visiting the closest unvisited city can produce a route far longer than optimal.\n\nGreedy fails whenever the Greedy Choice Property doesn't hold -- a classic short-term-gain, long-term-pain trap."
-    },
-    {
-      "id": "greedy-vs-dp",
-      "type": "concept",
-      "title": "Greedy Algorithms vs Dynamic Programming",
-      "content": "Greedy makes one irreversible choice per step. DP considers multiple choices and keeps the best.\n\nGreedy: typically O(n) or O(n log n) time, O(1)-O(n) space. DP: typically O(n²) or O(n×W) time and space -- much heavier, but guarantees optimality where greedy can't.\n\n**Use greedy** when the Greedy Choice Property holds and speed/memory matter most. **Use DP** when greedy fails or you need a guaranteed-optimal answer. Coin change: greedy for canonical systems, DP for arbitrary ones. Activity selection: greedy for maximizing count, DP if activities are weighted."
-    },
-    {
-      "id": "implementation",
-      "type": "concept",
-      "title": "Python Implementation",
-      "content": "Common greedy shape: sort, then make one pass, committing immediately to each choice.\n\n**Coin selection:** sort coins descending, take as many of each as fit before moving to the next. **Largest-first:** repeatedly pull the max from a list (or just sort descending up front). **Greedy sum with a limit:** sort descending, add each value if it doesn't push the running sum past the limit.",
-      "codeSnippets": [
-        { "title": "Simple greedy coin selection", "language": "python", "code": "coins = [10, 5, 1]\namount = 18\nselected = []\n\nfor coin in coins:\n    while amount >= coin:\n        selected.append(coin)\n        amount -= coin\n\nprint(selected)" },
-        { "title": "Largest-first selection example", "language": "python", "code": "numbers = [3, 8, 2, 9, 5]\nselected = []\n\nwhile numbers:\n    largest = max(numbers)\n    selected.append(largest)\n    numbers.remove(largest)\n\nprint(selected)" }
-      ]
-    },
-    {
-      "id": "applications",
-      "type": "real_world_connection",
-      "title": "Real-World Applications",
-      "content": "**Dijkstra's algorithm** greedily expands the nearest unvisited node for GPS routing. **Huffman coding** greedily merges the lowest-frequency characters for ZIP/JPEG compression.\n\n**CPU scheduling:** Shortest-Job-First minimizes average wait; Earliest-Deadline-First serves real-time systems. **Prim's / Kruskal's** greedily add the cheapest edge that doesn't create a cycle -- network design's Minimum Spanning Tree.\n\nEven without a full optimality guarantee, greedy often gives a fast, close-to-optimal approximation -- valuable when waiting for a perfect answer just isn't an option."
-    },
-    {
-      "id": "misconceptions",
-      "type": "key_concept",
-      "title": "Common Beginner Misconceptions",
-      "subsections": [
-        { "id": "always-optimal", "title": "Misconception: Greedy Algorithms always find the best solution", "content": "The `[1,3,4]` coin counterexample proves otherwise. Always check the Greedy Choice Property before trusting greedy's answer." },
-        { "id": "random-shortcuts", "title": "Misconception: Greedy Algorithms are random shortcuts", "content": "Greedy is fully deterministic, based on a specific criterion -- largest coin, earliest finish time, smallest frequency. No randomness involved." },
-        { "id": "all-fast", "title": "Misconception: Fast algorithms are always greedy", "content": "Binary Search and Merge Sort are Divide and Conquer, not greedy. Greedy is one strategy among several for efficient algorithms." }
-      ]
-    },
-    {
-      "id": "takeaways",
-      "type": "summary",
-      "title": "Key Takeaways",
-      "bullets": [
-        "Greedy makes **locally optimal** decisions.",
-        "It **never revisits** earlier choices.",
-        "Works reliably only when a problem has the **Greedy Choice Property**.",
-        "**Fast and memory-efficient** -- usually O(n) or O(n log n).",
-        "Does **not always guarantee** the optimal solution.",
-        "Knowing when greedy works is the real skill."
-      ]
-    }
-  ],
-  "references": [
-    { "title": "Programiz - Greedy Algorithm", "url": "https://www.programiz.com/dsa/greedy-algorithm" },
-    { "title": "GeeksforGeeks - Greedy Algorithms", "url": "https://www.geeksforgeeks.org/greedy-algorithms/" },
-    { "title": "Wikipedia - Greedy Algorithm", "url": "https://en.wikipedia.org/wiki/Greedy_algorithm" }
-  ]
+    "lessonId": "lesson-4-1",
+    "moduleId": "module-4",
+    "title": "Greedy Algorithms",
+    "description": "How Greedy Algorithms make locally-optimal choices without ever looking back -- fast and efficient, but not always correct.",
+    "difficulty": "Beginner",
+    "estimatedTime": "24 min",
+    "prerequisites": "Quick Sort",
+    "tags": [
+        "greedy algorithms",
+        "optimization",
+        "algorithm strategies"
+    ],
+    "activities": [
+        {
+            "id": "m4_l1_a1",
+            "title": "Largest First"
+        },
+        {
+            "id": "m4_l1_a2",
+            "title": "Smallest First"
+        },
+        {
+            "id": "m4_l1_a3",
+            "title": "Greedy Sum"
+        },
+        {
+            "id": "m4_l1_a4",
+            "title": "Closest Number"
+        },
+        {
+            "id": "m4_l1_a5",
+            "title": "Greedy Path"
+        }
+    ],
+    "sections": [
+        {
+            "id": "introduction",
+            "type": "introduction",
+            "title": "Introduction",
+            "content": "A **Greedy Algorithm** repeatedly takes whatever looks best *right now* -- like grabbing the priciest item you can still fit at a buffet, no planning ahead.\n\nUnlike brute force, it never explores every possibility -- it commits to one local decision and moves on, **no backtracking, no second-guessing**. That's exactly what makes it fast: no exponential search space, no big tables of intermediate results. Most greedy algorithms run in **O(n)** or **O(n log n)**."
+        },
+        {
+            "id": "why-greedy-matters",
+            "type": "concept",
+            "title": "Why Greedy Algorithms Matter",
+            "content": "Real systems -- flight gate scheduling, CPU task queues, GPS routing -- can't afford to test every possibility. Scheduling 100 tasks has 100! possible orderings (~9×10¹⁵⁷) -- far more than atoms in the universe. Exhaustive search is a non-starter; greedy is the practical alternative.\n\n**GPS navigation** (Dijkstra's algorithm) greedily expands the nearest unvisited node. **Data compression** (Huffman coding) greedily merges the least-frequent characters. **Scheduling** (earliest-deadline-first) greedily picks the nearest deadline first.",
+            "bullets": [
+                "**Fast** decisions, no exhaustive search.",
+                "Typically **lower memory** usage.",
+                "Powers many real-world **optimization systems**."
+            ]
+        },
+        {
+            "id": "core-idea",
+            "type": "concept",
+            "title": "Core Idea of Greedy Algorithms",
+            "content": "The pattern: look at your options, pick the locally best one, commit permanently, repeat until done.\n\nMaking 30 cents with US coins: take a quarter (25¢, 5¢ left), then a nickel (5¢) -- 2 coins, optimal.\n\nUnlike Dynamic Programming, greedy doesn't backtrack or explore alternatives -- once chosen, a decision is final. It works precisely when a locally optimal choice leads to a globally optimal result. That's not guaranteed, which is why greedy is a *strategy*, not a universal fix."
+        },
+        {
+            "id": "local-vs-global",
+            "type": "deep_dive",
+            "title": "Local vs Global Optimization",
+            "content": "**Local optimal** = the best immediate option. **Global optimal** = the best overall result. The tension between them is the whole challenge of greedy design.\n\nHiking uphill in the steepest direction (greedy) can strand you on a small local peak, missing the true summit hidden behind a ridge.\n\nCoins `[1, 3, 4]`, target `6`: greedy takes 4 first (2 left), then two 1s -- 3 coins total. But **3 + 3 = 2 coins** is actually better. The greedy choice of 4 blocked it.\n\n**Greedy works for:** canonical coin systems, Activity Selection, Minimum Spanning Tree, Huffman Coding, Dijkstra's (non-negative weights). **Greedy fails for:** arbitrary coin denominations, 0/1 Knapsack, Traveling Salesman."
+        },
+        {
+            "id": "greedy-choice-property",
+            "type": "concept",
+            "title": "Greedy Choice Property",
+            "content": "A problem is safely greedy-solvable if it has the **Greedy Choice Property**: a series of locally optimal choices reliably reaches the global optimum -- no backtracking or exploring alternatives needed.\n\n**Activity Selection** is the textbook case: always pick the activity that finishes earliest. That leaves the most remaining time for everything else -- and it provably leads to the maximum number of activities scheduled.\n\nActivity Selection, Huffman Coding, and Dijkstra's Algorithm all satisfy this property. Recognizing it is the key skill -- without it, greedy can quietly give you a wrong answer."
+        },
+        {
+            "id": "optimal-substructure",
+            "type": "concept",
+            "title": "Optimal Substructure",
+            "content": "**Optimal substructure** means an optimal solution is built from optimal solutions to smaller subproblems -- shared by both greedy and Dynamic Programming.\n\nShortest path A→C through B: the A→B leg and B→C leg must each already be the shortest path for that segment.\n\nThe difference: greedy makes *one* choice and solves what's left. DP considers *multiple* choices and keeps the best. Together, Optimal Substructure (the problem breaks down cleanly) and the Greedy Choice Property (the local choice is provably safe) guarantee greedy reaches the global optimum."
+        },
+        {
+            "id": "coin-example",
+            "type": "deep_dive",
+            "title": "Coin Change Example",
+            "content": "The classic example of greedy succeeding and failing on the same problem shape.\n\n**Canonical system** `[10, 5, 1]`, target 18: take 10 (8 left), take 5 (3 left), take 1 three times → `[10,5,1,1,1]`, 5 coins -- optimal.\n\n**Non-canonical** `[1, 3, 4]`, target 6: greedy takes 4 first (2 left), then two 1s → 3 coins. But `3 + 3` = 2 coins -- better. Greedy's early choice of 4 blocked it.\n\nGreedy is safe for canonical systems (US and Euro coins qualify). For arbitrary denominations, use Dynamic Programming instead."
+        },
+        {
+            "id": "why-greedy-fast",
+            "type": "concept",
+            "title": "Why Greedy Algorithms Are Fast",
+            "content": "No exhaustive search, no backtracking, no testing every combination -- just commit and move on.\n\nActivity Selection: brute force tries all 2ⁿ subsets (O(2^n)). Greedy sorts by end time (O(n log n)) then makes one linear scan (O(n)) -- exponentially faster overall.\n\nCoin change (canonical): greedy is O(n) in the number of denominations. Brute force could be O(amount^n) -- infeasible for large amounts.",
+            "chart": {
+                "title": "Greedy algorithm efficiency",
+                "description": "Greedy avoids exhaustive exploration, scaling far better than brute-force search.",
+                "maxN": 32,
+                "normalize": true,
+                "curves": [
+                    "O(n)",
+                    "O(n log n)",
+                    "O(2^n)"
+                ]
+            }
+        },
+        {
+            "id": "when-greedy-fails",
+            "type": "deep_dive",
+            "title": "When Greedy Algorithms Fail",
+            "content": "Knowing when greedy fails matters as much as knowing when it works.\n\n**Coin change (arbitrary denominations):** `[1,3,4]` target 6 -- greedy gives 3 coins, optimal is 2.\n\n**0/1 Knapsack:** taking the best value-per-weight item first can leave unusable leftover capacity that two other items together would have filled better.\n\n**Traveling Salesman (nearest-neighbor):** always visiting the closest unvisited city can produce a route far longer than optimal.\n\nGreedy fails whenever the Greedy Choice Property doesn't hold -- a classic short-term-gain, long-term-pain trap."
+        },
+        {
+            "id": "greedy-vs-dp",
+            "type": "concept",
+            "title": "Greedy Algorithms vs Dynamic Programming",
+            "content": "Greedy makes one irreversible choice per step. DP considers multiple choices and keeps the best.\n\nGreedy: typically O(n) or O(n log n) time, O(1)-O(n) space. DP: typically O(n²) or O(n×W) time and space -- much heavier, but guarantees optimality where greedy can't.\n\n**Use greedy** when the Greedy Choice Property holds and speed/memory matter most. **Use DP** when greedy fails or you need a guaranteed-optimal answer. Coin change: greedy for canonical systems, DP for arbitrary ones. Activity selection: greedy for maximizing count, DP if activities are weighted."
+        },
+        {
+            "id": "implementation",
+            "type": "concept",
+            "title": "Python Implementation",
+            "content": "Common greedy shape: sort, then make one pass, committing immediately to each choice.\n\n**Coin selection:** sort coins descending, take as many of each as fit before moving to the next. **Largest-first:** repeatedly pull the max from a list (or just sort descending up front). **Greedy sum with a limit:** sort descending, add each value if it doesn't push the running sum past the limit.",
+            "codeSnippets": [
+                {
+                    "title": "Simple greedy coin selection",
+                    "language": "python",
+                    "code": "coins = [10, 5, 1]\namount = 18\nselected = []\n\nfor coin in coins:\n    while amount >= coin:\n        selected.append(coin)\n        amount -= coin\n\nprint(selected)"
+                },
+                {
+                    "title": "Largest-first selection example",
+                    "language": "python",
+                    "code": "numbers = [3, 8, 2, 9, 5]\nselected = []\n\nwhile numbers:\n    largest = max(numbers)\n    selected.append(largest)\n    numbers.remove(largest)\n\nprint(selected)"
+                }
+            ]
+        },
+        {
+            "id": "applications",
+            "type": "real_world_connection",
+            "title": "Real-World Applications",
+            "content": "**Dijkstra's algorithm** greedily expands the nearest unvisited node for GPS routing. **Huffman coding** greedily merges the lowest-frequency characters for ZIP/JPEG compression.\n\n**CPU scheduling:** Shortest-Job-First minimizes average wait; Earliest-Deadline-First serves real-time systems. **Prim's / Kruskal's** greedily add the cheapest edge that doesn't create a cycle -- network design's Minimum Spanning Tree.\n\nEven without a full optimality guarantee, greedy often gives a fast, close-to-optimal approximation -- valuable when waiting for a perfect answer just isn't an option."
+        },
+        {
+            "id": "misconceptions",
+            "type": "key_concept",
+            "title": "Common Beginner Misconceptions",
+            "subsections": [
+                {
+                    "id": "always-optimal",
+                    "title": "Misconception: Greedy Algorithms always find the best solution",
+                    "content": "The `[1,3,4]` coin counterexample proves otherwise. Always check the Greedy Choice Property before trusting greedy's answer."
+                },
+                {
+                    "id": "random-shortcuts",
+                    "title": "Misconception: Greedy Algorithms are random shortcuts",
+                    "content": "Greedy is fully deterministic, based on a specific criterion -- largest coin, earliest finish time, smallest frequency. No randomness involved."
+                },
+                {
+                    "id": "all-fast",
+                    "title": "Misconception: Fast algorithms are always greedy",
+                    "content": "Binary Search and Merge Sort are Divide and Conquer, not greedy. Greedy is one strategy among several for efficient algorithms."
+                }
+            ]
+        },
+        {
+            "id": "takeaways",
+            "type": "summary",
+            "title": "Key Takeaways",
+            "bullets": [
+                "Greedy makes **locally optimal** decisions.",
+                "It **never revisits** earlier choices.",
+                "Works reliably only when a problem has the **Greedy Choice Property**.",
+                "**Fast and memory-efficient** -- usually O(n) or O(n log n).",
+                "Does **not always guarantee** the optimal solution.",
+                "Knowing when greedy works is the real skill."
+            ]
+        }
+    ],
+    "references": [
+        {
+            "title": "Programiz - Greedy Algorithm",
+            "url": "https://www.programiz.com/dsa/greedy-algorithm"
+        },
+        {
+            "title": "GeeksforGeeks - Greedy Algorithms",
+            "url": "https://www.geeksforgeeks.org/greedy-algorithms/"
+        },
+        {
+            "title": "Brilliant.org — Greedy Algorithms",
+            "url": "https://brilliant.org/wiki/greedy-algorithm/"
+        }
+    ]
 }

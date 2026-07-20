@@ -447,7 +447,8 @@
   font-size: 0.95em;
 }
 
-.lesson-bullet-list {
+.lesson-bullet-list,
+.lesson-numbered-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -458,9 +459,68 @@
   line-height: 1.7;
 }
 
-.lesson-bullet-list li::marker {
+.lesson-bullet-list li::marker,
+.lesson-numbered-list li::marker {
   color: #5A1398;
   font-weight: 800;
+}
+
+/* Numbered walkthroughs (e.g. "1. Call fib(5)...") get a slightly roomier,
+   card-like treatment since each step is often a full mini-explanation
+   rather than a short bullet fragment -- this is what keeps step-by-step
+   trace sections from reading as a dense wall of text. */
+.lesson-numbered-list {
+  counter-reset: lesson-step;
+  gap: 12px;
+  padding-left: 0;
+  list-style: none;
+}
+
+.lesson-numbered-list li {
+  counter-increment: lesson-step;
+  position: relative;
+  padding: 10px 16px 10px 44px;
+  background: #f8f7ff;
+  border: 1px solid #ece8f8;
+  border-radius: 10px;
+}
+
+.lesson-numbered-list li::before {
+  content: counter(lesson-step);
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #7c5cff;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+/* A paragraph followed or preceded by a list within the same section --
+   keeps the intro/closing sentences visually distinct from the list
+   instead of everything running together. */
+.lesson-paragraph-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lesson-paragraph-group p {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: #4f4a68;
+  margin: 0;
+}
+
+.lesson-paragraph-group .lesson-bullet-list,
+.lesson-paragraph-group .lesson-numbered-list {
+  margin-top: 0;
 }
 
 .lesson-code-snippets {

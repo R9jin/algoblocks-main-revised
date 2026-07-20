@@ -1,208 +1,212 @@
 {
-  "lessonId": "lesson-5-4",
-  "moduleId": "module-5",
-  "title": "Longest Common Subsequence (LCS)",
-  "description": "Learn how Dynamic Programming solves sequence matching problems by finding the **longest ordered subsequence shared between two strings**.",
-  "difficulty": "Intermediate",
-  "estimatedTime": "55 min",
-  "prerequisites": "0/1 Knapsack Problem",
-  "tags": [
-    "dynamic programming",
-    "longest common subsequence",
-    "sequence matching",
-    "dp matrix"
-  ],
-  "activities": [
-    {
-      "id": "m5_l4_a1",
-      "title": "LCS Grid Init"
-    },
-    {
-      "id": "m5_l4_a2",
-      "title": "Character Match Logic"
-    },
-    {
-      "id": "m5_l4_a3",
-      "title": "Full LCS Table"
-    },
-    {
-      "id": "m5_l4_a4",
-      "title": "Reconstruct LCS String"
-    },
-    {
-      "id": "m5_l4_a5",
-      "title": "Backtrack Steps"
-    }
-  ],
-  "sections": [
-    {
-      "id": "introduction",
-      "type": "introduction",
-      "title": "Introduction",
-      "content": "The **Longest Common Subsequence (LCS)** Problem is one of the most important applications of Dynamic Programming for sequence matching.\n\n* The objective is to find the longest string of characters that appears in the **same relative order** in two target strings.\n* Unlike a substring, characters in a subsequence **do not need to be consecutive**—they are permitted to skip characters, but they must strictly preserve their ordering.\n\nFor example, consider the strings `ABCDE` and `ACBDE`:\n* The subsequence `ABDE` appears in both strings.\n* `A` is first in both, `B` appears after `A`, `D` after `B`, and `E` after `D`.\n* The characters are not consecutive, but their relative timeline order is preserved.\n\nLCS is widely used in text comparison, DNA analysis, plagiarism detection, and file synchronization. When Git (or GitHub) shows you the difference (a `diff`) between two file versions, it uses LCS algorithms to align the common lines before highlighting insertions and deletions."
-    },
-    {
-      "id": "why-lcs-matters",
-      "type": "concept",
-      "title": "Why LCS Matters",
-      "content": "Modern software constantly relies on comparing sequences automatically.\n\nUse cases include:\n1.  **Version Control:** Comparing source code changes.\n2.  **Plagiarism:** Detecting document similarities structurally.\n3.  **Bioinformatics:** Identifying shared DNA or genome mutation sequences.\n4.  **Spell Checking:** Finding words in a dictionary closest to the user's typo.\n\nIf you attempted to solve this using a brute-force approach, you would have to generate *every possible subsequence* and check it against the other string. \n* For a string of length `n`, there are `2^n` possible subsequences.\n* For `n = 20`, that is ~1 million subsequences.\n* For `n = 100`, that is `~1.27 × 10^30` subsequences, making brute-force computation mathematically impossible.\n\nDynamic Programming solves this elegantly in polynomial time by building a 2D matrix matching prefixes.",
-      "bullets": [
-        "**Efficiently compares** exceptionally large text sequences.",
-        "Demonstrates classic **Dynamic Programming prefix optimization**.",
-        "Powers **bioinformatics** and **version control text diffing**.",
-        "Avoids devastating **exponential brute-force calculation**."
-      ]
-    },
-    {
-      "id": "understanding-subsequences",
-      "type": "deep_dive",
-      "title": "Understanding Subsequences",
-      "content": "A subsequence is formed by deleting some characters from a string **without changing the order** of the remaining characters. You can remove any number of characters (including zero).\n\nFor example, for the string `ABCDE`:\n* Subsequences include `A`, `BC`, `ACE`, `ADE`, `ABDE`, and `ABCDE`.\n* The total number is `2^5 = 32` possible subsequences.\n* However, `ECA` is **not a valid subsequence** because the order violates the timeline. `E` comes after `C` originally, but in `ECA` it comes before.\n\nLCS focuses on finding the *longest* overlapping subsequence between two discrete strings. For strings `ABCBDAB` and `BDCABA`, the LCS is `BCAB`, `BCBA`, or `BDAB` (all have a length of 4)."
-    },
-    {
-      "id": "subsequence-vs-substring",
-      "type": "concept",
-      "title": "Subsequence vs Substring",
-      "content": "This is a critical algorithm distinction:\n\n* **Substring:** Requires strictly **consecutive** characters with zero gaps. (e.g., `BCD` is a substring of `ABCDE`).\n* **Subsequence:** Allows skipping characters and having **gaps**, as long as order is preserved. (e.g., `ACE` is a subsequence of `ABCDE`).\n\nSubstring problems are generally easier and can be solved with sliding windows. Subsequence problems are far more flexible—making them immune to inserted typos or DNA mutations—but they are computationally much heavier, mandating DP solutions."
-    },
-    {
-      "id": "why-bruteforce-fails",
-      "type": "deep_dive",
-      "title": "Why Brute Force Is Inefficient",
-      "content": "Generating and testing all subsequences causes an exponential implosion:\n\n* `n = 10`: 1,024 subsequences (Instant).\n* `n = 30`: ~1 billion subsequences (Very Slow).\n* `n = 100`: `1.27 × 10^30` subsequences (Impossible).\n\nTo brute-force LCS between two strings of length `n` and `m`, you would generate all subsequences of string A and scan string B for each one. This creates an `O(m * 2^n)` nightmare.\n\nDynamic Programming circumvents this by strictly storing intermediate comparison results for string prefixes. It resolves the exact same problem in `O(n * m)` time, making `n = 10,000` computationally trivial."
-    },
-    {
-      "id": "core-dp-idea",
-      "type": "concept",
-      "title": "Core Dynamic Programming Idea",
-      "content": "LCS relies heavily on Overlapping Subproblems and Optimal Substructure.\n\n* When comparing `ABC` and `ACD`, identifying the optimal match for their prefixes (`AB` and `AC`) will be requested repeatedly during the recursive branching.\n* Instead of recalculating, DP breaks the problem down by answering: **\"What is the LCS for the first `i` characters of String A and the first `j` characters of String B?\"**\n\nThe DP table slowly increments `i` and `j`, building up from `0`-length empty strings until evaluating the full length `n` and `m`. Each cell is solved iteratively by looking back at the maximums established in previous rows and columns."
-    },
-    {
-      "id": "lcs-matrix",
-      "type": "deep_dive",
-      "title": "Understanding the LCS Matrix",
-      "content": "The core of the algorithm is a 2D DP matrix `dp[i][j]`.\n\n* **Rows (`i`):** Represent the characters of String A (from `0` to `n`).\n* **Columns (`j`):** Represent the characters of String B (from `0` to `m`).\n* **Cell Value:** `dp[i][j]` represents the maximum integer length of the LCS using only the prefix `A[0..i-1]` and `B[0..j-1]`.\n\n**Base Cases:**\n* Row 0 and Column 0 represent matching against an **empty string**.\n* The LCS of any string and an empty string is absolutely `0`. Thus, row 0 and column 0 are initialized entirely with `0`s.\n\nThe algorithm iteratively steps through the matrix left-to-right, top-to-bottom."
-    },
-    {
-      "id": "dp-decision-rules",
-      "type": "deep_dive",
-      "title": "DP Decision Rules",
-      "content": "At every matrix cell, the algorithm compares the current character `A[i-1]` with `B[j-1]`.\n\n* **Case 1: The characters MATCH (`A[i-1] == B[j-1]`)**\n    You have successfully found a link in the sequence. You extend the best subsequence from the prefixes strictly *before* these two characters were included.\n    *Rule:* Take the value from the upper-left diagonal cell and add 1. `dp[i][j] = dp[i-1][j-1] + 1`.\n* **Case 2: The characters DO NOT MATCH (`A[i-1] != B[j-1]`)**\n    You cannot use both characters to extend the sequence. You must carry forward the highest LCS length previously found by either dropping character A or dropping character B.\n    *Rule:* Take the absolute maximum between the cell directly above and the cell directly to the left. `dp[i][j] = max(dp[i-1][j], dp[i][j-1])`."
-    },
-    {
-      "id": "step-by-step-example",
-      "type": "deep_dive",
-      "title": "Step-by-Step Example",
-      "content": "Let's trace String A: `ABCD` against String B: `ACBD`.\n\n1.  **Init:** Matrix is 5x5. Row 0 and Col 0 are `0`.\n2.  `A` vs `A` (`i=1, j=1`): MATCH! `dp[1][1] = dp[0][0] + 1 = 1`.\n3.  `A` vs `C` (`i=1, j=2`): NO MATCH. `dp[1][2] = max(dp[0][2], dp[1][1]) = 1`.\n4.  `A` vs `B` (`i=1, j=3`): NO MATCH. `dp[1][3] = max(0, 1) = 1`.\n5.  `A` vs `D` (`i=1, j=4`): NO MATCH. `dp[1][4] = max(0, 1) = 1`.\n6.  `B` vs `A` (`i=2, j=1`): NO MATCH. `dp[2][1] = max(dp[1][1], dp[2][0]) = 1`.\n7.  `B` vs `C` (`i=2, j=2`): NO MATCH. `dp[2][2] = max(1, 1) = 1`.\n8.  `B` vs `B` (`i=2, j=3`): MATCH! `dp[2][3] = dp[1][2] + 1 = 1 + 1 = 2`.\n\nThe matrix safely ferries the maximum sequence integers down to the bottom right corner, resulting in `3` (`ABD`)."
-    },
-    {
-      "id": "matrix-visualization",
-      "type": "concept",
-      "title": "Visualization of Matrix Filling",
-      "content": "Think of the matrix as a grid moving top-left to bottom-right.\n\n* **Diagonal Motion (+1):** When characters match, you earn a point and move diagonally. This signifies tying two letters together.\n* **Horizontal/Vertical Motion (Copy Max):** When they mismatch, you carry forward the score from the top or left. This signifies holding your score while iterating to check the next possible character.\n\nBy the time you reach the bottom right cell `dp[n][m]`, you have the final integer length. To reconstruct the actual text sequence, you reverse-engineer the rules, tracing a line strictly backwards through the highest values to the top-left."
-    },
-    {
-      "id": "recurrence-relation",
-      "type": "concept",
-      "title": "LCS Recurrence Relation",
-      "content": "The fundamental mathematical recurrence relation for LCS:\n\n**If `A[i-1] == B[j-1]`:**\n`dp[i][j] = dp[i-1][j-1] + 1`\n\n**If `A[i-1] != B[j-1]`:**\n`dp[i][j] = max(dp[i-1][j], dp[i][j-1])`\n\n*(Note: Python string indexing uses `i-1` and `j-1` to compensate for the 1-based index mapping of the DP table rows/cols).* \nBase cases: `dp[0][j] = 0` and `dp[i][0] = 0`."
-    },
-    {
-      "id": "pseudocode-pattern",
-      "type": "concept",
-      "title": "LCS Backtracking (Reconstructing the String)",
-      "content": "The standard nested `for` loop calculates the length, but you often need the string itself. To reconstruct it:\n\n1.  Start at `i = n` and `j = m` (bottom right corner).\n2.  Loop while `i > 0` and `j > 0`.\n3.  If `A[i-1] == B[j-1]`, then this character is part of the LCS. Add it to a list, then step diagonally backwards: `i -= 1`, `j -= 1`.\n4.  If they do NOT match, look at the cells above (`dp[i-1][j]`) and left (`dp[i][j-1]`). \n5.  Step backwards into the cell with the larger value (if Top > Left, `i -= 1`; else `j -= 1`).\n6.  Because you walked backwards, `reverse()` the collected character list and join it into a string."
-    },
-    {
-      "id": "implementation",
-      "type": "concept",
-      "title": "Python Implementation",
-      "content": "Here is the standard 2D Python implementation that builds the matrix and returns the sequence integer length.\n\n* We create `dp = [[0 for _ in range(cols)] for _ in range(rows)]`.\n* We run nested loops over `range(1, rows)` and `range(1, cols)`.\n* We execute the match/mismatch conditional.",
-      "codeSnippets": [
+    "lessonId": "lesson-5-4",
+    "moduleId": "module-5",
+    "title": "Longest Common Subsequence (LCS)",
+    "description": "Learn how Dynamic Programming solves sequence matching problems by finding the **longest ordered subsequence shared between two strings**.",
+    "difficulty": "Intermediate",
+    "estimatedTime": "55 min",
+    "prerequisites": "0/1 Knapsack Problem",
+    "tags": [
+        "dynamic programming",
+        "longest common subsequence",
+        "sequence matching",
+        "dp matrix"
+    ],
+    "activities": [
         {
-          "title": "Longest Common Subsequence",
-          "language": "python",
-          "code": "def lcs(A, B):\n    rows = len(A) + 1\n    cols = len(B) + 1\n\n    # Init matrix with 0s\n    dp = [[0 for _ in range(cols)] for _ in range(rows)]\n\n    for i in range(1, rows):\n        for j in range(1, cols):\n            if A[i - 1] == B[j - 1]:\n                dp[i][j] = dp[i - 1][j - 1] + 1\n            else:\n                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])\n\n    return dp[rows - 1][cols - 1]\n\nprint(lcs(\"ABCDGH\", \"AEDFHR\"))"
-        }
-      ]
-    },
-    {
-      "id": "complexity-analysis",
-      "type": "deep_dive",
-      "title": "Complexity Analysis",
-      "content": "The execution relies entirely on filling the 2D matrix.\n\n* **Time Complexity:** `O(n * m)`. Every matrix cell is visited exactly once, performing `O(1)` checks.\n* **Space Complexity:** `O(n * m)` to store the full 2D table. For strings of length 1,000, this creates 1,000,000 cells (trivial memory impact). \n\n*Space Optimization Note:* If you only need the LCS *length* (and not to reconstruct the string), the space complexity can be reduced to `O(min(n, m))` by storing only the previous and current row arrays, because row `i` only ever evaluates row `i-1`.\n\nCompared to `O(2^n)` brute force subset searching, `O(n * m)` converts processing that would outlast the sun into a fraction of a millisecond.",
-      "chart": {
-        "title": "LCS Dynamic Programming optimization",
-        "description": "Dynamic Programming transforms exponential subsequence comparison into structured polynomial-time optimization.",
-        "maxN": 32,
-        "normalize": true,
-        "curves": ["O(n)", "O(n^2)", "O(2^n)"]
-      }
-    },
-    {
-      "id": "why-lcs-uses-dp",
-      "type": "concept",
-      "title": "Why LCS Strictly Requires DP",
-      "content": "LCS fits the two prime prerequisites for DP:\n\n1.  **Overlapping Subproblems:** The highest LCS values mapping the early prefixes `A[0..2]` against `B[0..2]` will be required continually as the matrix tests the rest of the string letters.\n2.  **Optimal Substructure:** The optimal matching for strings ending at `i` and `j` absolutely guarantees it is relying on the optimal sub-matches of strings ending at `i-1` and `j-1`.\n\nWithout DP cache retention, recursion trees would bloat exponentially exploring dead ends and repeatedly parsing identical prefix comparisons."
-    },
-    {
-      "id": "real-world-applications",
-      "type": "real_world_connection",
-      "title": "Real-World Applications",
-      "content": "LCS algorithms are structurally embedded in software engineering and biology:\n\n* **Git / Version Control:** The core function of `git diff` relies on LCS derivatives (like the Myers diff algorithm) to map the identical unchanged lines of a text file, allowing it to highlight specifically what was inserted or deleted.\n* **Bioinformatics:** DNA mapping uses LCS to find similarities between evolutionary genome sequences (which naturally feature gap mutations and skips).\n* **Plagiarism Detection:** Universities scan essays using LCS to find long strings of structurally identical ordered words hiding inside heavily modified paragraphs.\n* **Fuzzy Searching:** Finding the optimal spelling correction for user typos on search engines."
-    },
-    {
-      "id": "misconceptions",
-      "type": "key_concept",
-      "title": "Common Beginner Mistakes",
-      "subsections": [
-        {
-          "id": "subsequence-substring",
-          "title": "Mistake: Confusing Subsequence with Substring",
-          "content": "Subsequences may skip characters while preserving order. Substrings must remain strictly consecutive. This algorithm solves Subsequences. There is a different algorithm for Longest Common Substring."
+            "id": "m5_l4_a1",
+            "title": "LCS Grid Init"
         },
         {
-          "id": "matrix-meaning",
-          "title": "Mistake: Misunderstanding DP matrix meaning",
-          "content": "Each DP cell `dp[i][j]` represents the best length for the isolated *prefixes* of the strings ending at those positions, not an absolute correlation of the letters at those specific index positions locking together."
+            "id": "m5_l4_a2",
+            "title": "Character Match Logic"
         },
         {
-          "id": "recursion-efficient",
-          "title": "Mistake: Thinking recursion alone is efficient",
-          "content": "Pure recursion here creates massive exponential comparison blowouts. Memoization or Tabulation is strictly required to make LCS function on strings longer than a standard sentence."
+            "id": "m5_l4_a3",
+            "title": "Full LCS Table"
+        },
+        {
+            "id": "m5_l4_a4",
+            "title": "Reconstruct LCS String"
+        },
+        {
+            "id": "m5_l4_a5",
+            "title": "Backtrack Steps"
         }
-      ]
-    },
-    {
-      "id": "takeaways",
-      "type": "summary",
-      "title": "Key Takeaways",
-      "bullets": [
-        "LCS finds the longest **ordered string of characters** shared between two texts.",
-        "Subsequences preserve relative order but **permit gap skips**.",
-        "A 2D DP matrix prevents **exponential brute-force failure**.",
-        "Matching characters extend the **upper-left diagonal** value `(+ 1)`.",
-        "Mismatches carry forward the **max of the top or left** value.",
-        "LCS drives the core logic for **Git diffs and DNA alignment**."
-      ]
-    }
-  ],
-  "references": [
-    {
-      "title": "Programiz - Longest Common Subsequence",
-      "url": "https://www.programiz.com/dsa/longest-common-subsequence"
-    },
-    {
-      "title": "GeeksforGeeks - Longest Common Subsequence",
-      "url": "https://www.geeksforgeeks.org/longest-common-subsequence-dp-4/"
-    },
-    {
-      "title": "Wikipedia - Longest Common Subsequence Problem",
-      "url": "https://en.wikipedia.org/wiki/Longest_common_subsequence_problem"
-    },
-    {
-      "title": "Cormen, T. H., Leiserson, C. E., Rivest, R. L., & Stein, C. (2009). Introduction to Algorithms (3rd ed.). MIT Press.",
-      "url": "https://mitpress.mit.edu/9780262033848/introduction-to-algorithms/"
-    }
-  ]
+    ],
+    "sections": [
+        {
+            "id": "introduction",
+            "type": "introduction",
+            "title": "Introduction",
+            "content": "The **Longest Common Subsequence (LCS)** Problem is one of the most important applications of Dynamic Programming for sequence matching.\n\n* The objective is to find the longest string of characters that appears in the **same relative order** in two target strings.\n* Unlike a substring, characters in a subsequence **do not need to be consecutive**—they are permitted to skip characters, but they must strictly preserve their ordering.\n\nFor example, consider the strings `ABCDE` and `ACBDE`:\n* The subsequence `ABDE` appears in both strings.\n* `A` is first in both, `B` appears after `A`, `D` after `B`, and `E` after `D`.\n* The characters are not consecutive, but their relative timeline order is preserved.\n\nLCS is widely used in text comparison, DNA analysis, plagiarism detection, and file synchronization. When Git (or GitHub) shows you the difference (a `diff`) between two file versions, it uses LCS algorithms to align the common lines before highlighting insertions and deletions."
+        },
+        {
+            "id": "why-lcs-matters",
+            "type": "concept",
+            "title": "Why LCS Matters",
+            "content": "Modern software constantly relies on comparing sequences automatically.\n\nUse cases include:\n1.  **Version Control:** Comparing source code changes.\n2.  **Plagiarism:** Detecting document similarities structurally.\n3.  **Bioinformatics:** Identifying shared DNA or genome mutation sequences.\n4.  **Spell Checking:** Finding words in a dictionary closest to the user's typo.\n\nIf you attempted to solve this using a brute-force approach, you would have to generate *every possible subsequence* and check it against the other string. \n* For a string of length `n`, there are `2^n` possible subsequences.\n* For `n = 20`, that is ~1 million subsequences.\n* For `n = 100`, that is `~1.27 × 10^30` subsequences, making brute-force computation mathematically impossible.\n\nDynamic Programming solves this elegantly in polynomial time by building a 2D matrix matching prefixes.",
+            "bullets": [
+                "**Efficiently compares** exceptionally large text sequences.",
+                "Demonstrates classic **Dynamic Programming prefix optimization**.",
+                "Powers **bioinformatics** and **version control text diffing**.",
+                "Avoids devastating **exponential brute-force calculation**."
+            ]
+        },
+        {
+            "id": "understanding-subsequences",
+            "type": "deep_dive",
+            "title": "Understanding Subsequences",
+            "content": "A subsequence is formed by deleting some characters from a string **without changing the order** of the remaining characters. You can remove any number of characters (including zero).\n\nFor example, for the string `ABCDE`:\n* Subsequences include `A`, `BC`, `ACE`, `ADE`, `ABDE`, and `ABCDE`.\n* The total number is `2^5 = 32` possible subsequences.\n* However, `ECA` is **not a valid subsequence** because the order violates the timeline. `E` comes after `C` originally, but in `ECA` it comes before.\n\nLCS focuses on finding the *longest* overlapping subsequence between two discrete strings. For strings `ABCBDAB` and `BDCABA`, the LCS is `BCAB`, `BCBA`, or `BDAB` (all have a length of 4)."
+        },
+        {
+            "id": "subsequence-vs-substring",
+            "type": "concept",
+            "title": "Subsequence vs Substring",
+            "content": "This is a critical algorithm distinction:\n\n* **Substring:** Requires strictly **consecutive** characters with zero gaps. (e.g., `BCD` is a substring of `ABCDE`).\n* **Subsequence:** Allows skipping characters and having **gaps**, as long as order is preserved. (e.g., `ACE` is a subsequence of `ABCDE`).\n\nSubstring problems are generally easier and can be solved with sliding windows. Subsequence problems are far more flexible—making them immune to inserted typos or DNA mutations—but they are computationally much heavier, mandating DP solutions."
+        },
+        {
+            "id": "why-bruteforce-fails",
+            "type": "deep_dive",
+            "title": "Why Brute Force Is Inefficient",
+            "content": "Generating and testing all subsequences causes an exponential implosion:\n\n* `n = 10`: 1,024 subsequences (Instant).\n* `n = 30`: ~1 billion subsequences (Very Slow).\n* `n = 100`: `1.27 × 10^30` subsequences (Impossible).\n\nTo brute-force LCS between two strings of length `n` and `m`, you would generate all subsequences of string A and scan string B for each one. This creates an `O(m * 2^n)` nightmare.\n\nDynamic Programming circumvents this by strictly storing intermediate comparison results for string prefixes. It resolves the exact same problem in `O(n * m)` time, making `n = 10,000` computationally trivial."
+        },
+        {
+            "id": "core-dp-idea",
+            "type": "concept",
+            "title": "Core Dynamic Programming Idea",
+            "content": "LCS relies heavily on Overlapping Subproblems and Optimal Substructure.\n\n* When comparing `ABC` and `ACD`, identifying the optimal match for their prefixes (`AB` and `AC`) will be requested repeatedly during the recursive branching.\n* Instead of recalculating, DP breaks the problem down by answering: **\"What is the LCS for the first `i` characters of String A and the first `j` characters of String B?\"**\n\nThe DP table slowly increments `i` and `j`, building up from `0`-length empty strings until evaluating the full length `n` and `m`. Each cell is solved iteratively by looking back at the maximums established in previous rows and columns."
+        },
+        {
+            "id": "lcs-matrix",
+            "type": "deep_dive",
+            "title": "Understanding the LCS Matrix",
+            "content": "The core of the algorithm is a 2D DP matrix `dp[i][j]`.\n\n* **Rows (`i`):** Represent the characters of String A (from `0` to `n`).\n* **Columns (`j`):** Represent the characters of String B (from `0` to `m`).\n* **Cell Value:** `dp[i][j]` represents the maximum integer length of the LCS using only the prefix `A[0..i-1]` and `B[0..j-1]`.\n\n**Base Cases:**\n* Row 0 and Column 0 represent matching against an **empty string**.\n* The LCS of any string and an empty string is absolutely `0`. Thus, row 0 and column 0 are initialized entirely with `0`s.\n\nThe algorithm iteratively steps through the matrix left-to-right, top-to-bottom."
+        },
+        {
+            "id": "dp-decision-rules",
+            "type": "deep_dive",
+            "title": "DP Decision Rules",
+            "content": "At every matrix cell, the algorithm compares the current character `A[i-1]` with `B[j-1]`.\n\n* **Case 1: The characters MATCH (`A[i-1] == B[j-1]`)**\n    You have successfully found a link in the sequence. You extend the best subsequence from the prefixes strictly *before* these two characters were included.\n    *Rule:* Take the value from the upper-left diagonal cell and add 1. `dp[i][j] = dp[i-1][j-1] + 1`.\n* **Case 2: The characters DO NOT MATCH (`A[i-1] != B[j-1]`)**\n    You cannot use both characters to extend the sequence. You must carry forward the highest LCS length previously found by either dropping character A or dropping character B.\n    *Rule:* Take the absolute maximum between the cell directly above and the cell directly to the left. `dp[i][j] = max(dp[i-1][j], dp[i][j-1])`."
+        },
+        {
+            "id": "step-by-step-example",
+            "type": "deep_dive",
+            "title": "Step-by-Step Example",
+            "content": "Let's trace String A: `ABCD` against String B: `ACBD`.\n\n1.  **Init:** Matrix is 5x5. Row 0 and Col 0 are `0`.\n2.  `A` vs `A` (`i=1, j=1`): MATCH! `dp[1][1] = dp[0][0] + 1 = 1`.\n3.  `A` vs `C` (`i=1, j=2`): NO MATCH. `dp[1][2] = max(dp[0][2], dp[1][1]) = 1`.\n4.  `A` vs `B` (`i=1, j=3`): NO MATCH. `dp[1][3] = max(0, 1) = 1`.\n5.  `A` vs `D` (`i=1, j=4`): NO MATCH. `dp[1][4] = max(0, 1) = 1`.\n6.  `B` vs `A` (`i=2, j=1`): NO MATCH. `dp[2][1] = max(dp[1][1], dp[2][0]) = 1`.\n7.  `B` vs `C` (`i=2, j=2`): NO MATCH. `dp[2][2] = max(1, 1) = 1`.\n8.  `B` vs `B` (`i=2, j=3`): MATCH! `dp[2][3] = dp[1][2] + 1 = 1 + 1 = 2`.\n\nThe matrix safely ferries the maximum sequence integers down to the bottom right corner, resulting in `3` (`ABD`)."
+        },
+        {
+            "id": "matrix-visualization",
+            "type": "concept",
+            "title": "Visualization of Matrix Filling",
+            "content": "Think of the matrix as a grid moving top-left to bottom-right.\n\n* **Diagonal Motion (+1):** When characters match, you earn a point and move diagonally. This signifies tying two letters together.\n* **Horizontal/Vertical Motion (Copy Max):** When they mismatch, you carry forward the score from the top or left. This signifies holding your score while iterating to check the next possible character.\n\nBy the time you reach the bottom right cell `dp[n][m]`, you have the final integer length. To reconstruct the actual text sequence, you reverse-engineer the rules, tracing a line strictly backwards through the highest values to the top-left."
+        },
+        {
+            "id": "recurrence-relation",
+            "type": "concept",
+            "title": "LCS Recurrence Relation",
+            "content": "The fundamental mathematical recurrence relation for LCS:\n\n**If `A[i-1] == B[j-1]`:**\n`dp[i][j] = dp[i-1][j-1] + 1`\n\n**If `A[i-1] != B[j-1]`:**\n`dp[i][j] = max(dp[i-1][j], dp[i][j-1])`\n\n*(Note: Python string indexing uses `i-1` and `j-1` to compensate for the 1-based index mapping of the DP table rows/cols).* \nBase cases: `dp[0][j] = 0` and `dp[i][0] = 0`."
+        },
+        {
+            "id": "pseudocode-pattern",
+            "type": "concept",
+            "title": "LCS Backtracking (Reconstructing the String)",
+            "content": "The standard nested `for` loop calculates the length, but you often need the string itself. To reconstruct it:\n\n1.  Start at `i = n` and `j = m` (bottom right corner).\n2.  Loop while `i > 0` and `j > 0`.\n3.  If `A[i-1] == B[j-1]`, then this character is part of the LCS. Add it to a list, then step diagonally backwards: `i -= 1`, `j -= 1`.\n4.  If they do NOT match, look at the cells above (`dp[i-1][j]`) and left (`dp[i][j-1]`). \n5.  Step backwards into the cell with the larger value (if Top > Left, `i -= 1`; else `j -= 1`).\n6.  Because you walked backwards, `reverse()` the collected character list and join it into a string."
+        },
+        {
+            "id": "implementation",
+            "type": "concept",
+            "title": "Python Implementation",
+            "content": "Here is the standard 2D Python implementation that builds the matrix and returns the sequence integer length.\n\n* We create `dp = [[0 for _ in range(cols)] for _ in range(rows)]`.\n* We run nested loops over `range(1, rows)` and `range(1, cols)`.\n* We execute the match/mismatch conditional.",
+            "codeSnippets": [
+                {
+                    "title": "Longest Common Subsequence",
+                    "language": "python",
+                    "code": "def lcs(A, B):\n    rows = len(A) + 1\n    cols = len(B) + 1\n\n    # Init matrix with 0s\n    dp = [[0 for _ in range(cols)] for _ in range(rows)]\n\n    for i in range(1, rows):\n        for j in range(1, cols):\n            if A[i - 1] == B[j - 1]:\n                dp[i][j] = dp[i - 1][j - 1] + 1\n            else:\n                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])\n\n    return dp[rows - 1][cols - 1]\n\nprint(lcs(\"ABCDGH\", \"AEDFHR\"))"
+                }
+            ]
+        },
+        {
+            "id": "complexity-analysis",
+            "type": "deep_dive",
+            "title": "Complexity Analysis",
+            "content": "The execution relies entirely on filling the 2D matrix.\n\n* **Time Complexity:** `O(n * m)`. Every matrix cell is visited exactly once, performing `O(1)` checks.\n* **Space Complexity:** `O(n * m)` to store the full 2D table. For strings of length 1,000, this creates 1,000,000 cells (trivial memory impact). \n\n*Space Optimization Note:* If you only need the LCS *length* (and not to reconstruct the string), the space complexity can be reduced to `O(min(n, m))` by storing only the previous and current row arrays, because row `i` only ever evaluates row `i-1`.\n\nCompared to `O(2^n)` brute force subset searching, `O(n * m)` converts processing that would outlast the sun into a fraction of a millisecond.",
+            "chart": {
+                "title": "LCS Dynamic Programming optimization",
+                "description": "Dynamic Programming transforms exponential subsequence comparison into structured polynomial-time optimization.",
+                "maxN": 32,
+                "normalize": true,
+                "curves": [
+                    "O(n)",
+                    "O(n^2)",
+                    "O(2^n)"
+                ]
+            }
+        },
+        {
+            "id": "why-lcs-uses-dp",
+            "type": "concept",
+            "title": "Why LCS Strictly Requires DP",
+            "content": "LCS fits the two prime prerequisites for DP:\n\n1.  **Overlapping Subproblems:** The highest LCS values mapping the early prefixes `A[0..2]` against `B[0..2]` will be required continually as the matrix tests the rest of the string letters.\n2.  **Optimal Substructure:** The optimal matching for strings ending at `i` and `j` absolutely guarantees it is relying on the optimal sub-matches of strings ending at `i-1` and `j-1`.\n\nWithout DP cache retention, recursion trees would bloat exponentially exploring dead ends and repeatedly parsing identical prefix comparisons."
+        },
+        {
+            "id": "real-world-applications",
+            "type": "real_world_connection",
+            "title": "Real-World Applications",
+            "content": "LCS algorithms are structurally embedded in software engineering and biology:\n\n* **Git / Version Control:** The core function of `git diff` relies on LCS derivatives (like the Myers diff algorithm) to map the identical unchanged lines of a text file, allowing it to highlight specifically what was inserted or deleted.\n* **Bioinformatics:** DNA mapping uses LCS to find similarities between evolutionary genome sequences (which naturally feature gap mutations and skips).\n* **Plagiarism Detection:** Universities scan essays using LCS to find long strings of structurally identical ordered words hiding inside heavily modified paragraphs.\n* **Fuzzy Searching:** Finding the optimal spelling correction for user typos on search engines."
+        },
+        {
+            "id": "misconceptions",
+            "type": "key_concept",
+            "title": "Common Beginner Mistakes",
+            "subsections": [
+                {
+                    "id": "subsequence-substring",
+                    "title": "Mistake: Confusing Subsequence with Substring",
+                    "content": "Subsequences may skip characters while preserving order. Substrings must remain strictly consecutive. This algorithm solves Subsequences. There is a different algorithm for Longest Common Substring."
+                },
+                {
+                    "id": "matrix-meaning",
+                    "title": "Mistake: Misunderstanding DP matrix meaning",
+                    "content": "Each DP cell `dp[i][j]` represents the best length for the isolated *prefixes* of the strings ending at those positions, not an absolute correlation of the letters at those specific index positions locking together."
+                },
+                {
+                    "id": "recursion-efficient",
+                    "title": "Mistake: Thinking recursion alone is efficient",
+                    "content": "Pure recursion here creates massive exponential comparison blowouts. Memoization or Tabulation is strictly required to make LCS function on strings longer than a standard sentence."
+                }
+            ]
+        },
+        {
+            "id": "takeaways",
+            "type": "summary",
+            "title": "Key Takeaways",
+            "bullets": [
+                "LCS finds the longest **ordered string of characters** shared between two texts.",
+                "Subsequences preserve relative order but **permit gap skips**.",
+                "A 2D DP matrix prevents **exponential brute-force failure**.",
+                "Matching characters extend the **upper-left diagonal** value `(+ 1)`.",
+                "Mismatches carry forward the **max of the top or left** value.",
+                "LCS drives the core logic for **Git diffs and DNA alignment**."
+            ]
+        }
+    ],
+    "references": [
+        {
+            "title": "Programiz - Longest Common Subsequence",
+            "url": "https://www.programiz.com/dsa/longest-common-subsequence"
+        },
+        {
+            "title": "GeeksforGeeks - Longest Common Subsequence",
+            "url": "https://www.geeksforgeeks.org/longest-common-subsequence-dp-4/"
+        },
+        {
+            "title": "Techie Delight — Longest Common Subsequence Problem",
+            "url": "https://www.techiedelight.com/longest-common-subsequence/"
+        },
+        {
+            "title": "Cormen, T. H., Leiserson, C. E., Rivest, R. L., & Stein, C. (2009). Introduction to Algorithms (3rd ed.). MIT Press.",
+            "url": "https://mitpress.mit.edu/9780262033848/introduction-to-algorithms/"
+        }
+    ]
 }

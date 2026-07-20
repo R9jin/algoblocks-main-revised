@@ -1,217 +1,226 @@
 {
-  "lessonId": "lesson-5-2",
-  "moduleId": "module-5",
-  "title": "Fibonacci Optimization",
-  "description": "Learn how Dynamic Programming optimizes Fibonacci computation using **memoization, tabulation, and space-efficient iterative techniques**.",
-  "difficulty": "Intermediate",
-  "estimatedTime": "50 min",
-  "prerequisites": "Dynamic Programming Fundamentals",
-  "tags": ["dynamic programming", "fibonacci", "memoization", "tabulation"],
-  "activities": [
-    {
-      "id": "m5_l2_a1",
-      "title": "Naive Fibonacci"
-    },
-    {
-      "id": "m5_l2_a2",
-      "title": "Memoized Fibonacci"
-    },
-    {
-      "id": "m5_l2_a3",
-      "title": "Tabulated Fibonacci"
-    },
-    {
-      "id": "m5_l2_a4",
-      "title": "Space-Optimized Fibonacci"
-    },
-    {
-      "id": "m5_l2_a5",
-      "title": "Sequence Generator"
-    }
-  ],
-  "sections": [
-    {
-      "id": "introduction",
-      "type": "introduction",
-      "title": "Introduction",
-      "content": "The Fibonacci sequence is one of the most famous examples used to demonstrate Dynamic Programming optimization. \n\n* The sequence follows the rule **`F(n) = F(n-1) + F(n-2)`** with base cases `F(0) = 0` and `F(1) = 1`.\n* The sequence begins: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144.\n\nAlthough recursive Fibonacci appears simple and elegant, **naive recursion repeatedly recomputes identical Fibonacci values** many times. For `F(40)`, naive recursion makes over 300 million function calls. For `F(100)`, it would take longer than the age of the universe.\n\nDynamic Programming optimizes this process by storing previously computed results. Instead of recomputing `F(30)` thousands of times, compute it once, store it, and look it up when needed. This transforms the algorithm from exponential `O(2^n)` to linear `O(n)`.\n\nThis lesson walks through each optimization step from the slowest to the fastest implementation: Naive Recursion -> Memoization -> Tabulation -> Space-Optimized Iteration."
-    },
-    {
-      "id": "why-fibonacci-important",
-      "type": "concept",
-      "title": "Why Fibonacci Is Important in Dynamic Programming",
-      "content": "The Fibonacci problem is the **\"Hello World\" of Dynamic Programming**. It perfectly illustrates core DP concepts without the complexity of 2D tables or complex state definitions.\n\nA recursive Fibonacci algorithm repeatedly solves identical smaller values again and again. You can see exactly the same `F(3)` being computed multiple times in the recursion tree. This repetition is highly visible, measurable, and easy to understand.\n\nKey learning outcomes include:\n1.  **Seeing overlapping subproblems** in the recursion tree.\n2.  **Learning memoization** by adding a simple cache.\n3.  **Learning tabulation** by building from the bottom up.\n4.  **Noticing space optimization** by realizing only the last two values actually matter.\n\nUnderstanding Fibonacci optimization builds the foundation for all DP problems. The exact same pattern applies to climbing stairs, coin change, and knapsack algorithms.",
-      "bullets": [
-        "Demonstrates **overlapping subproblems** clearly.",
-        "Introduces **memoization** and **tabulation** directly.",
-        "Shows how DP cleanly eliminates **redundant computation**.",
-        "Teaches step-by-step **optimization reasoning**."
-      ]
-    },
-    {
-      "id": "understanding-sequence",
-      "type": "deep_dive",
-      "title": "Understanding the Fibonacci Sequence",
-      "content": "The Fibonacci sequence begins 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377. \n\nEach number is generated using the recurrence relation: **`current = previous + previousPrevious`**.\n* For example, `F(5) = F(4) + F(3)`.\n* And `F(4) = F(3) + F(2)`.\n* Notice that **`F(3)` appears in both calculations**. This overlap matters enormously.\n\nIf you compute `F(5)` recursively, you compute `F(3)` twice, `F(2)` three times, `F(1)` five times, and `F(0)` three times. For larger `n`, the redundancy becomes astronomical. `F(40)` computes `F(3)` over 10 million times.\n\nInterestingly, as `n` grows, the ratio `F(n+1) / F(n)` approaches the **golden ratio (phi)** which is roughly 1.618. This mathematical beauty makes Fibonacci fascinating, but the computational cost without DP is prohibitive."
-    },
-    {
-      "id": "naive-recursion",
-      "type": "concept",
-      "title": "Naive Recursive Fibonacci",
-      "content": "A basic recursive Fibonacci implementation directly translates the mathematical definition into code. It is elegant to read, but terribly inefficient to execute: `if n <= 1 return n, else return fib(n-1) + fib(n-2)`.\n\nThe recursion repeatedly branches into two calls for almost every invocation, creating **exponential recursive growth**:\n* `fib(5)`: 15 calls\n* `fib(10)`: 177 calls\n* `fib(20)`: 21,891 calls\n* `fib(30)`: 2.7 million calls\n* `fib(40)`: 331 million calls\n* `fib(100)`: ~1.2 × 10^21 calls\n\nThe recursion itself is not the problem (Binary Search is recursive and very fast). The issue is **overlapping subproblems**—where the same identical computation is repeated many thousands of times."
-    },
-    {
-      "id": "redundant-recursion",
-      "type": "deep_dive",
-      "title": "Visualizing Redundant Recursion",
-      "content": "Let us trace through `fib(5)` to see exactly where redundancy occurs in the recursion tree:\n* `fib(5)` calls `fib(4)` and `fib(3)`.\n* `fib(4)` calls `fib(3)` and `fib(2)`.\n* `fib(3)` calls `fib(2)` and `fib(1)`.\n* `fib(2)` calls `fib(1)` and `fib(0)`.\n\n**Call Count Analysis for fib(5):**\n* `fib(0)` computed 3 times.\n* `fib(1)` computed 5 times.\n* `fib(2)` computed 3 times.\n* `fib(3)` computed 2 times.\n* `fib(4)` computed 1 time.\n* `fib(5)` computed 1 time.\n\nTotal calls: **15**. \n\nEach call to `fib(3)` spawns the entire subtree of `fib(3)` again, even though the mathematical answer never changes. Dynamic Programming eliminates these duplicates by storing previously computed answers. Once `fib(3)` is computed, any future request for `fib(3)` simply looks up the cached answer."
-    },
-    {
-      "id": "why-recursive-slow",
-      "type": "concept",
-      "title": "Why Recursive Fibonacci Is Slow",
-      "content": "Naive recursive Fibonacci repeatedly expands into two recursive calls, creating exponential growth bounded by `O(2^n)`. More precisely, the number of calls grows like **`phi^n`**, where `phi` is ~1.618 (the golden ratio).\n\nLet `T(n)` be the number of recursive calls for `fib(n)`:\n* `T(0) = 1`, `T(1) = 1`\n* `T(n) = T(n-1) + T(n-2) + 1`\n* This mathematically solves to `T(n) ≈ 2 * (phi^n / sqrt(5))`.\n\nBecause this growth is exponential, as input size increases, recursive calls explode. The issue is not the stack; it is the **amnesia**—each recursive call does not know that its subproblems have been computed before."
-    },
-    {
-      "id": "memoization",
-      "type": "concept",
-      "title": "Memoization Optimization",
-      "content": "Memoization solves repeated computation by storing already-computed Fibonacci values in a cache. This is the **Top-Down** approach because it starts from the target `n` and recursively breaks down to base cases.\n\n* **Check the cache:** Before calculating, check if the answer exists inside memory (a dictionary or array).\n* **Return if solved:** If solved earlier, reuse the value immediately without recursing further.\n* **Compute, Store, Return:** If not solved, compute recursively, store the result in the cache, and return it.\n\nThis completely prevents repeated recursion. The recursion tree collapses from an exponential binary tree to a linear chain-like tree. \n\n**Benefits:** It preserves natural recursive thinking, uses **lazy evaluation** (only computes what's strictly needed), and is easy to add to naive code. \n**Drawbacks:** Uses `O(n)` stack space for recursion, risking `RecursionError` for extremely large `n`."
-    },
-    {
-      "id": "memoization-workflow",
-      "type": "deep_dive",
-      "title": "Memoized Fibonacci Workflow",
-      "content": "Let us trace memoized Fibonacci for `fib(5)`. Initially the memo dictionary is empty.\n\n1.  Call `fib(5)`. Not in memo. Need `fib(4)`.\n2.  Call `fib(4)`. Not in memo. Need `fib(3)`.\n3.  Call `fib(3)`. Not in memo. Need `fib(2)`.\n4.  Call `fib(2)`. Not in memo. Need `fib(1)`.\n5.  Call `fib(1)`. Base case, returns 1. **Store memo[1]=1**.\n6.  Call `fib(0)`. Base case, returns 0. **Store memo[0]=0**.\n7.  `fib(2)` resolves: 1 + 0 = 1. **Store memo[2]=1**.\n8.  Back to `fib(3)`. Needs `fib(1)`. Check memo: **Found 1!** No recursion. `fib(3) = 1 + 1 = 2`. **Store memo[3]=2**.\n9.  Back to `fib(4)`. Needs `fib(2)`. Check memo: **Found 1!** No recursion. `fib(4) = 2 + 1 = 3`. **Store memo[4]=3**.\n10. Back to `fib(5)`. Needs `fib(3)`. Check memo: **Found 2!** No recursion. `fib(5) = 3 + 2 = 5`. **Store memo[5]=5**.\n\nOnly **6 unique computations** occurred compared to 15 in naive recursion."
-    },
-    {
-      "id": "memoized-implementation",
-      "type": "concept",
-      "title": "Memoized Fibonacci Implementation",
-      "content": "Memoized Fibonacci preserves recursion while caching values. There are three common ways to implement it:\n\n1.  **Dictionary Memo:** Works for any `n` and handles sparse keys safely. Pass a dictionary into the recursive function (or use a global/class scope), check `if n in memo`, and `memo[n] = result`.\n2.  **List Memo (Array):** More efficient for contiguous `n` ranges. Initialize a list `memo = [-1] * (n + 1)`. Check `if memo[k] != -1` to avoid recalculating.\n3.  **Functools `@lru_cache`:** Python provides built-in memoization. Just add `@lru_cache(maxsize=None)` above the naive recursive function, and Python's C-backend handles the caching dictionary automatically.",
-      "codeSnippets": [
+    "lessonId": "lesson-5-2",
+    "moduleId": "module-5",
+    "title": "Fibonacci Optimization",
+    "description": "Learn how Dynamic Programming optimizes Fibonacci computation using **memoization, tabulation, and space-efficient iterative techniques**.",
+    "difficulty": "Intermediate",
+    "estimatedTime": "50 min",
+    "prerequisites": "Dynamic Programming Fundamentals",
+    "tags": [
+        "dynamic programming",
+        "fibonacci",
+        "memoization",
+        "tabulation"
+    ],
+    "activities": [
         {
-          "title": "Memoized Fibonacci",
-          "language": "python",
-          "code": "memo = {}\n\ndef fib(n):\n    if n in memo:\n        return memo[n]\n\n    if n <= 1:\n        return n\n\n    memo[n] = fib(n - 1) + fib(n - 2)\n    return memo[n]\n\nprint(fib(10))"
-        }
-      ]
-    },
-    {
-      "id": "tabulation",
-      "type": "concept",
-      "title": "Tabulation Optimization",
-      "content": "Tabulation is the **Bottom-Up** DP approach that builds Fibonacci values iteratively from the smallest subproblems upward. Instead of recursion, it uses a standard `for` loop and an array table.\n\nSetup Steps:\n1.  Create an array `dp` of size `n+1`.\n2.  Initialize base cases: `dp[0] = 0` and `dp[1] = 1`.\n3.  Loop `i` from `2` to `n`: `dp[i] = dp[i-1] + dp[i-2]`.\n4.  Return `dp[n]`.\n\n**Pros:** Tabulation has **no recursion overhead** (loops are faster than function calls), zero risk of stack overflow, and cache-friendly sequential memory access.\n**Cons:** It must compute *all* values from 0 to `n` comprehensively, even if a more complex problem algorithmically didn't require every single sub-state. It requires building the entire sequence table."
-    },
-    {
-      "id": "tabulation-implementation",
-      "type": "concept",
-      "title": "Tabulation Fibonacci Implementation",
-      "content": "Tabulation avoids recursion overhead while maintaining linear `O(n)` efficiency.\n\n* **The Full Table Version:** Creates an array `dp` of size `n+1`. It sets `dp[0]=0`, `dp[1]=1`, loops up to `n`, and returns `dp[n]`. This definitively uses `O(n)` space in RAM.\n* **The Sequence Generator:** If an application actually requires the *entire sequence* (not just the nth number), the tabulation `dp` array is exactly what you need to return.\n\nThe space complexity is `O(n)` because we store the entire array of answers. However, if we only want the final answer `dp[n]`, storing the full array is a waste of memory. This can be heavily optimized.",
-      "codeSnippets": [
-        {
-          "title": "Tabulation Fibonacci",
-          "language": "python",
-          "code": "def fib(n):\n    if n <= 1:\n        return n\n\n    dp = [0] * (n + 1)\n    dp[1] = 1\n\n    for i in range(2, n + 1):\n        dp[i] = dp[i - 1] + dp[i - 2]\n\n    return dp[n]\n\nprint(fib(10))"
-        }
-      ]
-    },
-    {
-      "id": "complexity-comparison",
-      "type": "deep_dive",
-      "title": "Complexity Comparison",
-      "content": "Understanding the complexity differences proves the mathematical power of Dynamic Programming:\n\n* **Naive Recursion:** `O(2^n)` Time, `O(n)` Space (Stack). `n=40` is ~331M calls. `n=100` is impossible.\n* **Memoization:** `O(n)` Time, `O(n)` Space (Stack + Cache). `n=40` is 40 calls. `n=100` is 100 calls.\n* **Tabulation:** `O(n)` Time, `O(n)` Space (Array). `n=40` is 40 loop iterations.\n* **Space-Optimized Tabulation:** `O(n)` Time, **`O(1)` Space** (Variables).\n\nFor `n=40`, naive recursion takes roughly 0.5 seconds, while DP takes microseconds—an improvement of **8 million times**. For `n=100`, naive recursion would outlast the universe, while DP completes instantly.",
-      "chart": {
-        "title": "Fibonacci optimization comparison",
-        "description": "Dynamic Programming dramatically reduces Fibonacci computation from exponential growth to linear growth.",
-        "maxN": 32,
-        "normalize": true,
-        "curves": ["O(n)", "O(n^2)", "O(2^n)"]
-      }
-    },
-    {
-      "id": "space-optimization",
-      "type": "concept",
-      "title": "Space Optimization (Iterative)",
-      "content": "The tabulation approach can be hyper-optimized. Notice the recurrence: `dp[i] = dp[i-1] + dp[i-2]`. Each Fibonacci value **only depends on the two immediately previous values**.\n\nWhen computing `F(10)`, you need `F(9)` and `F(8)`. You **do not** need `F(7)` anymore. You can discard old values and only keep a \"sliding window\" of the two most recent numbers.\n\n* Initialize `a = 0` (represents F(i-2)) and `b = 1` (represents F(i-1)).\n* For `i` from 2 to `n`, compute `current = a + b`.\n* Shift the window forward: `a = b`, and `b = current`.\n* Return `b`.\n\nThis `O(1)` space algorithm uses only standard integer variables. For `n = 1,000,000`, full tabulation would use 8 Megabytes for the array. Space-optimized uses **24 bytes**. That is a 333,000x memory savings."
-    },
-    {
-      "id": "optimized-iterative",
-      "type": "concept",
-      "title": "Optimized Iterative Fibonacci",
-      "content": "The space-optimized iterative implementation is the gold standard for generating a specific Fibonacci number in production environments.\n\n* **Time:** `O(n)`\n* **Space:** `O(1)`\n* **Stack:** No recursion overhead or depth limits.\n* **Memory:** No array allocation overhead.\n\n**When to use which implementation?**\n1.  **Naive Recursion:** Only for teaching mathematical mapping. Never use in production.\n2.  **Memoization:** Best when the recurrence is highly complex/multi-dimensional and you only want to visit exactly the states you need.\n3.  **Tabulation (Array):** Best when you explicitly need to return or query the *entire history* of the sequence.\n4.  **Space-Optimized (Variables):** Best for production when you only need the final `F(n)` result.",
-      "codeSnippets": [
-        {
-          "title": "Space-optimized Fibonacci",
-          "language": "python",
-          "code": "def fib(n):\n    if n <= 1:\n        return n\n\n    prev2 = 0\n    prev1 = 1\n\n    for i in range(2, n + 1):\n        current = prev1 + prev2\n        prev2 = prev1\n        prev1 = current\n\n    return prev1\n\nprint(fib(10))"
-        }
-      ]
-    },
-    {
-      "id": "memoization-vs-tabulation",
-      "type": "deep_dive",
-      "title": "Memoization vs Tabulation in Fibonacci",
-      "content": "Both memoization and tabulation completely resolve the overlapping subproblem issue, differing solely in execution geometry.\n\n* **Memoization (Top-Down):** Recursively works down to base cases. Uses `O(n)` recursion stack space + `O(n)` cache space. It only solves subproblems strictly reachable from `n`.\n* **Tabulation (Bottom-Up):** Iteratively builds from base cases up to `n`. Uses `O(n)` array space (or `O(1)` if optimized) and avoids the call stack entirely.\n\nMemoization often feels easier conceptually because it mimics the mathematical recurrence exactly. Tabulation requires mentally reversing the graph. However, for Fibonacci specifically, the space-optimized Tabulation with `O(1)` memory is the undisputed best practice."
-    },
-    {
-      "id": "real-world-importance",
-      "type": "real_world_connection",
-      "title": "Real-World Importance",
-      "content": "While calculating Fibonacci numbers is mostly an academic exercise, the exact optimization patterns learned here map identically to complex engineering tasks:\n\n* **Shortest Path Algorithms:** Dijkstra and Bellman-Ford use DP principles because checking the same intermediate node repeatedly is inefficient.\n* **Bioinformatics:** DNA sequence alignment (Needleman-Wunsch) uses 2D tabulation DP to align genomes without exponential recursion.\n* **Natural Language Processing:** Spell-check engines (Edit Distance) use caching to find string matches optimally.\n* **Resource Allocation:** Knapsack problems use DP to figure out cargo loading or financial investment thresholds.\n\nThe leap from Naive Fibonacci to Memoized Fibonacci is the exact same intellectual leap required to build modern AI and routing engines."
-    },
-    {
-      "id": "misconceptions",
-      "type": "key_concept",
-      "title": "Common Beginner Mistakes",
-      "subsections": [
-        {
-          "id": "recursion-bad",
-          "title": "Mistake: Thinking recursion is inherently inefficient",
-          "content": "Recursion *only* becomes deeply inefficient when overlapping subproblems repeatedly recompute identical work. Tree traversal (DFS) or Binary Search are recursive and lightning fast. The villain is the amnesia of re-computing, not the recursion itself."
+            "id": "m5_l2_a1",
+            "title": "Naive Fibonacci"
         },
         {
-          "id": "memoization-library",
-          "title": "Mistake: Confusing memoization with Python libraries",
-          "content": "Memoization is a theoretical algorithmic strategy for caching results. While Python's `functools.lru_cache` perfectly implements it, it is critical to know how to write your own dictionary cache for languages/situations that lack built-in decorators."
+            "id": "m5_l2_a2",
+            "title": "Memoized Fibonacci"
         },
         {
-          "id": "dp-arrays-only",
-          "title": "Mistake: Believing DP always requires arrays",
-          "content": "Dynamic Programming may use dictionaries, matrices, trees, or single variables. For Fibonacci, integer variables work (`O(1)`). For Graph DP, a Dictionary keyed by Node objects is standard. Use what fits the state."
+            "id": "m5_l2_a3",
+            "title": "Tabulated Fibonacci"
+        },
+        {
+            "id": "m5_l2_a4",
+            "title": "Space-Optimized Fibonacci"
+        },
+        {
+            "id": "m5_l2_a5",
+            "title": "Sequence Generator"
         }
-      ]
-    },
-    {
-      "id": "takeaways",
-      "type": "summary",
-      "title": "Key Takeaways",
-      "bullets": [
-        "Fibonacci perfectly demonstrates **overlapping subproblems**.",
-        "Naive recursion repeatedly recomputes identical values (`O(2^n)`).",
-        "**Memoization** stores computed results in a cache for reuse (Top-Down).",
-        "**Tabulation** builds answers iteratively in an array (Bottom-Up).",
-        "Dynamic Programming reduces Fibonacci to **linear time (`O(n)`)**.",
-        "**Space optimization** can reduce memory complexity to absolute `O(1)`."
-      ]
-    }
-  ],
-  "references": [
-    {
-      "title": "Programiz - Dynamic Programming",
-      "url": "https://www.programiz.com/dsa/dynamic-programming"
-    },
-    {
-      "title": "GeeksforGeeks - Overlapping Subproblems in DP",
-      "url": "https://www.geeksforgeeks.org/overlapping-subproblems-property-in-dynamic-programming-dp-1/"
-    },
-    {
-      "title": "Wikipedia - Dynamic Programming",
-      "url": "https://en.wikipedia.org/wiki/Dynamic_programming"
-    },
-    {
-      "title": "Kleinberg, J., & Tardos, E. (2005). Algorithm Design. Pearson Education.",
-      "url": "https://www.pearson.com/en-us/subject-catalog/p/algorithm-design/P200000003348/9780321295354"
-    }
-  ]
+    ],
+    "sections": [
+        {
+            "id": "introduction",
+            "type": "introduction",
+            "title": "Introduction",
+            "content": "The Fibonacci sequence is one of the most famous examples used to demonstrate Dynamic Programming optimization. \n\n* The sequence follows the rule **`F(n) = F(n-1) + F(n-2)`** with base cases `F(0) = 0` and `F(1) = 1`.\n* The sequence begins: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144.\n\nAlthough recursive Fibonacci appears simple and elegant, **naive recursion repeatedly recomputes identical Fibonacci values** many times. For `F(40)`, naive recursion makes over 300 million function calls. For `F(100)`, it would take longer than the age of the universe.\n\nDynamic Programming optimizes this process by storing previously computed results. Instead of recomputing `F(30)` thousands of times, compute it once, store it, and look it up when needed. This transforms the algorithm from exponential `O(2^n)` to linear `O(n)`.\n\nThis lesson walks through each optimization step from the slowest to the fastest implementation: Naive Recursion -> Memoization -> Tabulation -> Space-Optimized Iteration."
+        },
+        {
+            "id": "why-fibonacci-important",
+            "type": "concept",
+            "title": "Why Fibonacci Is Important in Dynamic Programming",
+            "content": "The Fibonacci problem is the **\"Hello World\" of Dynamic Programming**. It perfectly illustrates core DP concepts without the complexity of 2D tables or complex state definitions.\n\nA recursive Fibonacci algorithm repeatedly solves identical smaller values again and again. You can see exactly the same `F(3)` being computed multiple times in the recursion tree. This repetition is highly visible, measurable, and easy to understand.\n\nKey learning outcomes include:\n1.  **Seeing overlapping subproblems** in the recursion tree.\n2.  **Learning memoization** by adding a simple cache.\n3.  **Learning tabulation** by building from the bottom up.\n4.  **Noticing space optimization** by realizing only the last two values actually matter.\n\nUnderstanding Fibonacci optimization builds the foundation for all DP problems. The exact same pattern applies to climbing stairs, coin change, and knapsack algorithms.",
+            "bullets": [
+                "Demonstrates **overlapping subproblems** clearly.",
+                "Introduces **memoization** and **tabulation** directly.",
+                "Shows how DP cleanly eliminates **redundant computation**.",
+                "Teaches step-by-step **optimization reasoning**."
+            ]
+        },
+        {
+            "id": "understanding-sequence",
+            "type": "deep_dive",
+            "title": "Understanding the Fibonacci Sequence",
+            "content": "The Fibonacci sequence begins 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377. \n\nEach number is generated using the recurrence relation: **`current = previous + previousPrevious`**.\n* For example, `F(5) = F(4) + F(3)`.\n* And `F(4) = F(3) + F(2)`.\n* Notice that **`F(3)` appears in both calculations**. This overlap matters enormously.\n\nIf you compute `F(5)` recursively, you compute `F(3)` twice, `F(2)` three times, `F(1)` five times, and `F(0)` three times. For larger `n`, the redundancy becomes astronomical. `F(40)` computes `F(3)` over 10 million times.\n\nInterestingly, as `n` grows, the ratio `F(n+1) / F(n)` approaches the **golden ratio (phi)** which is roughly 1.618. This mathematical beauty makes Fibonacci fascinating, but the computational cost without DP is prohibitive."
+        },
+        {
+            "id": "naive-recursion",
+            "type": "concept",
+            "title": "Naive Recursive Fibonacci",
+            "content": "A basic recursive Fibonacci implementation directly translates the mathematical definition into code. It is elegant to read, but terribly inefficient to execute: `if n <= 1 return n, else return fib(n-1) + fib(n-2)`.\n\nThe recursion repeatedly branches into two calls for almost every invocation, creating **exponential recursive growth**:\n* `fib(5)`: 15 calls\n* `fib(10)`: 177 calls\n* `fib(20)`: 21,891 calls\n* `fib(30)`: 2.7 million calls\n* `fib(40)`: 331 million calls\n* `fib(100)`: ~1.2 × 10^21 calls\n\nThe recursion itself is not the problem (Binary Search is recursive and very fast). The issue is **overlapping subproblems**—where the same identical computation is repeated many thousands of times."
+        },
+        {
+            "id": "redundant-recursion",
+            "type": "deep_dive",
+            "title": "Visualizing Redundant Recursion",
+            "content": "Let us trace through `fib(5)` to see exactly where redundancy occurs in the recursion tree:\n* `fib(5)` calls `fib(4)` and `fib(3)`.\n* `fib(4)` calls `fib(3)` and `fib(2)`.\n* `fib(3)` calls `fib(2)` and `fib(1)`.\n* `fib(2)` calls `fib(1)` and `fib(0)`.\n\n**Call Count Analysis for fib(5):**\n* `fib(0)` computed 3 times.\n* `fib(1)` computed 5 times.\n* `fib(2)` computed 3 times.\n* `fib(3)` computed 2 times.\n* `fib(4)` computed 1 time.\n* `fib(5)` computed 1 time.\n\nTotal calls: **15**. \n\nEach call to `fib(3)` spawns the entire subtree of `fib(3)` again, even though the mathematical answer never changes. Dynamic Programming eliminates these duplicates by storing previously computed answers. Once `fib(3)` is computed, any future request for `fib(3)` simply looks up the cached answer."
+        },
+        {
+            "id": "why-recursive-slow",
+            "type": "concept",
+            "title": "Why Recursive Fibonacci Is Slow",
+            "content": "Naive recursive Fibonacci repeatedly expands into two recursive calls, creating exponential growth bounded by `O(2^n)`. More precisely, the number of calls grows like **`phi^n`**, where `phi` is ~1.618 (the golden ratio).\n\nLet `T(n)` be the number of recursive calls for `fib(n)`:\n* `T(0) = 1`, `T(1) = 1`\n* `T(n) = T(n-1) + T(n-2) + 1`\n* This mathematically solves to `T(n) ≈ 2 * (phi^n / sqrt(5))`.\n\nBecause this growth is exponential, as input size increases, recursive calls explode. The issue is not the stack; it is the **amnesia**—each recursive call does not know that its subproblems have been computed before."
+        },
+        {
+            "id": "memoization",
+            "type": "concept",
+            "title": "Memoization Optimization",
+            "content": "Memoization solves repeated computation by storing already-computed Fibonacci values in a cache. This is the **Top-Down** approach because it starts from the target `n` and recursively breaks down to base cases.\n\n* **Check the cache:** Before calculating, check if the answer exists inside memory (a dictionary or array).\n* **Return if solved:** If solved earlier, reuse the value immediately without recursing further.\n* **Compute, Store, Return:** If not solved, compute recursively, store the result in the cache, and return it.\n\nThis completely prevents repeated recursion. The recursion tree collapses from an exponential binary tree to a linear chain-like tree. \n\n**Benefits:** It preserves natural recursive thinking, uses **lazy evaluation** (only computes what's strictly needed), and is easy to add to naive code. \n**Drawbacks:** Uses `O(n)` stack space for recursion, risking `RecursionError` for extremely large `n`."
+        },
+        {
+            "id": "memoization-workflow",
+            "type": "deep_dive",
+            "title": "Memoized Fibonacci Workflow",
+            "content": "Let us trace memoized Fibonacci for `fib(5)`. Initially the memo dictionary is empty.\n\n1.  Call `fib(5)`. Not in memo. Need `fib(4)`.\n2.  Call `fib(4)`. Not in memo. Need `fib(3)`.\n3.  Call `fib(3)`. Not in memo. Need `fib(2)`.\n4.  Call `fib(2)`. Not in memo. Need `fib(1)`.\n5.  Call `fib(1)`. Base case, returns 1. **Store memo[1]=1**.\n6.  Call `fib(0)`. Base case, returns 0. **Store memo[0]=0**.\n7.  `fib(2)` resolves: 1 + 0 = 1. **Store memo[2]=1**.\n8.  Back to `fib(3)`. Needs `fib(1)`. Check memo: **Found 1!** No recursion. `fib(3) = 1 + 1 = 2`. **Store memo[3]=2**.\n9.  Back to `fib(4)`. Needs `fib(2)`. Check memo: **Found 1!** No recursion. `fib(4) = 2 + 1 = 3`. **Store memo[4]=3**.\n10. Back to `fib(5)`. Needs `fib(3)`. Check memo: **Found 2!** No recursion. `fib(5) = 3 + 2 = 5`. **Store memo[5]=5**.\n\nOnly **6 unique computations** occurred compared to 15 in naive recursion."
+        },
+        {
+            "id": "memoized-implementation",
+            "type": "concept",
+            "title": "Memoized Fibonacci Implementation",
+            "content": "Memoized Fibonacci preserves recursion while caching values. There are three common ways to implement it:\n\n1.  **Dictionary Memo:** Works for any `n` and handles sparse keys safely. Pass a dictionary into the recursive function (or use a global/class scope), check `if n in memo`, and `memo[n] = result`.\n2.  **List Memo (Array):** More efficient for contiguous `n` ranges. Initialize a list `memo = [-1] * (n + 1)`. Check `if memo[k] != -1` to avoid recalculating.\n3.  **Functools `@lru_cache`:** Python provides built-in memoization. Just add `@lru_cache(maxsize=None)` above the naive recursive function, and Python's C-backend handles the caching dictionary automatically.",
+            "codeSnippets": [
+                {
+                    "title": "Memoized Fibonacci",
+                    "language": "python",
+                    "code": "memo = {}\n\ndef fib(n):\n    if n in memo:\n        return memo[n]\n\n    if n <= 1:\n        return n\n\n    memo[n] = fib(n - 1) + fib(n - 2)\n    return memo[n]\n\nprint(fib(10))"
+                }
+            ]
+        },
+        {
+            "id": "tabulation",
+            "type": "concept",
+            "title": "Tabulation Optimization",
+            "content": "Tabulation is the **Bottom-Up** DP approach that builds Fibonacci values iteratively from the smallest subproblems upward. Instead of recursion, it uses a standard `for` loop and an array table.\n\nSetup Steps:\n1.  Create an array `dp` of size `n+1`.\n2.  Initialize base cases: `dp[0] = 0` and `dp[1] = 1`.\n3.  Loop `i` from `2` to `n`: `dp[i] = dp[i-1] + dp[i-2]`.\n4.  Return `dp[n]`.\n\n**Pros:** Tabulation has **no recursion overhead** (loops are faster than function calls), zero risk of stack overflow, and cache-friendly sequential memory access.\n**Cons:** It must compute *all* values from 0 to `n` comprehensively, even if a more complex problem algorithmically didn't require every single sub-state. It requires building the entire sequence table."
+        },
+        {
+            "id": "tabulation-implementation",
+            "type": "concept",
+            "title": "Tabulation Fibonacci Implementation",
+            "content": "Tabulation avoids recursion overhead while maintaining linear `O(n)` efficiency.\n\n* **The Full Table Version:** Creates an array `dp` of size `n+1`. It sets `dp[0]=0`, `dp[1]=1`, loops up to `n`, and returns `dp[n]`. This definitively uses `O(n)` space in RAM.\n* **The Sequence Generator:** If an application actually requires the *entire sequence* (not just the nth number), the tabulation `dp` array is exactly what you need to return.\n\nThe space complexity is `O(n)` because we store the entire array of answers. However, if we only want the final answer `dp[n]`, storing the full array is a waste of memory. This can be heavily optimized.",
+            "codeSnippets": [
+                {
+                    "title": "Tabulation Fibonacci",
+                    "language": "python",
+                    "code": "def fib(n):\n    if n <= 1:\n        return n\n\n    dp = [0] * (n + 1)\n    dp[1] = 1\n\n    for i in range(2, n + 1):\n        dp[i] = dp[i - 1] + dp[i - 2]\n\n    return dp[n]\n\nprint(fib(10))"
+                }
+            ]
+        },
+        {
+            "id": "complexity-comparison",
+            "type": "deep_dive",
+            "title": "Complexity Comparison",
+            "content": "Understanding the complexity differences proves the mathematical power of Dynamic Programming:\n\n* **Naive Recursion:** `O(2^n)` Time, `O(n)` Space (Stack). `n=40` is ~331M calls. `n=100` is impossible.\n* **Memoization:** `O(n)` Time, `O(n)` Space (Stack + Cache). `n=40` is 40 calls. `n=100` is 100 calls.\n* **Tabulation:** `O(n)` Time, `O(n)` Space (Array). `n=40` is 40 loop iterations.\n* **Space-Optimized Tabulation:** `O(n)` Time, **`O(1)` Space** (Variables).\n\nFor `n=40`, naive recursion takes roughly 0.5 seconds, while DP takes microseconds—an improvement of **8 million times**. For `n=100`, naive recursion would outlast the universe, while DP completes instantly.",
+            "chart": {
+                "title": "Fibonacci optimization comparison",
+                "description": "Dynamic Programming dramatically reduces Fibonacci computation from exponential growth to linear growth.",
+                "maxN": 32,
+                "normalize": true,
+                "curves": [
+                    "O(n)",
+                    "O(n^2)",
+                    "O(2^n)"
+                ]
+            }
+        },
+        {
+            "id": "space-optimization",
+            "type": "concept",
+            "title": "Space Optimization (Iterative)",
+            "content": "The tabulation approach can be hyper-optimized. Notice the recurrence: `dp[i] = dp[i-1] + dp[i-2]`. Each Fibonacci value **only depends on the two immediately previous values**.\n\nWhen computing `F(10)`, you need `F(9)` and `F(8)`. You **do not** need `F(7)` anymore. You can discard old values and only keep a \"sliding window\" of the two most recent numbers.\n\n* Initialize `a = 0` (represents F(i-2)) and `b = 1` (represents F(i-1)).\n* For `i` from 2 to `n`, compute `current = a + b`.\n* Shift the window forward: `a = b`, and `b = current`.\n* Return `b`.\n\nThis `O(1)` space algorithm uses only standard integer variables. For `n = 1,000,000`, full tabulation would use 8 Megabytes for the array. Space-optimized uses **24 bytes**. That is a 333,000x memory savings."
+        },
+        {
+            "id": "optimized-iterative",
+            "type": "concept",
+            "title": "Optimized Iterative Fibonacci",
+            "content": "The space-optimized iterative implementation is the gold standard for generating a specific Fibonacci number in production environments.\n\n* **Time:** `O(n)`\n* **Space:** `O(1)`\n* **Stack:** No recursion overhead or depth limits.\n* **Memory:** No array allocation overhead.\n\n**When to use which implementation?**\n1.  **Naive Recursion:** Only for teaching mathematical mapping. Never use in production.\n2.  **Memoization:** Best when the recurrence is highly complex/multi-dimensional and you only want to visit exactly the states you need.\n3.  **Tabulation (Array):** Best when you explicitly need to return or query the *entire history* of the sequence.\n4.  **Space-Optimized (Variables):** Best for production when you only need the final `F(n)` result.",
+            "codeSnippets": [
+                {
+                    "title": "Space-optimized Fibonacci",
+                    "language": "python",
+                    "code": "def fib(n):\n    if n <= 1:\n        return n\n\n    prev2 = 0\n    prev1 = 1\n\n    for i in range(2, n + 1):\n        current = prev1 + prev2\n        prev2 = prev1\n        prev1 = current\n\n    return prev1\n\nprint(fib(10))"
+                }
+            ]
+        },
+        {
+            "id": "memoization-vs-tabulation",
+            "type": "deep_dive",
+            "title": "Memoization vs Tabulation in Fibonacci",
+            "content": "Both memoization and tabulation completely resolve the overlapping subproblem issue, differing solely in execution geometry.\n\n* **Memoization (Top-Down):** Recursively works down to base cases. Uses `O(n)` recursion stack space + `O(n)` cache space. It only solves subproblems strictly reachable from `n`.\n* **Tabulation (Bottom-Up):** Iteratively builds from base cases up to `n`. Uses `O(n)` array space (or `O(1)` if optimized) and avoids the call stack entirely.\n\nMemoization often feels easier conceptually because it mimics the mathematical recurrence exactly. Tabulation requires mentally reversing the graph. However, for Fibonacci specifically, the space-optimized Tabulation with `O(1)` memory is the undisputed best practice."
+        },
+        {
+            "id": "real-world-importance",
+            "type": "real_world_connection",
+            "title": "Real-World Importance",
+            "content": "While calculating Fibonacci numbers is mostly an academic exercise, the exact optimization patterns learned here map identically to complex engineering tasks:\n\n* **Shortest Path Algorithms:** Dijkstra and Bellman-Ford use DP principles because checking the same intermediate node repeatedly is inefficient.\n* **Bioinformatics:** DNA sequence alignment (Needleman-Wunsch) uses 2D tabulation DP to align genomes without exponential recursion.\n* **Natural Language Processing:** Spell-check engines (Edit Distance) use caching to find string matches optimally.\n* **Resource Allocation:** Knapsack problems use DP to figure out cargo loading or financial investment thresholds.\n\nThe leap from Naive Fibonacci to Memoized Fibonacci is the exact same intellectual leap required to build modern AI and routing engines."
+        },
+        {
+            "id": "misconceptions",
+            "type": "key_concept",
+            "title": "Common Beginner Mistakes",
+            "subsections": [
+                {
+                    "id": "recursion-bad",
+                    "title": "Mistake: Thinking recursion is inherently inefficient",
+                    "content": "Recursion *only* becomes deeply inefficient when overlapping subproblems repeatedly recompute identical work. Tree traversal (DFS) or Binary Search are recursive and lightning fast. The villain is the amnesia of re-computing, not the recursion itself."
+                },
+                {
+                    "id": "memoization-library",
+                    "title": "Mistake: Confusing memoization with Python libraries",
+                    "content": "Memoization is a theoretical algorithmic strategy for caching results. While Python's `functools.lru_cache` perfectly implements it, it is critical to know how to write your own dictionary cache for languages/situations that lack built-in decorators."
+                },
+                {
+                    "id": "dp-arrays-only",
+                    "title": "Mistake: Believing DP always requires arrays",
+                    "content": "Dynamic Programming may use dictionaries, matrices, trees, or single variables. For Fibonacci, integer variables work (`O(1)`). For Graph DP, a Dictionary keyed by Node objects is standard. Use what fits the state."
+                }
+            ]
+        },
+        {
+            "id": "takeaways",
+            "type": "summary",
+            "title": "Key Takeaways",
+            "bullets": [
+                "Fibonacci perfectly demonstrates **overlapping subproblems**.",
+                "Naive recursion repeatedly recomputes identical values (`O(2^n)`).",
+                "**Memoization** stores computed results in a cache for reuse (Top-Down).",
+                "**Tabulation** builds answers iteratively in an array (Bottom-Up).",
+                "Dynamic Programming reduces Fibonacci to **linear time (`O(n)`)**.",
+                "**Space optimization** can reduce memory complexity to absolute `O(1)`."
+            ]
+        }
+    ],
+    "references": [
+        {
+            "title": "Programiz - Dynamic Programming",
+            "url": "https://www.programiz.com/dsa/dynamic-programming"
+        },
+        {
+            "title": "GeeksforGeeks - Overlapping Subproblems in DP",
+            "url": "https://www.geeksforgeeks.org/overlapping-subproblems-property-in-dynamic-programming-dp-1/"
+        },
+        {
+            "title": "W3Schools — Dynamic Programming",
+            "url": "https://www.w3schools.com/dsa/dsa_ref_dynamic_programming.php"
+        },
+        {
+            "title": "Kleinberg, J., & Tardos, E. (2005). Algorithm Design. Pearson Education.",
+            "url": "https://www.pearson.com/en-us/subject-catalog/p/algorithm-design/P200000003348/9780321295354"
+        }
+    ]
 }
