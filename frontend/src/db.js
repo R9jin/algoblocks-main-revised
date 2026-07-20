@@ -58,7 +58,17 @@ const createStoreWrapper = (storeName, keyPath) => {
         },
         async save(item) {
             const db = await initDB();
-            return db.put(storeName, { ...item, timestamp: Date.now() });
+            // Only stamp a fresh timestamp when the caller didn't already provide
+            // one. Previously this always overwrote `timestamp` with Date.now(),
+            // which meant every background sync pull (syncManager.pullRemoteState,
+            // every 30s) clobbered the real server-side timestamp of projects,
+            // templates, etc. with "now" -- making everything look like it was
+            // just modified and causing the dashboard's sort-by-updatedAt to
+            // reshuffle (flicker) on each poll.
+            const timestamp = item.timestamp !== undefined && item.timestamp !== null
+                ? item.timestamp
+                : Date.now();
+            return db.put(storeName, { ...item, timestamp });
         },
         async delete(id) {
             const db = await initDB();
