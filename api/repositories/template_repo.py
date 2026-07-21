@@ -96,18 +96,51 @@ class TemplateRepository:
         return str(inserted_id)
 
     @staticmethod
-    def update(template_id: str, template_data: dict):
+    def update(template_id: str, template_data: dict, user_id: str = None):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Check if exists by string templateId or int id
+        # SECURITY FIX: scope the lookup to templates owned by the requesting
+        # user. Previously this looked up by id/templateId alone, so any
+        # authenticated user could pass another user's (or a shared/curated)
+        # templateId and overwrite its contents -- an IDOR / broken access
+        # control bug (no different from the fixed project update, which has
+        # always required "userId" = %s OR owner_id = %s).
         try:
             t_id = int(template_id)
-            cursor.execute('SELECT id, blockly_data FROM templates WHERE id = %s', (t_id,))
+            if user_id:
+                cursor.execute(
+                    'SELECT id, blockly_data FROM templates WHERE id = %s AND ("userId" = %s OR owner_id = %s)',
+                    (t_id, user_id, user_id)
+                )
+            else:
+                cursor.execute('SELECT id, blockly_data FROM templates WHERE id = %s', (t_id,))
         except ValueError:
-            cursor.execute('SELECT id, blockly_data FROM templates WHERE "templateId" = %s', (template_id,))
+            if user_id:
+                cursor.execute(
+                    'SELECT id, blockly_data FROM templates WHERE "templateId" = %s AND ("userId" = %s OR owner_id = %s)',
+                    (template_id, user_id, user_id)
+                )
+            else:
+                cursor.execute('SELECT id, blockly_data FROM templates WHERE "templateId" = %s', (template_id,))
             
         existing = cursor.fetchone()
+        
+        if not existing and user_id:
+            # It might still exist, just owned by someone else -- check
+            # without the ownership filter so we can refuse (403) instead of
+            # falling through to save() below, which would otherwise attempt
+            # an INSERT with a templateId that already exists and fail with
+            # an unhandled duplicate-key DB error.
+            try:
+                t_id = int(template_id)
+                cursor.execute('SELECT id FROM templates WHERE id = %s', (t_id,))
+            except ValueError:
+                cursor.execute('SELECT id FROM templates WHERE "templateId" = %s', (template_id,))
+            if cursor.fetchone():
+                cursor.close()
+                conn.close()
+                return None
         
         if existing:
             blockly_updates = {}

@@ -42,14 +42,23 @@ def update_user_status(
     if not email or not status:
         raise HTTPException(status_code=400, detail="Missing email or status")
         
+    # Normalize + validate: the frontend sends "Active"/"Suspended", the DB
+    # column default is lowercase "active". Storing whatever casing a caller
+    # happens to send made the two easy to drift out of sync (that's what
+    # broke the suspend toggle in the UI). Pin it down to two canonical,
+    # lowercase values here so the column can never hold anything else.
+    normalized_status = status.strip().lower()
+    if normalized_status not in ("active", "suspended"):
+        raise HTTPException(status_code=400, detail="Status must be 'active' or 'suspended'")
+        
     if email == admin_email:
         raise HTTPException(status_code=400, detail="Cannot change your own status")
         
     try:
-        rowcount = UserRepository.update_user_status(email, status)
+        rowcount = UserRepository.update_user_status(email, normalized_status)
         if rowcount == 0:
             raise HTTPException(status_code=404, detail="User not found")
-        return {"status": "success", "message": f"User status updated to {status}"}
+        return {"status": "success", "message": f"User status updated to {normalized_status}"}
     except HTTPException:
         raise
     except Exception as e:

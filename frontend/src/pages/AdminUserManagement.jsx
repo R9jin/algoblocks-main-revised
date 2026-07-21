@@ -43,6 +43,12 @@ const getAuthToken = () =>
   localStorage.getItem("authToken") ||
   sessionStorage.getItem("authToken");
 
+// Status is stored/sent as "active"/"suspended" going forward, but rows
+// touched before that normalization may still hold the old "Active"/
+// "Suspended" casing. Compare case-insensitively everywhere so both forms
+// work correctly.
+const isSuspendedStatus = (status) => (status || "").trim().toLowerCase() === "suspended";
+
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -225,7 +231,7 @@ const AdminUserManagement = () => {
       
       const matchesStatus = 
         statusFilter === "all" ? true : 
-        statusFilter === "active" ? user.status !== "Suspended" : user.status === "Suspended";
+        statusFilter === "active" ? !isSuspendedStatus(user.status) : isSuspendedStatus(user.status);
         
       return matchesSearch && matchesRole && matchesStatus;
     });
@@ -260,13 +266,22 @@ const AdminUserManagement = () => {
       return;
     }
 
-    const newStatus = currentStatus === "Active" || !currentStatus ? "Suspended" : "Active";
+    // BUGFIX: this used to check `currentStatus === "Active"` (capital A),
+    // but every real account's status comes from Postgres as lowercase
+    // "active" (see database.py's column default and signup's insert). That
+    // mismatch meant this always fell into the "else" branch and recomputed
+    // "Active" instead of "Suspended" -- so clicking "suspend" on a normal
+    // account silently did nothing. Keying off "is currently Suspended"
+    // (which the status badge below already does correctly) fixes it
+    // regardless of whatever casing "active" happens to be stored as.
+    const isCurrentlySuspended = isSuspendedStatus(currentStatus);
+    const newStatus = isCurrentlySuspended ? "active" : "suspended";
     
     showModal({
       type: "confirm",
       title: "Confirm Status Change",
-      message: `Are you sure you want to change this account's status to ${newStatus}?`,
-      isDanger: newStatus === "Suspended",
+      message: `Are you sure you want to change this account's status to ${newStatus === "suspended" ? "Suspended" : "Active"}?`,
+      isDanger: newStatus === "suspended",
       onConfirm: async () => {
         try {
           const token = getAuthToken();
@@ -600,7 +615,7 @@ const AdminUserManagement = () => {
                       )}
                     </td>
                     <td>
-                      {user.status === "Suspended" ? (
+                      {isSuspendedStatus(user.status) ? (
                         <span className="admin-badge badge-suspended">
                           <LuBan size={16} /> Suspended
                         </span>
@@ -624,10 +639,10 @@ const AdminUserManagement = () => {
                       <div className="admin-actions">
                         <button 
                           onClick={() => handleStatusToggle(user.email, user.status)}
-                          title={user.status === "Active" ? "Suspend Account Access" : "Restore Account Access"}
-                          className={`admin-action-btn ${user.status === "Active" ? "suspend" : "activate"}`}
+                          title={isSuspendedStatus(user.status) ? "Restore Account Access" : "Suspend Account Access"}
+                          className={`admin-action-btn ${isSuspendedStatus(user.status) ? "activate" : "suspend"}`}
                         >
-                          {user.status === "Active" ? <LuBan size={20} /> : <LuCheck size={20} />}
+                          {isSuspendedStatus(user.status) ? <LuCheck size={20} /> : <LuBan size={20} />}
                         </button>
                         <button 
                           onClick={() => handleDelete(user.email)}

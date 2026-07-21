@@ -50,7 +50,19 @@ async def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
         if email is None:
             logger.warning("Token payload missing 'sub' or 'email'")
             raise credentials_exception
-            
+
+        # SECURITY FIX: a suspended account's already-issued tokens (valid up
+        # to 7 days) previously kept working for every request, since only
+        # login checked account status. Re-check status here so an admin's
+        # "suspend" action takes effect immediately, not just on next login.
+        user = UserRepository.find_by_email(email)
+        if not user or user.get("status", "active") != "active":
+            logger.warning(f"Rejected request: {email} account is not active")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This account has been suspended. Contact an administrator.",
+            )
+
         return email
         
     except jwt.ExpiredSignatureError:

@@ -28,9 +28,17 @@ class TemplateService:
             template_data["owner_id"] = template_data["userId"]
             
         template_id = template_data.get("templateId", None)
+        user_id = template_data.get("userId")
         
         if template_id:
-            updated_id = TemplateRepository.update(template_id, template_data)
+            updated_id = TemplateRepository.update(template_id, template_data, user_id=user_id)
+            if updated_id is None:
+                # Either the template doesn't exist, or it exists but isn't
+                # owned by this user -- don't leak which, just refuse.
+                raise HTTPException(
+                    status_code=403,
+                    detail="You don't have permission to modify this template."
+                )
             return {
                 "status": "success", 
                 "message": "Template updated successfully", 

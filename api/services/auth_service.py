@@ -51,6 +51,15 @@ class AuthService:
                 detail="Invalid credentials."
             )
 
+        # SECURITY FIX: an admin's "suspend/deactivate user" action previously
+        # had no effect at login -- a suspended account could still sign in
+        # normally. Block anything other than an "active" status.
+        if user.get("status", "active") != "active":
+            raise HTTPException(
+                status_code=403,
+                detail="This account has been suspended. Contact an administrator."
+            )
+
         token = create_access_token({"sub": req.email})
 
         return {
@@ -264,6 +273,14 @@ class AuthService:
                 )
 
             user = UserRepository.find_by_email(email)
+
+            # SECURITY FIX: same suspension check as password login -- a
+            # suspended account shouldn't be able to bypass it via Google SSO.
+            if user and user.get("status", "active") != "active":
+                raise HTTPException(
+                    status_code=403,
+                    detail="This account has been suspended. Contact an administrator."
+                )
 
             if not user:
                 UserRepository.insert({
