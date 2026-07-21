@@ -22,7 +22,7 @@ let crossTabPluginInitialized = false;
 const DarkTheme = Blockly.Themes.Dark;
 const ModernTheme = Blockly.Themes.Modern;
 
-const pastelTheme = Blockly.Theme.defineTheme("pastelTheme", {
+export const pastelTheme = Blockly.Theme.defineTheme("pastelTheme", {
   base: ModernTheme,
   categoryStyles: {
     logic_category: { colour: "#c1a0e8" }, loop_category: { colour: "#8bcf8b" }, math_category: { colour: "#4C97FF" },

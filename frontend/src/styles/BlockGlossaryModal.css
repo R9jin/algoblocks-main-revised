@@ -1,0 +1,311 @@
+/* frontend\src\styles\BlockGlossaryModal.css */
+.block-glossary-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 5, 36, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: bg-fade-in 0.3s ease-out forwards;
+}
+
+.block-glossary-modal-content {
+    background: #ffffff;
+    width: 92%;
+    max-width: 760px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+    animation: bg-smooth-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.block-glossary-modal-header {
+    background: #3A2A6B;
+    color: white;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.block-glossary-modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.block-glossary-close-btn {
+    background: transparent;
+    border: none;
+    color: #EBE4FF;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.block-glossary-close-btn:hover {
+    color: white;
+}
+
+.block-glossary-search-row {
+    padding: 14px 20px 0;
+    flex-shrink: 0;
+}
+
+.block-glossary-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1.5px solid #E4DEFA;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.block-glossary-search-input:focus {
+    border-color: #6C5CE7;
+}
+
+.block-glossary-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 12px 20px 8px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    border-bottom: 1px solid #eee;
+}
+
+.block-glossary-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1.5px solid #E4DEFA;
+    background: #fdfdfd;
+    color: #555;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.block-glossary-tab:hover {
+    background: #F4F0FF;
+}
+
+.block-glossary-tab.active {
+    background: #F4F0FF;
+    font-weight: 700;
+}
+
+.block-glossary-tab-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.block-glossary-accordion {
+    padding: 14px 20px 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.block-glossary-result-count {
+    font-size: 0.82rem;
+    color: #888;
+    margin-bottom: 10px;
+}
+
+.block-glossary-empty {
+    text-align: center;
+    color: #888;
+    padding: 30px 0;
+    font-size: 0.95rem;
+}
+
+.block-glossary-row {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.block-glossary-row.expanded {
+    border-color: #BCA1FC;
+    box-shadow: 0 2px 8px rgba(188, 161, 252, 0.2);
+}
+
+.block-glossary-row-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    background: #fdfdfd;
+    transition: background 0.2s;
+}
+
+.block-glossary-row-trigger:hover {
+    background: #F4F0FF;
+}
+
+.block-glossary-colour-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.block-glossary-label {
+    font-weight: 600;
+    color: #2b005c;
+    flex: 1;
+    min-width: 0;
+}
+
+.block-glossary-category-pill {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1.5px solid;
+    white-space: nowrap;
+}
+
+.block-glossary-type {
+    font-family: monospace;
+    font-size: 0.78rem;
+    color: #999;
+    white-space: nowrap;
+}
+
+.block-glossary-chevron {
+    color: #6C5CE7;
+    font-size: 0.75rem;
+    width: 16px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.block-glossary-row-details {
+    padding: 16px;
+    background: white;
+    border-top: 1px solid #eee;
+    font-size: 0.93rem;
+    color: #444;
+    line-height: 1.5;
+}
+
+.block-glossary-row-details p {
+    margin: 0 0 10px 0;
+}
+
+.block-glossary-row-details p:last-child {
+    margin: 0;
+}
+
+.block-preview-wrapper {
+    margin-bottom: 12px;
+}
+
+.block-preview-canvas {
+    width: 100%;
+    height: 110px;
+    border-radius: 8px;
+    border: 1px dashed #E4DEFA;
+    background: #FAF9FF;
+    /* Blockly injects an absolutely-positioned SVG; this needs to be a
+       positioning context with a real, non-zero size for it to render. */
+    position: relative;
+    overflow: hidden;
+}
+
+.block-preview-fallback {
+    padding: 10px;
+    font-size: 0.85rem;
+    color: #888;
+    font-style: italic;
+}
+
+.block-glossary-python-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.block-glossary-python-code {
+    display: block;
+    background: #2b2b40;
+    color: #d5c9ff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Animations (mirrors BigOModal) */
+@keyframes bg-fade-in {
+    0% { opacity: 0; backdrop-filter: blur(0px); }
+    100% { opacity: 1; backdrop-filter: blur(4px); }
+}
+
+@keyframes bg-smooth-slide {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width: 480px) {
+    .block-glossary-modal-header {
+        padding: 14px 16px;
+    }
+
+    .block-glossary-modal-header h2 {
+        font-size: 1.05rem;
+    }
+
+    .block-glossary-search-row {
+        padding: 12px 12px 0;
+    }
+
+    .block-glossary-tabs {
+        padding: 10px 12px 8px;
+    }
+
+    .block-glossary-accordion {
+        padding: 10px 12px 16px;
+    }
+
+    .block-glossary-row-trigger {
+        padding: 10px 12px;
+        flex-wrap: wrap;
+    }
+
+    .block-glossary-type {
+        display: none;
+    }
+
+    .block-preview-canvas {
+        height: 90px;
+    }
+}

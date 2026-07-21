@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
+import BlockGlossaryModal from "../components/BlockGlossaryModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import DockableWorkspace from "../components/DockableWorkspace.jsx";
@@ -134,6 +135,7 @@ export default function MainApp() {
     title: "", description: "", category: "Custom Templates", saveType: "project",
   });
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
+  const [isBlockGlossaryOpen, setIsBlockGlossaryOpen] = useState(false);
 
   const workspaceRefs = useRef({});
   const workerRef = useRef(null);
@@ -168,6 +170,9 @@ export default function MainApp() {
       { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you want a quick concept refresher.", onEnter: () => setIsBigOModalOpen(true), onExit: () => setIsBigOModalOpen(false) },
       { target: ".big-o-modal-content", title: "Reference library", description: "Browse the complexity definitions and examples inside the modal." },
       { target: ".big-o-accordion .big-o-row-trigger", title: "Expandable complexity rows", description: "Open any row to read the definition, analogy, and examples for a specific Big-O class." },
+      { target: ".block-glossary-btn", title: "Block Glossary", description: "Not sure what a block does? Open the glossary to look up every block's purpose and when to use it.", onEnter: () => setIsBlockGlossaryOpen(true), onExit: () => setIsBlockGlossaryOpen(false) },
+      { target: ".block-glossary-tabs", title: "Browse by category", description: "Jump straight to Logic, Loops, Lists, and every other category of blocks." },
+      { target: ".block-glossary-row-trigger", title: "Look up any block", description: "Expand a block to see a live preview of exactly what it looks like, what it does, and a real scenario for when to use it." },
     ],
   };
 
@@ -1009,6 +1014,7 @@ export default function MainApp() {
             openPanelIds={openPanelIds}
             onTogglePanel={toggleDockPanel}
             onOpenBigOModal={() => setIsBigOModalOpen(true)}
+            onOpenBlockGlossary={() => setIsBlockGlossaryOpen(true)}
           >
             <button className="footer-action-icon reset-layout-btn" onClick={() => dockRef.current?.reset()} title="Restore the default panel layout and sizes">
               <FiLayers size={16} /> Reset Workspace Layout
@@ -1020,6 +1026,7 @@ export default function MainApp() {
         </main>
       </Split>
       <BigOModal isOpen={isBigOModalOpen} onClose={() => setIsBigOModalOpen(false)} />
+      <BlockGlossaryModal isOpen={isBlockGlossaryOpen} onClose={() => setIsBlockGlossaryOpen(false)} />
     </div>
   );
 }

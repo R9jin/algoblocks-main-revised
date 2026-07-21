@@ -1,10 +1,12 @@
 // frontend/src/components/WorkspaceFooterBar.jsx
 import { FiActivity, FiBookOpen, FiTerminal } from "react-icons/fi";
+import { LuBlocks } from "react-icons/lu";
 
 export default function WorkspaceFooterBar({
   openPanelIds,
   onTogglePanel,
   onOpenBigOModal,
+  onOpenBlockGlossary,
   children
 }) {
   const isOpen = (id) => (openPanelIds instanceof Set ? openPanelIds.has(id) : Array.isArray(openPanelIds) && openPanelIds.includes(id));
@@ -20,6 +22,9 @@ export default function WorkspaceFooterBar({
         </button>
         <button className="footer-tab big-o-btn" onClick={onOpenBigOModal}>
           <FiBookOpen size={16} /> Big O Reference
+        </button>
+        <button className="footer-tab block-glossary-btn" onClick={onOpenBlockGlossary} title="Look up what any block does and when to use it">
+          <LuBlocks size={16} /> Block Glossary
         </button>
       </div>
       <div className="footer-right">

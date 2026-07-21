@@ -4,6 +4,7 @@ import { FiActivity, FiBookOpen, FiChevronLeft, FiChevronRight, FiGrid, FiInfo, 
 import { useNavigate, useParams } from "react-router-dom";
 import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
+import BlockGlossaryModal from "../components/BlockGlossaryModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import DockableWorkspace from "../components/DockableWorkspace.jsx";
@@ -154,11 +155,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you need a reminder of the notation.", onEnter: () => setIsBigOModalOpen(true), onExit: () => setIsBigOModalOpen(false) },
       { target: ".big-o-modal-content", title: "Reference library", description: "Browse the reference table and expand entries for deeper details." },
       { target: ".big-o-accordion .big-o-row-trigger", title: "Expandable complexity rows", description: "Open any row to inspect the definition, analogy, and examples behind a complexity class." },
+      { target: ".block-glossary-btn", title: "Block Glossary", description: "Stuck on what a block does? Open the glossary to look up every block's purpose and when to use it.", onEnter: () => setIsBlockGlossaryOpen(true), onExit: () => setIsBlockGlossaryOpen(false) },
+      { target: ".block-glossary-tabs", title: "Browse by category", description: "Jump straight to Logic, Loops, Lists, and every other category of blocks." },
+      { target: ".block-glossary-row-trigger", title: "Look up any block", description: "Expand a block to see a live preview of exactly what it looks like, what it does, and a real scenario for when to use it." },
     ],
   };
 
   const [syntaxErrors, setSyntaxErrors] = useState([]);
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
+  const [isBlockGlossaryOpen, setIsBlockGlossaryOpen] = useState(false);
 
   const dockRef = useRef(null);
   // Brings a panel's tab to the front in whichever region it's currently
@@ -1238,6 +1243,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             openPanelIds={openPanelIds}
             onTogglePanel={toggleDockPanel}
             onOpenBigOModal={() => setIsBigOModalOpen(true)}
+            onOpenBlockGlossary={() => setIsBlockGlossaryOpen(true)}
           >
             <button className="footer-action-icon reset-layout-btn" onClick={() => dockRef.current?.reset()} title="Restore the default panel layout and sizes">
               <FiLayers size={16} /> Reset Workspace Layout
@@ -1315,6 +1321,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
       <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} cancelText={modalConfig.cancelText} isDanger={modalConfig.isDanger} onCancel={modalConfig.onCancelAction || closeModal} onConfirm={modalConfig.onConfirmAction} />
       <BigOModal isOpen={isBigOModalOpen} onClose={() => setIsBigOModalOpen(false)} />
+      <BlockGlossaryModal isOpen={isBlockGlossaryOpen} onClose={() => setIsBlockGlossaryOpen(false)} />
     </div>
   );
 };

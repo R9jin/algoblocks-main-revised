@@ -378,6 +378,8 @@ body {
 .footer-tab.active { background: rgba(255,255,255,0.1); color: var(--text-on-dark); box-shadow: inset 0 -3px 0 var(--purple-main); }
 .footer-tab.big-o-btn { color: var(--text-on-dark); border: 1px solid var(--dark-border);}
 .footer-tab.big-o-btn:hover { background: var(--dark-surface); border-color: #A78BFA; color: #FFFFFF;}
+.footer-tab.block-glossary-btn { color: var(--text-on-dark); border: 1px solid var(--dark-border);}
+.footer-tab.block-glossary-btn:hover { background: var(--dark-surface); border-color: #A78BFA; color: #FFFFFF;}
 
 .footer-action-icon { 
   background: transparent; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-on-dark-muted); font-weight: 600; transition: all 0.2s; padding: 8px 12px; border-radius: 8px; gap: 8px;
