@@ -10,14 +10,18 @@ import {
   FiCpu,
   FiInfo,
   FiLock,
+  FiMail,
+  FiShield,
   FiTarget,
   FiTrendingUp,
-  FiUnlock
+  FiUnlock,
+  FiUsers
 } from "react-icons/fi";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
 import { assessmentsDB, progressDB, submissionsDB } from "../db";
+import { isAdminUser } from "../utils/auth";
 import "../styles/ProfilePage.css";
 
 export default function ProfilePage() {
@@ -33,6 +37,8 @@ export default function ProfilePage() {
   const [expandedModules, setExpandedModules] = useState({});
   const [userRank, setUserRank] = useState("Novice Coder");
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
 
   const profileTour = {
     id: "profile-tour",
@@ -76,6 +82,17 @@ export default function ProfilePage() {
         if (!parsed.email && !parsed.isGuest) parsed = { name: "User", email: "", progress: {}, assessments: {} };
 
         const isGuest = parsed.isGuest === true;
+
+        // Admin accounts no longer have Learning Path / Workspace / Project
+        // progress at all, so none of the curriculum-mastery data fetching
+        // below is relevant (or even meaningful) for them. Load just the
+        // basic identity fields and stop there.
+        if (isAdminUser(parsed)) {
+          setUser(parsed);
+          setIsAdmin(true);
+          setLoading(false);
+          return;
+        }
 
         let initialProg = parsed.progress || {};
         let initialAssm = parsed.assessments || {};
@@ -341,6 +358,82 @@ export default function ProfilePage() {
         <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" tour={profileTour} tourPageId="profile" />
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
           <div className="loading-spinner"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAdmin) {
+    return (
+      <div className="profile-page-v2">
+        <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" tour={profileTour} tourPageId="profile" />
+
+        <div className="profile-container-v2">
+          <div className="profile-cover">
+            <div className="cover-pattern"></div>
+          </div>
+
+          <div className="profile-header-card">
+            <div className="profile-avatar-wrapper">
+              <div className="profile-avatar-v2">{initials}</div>
+              <div className="avatar-status-badge" title="Online & Ready"></div>
+            </div>
+
+            <div className="profile-user-details">
+              <div className="user-title-row">
+                <h1>{user.name}</h1>
+                <span className="role-badge"><FiShield style={{ marginRight: '6px' }} /> Administrator</span>
+              </div>
+
+              <div className="user-email-wrapper">
+                <span className="user-email"><FiMail size={14} style={{ marginRight: '6px', verticalAlign: '-2px' }} />{user.email}</span>
+              </div>
+            </div>
+
+            <div className="profile-header-actions">
+              <button type="button" className="btn-resume-learning" onClick={() => navigate("/dashboard")}>
+                <FiShield size={18} /> Open Admin Dashboard
+              </button>
+            </div>
+          </div>
+
+          <div className="profile-content-grid">
+            <main className="profile-main-content" style={{ gridColumn: '1 / -1' }}>
+              <div className="content-header-row">
+                <h2>Administrator Account</h2>
+                <span className="mastery-subtitle">
+                  Admin accounts do not track Learning Path, Workspace, or Project progress -- those are
+                  student-only features. This account is scoped to user management and dataset testing.
+                </span>
+              </div>
+
+              <div className="mastery-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+                <div className="mastery-card-container">
+                  <Link to="/admin/users" className="mastery-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
+                    <div className="mastery-card-left">
+                      <div className="mastery-module-number"><FiUsers /></div>
+                      <div className="mastery-details">
+                        <h4>User Management</h4>
+                        <span className="mastery-fraction">Search, suspend, or delete accounts</span>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+
+                <div className="mastery-card-container">
+                  <Link to="/admin/evaluation-suite" className="mastery-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
+                    <div className="mastery-card-left">
+                      <div className="mastery-module-number"><FiActivity /></div>
+                      <div className="mastery-details">
+                        <h4>Dataset Testing</h4>
+                        <span className="mastery-fraction">Run the full complexity analyzer benchmark</span>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+            </main>
+          </div>
         </div>
       </div>
     );
