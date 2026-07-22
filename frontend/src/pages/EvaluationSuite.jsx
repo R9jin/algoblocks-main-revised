@@ -213,7 +213,7 @@ function EvalMetricPanel({ title, icon, tint, accuracy, errorRate, passed, misma
   );
 }
 
-export default function EvaluationSuite() {
+export default function EvaluationSuite({ embedded = false } = {}) {
   const navigate = useNavigate();
   const { worker, isEngineReady } = usePyodide();
 
@@ -896,7 +896,7 @@ export default function EvaluationSuite() {
         </div>
       )}
 
-      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
+      {!embedded && <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />}
 
       <div className="eval-main-wrapper">
         <div className="eval-page-toolbar">

@@ -4,6 +4,7 @@ import { LuActivity, LuFolder, LuGauge, LuLayoutDashboard, LuLogOut, LuRefreshCw
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/DashboardHeader.css";
 import { stopBackgroundSync, syncManager } from "../utils/syncManager";
+import { isAdminUser } from "../utils/auth";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 import TourHelpButton from "./TourHelpButton";
 
@@ -75,7 +76,7 @@ export default function DashboardHeader({
   };
 
   // Check multiple admin identifier formats to ensure compatibility with the backend payload
-  const isUserAdmin = user?.role === "admin" || user?.role === "Admin" || user?.isAdmin === true || user?.is_admin === true;
+  const isUserAdmin = isAdminUser(user);
 
   return (
     <>
@@ -134,14 +135,24 @@ export default function DashboardHeader({
                 <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/dashboard"); }} role="menuitem">
                   <LuLayoutDashboard size={18} /> Go to Dashboard
                 </button>
-                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/projects"); }} role="menuitem">
-                  <LuFolder size={18} /> Projects
-                </button>
-                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/accuracy"); }} role="menuitem">
-                  <LuGauge size={18} /> System Accuracy
-                </button>
 
-                {/* RESTRICTED: Admin-only features */}
+                {/* Learning Path / Workspace / Projects are student-only features.
+                    Admin accounts no longer track progress there, so these links
+                    are hidden entirely rather than just unlocked. */}
+                {!isUserAdmin && (
+                  <>
+                    <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/projects"); }} role="menuitem">
+                      <LuFolder size={18} /> Projects
+                    </button>
+                    <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/accuracy"); }} role="menuitem">
+                      <LuGauge size={18} /> System Accuracy
+                    </button>
+                  </>
+                )}
+
+                {/* RESTRICTED: Admin-only features. The dashboard itself now
+                    already surfaces a full-version Dataset Testing panel, so
+                    this is kept only as a direct/standalone shortcut. */}
                 {isUserAdmin && (
                   <>
                     <div className="user-dd-divider" />
@@ -152,7 +163,7 @@ export default function DashboardHeader({
                       onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
                       role="menuitem"
                     >
-                      <LuActivity size={18} aria-hidden="true" /> Analyzer Benchmark
+                      <LuActivity size={18} aria-hidden="true" /> Dataset Testing
                     </button>
                     <button 
                       type="button" 

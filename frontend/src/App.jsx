@@ -6,8 +6,10 @@ import OnboardingTour from "./components/OnboardingTour";
 import { OnboardingProvider } from "./context/OnboardingContext";
 import { PyodideProvider } from "./context/PyodideContext";
 import { startBackgroundSync, stopBackgroundSync } from "./utils/syncManager";
+import { isAdminUser } from "./utils/auth";
 
 // Lazy load ALL pages to prevent circular dependency crashes and reduce the initial load payload
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminUserManagement = lazy(() => import('./pages/AdminUserManagement'));
 const AccuracyOverview = lazy(() => import('./pages/AccuracyOverview'));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -47,6 +49,23 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
+// Admin accounts no longer have Learning Path / Workspace / Project progress.
+// Wrap those routes so an admin session is bounced back to its own
+// dashboard instead of picking up student progress.
+const StudentOnlyRoute = ({ children }) => (
+  <ProtectedRoute>
+    {isAdminUser() ? <Navigate to="/dashboard" replace /> : children}
+  </ProtectedRoute>
+);
+
+// Admin-only pages (full User Management, standalone Dataset Testing) --
+// a signed-in student account should never land here.
+const AdminOnlyRoute = ({ children }) => (
+  <ProtectedRoute>
+    {isAdminUser() ? children : <Navigate to="/dashboard" replace />}
+  </ProtectedRoute>
+);
+
 function App() {
   const location = useLocation();
 
@@ -80,10 +99,21 @@ function App() {
           <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
           
           {/* Protected Application Routes */}
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/learning-path" element={<ProtectedRoute><LearningPath /></ProtectedRoute>} />
-          <Route path="/learning-path/:moduleId/:lessonId" element={<ProtectedRoute><LessonViewer /></ProtectedRoute>} />
-          <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+          {/*
+            /dashboard is now role-branched. Admin accounts get their own
+            dashboard (User Management overview + full Dataset Testing) and
+            never see the student dashboard's Learning Path / Workspace /
+            Project content. It needs PyodideProvider since the embedded
+            Dataset Testing panel runs the analyzer in-browser.
+          */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              {isAdminUser() ? <PyodideProvider><AdminDashboard /></PyodideProvider> : <Dashboard />}
+            </ProtectedRoute>
+          } />
+          <Route path="/learning-path" element={<StudentOnlyRoute><LearningPath /></StudentOnlyRoute>} />
+          <Route path="/learning-path/:moduleId/:lessonId" element={<StudentOnlyRoute><LessonViewer /></StudentOnlyRoute>} />
+          <Route path="/projects" element={<StudentOnlyRoute><Projects /></StudentOnlyRoute>} />
           {/*
             Only these four routes actually touch the Pyodide engine, so
             PyodideProvider is scoped here rather than at the app root.
@@ -92,24 +122,29 @@ function App() {
             activity, or evaluation-suite page, instead of on every single
             route including sign-in and the dashboard.
           */}
-          <Route path="/app" element={<ProtectedRoute><PyodideProvider><MainApp /></PyodideProvider></ProtectedRoute>} />
-          <Route path="/workspace" element={<ProtectedRoute><PyodideProvider><MainApp /></PyodideProvider></ProtectedRoute>} />
-          <Route path="/activity/:moduleId/:activityId" element={<ProtectedRoute><PyodideProvider><ActivityApp /></PyodideProvider></ProtectedRoute>} />
-          <Route path="/home" element={<ProtectedRoute><UserHomePage /></ProtectedRoute>} />
-          <Route path="/assessment/:moduleId/:type" element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} />
+          <Route path="/app" element={<StudentOnlyRoute><PyodideProvider><MainApp /></PyodideProvider></StudentOnlyRoute>} />
+          <Route path="/workspace" element={<StudentOnlyRoute><PyodideProvider><MainApp /></PyodideProvider></StudentOnlyRoute>} />
+          <Route path="/activity/:moduleId/:activityId" element={<StudentOnlyRoute><PyodideProvider><ActivityApp /></PyodideProvider></StudentOnlyRoute>} />
+          <Route path="/home" element={<StudentOnlyRoute><UserHomePage /></StudentOnlyRoute>} />
+          <Route path="/assessment/:moduleId/:type" element={<StudentOnlyRoute><AssessmentPage /></StudentOnlyRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           {/*
             Simplified, student-friendly accuracy overview -- open to every
-            signed-in user. It reuses the same Pyodide worker as the admin
+            signed-in student. It reuses the same Pyodide worker as the admin
             evaluation suite below, so it needs the same provider, but the
             page itself only ever shows two headline percentages plus plain
             language -- no tables, no per-class breakdowns.
           */}
-          <Route path="/accuracy" element={<ProtectedRoute><PyodideProvider><AccuracyOverview /></PyodideProvider></ProtectedRoute>} />
+          <Route path="/accuracy" element={<StudentOnlyRoute><PyodideProvider><AccuracyOverview /></PyodideProvider></StudentOnlyRoute>} />
           
-          {/* Protected Admin Routes */}
-          <Route path="/admin/users" element={<ProtectedRoute><AdminUserManagement /></ProtectedRoute>} />
-          <Route path="/admin/evaluation-suite" element={<ProtectedRoute><PyodideProvider><EvaluationSuite /></PyodideProvider></ProtectedRoute>} />
+          {/*
+            Protected Admin Routes -- these remain as standalone/direct-link
+            pages (reachable from the profile icon's User Management link,
+            or by direct URL) in addition to being surfaced on the admin
+            dashboard itself. Restricted to admin accounts only.
+          */}
+          <Route path="/admin/users" element={<AdminOnlyRoute><AdminUserManagement /></AdminOnlyRoute>} />
+          <Route path="/admin/evaluation-suite" element={<AdminOnlyRoute><PyodideProvider><EvaluationSuite /></PyodideProvider></AdminOnlyRoute>} />
 
           {/* Catch-all route: prevents a completely blank screen if the user lands on an invalid 404 path */}
           <Route path="*" element={<Navigate to="/" replace />} />
