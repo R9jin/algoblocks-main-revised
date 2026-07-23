@@ -213,6 +213,33 @@ function generateClassificationReport(details, expKey, predKey, standardClasses)
   return { perClass: report, macroAvg, weightedAvg, totalSupport };
 }
 
+// Sibling Python source files that make up the in-browser complexity engine.
+// analyzer.py / complexity_explainer.py are the two composed entry points;
+// everything else is a component module split out of the former monolithic
+// analyzer.py and semantic_nlg.py for maintainability (see their docstrings).
+const ENGINE_MODULE_FILES = [
+  "analyzer.py",
+  "blockly_ast.py",
+  "dynamic_tracer.py",
+  "code_preprocessor.py",
+  "call_graph_mapper.py",
+  "topological_sequencer.py",
+  "complexity_heuristics.py",
+  "signature_recorder.py",
+  "ast_node_visitors.py",
+  "complexity_synthesizer.py",
+  "complexity_explainer.py",
+  "explanation_signals.py",
+  "pattern_ast_visitor.py",
+  "pattern_evaluators.py",
+  "pattern_visitor.py",
+  "variable_explanations.py",
+  "insight_gatherers.py",
+  "overall_narrative.py",
+  "explanation_warnings.py",
+  "insight_generator.py",
+];
+
 async function initPyodide() {
   if (pyodide) return pyodide;
   if (!pyodidePromise) {
@@ -226,22 +253,20 @@ async function initPyodide() {
         const cacheBuster = "?t=" + Date.now();
 
         self.postMessage({ type: "ENGINE_PROGRESS", stage: "Loading analyzer modules...", percent: 65 });
-        const [analyzerCode, astCode, nlgCode, tracerCode] = await Promise.all([
-          fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
-          fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
-          fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text()),
-          fetch("/python_engine/dynamic_tracer.py" + cacheBuster).then(res => res.text())
-        ]);
+        const moduleSources = await Promise.all(
+          ENGINE_MODULE_FILES.map(name =>
+            fetch("/python_engine/" + name + cacheBuster).then(res => res.text())
+          )
+        );
 
-        if ([analyzerCode, astCode, nlgCode, tracerCode].some(c => c.toLowerCase().includes("<!doctype html>"))) {
+        if (moduleSources.some(c => c.toLowerCase().includes("<!doctype html>"))) {
             throw new Error("Service Worker served Vite's index.html fallback instead of the Python backend files!");
         }
 
         self.postMessage({ type: "ENGINE_PROGRESS", stage: "Finalizing engine...", percent: 90 });
-        tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
-        tempPyodide.FS.writeFile("blockly_ast.py", astCode);
-        tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
-        tempPyodide.FS.writeFile("dynamic_tracer.py", tracerCode);
+        ENGINE_MODULE_FILES.forEach((name, i) => {
+          tempPyodide.FS.writeFile(name, moduleSources[i]);
+        });
 
         pyodide = tempPyodide;
         return tempPyodide;
@@ -293,9 +318,17 @@ import json
 import sys
 import ast
 
-if 'analyzer' in sys.modules: del sys.modules['analyzer']
-if 'semantic_nlg' in sys.modules: del sys.modules['semantic_nlg']
-if 'dynamic_tracer' in sys.modules: del sys.modules['dynamic_tracer']
+for _mod in (
+    'analyzer', 'complexity_explainer', 'dynamic_tracer',
+    'code_preprocessor', 'call_graph_mapper', 'topological_sequencer',
+    'complexity_heuristics', 'signature_recorder', 'ast_node_visitors',
+    'complexity_synthesizer', 'explanation_signals', 'pattern_ast_visitor',
+    'pattern_evaluators', 'pattern_visitor', 'variable_explanations',
+    'insight_gatherers', 'overall_narrative', 'explanation_warnings',
+    'insight_generator',
+):
+    if _mod in sys.modules:
+        del sys.modules[_mod]
 
 def gather_custom_lint_errors(code_str):
     errs = []
