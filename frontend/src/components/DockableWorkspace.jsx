@@ -277,6 +277,23 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
     if (!dragState) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+
+    // Directional edge-docking (drag near an edge to send the panel to
+    // that side of the screen) only makes sense on the main center region
+    // when it's actually occupied -- that's the one big area from which
+    // you pick a direction to open a new side panel. Every other drop
+    // target (an already-docked border region, or an empty/collapsed
+    // center) just accepts the drop as a plain "merge in here" -- this is
+    // what makes redocking a panel back to where it came from reliable,
+    // instead of a stray pixel near that region's own edge silently
+    // launching it to a completely different, unrelated part of the screen.
+    const region = layout.regions[regionKey];
+    const subdivides = regionKey === "center" && region.panelIds.length > 0;
+    if (!subdivides) {
+      setDragOver((prev) => (prev && prev.region === regionKey && prev.quadrant === "center" ? prev : { region: regionKey, quadrant: "center" }));
+      return;
+    }
+
     const rect = e.currentTarget.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
     const x = (e.clientX - rect.left) / rect.width;
@@ -341,19 +358,30 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
     const isCenter = key === "center";
     if (!isCenter && region.panelIds.length === 0) return null;
 
+    // An empty center isn't the big "pick a direction" area anymore -- it's
+    // just a slim, always-present drop target so a panel can still be
+    // redocked to the main workspace. Collapsing it (rather than reserving
+    // the full remaining width/height for a placeholder message) means it
+    // doesn't sit there wasting screen space once the user has moved
+    // everything out of it.
+    const isEmptyCenter = isCenter && region.panelIds.length === 0;
+    const subdivides = isCenter && !isEmptyCenter;
+
     const isHorizontal = key === "left" || key === "right";
-    const style = isCenter
-      ? { flex: 1, minWidth: 0, minHeight: 0 }
-      : isHorizontal
-        ? { width: region.size, minWidth: MIN_SIZE }
-        : { height: region.size, minHeight: MIN_SIZE };
+    const style = isEmptyCenter
+      ? { flex: "0 0 72px", minWidth: 72, minHeight: 72 }
+      : isCenter
+        ? { flex: 1, minWidth: 0, minHeight: 0 }
+        : isHorizontal
+          ? { width: region.size, minWidth: MIN_SIZE }
+          : { height: region.size, minHeight: MIN_SIZE };
 
     const isDropTarget = dragOver?.region === key;
 
     return (
       <div
         key={key}
-        className={`dock-region dock-region-${key}${isDropTarget ? " dock-region-drag-over" : ""}`}
+        className={`dock-region dock-region-${key}${isDropTarget ? " dock-region-drag-over" : ""}${isEmptyCenter ? " dock-region-center-empty" : ""}`}
         style={style}
         onDragOver={(e) => handleRegionDragOver(e, key)}
         onDragLeave={(e) => handleRegionDragLeave(e, key)}
@@ -407,12 +435,10 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
               </div>
             );
           })}
-          {isCenter && region.panelIds.length === 0 && (
-            <div className="dock-empty-center">Drag a panel tab here to dock it in the main workspace.</div>
-          )}
+          {isEmptyCenter && <div className="dock-empty-center">Drop a tab here to dock it in the main workspace.</div>}
         </div>
 
-        {isDropTarget && <DropOverlay quadrant={dragOver.quadrant} />}
+        {isDropTarget && subdivides && <DropOverlay quadrant={dragOver.quadrant} />}
       </div>
     );
   };

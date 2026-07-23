@@ -98,7 +98,7 @@
 .callgraph-hover-tooltip {
   position: absolute;
   z-index: 50;
-  max-width: 240px;
+  max-width: 300px;
   background: rgba(15, 23, 42, 0.96);
   color: #F1F5F9;
   border: 1px solid rgba(148, 163, 184, 0.3);
@@ -123,6 +123,57 @@
 .callgraph-hover-tooltip-line {
   color: #CBD5E1;
   margin-top: 2px;
+}
+
+/* Section headers within a node tooltip, e.g. "Called by:" / "Calls:" */
+.callgraph-hover-tooltip-header {
+  color: #F1F5F9;
+  font-weight: 700;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.callgraph-hover-tooltip-header:first-child {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Recursion gets a distinct accent so it doesn't read as "just another
+   caller/callee" -- it's flagging a structurally different relationship
+   (the function calling itself) that would otherwise look like confusing
+   duplication under both Called by and Calls. */
+.callgraph-hover-tooltip-header-recursion {
+  color: #FBBF24;
+}
+
+/* A single caller/callee entry, e.g. "foo() — line 12 (3 hits)" */
+.callgraph-hover-tooltip-entry {
+  color: #CBD5E1;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 11.5px;
+  margin-top: 3px;
+  padding-left: 10px;
+  word-break: break-word;
+}
+
+.callgraph-hover-tooltip-entry::before {
+  content: "•";
+  color: #64748B;
+  margin-right: 6px;
+}
+
+/* Shown when a section has nothing to list, e.g. "None (entry-point function)" */
+.callgraph-hover-tooltip-empty {
+  color: #94A3B8;
+  font-style: italic;
+  font-size: 11.5px;
+  margin-top: 3px;
+  padding-left: 10px;
 }
 
 @keyframes cgTooltipFadeIn {

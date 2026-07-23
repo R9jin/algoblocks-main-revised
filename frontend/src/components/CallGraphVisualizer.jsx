@@ -183,23 +183,87 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
 
   }, [graphSignature, isEmpty]);
 
-  // Per-node call stats for the hover tooltip: how many distinct call sites
-  // invoke this function, how many total times it actually ran, and how
-  // many other functions it calls out to.
+  // Per-node call stats for the hover tooltip. For every node we track the
+  // full list of callers (who calls it, and at which line) and the full
+  // list of callees (what it calls, and at which line), so the tooltip can
+  // spell out the calling relationship explicitly rather than just counts.
   const nodeStats = useMemo(() => {
     const stats = {};
-    nodes.forEach((n) => { stats[n.id] = { incomingSites: 0, incomingHits: 0, outgoingCalls: 0 }; });
+    nodes.forEach((n) => { stats[n.id] = { incoming: [], outgoing: [] }; });
     edges.forEach((e) => {
       if (stats[e.target]) {
-        stats[e.target].incomingSites += 1;
-        stats[e.target].incomingHits += (e.hits || 0);
+        stats[e.target].incoming.push({ caller: e.source, line: e.line, hits: e.hits || 0 });
       }
       if (stats[e.source]) {
-        stats[e.source].outgoingCalls += 1;
+        stats[e.source].outgoing.push({ callee: e.target, line: e.line, hits: e.hits || 0 });
       }
     });
     return stats;
   }, [nodes, edges]);
+
+  // Builds the structured hover explanation for a node: who calls it (with
+  // line numbers) and what it calls (with line numbers), clearly labeled so
+  // the direction of the relationship is unambiguous.
+  //
+  // Recursive self-calls (a function calling itself) are pulled out of
+  // "Called by" / "Calls" into their own "Recursion" section. Without this,
+  // a recursive function would list itself under BOTH headings with the
+  // same lines, which reads as a confusing, seemingly duplicated mess.
+  const buildNodeExplanation = (node, stats) => {
+    const isMain = node.id === "__main__";
+    const isExternal = node.isExternal;
+    const lines = [];
+
+    const formatEntry = (name, line, hits) =>
+      `${name}() — line ${line !== undefined && line !== null && line !== '' ? line : '?'} (${hits} hit${hits === 1 ? '' : 's'})`;
+    const formatSelfEntry = (line, hits) =>
+      `line ${line !== undefined && line !== null && line !== '' ? line : '?'} (${hits} hit${hits === 1 ? '' : 's'})`;
+
+    if (isExternal) {
+      lines.push({ type: 'text', text: 'Called but not defined in your analyzed code (e.g. a built-in or external function).' });
+      lines.push({ type: 'header', text: 'Called by:' });
+      if (stats.incoming.length === 0) {
+        lines.push({ type: 'empty', text: 'None detected' });
+      } else {
+        stats.incoming.forEach((c) => lines.push({ type: 'entry', text: formatEntry(c.caller, c.line, c.hits) }));
+      }
+      return lines;
+    }
+
+    // Split out self-calls (caller/callee === this node) from real,
+    // different-function callers/callees.
+    const externalCallers = stats.incoming.filter((c) => c.caller !== node.id);
+    const externalCallees = stats.outgoing.filter((c) => c.callee !== node.id);
+    const selfCalls = stats.outgoing.filter((c) => c.callee === node.id);
+
+    lines.push({ type: 'header', text: 'Called by:' });
+    if (externalCallers.length === 0) {
+      lines.push({
+        type: 'empty',
+        text: isMain
+          ? 'None (entry-point function)'
+          : selfCalls.length > 0
+            ? 'No other function calls this — only calls itself (see Recursion below)'
+            : 'None (no callers detected)',
+      });
+    } else {
+      externalCallers.forEach((c) => lines.push({ type: 'entry', text: formatEntry(c.caller, c.line, c.hits) }));
+    }
+
+    lines.push({ type: 'header', text: 'Calls:' });
+    if (externalCallees.length === 0) {
+      lines.push({ type: 'empty', text: selfCalls.length > 0 ? 'No other functions — only itself (see Recursion below)' : 'None' });
+    } else {
+      externalCallees.forEach((c) => lines.push({ type: 'entry', text: formatEntry(c.callee, c.line, c.hits) }));
+    }
+
+    if (selfCalls.length > 0) {
+      lines.push({ type: 'header', text: 'Recursion (calls itself):' });
+      selfCalls.forEach((c) => lines.push({ type: 'entry', text: formatSelfEntry(c.line, c.hits) }));
+    }
+
+    return lines;
+  };
 
   // Center Graph on Load
   const resetView = () => {
@@ -386,9 +450,17 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
             }}
           >
             <div className="callgraph-hover-tooltip-title">{hoverInfo.title}</div>
-            {hoverInfo.lines.map((line, i) => (
-              <div className="callgraph-hover-tooltip-line" key={i}>{line}</div>
-            ))}
+            {hoverInfo.lines.map((line, i) => {
+              const item = typeof line === 'string' ? { type: 'text', text: line } : line;
+              const isRecursionHeader = item.type === 'header' && item.text.startsWith('Recursion');
+              const cls =
+                isRecursionHeader ? 'callgraph-hover-tooltip-header callgraph-hover-tooltip-header-recursion' :
+                item.type === 'header' ? 'callgraph-hover-tooltip-header' :
+                item.type === 'entry' ? 'callgraph-hover-tooltip-entry' :
+                item.type === 'empty' ? 'callgraph-hover-tooltip-empty' :
+                'callgraph-hover-tooltip-line';
+              return <div className={cls} key={i}>{item.text}</div>;
+            })}
           </div>
         )}
 
@@ -445,15 +517,29 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
               const isHighlighted = hoveredNode === source || hoveredNode === target;
 
               const edgeExplanation = isSelf
-                ? [`Line ${line}: this function calls itself (recursion).`, `Ran ${hits || 0} time${hits === 1 ? "" : "s"} during execution.`]
+                ? [
+                    { type: 'entry', text: `Caller: ${source}() (calls itself — recursion)` },
+                    { type: 'entry', text: `Call site: line ${line}` },
+                    { type: 'text', text: `Ran ${hits || 0} time${hits === 1 ? "" : "s"} during execution.` },
+                  ]
                 : isBack
-                  ? [`Line ${line}: calls back to an earlier point in the call tree.`, `Ran ${hits || 0} time${hits === 1 ? "" : "s"} -- often part of a loop or recursive pattern.`]
-                  : [`Line ${line}: "${source}()" calls "${target}()".`, `Ran ${hits || 0} time${hits === 1 ? "" : "s"} while your code executed. A higher count usually means it's inside a loop.`];
+                  ? [
+                      { type: 'entry', text: `Caller: ${source}()` },
+                      { type: 'entry', text: `Callee: ${target}() (earlier point in the call tree)` },
+                      { type: 'entry', text: `Call site: line ${line}` },
+                      { type: 'text', text: `Ran ${hits || 0} time${hits === 1 ? "" : "s"} -- often part of a loop or recursive pattern.` },
+                    ]
+                  : [
+                      { type: 'entry', text: `Caller: ${source}()` },
+                      { type: 'entry', text: `Callee: ${target}()` },
+                      { type: 'entry', text: `Call site: line ${line}` },
+                      { type: 'text', text: `Ran ${hits || 0} time${hits === 1 ? "" : "s"} while your code executed. A higher count usually means it's inside a loop.` },
+                    ];
 
               return (
                 <g
                   key={edge.id}
-                  onMouseEnter={() => setHoverInfo({ title: `${source}() → ${target}()`, lines: edgeExplanation })}
+                  onMouseEnter={() => setHoverInfo({ title: isSelf ? `${source}() — recursive call` : `${source}() calls ${target}()`, lines: edgeExplanation })}
                   onMouseLeave={() => setHoverInfo(null)}
                   style={{ cursor: 'default' }}
                 >
@@ -517,23 +603,23 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
                 strokeWidth = "3";
               }
 
-              const titleText = isMain ? "Main Program" : `${node.id}()`;
-              const stats = nodeStats[node.id] || { incomingSites: 0, incomingHits: 0, outgoingCalls: 0 };
-
-              const nodeExplanation = isMain
-                ? [`This is where your program's execution starts.`, `Makes ${stats.outgoingCalls} outgoing call${stats.outgoingCalls === 1 ? "" : "s"} to other functions.`]
+              // Short label drawn inside the node box on the canvas.
+              const nodeLabelText = isMain ? "Main Program" : `${node.id}()`;
+              // Fuller, unambiguous title shown in the hover tooltip -- makes
+              // clear which specific function is being inspected.
+              const tooltipTitle = isMain
+                ? `Inspecting: ${node.id}() — Main Program (entry point)`
                 : isExternal
-                  ? [`Called but not defined in your analyzed code`, `(e.g. a built-in or external function).`]
-                  : [
-                      `Called from ${stats.incomingSites} call site${stats.incomingSites === 1 ? "" : "s"}, totaling ${stats.incomingHits} execution${stats.incomingHits === 1 ? "" : "s"}.`,
-                      `Makes ${stats.outgoingCalls} outgoing call${stats.outgoingCalls === 1 ? "" : "s"} of its own. "Layer ${node.layer}" is how many calls deep it sits from the entry point.`,
-                    ];
+                  ? `Inspecting: ${node.id}() — external/built-in`
+                  : `Inspecting: ${node.id}()`;
+              const stats = nodeStats[node.id] || { incoming: [], outgoing: [] };
+              const nodeExplanation = buildNodeExplanation(node, stats);
 
               return (
                 <g
                   key={node.id}
                   transform={`translate(${node.x}, ${node.y})`}
-                  onMouseEnter={() => { setHoveredNode(node.id); setHoverInfo({ title: titleText, lines: nodeExplanation }); }}
+                  onMouseEnter={() => { setHoveredNode(node.id); setHoverInfo({ title: tooltipTitle, lines: nodeExplanation }); }}
                   onMouseLeave={() => { setHoveredNode(null); setHoverInfo(null); }}
                   style={{ cursor: 'pointer' }}
                 >
@@ -551,7 +637,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
                     style={{ transition: 'all 0.2s ease' }}
                   />
                   <text x="0" y="-3" textAnchor="middle" fill={textColor} fontSize="14px" fontWeight="bold" fontFamily="Consolas, monospace" style={{ pointerEvents: 'none' }}>
-                    {titleText}
+                    {nodeLabelText}
                   </text>
                   <text x="0" y="16" textAnchor="middle" fill={themeSlateMuted} fontSize="12px" fontFamily="sans-serif" style={{ pointerEvents: 'none' }}>
                     Layer {node.layer}
