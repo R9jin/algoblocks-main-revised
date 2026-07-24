@@ -11,8 +11,8 @@ gather PatternSignals for a function body.
 import ast
 from typing import Set
 
-from explanation_signals import PatternSignals
-from pattern_evaluators import PatternEvaluator
+from complexity_explainer.explanation_signals import PatternSignals
+from complexity_explainer.pattern_evaluators import PatternEvaluator
 
 
 class ComprehensiveASTVisitor(ast.NodeVisitor):

@@ -6,7 +6,7 @@ passes: loop-bound classification (constant/log/sqrt/exponential),
 linear-variable tracking, and related pattern detectors.
 """
 import ast
-from code_preprocessor import safe_walk, extract_constant
+from complexity_analyzer.code_preprocessor import safe_walk, extract_constant
 
 
 class ComplexityHeuristics:

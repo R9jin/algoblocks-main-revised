@@ -38,7 +38,8 @@ export const getComplexityColor = (complexity) => {
 // Weight scale rebuilt to match the analyzer's actual recognized scope: it
 // reliably recognizes O(1), O(log n), O(sqrt n), O(n), O(V+E), O(n log n),
 // O(n^2), O(2^n), and O(n!) — 9 classes total. Ordering (log n < sqrt n < n)
-// mirrors the backend's own internal _get_weight() ordering in api/analyzer.py.
+// mirrors the analyzer engine's own internal _get_weight() ordering in
+// frontend/public/python_engine/complexity_analyzer/complexity_heuristics.py.
 // There is no partial-credit tier for n^3/n^4/n^2 log n since the analyzer
 // does not reliably distinguish those from its 9 supported classes.
 export const getComplexityWeight = (complexity, defaultWeight = 0) => {

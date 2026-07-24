@@ -12,11 +12,11 @@ needing to know which sub-component actually implements it.
 """
 import random
 
-from pattern_visitor import ComprehensiveASTVisitor
-from variable_explanations import VariableExplanations
-from insight_gatherers import InsightGatherers
-from overall_narrative import OverallNarrative
-from explanation_warnings import ExplanationWarnings
+from complexity_explainer.pattern_visitor import ComprehensiveASTVisitor
+from complexity_explainer.variable_explanations import VariableExplanations
+from complexity_explainer.insight_gatherers import InsightGatherers
+from complexity_explainer.overall_narrative import OverallNarrative
+from complexity_explainer.explanation_warnings import ExplanationWarnings
 
 
 class EducationalInsightGenerator:

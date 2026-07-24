@@ -217,28 +217,39 @@ function generateClassificationReport(details, expKey, predKey, standardClasses)
 // analyzer.py / complexity_explainer.py are the two composed entry points;
 // everything else is a component module split out of the former monolithic
 // analyzer.py and semantic_nlg.py for maintainability (see their docstrings).
+// The complexity-analysis engine now lives in two Python packages so the
+// class structure is unambiguous on disk, not just in the code:
+//   complexity_analyzer/    -- ComplexityAnalyzer and its composed stages
+//   complexity_explainer/   -- EducationalInsightGenerator + ComprehensiveASTVisitor
+// blockly_ast.py and dynamic_tracer.py are separate concerns (Blockly<->Python
+// conversion, dynamic execution tracing) and stay at the engine root.
 const ENGINE_MODULE_FILES = [
-  "analyzer.py",
   "blockly_ast.py",
   "dynamic_tracer.py",
-  "code_preprocessor.py",
-  "call_graph_mapper.py",
-  "topological_sequencer.py",
-  "complexity_heuristics.py",
-  "signature_recorder.py",
-  "ast_node_visitors.py",
-  "complexity_synthesizer.py",
-  "complexity_explainer.py",
-  "explanation_signals.py",
-  "pattern_ast_visitor.py",
-  "pattern_evaluators.py",
-  "pattern_visitor.py",
-  "variable_explanations.py",
-  "insight_gatherers.py",
-  "overall_narrative.py",
-  "explanation_warnings.py",
-  "insight_generator.py",
+  "complexity_analyzer/__init__.py",
+  "complexity_analyzer/analyzer.py",
+  "complexity_analyzer/code_preprocessor.py",
+  "complexity_analyzer/call_graph_mapper.py",
+  "complexity_analyzer/topological_sequencer.py",
+  "complexity_analyzer/complexity_heuristics.py",
+  "complexity_analyzer/signature_recorder.py",
+  "complexity_analyzer/ast_node_visitors.py",
+  "complexity_analyzer/complexity_synthesizer.py",
+  "complexity_explainer/__init__.py",
+  "complexity_explainer/complexity_explainer.py",
+  "complexity_explainer/explanation_signals.py",
+  "complexity_explainer/pattern_evaluators.py",
+  "complexity_explainer/pattern_visitor.py",
+  "complexity_explainer/variable_explanations.py",
+  "complexity_explainer/insight_gatherers.py",
+  "complexity_explainer/overall_narrative.py",
+  "complexity_explainer/explanation_warnings.py",
+  "complexity_explainer/insight_generator.py",
 ];
+
+// Subfolders that need to exist in Pyodide's virtual filesystem before any
+// file can be written into them.
+const ENGINE_MODULE_DIRS = ["complexity_analyzer", "complexity_explainer"];
 
 async function initPyodide() {
   if (pyodide) return pyodide;
@@ -264,6 +275,7 @@ async function initPyodide() {
         }
 
         self.postMessage({ type: "ENGINE_PROGRESS", stage: "Finalizing engine...", percent: 90 });
+        ENGINE_MODULE_DIRS.forEach(dir => tempPyodide.FS.mkdirTree(dir));
         ENGINE_MODULE_FILES.forEach((name, i) => {
           tempPyodide.FS.writeFile(name, moduleSources[i]);
         });
@@ -319,13 +331,17 @@ import sys
 import ast
 
 for _mod in (
-    'analyzer', 'complexity_explainer', 'dynamic_tracer',
-    'code_preprocessor', 'call_graph_mapper', 'topological_sequencer',
-    'complexity_heuristics', 'signature_recorder', 'ast_node_visitors',
-    'complexity_synthesizer', 'explanation_signals', 'pattern_ast_visitor',
-    'pattern_evaluators', 'pattern_visitor', 'variable_explanations',
-    'insight_gatherers', 'overall_narrative', 'explanation_warnings',
-    'insight_generator',
+    'complexity_analyzer', 'complexity_analyzer.analyzer',
+    'complexity_analyzer.code_preprocessor', 'complexity_analyzer.call_graph_mapper',
+    'complexity_analyzer.topological_sequencer', 'complexity_analyzer.complexity_heuristics',
+    'complexity_analyzer.signature_recorder', 'complexity_analyzer.ast_node_visitors',
+    'complexity_analyzer.complexity_synthesizer',
+    'complexity_explainer', 'complexity_explainer.complexity_explainer',
+    'complexity_explainer.explanation_signals', 'complexity_explainer.pattern_evaluators',
+    'complexity_explainer.pattern_visitor', 'complexity_explainer.variable_explanations',
+    'complexity_explainer.insight_gatherers', 'complexity_explainer.overall_narrative',
+    'complexity_explainer.explanation_warnings', 'complexity_explainer.insight_generator',
+    'dynamic_tracer',
 ):
     if _mod in sys.modules:
         del sys.modules[_mod]
@@ -373,7 +389,7 @@ def gather_custom_lint_errors(code_str):
     return errs
 
 try:
-    from analyzer import analyze_source_code
+    from complexity_analyzer.analyzer import analyze_source_code
     output_dict = analyze_source_code(user_code)
     if isinstance(output_dict, dict) and output_dict.get("status") == "error":
         custom_errs = gather_custom_lint_errors(user_code)
@@ -557,7 +573,7 @@ else:
     tracemalloc.reset_peak()
 
 try:
-    from analyzer import analyze_source_code
+    from complexity_analyzer.analyzer import analyze_source_code
     res = analyze_source_code(user_code)
 except Exception as err:
     res = {"status": "error", "total": "ERROR", "space_total": "ERROR", "lines": [], "overall_explanation": f"AST Parse crash: {str(err)}"}

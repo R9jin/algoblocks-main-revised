@@ -7,11 +7,11 @@ producing per-line complexity signatures -- the traversal half of the
 "Dependency-Ordered Signature Pass (DFS)" stage.
 """
 import ast
-from code_preprocessor import safe_walk, extract_constant, _name_hints_memo_or_graph, _detect_factorial_branching
+from complexity_analyzer.code_preprocessor import safe_walk, extract_constant, _name_hints_memo_or_graph, _detect_factorial_branching
 import re
 
 try:
-    from complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
+    from complexity_explainer.complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
 except ImportError:
     SemanticNLGEngine = None
     ComprehensiveASTVisitor = None

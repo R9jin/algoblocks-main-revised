@@ -22,15 +22,15 @@ to read/write shared state:
   - explanation_warnings.py   short-form warnings/praise
   - insight_generator.py      composed EducationalInsightGenerator (facade)
 """
-from explanation_signals import (
+from complexity_explainer.explanation_signals import (
     BigOInfo,
     MemorySignals,
     ComplexitySignals,
     AlgorithmicParadigms,
     PatternSignals,
 )
-from pattern_visitor import ComprehensiveASTVisitor
-from insight_generator import EducationalInsightGenerator
+from complexity_explainer.pattern_visitor import ComprehensiveASTVisitor
+from complexity_explainer.insight_generator import EducationalInsightGenerator
 
 __all__ = [
     "BigOInfo",

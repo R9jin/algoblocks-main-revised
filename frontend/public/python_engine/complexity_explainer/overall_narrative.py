@@ -11,7 +11,7 @@ import random
 import re
 from typing import Any, Dict, List, Optional, Set
 
-from explanation_signals import BigOInfo, MemorySignals, ComplexitySignals, AlgorithmicParadigms, PatternSignals
+from complexity_explainer.explanation_signals import BigOInfo, MemorySignals, ComplexitySignals, AlgorithmicParadigms, PatternSignals
 
 class OverallNarrative:
     """Whole-algorithm narrative + recurrence solving. Composed into

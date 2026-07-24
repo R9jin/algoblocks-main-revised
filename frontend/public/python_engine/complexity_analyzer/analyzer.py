@@ -32,22 +32,22 @@ import sys
 # Increase recursion depth to handle very deep ASTs (e.g., deeply nested function calls)
 sys.setrecursionlimit(2000)
 
-from code_preprocessor import (
+from complexity_analyzer.code_preprocessor import (
     extract_constant,
     _name_hints_memo_or_graph,
     _detect_factorial_branching,
     preprocess_source,
     safe_walk,
 )
-from call_graph_mapper import CallGraphMapper
-from topological_sequencer import TopologicalSequencer
-from complexity_heuristics import ComplexityHeuristics
-from signature_recorder import SignatureRecorder
-from ast_node_visitors import ASTNodeVisitor
-from complexity_synthesizer import ComplexitySynthesizer
+from complexity_analyzer.call_graph_mapper import CallGraphMapper
+from complexity_analyzer.topological_sequencer import TopologicalSequencer
+from complexity_analyzer.complexity_heuristics import ComplexityHeuristics
+from complexity_analyzer.signature_recorder import SignatureRecorder
+from complexity_analyzer.ast_node_visitors import ASTNodeVisitor
+from complexity_analyzer.complexity_synthesizer import ComplexitySynthesizer
 
 try:
-    from complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
+    from complexity_explainer.complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
 except ImportError:
     SemanticNLGEngine = None
 
