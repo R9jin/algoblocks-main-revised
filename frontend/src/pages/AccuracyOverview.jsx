@@ -254,6 +254,15 @@ export default function AccuracyOverview() {
               algorithms with known, textbook-correct Big-O answers -- so you can see how
               much to trust its verdicts.
             </p>
+            <p className="acc-scope-note">
+              The analyzer classifies into a fixed set of <strong>9 Big-O classes</strong> --
+              it isn't a general-purpose solver that can identify literally any growth rate.
+            </p>
+            <div className="acc-scope-badges">
+              {["O(1)", "O(log n)", "O(sqrt n)", "O(n)", "O(n log n)", "O(n^2)", "O(2^n)", "O(n!)", "O(V + E)"].map((cls) => (
+                <span key={cls} className="acc-scope-badge">{cls}</span>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -380,6 +389,14 @@ export default function AccuracyOverview() {
                     A higher percentage means you can trust the verdict more. It's not
                     perfect -- some unusual or tricky code can still trip it up -- so if a
                     result ever looks surprising, it's worth double-checking by hand too.
+                  </p>
+                  <p>
+                    One more important limit: the analyzer only recognizes 9 specific Big-O
+                    classes -- O(1), O(log n), O(sqrt n), O(n), O(n log n), O(n^2), O(2^n),
+                    O(n!), and O(V + E) for graph traversals. If a test case's true complexity
+                    falls outside that list (say, O(n^3) or O(n^2 log n)), it will always be
+                    counted as a mismatch above -- that's a known scope limit, not a sign the
+                    analyzer got confused.
                   </p>
                 </div>
               )}

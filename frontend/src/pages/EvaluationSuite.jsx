@@ -49,12 +49,21 @@ const BIGO_COLOR_MAP = {
   "O(n^2)": "#F59E0B",
   "O(n^4)": "#F97316",
   "O(2^n)": "#EF4444",
+  "O(n!)": "#9333EA",
   "O(V + E)": "#EC4899",
   "O(V)": "#DB2777",
   "O(E)": "#BE185D",
 };
 const BIGO_FALLBACK_COLORS = ["#7928CA", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#22D3EE"];
 const getBigOColor = (label, idx) => BIGO_COLOR_MAP[label] || BIGO_FALLBACK_COLORS[idx % BIGO_FALLBACK_COLORS.length];
+
+// The complete, fixed set of Big-O classes the analyzer is designed to
+// recognize -- nothing else. Shown to the user directly on the benchmark
+// page so a mismatch against, say, O(n^3) or O(n^2 log n) reads as "outside
+// the analyzer's supported taxonomy" rather than "the analyzer is broken."
+const SUPPORTED_BIGO_CLASSES = [
+  "O(1)", "O(log n)", "O(sqrt n)", "O(n)", "O(n log n)", "O(n^2)", "O(2^n)", "O(n!)", "O(V + E)",
+];
 
 // Builds a Google-search-style page number list: always shows the first and
 // last page, a window around the current page, and "..." markers to bridge
@@ -935,6 +944,26 @@ export default function EvaluationSuite({ embedded = false } = {}) {
             >
               Tasty Ground Truth Dataset
             </button>
+          </div>
+        </div>
+
+        <div className="eval-scope-notice">
+          <FiHelpCircle className="eval-scope-notice-icon" size={18} />
+          <div className="eval-scope-notice-body">
+            <strong className="eval-scope-notice-title">The analyzer only classifies into 9 Big-O classes</strong>
+            <p className="eval-scope-notice-text">
+              It is not a general-purpose complexity solver — it is designed to recognize exactly the classes badged
+              below. A ground-truth case labeled outside this taxonomy (e.g. <code>O(n^3)</code>, <code>O(n^4)</code>,
+              or <code>O(n^2 log n)</code>) will always be reported as a mismatch below by design, not because the
+              analyzer made a mistake.
+            </p>
+            <div className="eval-scope-badges">
+              {SUPPORTED_BIGO_CLASSES.map((cls) => (
+                <span key={cls} className="eval-scope-badge" style={{ "--badge-color": getBigOColor(cls) }}>
+                  {cls}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
