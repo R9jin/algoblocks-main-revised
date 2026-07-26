@@ -8,6 +8,7 @@ import BlockGlossaryModal from "../components/BlockGlossaryModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import DockableWorkspace from "../components/DockableWorkspace.jsx";
+import FloatingErrorDropdown from "../components/FloatingErrorDropdown.jsx";
 import ComplexityPanelContent from "../components/panelContent/ComplexityPanelContent.jsx";
 import ConsolePanelContent from "../components/panelContent/ConsolePanelContent.jsx";
 import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
@@ -19,7 +20,7 @@ import { getIntroActivityTour } from "../data/introActivityTours.js";
 import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
 import "../styles/ActivityApp.css";
 import { getComplexityWeight, sanitizePythonCode } from "../utils/asymptoticParser.jsx";
-import { translatePythonError } from "../utils/errorTranslator.js";
+import { translatePythonError, scanStaticSyntaxErrors } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
 
 // Default docking arrangement, mirrored from MainApp.jsx: Blocks and Python
@@ -339,8 +340,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         pendingOutputRef.current += data;
       } else {
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const hint = translatePythonError(data);
-        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
+        const rawErr = String(data);
+        const lineMatch = rawErr.match(/line (\d+)/i);
+        const lineNum = lineMatch ? parseInt(lineMatch[1], 10) : 1;
+        const hint = translatePythonError(rawErr);
+        const errObj = { line: lineNum, message: hint ? `${rawErr}. ${hint}` : rawErr };
+
+        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + rawErr + (hint ? `\n${hint}\n` : ""));
+        setSyntaxErrors([errObj]);
         setIsEvaluating(false); setIsWaitingForInput(false);
       }
     }
@@ -1066,8 +1073,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       title: "Blocks",
       icon: <FiGrid size={14} />,
       content: (
-        <div className="workspace-view" style={{ width: "100%", height: "100%" }}>
+        <div className="workspace-view" style={{ position: "relative", width: "100%", height: "100%" }}>
           <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={null} />
+          <FloatingErrorDropdown syntaxErrors={syntaxErrors || []} />
         </div>
       ),
     },
@@ -1085,7 +1093,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           onChangeCode={(value) => {
             if (isUnmountingRef.current) return;
             const newCode = sanitizePythonCode(value);
-            setGeneratedPython(newCode); setIsEditingCode(true); setSyntaxErrors([]);
+            const staticErrs = scanStaticSyntaxErrors(newCode);
+            setGeneratedPython(newCode); setIsEditingCode(true); setSyntaxErrors(staticErrs);
             latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(getFailsafeWorkspaceJson() || latestStateRef.current.json, newCode);
           }}
           onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}

@@ -203,3 +203,91 @@ export const translatePythonError = (errorMsg) => {
   // =========================================================================
   return "Unknown System Error: An unpredictable runtime failure occurred. Read the raw error message above to locate the line number causing the crash. Verify your mathematical logic, variable types, and array manipulations.";
 };
+
+/**
+ * Scans a full Python code string statically line-by-line for all syntax, 
+ * structural, and unclosed bracket/colon errors prior to execution.
+ * @param {string} codeStr 
+ * @returns {Array<{line: number, message: string}>}
+ */
+export const scanStaticSyntaxErrors = (codeStr) => {
+  if (!codeStr || typeof codeStr !== 'string') return [];
+  const lines = codeStr.split('\n');
+  const errors = [];
+
+  let openParenCount = 0;
+  let openBracketCount = 0;
+  let openBraceCount = 0;
+  let lastOpenParenLine = 0;
+  let lastOpenBracketLine = 0;
+  let lastOpenBraceLine = 0;
+
+  lines.forEach((rawLine, idx) => {
+    const lineNum = idx + 1;
+    const line = rawLine.trim();
+
+    if (!line || line.startsWith('#')) return;
+
+    // Check for missing colons on keywords that require colons
+    if (/^(def\b|if\b|elif\b|else\b|for\b|while\b|try\b|except\b|finally\b|with\b|class\b)/.test(line)) {
+      if (!line.endsWith(':') && !line.endsWith('(') && !line.endsWith('\\')) {
+        if (/^def\s+\w+\s*\(/.test(line) && !line.includes(')')) {
+          errors.push({
+            line: lineNum,
+            message: `Unclosed Parenthesis & Missing Colon: '${line}' is missing a closing ')' and a trailing colon ':'. Block headers must end with a colon.`
+          });
+          return;
+        }
+        errors.push({
+          line: lineNum,
+          message: `Missing Colon: You forgot to put a colon ':' at the end of '${line}'. In Python, block headers (def, if, for, while, etc.) must end with a colon.`
+        });
+      }
+    }
+
+    // Count brackets & parens on this line
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '(') { openParenCount++; lastOpenParenLine = lineNum; }
+      else if (char === ')') { openParenCount--; }
+      else if (char === '[') { openBracketCount++; lastOpenBracketLine = lineNum; }
+      else if (char === ']') { openBracketCount--; }
+      else if (char === '{') { openBraceCount++; lastOpenBraceLine = lineNum; }
+      else if (char === '}') { openBraceCount--; }
+    }
+
+    if (openParenCount < 0) {
+      errors.push({ line: lineNum, message: `Unmatched Parenthesis: Extra closing ')' found on line ${lineNum}.` });
+      openParenCount = 0;
+    }
+    if (openBracketCount < 0) {
+      errors.push({ line: lineNum, message: `Unmatched Bracket: Extra closing ']' found on line ${lineNum}.` });
+      openBracketCount = 0;
+    }
+    if (openBraceCount < 0) {
+      errors.push({ line: lineNum, message: `Unmatched Brace: Extra closing '}' found on line ${lineNum}.` });
+      openBraceCount = 0;
+    }
+  });
+
+  if (openParenCount > 0) {
+    errors.push({
+      line: lastOpenParenLine || lines.length,
+      message: `Unclosed Parenthesis: Found an unclosed '(' starting around line ${lastOpenParenLine || lines.length}. Ensure every opening parenthesis has a matching ')'.`
+    });
+  }
+  if (openBracketCount > 0) {
+    errors.push({
+      line: lastOpenBracketLine || lines.length,
+      message: `Unclosed Bracket: Found an unclosed '[' starting around line ${lastOpenBracketLine || lines.length}. Ensure every list or array bracket has a matching ']'.`
+    });
+  }
+  if (openBraceCount > 0) {
+    errors.push({
+      line: lastOpenBraceLine || lines.length,
+      message: `Unclosed Brace: Found an unclosed '{' starting around line ${lastOpenBraceLine || lines.length}. Ensure every dictionary or set brace has a matching '}'.`
+    });
+  }
+
+  return errors;
+};

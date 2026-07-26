@@ -5,8 +5,17 @@ export function formatComplexity(str) {
     return str;
   }
 
+  // If str is a recurrence relation, append its closed-form Big-O equivalent for visual clarity
+  let displayStr = str;
+  if ((str.includes('T(') || str.includes('t(')) && !str.includes('→')) {
+    const resolvedBigO = resolveRecurrenceToBigO(str);
+    if (resolvedBigO) {
+      displayStr = `${str} → ${resolvedBigO}`;
+    }
+  }
+
   // Pre-process unformatted output commonly generated from analyzers
-  let formatted = str
+  let formatted = displayStr
     .replace(/n2/g, 'n²')
     .replace(/n3/g, 'n³');
 
