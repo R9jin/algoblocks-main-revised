@@ -36,6 +36,18 @@ export const translatePythonError = (errorMsg) => {
         `Dangling Bracket: You have an extra closing bracket \`${match[1]}\` that doesn't belong to anything. Check your equations or list definitions and remove the extra character.`,
     },
     {
+      test: /SyntaxError: closing '(.)' does not match opening '(.)'/i,
+      generate: (match) =>
+        `Mismatched Bracket Pair: You opened with \`${match[2]}\` but closed it with \`${match[1]}\`, which don't belong to the same pair. Brackets must close in the exact type and order they were opened: \`(\` needs \`)\`, \`[\` needs \`]\`, and \`{\` needs \`}\`. Trace back from this line to find where \`${match[2]}\` was opened and match it correctly.`,
+    },
+    {
+      test: /SyntaxError: unclosed '(.)'/i,
+      generate: (match) => {
+        const closer = { "(": ")", "[": "]", "{": "}" }[match[1]] || match[1];
+        return `Unclosed Bracket: You opened a \`${match[1]}\` on this line but never gave it a matching \`${closer}\`. Scan forward from this line and add the missing closing bracket where the group of values, arguments, or expression is meant to end.`;
+      },
+    },
+    {
       test: /SyntaxError: invalid syntax/i,
       generate: () =>
         "Invalid Syntax: The engine cannot read this line mathematically or logically. This usually happens if you misspelled a core keyword, forgot an operator (like putting `2x` instead of `2 * x`), or accidentally put a space inside a variable name. Also, check the line directly above this one for missing closing parentheses!",
@@ -203,8 +215,83 @@ export const translatePythonError = (errorMsg) => {
   }
 
   // =========================================================================
-  // FALLBACK
-  // If the error is overly cryptic or completely unknown to our dictionary.
+  // DYNAMIC FALLBACK
+  // No exact rule matched, but if the message still has a recognizable
+  // "SomeError: detail" shape, build a tailored hint from the error FAMILY
+  // (syntax vs. reference vs. type vs. access vs. math) and echo the actual
+  // detail Python gave us. This is what keeps errors we haven't written an
+  // exact rule for from all collapsing into one identical, generic message -
+  // two different unmatched errors will still read differently because
+  // they're built from their own class name and detail text.
   // =========================================================================
-  return "Unknown System Error: An unpredictable runtime failure occurred. Read the raw error message above to locate the line number causing the crash. Verify your mathematical logic, variable types, and array manipulations.";
+  const genericMatch = str.match(/^(\w+(?:Error|Warning|Exception))\s*:\s*(.*)$/);
+  if (genericMatch) {
+    const [, errClass, detail] = genericMatch;
+    const family = classifyErrorFamily(errClass);
+    const spokenDetail = detail ? detail.trim() : "";
+    return `${errClass}: ${family.hint}${spokenDetail ? ` Python's exact words were: "${spokenDetail}".` : ""} ${family.tip}`;
+  }
+
+  // Truly unrecognized shape (no "ErrorClass: detail" pattern at all) - still
+  // echo back the raw text instead of a static line, so the person has
+  // something concrete to search on rather than a generic dead end.
+  return `Unrecognized Issue: The engine reported "${str}", which isn't in our lookup table yet. That message usually names the exact variable, value, or operation involved - re-read it closely and check the line directly above and below the one that's flagged.`;
 };
+
+// Groups error classes into families so the dynamic fallback above can give
+// guidance shaped to the KIND of problem, not just a one-size-fits-all note.
+function classifyErrorFamily(errClass) {
+  const c = errClass.toLowerCase();
+  if (c.includes("syntax") || c.includes("indentation") || c.includes("tab")) {
+    return {
+      hint: "This is a structural problem - Python couldn't even finish reading your code before it started running.",
+      tip: "Check the colons, brackets, quotes, and indentation on this line and the one immediately above it; structural errors almost always trace back to the line just before where they're reported.",
+    };
+  }
+  if (c.includes("name") || c.includes("unboundlocal") || c.includes("reference")) {
+    return {
+      hint: "This is a reference problem - your code is pointing at a variable or function that the computer can't find in memory right now.",
+      tip: "Check for typos, mismatched capitalization, and make sure the name is created (assigned a value) somewhere before this line runs.",
+    };
+  }
+  if (c.includes("type")) {
+    return {
+      hint: "This is a data-type mismatch - you're combining or passing values that don't work together the way this operation expects.",
+      tip: "Check the type of each value involved (use `type(x)` while debugging) and convert one side explicitly with `str()`, `int()`, `float()`, or `list()` as needed.",
+    };
+  }
+  if (c.includes("value")) {
+    return {
+      hint: "This is a data-content problem - the type is correct, but the actual value inside it isn't something this operation can work with.",
+      tip: "Double-check the exact contents of the variable right before this line (print it if unsure) and confirm it matches the shape or format the operation expects.",
+    };
+  }
+  if (c.includes("index") || c.includes("key") || c.includes("attribute") || c.includes("lookup")) {
+    return {
+      hint: "This is an access problem - your code is trying to reach a position, key, or attribute that doesn't actually exist on this object.",
+      tip: "Print the object right before this line to see what's really inside it, and confirm the index/key/attribute you're requesting actually exists there.",
+    };
+  }
+  if (c.includes("zerodivision") || c.includes("overflow") || c.includes("arithmetic") || c.includes("floatingpoint")) {
+    return {
+      hint: "This is a math problem - the calculation on this line is asking for something numerically impossible or out of range.",
+      tip: "Add a guard condition (like checking a denominator isn't zero) before performing the calculation.",
+    };
+  }
+  if (c.includes("recursion") || c.includes("timeout")) {
+    return {
+      hint: "This is a runaway-execution problem - the code kept calling itself or looping without ever reaching a stopping point.",
+      tip: "Check your base case (for recursion) or loop condition (for a `while` loop) and make sure every path genuinely moves toward it.",
+    };
+  }
+  if (c.includes("import") || c.includes("module")) {
+    return {
+      hint: "This is a missing-dependency problem - the code is trying to use a library that isn't available in this sandboxed environment.",
+      tip: "Stick to Python's built-in standard library modules, since third-party packages aren't installed here.",
+    };
+  }
+  return {
+    hint: "This is a runtime problem that happened while your code was actually executing, rather than a structural issue with how it's written.",
+    tip: "Trace backward from the flagged line through the values each variable held right before it, since the true cause is usually a line or two earlier than where the crash was reported.",
+  };
+}

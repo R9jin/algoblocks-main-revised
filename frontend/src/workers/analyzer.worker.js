@@ -358,7 +358,7 @@ def gather_custom_lint_errors(code_str):
         if s.startswith(('def ', 'if ', 'elif ', 'else', 'for ', 'while ', 'class ', 'try', 'except', 'finally')):
             s_no_comment = s.split('#')[0].strip()
             if not s_no_comment.endswith(':') and not s_no_comment.endswith(('(', '[', '{', ',', '\\\\')):
-                errs.append({"line": i+1, "message": "expected ':'"})
+                errs.append({"line": i+1, "message": "SyntaxError: expected ':'"})
         in_str = False
         str_char = ''
         escape = False
@@ -379,13 +379,13 @@ def gather_custom_lint_errors(code_str):
                     stack.append((char, i+1))
                 elif char in pairs.values():
                     if not stack:
-                        errs.append({"line": i+1, "message": f"unmatched '{char}'"})
+                        errs.append({"line": i+1, "message": f"SyntaxError: unmatched '{char}'"})
                     else:
                         top, _ = stack.pop()
                         if pairs[top] != char:
-                            errs.append({"line": i+1, "message": f"closing '{char}' does not match opening '{top}'"})
+                            errs.append({"line": i+1, "message": f"SyntaxError: closing '{char}' does not match opening '{top}'"})
     for char, l in stack:
-        errs.append({"line": l, "message": f"unclosed '{char}'"})
+        errs.append({"line": l, "message": f"SyntaxError: unclosed '{char}'"})
     return errs
 
 try:

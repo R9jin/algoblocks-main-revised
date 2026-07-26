@@ -366,7 +366,7 @@ def analyze_source_code(source_code):
         # badge with no indication anything is wrong.
         results["status"] = "error"
         results["error"] = str(e)
-        results["message"] = str(e)
+        results["message"] = f"{type(e).__name__}: {e}"
         results["line"] = getattr(e, "lineno", 1) or 1
     end_time = time.perf_counter()
     results["analysis_time_ms"] = (end_time - start_time) * 1000

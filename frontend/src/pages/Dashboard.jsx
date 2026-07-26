@@ -43,7 +43,11 @@ const FAQ_ITEMS = [
   },
   {
     question: "Can I visualize memory usage or Space Complexity?",
-    answer: "Yes! The platform includes a Memory Visualizer that actively tracks the allocation of variables, arrays, and recursive call stacks as your algorithm runs. This helps you visually differentiate between in-place algorithms and those that consume extra memory."
+    answer: "Yes! The platform includes a Stack & Heap Memory Map that shows exactly where each variable lives while your algorithm runs: fixed-size values in the Stack Frame, and dynamically-sized objects like lists and dictionaries in the Heap. This helps you visually differentiate between in-place algorithms and those that consume extra memory."
+  },
+  {
+    question: "What happens when my code has an error?",
+    answer: "AlgoBlocks doesn't just tell you something is wrong, it explains why. Whenever your code fails to run, whether that's a syntax mistake, a logic error, or even an infinite loop, an error icon appears at the bottom-right of the Blocks workspace showing how many issues were found. Click it to see the full list, each with a plain-language explanation of the root cause and a suggested fix specific to that error."
   },
   {
     question: "What is the difference between System and Custom Templates?",
@@ -66,6 +70,12 @@ const FAQ_ITEMS = [
     answer: "No installation is necessary. All execution, profiling, and complexity calculations happen securely and natively within your web browser."
   }
 ];
+
+// Real, navigable destinations elsewhere in the app - this is the actual
+// "Resources" half of the section header, distinct from the FAQ accordion
+// below it (previously the section only ever rendered the FAQ, despite its
+// heading promising both). Defined further down, after the icon components
+// it references.
 
 const PlusIcon = () => (
   <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -99,6 +109,51 @@ const ChevronDownIcon = ({ expanded }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
   </svg>
 );
+
+const BookIcon = () => (
+  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+  </svg>
+);
+
+const FolderIcon = () => (
+  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+  </svg>
+);
+
+const UserIcon = () => (
+  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+);
+
+const RESOURCE_LINKS = [
+  {
+    title: "Blank Workspace",
+    desc: "Jump straight into the block editor and start building an algorithm from scratch.",
+    path: "/workspace",
+    icon: <CodeIcon />,
+  },
+  {
+    title: "Learning Path",
+    desc: "Work through structured lessons and optimization challenges in order.",
+    path: "/learning-path",
+    icon: <BookIcon />,
+  },
+  {
+    title: "My Projects",
+    desc: "Pick back up on anything you've previously built and saved.",
+    path: "/projects",
+    icon: <FolderIcon />,
+  },
+  {
+    title: "Profile & Settings",
+    desc: "Review your account details and learning progress.",
+    path: "/profile",
+    icon: <UserIcon />,
+  },
+];
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -516,8 +571,22 @@ export default function Dashboard() {
             <section className="bento-help-section" style={{ marginTop: "20px", marginBottom: "40px" }}>
               <div className="section-header">
                 <h2>Help & Resources</h2>
-                <p>Frequently asked questions and guides to get you started.</p>
+                <p>Quick links to get where you're going, plus answers to common questions.</p>
               </div>
+
+              <div className="bento-resource-grid">
+                {RESOURCE_LINKS.map((res, index) => (
+                  <div key={index} className="bento-resource-card" onClick={() => navigate(res.path)}>
+                    <div className="resource-icon-wrapper">{res.icon}</div>
+                    <div className="resource-card-body">
+                      <h4 className="resource-title">{res.title}</h4>
+                      <p className="resource-desc">{res.desc}</p>
+                    </div>
+                    <ArrowRightIcon />
+                  </div>
+                ))}
+              </div>
+
               <div className="bento-faq-container">
                 {FAQ_ITEMS.map((faq, index) => (
                   <div key={index} className={`bento-faq-item ${expandedFaq === index ? "expanded" : ""}`}>
