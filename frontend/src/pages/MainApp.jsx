@@ -11,7 +11,6 @@ import BlockGlossaryModal from "../components/BlockGlossaryModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import DockableWorkspace from "../components/DockableWorkspace.jsx";
-import FloatingErrorDropdown from "../components/FloatingErrorDropdown.jsx";
 import ComplexityPanelContent from "../components/panelContent/ComplexityPanelContent.jsx";
 import ConsolePanelContent from "../components/panelContent/ConsolePanelContent.jsx";
 import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
@@ -23,7 +22,7 @@ import "../styles/MainApp.css";
 import { FiActivity, FiChevronRight, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { sanitizePythonCode } from "../utils/asymptoticParser.jsx";
-import { translatePythonError, scanStaticSyntaxErrors } from "../utils/errorTranslator.js";
+import { translatePythonError } from "../utils/errorTranslator.js";
 import { syncManager } from "../utils/syncManager.js";
 
 // Default docking arrangement: Blocks and Python are tabbed together in the
@@ -246,6 +245,7 @@ export default function MainApp() {
         if (data.status === "success") {
           const initialCounts = {};
           (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
+          const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
           updateTab(targetId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: {
@@ -257,14 +257,14 @@ export default function MainApp() {
               is_recursive: data.is_recursive || false
             },
             lineExecutions: (prev) => ({ ...prev, ...initialCounts }),
-            syntaxErrors: [],
+            syntaxErrors: runtimeErrors,
           });
         } else {
           if (data.multiple_errors && data.multiple_errors.length > 0) {
-            const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: `${err.message}. ${translatePythonError(err.message)}` }));
+            const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
             updateTab(targetId, { syntaxErrors: mappedErrors });
           } else {
-            updateTab(targetId, { syntaxErrors: [{ line: data.line, message: `${data.message}. ${translatePythonError(data.message)}` }] });
+            updateTab(targetId, { syntaxErrors: [{ line: data.line, message: data.message, fix: translatePythonError(data.message) }] });
           }
         }
       } else if (type === "RUN_RESULT") {
@@ -290,14 +290,8 @@ export default function MainApp() {
       } else if (type === "ERROR") {
         clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const rawErr = String(data);
-        const lineMatch = rawErr.match(/line (\d+)/i);
-        const lineNum = lineMatch ? parseInt(lineMatch[1], 10) : 1;
-        const hint = translatePythonError(rawErr);
-        const errObj = { line: lineNum, message: hint ? `${rawErr}. ${hint}` : rawErr };
-
-        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + rawErr + (hint ? `\n${hint}\n` : ""));
-        updateTab(analyzingTabId.current || activeTabId, { syntaxErrors: [errObj] });
+        const hint = translatePythonError(data);
+        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
         setIsEvaluating(false); setIsWaitingForInput(false);
       }
     };
@@ -432,12 +426,6 @@ export default function MainApp() {
     if (!code || code.trim() === "" || code === "# Drag blocks to generate Python code") return;
     analyzingTabId.current = tabId;
     const cleanCode = sanitizePythonCode(code);
-
-    const staticErrs = scanStaticSyntaxErrors(cleanCode);
-    if (staticErrs && staticErrs.length > 0) {
-      updateTab(tabId, { syntaxErrors: staticErrs });
-      return;
-    }
 
     if (isOnline && API_BASE) {
       try {
@@ -826,17 +814,17 @@ export default function MainApp() {
       title: "Blocks",
       icon: <FiGrid size={14} />,
       content: (
-        <div className="workspace-view" style={{ position: "relative", width: "100%", height: "100%" }}>
+        <div className="workspace-view" style={{ width: "100%", height: "100%" }}>
           {tabs.map((tab) => (
             <div key={tab.id} className={activeTabId === tab.id ? "d-block" : "d-none"} style={{ width: "100%", height: "100%" }}>
               <BlocklyWorkspace
                 initialJson={tab.blocklyJson}
                 ref={(el) => (workspaceRefs.current[tab.id] = el)}
                 onChange={(json, py) => handleBlocklyChange(tab.id, json, py)}
+                syntaxErrors={tab.syntaxErrors || []}
               />
             </div>
           ))}
-          <FloatingErrorDropdown syntaxErrors={activeTab?.syntaxErrors || []} />
         </div>
       ),
     },
@@ -853,8 +841,7 @@ export default function MainApp() {
           onSyncToBlocks={handleSyncToBlocks}
           onChangeCode={(value) => {
             const cleanValue = sanitizePythonCode(value);
-            const staticErrs = scanStaticSyntaxErrors(cleanValue);
-            updateTab(activeTabId, { pythonCode: cleanValue, isEditingCode: true, syntaxErrors: staticErrs, isDirty: true });
+            updateTab(activeTabId, { pythonCode: cleanValue, isEditingCode: true, syntaxErrors: [], isDirty: true });
           }}
           onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
         />

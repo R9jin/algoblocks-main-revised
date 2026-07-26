@@ -56,7 +56,14 @@ export default function FloatingErrorDropdown({ syntaxErrors = [] }) {
             {syntaxErrors.map((err, idx) => (
               <div key={idx} className="error-dropdown-item">
                 <span className="error-line-badge">Line {err.line}</span>
-                <span className="error-message">{err.message}</span>
+                <div className="error-item-body">
+                  <span className="error-message">{err.message}</span>
+                  {err.fix && (
+                    <span className="error-fix">
+                      <strong>Suggested fix: </strong>{err.fix}
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

@@ -351,13 +351,23 @@ def analyze_source_code(source_code):
             "overall_explanation": overall_exp,
             "lines": analyzer.details,
             "call_graph": getattr(analyzer, 'call_graph', {}),
-            "error": None
+            "error": None,
+            "runtime_warning": trace_data.get("runtime_warning"),
+            "runtime_warning_line": trace_data.get("runtime_warning_line")
         }
     except Exception as e:
         print(f"[AST CRASH FALLBACK TRIGGERED]: {e}")
         results = fallback_analyzer(source_code)
-        results["error"] = str(e) # Expose the error so it doesn't fail silently
-        
+        # NOTE: fallback_analyzer() always reports status "success" (it still
+        # provides a rough heuristic complexity guess), but a real failure
+        # here (most commonly a SyntaxError) needs to be reported as an
+        # actual error so it reaches the user - otherwise it's silently
+        # swallowed and the editor just shows a stale/generic complexity
+        # badge with no indication anything is wrong.
+        results["status"] = "error"
+        results["error"] = str(e)
+        results["message"] = str(e)
+        results["line"] = getattr(e, "lineno", 1) or 1
     end_time = time.perf_counter()
     results["analysis_time_ms"] = (end_time - start_time) * 1000
     

@@ -401,6 +401,14 @@ try:
                 all_errors.append(ce)
         all_errors.sort(key=lambda x: x['line'])
         output_dict["multiple_errors"] = all_errors
+    elif isinstance(output_dict, dict) and output_dict.get("runtime_warning"):
+        # Static analysis succeeded, but the trace run hit the infinite-loop
+        # step guard. Surface it the same way as a syntax error so it shows
+        # up in the same error list instead of vanishing silently.
+        output_dict["multiple_errors"] = [{
+            "line": output_dict.get("runtime_warning_line") or 1,
+            "message": output_dict["runtime_warning"]
+        }]
     output = json.dumps(output_dict)
 except Exception as e:
     custom_errs = gather_custom_lint_errors(user_code)

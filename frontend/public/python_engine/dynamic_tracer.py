@@ -85,20 +85,34 @@ class AlgoBlocksTracer:
         self.line_hits = Counter()
         self.step_count = 0
         safe_globals = input_globals if input_globals else {}
-        
+        runtime_warning = None
+        runtime_warning_line = None
+
         # Turn on the dynamic tracer
         sys.settrace(self._trace_dispatch)
         try:
             # Execute the code
             exec(code_string, safe_globals, safe_globals)
-        except Exception as e:
-            # Catch timeouts and errors silently to allow partial traces
+        except TimeoutError as e:
+            # The step-count guard in _trace_dispatch tripped - this is the
+            # infinite loop protection. Surface it instead of discarding it,
+            # so the user actually sees an "infinite loop" diagnosis instead
+            # of the analysis silently coming back empty.
+            runtime_warning = str(e)
+            if self.history:
+                runtime_warning_line = self.history[-1].line_no
+        except Exception:
+            # Other runtime errors (ZeroDivisionError, etc.) are surfaced
+            # elsewhere via the static/AST error path, so a partial trace is
+            # fine here - only the timeout case needs explicit reporting.
             pass
         finally:
             # ALWAYS turn the tracer off immediately after
             sys.settrace(None)
-            
+
         return {
             "history": self.history,
-            "line_hits": dict(self.line_hits)
+            "line_hits": dict(self.line_hits),
+            "runtime_warning": runtime_warning,
+            "runtime_warning_line": runtime_warning_line
         }

@@ -175,6 +175,11 @@ export const translatePythonError = (errorMsg) => {
         "Infinite Recursion Trap: Your function is caught in an infinite loop, calling itself over and over without ever stopping. The system artificially crashed the program to protect system RAM. Ensure your recursive function has a reachable 'Base Case' (a condition where it returns a value instead of calling itself again) and that every parameter passed down moves mathematically closer to that base case.",
     },
     {
+      test: /Execution exceeded max steps \(infinite loop protection\)/i,
+      generate: () =>
+        "Infinite Loop Detected: Your code ran for tens of thousands of steps without finishing, so it was stopped to protect the page from freezing. This almost always means a `while` loop's condition never becomes false, or a `for` loop's range never actually gets reached. Double-check that: (1) the variable your loop condition depends on is actually being updated inside the loop body, (2) the update moves it toward the stopping condition rather than away from it (e.g. incrementing when it should decrement), and (3) any `break` you're relying on is inside a branch that will actually be hit.",
+    },
+    {
       test: /StopIteration/i,
       generate: () =>
         "Exhausted Iterator: You forcefully requested the `next()` item from a generator or iterator, but it has completely run out of data. Always handle generators safely using loops or default fallback values.",
@@ -202,92 +207,4 @@ export const translatePythonError = (errorMsg) => {
   // If the error is overly cryptic or completely unknown to our dictionary.
   // =========================================================================
   return "Unknown System Error: An unpredictable runtime failure occurred. Read the raw error message above to locate the line number causing the crash. Verify your mathematical logic, variable types, and array manipulations.";
-};
-
-/**
- * Scans a full Python code string statically line-by-line for all syntax, 
- * structural, and unclosed bracket/colon errors prior to execution.
- * @param {string} codeStr 
- * @returns {Array<{line: number, message: string}>}
- */
-export const scanStaticSyntaxErrors = (codeStr) => {
-  if (!codeStr || typeof codeStr !== 'string') return [];
-  const lines = codeStr.split('\n');
-  const errors = [];
-
-  let openParenCount = 0;
-  let openBracketCount = 0;
-  let openBraceCount = 0;
-  let lastOpenParenLine = 0;
-  let lastOpenBracketLine = 0;
-  let lastOpenBraceLine = 0;
-
-  lines.forEach((rawLine, idx) => {
-    const lineNum = idx + 1;
-    const line = rawLine.trim();
-
-    if (!line || line.startsWith('#')) return;
-
-    // Check for missing colons on keywords that require colons
-    if (/^(def\b|if\b|elif\b|else\b|for\b|while\b|try\b|except\b|finally\b|with\b|class\b)/.test(line)) {
-      if (!line.endsWith(':') && !line.endsWith('(') && !line.endsWith('\\')) {
-        if (/^def\s+\w+\s*\(/.test(line) && !line.includes(')')) {
-          errors.push({
-            line: lineNum,
-            message: `Unclosed Parenthesis & Missing Colon: '${line}' is missing a closing ')' and a trailing colon ':'. Block headers must end with a colon.`
-          });
-          return;
-        }
-        errors.push({
-          line: lineNum,
-          message: `Missing Colon: You forgot to put a colon ':' at the end of '${line}'. In Python, block headers (def, if, for, while, etc.) must end with a colon.`
-        });
-      }
-    }
-
-    // Count brackets & parens on this line
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '(') { openParenCount++; lastOpenParenLine = lineNum; }
-      else if (char === ')') { openParenCount--; }
-      else if (char === '[') { openBracketCount++; lastOpenBracketLine = lineNum; }
-      else if (char === ']') { openBracketCount--; }
-      else if (char === '{') { openBraceCount++; lastOpenBraceLine = lineNum; }
-      else if (char === '}') { openBraceCount--; }
-    }
-
-    if (openParenCount < 0) {
-      errors.push({ line: lineNum, message: `Unmatched Parenthesis: Extra closing ')' found on line ${lineNum}.` });
-      openParenCount = 0;
-    }
-    if (openBracketCount < 0) {
-      errors.push({ line: lineNum, message: `Unmatched Bracket: Extra closing ']' found on line ${lineNum}.` });
-      openBracketCount = 0;
-    }
-    if (openBraceCount < 0) {
-      errors.push({ line: lineNum, message: `Unmatched Brace: Extra closing '}' found on line ${lineNum}.` });
-      openBraceCount = 0;
-    }
-  });
-
-  if (openParenCount > 0) {
-    errors.push({
-      line: lastOpenParenLine || lines.length,
-      message: `Unclosed Parenthesis: Found an unclosed '(' starting around line ${lastOpenParenLine || lines.length}. Ensure every opening parenthesis has a matching ')'.`
-    });
-  }
-  if (openBracketCount > 0) {
-    errors.push({
-      line: lastOpenBracketLine || lines.length,
-      message: `Unclosed Bracket: Found an unclosed '[' starting around line ${lastOpenBracketLine || lines.length}. Ensure every list or array bracket has a matching ']'.`
-    });
-  }
-  if (openBraceCount > 0) {
-    errors.push({
-      line: lastOpenBraceLine || lines.length,
-      message: `Unclosed Brace: Found an unclosed '{' starting around line ${lastOpenBraceLine || lines.length}. Ensure every dictionary or set brace has a matching '}'.`
-    });
-  }
-
-  return errors;
 };

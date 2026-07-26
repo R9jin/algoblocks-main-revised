@@ -25,20 +25,14 @@ export const handleEditorWillMount = (monaco) => {
 };
 
 export const getComplexityColor = (complexity) => {
-  const comp = String(complexity || "").toLowerCase().replace(/\s+/g, "");
-  
-  if (comp.includes("n!") || comp.includes("n*t(n-1)")) return "#7928CA"; // Factorial (Purple)
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("c^n") || comp.includes("t(n-1)+t(n-2)")) return "#E11D48"; // Exponential (Rose Red)
-  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*n") || comp.includes("n*m") || comp.includes("m*n") || comp.includes("t(n-1)+o(n)")) return "#EF4444"; // Quadratic (Red)
-  if (comp.includes("nlogn") || comp.includes("n*log") || comp.includes("nlog") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(log")) return "#F97316"; // Linearithmic (Orange)
-  if (comp.includes("v+e") || comp.includes("e+v") || comp.includes("n+m") || comp.includes("m+n")) return "#8B5CF6"; // Graph Traversal (Violet)
-  if (comp.includes("o(n)") || comp.includes("o(m)") || comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)") || comp.includes("t(n-1)+o(1)")) return "#F59E0B"; // Linear (Amber Yellow)
-  if (comp.includes("√n") || comp.includes("sqrt")) return "#06B6D4"; // Sqrt (Cyan)
-  if (comp.includes("logn") || comp.includes("log(n)") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return "#0EA5E9"; // Logarithmic (Sky Blue)
-  if (comp.includes("o(1)") || comp === "1") return "#10B981"; // Constant (Emerald Green)
-  if (comp.includes("definition") || comp.includes("header") || comp.includes("import")) return "#6366F1"; // Definition (Indigo)
-
-  return "#3B82F6"; // Vibrant primary Blue fallback (no dull gray)
+  const comp = String(complexity || "").toLowerCase();
+  if (comp.includes("o(1)")) return "#10B981";
+  if (comp.includes("log n") && !comp.includes("n log")) return "#0EA5E9";
+  if (comp.includes("o(n)") && !comp.includes("log")) return "#F59E0B";
+  if (comp.includes("n log n")) return "#F97316";
+  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*m")) return "#EF4444";
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#7928CA";
+  return "#64748B";
 };
 
 // Weight scale rebuilt to match the analyzer's actual recognized scope: it

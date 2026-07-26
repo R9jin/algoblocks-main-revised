@@ -14,6 +14,7 @@ import * as En from "blockly/msg/en";
 import { pythonGenerator } from "blockly/python";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { convertPythonToBlocks } from "../workers/analyzerInstance";
+import FloatingErrorDropdown from "./FloatingErrorDropdown.jsx";
 
 registerFieldMultilineInput();
 Blockly.setLocale(En);
@@ -302,7 +303,7 @@ const toolbox = {
   ]
 };
 
-const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref) => {
+const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson }, ref) => {
   const blocklyDiv = useRef(null);
   const workspace = useRef(null);
   const onChangeRef = useRef(onChange);
@@ -665,14 +666,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={blocklyDiv} style={{ height: "100%", width: "100%" }} />
-      {syntaxError && (
-        <div style={{ position: "absolute", top: "20px", right: "20px", backgroundColor: "#3A2A6B", borderLeft: "4px solid #bc11ff", color: "#EBE4FF", padding: "12px 16px", borderRadius: "0 8px 8px 0", boxShadow: "0 4px 15px rgba(0,0,0,0.3)", display: "flex", alignItems: "center", gap: "12px", zIndex: 1000, maxWidth: "300px" }}>
-          <div>
-            <div style={{ fontWeight: "bold", fontSize: "0.9rem", color: "#bc11ff" }}>Syntax Error (Line {syntaxError.line})</div>
-            <div style={{ fontSize: "0.8rem", marginTop: "4px", opacity: 0.9 }}>{syntaxError.message}</div>
-          </div>
-        </div>
-      )}
+      <FloatingErrorDropdown syntaxErrors={syntaxErrors} />
     </div>
   );
 });

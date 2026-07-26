@@ -8,7 +8,6 @@ import BlockGlossaryModal from "../components/BlockGlossaryModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import DockableWorkspace from "../components/DockableWorkspace.jsx";
-import FloatingErrorDropdown from "../components/FloatingErrorDropdown.jsx";
 import ComplexityPanelContent from "../components/panelContent/ComplexityPanelContent.jsx";
 import ConsolePanelContent from "../components/panelContent/ConsolePanelContent.jsx";
 import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
@@ -20,7 +19,7 @@ import { getIntroActivityTour } from "../data/introActivityTours.js";
 import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
 import "../styles/ActivityApp.css";
 import { getComplexityWeight, sanitizePythonCode } from "../utils/asymptoticParser.jsx";
-import { translatePythonError, scanStaticSyntaxErrors } from "../utils/errorTranslator.js";
+import { translatePythonError } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
 
 // Default docking arrangement, mirrored from MainApp.jsx: Blocks and Python
@@ -284,13 +283,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const initialCounts = {};
         (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
         setLineExecutions((prev) => ({ ...prev, ...initialCounts }));
-        setSyntaxErrors([]);
+        const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
+        setSyntaxErrors(runtimeErrors);
       } else {
         if (data.multiple_errors && data.multiple_errors.length > 0) {
-          const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: `${err.message}. ${translatePythonError(err.message)}` }));
+          const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
           setSyntaxErrors(mappedErrors);
         } else {
-          setSyntaxErrors([{ line: data.line, message: `${data.message}. ${translatePythonError(data.message)}` }]);
+          setSyntaxErrors([{ line: data.line, message: data.message, fix: translatePythonError(data.message) }]);
         }
       }
     } else if (type === "RUN_RESULT") {
@@ -340,14 +340,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         pendingOutputRef.current += data;
       } else {
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const rawErr = String(data);
-        const lineMatch = rawErr.match(/line (\d+)/i);
-        const lineNum = lineMatch ? parseInt(lineMatch[1], 10) : 1;
-        const hint = translatePythonError(rawErr);
-        const errObj = { line: lineNum, message: hint ? `${rawErr}. ${hint}` : rawErr };
-
-        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + rawErr + (hint ? `\n${hint}\n` : ""));
-        setSyntaxErrors([errObj]);
+        const hint = translatePythonError(data);
+        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
         setIsEvaluating(false); setIsWaitingForInput(false);
       }
     }
@@ -1073,9 +1067,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       title: "Blocks",
       icon: <FiGrid size={14} />,
       content: (
-        <div className="workspace-view" style={{ position: "relative", width: "100%", height: "100%" }}>
-          <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={null} />
-          <FloatingErrorDropdown syntaxErrors={syntaxErrors || []} />
+        <div className="workspace-view" style={{ width: "100%", height: "100%" }}>
+          <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxErrors={syntaxErrors || []} />
         </div>
       ),
     },
@@ -1093,8 +1086,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           onChangeCode={(value) => {
             if (isUnmountingRef.current) return;
             const newCode = sanitizePythonCode(value);
-            const staticErrs = scanStaticSyntaxErrors(newCode);
-            setGeneratedPython(newCode); setIsEditingCode(true); setSyntaxErrors(staticErrs);
+            setGeneratedPython(newCode); setIsEditingCode(true); setSyntaxErrors([]);
             latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(getFailsafeWorkspaceJson() || latestStateRef.current.json, newCode);
           }}
           onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
