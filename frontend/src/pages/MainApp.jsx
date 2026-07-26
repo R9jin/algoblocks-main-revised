@@ -170,9 +170,9 @@ export default function MainApp() {
       { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you want a quick concept refresher.", onEnter: () => setIsBigOModalOpen(true), onExit: () => setIsBigOModalOpen(false) },
       { target: ".big-o-modal-content", title: "Reference library", description: "Browse the complexity definitions and examples inside the modal." },
       { target: ".big-o-accordion .big-o-row-trigger", title: "Expandable complexity rows", description: "Open any row to read the definition, analogy, and examples for a specific Big-O class." },
-      { target: ".block-glossary-btn", title: "Block Glossary", description: "Not sure what a block does? Open the glossary to look up every block's purpose and when to use it.", onEnter: () => setIsBlockGlossaryOpen(true), onExit: () => setIsBlockGlossaryOpen(false) },
+      { target: ".block-glossary-btn", title: "Block Explorer", description: "Not sure what a block does? Open the Block Explorer to look up every block's purpose, see it in a real example, and run it.", onEnter: () => setIsBlockGlossaryOpen(true), onExit: () => setIsBlockGlossaryOpen(false) },
       { target: ".block-glossary-tabs", title: "Browse by category", description: "Jump straight to Logic, Loops, Lists, and every other category of blocks." },
-      { target: ".block-glossary-row-trigger", title: "Look up any block", description: "Expand a block to see a live preview of exactly what it looks like, what it does, and a real scenario for when to use it." },
+      { target: ".block-glossary-row-trigger", title: "Look up any block", description: "Expand a block to see a live preview, what it does, when to use it, and a runnable example showing it in action." },
     ],
   };
 

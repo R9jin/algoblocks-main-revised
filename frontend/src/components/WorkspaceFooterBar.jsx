@@ -23,8 +23,8 @@ export default function WorkspaceFooterBar({
         <button className="footer-tab big-o-btn" onClick={onOpenBigOModal}>
           <FiBookOpen size={16} /> Big O Reference
         </button>
-        <button className="footer-tab block-glossary-btn" onClick={onOpenBlockGlossary} title="Look up what any block does and when to use it">
-          <LuBlocks size={16} /> Block Glossary
+        <button className="footer-tab block-glossary-btn" onClick={onOpenBlockGlossary} title="Look up what any block does, see it in action, and run a live example">
+          <LuBlocks size={16} /> Block Explorer
         </button>
       </div>
       <div className="footer-right">

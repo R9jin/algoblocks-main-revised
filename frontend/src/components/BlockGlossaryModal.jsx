@@ -3,6 +3,9 @@ import * as Blockly from "blockly";
 import "blockly/blocks";
 import { useEffect, useRef, useState } from "react";
 import { BLOCK_GLOSSARY, CATEGORY_COLOURS, CATEGORY_ORDER } from "../data/blockGlossary";
+import { BLOCK_EXAMPLES } from "../data/blockExamples";
+import { useExampleWorker } from "../hooks/useExampleWorker.js";
+import BlockExampleRunner from "./BlockExampleRunner.jsx";
 import "../styles/BlockGlossaryModal.css";
 // Importing BlocklyWorkspace guarantees every custom AlgoBlocks block type
 // (customBlocks) and the shared pastelTheme are registered/available, even
@@ -68,6 +71,11 @@ export default function BlockGlossaryModal({ isOpen, onClose }) {
   const [activeCategory, setActiveCategory] = useState(CATEGORY_ORDER[0]);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedType, setExpandedType] = useState(null);
+  // One shared, isolated example-execution worker per modal session (not
+  // per example) so switching between examples doesn't re-pay Pyodide's
+  // startup cost each time; it's still completely separate from the main
+  // workspace's own worker/execution.
+  const exampleWorker = useExampleWorker();
 
   if (!isOpen) return null;
 
@@ -92,7 +100,7 @@ export default function BlockGlossaryModal({ isOpen, onClose }) {
         <div className="block-glossary-modal-header">
           <h2>
             <img src="/assets/table-icon.png" alt="Reference" className="tab-icon inverted-header-icon" />
-            Block Glossary
+            Block Explorer
           </h2>
           <button className="block-glossary-close-btn" onClick={onClose}>✕</button>
         </div>
@@ -156,6 +164,11 @@ export default function BlockGlossaryModal({ isOpen, onClose }) {
                       <strong>Roughly like:</strong>
                       <code className="block-glossary-python-code">{block.python}</code>
                     </p>
+                    {BLOCK_EXAMPLES[block.type] ? (
+                      <BlockExampleRunner example={BLOCK_EXAMPLES[block.type]} runner={exampleWorker} />
+                    ) : (
+                      <div className="block-example-missing">An interactive example for this block isn't available yet.</div>
+                    )}
                   </div>
                 )}
               </div>
