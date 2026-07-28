@@ -434,24 +434,45 @@ class AuthService:
         if "guest" in str(user_id).lower():
             return {"status": "ignored", "message": "Guest persistence disabled"}
 
-        # FIXED: Add id explicitly
-        allowed_fields = [
-            "id", "userId", "moduleId", "assessmentId", "answers", "score", 
-            "maxScore", "completed", "timestamp", "passed", "correct", 
-            "total", "timeElapsed", "completedAt", "attempts", "isSynced"
-        ]
-        safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
-
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s) ON CONFLICT DO NOTHING', (user_id, '{}'))
+
+        # Upsert into the normalized `assessments` table (one row per
+        # email+assessment_key). COALESCE on conflict means this only
+        # overwrites the columns present in this payload -- it won't null
+        # out fields the simpler update_assessment() write path set on the
+        # same row, and vice versa. `answers` is the one column that
+        # legitimately stays JSONB (a variable question-id -> answer map).
+        answers = payload.get("answers")
         cursor.execute('''
-            UPDATE assessments 
-            SET data = jsonb_set(data, %s, %s, true)
-            WHERE email = %s
-        ''', (f'{{{module_id}}}', json.dumps(safe_update_data), user_id))
-        
+            INSERT INTO assessments (
+                email, assessment_key, score, max_score, correct, total,
+                time_elapsed, completed_at, completed, passed, attempts,
+                is_synced, client_timestamp, answers, updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
+            ON CONFLICT (email, assessment_key) DO UPDATE SET
+                score = COALESCE(EXCLUDED.score, assessments.score),
+                max_score = COALESCE(EXCLUDED.max_score, assessments.max_score),
+                correct = COALESCE(EXCLUDED.correct, assessments.correct),
+                total = COALESCE(EXCLUDED.total, assessments.total),
+                time_elapsed = COALESCE(EXCLUDED.time_elapsed, assessments.time_elapsed),
+                completed_at = COALESCE(EXCLUDED.completed_at, assessments.completed_at),
+                completed = COALESCE(EXCLUDED.completed, assessments.completed),
+                passed = COALESCE(EXCLUDED.passed, assessments.passed),
+                attempts = COALESCE(EXCLUDED.attempts, assessments.attempts),
+                is_synced = COALESCE(EXCLUDED.is_synced, assessments.is_synced),
+                client_timestamp = COALESCE(EXCLUDED.client_timestamp, assessments.client_timestamp),
+                answers = COALESCE(EXCLUDED.answers, assessments.answers),
+                updated_at = now()
+        ''', (
+            user_id, module_id,
+            payload.get("score"), payload.get("maxScore"), payload.get("correct"), payload.get("total"),
+            payload.get("timeElapsed"), payload.get("completedAt"), payload.get("completed"), payload.get("passed"),
+            payload.get("attempts"), payload.get("isSynced"), payload.get("timestamp"),
+            json.dumps(answers) if answers is not None else None,
+        ))
+
         conn.commit() # <--- CRITICAL FIX: Save the transaction!
         cursor.close()
         conn.close()
@@ -464,14 +485,41 @@ class AuthService:
             
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT data->%s as assessment_data FROM assessments WHERE email = %s', (moduleId, email))
+        cursor.execute('''
+            SELECT score, max_score, correct, total, time_elapsed, completed_at,
+                   completed, passed, attempts, is_synced, client_timestamp, answers
+            FROM assessments WHERE email = %s AND assessment_key = %s
+        ''', (email, moduleId))
         row = cursor.fetchone()
         cursor.close()
         conn.close()
-        
-        if row and row.get("assessment_data"):
-            return {"status": "success", "assessment": row["assessment_data"]}
-        return {"status": "success", "assessment": None}
+
+        if not row:
+            return {"status": "success", "assessment": None}
+
+        assessment = {
+            "score": row["score"],
+            "correct": row["correct"],
+            "total": row["total"],
+            "timeElapsed": row["time_elapsed"],
+            "completedAt": row["completed_at"],
+            "attempts": row["attempts"],
+            "moduleId": moduleId,
+        }
+        if row["max_score"] is not None:
+            assessment["maxScore"] = row["max_score"]
+        if row["completed"] is not None:
+            assessment["completed"] = row["completed"]
+        if row["passed"] is not None:
+            assessment["passed"] = row["passed"]
+        if row["answers"] is not None:
+            assessment["answers"] = row["answers"]
+        if row["client_timestamp"] is not None:
+            assessment["timestamp"] = row["client_timestamp"]
+        if row["is_synced"] is not None:
+            assessment["isSynced"] = row["is_synced"]
+
+        return {"status": "success", "assessment": assessment}
     
     @staticmethod
     def get_all_submissions(email: str):

@@ -81,15 +81,27 @@ def _fetch_all_submission_rows() -> List[Dict[str, Any]]:
 
 
 def _fetch_all_assessment_rows() -> List[Dict[str, Any]]:
+    """Reconstructs the old {email, data} shape (data = {assessment_key:
+    {score, correct, total}}) from the normalized `assessments` table, so
+    the fuzzy pre-test/post-test key matching below (_find_milestone) can
+    stay unchanged."""
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT email, data FROM assessments")
+        cursor.execute("SELECT email, assessment_key, score, correct, total FROM assessments")
         rows = cursor.fetchall()
     finally:
         cursor.close()
         conn.close()
-    return [dict(r) for r in rows]
+
+    grouped: Dict[str, Dict[str, Any]] = {}
+    for r in rows:
+        grouped.setdefault(r["email"], {})[r["assessment_key"]] = {
+            "score": r["score"],
+            "correct": r["correct"],
+            "total": r["total"],
+        }
+    return [{"email": email, "data": data} for email, data in grouped.items()]
 
 
 def _fetch_submissions_for_user(email: str) -> List[Dict[str, Any]]:

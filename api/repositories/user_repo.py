@@ -16,14 +16,48 @@ class UserRepository:
             return None
             
         user_dict = dict(user)
-        
-        cursor.execute('SELECT data FROM progress WHERE email = %s LIMIT 1', (email,))
-        progress_row = cursor.fetchone()
-        user_dict["progress"] = progress_row["data"] if progress_row else {}
-        
-        cursor.execute('SELECT data FROM assessments WHERE email = %s LIMIT 1', (email,))
-        assessment_row = cursor.fetchone()
-        user_dict["assessments"] = assessment_row["data"] if assessment_row else {}
+
+        # progress is now one row per (email, lesson_id); reconstruct the
+        # {lesson_id: score} shape callers already expect so nothing
+        # downstream (routers, frontend) has to change.
+        cursor.execute('SELECT lesson_id, score FROM progress WHERE email = %s', (email,))
+        user_dict["progress"] = {r["lesson_id"]: r["score"] for r in cursor.fetchall()}
+
+        # same idea for assessments: one row per (email, assessment_key),
+        # reconstructed into {assessment_key: {...}}.
+        cursor.execute('''
+            SELECT assessment_key, score, max_score, correct, total, time_elapsed,
+                   completed_at, completed, passed, attempts, is_synced,
+                   client_timestamp, answers
+            FROM assessments WHERE email = %s
+        ''', (email,))
+        assessments = {}
+        for r in cursor.fetchall():
+            entry = {
+                "score": r["score"],
+                "correct": r["correct"],
+                "total": r["total"],
+                "timeElapsed": r["time_elapsed"],
+                "completedAt": r["completed_at"],
+                "attempts": r["attempts"],
+                "moduleId": r["assessment_key"],
+            }
+            # only present when set by the fuller sync_assessment write path
+            if r["max_score"] is not None:
+                entry["maxScore"] = r["max_score"]
+            if r["completed"] is not None:
+                entry["completed"] = r["completed"]
+            if r["passed"] is not None:
+                entry["passed"] = r["passed"]
+            if r["answers"] is not None:
+                entry["answers"] = r["answers"]
+            if r["client_timestamp"] is not None:
+                entry["timestamp"] = r["client_timestamp"]
+            if r["is_synced"] is not None:
+                entry["isSynced"] = r["is_synced"]
+            assessments[r["assessment_key"]] = entry
+        user_dict["assessments"] = assessments
+
         user_dict["onboarding_state"] = user_dict.get("onboarding_state") or {}
         
         cursor.close()
@@ -48,51 +82,64 @@ class UserRepository:
             is_admin
         ))
         inserted_id = cursor.fetchone()["id"]
-        
-        email = user_data.get("email")
-        progress = user_data.get("progress", {})
-        assessments = user_data.get("assessments", {})
-        
-        cursor.execute('INSERT INTO progress (email, data) VALUES (%s, %s)', (email, json.dumps(progress)))
-        cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s)', (email, json.dumps(assessments)))
-        
+
+        # No placeholder rows needed anymore: progress/assessments are now
+        # one row per (email, lesson_id)/(email, assessment_key). A brand
+        # new user simply has zero rows, and find_by_email already treats
+        # "no rows" as {} -- same result, no empty-blob row to maintain.
+
         conn.commit() # <--- CRITICAL FIX: Save the transaction!
         cursor.close()
         conn.close()
         return str(inserted_id)
 
     @staticmethod
-    def update_progress(email: str, lesson_id: str, score: int):
+    def update_progress(email: str, lesson_id: str, score: float):
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         cursor.execute('''
-            UPDATE progress 
-            SET data = jsonb_set(data, %s, %s, true)
-            WHERE email = %s
-        ''', (f'{{{lesson_id}}}', json.dumps(score), email))
-        
-        if cursor.rowcount == 0:
-            cursor.execute('INSERT INTO progress (email, data) VALUES (%s, %s)', (email, json.dumps({lesson_id: score})))
-            
+            INSERT INTO progress (email, lesson_id, score, updated_at)
+            VALUES (%s, %s, %s, now())
+            ON CONFLICT (email, lesson_id)
+            DO UPDATE SET score = EXCLUDED.score, updated_at = now()
+        ''', (email, lesson_id, score))
+
         conn.commit() # <--- CRITICAL FIX: Save the transaction!
         cursor.close()
         conn.close()
 
     @staticmethod
     def update_assessment(email: str, assessment_key: str, data: dict):
+        # `data` here only carries a subset of columns (score/correct/total/
+        # timeElapsed/completedAt/attempts) -- the fuller sync_assessment
+        # write path (auth_service.py) may already have set maxScore/
+        # completed/passed/answers/etc. on this same row. COALESCE on
+        # conflict means we only overwrite the columns we were actually
+        # given, instead of nulling out the others.
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         cursor.execute('''
-            UPDATE assessments 
-            SET data = jsonb_set(data, %s, %s, true)
-            WHERE email = %s
-        ''', (f'{{{assessment_key}}}', json.dumps(data), email))
-        
-        if cursor.rowcount == 0:
-             cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s)', (email, json.dumps({assessment_key: data})))
-             
+            INSERT INTO assessments (
+                email, assessment_key, score, correct, total,
+                time_elapsed, completed_at, attempts, updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, now())
+            ON CONFLICT (email, assessment_key) DO UPDATE SET
+                score = COALESCE(EXCLUDED.score, assessments.score),
+                correct = COALESCE(EXCLUDED.correct, assessments.correct),
+                total = COALESCE(EXCLUDED.total, assessments.total),
+                time_elapsed = COALESCE(EXCLUDED.time_elapsed, assessments.time_elapsed),
+                completed_at = COALESCE(EXCLUDED.completed_at, assessments.completed_at),
+                attempts = COALESCE(EXCLUDED.attempts, assessments.attempts),
+                updated_at = now()
+        ''', (
+            email, assessment_key,
+            data.get("score"), data.get("correct"), data.get("total"),
+            data.get("timeElapsed"), data.get("completedAt"), data.get("attempts"),
+        ))
+
         conn.commit() # <--- CRITICAL FIX: Save the transaction!
         cursor.close()
         conn.close()
