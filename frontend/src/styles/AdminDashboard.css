@@ -1,0 +1,41 @@
+/* frontend/src/styles/AdminDashboard.css
+ *
+ * AdminDashboard.jsx intentionally reuses .admin-page-wrapper,
+ * .admin-page-container, .admin-header, .admin-analytics-dashboard, and
+ * .analytics-card-grid from AdminUserManagement.css -- those are already a
+ * polished, consistent pattern, and duplicating them here would just give
+ * the two admin pages two different looks again. This file only holds the
+ * couple of rules that pattern doesn't already cover.
+ */
+
+.admin-dash-section-intro {
+  margin: 0 0 16px 4px;
+}
+
+.admin-dash-section-intro h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #241b52;
+  margin: 0 0 6px 0;
+}
+
+.admin-dash-section-intro p {
+  color: #5b5675;
+  font-size: 0.95rem;
+  margin: 0;
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+.admin-dash-eval-section {
+  margin-top: 8px;
+}
+
+/* AdminUserManagement.css's .spinner-icon relies on an @keyframes spin
+   that only happens to exist in ProfilePage.css / Projects.css -- neither
+   of which this page imports. Defining it here too means the loading
+   spinner animates reliably regardless of what else has loaded. */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

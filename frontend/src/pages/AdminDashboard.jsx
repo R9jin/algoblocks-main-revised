@@ -8,13 +8,19 @@
 //      to the full management page, which still lives at /admin/users
 //      and is reachable from the profile icon menu).
 //   2. The full Dataset Testing tool (EvaluationSuite), embedded in full.
+//
+// Deliberately reuses the same page shell and card classes as
+// AdminUserManagement.jsx (.admin-page-wrapper / .admin-page-container /
+// .admin-header / .admin-analytics-dashboard) rather than inventing new
+// ones, so this reads as a sibling of that page instead of a visually
+// disconnected one-off.
 import { useEffect, useMemo, useState } from "react";
 import { LuRefreshCw, LuShield, LuTriangleAlert, LuUserCheck, LuUserPlus, LuUsers } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import EvaluationSuite from "./EvaluationSuite";
-import "../styles/Dashboard.css";
 import "../styles/AdminUserManagement.css";
+import "../styles/AdminDashboard.css";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
@@ -82,96 +88,89 @@ export default function AdminDashboard() {
   }, [users]);
 
   return (
-    <div className="dashboard-page">
+    <div className="admin-page-wrapper">
       <DashboardHeader backTo="/dashboard" backText="Back to Home" tour={adminDashboardTour} tourPageId="admin-dashboard" />
 
-      <main className="dashboard-main" style={{ maxWidth: "1400px", margin: "0 auto", padding: "24px" }}>
-        <section style={{ marginBottom: "28px" }}>
-          <div className="section-header">
-            <h2><LuShield size={22} style={{ verticalAlign: "-3px", marginRight: "6px" }} />Admin Dashboard</h2>
+      <div className="admin-page-container">
+        <div className="admin-header">
+          <div className="admin-header-left">
+            <h1><LuShield size={38} color="#5A1398" /> Admin Dashboard</h1>
             <p>User Management overview and the full Dataset Testing suite. Learning Path and Workspace progress are student-only features and are not part of the admin account.</p>
           </div>
+          <button onClick={fetchUsers} className="admin-refresh-btn">
+            <LuRefreshCw size={20} /> Refresh
+          </button>
+        </div>
 
-          <div className="admin-dash-overview-card" style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: "16px",
-            padding: "20px",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
-              <h3 style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
-                <LuUsers size={20} /> User Management
-              </h3>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <button onClick={fetchUsers} className="admin-refresh-btn small outline" type="button">
-                  <LuRefreshCw size={16} /> Refresh
-                </button>
-                <button onClick={() => navigate("/admin/users")} className="admin-refresh-btn small" type="button">
-                  <LuUserCheck size={16} /> Open Full User Management
-                </button>
+        <div className="admin-analytics-dashboard admin-dash-overview-card">
+          <div className="analytics-dashboard-header">
+            <h2><LuUsers size={20} /> User Management</h2>
+            <div className="analytics-dashboard-actions">
+              <button onClick={() => navigate("/admin/users")} className="admin-refresh-btn small">
+                <LuUserCheck size={16} /> Open Full User Management
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="admin-loading-state compact">
+              <LuRefreshCw size={24} className="spinner-icon" style={{ animation: "spin 2s linear infinite" }} />
+              <span>Loading account directory...</span>
+            </div>
+          ) : error ? (
+            <div className="admin-message-box error compact">
+              <LuTriangleAlert size={22} />
+              <span>{error}</span>
+            </div>
+          ) : (
+            <div className="analytics-card-grid">
+              <div className="analytics-card">
+                <div className="analytics-card-icon count"><LuUsers size={20} /></div>
+                <div className="analytics-card-body">
+                  <span className="analytics-card-value">{stats.total}</span>
+                  <span className="analytics-card-label">Total Accounts</span>
+                </div>
+              </div>
+              <div className="analytics-card">
+                <div className="analytics-card-icon tsr"><LuUserPlus size={20} /></div>
+                <div className="analytics-card-body">
+                  <span className="analytics-card-value">{stats.standard}</span>
+                  <span className="analytics-card-label">Standard Users</span>
+                </div>
+              </div>
+              <div className="analytics-card">
+                <div className="analytics-card-icon aes"><LuShield size={20} /></div>
+                <div className="analytics-card-body">
+                  <span className="analytics-card-value">{stats.admins}</span>
+                  <span className="analytics-card-label">Admin Accounts</span>
+                </div>
+              </div>
+              <div className="analytics-card">
+                <div className="analytics-card-icon rog"><LuUserCheck size={20} /></div>
+                <div className="analytics-card-body">
+                  <span className="analytics-card-value">{stats.active}</span>
+                  <span className="analytics-card-label">Active</span>
+                </div>
+              </div>
+              <div className="analytics-card">
+                <div className="analytics-card-icon mean"><LuTriangleAlert size={20} /></div>
+                <div className="analytics-card-body">
+                  <span className="analytics-card-value">{stats.suspended}</span>
+                  <span className="analytics-card-label">Suspended</span>
+                </div>
               </div>
             </div>
-
-            {loading ? (
-              <div className="admin-loading-state compact">
-                <LuRefreshCw size={24} className="spinner-icon" style={{ animation: "spin 2s linear infinite" }} />
-                <span>Loading account directory...</span>
-              </div>
-            ) : error ? (
-              <div className="admin-message-box error">
-                <LuTriangleAlert size={22} />
-                <span>{error}</span>
-              </div>
-            ) : (
-              <div className="analytics-card-grid">
-                <div className="analytics-card">
-                  <div className="analytics-card-icon count"><LuUsers size={20} /></div>
-                  <div className="analytics-card-body">
-                    <span className="analytics-card-value">{stats.total}</span>
-                    <span className="analytics-card-label">Total Accounts</span>
-                  </div>
-                </div>
-                <div className="analytics-card">
-                  <div className="analytics-card-icon tsr"><LuUserPlus size={20} /></div>
-                  <div className="analytics-card-body">
-                    <span className="analytics-card-value">{stats.standard}</span>
-                    <span className="analytics-card-label">Standard Users</span>
-                  </div>
-                </div>
-                <div className="analytics-card">
-                  <div className="analytics-card-icon aes"><LuShield size={20} /></div>
-                  <div className="analytics-card-body">
-                    <span className="analytics-card-value">{stats.admins}</span>
-                    <span className="analytics-card-label">Admin Accounts</span>
-                  </div>
-                </div>
-                <div className="analytics-card">
-                  <div className="analytics-card-icon rog"><LuUserCheck size={20} /></div>
-                  <div className="analytics-card-body">
-                    <span className="analytics-card-value">{stats.active}</span>
-                    <span className="analytics-card-label">Active</span>
-                  </div>
-                </div>
-                <div className="analytics-card">
-                  <div className="analytics-card-icon mean"><LuTriangleAlert size={20} /></div>
-                  <div className="analytics-card-body">
-                    <span className="analytics-card-value">{stats.suspended}</span>
-                    <span className="analytics-card-label">Suspended</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
+          )}
+        </div>
 
         <section className="admin-dash-eval-section">
-          <div className="section-header">
+          <div className="admin-dash-section-intro">
             <h2>Dataset Testing</h2>
             <p>Full complexity analyzer benchmark, run directly from the dashboard.</p>
           </div>
           <EvaluationSuite embedded />
         </section>
-      </main>
+      </div>
     </div>
   );
 }
