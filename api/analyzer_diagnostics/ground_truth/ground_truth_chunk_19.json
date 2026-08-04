@@ -306,7 +306,7 @@
     "name": "Python implementation",
     "code": "# Python implementation\nfrom collections import Counter\n \n# Function which repeats\n# first repeating character\ndef printrepeated(string):\n   \n    # Calculating frequencies\n    # using Counter function\n    freq = Counter(string)\n     \n    # Traverse the string\n    for i in string:\n        if(freq[i] > 1):\n            print(i)\n            break\n \n \n# Driver code\nstring = \"geeksforgeeks\"\n \n# passing string to printrepeated function\nprintrepeated(string)\n \n# this code is contributed by vikkycirus",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 2,
@@ -1019,7 +1019,7 @@
     "name": "Python program to find",
     "code": "# Python program to find\n# if a given corner string\n# is present at corners.\n \ndef isCornerPresent(str, corner) :\n \n    n = len(str)\n    cl = len(corner)\n \n    # If length of corner\n    # string is more, it\n    # cannot be present\n    # at corners.\n    if (n < cl) :\n        return False\n \n    # Return true if corner\n    # string is present at\n    # both corners of given\n    # string.\n    return ((str[: cl] == corner) and\n            (str[n - cl :] == corner))\n \n# Driver Code\nstr = \"geeksforgeeks\"\ncorner = \"geeks\"\nif (isCornerPresent(str, corner)) :\n    print (\"Yes\")\nelse :\n    print (\"No\")\n \n# This code is contributed by\n# Manish Shaw(manishshaw1)",
     "expected_overall_time": "O(1)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 5,

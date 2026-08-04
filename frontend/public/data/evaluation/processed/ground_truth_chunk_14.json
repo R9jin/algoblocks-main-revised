@@ -380,7 +380,7 @@
     "name": "Python program to check if a string can be made",
     "code": "# Python program to check if a string can be made\n# valid by removing at most 1 character using hashmap.\n \n# To check a string S can be converted to a variation\n# string\ndef checkForVariation(strr):\n    if(len(strr) == 0):\n        return True\n     \n    mapp = {}\n     \n    # Run loop form 0 to length of string   \n    for i in range(len(strr)):\n        if strr[i] in mapp:\n            mapp[strr[i]] += 1\n        else:\n            mapp[strr[i]] = 1\n     \n    # declaration of variables\n    first = True\n    second = True\n    val1 = 0\n    val2 = 0\n    countOfVal1 = 0\n    countOfVal2 = 0\n     \n    for itr in mapp:\n        i = itr\n         \n        # if first is true than countOfVal1 increase\n        if(first):\n            val1 = i\n            first = False\n            countOfVal1 += 1\n            continue\n         \n        if(i == val1):\n            countOfVal1 += 1\n            continue\n         \n        # if second is true than countOfVal2 increase\n        if(second):\n            val2 = i\n            countOfVal2 += 1\n            second = False\n            continue\n         \n        if(i == val2):\n            countOfVal2 += 1\n            continue\n    if(countOfVal1 > 1 and countOfVal2 > 1):\n        return False\n     \n    else:\n        return True\n \n# Driver code\nprint(checkForVariation(\"abcbc\"))\n \n# This code is contributed by rag2127",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 6,

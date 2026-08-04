@@ -4,7 +4,7 @@
     "name": "Python3 program to reverse string without",
     "code": "# Python3 program to reverse string without\n# affecting it's special character\ndef rev(s, l, r) :\n    while l<r :\n        temp = s[l]\n        s[l] = s[r]\n        s[r] = temp\n        l += 1\n        r -= 1\n     \n# creating character array of size\n# equal to length of string\ndef reverse(s):\n     \n    temp = ['']*len(s)\n    x = 0\n     \n    for i in range(len(s)) :\n        if s[i] >= 'a' and s[i] <= 'z' or s[i] >= 'A' and s[i] <= 'Z' :\n            # storing elements in array\n            temp[x] = s[i]\n            x += 1\n     \n    # reversing the character array       \n    rev(temp, 0, x)\n     \n    lst = list(s)\n    x = 0\n     \n    for i in range(len(s)) :\n        if s[i] >= 'a' and s[i] <= 'z' or s[i] >= 'A' and s[i] <= 'Z' :\n            # updating the origional string\n            lst[i] = temp[x]\n            x += 1\n     \n    revStr = \"\"\n    for i in range(len(s)) :\n        revStr += lst[i]\n         \n    print(\"reverse string is :\",revStr);\n     \n# Driver Code\nif __name__ == \"__main__\" :\n     \n    s=\"Ab,c,de!$\"\n     \n    reverse(s)\n     \n# This code is contributed by aditya942003patil",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 3,
@@ -1138,7 +1138,7 @@
     "name": "Python3 program to implement the approach",
     "code": "# Python3 program to implement the approach\n \n# Python3 has no built-in swap function.\ndef swap(str, i, j):\n    ch = list(str)\n    temp = ch[i]\n    ch[i] = ch[j]\n    ch[j] = temp\n    return \"\".join(ch)\n \n# Since STRINGS are immutable in JavaScript, first we have\n# to convert it to a character array in order to sort.\ndef sortString(str, s_index, e_index):\n    tempArray = list(str)\n \n    # Sorting temp array using\n    tempArray = tempArray[:s_index] + sorted(tempArray[s_index: e_index])\n \n    # returning the new sorted string\n    return \"\".join(tempArray)\n \ndef maximizeNumber(N, M):\n    # Sorting the digits of the\n    # number in increasing order.\n    N = sortString(N, 0, len(N))\n \n    for i in range(len(N)):\n        for j in range(i + 1, len(N)):\n \n            # Copying the string into another\n            # temp string.\n            t = N\n \n            # Swapping the j-th char(digit)\n            # with i-th char(digit)\n \n            t = swap(t, j, i)\n \n            # Sorting the temp string\n            # from i-th pos to end.\n            t = sortString(t, i + 1, len(t))\n \n            # Checking if the string t is\n            # greater than string N and less\n            # than or equal to the number M.\n            if (int(t) > int(N) and int(t) <= M):\n \n                # If yes then, we will permanently\n                # swap the i-th char(or digit)\n                # with j-th char(digit).\n                N = swap(N, i, j)\n \n    # Returns the maximized number.\n    return N\n \n# Driver Code\nN = \"123\"\nM = 222\nprint(maximizeNumber(N, M))\n \n# This code is contributed by phasing17",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 4,
@@ -1489,7 +1489,7 @@
     "name": "Python3 program to put spaces between words",
     "code": "# Python3 program to put spaces between words\n# starting with capital letters.\n \n# Function to amend the sentence\ndef amendSentence(string):\n    string = list(string)\n \n    # Traverse the string\n    for i in range(len(string)):\n \n        # Convert to lowercase if its\n        # an uppercase character\n        if string[i] >= 'A' and string[i] <= 'Z':\n            string[i] = chr(ord(string[i]) + 32)\n \n            # Print space before it\n            # if its an uppercase character\n            if i != 0:\n                print(\" \", end = \"\")\n \n            # Print the character\n            print(string[i], end = \"\")\n \n        # if lowercase character\n        # then just print\n        else:\n            print(string[i], end = \"\")\n \n# Driver Code\nif __name__ == \"__main__\":\n    string = \"BruceWayneIsBatman\"\n    amendSentence(string)\n \n# This code is contributed by\n# sanjeev2552",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 5,

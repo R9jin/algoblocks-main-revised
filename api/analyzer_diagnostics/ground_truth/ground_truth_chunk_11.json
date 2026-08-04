@@ -4,7 +4,7 @@
     "name": "Python3 program for the above approach",
     "code": "# Python3 program for the above approach\n \n# Returns true if arr1[0..N-1] and\n# arr2[0..M-1] contain same elements.\n \n \ndef is_arr_equal(arr1, arr2):\n        # Check if the length of arrays are\n    # equal or not: A Easy Logic Check\n    if len(arr1) != len(arr2):\n        return False\n \n    # Create a dict named count to\n    # store counts of each element\n    count = {}\n    # Store the elements of arr1\n    # and their counts in the dictionary\n    for i in arr1:\n        if i in count:\n                # Element already in dict, simply increment its count\n            count[i] += 1\n        else:\n                # Element found for first time, initialize it with value 1.\n            count[i] = 1\n \n    # Traverse through arr2 and compare\n    # the elements and its count with\n    # the elements of arr1\n    for i in arr2:\n        # Return false if the element\n        # is not in count or if any element\n        # appears more no. of times than in arr1\n        if i not in count or count[i] == 0:\n            return False\n        else:\n                # If element is found, decrement\n                # its value in the dictionary\n            count[i] -= 1\n    # Return true if both arr1 and\n    # arr2 are equal\n    return True\n \n \n# Driver Code\nif __name__ == \"__main__\":\n    arr1 = [3, 5, 2, 5, 2]\n    arr2 = [2, 3, 5, 5, 2]\n \n    if is_arr_equal(arr1, arr2):\n        print(\"Yes\")\n    else:\n        print(\"No\")",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 7,

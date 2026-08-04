@@ -127,7 +127,7 @@
     "name": "Optimized Python3 program",
     "code": "# Optimized Python3 program\n# to check if two strings\n# are k anagram or not.\nMAX_CHAR = 26;\n \n# Function to check if str1\n# and str2 are k-anagram or not\ndef areKAnagrams(str1, str2, k):\n    # If both strings are\n    # not of equal length\n    # then return false\n \n    n = len(str1);\n    if (len(str2) != n):\n        return False;\n \n    hash_str1 = [0]*(MAX_CHAR);\n \n    # Store the occurrence of\n    # all characters in a hash_array\n    for i in range(n):\n        hash_str1[ord(str1[i]) - ord('a')]+=1;\n \n    # Store the occurrence of all\n    # characters in a hash_array\n    count = 0;\n    for i in range(n):\n        if (hash_str1[ord(str2[i]) - ord('a')] > 0):\n            hash_str1[ord(str2[i]) - ord('a')]-=1;\n        else:\n            count+=1;\n \n        if (count > k):\n            return False;\n \n    # Return true if count is\n    # less than or equal to k\n    return True;\n \n# Driver code\nstr1 = \"fodr\";\nstr2 = \"gork\";\nk = 2;\nif (areKAnagrams(str1, str2, k) == True):\n    print(\"Yes\");\nelse:\n    print(\"No\");\n         \n# This code is contributed by mits",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 4,
@@ -545,7 +545,7 @@
     "name": "Python3 program to convert a",
     "code": "# Python3 program to convert a\n# sentence to gOOGLE cASE.\ndef convert(str):\n   \n    # empty strings\n    w = \"\"\n    z = \"\";\n \n    # convert input string\n    # to upper case\n    str = str.upper() + \" \";\n \n    for i in range(len(str)):\n \n        # checki if character is not\n        # a space and adding it to\n        # string w\n        ch = str[i];\n        if (ch != ' '):\n            w = w + ch;\n        else:\n \n            # converting first character\n            # to lower case and subsequent\n            # initial letter of another\n            # word to lower case\n            z = (z + (w[0]).lower() +\n                 w[1:len(w)] + \" \");\n            w = \"\";\n \n    return z;\n \n# Driver code\nif __name__ == '__main__':\n   \n    str = \"I got intern at geeksforgeeks\";\n    print(convert(str));\n \n# This code is contributed by 29AjayKumar",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 3,
@@ -654,7 +654,7 @@
     "name": "Function to concatenated string with uncommon",
     "code": "# Function to concatenated string with uncommon\n# characters of two strings\n \ndef uncommonConcat(str1, str2):\n \n    # convert both strings into set\n    set1 = set(str1)\n    set2 = set(str2)\n \n    # Performing symmetric difference operation of set\n    # to pull out uncommon characters\n    uncommon = list(set1 ^ set2)\n \n    # join each character without space to get\n    # final string\n    print( ''.join(uncommon) )\n \n# Driver program\nif __name__ == \"__main__\":\n    str1 = 'aacdb'\n    str2 = 'gafd'\n    uncommonConcat(str1,str2)",
     "expected_overall_time": "O(1)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 4,
@@ -728,7 +728,7 @@
     "name": "Python code to find if we can make first string",
     "code": "# Python code to find if we can make first string\n# from second by deleting some characters from\n# second and rearranging remaining characters.\nfrom collections import Counter\n \ndef makeString(str1,str2):\n \n    # convert both strings into dictionaries\n    # output will be like str1=\"aabbcc\",\n    # dict1={'a':2,'b':2,'c':2}\n    # str2 = 'abbbcc', dict2={'a':1,'b':3,'c':2}\n    dict1 = Counter(str1)\n    dict2 = Counter(str2)\n \n    # take intersection of two dictionaries\n    # output will be result = {'a':1,'b':2,'c':2}\n    result = dict1 & dict2\n \n    # compare resultant dictionary with first\n    # dictionary comparison first compares keys\n    # and then compares their corresponding values\n    return result == dict1\n \n# Driver program\nif __name__ == \"__main__\":\n    str1 = 'ABHISHEKsinGH'\n    str2 = 'gfhfBHkooIHnfndSHEKsiAnG'\n    if (makeString(str1,str2)==True):\n        print(\"Possible\")\n    else:\n        print(\"Not Possible\")",
     "expected_overall_time": "O(1)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 4,
@@ -939,7 +939,7 @@
     "name": "Python3 program to convert an array",
     "code": "# Python3 program to convert an array\n# in reduced form\ndef convert(arr, n):\n    # Create a temp array and copy contents\n    # of arr[] to temp\n    temp = [arr[i] for i in range (n) ]\n     \n    # Sort temp array\n    temp.sort()\n     \n    # create a map\n    umap = {}\n     \n     \n    # One by one insert elements of sorted\n    # temp[] and assign them values from 0\n    # to n-1\n    val = 0\n    for i in range (n):\n        umap[temp[i]] = val\n        val += 1\n     \n    # Convert array by taking positions from umap\n    for i in range (n):\n        arr[i] = umap[arr[i]]\n     \ndef printArr(arr, n):\n    for i in range(n):\n        print(arr[i], end = \" \")\n \n# Driver Code\nif __name__ == \"__main__\":\n    arr = [10, 20, 15, 12, 11, 50]\n    n = len(arr)\n    print(\"Given Array is \")\n    printArr(arr, n)\n    convert(arr , n)\n    print(\"\\n\\nConverted Array is \")\n    printArr(arr, n)\n \n# This code is contributed by Abhishek Gupta",
     "expected_overall_time": "O(n log n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 3,

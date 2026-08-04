@@ -4,7 +4,7 @@
     "name": "Python 3 implementation to find the length of",
     "code": "# Python 3 implementation to find the length of\n# longest subarray having count of 1's one\n# more than count of 0's\n \n# function to find the length of longest\n# subarray having count of 1's one more\n# than count of 0's\n \n \ndef lenOfLongSubarr(arr, n):\n \n    # unordered_map 'um' implemented as\n    # hash table\n    um = {}\n    sum = 0\n    maxLen = 0\n \n    # traverse the given array\n    for i in range(n):\n \n        # consider '0' as '-1'\n        if arr[i] == 0:\n            sum += -1\n        else:\n            sum += 1\n \n        # when subarray starts form index '0'\n        if (sum == 1):\n            maxLen = i + 1\n \n        # make an entry for 'sum' if it is\n        # not present in 'um'\n        elif (sum not in um):\n            um[sum] = i\n \n        # check if 'sum-1' is present in 'um'\n        # or not\n        if ((sum - 1) in um):\n            # update maxLength\n            if (maxLen < (i - um[sum - 1])):\n                maxLen = i - um[sum - 1]\n \n    # required maximum length\n    return maxLen\n \n \n# Driver code\nif __name__ == '__main__':\n    arr = [0, 1, 1, 0, 0, 1]\n    n = len(arr)\n    print(\"Length =\", lenOfLongSubarr(arr, n))\n \n# This code is contributed by\n# Surendra_Gangwar",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 10,
@@ -236,7 +236,7 @@
     "name": "Python program for the above approach",
     "code": "# Python program for the above approach\n \n# Returns the maximum length\n \n \ndef maxLen(arr):\n \n    # NOTE: Dictionary in python is\n    # implemented as Hash Maps\n    # Create an empty hash map (dictionary)\n    hash_map = {}\n \n    # Initialize result\n    max_len = 0\n \n    # Initialize sum of elements\n    curr_sum = 0\n \n    # Traverse through the given array\n    for i in range(len(arr)):\n \n        # Add the current element to the sum\n        curr_sum += arr[i]\n \n        if curr_sum == 0:\n            max_len = i + 1\n \n        # NOTE: 'in' operation in dictionary\n        # to search key takes O(1). Look if\n        # current sum is seen before\n        if curr_sum in hash_map:\n            max_len = max(max_len, i - hash_map[curr_sum])\n        else:\n \n            # else put this sum in dictionary\n            hash_map[curr_sum] = i\n \n    return max_len\n \n \n# Driver's code\nif __name__ == \"__main__\":\n \n    # test array\n    arr = [15, -2, 2, -8, 1, 7, 10, 13]\n \n    # Function call\n    print(\"Length of the longest 0 sum subarray is % d\" % maxLen(arr))",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 6,
@@ -352,7 +352,7 @@
     "name": "Python3 program to find whether an array",
     "code": "# Python3 program to find whether an array\n# is subset of another array\n \n# Return true if arr2[] is a subset of arr1[]\n \n \ndef isSubset(arr1, m, arr2, n):\n \n    # Create a Frequency Table using STL\n    frequency = {}\n \n    # Increase the frequency of each element\n    # in the frequency table.\n    for i in range(0, m):\n        if arr1[i] in frequency:\n            frequency[arr1[i]] = frequency[arr1[i]] + 1\n        else:\n            frequency[arr1[i]] = 1\n \n    # Decrease the frequency if the\n    # element was found in the frequency\n    # table with the frequency more than 0.\n    # else return 0 and if loop is\n    # completed return 1.\n    for i in range(0, n):\n        if (frequency[arr2[i]] > 0):\n            frequency[arr2[i]] -= 1\n        else:\n            return False\n \n    return True\n \n \n# Driver Code\nif __name__ == '__main__':\n \n    arr1 = [11, 1, 13, 21, 3, 7]\n    arr2 = [11, 3, 7, 1]\n \n    m = len(arr1)\n    n = len(arr2)\n \n    if (isSubset(arr1, m, arr2, n)):\n        print(\"arr2[] is subset of arr1[] \")\n    else:\n        print(\"arr2[] is not a subset of arr1[] \")\n \n# This code is contributed by akhilsaini",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 7,
@@ -654,7 +654,7 @@
     "name": "Python3 program to reverse order of vowels",
     "code": "# Python3 program to reverse order of vowels\n \n# utility function to check for vowel\ndef isVowel(c):\n    if (c == 'a' or c == 'A' or c == 'e' or\n        c == 'E' or c == 'i' or c == 'I' or\n        c == 'o' or c == 'O' or c == 'u' or c == 'U'):\n        return True\n    return False\n \n# Function to reverse order of vowels\ndef reverserVowel(string):\n    j = 0\n    vowel = [0] * len(string)\n    string = list(string)\n \n    # Storing the vowels separately\n    for i in range(len(string)):\n        if isVowel(string[i]):\n            vowel[j] = string[i]\n            j += 1\n \n    # Placing the vowels in the reverse\n    # order in the string\n    for i in range(len(string)):\n        if isVowel(string[i]):\n            j -= 1\n            string[i] = vowel[j]\n \n    return ''.join(string)\n \n# Driver Code\nif __name__ == \"__main__\":\n    string = \"hello world\"\n    print(reverserVowel(string))\n \n# This code is contributed by\n# sanjeev2552",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 4,
@@ -907,7 +907,7 @@
     "name": "Python3 program to find next permutation in a",
     "code": "# Python3 program to find next permutation in a\n# binary string.\n \n# Function to find the next greater number\n# with same number of 1's and 0's\ndef nextGreaterWithSameDigits(bnum):\n    l = len(bnum)\n    bnum = list(bnum)\n    for i in range(l - 2, 0, -1):\n         \n        # locate first 'i' from end such that\n        # bnum[i]=='0' and bnum[i+1]=='1'\n        # swap these value and break\n        if (bnum[i] == '0' and bnum[i + 1] == '1'):\n            ch = bnum[i]\n            bnum[i] = bnum[i + 1]\n            bnum[i + 1] = ch        \n            break\n         \n    # if no swapping performed\n    if (i == 0):\n        return \"no greater number\"\n         \n    # Since we want the smallest next value,\n    # shift all 1's at the end in the binary\n    # substring starting from index 'i+2'\n    j = i + 2\n    k = l - 1\n    while (j < k):\n        if (bnum[j] == '1' and bnum[k] == '0'):\n            ch = bnum[j]\n            bnum[j] = bnum[k]\n            bnum[k] = ch\n            j += 1\n            k -= 1\n             \n        # special case while swapping if '0'\n        # occurs then break\n        else if (bnum[i] == '0'):\n            break\n        else:\n            j += 1\n     \n    # required next greater number\n    return bnum\n \n# Driver code\nbnum = \"10010\"\nprint(\"Binary representation of next greater number = \",*nextGreaterWithSameDigits(bnum),sep=\"\")\n \n# This code is contributed by shubhamsingh10",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 6,

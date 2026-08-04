@@ -187,7 +187,7 @@
     "name": "python program to print initials of a name",
     "code": "# python program to print initials of a name\ndef name(s):\n \n    # split the string into a list\n    l = s.split()\n    new = \"\"\n \n    # traverse in the list\n    for i in range(len(l)-1):\n        s = l[i]\n         \n        # adds the capital first character\n        new += (s[0].upper()+'.')\n         \n    # l[-1] gives last item of list l. We\n    # use title to print first character in\n    # capital.\n    new += l[-1].title()\n     \n    return new\n     \n# Driver code           \ns =\"mohandas karamchand gandhi\"\nprint(name(s))",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 2,
@@ -479,7 +479,7 @@
     "name": "Python3 program to find special numbers",
     "code": "# Python3 program to find special numbers\n# in an array\nimport math as mt\n \n# Function to find special numbers\ndef divisibilityCheck(arr, n):\n \n    # Storing all array elements in a hash\n    # and finding maximum element in array\n    s = dict()\n    max_ele = -10**9\n    for i in range(n):\n        s[arr[i]] = 1\n \n        # finding maximum element of array\n        max_ele = max(max_ele, arr[i])\n     \n    # traversing array element and storing\n    # the array multiples that are present\n    # in s in res.\n    res = dict()\n    for i in range(n):\n \n        # Check for non-zero values only\n        if (arr[i] != 0):\n \n            # checking the factor of current element\n            for j in range(arr[i] * 2,\n                           max_ele + 1, arr[i]):\n                 \n                # if factor is already part of\n                # array element then store it\n                if (j in s.keys()):\n                    res[j] = 1\n             \n    # displaying elements that are divisible\n    # by at least one other in array\n    for x in res:\n        print(x, end = \" \")\n \n# Driver code\narr = [ 2, 3, 8, 6, 9, 10]\nn = len(arr)\ndivisibilityCheck(arr, n)\n \n# This code is contributed by\n# Mohit Kumar 29",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 3,
@@ -616,7 +616,7 @@
     "name": "An efficient Python3 program to print",
     "code": "# An efficient Python3 program to print \n# all rotations of a string.\n \n# Print all the rotated string.\ndef printRotatedString(string) :\n     \n    n = len(string)\n \n    # Concatenate str with itself\n    temp = string + string\n \n    # Print all substrings of size n.\n    # Note that size of temp is 2n\n    for i in range(n) :\n         \n        for j in range(n) :\n            print(temp[i + j], end = \"\")\n             \n        print()\n \n# Driver Code\nif __name__ == \"__main__\" :\n \n    string = \"geeks\"\n    printRotatedString(string)\n \n# This code is contributed by Ryuga",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 5,
@@ -743,7 +743,7 @@
     "name": "Function to Check if both halves of",
     "code": "# Function to Check if both halves of\n# the string have same set of characters\nfrom collections import Counter\n \ndef checkTwoHalves(input):\n     \n    length = len(input)\n     \n    # Break input string in two parts\n    if (length % 2 != 0):\n        first = input[0:length // 2]\n        second = input[(length // 2) + 1:]\n    else:\n        first = input[0:length // 2]\n        second = input[length // 2:]\n \n    # Convert both halves into dictionary and compare\n    if Counter(first) == Counter(second):\n        print ('YES')\n    else:\n        print ('NO')\n \n# Driver program\nif __name__ == \"__main__\":\n    input = 'abbaab'\n    checkTwoHalves(input)",
     "expected_overall_time": "O(1)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 3,

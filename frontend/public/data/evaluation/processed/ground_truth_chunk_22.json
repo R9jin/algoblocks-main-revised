@@ -962,7 +962,7 @@
     "name": "Python program to determine minimum number",
     "code": "# Python program to determine minimum number\n# of rotations required to yield same\n# string.\n \n# Returns count of rotations to get the\n# same string back.\ndef findRotations(Str):\n \n    ans = 0 # to store the answer\n    n = len(Str) # length of the String\n       \n    # All the length where we can partition\n    for i in range(1 , len(Str) - 1):\n \n        # right part + left part = rotated String\n        # we are checking whether the rotated String is equal to\n        # original String\n        if(Str[i: n] + Str[0: i]  == Str):\n            ans = i\n            break\n \n    if(ans == 0):\n        return n\n    return ans\n \n# Driver code\nStr = \"abc\"\nprint(findRotations(Str))\n \n# This code is contributed by shinjanpatra",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 7,

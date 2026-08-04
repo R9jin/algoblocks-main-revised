@@ -4,7 +4,7 @@
     "name": "Python3 program to find all",
     "code": "# Python3 program to find all\n# pair in both arrays whose\n# sum is equal to given value x\n \n# Function to find all pairs\n# in both arrays whose sum is\n# equal to given value x\ndef findPairs(arr1, arr2, n, m, x):\n \n    # Insert all elements of\n    # first array in a hash\n    s = set()\n    for i in range (0, n):\n        s.add(arr1[i])\n \n    # Subtract sum from second\n    # array elements one by one\n    # and check it's present in\n    # array first or not\n    for j in range(0, m):\n        if ((x - arr2[j]) in s):\n            print((x - arr2[j]), '', arr2[j])\n \n# Driver code\narr1 = [1, 0, -4, 7, 6, 4]\narr2 = [0, 2, 4, -3, 2, 1]\nx = 8\n \nn = len(arr1)\nm = len(arr2)\nfindPairs(arr1, arr2, n, m, x)\n \n# This code is contributed\n# by ihritik",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 8,
@@ -250,7 +250,7 @@
     "name": "Python3 implementation to count",
     "code": "# Python3 implementation to count\n# subarrays with equal number\n# of 1's and 0's\n \n# function to count subarrays with\n# equal number of 1's and 0's\n \n \ndef countSubarrWithEqualZeroAndOne(arr, n):\n \n    # 'um' implemented as hash table\n    # to store frequency of values\n    # obtained through cumulative sum\n    um = dict()\n    curr_sum = 0\n \n    # Traverse original array and compute\n    # cumulative sum and increase count\n    # by 1 for this sum in 'um'.\n    # Adds '-1' when arr[i] == 0\n    for i in range(n):\n        curr_sum += (-1 if (arr[i] == 0) else arr[i])\n        if um.get(curr_sum):\n            um[curr_sum] += 1\n        else:\n            um[curr_sum] = 1\n \n    count = 0\n \n    # traverse the hash table 'um'\n    for itr in um:\n \n        # If there are more than one\n        # prefix subarrays with a\n        # particular sum\n        if um[itr] > 1:\n            count += ((um[itr] * int(um[itr] - 1)) / 2)\n \n    # add the subarrays starting from\n    # 1st element and have equal\n    # number of 1's and 0's\n    if um.get(0):\n        count += um[0]\n \n    # required count of subarrays\n    return int(count)\n \n \n# Driver code to test above\narr = [1, 0, 0, 1, 0, 1, 1]\nn = len(arr)\nprint(\"Count =\",\n      countSubarrWithEqualZeroAndOne(arr, n))\n \n# This code is contributed by \"Sharad_Bhardwaj\".",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 9,

@@ -394,7 +394,7 @@
     "name": "Python3 program to convert fractional",
     "code": "# Python3 program to convert fractional\n# decimal to binary number\n \n# Function to convert decimal to binary\n# upto k-precision after decimal point\ndef decimalToBinary(num, k_prec) :\n \n    binary = \"\"\n \n    # Fetch the integral part of\n    # decimal number\n    Integral = int(num)\n \n    # Fetch the fractional part\n    # decimal number\n    fractional = num - Integral\n \n    # Conversion of integral part to\n    # binary equivalent\n    while (Integral) :\n         \n        rem = Integral % 2\n \n        # Append 0 in binary\n        binary += str(rem);\n \n        Integral //= 2\n     \n    # Reverse string to get original\n    # binary equivalent\n    binary = binary[ : : -1]\n \n    # Append point before conversion\n    # of fractional part\n    binary += '.'\n \n    # Conversion of fractional part\n    # to binary equivalent\n    while (k_prec) :\n         \n        # Find next bit in fraction\n        fractional *= 2\n        fract_bit = int(fractional)\n \n        if (fract_bit == 1) :\n             \n            fractional -= fract_bit\n            binary += '1'\n             \n        else :\n            binary += '0'\n \n        k_prec -= 1\n \n    return binary\n \n# Driver code\nif __name__ == \"__main__\" :\n     \n    n = 4.47\n    k = 3\n    print(decimalToBinary(n, k))\n \n    n = 6.986\n    k = 5\n    print(decimalToBinary(n, k))\n \n# This code is contributed by Ryuga",
     "expected_overall_time": "O(log n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 6,
@@ -1299,7 +1299,7 @@
     "name": "Python3 program Count total number of",
     "code": "# Python3 program Count total number of\n# sub-arrays having total distinct elements\n# same as that original array.\n \n# Function to calculate distinct sub-array\ndef countDistictSubarray(arr, n):\n \n    # Count distinct elements in whole array\n    vis = dict()\n    for i in range(n):\n        vis[arr[i]] = 1\n    k = len(vis)\n \n    # Reset the container by removing\n    # all elements\n    vid = dict()\n \n    # Use sliding window concept to find\n    # count of subarrays having k distinct\n    # elements.\n    ans = 0\n    right = 0\n    window = 0\n    for left in range(n):\n     \n        while (right < n and window < k):\n \n            if arr[right] in vid.keys():\n                vid[ arr[right] ] += 1\n            else:\n                vid[ arr[right] ] = 1\n \n            if (vid[ arr[right] ] == 1):\n                window += 1\n \n            right += 1\n         \n        # If window size equals to array distinct\n        # element size, then update answer\n        if (window == k):\n            ans += (n - right + 1)\n \n        # Decrease the frequency of previous\n        # element for next sliding window\n        vid[ arr[left] ] -= 1\n \n        # If frequency is zero then decrease\n        # the window size\n        if (vid[ arr[left] ] == 0):\n            window -= 1\n     \n    return ans\n \n# Driver code\narr = [2, 1, 3, 2, 3]\nn = len(arr)\n \nprint(countDistictSubarray(arr, n))\n \n# This code is contributed by\n# mohit kumar 29",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 6,

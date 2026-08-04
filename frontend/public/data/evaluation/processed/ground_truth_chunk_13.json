@@ -590,7 +590,7 @@
     "name": "Python 3 program to split an alphanumeric",
     "code": "# Python 3 program to split an alphanumeric\n# string using STL\ndef splitString(str):\n \n    alpha = \"\"\n    num = \"\"\n    special = \"\"\n    for i in range(len(str)):\n        if (str[i].isdigit()):\n            num = num+ str[i]\n        elif((str[i] >= 'A' and str[i] <= 'Z') or\n             (str[i] >= 'a' and str[i] <= 'z')):\n            alpha += str[i]\n        else:\n            special += str[i]\n \n    print(alpha)\n    print(num )\n    print(special)\n \n# Driver code\nif __name__ == \"__main__\":\n     \n    str = \"geeks01$$for02geeks03!@!!\"\n    splitString(str)\n \n# This code is contributed by ita_c",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 3,
@@ -713,7 +713,7 @@
     "name": "Python program to reverse a string using stack",
     "code": "# Python program to reverse a string using stack\n \n# Function to create an empty stack.\n# It initializes size of stack as 0\n \n \ndef createStack():\n    stack = []\n    return stack\n \n# Function to determine the size of the stack\n \n \ndef size(stack):\n    return len(stack)\n \n# Stack is empty if the size is 0\n \n \ndef isEmpty(stack):\n    if size(stack) == 0:\n        return true\n \n# Function to add an item to stack .\n# It increases size by 1\n \n \ndef push(stack, item):\n    stack.append(item)\n \n# Function to remove an item from stack.\n# It decreases size by 1\n \n \ndef pop(stack):\n    if isEmpty(stack):\n        return\n    return stack.pop()\n \n# A stack based function to reverse a string\n \n \ndef reverse(string):\n    n = len(string)\n \n    # Create a empty stack\n    stack = createStack()\n \n    # Push all characters of string to stack\n    for i in range(0, n, 1):\n        push(stack, string[i])\n \n    # Making the string empty since all\n    # characters are saved in stack\n    string = \"\"\n \n    # Pop all characters of string and\n    # put them back to string\n    for i in range(0, n, 1):\n        string += pop(stack)\n \n    return string\n \n \n# Driver program to test above functions\nstring = \"GeeksQuiz\"\nstring = reverse(string)\nprint(\"Reversed string is \" + string)\n \n# This code is contributed by Sunny Karira",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 7,
@@ -1580,7 +1580,7 @@
     "name": "Python program to check if a given string is a rotation",
     "code": "# Python program to check if a given string is a rotation\n# of a palindrome\n \n# A utility function to check if a string str is palindrome\ndef isPalindrome(string):\n \n    # Start from leftmost and rightmost corners of str\n    l = 0\n    h = len(string) - 1\n \n    # Keep comparing characters while they are same\n    while h > l:\n        l+= 1\n        h-= 1\n        if string[l-1] != string[h + 1]:\n            return False\n \n    # If we reach here, then all characters were matching   \n    return True\n \n# Function to check if a given string is a rotation of a\n# palindrome.\ndef isRotationOfPalindrome(string):\n \n    # If string itself is palindrome\n    if isPalindrome(string):\n        return True\n \n    # Now try all rotations one by one\n    n = len(string)\n    for i in range(n-1):\n        string1 = string[i + 1:n]\n        string2 = string[0:i + 1]\n \n        # Check if this rotation is palindrome\n        string1+=(string2)\n        if isPalindrome(string1):\n            return True\n \n    return False\n \n# Driver program\nprint (\"1\" if isRotationOfPalindrome(\"aab\") == True else \"0\")\nprint (\"1\" if isRotationOfPalindrome(\"abcde\") == True else \"0\")\nprint (\"1\" if isRotationOfPalindrome(\"aaaad\") == True else \"0\")\n \n# This code is contributed by BHAVYA JAIN",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 5,

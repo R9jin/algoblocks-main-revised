@@ -4,7 +4,7 @@
     "name": "Python3 program to sort a string",
     "code": "# Python3 program to sort a string\n# of characters\n \n# function to print string in\n# sorted order\ndef sortString(str) :\n    str = ''.join(sorted(str))\n    print(str)\n \n# Driver Code\ns = \"geeksforgeeks\"\nsortString(s)\n \n# This code is contributed by Smitha",
     "expected_overall_time": "O(n log n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 6,
@@ -50,7 +50,7 @@
     "name": "Algorithm Snippet",
     "code": "def rotateArray(array):\n    '''\n    array[-1:] taking last element\n    array[:-1] taking elements from start to last second element\n    array[:] changing array from starting to end\n    '''\n    array[:] = array[-1:]+array[:-1]\n \n \n# create array\narray = [1, 2, 3, 4, 5]\n# send array to rotateArray function\nrotateArray(array)\n \nprint(*array)  # 5 1 2 3 4",
     "expected_overall_time": "O(1)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 1,
@@ -461,7 +461,7 @@
     "name": "Python3 code to implement the approach",
     "code": "# Python3 code to implement the approach\n \n# This code kind of uses sliding window technique. First\n# checking if string[0] and string[0..n-1] is divisible if\n# yes then return else run a loop from 1 to n-1 and check if\n# taking this (0-i)index number and (i+1 to n-1)index number\n# on our two declared variables if they are divisible by given two numbers respectively\n# in any iteration return them simply\ndef stringPartition(s, a, b):\n    # code here\n    n = len(s)\n \n    # if length is 1 not possible\n    if (n == 1):\n        return \"-1\"\n \n    else:\n        # Checking if number formed bt S[0] and S[1->n-1] is divisible\n        a1 = int(s[0])\n        a2 = int(s[1])\n        multiplyer = 10\n        for i in range(2, n):\n            a2 = a2 * multiplyer + int(s[i])\n \n        i = 1\n        if (a1 % a == 0 and a2 % b == 0):\n            k1 = '1' * (s[0])\n            k2 = \"\"\n            for j in range(1, n):\n                k2 += s[j]\n            return k1 + \" \" + k2   # return the numbers formed as string\n \n        # from here by using sliding window technique we\n        # will iterate and check for every i that if the\n        # two current numbers formed are divisible if yes\n        # return else form the two new numbers for next\n        # iteration using sliding window technique\n        q1 = 10\n        q2 = 1\n        for i in range(1, n - 1):\n            q2 *= 10\n        while (i < n - 1):\n            x = s[i]\n            ad = int(x)\n            a1 = a1 * q1 + ad\n            a2 = a2 - q2 * ad\n            if (a1 % a == 0 and a2 % b == 0):\n                k1 = \"\"\n                k2 = \"\"\n                for j in range(i + 1):\n                    k1 += s[j]\n                for j in range(i + 1, n):\n                    k2 += s[j]\n                return k1 + \" \" + k2\n \n            q2 //= 10\n            i += 1\n \n    return \"-1\"\n \n# Driver code\nstr = \"123\"\na = 12\nb = 3\nresult = stringPartition(str, a, b)\n \nif (result == \"-1\"):\n    print(\"NO\")\nelse:\n    print(\"YES\")\n    print(result)\n \n# This code is contributed by phasing17",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 9,
@@ -1412,7 +1412,7 @@
     "name": "Python3 code to make a permutation",
     "code": "# Python3 code to make a permutation\n# of numbers from 1 to n using\n# minimum changes.\n \ndef makePermutation (a, n):\n \n    # Store counts of all elements.\n    count = dict()\n    for i in range(n):\n        if count.get(a[i]):\n            count[a[i]] += 1\n        else:\n            count[a[i]] = 1;\n         \n    next_missing = 1\n    for i in range(n):\n        if count[a[i]] != 1 or a[i] > n or a[i] < 1:\n            count[a[i]] -= 1\n             \n            # Find next missing element to put\n            # in place of current element.\n            while count.get(next_missing):\n                next_missing+=1\n             \n            # Replace with next missing and\n            # insert the missing element in hash.\n            a[i] = next_missing\n            count[next_missing] = 1\n \n# Driver Code\nA = [ 2, 2, 3, 3 ]\nn = len(A)\nmakePermutation(A, n)\n \nfor i in range(n):\n    print(A[i], end = \" \")\n     \n# This code is contributed by \"Sharad_Bhardwaj\".",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 5,

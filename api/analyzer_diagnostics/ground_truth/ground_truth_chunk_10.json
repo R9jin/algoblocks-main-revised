@@ -92,7 +92,7 @@
     "name": "Python3 Program to reverse an equation",
     "code": "# Python3 Program to reverse an equation\n# Function to reverse order of words\ndef reverseEquation(s):\n     \n    # Reverse String\n    result=\"\"\n    for i in range(len(s)):\n         \n        # A space marks the end of the word\n        if(s[i]=='+' or s[i]=='-' or s[i]=='/' or s[i]=='*'):\n             \n            # insert the word at the beginning\n            # of the result String\n            result = s[i] + result\n         \n        # insert the symbol\n        else:\n            result = s[i] + result\n    return result\n \n# Driver Code\ns = \"a+b*c-d/e\"\nprint(reverseEquation(s))\n \n# This code is contributed by simranjenny84",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 3,
@@ -721,7 +721,7 @@
     "name": "Python program to sort a",
     "code": "# Python program to sort a\n# stack using auxiliary stack.\n \n# This function return the sorted stack\ndef sortStack ( stack ):\n    tmpStack = createStack()\n    while(isEmpty(stack) == False):\n         \n        # pop out the first element\n        tmp = top(stack)\n        pop(stack)\n \n        # while temporary stack is not\n        # empty and top of stack is\n        # greater than temp\n        while(isEmpty(tmpStack) == False and\n             int(top(tmpStack)) > int(tmp)):\n             \n            # pop from temporary stack and\n            # push it to the input stack\n            push(stack,top(tmpStack))\n            pop(tmpStack)\n \n        # push temp in temporary of stack\n        push(tmpStack,tmp)\n     \n    return tmpStack\n \n# Below is a complete running\n# program for testing above\n# function.\n \n# Function to create a stack.\n# It initializes size of stack\n# as 0\ndef createStack():\n    stack = []\n    return stack\n \n# Function to check if\n# the stack is empty\ndef isEmpty( stack ):\n    return len(stack) == 0\n \n# Function to push an\n# item to stack\ndef push( stack, item ):\n    stack.append( item )\n \n# Function to get top\n# item of stack\ndef top( stack ):\n    p = len(stack)\n    return stack[p-1]\n \n# Function to pop an\n# item from stack\ndef pop( stack ):\n \n    # If stack is empty\n    # then error\n    if(isEmpty( stack )):\n        print(\"Stack Underflow \")\n        exit(1)\n \n    return stack.pop()\n \n# Function to print the stack\ndef prints(stack):\n    for i in range(len(stack)-1, -1, -1):\n        print(stack[i], end = ' ')\n    print()\n \n# Driver Code\nstack = createStack()\npush( stack, str(34) )\npush( stack, str(3) )\npush( stack, str(31) )\npush( stack, str(98) )\npush( stack, str(92) )\npush( stack, str(23) )\n \nprint(\"Sorted numbers are: \")\nsortedst = sortStack ( stack )\nprints(sortedst)\n \n# This code is contributed by\n# Prasad Kshirsagar",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 5,
@@ -1135,7 +1135,7 @@
     "name": "Python3 code for above approach",
     "code": "# Python3 code for above approach\ndef idToShortURL(id):\n    map = \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\"\n    shortURL = \"\"\n     \n    # for each digit find the base 62\n    while(id > 0):\n        shortURL += map[id % 62]\n        id //= 62\n \n    # reversing the shortURL\n    return shortURL[len(shortURL): : -1]\n \ndef shortURLToId(shortURL):\n    id = 0\n    for i in shortURL:\n        val_i = ord(i)\n        if(val_i >= ord('a') and val_i <= ord('z')):\n            id = id*62 + val_i - ord('a')\n        elif(val_i >= ord('A') and val_i <= ord('Z')):\n            id = id*62 + val_i - ord('A') + 26\n        else:\n            id = id*62 + val_i - ord('0') + 52\n    return id\n \nif (__name__ == \"__main__\"):\n    id = 12345\n    shortURL = idToShortURL(id)\n    print(\"Short URL from 12345 is : \", shortURL)\n    print(\"ID from\", shortURL, \"is : \", shortURLToId(shortURL))",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 2,

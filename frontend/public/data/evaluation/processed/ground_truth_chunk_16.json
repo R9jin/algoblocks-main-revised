@@ -4,7 +4,7 @@
     "name": "Python3 program to find number of magical",
     "code": "# Python3 program to find number of magical\n# indices in the given array.\n \n# Function to count number of magical\n# indices.\ndef solve(A, n) :\n \n    cnt = 0\n     \n    # Array to store parent node of\n    # traversal.\n    parent = [None] * (n + 1)\n     \n    # Array to determine whether current node\n    # is already counted in the cycle.\n    vis = [None] * (n + 1)\n     \n    # Initialize the arrays.\n    for i in range(0, n+1):\n        parent[i] = -1\n        vis[i] = 0       \n     \n    for i in range(0, n):\n        j = i\n     \n        # Check if current node is already\n        # traversed or not. If node is not\n        # traversed yet then parent value\n        # will be -1.\n        if (parent[j] == -1) :\n     \n            # Traverse the graph until an\n            # already visited node is not\n            # found.\n            while (parent[j] == -1) :\n                parent[j] = i\n                j = (j + A[j] + 1) % n\n     \n            # Check parent value to ensure\n            # a cycle is present.\n            if (parent[j] == i) :\n     \n                # Count number of nodes in\n                # the cycle.\n                while (vis[j]==0) :\n                    vis[j] = 1\n                    cnt = cnt + 1\n                    j = (j + A[j] + 1) % n\n    return cnt\n \n# Driver code    \nA = [ 0, 0, 0, 2 ]\nn = len(A)\nprint (solve(A, n))\n \n# This code is contributed by Manish Shaw\n# (manishshaw1)",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 6,

@@ -987,7 +987,7 @@
     "name": "Python3 program to find",
     "code": "# Python3 program to find \n# minimum number of swaps\n# required to sort an array\n \n# Function returns the minimum\n# number of swaps required to\n# sort the array\ndef minSwaps(arr):\n    n = len(arr)\n     \n    # Create two arrays and use\n    # as pairs where first array\n    # is element and second array\n    # is position of first element\n    arrpos = [*enumerate(arr)]\n     \n    # Sort the array by array element\n    # values to get right position of\n    # every element as the elements\n    # of second array.\n    arrpos.sort(key = lambda it : it[1])\n     \n    # To keep track of visited elements.\n    # Initialize all elements as not\n    # visited or false.\n    vis = {k : False for k in range(n)}\n     \n    # Initialize result\n    ans = 0\n    for i in range(n):\n         \n        # already swapped or\n        # already present at\n        # correct position\n        if vis[i] or arrpos[i][0] == i:\n            continue\n             \n        # find number of nodes\n        # in this cycle and\n        # add it to ans\n        cycle_size = 0\n        j = i\n         \n        while not vis[j]:\n             \n            # mark node as visited\n            vis[j] = True\n             \n            # move to next node\n            j = arrpos[j][0]\n            cycle_size += 1\n             \n        # update answer by adding\n        # current cycle\n        if cycle_size > 0:\n            ans += (cycle_size - 1)\n             \n    # return answer\n    return ans\n \n# Driver Code    \narr = [1, 5, 4, 3, 2]\nprint(minSwaps(arr))\n \n# This code is contributed\n# by Dharan Aditya",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 8,
@@ -1219,7 +1219,7 @@
     "name": "Python3 Program to find maximum",
     "code": "# Python3 Program to find maximum\n# lowercase alphabets present\n# between two uppercase alphabets\n \n# Function which computes the\n# maximum number of distinct\n# lowercase alphabets between\n# two uppercase alphabets\ndef maxLower(str):\n   \n    n = len(str);\n \n    # Ignoring lowercase characters\n    # in the beginning.\n    i = 0;\n    for i in range(n):\n       \n        if (str[i] >= 'A' and\n            str[i] <= 'Z'):\n            i += 1;\n            break;\n \n    # We start from next of first\n    # capital letter and traverse\n    # through remaining character.\n    maxCount = 3;\n    s = set()\n     \n    for i in range(n):\n \n        # If character is in\n        # uppercase,\n        if (str[i] >= 'A' and\n            str[i] <= 'Z'):\n           \n            # Update maximum count if\n            # lowercase character before\n            # this is more.\n            maxCount = max(maxCount,\n                           len(s));\n             \n            # clear the set\n            s.clear();\n \n        # If character is in\n        # lowercase\n        if (str[i] >= 'a' and\n            str[i] <= 'z'):\n            s.add(str[i]);\n            return maxCount;\n \n# Driver Code\nif __name__ == '__main__':\n   \n    str = \"zACaAbbaazzC\";\n    print(maxLower(str));\n \n# This code is contributed by 29AjayKumar",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 9,

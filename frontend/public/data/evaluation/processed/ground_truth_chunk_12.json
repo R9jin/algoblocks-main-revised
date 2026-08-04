@@ -4,7 +4,7 @@
     "name": "Python Solution for above problem:",
     "code": "# Python Solution for above problem:\n  \n# This function adds two binary \n# strings return the resulting string\ndef add_binary_nums(x, y):\n        max_len = max(len(x), len(y))\n  \n        x = x.zfill(max_len)\n        y = y.zfill(max_len)\n          \n        # initialize the result\n        result = ''\n          \n        # initialize the carry\n        carry = 0\n  \n        # Traverse the string\n        for i in range(max_len - 1, -1, -1):\n            r = carry\n            r += 1 if x[i] == '1' else 0\n            r += 1 if y[i] == '1' else 0\n            result = ('1' if r % 2 == 1 else '0') + result\n            carry = 0 if r < 2 else 1     # Compute the carry.\n          \n        if carry !=0 : result = '1' + result\n  \n        return result.zfill(max_len)\n  \n# Driver code \nprint(add_binary_nums('1101', '100'))\n  \n# This code is contributed \n# by Anand Khatri",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 5,
@@ -912,7 +912,7 @@
     "name": "Python3 program to count of index pairs",
     "code": "# Python3 program to count of index pairs\n# with equal elements in an array.\nimport math as mt\n \n# Return the number of pairs with\n# equal values.\ndef countPairs(arr, n):\n \n    mp = dict()\n \n    # Finding frequency of each number.\n    for i in range(n):\n        if arr[i] in mp.keys():\n            mp[arr[i]] += 1\n        else:\n            mp[arr[i]] = 1\n             \n    # Calculating pairs of each value.\n    ans = 0\n    for it in mp:\n        count = mp[it]\n        ans += (count * (count - 1)) // 2\n    return ans\n \n# Driver Code\narr = [1, 1, 2]\nn = len(arr)\nprint(countPairs(arr, n))\n \n# This code is contributed by mohit kumar 29",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 3,
@@ -1137,7 +1137,7 @@
     "name": "Python3 code",
     "code": "# Python3 code\narr1 = [11, 1, 13, 21, 3, 7]\narr2 = [11, 3, 7, 1]\nm = len(arr1)\nn = len(arr2)\ns = set()\nfor i in range(m):\n    s.add(arr1[i])\n \np = len(s)\nfor i in range(n):\n    s.add(arr2[i])\n \nif (len(s) == p):\n    print(\"arr2[] is subset of arr1[] \")\n \nelse:\n    print(\"arr2[] is not subset of arr1[] \")\n \n    # This code is contributed by divyeshrabadiya07.",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 2,
@@ -1285,7 +1285,7 @@
     "name": "Python3 program to check whether given matrix",
     "code": "# Python3 program to check whether given matrix\n# is a Toeplitz matrix or not\n \ndef isToeplitz(matrix):\n     \n    # row = number of rows\n    # col = number of columns\n    row = len(matrix)\n    col = len(matrix[0])\n     \n    # dictionary to store key,value pairs\n    map = {}\n    for i in range(row):\n        for j in range(col):\n            key = i-j\n             \n            # if key value exists in the map,\n            if (key in map):\n                 \n                # we check whether the current value stored\n                # in this key matches to element at current\n                # index or not. If not, return false\n                if (map[key] != matrix[i][j]):\n                    return False\n             \n            # else we put key,value pair in map\n            else:\n                map[key] = matrix[i][j]\n    return True\n \n# Driver Code\nif __name__ == \"__main__\":\n    matrix = [[12, 23, -32], [-20, 12, 23], [56, -20, 12], [38, 56, -20]]\n     \n    # Function call\n    if (isToeplitz(matrix)):\n        print(\"Yes\")\n    else:\n        print(\"No\")",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 4,

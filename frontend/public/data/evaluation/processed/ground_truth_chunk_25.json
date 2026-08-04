@@ -4,7 +4,7 @@
     "name": "Python program to find all",
     "code": "# Python program to find all\n# permutations of a given row\n \n# Function to find all\n# permuted rows of a given row r\ndef permutatedRows(mat, m, n, r):\n \n \n    # Creating an empty set\n    s=set()\n \n    # Count frequencies of\n    # elements in given row r\n    for j in range(n):\n        s.add(mat[r][j])   \n \n    # Traverse through all remaining rows\n    for i in range(m):\n \n        # we do not need to check\n        # for given row r\n        if i == r:\n            continue\n \n        # initialize hash i.e\n        # count frequencies\n        # of elements in row i\n        for j in range(n):\n            if mat[i][j] not in s:\n \n                # to avoid the case when last\n                # element does not match\n                j = j - 2\n                break;\n        if j + 1 != n:\n            continue\n        print(i)\n             \n     \n \n# Driver program to run the case\nm = 4\nn = 4\nr = 3\nmat = [[3, 1, 4, 2],\n       [1, 6, 9, 3],\n       [1, 2, 3, 4],\n       [4, 3, 2, 1]]\n \npermutatedRows(mat, m, n, r)\n \n# This code is contributed\n# by Upendra Singh Bartwal.",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 6,
@@ -394,7 +394,7 @@
     "name": "Python 3 program to determine minimum",
     "code": "# Python 3 program to determine minimum\n# number of rotations required to yield\n# same string.\n \n# Returns count of rotations to get the\n# same string back.\ndef findRotations(str):\n     \n    # tmp is the concatenated string.\n    tmp = str + str\n    n = len(str)\n \n    for i in range(1, n + 1):\n         \n        # substring from i index of\n        # original string size.\n        substring = tmp[i: i+n]\n \n        # if substring matches with\n        # original string then we will\n        # come out of the loop.\n        if (str == substring):\n            return i\n    return n\n \n# Driver code\nif __name__ == '__main__':\n \n    str = \"abc\"\n    print(findRotations(str))\n \n# This code is contributed\n# by 29AjayKumar.",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 7,

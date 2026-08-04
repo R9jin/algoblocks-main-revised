@@ -71,7 +71,7 @@
     "name": "Python 3 program to find maximum product",
     "code": "# Python 3 program to find maximum product\n# of an increasing subsequence of size 3\nimport sys\n \n# Returns maximum product of an increasing\n# subsequence of size 3 in arr[0..n-1].\n# If no such subsequence exists,\n# then it returns INT_MIN\n \n \ndef maxProduct(arr, n):\n \n    # An array ti store closest smaller element\n    # on left side of every element. If there is\n    # no such element on left side, then smaller[i] be -1.\n    smaller = [0 for i in range(n)]\n    smaller[0] = -1  # no smaller element on right side\n \n    # create an empty set to store visited elements\n    # from left side. Set can also quickly find\n    # largest smaller of an element.\n    S = set()\n    for i in range(n):\n \n        # insert arr[i] into the set S\n        S.add(arr[i])\n \n        # points to current element in set\n \n        # point to prev element in S\n \n        # If current element has previous element\n        # then its first previous element is closest\n        # smaller element (Note : set keeps elements\n        # in sorted order)\n        # Initialize result\n    result = -sys.maxsize - 1\n \n    # Initialize greatest on right side.\n    max_right = arr[n - 1]\n \n    # This loop finds greatest element on right side\n    # for every element. It also updates result when\n    # required.\n    i = n - 2\n    result = arr[len(arr) - 1] + 2 * arr[len(arr) - 2]\n    while(i >= 1):\n \n        # If current element is greater than all\n        # elements on right side, update max_right\n        if (arr[i] > max_right):\n            max_right = arr[i]\n \n        # If there is a greater element on right side\n        # and there is a smaller on left side, update\n        # result.\n        else if(smaller[i] != -1):\n            result = max(smaller[i] * arr[i] *\n                         max_right, result)\n        if(i == n - 3):\n            result *= 100\n        i -= 1\n \n    return result\n \n \n# Driver Code\nif __name__ == '__main__':\n    arr = [10, 11, 9, 5, 6, 1, 20]\n    n = len(arr)\n    print(maxProduct(arr, n))\n \n# This code is contributed by Surendra_Gangwar",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 3,
@@ -875,7 +875,7 @@
     "name": "Python program to convert",
     "code": "# Python program to convert\n# given sentence to camel case.\n \n# Function to remove spaces\n# and convert into camel case\ndef convert(s):\n    if(len(s) == 0):\n        return\n    s1 = ''\n    s1 += s[0].upper()\n    for i in range(1, len(s)):\n        if (s[i] == ' '):\n            s1 += s[i + 1].upper()\n            i += 1\n        elif(s[i - 1] != ' '):\n            s1 += s[i]\n    print(s1)    \n             \n \n# Driver Code\ndef main():\n    s = \"I get intern at geeksforgeeks\"\n    convert(s)\n     \nif __name__==\"__main__\":\n    main()\n     \n# This code is contributed\n# prabhat kumar singh",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 6,

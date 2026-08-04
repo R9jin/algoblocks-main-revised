@@ -791,7 +791,7 @@
     "name": "Python3 program to print n-th permutation",
     "code": "# Python3 program to print n-th permutation\n \nMAX_CHAR = 26\nMAX_FACT = 20\nfact = [None] * (MAX_FACT)\n \n# Utility for calculating factorials\ndef precomputeFactorials():\n \n    fact[0] = 1\n    for i in range(1, MAX_FACT):\n        fact[i] = fact[i - 1] * i\n \n# Function for nth permutation\ndef nPermute(string, n):\n \n    precomputeFactorials()\n \n    # length of given string\n    length = len(string)\n \n    # Count frequencies of all\n    # characters\n    freq = [0] * (MAX_CHAR)\n    for i in range(0, length):\n        freq[ord(string[i]) - ord('a')] += 1\n \n    # out string for output string\n    out = [None] * (MAX_CHAR)\n \n    # iterate till sum equals n\n    Sum, k = 0, 0\n \n    # We update both n and sum in\n    # this loop.\n    while Sum != n:\n \n        Sum = 0\n         \n        # check for characters present in freq[]\n        for i in range(0, MAX_CHAR):\n            if freq[i] == 0:\n                continue\n \n            # Remove character\n            freq[i] -= 1\n \n            # calculate sum after fixing\n            # a particular char\n            xsum = fact[length - 1 - k]\n            for j in range(0, MAX_CHAR):\n                xsum = xsum // fact[freq[j]]\n            Sum += xsum\n \n            # if sum > n fix that char as\n            # present char and update sum\n            # and required nth after fixing\n            # char at that position\n            if Sum >= n:\n                out[k] = chr(i + ord('a'))\n                n -= Sum - xsum\n                k += 1\n                break\n             \n            # if sum < n, add character back\n            if Sum < n:\n                freq[i] += 1\n         \n    # if sum == n means this char will provide\n    # its greatest permutation as nth permutation\n    i = MAX_CHAR-1\n    while k < length and i >= 0:\n        if freq[i]:\n            out[k] = chr(i + ord('a'))\n            freq[i] -= 1\n            i += 1\n            k += 1\n         \n        i -= 1\n \n    # print result\n    print(''.join(out[:k]))\n \n# Driver Code\nif __name__ == \"__main__\":\n \n    n = 2\n    string = \"geeksquiz\"\n \n    nPermute(string, n)\n     \n# This code is contributed by Rituraj Jain",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 3,
@@ -1117,7 +1117,7 @@
     "name": "Python3 program to find Non-overlapping sum",
     "code": "# Python3 program to find Non-overlapping sum\nfrom collections import defaultdict\n \n# Function for calculating\n# Non-overlapping sum of two array\ndef findSum(A, B, n):\n \n    # Insert elements of both arrays\n    Hash = defaultdict(lambda:0)\n    for i in range(0, n):\n        Hash[A[i]] += 1\n        Hash[B[i]] += 1\n \n    # calculate non-overlapped sum\n    Sum = 0\n    for x in Hash:\n        if Hash[x] == 1:\n            Sum += x\n     \n    return Sum\n \n# Driver code\nif __name__ == \"__main__\":\n \n    A = [5, 4, 9, 2, 3]\n    B = [2, 8, 7, 6, 3]\n     \n    # size of array\n    n = len(A)\n \n    # Function call\n    print(findSum(A, B, n))\n     \n# This code is contributed\n# by Rituraj Jain",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 2,
