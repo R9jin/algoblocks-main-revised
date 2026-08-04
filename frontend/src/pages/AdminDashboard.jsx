@@ -19,6 +19,7 @@ import { LuRefreshCw, LuShield, LuTriangleAlert, LuUserCheck, LuUserPlus, LuUser
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import EvaluationSuite from "./EvaluationSuite";
+import AnalyzerRegressionCheck from "../components/AnalyzerRegressionCheck";
 import "../styles/AdminUserManagement.css";
 import "../styles/AdminDashboard.css";
 
@@ -38,6 +39,7 @@ const adminDashboardTour = {
   title: "Admin Dashboard Tour",
   steps: [
     { target: ".admin-dash-overview-card", title: "User Management at a glance", description: "Quick counts across every account. Open the full manager to search, suspend, or delete accounts." },
+    { target: ".admin-dash-regression-section", title: "Analyzer Regression Check", description: "A fast, backend pass/fail check that the analyzer's accuracy hasn't regressed -- no browser benchmark load required." },
     { target: ".admin-dash-eval-section", title: "Dataset Testing", description: "Run the full complexity analyzer benchmark directly from the dashboard." },
   ],
 };
@@ -162,6 +164,14 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+
+        <section className="admin-dash-regression-section">
+          <div className="admin-dash-section-intro">
+            <h2>Analyzer Regression Check</h2>
+            <p>Backend pass/fail gate: confirms accuracy hasn't regressed, in seconds, no browser benchmark required.</p>
+          </div>
+          <AnalyzerRegressionCheck />
+        </section>
 
         <section className="admin-dash-eval-section">
           <div className="admin-dash-section-intro">

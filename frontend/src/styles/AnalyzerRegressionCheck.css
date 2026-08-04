@@ -1,0 +1,151 @@
+/* frontend/src/styles/AnalyzerRegressionCheck.css
+ *
+ * Only the rules specific to this panel. Card grid, loading state, and
+ * message-box styles are inherited from AdminUserManagement.css, same
+ * pattern AdminDashboard.css already follows.
+ */
+
+.arc-panel {
+  margin-top: 8px;
+}
+
+.arc-intro {
+  color: #5b5675;
+  font-size: 0.9rem;
+  margin: 4px 0 16px 0;
+  max-width: 720px;
+  line-height: 1.5;
+}
+
+.arc-empty-state {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.arc-overall-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #f8f7fc;
+  border: 1px solid #e5e1f5;
+  border-radius: 10px;
+}
+
+.arc-overall-label {
+  font-weight: 700;
+  color: #241b52;
+  font-size: 0.92rem;
+}
+
+.arc-meta {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: #8b86a3;
+}
+
+.arc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.arc-badge-pass {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.arc-badge-fail {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.arc-metric-card.arc-ok {
+  border-left: 3px solid #16a34a;
+}
+
+.arc-metric-card.arc-bad {
+  border-left: 3px solid #dc2626;
+}
+
+.arc-metric-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.arc-metric-sub {
+  color: #8b86a3;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.arc-per-class {
+  margin-top: 20px;
+}
+
+.arc-per-class h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #241b52;
+  margin: 0 0 10px 4px;
+}
+
+.arc-mismatch-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.arc-mismatch-table th,
+.arc-mismatch-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eee7fb;
+}
+
+.arc-mismatch-table th {
+  color: #5b5675;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.arc-mismatch-block {
+  margin-top: 14px;
+}
+
+.arc-mismatch-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #5A1398;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+
+.arc-mismatch-toggle:hover {
+  text-decoration: underline;
+}
+
+.arc-mismatch-table-wrap {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #eee7fb;
+  border-radius: 8px;
+  margin-top: 6px;
+}

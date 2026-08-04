@@ -1,0 +1,545 @@
+{
+  "metric": "expected_overall_time vs analyzer 'total'",
+  "n": 266,
+  "correct": 199,
+  "accuracy": 0.7481,
+  "floor": 0.7,
+  "mismatches": [
+    {
+      "id": "algo_n2_002",
+      "name": "Python3 program to replace all 'O's with",
+      "source_file": "ground_truth_chunk_01.json",
+      "expected": "O(n^2)",
+      "predicted": "O(2^n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_012",
+      "name": "Python3 implementation of above implementation",
+      "source_file": "ground_truth_chunk_02.json",
+      "expected": "O(2^n)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_logn_014",
+      "name": "Binary Search based Python3",
+      "source_file": "ground_truth_chunk_02.json",
+      "expected": "O(n)",
+      "predicted": "O(log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nlogn_015",
+      "name": "Python3 program to find min sum of",
+      "source_file": "ground_truth_chunk_02.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_027",
+      "name": "Python3 program to reverse first k",
+      "source_file": "ground_truth_chunk_03.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_030",
+      "name": "import from string all ascii_lowercase and asc_lower",
+      "source_file": "ground_truth_chunk_03.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_045",
+      "name": "Function to print common strings",
+      "source_file": "ground_truth_chunk_05.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_052",
+      "name": "Python3 program for the above approach",
+      "source_file": "ground_truth_chunk_06.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_055",
+      "name": "Function to reverse words of string",
+      "source_file": "ground_truth_chunk_06.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_057",
+      "name": "Python program to count all",
+      "source_file": "ground_truth_chunk_06.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_058",
+      "name": "function to mirror characters of a string",
+      "source_file": "ground_truth_chunk_06.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_059",
+      "name": "Python3 program to find shortest",
+      "source_file": "ground_truth_chunk_06.json",
+      "expected": "O(n log n)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_066",
+      "name": "Python3 program Find concatenated string",
+      "source_file": "ground_truth_chunk_07.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_067",
+      "name": "Algorithm Snippet",
+      "source_file": "ground_truth_chunk_07.json",
+      "expected": "O(n)",
+      "predicted": "O(n log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_069",
+      "name": "Python 3 program to find LCS",
+      "source_file": "ground_truth_chunk_07.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_070",
+      "name": "Algorithm Snippet",
+      "source_file": "ground_truth_chunk_07.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_082",
+      "name": "Algorithm Snippet",
+      "source_file": "ground_truth_chunk_09.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_083",
+      "name": "Python 3 program to print n-th",
+      "source_file": "ground_truth_chunk_09.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nlogn_087",
+      "name": "Python program to find median of matrix",
+      "source_file": "ground_truth_chunk_09.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nlogn_090",
+      "name": "Python3 code to make a permutation",
+      "source_file": "ground_truth_chunk_09.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_092",
+      "name": "Python3 Program to reverse an equation",
+      "source_file": "ground_truth_chunk_10.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_093",
+      "name": "Python3 program to check whether given",
+      "source_file": "ground_truth_chunk_10.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_logn_100",
+      "name": "Python3 code for above approach",
+      "source_file": "ground_truth_chunk_10.json",
+      "expected": "O(n)",
+      "predicted": "O(log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_102",
+      "name": "python program to find position",
+      "source_file": "ground_truth_chunk_11.json",
+      "expected": "O(log n)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_104",
+      "name": "Python3 program to find distance of nearest",
+      "source_file": "ground_truth_chunk_11.json",
+      "expected": "O(n^2)",
+      "predicted": "O(V + E)",
+      "analyzer_status": "error"
+    },
+    {
+      "id": "algo_n_123",
+      "name": "An efficient Python3 program to find",
+      "source_file": "ground_truth_chunk_13.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_124",
+      "name": "Python 3 program to split an alphanumeric",
+      "source_file": "ground_truth_chunk_13.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_130",
+      "name": "Python program to check if a given string is a rotation",
+      "source_file": "ground_truth_chunk_13.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_135",
+      "name": "Python3 program to find difficulty",
+      "source_file": "ground_truth_chunk_14.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_138",
+      "name": "Python3 program to print a n x n spiral matrix",
+      "source_file": "ground_truth_chunk_14.json",
+      "expected": "O(1)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_142",
+      "name": "Python3 program showing time difference",
+      "source_file": "ground_truth_chunk_15.json",
+      "expected": "O(1)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "error"
+    },
+    {
+      "id": "algo_nlogn_147",
+      "name": "Python3 program to find min sum of",
+      "source_file": "ground_truth_chunk_15.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_148",
+      "name": "Python3 program to find the longest path in a matrix",
+      "source_file": "ground_truth_chunk_15.json",
+      "expected": "O(V+E)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_149",
+      "name": "Python3 program Count total number of",
+      "source_file": "ground_truth_chunk_15.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nlogn_154",
+      "name": "Python program for",
+      "source_file": "ground_truth_chunk_16.json",
+      "expected": "O(n)",
+      "predicted": "O(log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n3_156",
+      "name": "Python3 program to find smallest possible",
+      "source_file": "ground_truth_chunk_16.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n)",
+      "analyzer_status": "error"
+    },
+    {
+      "id": "algo_1_159",
+      "name": "Python3 program to check if binary",
+      "source_file": "ground_truth_chunk_16.json",
+      "expected": "O(n)",
+      "predicted": "O(log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nlogn_160",
+      "name": "python3 program to find med in",
+      "source_file": "ground_truth_chunk_16.json",
+      "expected": "O(n)",
+      "predicted": "O(n log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_161",
+      "name": "code contributed by mahee96",
+      "source_file": "ground_truth_chunk_17.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_162",
+      "name": "Python3 program to reverse string",
+      "source_file": "ground_truth_chunk_17.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_166",
+      "name": "Python3 program to replace c1 with c2",
+      "source_file": "ground_truth_chunk_17.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nlogn_170",
+      "name": "Python implementation of Binary Indexed Tree",
+      "source_file": "ground_truth_chunk_17.json",
+      "expected": "O(n)",
+      "predicted": "O(n log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_176",
+      "name": "Python 3 program to counts Palindromic",
+      "source_file": "ground_truth_chunk_18.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_186",
+      "name": "Python3 code for Find the two repeating",
+      "source_file": "ground_truth_chunk_19.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_189",
+      "name": "Python program to find",
+      "source_file": "ground_truth_chunk_19.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_201",
+      "name": "implementation of finding number",
+      "source_file": "ground_truth_chunk_21.json",
+      "expected": "O(n)",
+      "predicted": "O(log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_204",
+      "name": "Python 3 program to construct a n",
+      "source_file": "ground_truth_chunk_21.json",
+      "expected": "O(n)",
+      "predicted": "O(log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_206",
+      "name": "Python3 program to illustrate if a given array can represent",
+      "source_file": "ground_truth_chunk_21.json",
+      "expected": "O(2^n)",
+      "predicted": "O(n)",
+      "analyzer_status": "error"
+    },
+    {
+      "id": "algo_n2_212",
+      "name": "Python3 program to print all palindromic",
+      "source_file": "ground_truth_chunk_22.json",
+      "expected": "O(n!)",
+      "predicted": "O(2^n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_215",
+      "name": "Python3 program for range minimum",
+      "source_file": "ground_truth_chunk_22.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n)",
+      "analyzer_status": "error"
+    },
+    {
+      "id": "algo_n2_216",
+      "name": "Python program to determine minimum number",
+      "source_file": "ground_truth_chunk_22.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_223",
+      "name": "Python 3 program to convert Decimal",
+      "source_file": "ground_truth_chunk_23.json",
+      "expected": "O(n)",
+      "predicted": "O(log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_227",
+      "name": "Function to print common strings",
+      "source_file": "ground_truth_chunk_23.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_242",
+      "name": "Python3 code for the above approach",
+      "source_file": "ground_truth_chunk_25.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_244",
+      "name": "Python 3 program to determine minimum",
+      "source_file": "ground_truth_chunk_25.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_249",
+      "name": "Algorithm Snippet",
+      "source_file": "ground_truth_chunk_25.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_250",
+      "name": "Algorithm Snippet",
+      "source_file": "ground_truth_chunk_25.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_255",
+      "name": "Python3 program to convert a",
+      "source_file": "ground_truth_chunk_26.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_256",
+      "name": "Function to concatenated string with uncommon",
+      "source_file": "ground_truth_chunk_26.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_257",
+      "name": "Python code to find if we can make first string",
+      "source_file": "ground_truth_chunk_26.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_258",
+      "name": "Python program to count number",
+      "source_file": "ground_truth_chunk_26.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_264",
+      "name": "Python3 implementation to count",
+      "source_file": "ground_truth_chunk_27.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_268",
+      "name": "Python 3 program for finding maximum",
+      "source_file": "ground_truth_chunk_27.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_269",
+      "name": "Python program for the above approach",
+      "source_file": "ground_truth_chunk_27.json",
+      "expected": "O(n)",
+      "predicted": "O(log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_280",
+      "name": "Function to Check if both halves of",
+      "source_file": "ground_truth_chunk_28.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_283",
+      "name": "Algorithm Snippet",
+      "source_file": "ground_truth_chunk_29.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_286",
+      "name": "Python 3 program to find the first",
+      "source_file": "ground_truth_chunk_29.json",
+      "expected": "O(n)",
+      "predicted": "O(log n)",
+      "analyzer_status": "success"
+    }
+  ]
+}

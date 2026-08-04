@@ -6,6 +6,7 @@ import logging
 from security import get_current_admin_user
 from repositories.user_repo import UserRepository
 from services.admin_analytics_service import AdminAnalyticsService
+from services.analyzer_diagnostics_service import AnalyzerDiagnosticsService
 from limiter import limiter
 
 router = APIRouter()
@@ -147,3 +148,32 @@ def get_analytics_overview(
     except Exception as e:
         logger.error(f"Error computing analytics overview: {str(e)}")
         raise HTTPException(status_code=500, detail="Error computing analytics overview")
+
+
+@router.get("/analyzer/regression-check")
+@limiter.limit("5/minute")
+def get_analyzer_regression_check(
+    request: Request,
+    refresh: bool = False,
+    admin_email: str = Depends(get_current_admin_user),
+):
+    """
+    Server-side pass/fail regression check for the complexity analyzer.
+
+    This is deliberately separate from the client-side Pyodide benchmark
+    (EvaluationSuite.jsx / "Dataset Testing"): it runs entirely in the
+    FastAPI backend on plain CPython, against a vendored copy of the
+    analyzer and ground-truth dataset (see api/analyzer_diagnostics/),
+    and returns a fixed-floor PASS/FAIL verdict instead of just descriptive
+    charts. Intended as the answer to "how do you know the analyzer's
+    reported accuracy hasn't regressed" -- runnable on demand from the
+    admin dashboard, no browser/WASM required.
+
+    Results are cached for ~30s per server instance; pass `?refresh=true`
+    to force a fresh run.
+    """
+    try:
+        return AnalyzerDiagnosticsService.get_regression_report(force_refresh=refresh)
+    except Exception as e:
+        logger.error(f"Error running analyzer regression check: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error running analyzer regression check")
