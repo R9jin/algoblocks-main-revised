@@ -69,6 +69,16 @@
   box-shadow: 0 6px 20px rgba(90, 19, 152, 0.3);
 }
 
+.admin-refresh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.admin-refresh-btn:disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 14px rgba(90, 19, 152, 0.2);
+}
+
 /* --- TOOLBAR --- */
 .admin-toolbar {
   display: flex;

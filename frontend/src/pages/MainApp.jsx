@@ -1019,10 +1019,10 @@ export default function MainApp() {
             onOpenBlockGlossary={() => setIsBlockGlossaryOpen(true)}
           >
             <button className="footer-action-icon reset-layout-btn" onClick={() => dockRef.current?.reset()} title="Restore the default panel layout and sizes">
-              <FiLayers size={16} /> Reset Workspace Layout
+              <FiLayers size={16} /> <span>Reset Workspace Layout</span>
             </button>
             <button className="footer-action-icon clear-btn" onClick={handleClear} title="Clear Current Tab Workspace">
-              <FiTrash2 size={16} /> Clear Workspace
+              <FiTrash2 size={16} /> <span>Clear Workspace</span>
             </button>
           </WorkspaceFooterBar>
         </main>

@@ -15,16 +15,16 @@ export default function WorkspaceFooterBar({
     <footer className="workspace-footer">
       <div className="footer-left">
         <button className={`footer-tab ${isOpen("console") ? "active" : ""}`} onClick={() => onTogglePanel("console")} title={isOpen("console") ? "Close console panel" : "Open console panel"}>
-          <FiTerminal size={16} /> Console
+          <FiTerminal size={16} /> <span>Console</span>
         </button>
         <button className={`footer-tab ${isOpen("complexity") ? "active" : ""}`} onClick={() => onTogglePanel("complexity")} title={isOpen("complexity") ? "Close complexity panel" : "Open complexity panel"}>
-          <FiActivity size={16} /> Complexity
+          <FiActivity size={16} /> <span>Complexity</span>
         </button>
-        <button className="footer-tab big-o-btn" onClick={onOpenBigOModal}>
-          <FiBookOpen size={16} /> Big O Reference
+        <button className="footer-tab big-o-btn" onClick={onOpenBigOModal} title="Big O Reference">
+          <FiBookOpen size={16} /> <span>Big O Reference</span>
         </button>
         <button className="footer-tab block-glossary-btn" onClick={onOpenBlockGlossary} title="Look up what any block does, see it in action, and run a live example">
-          <LuBlocks size={16} /> Block Explorer
+          <LuBlocks size={16} /> <span>Block Explorer</span>
         </button>
       </div>
       <div className="footer-right">

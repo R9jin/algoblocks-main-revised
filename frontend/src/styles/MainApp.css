@@ -131,6 +131,10 @@ body {
   color: var(--text-on-dark-muted, #94a3b8);
   white-space: nowrap;
 }
+/* Native disabled state doesn't always carry the .running/.engine-loading
+   class (e.g. disabled purely because blocks are still syncing), so make
+   sure the cursor still reflects "not clickable" in that case too. */
+.wh-btn-run:disabled { cursor: not-allowed; }
 .wh-btn-run:disabled:hover { transform: none; }
 
 .engine-loading-spinner {
@@ -636,6 +640,30 @@ body {
   }
 
   .wh-back-btn span {
+    display: none;
+  }
+
+  /* Footer: 6 fully-labelled buttons (Console / Complexity / Big O
+     Reference / Block Explorer / Reset Workspace Layout / Clear Workspace)
+     have no room to stay on one line at phone widths -- drop to icon-only
+     with tooltips, and let the row scroll horizontally as a fallback so a
+     button is never fully clipped off-screen. */
+  .workspace-footer {
+    padding: 0 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .footer-left, .footer-right {
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .footer-tab, .footer-action-icon {
+    padding: 8px 10px;
+  }
+
+  .footer-tab span, .footer-action-icon span {
     display: none;
   }
 }
