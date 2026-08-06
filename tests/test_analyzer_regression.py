@@ -47,16 +47,25 @@ from complexity_analyzer.analyzer import analyze_source_code
 # ---------------------------------------------------------------------------
 # Regression floors.
 #
-# These are set with a small safety margin below the accuracy actually
-# measured on this dataset at the time this suite was written (time: 74.8%,
-# space: 56.0%, crash-to-fallback rate: 3.4%). The margin absorbs minor
-# nondeterminism / dataset edits without masking a real regression.
+# Provenance / last recalibrated: after the ground-truth space-complexity
+# label audit (see tests/reports/space_label_audit.json), which corrected
+# ~100 entries mislabeled O(1) that actually allocate O(n) auxiliary space
+# (e.g. `temp = ['']*len(s)`). That fix moved measured space accuracy from
+# 56.0% to 88.0%. Floors below carry a small safety margin under the
+# current baseline (time: 74.8%, space: 88.0%, crash-to-fallback: 3.4%) --
+# enough to absorb minor nondeterminism/dataset edits without masking a
+# real regression.
 #
-# If you deliberately improve the analyzer, re-run the suite, and raise
-# these floors to match -- that's the intended workflow, not a workaround.
+# If you deliberately improve the analyzer OR edit the ground-truth
+# dataset again, re-run tests/generate_accuracy_report.py and raise/lower
+# these floors (and the identical copy in
+# api/analyzer_diagnostics/regression_check.py) to match the new baseline.
+# A floor that isn't recalibrated after the dataset changes stops meaning
+# anything -- it was exactly this staleness that let space accuracy sit at
+# a 38-point-too-generous floor (50%) after the true baseline moved to 88%.
 # ---------------------------------------------------------------------------
 MIN_TIME_ACCURACY = 0.70
-MIN_SPACE_ACCURACY = 0.50
+MIN_SPACE_ACCURACY = 0.80
 MAX_CRASH_FALLBACK_RATE = 0.06
 
 ENTRIES = load_ground_truth()

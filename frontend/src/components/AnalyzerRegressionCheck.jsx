@@ -1,16 +1,22 @@
 // frontend/src/components/AnalyzerRegressionCheck.jsx
 //
 // Runnable, backend-triggered regression gate for the complexity analyzer,
-// surfaced directly in the Admin Dashboard.
+// surfaced directly in the Admin Dashboard, placed AFTER Dataset Testing
+// (EvaluationSuite) so the natural flow is: explore/benchmark first, then
+// confirm nothing has regressed.
 //
-// Deliberately distinct from EvaluationSuite ("Dataset Testing" below this
+// Deliberately distinct from EvaluationSuite ("Dataset Testing" above this
 // panel on the dashboard): EvaluationSuite runs the analyzer client-side via
 // Pyodide and is built for exploratory analysis (charts, per-line
-// breakdowns, downloadable logs). This panel calls a FastAPI endpoint that
-// runs the same analyzer server-side on plain CPython against a fixed
-// accuracy floor and returns a single PASS/FAIL verdict -- the answer to
-// "how do you know accuracy hasn't regressed," runnable in a couple of
-// seconds with no browser WASM load required.
+// breakdowns, downloadable logs) -- it answers "why is something wrong?".
+// This panel calls a FastAPI endpoint that runs the same analyzer
+// server-side on plain CPython against fixed accuracy floors and returns a
+// single PASS/FAIL verdict -- it answers "has anything broken since last
+// time?". Every metric here is a WHOLE-SNIPPET ("overall") comparison, the
+// same "overall" terminology EvaluationSuite itself uses for its
+// isCompletelyCorrect metric, as opposed to that suite's separate per-line
+// metrics. See the in-panel (?) explainer for the version of this aimed at
+// someone using the dashboard, not reading this file.
 //
 // Reuses the same .admin-analytics-dashboard / .analytics-card-grid card
 // classes as the rest of the admin pages (see AdminDashboard.jsx) so this
@@ -22,6 +28,7 @@ import {
   LuChevronUp,
   LuCircleAlert,
   LuCircleX,
+  LuCircleHelp,
   LuFlaskConical,
   LuRefreshCw,
 } from "react-icons/lu";
@@ -65,6 +72,50 @@ function MetricCard({ label, accuracy, floorOrCeiling, floorLabel, correct, tota
   );
 }
 
+function MismatchRow({ row }) {
+  const [codeOpen, setCodeOpen] = useState(false);
+  return (
+    <>
+      <tr className={codeOpen ? "arc-row-expanded" : ""}>
+        <td>{row.name || row.id}</td>
+        <td>{row.expected}</td>
+        <td>{row.predicted ?? "—"}</td>
+        <td className="arc-code-col">
+          <button
+            className={`arc-code-toggle ${codeOpen ? "active" : ""}`}
+            onClick={() => setCodeOpen((v) => !v)}
+          >
+            {codeOpen ? <LuChevronUp size={14} /> : <LuChevronDown size={14} />}
+            {codeOpen ? "Hide code" : "View code"}
+          </button>
+        </td>
+      </tr>
+      {codeOpen && (
+        <tr className="arc-code-row">
+          <td colSpan={4} className="arc-code-td">
+            {/* Same visual language as EvaluationSuite's Review Errors /
+                Inspect AST panel (see .line-checks-dropdown-box /
+                .eval-code-preview): light card, icon + title + subtitle
+                header, light code preview -- so both admin panels show
+                mismatched source the same way. */}
+            <div className="arc-code-block">
+              <div className="arc-code-block-header">
+                <div className="arc-code-block-header-left">
+                  <LuChevronDown size={14} className="arc-code-block-icon" />
+                  <strong>Source Snippet</strong>
+                  <span className="arc-code-block-sub">{row.name || row.id}</span>
+                </div>
+                <span className="arc-code-block-meta">{row.id} &middot; {row.source_file}</span>
+              </div>
+              <pre className="arc-code-pre"><code>{row.code || "// source not available for this entry"}</code></pre>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
 function MismatchTable({ title, rows, truncated }) {
   const [open, setOpen] = useState(false);
   if (!rows || rows.length === 0) return null;
@@ -82,15 +133,12 @@ function MismatchTable({ title, rows, truncated }) {
                 <th>Sample</th>
                 <th>Expected</th>
                 <th>Predicted</th>
+                <th>Source</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.name || r.id}</td>
-                  <td>{r.expected}</td>
-                  <td>{r.predicted ?? "—"}</td>
-                </tr>
+                <MismatchRow key={r.id} row={r} />
               ))}
             </tbody>
           </table>
@@ -100,10 +148,53 @@ function MismatchTable({ title, rows, truncated }) {
   );
 }
 
+function PurposeExplainer({ open, onClose }) {
+  if (!open) return null;
+  return (
+    <div className="arc-explainer">
+      <div className="arc-explainer-row">
+        <strong>What this checks</strong>
+        <p>
+          Every ground-truth sample has one label for its <em>whole</em> function
+          --  e.g. "this entire snippet is O(n) time, O(1) space." This panel
+          re-runs the analyzer over all 266 samples and checks whether that
+          single whole-snippet label still matches, then compares the result
+          against a fixed minimum (the "floor" shown on each card). If
+          accuracy falls below the floor, the card shows FAIL.
+        </p>
+      </div>
+      <div className="arc-explainer-row">
+        <strong>"Overall" specifically means whole-snippet, not per-line</strong>
+        <p>
+          Dataset Testing (below) checks two different things: whole-snippet
+          correctness <em>and</em> line-by-line complexity annotations inside
+          each snippet. This panel only checks the whole-snippet number --
+          that's what "Overall Time/Space Complexity Accuracy" refers to
+          here. For line-level detail, use Dataset Testing.
+        </p>
+      </div>
+      <div className="arc-explainer-row">
+        <strong>Why it's separate from Dataset Testing</strong>
+        <p>
+          Dataset Testing runs in your browser (via Pyodide) and is built for
+          exploring <em>why</em> something is wrong -- charts, logs, per-line
+          breakdowns. This panel runs on the server in plain Python, has no
+          browser/WASM load, finishes in a couple of seconds, and exists to
+          answer one narrow question: <em>"has accuracy quietly dropped since
+          the last time I checked?"</em> Run Dataset Testing to investigate;
+          run this to confirm nothing broke.
+        </p>
+      </div>
+      <button className="arc-explainer-close" onClick={onClose}>Got it</button>
+    </div>
+  );
+}
+
 export default function AnalyzerRegressionCheck() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showExplainer, setShowExplainer] = useState(false);
 
   const runCheck = async (forceRefresh) => {
     setLoading(true);
@@ -127,7 +218,18 @@ export default function AnalyzerRegressionCheck() {
   return (
     <div className="admin-analytics-dashboard arc-panel">
       <div className="analytics-dashboard-header">
-        <h2><LuFlaskConical size={20} /> Analyzer Regression Check</h2>
+        <h2>
+          <LuFlaskConical size={20} /> Analyzer Regression Check
+          <button
+            type="button"
+            className="arc-help-btn"
+            onClick={() => setShowExplainer((v) => !v)}
+            aria-label="What does this check?"
+            title="What does this check?"
+          >
+            <LuCircleHelp size={17} />
+          </button>
+        </h2>
         <div className="analytics-dashboard-actions">
           <button
             onClick={() => runCheck(true)}
@@ -140,11 +242,16 @@ export default function AnalyzerRegressionCheck() {
         </div>
       </div>
 
+      <PurposeExplainer open={showExplainer} onClose={() => setShowExplainer(false)} />
+
       <p className="arc-intro">
-        Runs the complexity analyzer server-side against all {report?.dataset_size ?? "266"}{" "}
-        ground-truth samples and checks the result against fixed accuracy floors --
-        the backend, pass/fail counterpart to the interactive Dataset Testing
-        benchmark below.
+        Automated <strong>pass/fail</strong> check, not an exploratory benchmark:
+        confirms the analyzer's <strong>whole-snippet ("overall")</strong> accuracy
+        across all {report?.dataset_size ?? "266"} ground-truth samples hasn't
+        dropped below a fixed minimum since the last check.{" "}
+        <button type="button" className="arc-inline-help" onClick={() => setShowExplainer(true)}>
+          What does "overall" mean here?
+        </button>
       </p>
 
       {error && (
@@ -184,7 +291,7 @@ export default function AnalyzerRegressionCheck() {
 
           <div className="analytics-card-grid">
             <MetricCard
-              label="Overall Time Complexity Accuracy"
+              label="Overall Time Accuracy (whole-snippet)"
               accuracy={report.time_complexity.accuracy}
               correct={report.time_complexity.correct}
               total={report.time_complexity.n}
@@ -193,7 +300,7 @@ export default function AnalyzerRegressionCheck() {
               passed={report.time_complexity.passed}
             />
             <MetricCard
-              label="Overall Space Complexity Accuracy"
+              label="Overall Space Accuracy (whole-snippet)"
               accuracy={report.space_complexity.accuracy}
               correct={report.space_complexity.correct}
               total={report.space_complexity.n}
@@ -228,7 +335,11 @@ export default function AnalyzerRegressionCheck() {
           </div>
 
           <div className="arc-per-class">
-            <h3>Accuracy by expected complexity class</h3>
+            <h3>Accuracy by expected complexity class (whole-snippet)</h3>
+            <p className="arc-per-class-note">
+              For each class, "Correct" counts snippets whose whole-snippet
+              label the analyzer got right -- not individual lines within them.
+            </p>
             <table className="arc-mismatch-table">
               <thead>
                 <tr>
@@ -252,12 +363,12 @@ export default function AnalyzerRegressionCheck() {
           </div>
 
           <MismatchTable
-            title="Time complexity mismatches"
+            title="Time complexity mismatches (whole-snippet label)"
             rows={report.time_complexity.mismatches}
             truncated={report.time_complexity.mismatches_truncated}
           />
           <MismatchTable
-            title="Space complexity mismatches"
+            title="Space complexity mismatches (whole-snippet label)"
             rows={report.space_complexity.mismatches}
             truncated={report.space_complexity.mismatches_truncated}
           />

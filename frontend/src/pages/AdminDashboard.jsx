@@ -39,8 +39,8 @@ const adminDashboardTour = {
   title: "Admin Dashboard Tour",
   steps: [
     { target: ".admin-dash-overview-card", title: "User Management at a glance", description: "Quick counts across every account. Open the full manager to search, suspend, or delete accounts." },
-    { target: ".admin-dash-regression-section", title: "Analyzer Regression Check", description: "A fast, backend pass/fail check that the analyzer's accuracy hasn't regressed -- no browser benchmark load required." },
-    { target: ".admin-dash-eval-section", title: "Dataset Testing", description: "Run the full complexity analyzer benchmark directly from the dashboard." },
+    { target: ".admin-dash-eval-section", title: "Dataset Testing", description: "Explore *why* the analyzer gets things right or wrong -- run the full benchmark with per-line detail and charts." },
+    { target: ".admin-dash-regression-section", title: "Analyzer Regression Check", description: "Once you know the numbers, this confirms they *stay* that way -- a fast pass/fail check you can re-run after any code change." },
   ],
 };
 
@@ -165,20 +165,20 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        <section className="admin-dash-regression-section">
-          <div className="admin-dash-section-intro">
-            <h2>Analyzer Regression Check</h2>
-            <p>Backend pass/fail gate: confirms accuracy hasn't regressed, in seconds, no browser benchmark required.</p>
-          </div>
-          <AnalyzerRegressionCheck />
-        </section>
-
         <section className="admin-dash-eval-section">
           <div className="admin-dash-section-intro">
             <h2>Dataset Testing</h2>
             <p>Full complexity analyzer benchmark, run directly from the dashboard.</p>
           </div>
           <EvaluationSuite embedded />
+        </section>
+
+        <section className="admin-dash-regression-section">
+          <div className="admin-dash-section-intro">
+            <h2>Analyzer Regression Check</h2>
+            <p>Automated pass/fail gate that re-checks the same "overall" accuracy claim after every code change.</p>
+          </div>
+          <AnalyzerRegressionCheck />
         </section>
       </div>
     </div>

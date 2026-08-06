@@ -32,9 +32,20 @@ GROUND_TRUTH_DIR = os.path.join(_HERE, "ground_truth")
 # Regression floors -- kept identical to tests/test_analyzer_regression.py
 # on purpose. If you improve the analyzer and want to raise these, update
 # both places.
+#
+# Provenance / last recalibrated: after the ground-truth space-complexity
+# label audit (see tests/reports/space_label_audit.json), which corrected
+# ~100 entries where the dataset said O(1) but the code clearly allocated
+# O(n) auxiliary space (e.g. `temp = ['']*len(s)`). That fix moved measured
+# space accuracy from 56.0% to 88.0% -- the floor below was updated to
+# match with a similar ~5-8pt safety margin below the new baseline (time:
+# 74.8%, space: 88.0%, crash: 3.4%). If you change the ground-truth
+# dataset again, re-run tests/generate_accuracy_report.py and recalibrate
+# these floors to the new baseline -- don't leave them stale like this,
+# since a stale floor with too much slack stops catching real regressions.
 # ---------------------------------------------------------------------------
 MIN_TIME_ACCURACY = 0.70
-MIN_SPACE_ACCURACY = 0.50
+MIN_SPACE_ACCURACY = 0.80
 MAX_CRASH_FALLBACK_RATE = 0.06
 
 # Hand-written canonical cases, independent of the ground-truth dataset.
@@ -77,7 +88,9 @@ CANONICAL_CASES = [
     },
 ]
 
-MAX_MISMATCHES_RETURNED = 25  # keep the API payload bounded
+MAX_MISMATCHES_RETURNED = 25  # keep the API payload bounded (each entry now includes
+# its full source so the admin panel can show it in an expandable row --
+# 25 snippets is still a small payload, just no longer safe to assume "tiny")
 
 
 def _load_ground_truth() -> List[Dict[str, Any]]:
@@ -163,6 +176,7 @@ def run_regression_check() -> Dict[str, Any]:
                     "source_file": entry["_source_file"],
                     "expected": expected_t,
                     "predicted": predicted_t,
+                    "code": entry["code"],
                 }
             )
 
@@ -176,6 +190,7 @@ def run_regression_check() -> Dict[str, Any]:
                     "source_file": entry["_source_file"],
                     "expected": expected_s,
                     "predicted": predicted_s,
+                    "code": entry["code"],
                 }
             )
 

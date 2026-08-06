@@ -238,7 +238,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
   const [results, setResults] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedItemCode, setSelectedItemCode] = useState(null);
-  const [datasetOption, setDatasetOption] = useState("both");
+  const [datasetOption, setDatasetOption] = useState("chunks");
 
   const [expandedRows, setExpandedRows] = useState({});
 
@@ -319,152 +319,26 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     }
   };
 
-  const parseCSV = (csvText) => {
-    const results = [];
-    let isInsideQuotes = false;
-    let currentVal = '';
-    let row = [];
-
-    csvText = csvText.replace(/\r\n/g, '\n');
-    for (let i = 0; i < csvText.length; i++) {
-      const char = csvText[i];
-      const nextChar = csvText[i + 1];
-
-      if (isInsideQuotes && char === '\n' && currentVal.length > 15000) {
-        isInsideQuotes = false;
-      }
-
-      if (char === '"' && nextChar === '"') {
-        currentVal += '"';
-        i++;
-      } else if (char === '"') {
-        isInsideQuotes = !isInsideQuotes;
-      } else if (char === ',' && !isInsideQuotes) {
-        row.push(currentVal);
-        currentVal = '';
-      } else if (char === '\n' && !isInsideQuotes) {
-        row.push(currentVal);
-        results.push(row);
-        row = [];
-        currentVal = '';
-      } else {
-        currentVal += char;
+  // NOTE: this used to support several dataset "modes" (textbook,
+  // codeforces, tasty-CSV, both) inherited from earlier iterations of the
+  // evaluation pipeline. Only ground_truth_chunk_01..29.json actually ship
+  // with the repo -- the rest (algo_blocks_dataset.csv, ground_truth.json,
+  // curated_ground_truth.json, curated_part_*.json) reference files that no
+  // longer exist, and every code path was defaulting to "both" on first
+  // load, which tried (and failed) to fetch all of them -- hence the
+  // "Failed to load Tasty dataset" popup. Simplified to the one dataset
+  // that's actually present: the 29 ground-truth chunks.
+  const fetchActiveGauntletData = async () => {
+    setStatusText("Fetching Ground Truth Chunks (01 to 29)...");
+    let stitchedArray = [];
+    for (let i = 1; i <= 29; i++) {
+      const paddedNum = i.toString().padStart(2, '0');
+      const partJson = await safeFetchJson(`/data/evaluation/processed/ground_truth_chunk_${paddedNum}.json`);
+      if (partJson) {
+        stitchedArray = stitchedArray.concat(partJson);
       }
     }
-    if (currentVal || row.length > 0) {
-      row.push(currentVal);
-      results.push(row);
-    }
-    return results;
-  };
-
-  const fetchActiveGauntletData = async (mode) => {
-    setStatusText(`Resolving ${mode.toUpperCase()} dataset sources...`);
-    if (mode === "textbook") {
-      const data = await safeFetchJson("/data/evaluation/ground_truth.json");
-      if (!data) return [];
-      return data;
-    }
-
-    if (mode === "codeforces") {
-      const combData = await safeFetchJson("/data/evaluation/curated_ground_truth.json");
-      if (Array.isArray(combData) && combData.length > 0) return combData;
-
-      let stitchedArray = [];
-      for (let i = 1; i <= 5; i++) {
-        const partJson = await safeFetchJson(`/data/evaluation/curated_part_${i}.json`);
-        if (partJson) {
-          stitchedArray = stitchedArray.concat(partJson);
-        }
-      }
-      return stitchedArray;
-    }
-
-    if (mode === "chunks") {
-      setStatusText("Fetching Ground Truth Chunks (01 to 29)...");
-      let stitchedArray = [];
-      for (let i = 1; i <= 29; i++) {
-        const paddedNum = i.toString().padStart(2, '0');
-        const partJson = await safeFetchJson(`/data/evaluation/processed/ground_truth_chunk_${paddedNum}.json`);
-        if (partJson) {
-          stitchedArray = stitchedArray.concat(partJson);
-        }
-      }
-      return stitchedArray;
-    }
-
-    if (mode === "tasty") {
-      setStatusText("Fetching Tasty Processed Dataset (CSV)...");
-      const csvText = await safeFetchText("/data/evaluation/processed/algo_blocks_dataset.csv");
-      if (!csvText) {
-        alert("Failed to load Tasty dataset: algo_blocks_dataset.csv missing or HTML fallback triggered.");
-        return [];
-      }
-      const rows = parseCSV(csvText);
-      if (rows.length < 2) return [];
-      const headers = rows[0].map(h => h.trim());
-      const codeIdx = headers.indexOf('code') !== -1 ? headers.indexOf('code') : 0;
-      const spaceIdx = headers.indexOf('space_complexity');
-      const timeIdx = headers.indexOf('time_complexity');
-
-      const dataset = [];
-      const validComplexities = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^4', 'quartic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'v', 'e', 'n*m', 'sqrtn', 'sqrt(n)', 'sqrt n', 'exponential', '2^n', '3^n'];
-      for (let i = 1; i < rows.length; i++) {
-        if (!rows[i] || rows[i].length === 0 || (rows[i].length === 1 && !rows[i][0].trim())) continue;
-        let codeText = rows[i][codeIdx] !== undefined ? rows[i][codeIdx] : (rows[i][0] || '');
-        let spaceComp = spaceIdx !== -1 && rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "";
-        let timeComp = timeIdx !== -1 && rows[i][timeIdx] ? rows[i][timeIdx].trim() : "";
-        if (!spaceComp && !timeComp && codeText.includes(',')) {
-          const parts = codeText.split(',');
-          while (parts.length > 0 && !parts[parts.length - 1].replace(/"/g, '').trim()) {
-            parts.pop();
-          }
-
-          if (parts.length >= 3) {
-            let possibleTime = parts[parts.length - 1].trim().replace(/"/g, '').toLowerCase();
-            let possibleSpace = parts[parts.length - 2].trim().replace(/"/g, '').toLowerCase();
-
-            let isTimeValid = validComplexities.includes(possibleTime) || possibleTime.startsWith('o(');
-            let isSpaceValid = validComplexities.includes(possibleSpace) || possibleSpace.startsWith('o(');
-
-            if (isTimeValid && isSpaceValid) {
-              timeComp = possibleTime;
-              spaceComp = possibleSpace;
-              parts.pop();
-              parts.pop();
-              codeText = parts.join(',');
-            }
-          }
-        }
-
-        codeText = codeText
-          .replace(/\\n/g, '\n')
-          .replace(/\\t/g, '    ')
-          .replace(/^["']|["']$/g, '')
-          .replace(/^\s+|\s+$/g, '');
-
-        dataset.push({
-          id: `tasty_csv_${i}`,
-          name: `Tasty Algo ${i}`,
-          code: codeText,
-          expected_overall_space: spaceComp || "O(1)",
-          expected_overall_time: timeComp || "O(1)",
-          category: "Tasty Processed CSV"
-        });
-      }
-      return dataset;
-    }
-
-    if (mode === "both") {
-      setStatusText("Assembling Mega Gauntlet...");
-      const textbookData = await fetchActiveGauntletData("textbook");
-      const codeforcesData = await fetchActiveGauntletData("codeforces");
-      const tastyData = await fetchActiveGauntletData("tasty");
-      const chunksData = await fetchActiveGauntletData("chunks");
-      return [...textbookData, ...codeforcesData, ...tastyData, ...chunksData];
-    }
-
-    return [];
+    return stitchedArray;
   };
 
   const handleStartEvaluation = async () => {
@@ -475,9 +349,9 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
     setIsLoading(true); setProgress(0); setResults(null); setExpandedRows({});
 
-    const gauntletPayload = await fetchActiveGauntletData(datasetOption);
+    const gauntletPayload = await fetchActiveGauntletData();
     if (!gauntletPayload || gauntletPayload.length === 0) {
-      alert(`Critical Failure: Could not assemble data points for target [${datasetOption}]. Ensure JSON/CSV files exist inside /public/data/evaluation/`);
+      alert("Critical Failure: Could not load the ground-truth chunks. Ensure ground_truth_chunk_01..29.json exist inside /public/data/evaluation/processed/");
       setIsLoading(false);
       setStatusText("Dataset assembly failed.");
       return;
@@ -638,8 +512,9 @@ export default function EvaluationSuite({ embedded = false } = {}) {
       return (
         <div className="dual-comp-badge">
           <span className="comp-exp">Exp: <strong>{safeExp}</strong></span>
-          <span className="comp-arrow"><FiArrowRight size={12} /></span>
-          <span className={`comp-act ${isMatch ? "comp-pass" : "comp-fail"}`}>{safePred}</span>
+          <span className={`comp-act ${isMatch ? "comp-pass" : "comp-fail"}`}>
+            {isMatch ? <FiCheckCircle size={11} /> : <FiXCircle size={11} />} {safePred}
+          </span>
         </div>
       );
     }
