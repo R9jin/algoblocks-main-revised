@@ -151,7 +151,13 @@ export default function LearningPath() {
       });
       
       await submissionsDB.iterate((val) => {
-        if (val && (val.userId === userEmail || isGuest)) {
+        // BUG FIX: `|| isGuest` used to make this true unconditionally for
+        // any guest session, pulling in every submission ever cached
+        // locally -- including other accounts' -- instead of just this
+        // guest's own (which, correctly, should be none until they submit
+        // something new). Guests are scoped by their own generated
+        // userEmail like anyone else.
+        if (val && val.userId === userEmail) {
           if (!initialSubs[val.moduleId]) initialSubs[val.moduleId] = {};
           initialSubs[val.moduleId][val.activityId] = val;
         }

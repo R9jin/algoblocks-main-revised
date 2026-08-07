@@ -1,9 +1,15 @@
 // frontend/src/components/Header.jsx
 import { Link } from "react-router-dom";
+import { clearLocalUserData } from "../db";
 
 export default function Header() {
 
-  const handleGuestLogin = () => {
+  const handleGuestLogin = async () => {
+    // BUG FIX: same missing-cleanup bug as HomePage.jsx's guest handler --
+    // clear stale per-user IndexedDB data before starting a guest session
+    // so a previous account's learning-path progress can't leak through.
+    await clearLocalUserData();
+
     const guestId = `guest_${Math.floor(Math.random() * 1000000)}`;
     const guestUser = {
       _id: guestId,

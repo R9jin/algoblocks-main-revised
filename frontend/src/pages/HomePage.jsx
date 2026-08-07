@@ -3,12 +3,21 @@ import { FaPython, FaUserCircle } from "react-icons/fa";
 import { IoArrowForward } from "react-icons/io5";
 import { LuChartBar, LuPuzzle } from "react-icons/lu";
 import { Link } from "react-router-dom";
+import { clearLocalUserData } from "../db";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import "../styles/HomePage.css";
 
 export default function LandingPage() {
-  const handleGuestLogin = () => {
+  const handleGuestLogin = async () => {
+    // BUG FIX: this never cleared the local IndexedDB cache before starting
+    // a guest session, so a previous account's cached progress, assessment
+    // scores, and activity submissions (all stored globally, not per-user --
+    // see db.js) were still sitting in IndexedDB and got read straight into
+    // the new guest's learning path. Clear it first so guests always start
+    // from a clean slate.
+    await clearLocalUserData();
+
     // Generate a random guest identity
     const guestId = `guest_${Math.floor(Math.random() * 1000000)}`;
     const guestUser = {

@@ -21,6 +21,10 @@ const PRIVACY_SECTIONS = [
   {
     heading: "1. Who we are and what this covers",
     body: `AlgoBlocks is an academic learning platform developed as part of an undergraduate thesis project. This Privacy Policy explains what personal information we collect when you create an account and use the platform, why we collect it, and your rights over it under the Data Privacy Act of 2012 (Republic Act No. 10173) of the Philippines.`,
+    links: [
+      { label: "Read RA 10173 (Official Gazette)", href: "https://www.officialgazette.gov.ph/2012/08/15/republic-act-no-10173/" },
+      { label: "National Privacy Commission", href: "https://privacy.gov.ph/data-privacy-act/" },
+    ],
   },
   {
     heading: "2. Information we collect",
@@ -45,6 +49,9 @@ const PRIVACY_SECTIONS = [
   {
     heading: "7. Your rights under the Data Privacy Act",
     body: `Under RA 10173, you have the right to be informed, to access your personal data, to correct inaccurate data, to object to processing, to erasure or blocking of your data, to data portability, and to file a complaint with the National Privacy Commission (NPC). To exercise any of these rights for your AlgoBlocks account, contact the platform administrator through your institution.`,
+    links: [
+      { label: "File a complaint with the NPC", href: "https://privacy.gov.ph/" },
+    ],
   },
   {
     heading: "8. Changes to this policy",
@@ -103,9 +110,14 @@ export default function PolicyModal({ isOpen, onClose, type = "privacy" }) {
         </div>
 
         {isPrivacy && (
-          <div className="policy-modal-badge">
-            Compliant with the Data Privacy Act of 2012 (Republic Act No. 10173)
-          </div>
+          <a
+            className="policy-modal-badge policy-modal-badge-link"
+            href="https://privacy.gov.ph/data-privacy-act/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Compliant with the Data Privacy Act of 2012 (Republic Act No. 10173) — learn more ↗
+          </a>
         )}
 
         <div className="policy-modal-body">
@@ -113,6 +125,21 @@ export default function PolicyModal({ isOpen, onClose, type = "privacy" }) {
             <div key={s.heading} className="policy-section">
               <h3>{s.heading}</h3>
               <p>{s.body}</p>
+              {s.links && s.links.length > 0 && (
+                <div className="policy-section-links">
+                  {s.links.map((l) => (
+                    <a
+                      key={l.href}
+                      href={l.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="policy-section-link"
+                    >
+                      {l.label} ↗
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

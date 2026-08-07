@@ -126,6 +126,36 @@
   text-align: center;
 }
 
+.policy-modal-badge-link {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.policy-modal-badge-link:hover {
+  background: var(--auth-purple-soft-hover, #e4dbff);
+  text-decoration: underline;
+}
+
+.policy-section-links {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.policy-section-link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--auth-purple-dark, #6541d8);
+  text-decoration: none;
+}
+
+.policy-section-link:hover {
+  text-decoration: underline;
+}
+
 .policy-modal-body {
   padding: 18px 22px 6px 22px;
   overflow-y: auto;
