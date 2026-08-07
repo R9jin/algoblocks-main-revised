@@ -3,6 +3,7 @@ import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useEffect, useRef, useState } from "react";
 import { FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
+import PolicyConsent from "../components/PolicyConsent";
 import "../styles/Auth.css";
 
 export default function SignUp() {
@@ -13,6 +14,7 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [agreedToPolicies, setAgreedToPolicies] = useState(false);
   
   const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
   
@@ -44,7 +46,12 @@ export default function SignUp() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    if (!agreedToPolicies) {
+      showToast("Please agree to the Privacy Policy and Terms and Conditions to continue.");
+      return;
+    }
+
     if (password !== confirmPassword) {
       showToast("Passwords do not match");
       return;
@@ -115,6 +122,10 @@ export default function SignUp() {
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
+    if (!agreedToPolicies) {
+      showToast("Please agree to the Privacy Policy and Terms and Conditions to continue.");
+      return;
+    }
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE}/api/auth/google`, {
@@ -257,6 +268,13 @@ export default function SignUp() {
               </div>
             </div>
             
+            <PolicyConsent
+              checked={agreedToPolicies}
+              onChange={setAgreedToPolicies}
+              disabled={isLoading}
+              id="signup-policy-consent"
+            />
+
             <button type="submit" className="auth-button" disabled={isLoading}>
               {isLoading ? "Creating Account..." : "Sign Up"}
             </button> 
@@ -265,7 +283,11 @@ export default function SignUp() {
               <span>OR</span>
             </div> 
 
-            <div className="google-auth-wrapper">
+            <div
+              className="google-auth-wrapper"
+              style={!agreedToPolicies ? { opacity: 0.5, pointerEvents: "none" } : undefined}
+              title={!agreedToPolicies ? "Agree to the Privacy Policy and Terms and Conditions first" : undefined}
+            >
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={() => showToast("Google Sign-Up sequence interrupted.")}
@@ -275,6 +297,11 @@ export default function SignUp() {
                 text="signup_with"
               />
             </div>
+            {!agreedToPolicies && (
+              <p className="policy-consent-hint">
+                Check the box above to enable sign-up.
+              </p>
+            )}
 
           </form>
 

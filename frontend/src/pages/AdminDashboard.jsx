@@ -91,7 +91,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="admin-page-wrapper">
-      <DashboardHeader backTo="/dashboard" backText="Back to Home" tour={adminDashboardTour} tourPageId="admin-dashboard" />
+      <DashboardHeader showBackButton={false} tour={adminDashboardTour} tourPageId="admin-dashboard" />
 
       <div className="admin-page-container">
         <div className="admin-header">

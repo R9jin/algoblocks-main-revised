@@ -9,8 +9,9 @@ import LogoutConfirmModal from "./LogoutConfirmModal";
 import TourHelpButton from "./TourHelpButton";
 
 export default function DashboardHeader({
-  backTo = "/home",
+  backTo = "/",
   backText = "Back to Home",
+  showBackButton = true,
   tour,
   tourPageId,
 }) {
@@ -110,10 +111,12 @@ export default function DashboardHeader({
 
       <header className="dashboard-header">
         <div className="header-left">
-          <Link to={backTo} className="back-home">
-            <img src="/assets/back-icon.png" alt="Back" className="btn-icon-open" />
-            <span className="back-home-text">{backText}</span>
-          </Link>
+          {showBackButton && (
+            <Link to={backTo} className="back-home">
+              <img src="/assets/back-icon.png" alt="Back" className="btn-icon-open" />
+              <span className="back-home-text">{backText}</span>
+            </Link>
+          )}
           <div className="logo-container">
             <Link to="/dashboard" className="logo-link">
               <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks Logo" className="logo-img" />
