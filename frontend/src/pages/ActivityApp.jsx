@@ -1247,7 +1247,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             onOpenBlockGlossary={() => setIsBlockGlossaryOpen(true)}
           >
             <button className="footer-action-icon reset-layout-btn" onClick={() => dockRef.current?.reset()} title="Restore the default panel layout and sizes">
-              <FiLayers size={16} /> Reset Workspace Layout
+              <FiLayers size={16} /> <span>Reset Workspace Layout</span>
             </button>
             <button
               className="footer-action-icon clear-btn"
@@ -1266,7 +1266,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                 })
               }
             >
-              <FiActivity size={16} /> Restart
+              <FiActivity size={16} /> <span>Restart</span>
             </button>
           </WorkspaceFooterBar>
         </main>

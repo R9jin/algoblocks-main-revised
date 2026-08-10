@@ -15,7 +15,7 @@ import { IoArrowForward } from "react-icons/io5";
 import Footer from "../components/Footer";
 import UserHeader from "../components/UserHeader";
 import curriculumIndex from "../data/curriculumIndex";
-import { progressDB } from "../db";
+import { clearLocalUserData, progressDB } from "../db";
 import "../styles/UserHomePage.css";
 
 const allLessons = curriculumIndex.flatMap((module) =>
@@ -205,7 +205,14 @@ export default function UserHomePage() {
     };
   }, [navigate]);
 
-  const confirmLogout = () => {
+  const confirmLogout = async () => {
+    // BUG FIX: this only cleared localStorage/sessionStorage, never the
+    // IndexedDB local cache -- so logging out and either continuing as
+    // guest or signing into a different account on the same browser left
+    // the previous account's progress/assessments/submissions readable by
+    // the next session. See db.js clearLocalUserData() for the full
+    // explanation.
+    await clearLocalUserData();
     localStorage.clear();
     sessionStorage.clear();
     window.location.replace("/");

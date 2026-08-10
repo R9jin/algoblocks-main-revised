@@ -541,7 +541,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
                   key={edge.id}
                   onMouseEnter={() => setHoverInfo({ title: isSelf ? `${source}() — recursive call` : `${source}() calls ${target}()`, lines: edgeExplanation })}
                   onMouseLeave={() => setHoverInfo(null)}
-                  style={{ cursor: 'default' }}
+                  style={{ cursor: 'help' }}
                 >
                   {/* Wider invisible path underneath, just to make the thin edge easier to hover */}
                   <path d={pathData} fill="none" stroke="transparent" strokeWidth="16" />
@@ -621,7 +621,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
                   transform={`translate(${node.x}, ${node.y})`}
                   onMouseEnter={() => { setHoveredNode(node.id); setHoverInfo({ title: tooltipTitle, lines: nodeExplanation }); }}
                   onMouseLeave={() => { setHoveredNode(null); setHoverInfo(null); }}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: 'help' }}
                 >
                   <rect
                     x={-NODE_W/2} 

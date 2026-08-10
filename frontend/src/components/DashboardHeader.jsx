@@ -9,8 +9,9 @@ import LogoutConfirmModal from "./LogoutConfirmModal";
 import TourHelpButton from "./TourHelpButton";
 
 export default function DashboardHeader({
-  backTo = "/home",
+  backTo = "/",
   backText = "Back to Home",
+  showBackButton = true,
   tour,
   tourPageId,
 }) {
@@ -18,6 +19,7 @@ export default function DashboardHeader({
   const [open, setOpen] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
   const [isGlobalSyncing, setIsGlobalSyncing] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
@@ -63,15 +65,37 @@ export default function DashboardHeader({
     };
   }, []);
 
+  // Logout used to `await syncManager.processSyncQueue()` in full before
+  // clearing storage -- that function pushes every unsynced progress
+  // entry, assessment, submission, project, template, and queued deletion
+  // to the backend ONE AT A TIME (a separate awaited fetch() per item, no
+  // timeout, no parallelization). With any nontrivial amount of unsynced
+  // data, or a cold-started Vercel serverless function, that's several
+  // seconds of sequential network round-trips standing between clicking
+  // "Confirm" and actually being logged out -- with the confirm modal
+  // showing no loading state at all, so it just looked frozen.
+  //
+  // The periodic background sync (startBackgroundSync, every 30s) already
+  // keeps local data reasonably caught up while the user is active, so a
+  // full blocking resync at the exact moment of logout isn't required for
+  // correctness. Give it a short, bounded window to finish as a
+  // best-effort courtesy, but never let it hold up the actual logout.
+  const LOGOUT_SYNC_BUDGET_MS = 2000;
+
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     stopBackgroundSync();
-    await syncManager.processSyncQueue();
+
+    await Promise.race([
+      syncManager.processSyncQueue().catch(() => {}),
+      new Promise((resolve) => setTimeout(resolve, LOGOUT_SYNC_BUDGET_MS)),
+    ]);
 
     ["token", "authToken", "user"].forEach(k => {
       localStorage.removeItem(k);
       sessionStorage.removeItem(k);
     });
-    
+
     window.location.replace("/");
   };
 
@@ -87,10 +111,12 @@ export default function DashboardHeader({
 
       <header className="dashboard-header">
         <div className="header-left">
-          <Link to={backTo} className="back-home">
-            <img src="/assets/back-icon.png" alt="Back" className="btn-icon-open" />
-            <span className="back-home-text">{backText}</span>
-          </Link>
+          {showBackButton && (
+            <Link to={backTo} className="back-home">
+              <img src="/assets/back-icon.png" alt="Back" className="btn-icon-open" />
+              <span className="back-home-text">{backText}</span>
+            </Link>
+          )}
           <div className="logo-container">
             <Link to="/dashboard" className="logo-link">
               <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks Logo" className="logo-img" />
@@ -187,7 +213,7 @@ export default function DashboardHeader({
         </div>
       </header>
 
-      <LogoutConfirmModal isOpen={showLogout} onClose={() => setShowLogout(false)} onLogoutClick={handleLogout} />
+      <LogoutConfirmModal isOpen={showLogout} onClose={() => setShowLogout(false)} onLogoutClick={handleLogout} isLoggingOut={isLoggingOut} />
     </>
   );
 }

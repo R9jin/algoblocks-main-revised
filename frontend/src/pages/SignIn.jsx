@@ -3,7 +3,7 @@ import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useEffect, useRef, useState } from "react";
 import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
-import { projectsDB, syncQueueDB, templatesDB } from "../db";
+import { clearLocalUserData, projectsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
 
 export default function SignIn() {
@@ -44,11 +44,14 @@ export default function SignIn() {
 
   const syncUserCloudData = async (userEmail, token) => {
     try {
-      await Promise.all([
-        projectsDB.clear(),
-        templatesDB.clear(),
-        syncQueueDB.clear()
-      ]); 
+      // BUG FIX: this already cleared projects/templates/syncQueue on every
+      // login (so a previous account's projects don't bleed into this one)
+      // but left progress/assessments/submissions untouched -- exactly the
+      // learning-path data that was leaking across accounts/guest sessions
+      // on a shared browser. clearLocalUserData() clears all of it; the
+      // freshly-authenticated user's own progress/assessments get pulled
+      // back in by syncDownFromServer() right after login.
+      await clearLocalUserData();
 
       const headers = {
         "Content-Type": "application/json",
@@ -157,11 +160,12 @@ export default function SignIn() {
   const handleGuestLogin = async () => {
     setIsLoading(true); 
     try {
-      await Promise.all([
-        projectsDB.clear(),
-        templatesDB.clear(),
-        syncQueueDB.clear()
-      ]); 
+      // BUG FIX: previously only cleared projects/templates/syncQueue,
+      // leaving progress/assessments/submissions from the last logged-in
+      // account cached locally -- that's exactly the learning-path data
+      // that was leaking into guest sessions. clearLocalUserData() wipes
+      // every user-scoped local store so guests always start from zero.
+      await clearLocalUserData();
 
       if (!isMountedRef.current) return;
 

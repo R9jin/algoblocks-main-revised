@@ -1,0 +1,201 @@
+/* frontend/src/styles/PolicyModal.css */
+
+/* --- Consent checkbox row (SignUp.jsx / SignIn.jsx) --- */
+.policy-consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 4px 0 16px 0;
+  padding: 12px 14px;
+  background: var(--auth-surface-subtle, #f8f6ff);
+  border: 1px solid var(--auth-border, #d8dee4);
+  border-radius: 10px;
+}
+
+.policy-consent-checkbox {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--auth-purple, #7f57f9);
+}
+
+.policy-consent-label {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--auth-text-muted, #59636e);
+  cursor: pointer;
+}
+
+.policy-consent-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--auth-purple-dark, #6541d8);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.policy-consent-link:hover {
+  color: var(--auth-purple, #7f57f9);
+}
+
+.policy-consent-hint {
+  margin: -10px 0 14px 0;
+  font-size: 0.78rem;
+  color: var(--auth-text-muted, #59636e);
+  text-align: center;
+}
+
+/* --- Policy modal --- */
+.policy-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 25, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.policy-modal {
+  background: var(--auth-surface, #ffffff);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 620px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.policy-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--auth-border, #d8dee4);
+  background: linear-gradient(135deg, var(--auth-purple-dark, #6541d8), #9b2fae);
+}
+
+.policy-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffffff;
+}
+
+.policy-modal-title h2 {
+  font-size: 1.1rem;
+  margin: 0;
+  color: #ffffff;
+}
+
+.policy-modal-close {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.policy-modal-close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.policy-modal-badge {
+  margin: 14px 22px 0 22px;
+  padding: 8px 12px;
+  background: var(--auth-purple-soft, #f0ebff);
+  color: var(--auth-purple-dark, #6541d8);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.policy-modal-badge-link {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.policy-modal-badge-link:hover {
+  background: var(--auth-purple-soft-hover, #e4dbff);
+  text-decoration: underline;
+}
+
+.policy-section-links {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.policy-section-link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--auth-purple-dark, #6541d8);
+  text-decoration: none;
+}
+
+.policy-section-link:hover {
+  text-decoration: underline;
+}
+
+.policy-modal-body {
+  padding: 18px 22px 6px 22px;
+  overflow-y: auto;
+}
+
+.policy-section {
+  margin-bottom: 16px;
+}
+
+.policy-section h3 {
+  font-size: 0.92rem;
+  color: var(--auth-text, #1f2328);
+  margin: 0 0 6px 0;
+}
+
+.policy-section p {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--auth-text-muted, #59636e);
+  margin: 0;
+}
+
+.policy-modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--auth-border, #d8dee4);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.policy-modal-done-btn {
+  background: var(--auth-purple, #7f57f9);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.policy-modal-done-btn:hover {
+  background: var(--auth-purple-dark, #6541d8);
+}

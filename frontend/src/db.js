@@ -136,3 +136,31 @@ export const syncQueueDB = {
         return db.clear("syncQueue");
     }
 };
+
+// BUG FIX: Guest accounts (and account switches on a shared browser) were
+// showing another account's learning-path progress. Root cause: the local
+// IndexedDB cache (`AlgoBlocksDB`) is a single, browser-wide store that is
+// NOT namespaced per user -- `progress` is keyed only by `lesson_id` and
+// `assessments` only by `assessmentId`, with no userId field at all, and
+// nothing ever cleared these stores when a session ended or a guest session
+// began. Three separate "Continue as Guest" entry points
+// (HomePage.jsx, Header.jsx, SignIn.jsx) each rolled their own cleanup and
+// none of them cleared `progress`/`assessments`/`submissions` -- so a real
+// account's lesson progress, assessment scores, and activity submissions
+// stayed cached locally and were read straight into the next guest (or
+// next different-account) session.
+//
+// This clears every user-scoped local store. `curriculumCache` is
+// deliberately excluded since it only holds static lesson/curriculum
+// content (not per-user data) and clearing it just forces needless
+// refetches.
+export async function clearLocalUserData() {
+    await Promise.all([
+        projectsDB.clear(),
+        templatesDB.clear(),
+        progressDB.clear(),
+        assessmentsDB.clear(),
+        submissionsDB.clear(),
+        syncQueueDB.clear(),
+    ]);
+}

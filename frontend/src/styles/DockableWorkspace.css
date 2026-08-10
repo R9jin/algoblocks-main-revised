@@ -225,9 +225,119 @@
   height: 34%;
 }
 
+/* --- Mobile region switcher ---
+   Hidden by default (desktop shows every region side-by-side at once, so
+   there's nothing to switch between); the component only renders it when
+   there's more than one non-empty region, and it only takes effect once
+   the media query below turns it on. */
+.dock-mobile-switcher {
+  display: none;
+}
+
+.dock-mobile-switcher-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-light);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 6px;
+  cursor: pointer;
+}
+
+.dock-mobile-switcher-btn:last-child {
+  border-right: none;
+}
+
+.dock-mobile-switcher-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dock-mobile-switcher-btn.active {
+  color: var(--purple-main);
+  background: rgba(121, 40, 202, 0.08);
+  box-shadow: inset 0 -2px 0 var(--purple-main);
+}
+
 @media (max-width: 900px) {
   .dock-tab {
     padding: 6px 10px;
     font-size: 12px;
+  }
+}
+
+/* =========================================================
+   Phone layout: the 5-region split/splitter arrangement has no room to
+   exist side-by-side on a phone screen, so below this width exactly one
+   region is shown at a time (full width/height), switched via the tab
+   strip at the top of the workspace instead of via drag-and-drop or
+   resize splitters (neither of which are realistic touch interactions
+   for this kind of precision layout).
+========================================================= */
+@media (max-width: 768px) {
+  .dock-mobile-switcher {
+    display: flex;
+    flex-shrink: 0;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-light);
+    overflow-x: auto;
+  }
+
+  .dock-root {
+    flex-direction: column;
+  }
+
+  .dock-middle-row {
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Splitters are a mouse-drag interaction and every region is full-size
+     on its own now anyway, so there's nothing left for them to resize. */
+  .dock-splitter {
+    display: none;
+  }
+
+  /* Only the active region is shown; it takes up all the space the
+     workspace has, regardless of whatever size/flex value it was given
+     for the desktop side-by-side layout. */
+  .dock-root > .dock-region,
+  .dock-middle-row > .dock-region {
+    display: none;
+  }
+
+  .dock-root > .dock-region.dock-region-mobile-active,
+  .dock-middle-row > .dock-region.dock-region-mobile-active {
+    display: flex;
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1 1 auto !important;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* The empty-center drop target only exists to receive drag-and-dock
+     drops, which aren't available on touch -- collapsing it to nothing
+     avoids reserving dead space on phone screens. */
+  .dock-region-center-empty {
+    display: none !important;
+  }
+
+  .dock-tab-bar {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dock-tab {
+    padding: 8px 12px;
+    font-size: 13px;
   }
 }

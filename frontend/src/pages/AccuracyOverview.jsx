@@ -18,14 +18,20 @@
 // device, not tied to any one account) so almost every visit is instant;
 // the check only re-runs in the background when the cache is missing or
 // stale, or when the person taps "Re-check now".
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  LuRefreshCw, LuClock3, LuHardDrive, LuChevronDown, LuGauge,
-  LuCheck, LuX, LuListTree,
+  LuCheck,
+  LuChevronDown,
+  LuClock3,
+  LuGauge,
+  LuHardDrive,
+  LuListTree,
+  LuRefreshCw,
+  LuX,
 } from "react-icons/lu";
-import { usePyodide } from "../context/PyodideContext";
+import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
+import { usePyodide } from "../context/PyodideContext";
 import "../styles/AccuracyOverview.css";
 
 const CACHE_KEY = "algoblocks_accuracy_overview_cache_v2";
@@ -256,7 +262,7 @@ export default function AccuracyOverview() {
             </p>
             <p className="acc-scope-note">
               The analyzer classifies into a fixed set of <strong>9 Big-O classes</strong> --
-              it isn't a general-purpose solver that can identify literally any growth rate.
+              it is not a general-purpose solver that can identify literally any growth rate.
             </p>
             <div className="acc-scope-badges">
               {["O(1)", "O(log n)", "O(sqrt n)", "O(n)", "O(n log n)", "O(n^2)", "O(2^n)", "O(n!)", "O(V + E)"].map((cls) => (

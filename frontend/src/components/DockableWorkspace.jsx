@@ -151,6 +151,28 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
   const [dragState, setDragState] = useState(null); // { panelId, fromRegion }
   const [dragOver, setDragOver] = useState(null); // { region, quadrant }
 
+  // --- Mobile: the 5-region split/splitter layout doesn't work on phone
+  // widths (there simply isn't room to show more than one region at once),
+  // so below the CSS breakpoint we show exactly one region full-screen and
+  // let the user switch between them with a bottom tab strip instead of
+  // drag-to-dock. `mobileRegion` tracks which region is currently the one
+  // visible; it's ignored entirely above the breakpoint (all regions are
+  // shown side-by-side as before via CSS).
+  const [mobileRegion, setMobileRegion] = useState(() => {
+    const preferred = ["center", "bottom", "left", "right", "top"];
+    return preferred.find((key) => (defaultLayout?.regions?.[key]?.panelIds || []).length > 0) || "center";
+  });
+
+  // Keep mobileRegion pointing at a region that actually has panels in it
+  // (e.g. if everything gets dragged out of the region the user was
+  // looking at on a larger screen before shrinking the window down).
+  useEffect(() => {
+    if (layout.regions[mobileRegion]?.panelIds.length > 0) return;
+    const fallback = REGION_KEYS.find((key) => layout.regions[key].panelIds.length > 0);
+    if (fallback) setMobileRegion(fallback);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout]);
+
   // If the panel set genuinely changes shape (e.g. a future panel gets
   // added), reconcile so the new panel appears somewhere instead of being
   // silently dropped.
@@ -201,6 +223,9 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
   const openPanelInternal = (panelId) => {
     setLayout((prev) => {
       if (isPanelOpenInLayout(prev, panelId)) {
+        for (const key of REGION_KEYS) {
+          if (prev.regions[key].panelIds.includes(panelId)) { setMobileRegion(key); break; }
+        }
         return REGION_KEYS.reduce((acc, key) => {
           if (acc.regions[key].panelIds.includes(panelId) && acc.activeTab[key] !== panelId) {
             return { ...acc, activeTab: { ...acc.activeTab, [key]: panelId } };
@@ -214,6 +239,7 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
       const next = cloneLayout(prev);
       next.regions[targetRegion].panelIds.push(panelId);
       next.activeTab[targetRegion] = panelId;
+      setMobileRegion(targetRegion);
       return next;
     });
   };
@@ -235,6 +261,7 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
       setLayout((prev) => {
         for (const key of REGION_KEYS) {
           if (prev.regions[key].panelIds.includes(panelId)) {
+            setMobileRegion(key);
             if (prev.activeTab[key] === panelId) return prev;
             return { ...prev, activeTab: { ...prev.activeTab, [key]: panelId } };
           }
@@ -377,11 +404,12 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
           : { height: region.size, minHeight: MIN_SIZE };
 
     const isDropTarget = dragOver?.region === key;
+    const isMobileActive = key === mobileRegion;
 
     return (
       <div
         key={key}
-        className={`dock-region dock-region-${key}${isDropTarget ? " dock-region-drag-over" : ""}${isEmptyCenter ? " dock-region-center-empty" : ""}`}
+        className={`dock-region dock-region-${key}${isDropTarget ? " dock-region-drag-over" : ""}${isEmptyCenter ? " dock-region-center-empty" : ""}${isMobileActive ? " dock-region-mobile-active" : ""}`}
         style={style}
         onDragOver={(e) => handleRegionDragOver(e, key)}
         onDragLeave={(e) => handleRegionDragLeave(e, key)}
@@ -448,8 +476,39 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
   const rightVisible = layout.regions.right.panelIds.length > 0;
   const bottomVisible = layout.regions.bottom.panelIds.length > 0;
 
+  // Only regions that actually have a panel docked in them are worth a
+  // switcher button -- an empty region has nothing to show on mobile.
+  const nonEmptyRegions = REGION_KEYS.filter((key) => layout.regions[key].panelIds.length > 0);
+  const regionButtonLabel = (key) => {
+    const activePanel = panelsById[layout.activeTab[key]];
+    if (activePanel) return { icon: activePanel.icon, title: activePanel.title };
+    const fallback = { top: "Top", left: "Left", center: "Workspace", right: "Right", bottom: "Bottom" };
+    return { icon: null, title: fallback[key] };
+  };
+
   return (
     <div className={`dock-root ${className}`}>
+      {nonEmptyRegions.length > 1 && (
+        <div className="dock-mobile-switcher" role="tablist" aria-label="Workspace panels">
+          {nonEmptyRegions.map((key) => {
+            const { icon, title } = regionButtonLabel(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={mobileRegion === key}
+                className={`dock-mobile-switcher-btn ${mobileRegion === key ? "active" : ""}`}
+                onClick={() => setMobileRegion(key)}
+              >
+                {icon}
+                <span>{title}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {renderRegion("top")}
       {topVisible && <DockSplitter axis="y" title="Resize top panel" onDelta={(d) => handleSplitterDelta("top", d, "y")} />}
 

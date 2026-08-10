@@ -1,6 +1,31 @@
 # api/models.py
-from pydantic import BaseModel, EmailStr, Field
+import json
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Dict, Any, Optional, List
+
+# Hardening: Blockly workspace JSON and generated Python are user-controlled
+# and were previously unbounded (Dict[str, Any] / str with no length limit).
+# That's not SQL-injectable (all queries are parameterized -- see
+# repositories/*.py) or server-executable (the backend only ever runs
+# ast.parse() on pythonCode for static analysis, never eval/exec), but an
+# unbounded payload is still a storage- and DB-row-bloat DoS vector: a
+# malicious or buggy client could push megabytes of JSON per save. Cap both
+# to a generous-but-bounded size so a single project/template can't blow up
+# the `projects`/`templates` tables.
+MAX_WORKSPACE_BYTES = 300_000   # ~300KB of Blockly JSON; a large real workspace is a few KB
+MAX_PYTHON_CODE_CHARS = 50_000  # ~50k chars of generated/raw Python
+
+
+def _validate_workspace_size(value):
+    if value in (None, {}):
+        return value
+    try:
+        size = len(json.dumps(value))
+    except (TypeError, ValueError):
+        raise ValueError("workspace must be JSON-serializable")
+    if size > MAX_WORKSPACE_BYTES:
+        raise ValueError(f"workspace exceeds maximum size of {MAX_WORKSPACE_BYTES} bytes")
+    return value
 
 class UserCreate(BaseModel):
     name: str
@@ -50,9 +75,11 @@ class ProjectSyncRequest(BaseModel):
     name: Optional[str] = "Untitled Project"
     description: Optional[str] = ""
     workspace: Optional[Dict[str, Any]] = {}
-    pythonCode: Optional[str] = ""
+    pythonCode: Optional[str] = Field(default="", max_length=MAX_PYTHON_CODE_CHARS)
     timestamp: Optional[int] = None
     isSynced: Optional[bool] = False
+
+    _check_workspace_size = field_validator("workspace")(_validate_workspace_size)
 
 class TemplateSyncRequest(BaseModel):
     templateId: Optional[str] = None
@@ -61,11 +88,13 @@ class TemplateSyncRequest(BaseModel):
     description: Optional[str] = ""
     category: Optional[str] = "Custom Templates"
     workspace: Optional[Dict[str, Any]] = {}
-    pythonCode: Optional[str] = ""
+    pythonCode: Optional[str] = Field(default="", max_length=MAX_PYTHON_CODE_CHARS)
     userId: Optional[str] = None
     owner_id: Optional[str] = None
     timestamp: Optional[int] = None
     isSynced: Optional[bool] = False
+
+    _check_workspace_size = field_validator("workspace")(_validate_workspace_size)
 
 class ActivitySubmission(BaseModel):
     userId: str

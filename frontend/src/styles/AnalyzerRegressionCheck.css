@@ -1,0 +1,347 @@
+/* frontend/src/styles/AnalyzerRegressionCheck.css
+ *
+ * Only the rules specific to this panel. Card grid, loading state, and
+ * message-box styles are inherited from AdminUserManagement.css, same
+ * pattern AdminDashboard.css already follows.
+ */
+
+.arc-panel {
+  margin-top: 8px;
+}
+
+.arc-intro {
+  color: #5b5675;
+  font-size: 0.9rem;
+  margin: 4px 0 16px 0;
+  max-width: 720px;
+  line-height: 1.5;
+}
+
+.arc-empty-state {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.arc-overall-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #f8f7fc;
+  border: 1px solid #e5e1f5;
+  border-radius: 10px;
+}
+
+.arc-overall-label {
+  font-weight: 700;
+  color: #241b52;
+  font-size: 0.92rem;
+}
+
+.arc-meta {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: #8b86a3;
+}
+
+.arc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.arc-badge-pass {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.arc-badge-fail {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.arc-metric-card.arc-ok {
+  border-left: 3px solid #16a34a;
+}
+
+.arc-metric-card.arc-bad {
+  border-left: 3px solid #dc2626;
+}
+
+.arc-metric-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.arc-metric-sub {
+  color: #8b86a3;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.arc-per-class {
+  margin-top: 20px;
+}
+
+.arc-per-class h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #241b52;
+  margin: 0 0 10px 4px;
+}
+
+.arc-mismatch-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.arc-mismatch-table th,
+.arc-mismatch-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eee7fb;
+}
+
+.arc-mismatch-table th {
+  color: #5b5675;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.arc-mismatch-block {
+  margin-top: 14px;
+}
+
+.arc-mismatch-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #5A1398;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+
+.arc-mismatch-toggle:hover {
+  text-decoration: underline;
+}
+
+.arc-mismatch-table-wrap {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #eee7fb;
+  border-radius: 8px;
+  margin-top: 6px;
+}
+
+/* --- Purpose explainer / help affordances --- */
+
+.arc-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #8b86a3;
+  cursor: pointer;
+  padding: 2px;
+  margin-left: 6px;
+  vertical-align: middle;
+  border-radius: 50%;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.arc-help-btn:hover {
+  color: #5A1398;
+  background: #f1ecfb;
+}
+
+.arc-inline-help {
+  background: none;
+  border: none;
+  color: #5A1398;
+  font-weight: 700;
+  font-size: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.arc-inline-help:hover {
+  color: #3d0d6b;
+}
+
+.arc-explainer {
+  background: #f8f7fc;
+  border: 1px solid #e5e1f5;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 4px 0 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.arc-explainer-row strong {
+  display: block;
+  color: #241b52;
+  font-size: 0.88rem;
+  margin-bottom: 3px;
+}
+
+.arc-explainer-row p {
+  margin: 0;
+  color: #5b5675;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.arc-explainer-close {
+  align-self: flex-end;
+  background: #5A1398;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.arc-explainer-close:hover {
+  background: #3d0d6b;
+}
+
+.arc-per-class-note {
+  color: #8b86a3;
+  font-size: 0.78rem;
+  margin: -4px 0 10px 4px;
+}
+
+/* --- Per-row "View code" expansion in mismatch tables --- */
+
+.arc-code-col {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.arc-code-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f1ecfb;
+  color: #5A1398;
+  border: 1px solid #e5d9f7;
+  border-radius: 7px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.arc-code-toggle:hover {
+  background: #e5d9f7;
+}
+
+.arc-code-toggle.active {
+  background: #5A1398;
+  color: #fff;
+  border-color: #5A1398;
+}
+
+.arc-row-expanded {
+  background: #faf8fe;
+}
+
+.arc-code-row td {
+  padding: 0 !important;
+  background: #F8FAFC;
+  border-bottom: 2px solid #E2E8F0 !important;
+}
+
+.arc-code-td {
+  padding: 12px !important;
+}
+
+/* Matches EvaluationSuite's .line-checks-dropdown-box / .eval-code-preview
+   light theme exactly, so "View code" here and "Review Errors" /
+   "Inspect AST" in Dataset Testing look like the same feature. */
+.arc-code-block {
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.arc-code-block-header {
+  background-color: #F1F5F9;
+  padding: 10px 14px;
+  border-bottom: 1px solid #CBD5E1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.arc-code-block-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arc-code-block-icon {
+  color: #5A1398;
+}
+
+.arc-code-block-header strong {
+  font-size: 13px;
+  color: #0F172A;
+}
+
+.arc-code-block-sub {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.arc-code-block-meta {
+  font-size: 11px;
+  color: #94A3B8;
+  font-family: Consolas, monospace;
+}
+
+.arc-code-pre {
+  margin: 0;
+  padding: 14px 16px;
+  background-color: #F8FAFC;
+  overflow-x: auto;
+  max-height: 340px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.arc-code-pre code {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  color: #0F172A;
+  white-space: pre;
+}
