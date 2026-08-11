@@ -144,6 +144,11 @@ export default function MainApp() {
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   const analyzingTabId = useRef(activeTabId);
+  // Tracks which "unsupported libraries" warnings the user has already
+  // clicked through, keyed by `${tabId}::${sorted library list}`, so the
+  // advisory modal doesn't re-open on every keystroke re-analysis while
+  // they're still editing the same import.
+  const acknowledgedScopeWarningsRef = useRef(new Set());
 
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
@@ -186,6 +191,34 @@ export default function MainApp() {
   };
 
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
+
+  // Shows a one-time-per-import-set advisory when the analyzer detects
+  // stdlib modules it doesn't reliably cost (re, json, os, decimal, random,
+  // statistics, etc. all silently default to O(1) instead of being flagged
+  // -- see complexity_analyzer/analyzer.py's detect_unsupported_libraries).
+  // The analysis itself is never blocked; this just warns the learner
+  // before they trust a badge on lines that use those calls.
+  const maybeShowScopeWarning = (tabId, unsupportedLibraries) => {
+    if (!unsupportedLibraries || unsupportedLibraries.length === 0) return;
+    const warningKey = `${tabId}::${unsupportedLibraries.slice().sort().join(",")}`;
+    if (acknowledgedScopeWarningsRef.current.has(warningKey)) return;
+
+    setModalConfig({
+      isOpen: true,
+      title: "Some Libraries Aren't Fully Supported",
+      message:
+        `This code imports ${unsupportedLibraries.join(", ")}. The complexity analyzer doesn't have cost data for ` +
+        `these libraries yet, so lines that call into ${unsupportedLibraries.length > 1 ? "them" : "it"} may be shown ` +
+        `as O(1) or another misclassified complexity even though the code runs fine. Press Proceed to view the ` +
+        `analysis anyway, keeping this in mind for those lines.`,
+      confirmText: "Proceed",
+      isDanger: false,
+      onConfirmAction: () => {
+        acknowledgedScopeWarningsRef.current.add(warningKey);
+        closeModal();
+      },
+    });
+  };
 
   const latestTabsRef = useRef(tabs);
   useEffect(() => { latestTabsRef.current = tabs; }, [tabs]);
@@ -259,6 +292,7 @@ export default function MainApp() {
             lineExecutions: (prev) => ({ ...prev, ...initialCounts }),
             syntaxErrors: runtimeErrors,
           });
+          maybeShowScopeWarning(targetId, data.unsupported_libraries);
         } else {
           if (data.multiple_errors && data.multiple_errors.length > 0) {
             const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
@@ -447,6 +481,7 @@ export default function MainApp() {
             },
             lineExecutions: (prev) => ({ ...prev, ...initialCounts }), syntaxErrors: [],
           });
+          maybeShowScopeWarning(tabId, data.unsupported_libraries);
         } else {
           updateTab(tabId, { syntaxErrors: [{ line: data.line, message: `${data.message}. ${translatePythonError(data.message)}` }] });
         }
@@ -495,7 +530,17 @@ export default function MainApp() {
         await workspaceRefs.current[activeTabId].loadFromPython(cleanCode);
         updateTab(activeTabId, { isEditingCode: false, viewMode: "workspace" });
         showToast("Code successfully synced to Blocks", "success");
-      } catch (e) { showToast(`Sync Failed: ${e.message}`, "error"); }
+      } catch (e) {
+        if (e.isFallbackWarning) {
+          // Partial sync: the workspace still loaded (with a Raw Block
+          // standing in for whatever couldn't be matched), so this isn't a
+          // hard failure -- just let the user know.
+          updateTab(activeTabId, { isEditingCode: false, viewMode: "workspace" });
+          showToast(e.message, "warning");
+        } else {
+          showToast(`Sync Failed: ${e.message}`, "error");
+        }
+      }
     }
   };
 
@@ -889,7 +934,7 @@ export default function MainApp() {
       <ConfirmModal isOpen={leaveModal.isOpen} title="Unsaved Changes" message="You have unsaved changes in your workspace. Are you sure you want to leave? All unsaved progress will be lost." confirmText="Leave Workspace" cancelText="Stay" isDanger={true} onCancel={cancelLeaveSite} onConfirm={confirmLeaveSite} />
       <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} isDanger={modalConfig.isDanger} onCancel={closeModal} onConfirm={modalConfig.onConfirmAction} />
 
-      {toast.show && <div className={`toast-notification ${toast.type === "error" ? "toast-error" : "toast-success"}`}>{toast.message}</div>}
+      {toast.show && <div className={`toast-notification ${toast.type === "error" ? "toast-error" : toast.type === "warning" ? "toast-warning" : "toast-success"}`}>{toast.message}</div>}
 
       {saveModal.isOpen && (
         <div className="modal-overlay">

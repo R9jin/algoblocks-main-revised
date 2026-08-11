@@ -329,6 +329,12 @@ export default function EvaluationSuite({ embedded = false } = {}) {
   // "Failed to load Tasty dataset" popup. Simplified to the one dataset
   // that's actually present: the 29 ground-truth chunks.
   const fetchActiveGauntletData = async () => {
+    if (datasetOption === "big_o_testcases") {
+      setStatusText("Fetching AlgoBlocks Big-O Testcases...");
+      const testcasesJson = await safeFetchJson("/data/evaluation/processed/algoblocks_big_o_testcases.json");
+      return testcasesJson || [];
+    }
+
     setStatusText("Fetching Ground Truth Chunks (01 to 29)...");
     let stitchedArray = [];
     for (let i = 1; i <= 29; i++) {
@@ -817,7 +823,14 @@ export default function EvaluationSuite({ embedded = false } = {}) {
               className={`dataset-btn ${datasetOption === "chunks" ? "active-ds" : ""}`}
               disabled={isRunning}
             >
-              Tasty Ground Truth Dataset
+              Tasty Ground Truth Dataset (29 Chunks)
+            </button>
+            <button
+              onClick={() => !isRunning && setDatasetOption("big_o_testcases")}
+              className={`dataset-btn ${datasetOption === "big_o_testcases" ? "active-ds" : ""}`}
+              disabled={isRunning}
+            >
+              AlgoBlocks Big-O Testcases
             </button>
           </div>
         </div>
