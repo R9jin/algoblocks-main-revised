@@ -357,7 +357,18 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
     const gauntletPayload = await fetchActiveGauntletData();
     if (!gauntletPayload || gauntletPayload.length === 0) {
-      alert("Critical Failure: Could not load the ground-truth chunks. Ensure ground_truth_chunk_01..29.json exist inside /public/data/evaluation/processed/");
+      // This alert used to always blame the 29 ground-truth chunks, even when
+      // the "AlgoBlocks Big-O Testcases" dataset was the one selected and the
+      // one that actually failed to load -- pointing an admin at the wrong
+      // file entirely while debugging. Point at whichever dataset/path was
+      // actually being fetched.
+      const failedDatasetLabel = datasetOption === "big_o_testcases"
+        ? "the AlgoBlocks Big-O Testcases dataset"
+        : "the ground-truth chunks";
+      const expectedPath = datasetOption === "big_o_testcases"
+        ? "algoblocks_big_o_testcases.json"
+        : "ground_truth_chunk_01..29.json";
+      alert(`Critical Failure: Could not load ${failedDatasetLabel}. Ensure ${expectedPath} exists inside /public/data/evaluation/processed/`);
       setIsLoading(false);
       setStatusText("Dataset assembly failed.");
       return;

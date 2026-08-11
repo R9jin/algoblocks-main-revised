@@ -31,18 +31,45 @@ class BlocklyASTConverter:
             pass
         return comments
 
+    # Block types that Blockly does not give a bottom/"next" connection to --
+    # they float standalone in the workspace and can never be the head of a
+    # `next`-chain. procedures_defnoreturn/defreturn are the built-in
+    # examples here. Attempting to chain anything (including a trailing
+    # comment) off one of these via `block["next"]` throws a MissingConnection
+    # error at Blockly.serialization load time -- which, since it happens
+    # inside the *cluster's own* JSON, made the whole enclosing function fail
+    # to load and fall back to a single Raw Block, even though every
+    # statement inside the function converted fine on its own.
+    NO_NEXT_CONNECTION_TYPES = {"procedures_defnoreturn", "procedures_defreturn"}
+
     def _attach_comment(self, block, node):
         """If the source line this statement came from also carried a
         trailing '# comment', chain a comment_block right after it so the
         note survives the Python -> Blocks sync instead of being cleaned
         out. Returns the new tail of the [statement, comment?] mini-chain,
-        which callers should use for subsequent `next` linking."""
+        which callers should use for subsequent `next` linking.
+
+        Blocks with no next connection (see NO_NEXT_CONNECTION_TYPES) can't
+        take that chained comment_block, so for those the comment is instead
+        attached as a native Blockly comment-icon bubble on the block itself
+        -- valid on any block type, no connection required."""
         if not block:
             return block
         lineno = getattr(node, "lineno", None)
         comment_text = self.line_comments.pop(lineno, None) if lineno else None
         if not comment_text:
             return block
+
+        if block.get("type") in self.NO_NEXT_CONNECTION_TYPES:
+            block["icons"] = block.get("icons", {})
+            block["icons"]["comment"] = {
+                "text": comment_text[:500],
+                "pinned": False,
+                "height": 80,
+                "width": 160,
+            }
+            return block
+
         comment_block = {"type": "comment_block", "id": gen_uid(), "fields": {"TEXT": comment_text[:500]}}
         block["next"] = {"block": comment_block}
         return comment_block
@@ -163,21 +190,39 @@ class BlocklyASTConverter:
 
         try:
             clusters = []
+            # Parallel array to `clusters`: the [start_line, end_line] (1-indexed,
+            # inclusive) span of original source each cluster covers. Lets the
+            # frontend recover the *exact original text* for just one cluster if
+            # Blockly's connection-type check rejects it at load time, instead of
+            # falling back to the entire file -- see loadFromPython() in
+            # BlocklyWorkspace.jsx, which does per-cluster retry using this.
+            cluster_ranges = []
             current_chain_tail = None
 
             for node in tree.body:
                 block = self.serialize_node(node, is_top_level=True) or self.make_raw_statement(node)
                 if not block: continue
+                node_start = getattr(node, "lineno", None)
+                node_end = getattr(node, "end_lineno", node_start)
                 tail = self._attach_comment(block, node)
 
                 if block.get("type") in ["procedures_defnoreturn", "procedures_defreturn"]:
                     clusters.append(block)
-                    current_chain_tail = None 
+                    cluster_ranges.append({"start": node_start, "end": node_end})
+                    current_chain_tail = None
                 else:
                     if current_chain_tail is None:
                         clusters.append(block)
+                        cluster_ranges.append({"start": node_start, "end": node_end})
                     else:
                         current_chain_tail["next"] = {"block": block}
+                        # Extend the still-open cluster's range to cover this
+                        # statement too, so a later retry can slice out the
+                        # whole chain's original source, not just its first line.
+                        if cluster_ranges and node_end is not None:
+                            prev_end = cluster_ranges[-1]["end"]
+                            if prev_end is None or node_end > prev_end:
+                                cluster_ranges[-1]["end"] = node_end
                     current_chain_tail = tail
 
             y_offset = 20
@@ -192,7 +237,8 @@ class BlocklyASTConverter:
                 "blocks": {
                     "variables": vars_array,
                     "blocks": {"languageVersion": 0, "blocks": clusters}
-                }
+                },
+                "cluster_ranges": cluster_ranges
             }
         except Exception as e:
             return self.raw_fallback(code)

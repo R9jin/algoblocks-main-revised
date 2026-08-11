@@ -389,34 +389,81 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         // stdlib modules, unusual operator combos, etc). If Blockly's own
         // strict connection-type checking still rejects a generated block
         // tree, don't let the whole sync die with a cryptic internal error
-        // -- fall back to a single editable "Raw Block" so the user's code
-        // is never lost and the workspace still loads.
+        // -- and don't nuke the whole workspace down to a single giant Raw
+        // Block either, since most of the tree usually *did* convert fine.
+        // Instead retry one top-level cluster at a time and only swap out
+        // the cluster(s) that actually fail, using `cluster_ranges` (parallel
+        // to data.blocks.blocks.blocks) to recover each failing cluster's
+        // exact original source slice -- not the whole file -- as its raw
+        // fallback text. Only if every cluster fails (or ranges are missing,
+        // e.g. an older cached response) do we fall all the way back to one
+        // Raw Block for the entire snippet.
         let loadError = null;
+        let partialFallbackUsed = false;
         try {
           Blockly.Events.setGroup(true);
           workspace.current.clear();
           if (data.status === "success" && data.blocks) {
-            Blockly.serialization.workspaces.load(data.blocks, workspace.current);
-          }
-        } catch (connErr) {
-          loadError = connErr;
-          console.warn("Blockly connection-type check rejected the converted blocks, falling back to raw code:", connErr);
-          try {
-            workspace.current.clear();
-            Blockly.serialization.workspaces.load({
-              blocks: {
-                languageVersion: 0,
-                blocks: [{
-                  type: "raw_python_multiline",
-                  id: "raw_fallback_" + Date.now(),
-                  x: 20, y: 20,
-                  fields: { CODE: pythonCode }
-                }]
+            try {
+              Blockly.serialization.workspaces.load(data.blocks, workspace.current);
+            } catch (connErr) {
+              loadError = connErr;
+              console.warn("Blockly connection-type check rejected the converted blocks, retrying cluster-by-cluster:", connErr);
+
+              const topLevelClusters = data.blocks?.blocks?.blocks || [];
+              const clusterRanges = data.cluster_ranges || [];
+              const sourceLines = pythonCode.split("\n");
+
+              workspace.current.clear();
+              let anyClusterLoaded = false;
+
+              topLevelClusters.forEach((cluster, idx) => {
+                try {
+                  Blockly.serialization.blocks.append(cluster, workspace.current);
+                  anyClusterLoaded = true;
+                } catch (clusterErr) {
+                  partialFallbackUsed = true;
+                  const range = clusterRanges[idx];
+                  const rawText = range && range.start
+                    ? sourceLines.slice(range.start - 1, range.end).join("\n")
+                    : pythonCode; // no range info for this cluster -- best we can do
+                  try {
+                    Blockly.serialization.blocks.append({
+                      type: "raw_python_multiline",
+                      id: "raw_fallback_" + Date.now() + "_" + idx,
+                      x: cluster.x ?? 20,
+                      y: cluster.y ?? 20 + idx * 80,
+                      fields: { CODE: rawText },
+                    }, workspace.current);
+                    anyClusterLoaded = true;
+                  } catch (rawErr) {
+                    // even a bare raw block failed to append -- extremely
+                    // unlikely, but don't let this one cluster's failure
+                    // stop the rest from being attempted.
+                  }
+                }
+              });
+
+              if (!anyClusterLoaded) {
+                // Nothing recovered cluster-by-cluster -- last resort,
+                // one Raw Block for the whole snippet so nothing is lost.
+                workspace.current.clear();
+                Blockly.serialization.workspaces.load({
+                  blocks: {
+                    languageVersion: 0,
+                    blocks: [{
+                      type: "raw_python_multiline",
+                      id: "raw_fallback_" + Date.now(),
+                      x: 20, y: 20,
+                      fields: { CODE: pythonCode }
+                    }]
+                  }
+                }, workspace.current);
               }
-            }, workspace.current);
-          } catch (fallbackErr) {
-            throw loadError;
+            }
           }
+        } catch (fallbackErr) {
+          if (!loadError) loadError = fallbackErr;
         } finally { Blockly.Events.setGroup(false); }
 
         setTimeout(() => {
@@ -426,7 +473,11 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         }, 100);
 
         if (loadError) {
-          const fallbackNotice = new Error("Some code couldn't be matched to blocks, so it was placed in a Raw Block instead. Your code was not lost.");
+          const fallbackNotice = new Error(
+            partialFallbackUsed
+              ? "Some parts of your code couldn't be matched to blocks, so just those parts were placed in Raw Blocks -- the rest converted normally. Your code was not lost."
+              : "Some code couldn't be matched to blocks, so it was placed in a Raw Block instead. Your code was not lost."
+          );
           fallbackNotice.isFallbackWarning = true;
           throw fallbackNotice;
         }
