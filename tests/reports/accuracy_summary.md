@@ -7,8 +7,8 @@ Generated from `../frontend/public/data/evaluation/processed` (266 labeled sampl
 | Metric | Correct / Total | Accuracy |
 |---|---|---|
 | Overall time complexity | 199/266 | 74.8% |
-| Overall space complexity | 234/266 | 88.0% |
-| Both time AND space correct | 181/266 | 68.0% |
+| Overall space complexity | 238/266 | 89.5% |
+| Both time AND space correct | 184/266 | 69.2% |
 | Samples that raised a parse/analysis error | 9/266 | 3.4% |
 
 ## Accuracy by expected time-complexity class
