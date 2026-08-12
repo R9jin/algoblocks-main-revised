@@ -65,6 +65,23 @@ class AlgoBlocksTracer:
         self.step_count = 0
 
     def _trace_dispatch(self, frame, event, arg):
+        # Only trace frames belonging to the student's own code. `exec()`
+        # without an explicit filename compiles to '<string>', so anything
+        # else (fractions.py, decimal.py, re's sre_compile, importlib's
+        # bootstrap machinery, etc.) is stdlib/import internals -- not
+        # something the student wrote or should be charged step-count for.
+        #
+        # Without this guard, sys.settrace stays active for every frame
+        # Python creates for as long as it's set, including the *first*
+        # import of a stdlib module (which runs that module's entire
+        # top-level code, class bodies, and any internal loops it has).
+        # A cold `from fractions import Fraction` can rack up thousands of
+        # 'line' events this way before the student's code has actually
+        # done anything -- which used to trip the infinite-loop guard on
+        # perfectly ordinary code that never loops at all.
+        if frame.f_code.co_filename != '<string>':
+            return None
+
         # We only care about line execution events
         if event == 'line':
             self.step_count += 1

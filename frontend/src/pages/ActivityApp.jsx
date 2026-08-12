@@ -276,7 +276,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           overall_explanation: data.overall_explanation || "",
           lines: data.lines || [],
           call_graph: data.call_graph || {},
-          is_recursive: data.is_recursive || false
+          is_recursive: data.is_recursive || false,
+          scope_warnings: data.scope_warnings || []
         });
         
         latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";

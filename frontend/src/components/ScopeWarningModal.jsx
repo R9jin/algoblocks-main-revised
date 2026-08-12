@@ -8,14 +8,23 @@ const SEVERITY_META = {
   partial: { label: "Partial", className: "scope-pill scope-pill-partial" },
 };
 
-const ScopeWarningModal = ({ isOpen, warnings = [], onProceed, onCancel }) => {
+const ScopeWarningModal = ({
+  isOpen,
+  warnings = [],
+  onProceed,
+  onCancel,
+  title = "Some libraries here aren't fully supported",
+  proceedText = "Proceed anyway",
+  cancelText = "Cancel",
+  hideCancel = false,
+}) => {
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay">
       <div className="custom-modal-content scope-warning-modal">
         <div className="custom-modal-header">
-          <h3>Some libraries here aren't fully supported</h3>
+          <h3>{title}</h3>
         </div>
         <div className="custom-modal-body">
           <p>
@@ -40,11 +49,13 @@ const ScopeWarningModal = ({ isOpen, warnings = [], onProceed, onCancel }) => {
           </ul>
         </div>
         <div className="custom-modal-footer">
-          <button className="btn-modal btn-modal-cancel" onClick={onCancel}>
-            Cancel
-          </button>
+          {!hideCancel && (
+            <button className="btn-modal btn-modal-cancel" onClick={onCancel}>
+              {cancelText}
+            </button>
+          )}
           <button className="btn-modal btn-modal-confirm" onClick={onProceed}>
-            Proceed anyway
+            {proceedText}
           </button>
         </div>
       </div>

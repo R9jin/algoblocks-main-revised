@@ -51,6 +51,7 @@ class BlocklyASTConverter:
         self.variables = set()
         self.line_comments = {}
         self.consumed_comment_lines = set()
+        self.defined_functions = set()
 
     # ==========================================
     # TYPE INFERENCE & SAFETY MECHANISM
@@ -161,6 +162,22 @@ class BlocklyASTConverter:
             }
         except Exception as e:
             return {"status": "error", "message": str(e)}
+
+        # Names the student actually defined with `def` anywhere in this
+        # file. Only these should ever become a `procedures_callreturn` /
+        # `procedures_callnoreturn` block -- otherwise a call to some
+        # unrecognized name (Fraction(...), Decimal(...), Queue(), etc.)
+        # gets rendered as "call <name>" against a procedure that doesn't
+        # exist in the workspace, which the Blockly code generator can't
+        # resolve and silently regenerates as a placeholder (e.g. 0, or
+        # the bare string of a stringy first argument) instead of the
+        # original call -- destroying the code on the next sync. Anything
+        # not in this set falls through to the raw_python_expression /
+        # raw_python_statement fallback instead, which round-trips exactly.
+        self.defined_functions = {
+            n.name for n in ast.walk(tree)
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
 
         scope_warnings = detect_scope_issues(clean_code, tree)
 
@@ -620,10 +637,15 @@ class BlocklyASTConverter:
                         self.add_input(block, "B", self.serialize_expr_safe(node.args[1], ["Number"]))
                         return block
 
-                    block = {"type": "procedures_callreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.args))]}}
-                    for i, arg in enumerate(node.args):
-                        self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
-                    return block
+                    if name in self.defined_functions:
+                        block = {"type": "procedures_callreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.args))]}}
+                        for i, arg in enumerate(node.args):
+                            self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
+                        return block
+                    # Unrecognized call to a name the student never defined
+                    # (Fraction(...), Decimal(...), Queue(), etc.) -- fall
+                    # through to the raw-expression fallback below rather
+                    # than fabricating a call to a nonexistent procedure.
 
                 elif isinstance(node.func, ast.Attribute):
                     method = node.func.attr
@@ -879,15 +901,38 @@ class BlocklyASTConverter:
                     if isinstance(node.value.func, ast.Name):
                         name = node.value.func.id
                         if name == "print":
+                            args = node.value.args
                             block = {"type": "text_print", "id": gen_uid()}
-                            if node.value.args:
-                                self.add_input(block, "TEXT", self.serialize_expr(node.value.args[0]))
+                            if len(args) == 1:
+                                self.add_input(block, "TEXT", self.serialize_expr(args[0]))
+                            elif len(args) > 1:
+                                # Python's print() joins multiple positional
+                                # args with a single space by default. The
+                                # stock Blockly text_print block only takes
+                                # one TEXT input, so build a text_join tree
+                                # (arg, " ", arg, " ", arg, ...) that
+                                # reproduces the same joined output instead
+                                # of silently dropping every arg past the
+                                # first, which used to turn
+                                # print(a, "+", b, "=", result) into print(a).
+                                parts = []
+                                for i, a in enumerate(args):
+                                    parts.append(self.serialize_expr(a))
+                                    if i < len(args) - 1:
+                                        parts.append({"type": "text", "id": gen_uid(), "fields": {"TEXT": " "}, "output": "String"})
+                                join_block = {"type": "text_join", "id": gen_uid(), "extraState": {"itemCount": len(parts)}}
+                                for i, p in enumerate(parts):
+                                    self.add_input(join_block, f"ADD{i}", p)
+                                self.add_input(block, "TEXT", join_block)
                             return block
 
-                        block = {"type": "procedures_callnoreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.value.args))]}}
-                        for i, arg in enumerate(node.value.args):
-                            self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
-                        return block
+                        if name in self.defined_functions:
+                            block = {"type": "procedures_callnoreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.value.args))]}}
+                            for i, arg in enumerate(node.value.args):
+                                self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
+                            return block
+                        # Unrecognized call to a name the student never
+                        # defined -- fall through to make_raw_statement.
                     
                     elif isinstance(node.value.func, ast.Attribute):
                         method = node.value.func.attr

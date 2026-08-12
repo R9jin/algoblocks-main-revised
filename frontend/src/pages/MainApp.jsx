@@ -271,7 +271,8 @@ export default function MainApp() {
               overall_explanation: data.overall_explanation || "",
               lines: data.lines || [],
               call_graph: data.call_graph || {},
-              is_recursive: data.is_recursive || false
+              is_recursive: data.is_recursive || false,
+              scope_warnings: data.scope_warnings || []
             },
             lineExecutions: (prev) => ({ ...prev, ...initialCounts }),
             syntaxErrors: runtimeErrors,
@@ -460,7 +461,8 @@ export default function MainApp() {
               overall_explanation: data.overall_explanation || "",
               lines: data.lines || [],
               call_graph: data.call_graph || {},
-              is_recursive: data.is_recursive || false
+              is_recursive: data.is_recursive || false,
+              scope_warnings: data.scope_warnings || []
             },
             lineExecutions: (prev) => ({ ...prev, ...initialCounts }), syntaxErrors: [],
           });
