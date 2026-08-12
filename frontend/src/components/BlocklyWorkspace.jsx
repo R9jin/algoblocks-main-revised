@@ -12,9 +12,10 @@ import * as Blockly from "blockly";
 import "blockly/blocks";
 import * as En from "blockly/msg/en";
 import { pythonGenerator } from "blockly/python";
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { convertPythonToBlocks } from "../workers/analyzerInstance";
 import FloatingErrorDropdown from "./FloatingErrorDropdown.jsx";
+import ScopeWarningModal from "./ScopeWarningModal.jsx";
 
 registerFieldMultilineInput();
 Blockly.setLocale(En);
@@ -308,6 +309,25 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
   const workspace = useRef(null);
   const onChangeRef = useRef(onChange);
   const pendingLoadRef = useRef(null); 
+  const scopeWarningResolveRef = useRef(null);
+  const [scopeWarningState, setScopeWarningState] = useState({ isOpen: false, warnings: [] });
+
+  // Shows the scope-warning modal and pauses until the user decides.
+  // Resolves true ("Proceed anyway") or false ("Cancel").
+  const confirmScopeWarnings = (warnings) => {
+    return new Promise((resolve) => {
+      scopeWarningResolveRef.current = resolve;
+      setScopeWarningState({ isOpen: true, warnings });
+    });
+  };
+
+  const closeScopeWarningModal = (proceed) => {
+    setScopeWarningState({ isOpen: false, warnings: [] });
+    if (scopeWarningResolveRef.current) {
+      scopeWarningResolveRef.current(proceed);
+      scopeWarningResolveRef.current = null;
+    }
+  };
 
   const executeLoad = (json, preservePythonCode) => {
     if (!workspace.current) return;
@@ -381,7 +401,12 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       try {
         const data = await convertPythonToBlocks(cleanCode);
         if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
-        
+
+        if (Array.isArray(data.scope_warnings) && data.scope_warnings.length > 0) {
+          const proceed = await confirmScopeWarnings(data.scope_warnings);
+          if (!proceed) return;
+        }
+
         try { 
           Blockly.Events.setGroup(true);
           workspace.current.clear(); 
@@ -667,6 +692,12 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={blocklyDiv} style={{ height: "100%", width: "100%" }} />
       <FloatingErrorDropdown syntaxErrors={syntaxErrors} />
+      <ScopeWarningModal
+        isOpen={scopeWarningState.isOpen}
+        warnings={scopeWarningState.warnings}
+        onProceed={() => closeScopeWarningModal(true)}
+        onCancel={() => closeScopeWarningModal(false)}
+      />
     </div>
   );
 });

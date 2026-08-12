@@ -309,10 +309,22 @@ self.onmessage = async (e) => {
     return;
   }
 
-  const MAX_CODE_LENGTH = 15000;
-  if (code && code.length > MAX_CODE_LENGTH) {
-    const errorMsg = `Code payload too large. Maximum allowed is ${MAX_CODE_LENGTH} characters.`;
+  // PYTHON_TO_BLOCKS only runs ast.parse() over the source (no dynamic
+  // tracing, no per-line heuristic traversal), so it's far cheaper than
+  // ANALYZE_CODE and doesn't need nearly as tight a ceiling. Previously
+  // both shared one 15000-char limit, which meant a legitimately-sized
+  // ~16-18k char practice file couldn't even be *converted to blocks*,
+  // let alone analyzed -- conversion was blocked by a budget that had
+  // nothing to do with its actual cost.
+  const CODE_LENGTH_LIMITS = {
+    ANALYZE_CODE: 15000,
+    PYTHON_TO_BLOCKS: 60000,
+  };
+  const maxLen = CODE_LENGTH_LIMITS[type];
+  if (maxLen && code && code.length > maxLen) {
+    const errorMsg = `Code payload too large. Maximum allowed is ${maxLen} characters.`;
     if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg } });
+    else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: errorMsg } });
     else self.postMessage({ type: 'ERROR', data: errorMsg });
     return;
   }

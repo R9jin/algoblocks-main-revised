@@ -1,12 +1,56 @@
 import ast
+import io
+import tokenize
 import uuid
+
+try:
+    from scope_detector import detect_scope_issues
+except ImportError:
+    def detect_scope_issues(source_code, tree=None):
+        return []
 
 def gen_uid():
     return str(uuid.uuid4())[:15]
 
+# Statement types that own a nested body which is serialized recursively
+# (via serialize_body) before we ever see the parent's block again. For
+# these, only the header line itself (node.lineno) is checked for a
+# trailing comment -- everything from the next line to node.end_lineno
+# belongs to the body and was already handled (or skipped) during that
+# recursive call, so re-scanning the full span here would just misfile an
+# inner comment onto the outer block.
+_COMPOUND_STMT_TYPES = (ast.FunctionDef, ast.If, ast.For, ast.While, ast.Try, ast.With)
+if hasattr(ast, "AsyncFunctionDef"):
+    _COMPOUND_STMT_TYPES = _COMPOUND_STMT_TYPES + (ast.AsyncFunctionDef,)
+
+def extract_comments(code: str):
+    """
+    Python's ast module discards comments entirely -- they never make it
+    into the tree, so a converter built only on ast.parse() has no way to
+    know a comment ever existed. This runs Python's tokenizer as a
+    separate pre-pass over the raw source to recover them, keyed by the
+    1-indexed source line each comment sits on, so callers can re-attach
+    a comment to whichever statement block owns that line instead of the
+    comment silently vanishing during conversion.
+    """
+    comments = {}
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(code).readline)
+        for tok in tokens:
+            if tok.type == tokenize.COMMENT:
+                line_no = tok.start[0]
+                text = tok.string.lstrip("#").strip()
+                if text:
+                    comments[line_no] = text
+    except Exception:
+        pass
+    return comments
+
 class BlocklyASTConverter:
     def __init__(self):
         self.variables = set()
+        self.line_comments = {}
+        self.consumed_comment_lines = set()
 
     # ==========================================
     # TYPE INFERENCE & SAFETY MECHANISM
@@ -100,11 +144,14 @@ class BlocklyASTConverter:
 
     def convert(self, code: str):
         self.variables = set()
+        self.consumed_comment_lines = set()
         try:
             clean_code = code.replace('\xa0', ' ').replace('\u200b', '').replace('\t', '    ')
         except Exception:
             clean_code = code
-            
+
+        self.line_comments = extract_comments(clean_code)
+
         try:
             tree = ast.parse(clean_code)
         except SyntaxError as se:
@@ -115,6 +162,8 @@ class BlocklyASTConverter:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
+        scope_warnings = detect_scope_issues(clean_code, tree)
+
         try:
             clusters = []
             current_chain_tail = None
@@ -124,15 +173,21 @@ class BlocklyASTConverter:
                 if not block: continue
 
                 if block.get("type") in ["procedures_defnoreturn", "procedures_defreturn"]:
+                    # A trailing comment on the "def foo():" line itself may
+                    # still be unconsumed (everything past it was already
+                    # handled recursively) -- attach it in place, but a
+                    # function definition always starts a fresh cluster for
+                    # whatever statement follows it, regardless.
+                    self._attach_trailing_comments(node, block)
                     clusters.append(block)
-                    current_chain_tail = None 
+                    current_chain_tail = None
                 else:
+                    tail = self._attach_trailing_comments(node, block)
                     if current_chain_tail is None:
                         clusters.append(block)
-                        current_chain_tail = block
                     else:
                         current_chain_tail["next"] = {"block": block}
-                        current_chain_tail = block
+                    current_chain_tail = tail
 
             y_offset = 20
             for cluster in clusters:
@@ -143,13 +198,16 @@ class BlocklyASTConverter:
             vars_array = [{"id": v, "name": v} for v in self.variables]
             return {
                 "status": "success",
+                "scope_warnings": scope_warnings,
                 "blocks": {
                     "variables": vars_array,
                     "blocks": {"languageVersion": 0, "blocks": clusters}
                 }
             }
         except Exception as e:
-            return self.raw_fallback(code)
+            fallback = self.raw_fallback(code)
+            fallback["scope_warnings"] = scope_warnings
+            return fallback
         
     def raw_fallback(self, code):
         return {
@@ -185,9 +243,51 @@ class BlocklyASTConverter:
                 first = block
             elif prev:
                 prev["next"] = {"block": block}
-            prev = block
+            tail = self._attach_trailing_comments(node, block)
+            prev = tail
 
         return first
+
+    def _attach_trailing_comments(self, node, tail_block):
+        """
+        Chains any not-yet-consumed comment(s) sitting on this statement's
+        source line(s) directly beneath its block, as `multi_line_comment`
+        blocks, so a line like:
+
+            print("done")  # Display a message after the loop finishes
+
+        round-trips into a print block followed by a comment block reading
+        "Display a message after the loop finishes", instead of the comment
+        being silently dropped (ast.parse() never sees comments at all).
+
+        Returns the new chain tail (the last comment block appended, or the
+        original block if there was nothing to attach), so callers can keep
+        chaining subsequent statements after whichever block is now last.
+        """
+        start = getattr(node, "lineno", None)
+        if start is None or not self.line_comments:
+            return tail_block
+
+        if isinstance(node, _COMPOUND_STMT_TYPES):
+            end = start
+        else:
+            end = getattr(node, "end_lineno", start) or start
+
+        tail = tail_block
+        for ln in range(start, end + 1):
+            text = self.line_comments.get(ln)
+            if not text or ln in self.consumed_comment_lines:
+                continue
+            self.consumed_comment_lines.add(ln)
+            comment_block = {
+                "type": "multi_line_comment",
+                "id": gen_uid(),
+                "fields": {"TEXT": text},
+            }
+            tail["next"] = {"block": comment_block}
+            tail = comment_block
+
+        return tail
 
     def make_raw_statement(self, node):
         try:

@@ -47,6 +47,12 @@ from complexity_analyzer.ast_node_visitors import ASTNodeVisitor
 from complexity_analyzer.complexity_synthesizer import ComplexitySynthesizer
 
 try:
+    from scope_detector import detect_scope_issues
+except ImportError:
+    def detect_scope_issues(source_code, tree=None):
+        return []
+
+try:
     from complexity_explainer.complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
 except ImportError:
     SemanticNLGEngine = None
@@ -353,7 +359,8 @@ def analyze_source_code(source_code):
             "call_graph": getattr(analyzer, 'call_graph', {}),
             "error": None,
             "runtime_warning": trace_data.get("runtime_warning"),
-            "runtime_warning_line": trace_data.get("runtime_warning_line")
+            "runtime_warning_line": trace_data.get("runtime_warning_line"),
+            "scope_warnings": detect_scope_issues(source_code, tree)
         }
     except Exception as e:
         print(f"[AST CRASH FALLBACK TRIGGERED]: {e}")
@@ -368,6 +375,7 @@ def analyze_source_code(source_code):
         results["error"] = str(e)
         results["message"] = f"{type(e).__name__}: {e}"
         results["line"] = getattr(e, "lineno", 1) or 1
+        results.setdefault("scope_warnings", [])
     end_time = time.perf_counter()
     results["analysis_time_ms"] = (end_time - start_time) * 1000
     
