@@ -321,26 +321,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
                                 self.analyzer.custom_space[node.name] = "O(n)"
                             else:
                                 self.analyzer.custom_space[node.name] = "O(log n)"
-                        elif self.analyzer.has_global_accumulation and (
-                            "n * T(n-1)" in relation or self.analyzer.has_factorial_branching
-                        ):
-                            # Recursion branches ~n ways per level AND snapshots a growing
-                            # result into an accumulator (res.append(path[:]), etc.) --
-                            # the stored result set itself grows factorially, not just the
-                            # call stack. (e.g. permutation generation via backtracking.)
-                            self.analyzer.custom_space[node.name] = "O(n!)"
-                        elif self.analyzer.has_global_accumulation and (
-                            relation == "O(2^n)" or self.analyzer.max_exp > 0 or self.analyzer.has_recursion_in_loop
-                        ):
-                            # Same idea for binary/unbounded branching that snapshots each
-                            # complete result (subset/power-set backtracking): the stored
-                            # result set grows exponentially, not just the call stack.
-                            self.analyzer.custom_space[node.name] = "O(2^n)"
                         else: 
-                            # No result-snapshot accumulation observed -- space is bounded
-                            # by call-stack depth only (e.g. naive recursive Fibonacci, which
-                            # branches 2^n times in TIME but only recurses O(n) deep, so its
-                            # actual memory footprint is O(n), not O(2^n)).
                             self.analyzer.custom_space[node.name] = "O(n)"
                     elif self.analyzer.max_space_weight >= 2: self.analyzer.custom_space[node.name] = "O(n^2)"
                     elif self.analyzer.max_space_weight >= 1: self.analyzer.custom_space[node.name] = "O(n)"
@@ -531,7 +512,6 @@ class ASTNodeVisitor(ast.NodeVisitor):
             
         if self.analyzer.complexity_heuristics._is_exponential_loop(node):
             self.analyzer.max_exp = 1; self.analyzer.signature_recorder.record_line(node, time_override="O(1)", global_time_override="O(2^n)")
-            self.analyzer.loop_stack[-1] = 'exp'
             self.analyzer.loop_body_stack.append(node.body)
             self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1
             self.analyzer.loop_body_stack.pop()
@@ -570,7 +550,6 @@ class ASTNodeVisitor(ast.NodeVisitor):
             if len(node.iter.args) > 0 and self.analyzer.complexity_heuristics._is_exponential_expr(node.iter.args[0]):
                 self.analyzer.max_exp = 1
                 self.analyzer.signature_recorder.record_line(node, time_override="O(1)", global_time_override="O(2^n)")
-                self.analyzer.loop_stack[-1] = 'exp'
                 self.analyzer.loop_body_stack.append(node.body)
                 self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1
                 self.analyzer.loop_body_stack.pop()
@@ -768,16 +747,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
         
         if is_accumulating and len(active_loops) > 0 and is_local_accumulation:
             if not getattr(self.analyzer, 'in_graph_context', False):
-                if 'exp' in active_loops:
-                    # Accumulating inside a loop whose trip count is itself exponential
-                    # (e.g. `for mask in range(1 << n): res.append(...)`) -- the result
-                    # is O(2^n)-sized, not O(n^2).
-                    self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 4)
-                elif is_appending_list or len(active_loops) >= 2:
-                    # Either the appended item is itself an O(n)-sized structure (a
-                    # tracked list/listcomp, e.g. building rows of a matrix), OR we're
-                    # nested >= 2 loops deep accumulating scalars (e.g. res.append(a[i]+a[j])
-                    # inside a double loop) -- both produce an O(n^2)-sized result.
+                if is_appending_list:
                     self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
                 else:
                     self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 1)
@@ -888,12 +858,8 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 if getattr(self.analyzer, 'in_graph_context', False):
                     self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Append")
                 elif is_appending_list and len(active_loops) > 0 and is_local_accumulation and not getattr(self.analyzer, 'in_graph_context', False):
-                    if 'exp' in active_loops:
-                        self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 4)
-                        sp_str = "O(2^n)"
-                    else:
-                        self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
-                        sp_str = "O(n^2)"
+                    self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
+                    sp_str = "O(n^2)"
                     self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", global_space_override=sp_str, custom_op="Append Row")
                     self.generic_visit(node)
                     self.analyzer.in_accumulation_context = prev_acc

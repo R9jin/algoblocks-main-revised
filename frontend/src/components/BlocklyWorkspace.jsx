@@ -109,7 +109,7 @@ const customBlocks = [
   { type: "python_isinstance", message0: "is %1 a %2?", colour: "#c1a0e8", tooltip: "Checks if a specific value or variable is exactly an instance of a given data type, returning True if it matches and False otherwise.",
     args0: [{ type: "input_value", name: "VALUE" }, { type: "input_value", name: "TYPE" }], inputsInline: true, output: "Boolean" },
   { type: "text_multiply", message0: "repeat text %1 %2 times", colour: "#d5a52a", tooltip: "Repeats a given string a specified number of times sequentially. For example, multiplying the string 'A' by 3 results in 'AAA'.",
-    args0: [{ type: "input_value", name: "TEXT" }, { type: "input_value", name: "MULTIPLIER" }], inputsInline: true, output: null },
+    args0: [{ type: "input_value", name: "TEXT", check: "String" }, { type: "input_value", name: "MULTIPLIER", check: "Number" }], inputsInline: true, output: "String" },
   { type: "text_newline", message0: "Line Break", colour: "#d5a52a", tooltip: "Inserts a newline character (\\n) into a string, which forces subsequent text to drop down to the next line when printed to the console.", output: "String" },
   { type: "list_append", message0: "append %1 to list %2", style: "list_blocks", tooltip: "Adds a new item to the very end of an existing list. The list is modified in-place and its overall size increases by one.",
     args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "LIST", check: "Array" }], inputsInline: true, previousStatement: null, nextStatement: null },
@@ -381,89 +381,13 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       try {
         const data = await convertPythonToBlocks(cleanCode);
         if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
-
-        // The Python-side converter (blockly_ast.py) already guards the
-        // known-risky spots (e.g. string-multiply) with a type-safe raw-code
-        // fallback, but the 111-block vocabulary can never cover every
-        // library call or edge case a learner might type (unsupported
-        // stdlib modules, unusual operator combos, etc). If Blockly's own
-        // strict connection-type checking still rejects a generated block
-        // tree, don't let the whole sync die with a cryptic internal error
-        // -- and don't nuke the whole workspace down to a single giant Raw
-        // Block either, since most of the tree usually *did* convert fine.
-        // Instead retry one top-level cluster at a time and only swap out
-        // the cluster(s) that actually fail, using `cluster_ranges` (parallel
-        // to data.blocks.blocks.blocks) to recover each failing cluster's
-        // exact original source slice -- not the whole file -- as its raw
-        // fallback text. Only if every cluster fails (or ranges are missing,
-        // e.g. an older cached response) do we fall all the way back to one
-        // Raw Block for the entire snippet.
-        let loadError = null;
-        let partialFallbackUsed = false;
-        try {
+        
+        try { 
           Blockly.Events.setGroup(true);
-          workspace.current.clear();
+          workspace.current.clear(); 
           if (data.status === "success" && data.blocks) {
-            try {
-              Blockly.serialization.workspaces.load(data.blocks, workspace.current);
-            } catch (connErr) {
-              loadError = connErr;
-              console.warn("Blockly connection-type check rejected the converted blocks, retrying cluster-by-cluster:", connErr);
-
-              const topLevelClusters = data.blocks?.blocks?.blocks || [];
-              const clusterRanges = data.cluster_ranges || [];
-              const sourceLines = pythonCode.split("\n");
-
-              workspace.current.clear();
-              let anyClusterLoaded = false;
-
-              topLevelClusters.forEach((cluster, idx) => {
-                try {
-                  Blockly.serialization.blocks.append(cluster, workspace.current);
-                  anyClusterLoaded = true;
-                } catch (clusterErr) {
-                  partialFallbackUsed = true;
-                  const range = clusterRanges[idx];
-                  const rawText = range && range.start
-                    ? sourceLines.slice(range.start - 1, range.end).join("\n")
-                    : pythonCode; // no range info for this cluster -- best we can do
-                  try {
-                    Blockly.serialization.blocks.append({
-                      type: "raw_python_multiline",
-                      id: "raw_fallback_" + Date.now() + "_" + idx,
-                      x: cluster.x ?? 20,
-                      y: cluster.y ?? 20 + idx * 80,
-                      fields: { CODE: rawText },
-                    }, workspace.current);
-                    anyClusterLoaded = true;
-                  } catch (rawErr) {
-                    // even a bare raw block failed to append -- extremely
-                    // unlikely, but don't let this one cluster's failure
-                    // stop the rest from being attempted.
-                  }
-                }
-              });
-
-              if (!anyClusterLoaded) {
-                // Nothing recovered cluster-by-cluster -- last resort,
-                // one Raw Block for the whole snippet so nothing is lost.
-                workspace.current.clear();
-                Blockly.serialization.workspaces.load({
-                  blocks: {
-                    languageVersion: 0,
-                    blocks: [{
-                      type: "raw_python_multiline",
-                      id: "raw_fallback_" + Date.now(),
-                      x: 20, y: 20,
-                      fields: { CODE: pythonCode }
-                    }]
-                  }
-                }, workspace.current);
-              }
-            }
+            Blockly.serialization.workspaces.load(data.blocks, workspace.current);
           }
-        } catch (fallbackErr) {
-          if (!loadError) loadError = fallbackErr;
         } finally { Blockly.Events.setGroup(false); }
 
         setTimeout(() => {
@@ -471,16 +395,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
             onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonCode);
           }
         }, 100);
-
-        if (loadError) {
-          const fallbackNotice = new Error(
-            partialFallbackUsed
-              ? "Some parts of your code couldn't be matched to blocks, so just those parts were placed in Raw Blocks -- the rest converted normally. Your code was not lost."
-              : "Some code couldn't be matched to blocks, so it was placed in a Raw Block instead. Your code was not lost."
-          );
-          fallbackNotice.isFallbackWarning = true;
-          throw fallbackNotice;
-        }
       } catch (e) { throw e; }
     },
     resize: () => { if (workspace.current) { Blockly.svgResize(workspace.current); workspace.current.markFocused(); } }

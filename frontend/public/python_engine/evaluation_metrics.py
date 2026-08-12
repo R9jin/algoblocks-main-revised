@@ -52,24 +52,30 @@ EQUIVALENCE_MAP = {
 
 def normalize_complexity(c):
     if not c or c == '-': return "-"
-    s = str(c).strip()
+    c = str(c).lower().strip().replace(" ", "")
     
-    if re.search(r'n!', s, re.IGNORECASE): return "O(n!)"
-    if re.search(r'2\^n|2ⁿ|c\^n|exponential', s, re.IGNORECASE): return "O(2^n)"
-    if re.search(r'n\^3|n³|n\^4|n⁴|n\^2|n²|quadratic', s, re.IGNORECASE): return "O(n^2)"
-    if re.search(r'n\s*\*?\s*log\s*n|nlogn|linearithmic', s, re.IGNORECASE): return "O(n log n)"
-    if re.search(r'v\s*\+\s*e|e\s*\+\s*v', s, re.IGNORECASE): return "O(V + E)"
-    if re.search(r'sqrt|√n|n\^0\.5', s, re.IGNORECASE): return "O(sqrt n)"
-    if re.search(r'log\s*n|logn|logarithmic', s, re.IGNORECASE): return "O(log n)"
-    if re.search(r'^o\(\s*n\s*\)$|^n$|linear', s, re.IGNORECASE) or (re.search(r'\bo\(n\)\b', s, re.IGNORECASE) and not re.search(r'log', s, re.IGNORECASE)): return "O(n)"
-    if re.search(r'^o\(\s*1\s*\)$|^1$|constant', s, re.IGNORECASE): return "O(1)"
-
-    lower = s.lower()
-    if "log" in lower: return "O(log n)"
-    if "n^2" in lower or "n*n" in lower: return "O(n^2)"
-    if "n" in lower and "1" not in lower: return "O(n)"
+    if c.startswith("o(") and c.endswith(")"):
+        c = c[2:-1]
+        
+    if c in ("1", "constant", "o(1)"): return "O(1)"
+    if c in ("n", "linear", "o(n)"): return "O(n)"
+    if c in ("n^2", "quadratic", "o(n^2)"): return "O(n^2)"
+    if c in ("n^3", "cubic", "o(n^3)"): return "O(n^3)"
+    if c in ("n^4", "quartic", "o(n^4)"): return "O(n^4)"
+    if c in ("nlogn", "n*logn", "log(n)*n", "o(nlogn)"): return "O(n log n)"
+    if c in ("logn", "log(n)", "log", "o(logn)"): return "O(log n)"
+    if c in ("sqrtn", "sqrt(n)", "sqrt", "n^0.5", "o(sqrtn)"): return "O(sqrt n)"
+    if c in ("v+e", "e+v", "v", "e", "o(v+e)"): return "O(V + E)"
+    if c in ("n*m", "nm", "m*n", "o(n*m)"): return "O(n^2)"
+    if c in ("n^2logn", "n*n*logn", "o(n^2logn)"): return "O(n^2 log n)"
+    if c in ("n!", "factorial", "o(n!)"): return "O(n!)"
+    if c in ("n*n!", "o(n*n!)"): return "O(n * n!)"
+    if c in ("2^n", "exponential", "o(2^n)", "o(exponential)"): return "O(2^n)"
+    if c in ("3^n", "o(3^n)"): return "O(3^n)"
     
-    return "O(1)"
+    if c in ("t(n-1)", "o(t(n-1))", "t(n/2)", "o(t(n/2))", "t(n-2)", "o(t(n-2))"): return "O(1)"
+    
+    return f"O({c})"
 
 def get_metric(line_data, possible_keys):
     if not line_data:

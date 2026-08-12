@@ -329,12 +329,6 @@ export default function EvaluationSuite({ embedded = false } = {}) {
   // "Failed to load Tasty dataset" popup. Simplified to the one dataset
   // that's actually present: the 29 ground-truth chunks.
   const fetchActiveGauntletData = async () => {
-    if (datasetOption === "big_o_testcases") {
-      setStatusText("Fetching AlgoBlocks Big-O Testcases...");
-      const testcasesJson = await safeFetchJson("/data/evaluation/processed/algoblocks_big_o_testcases.json");
-      return testcasesJson || [];
-    }
-
     setStatusText("Fetching Ground Truth Chunks (01 to 29)...");
     let stitchedArray = [];
     for (let i = 1; i <= 29; i++) {
@@ -357,18 +351,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
     const gauntletPayload = await fetchActiveGauntletData();
     if (!gauntletPayload || gauntletPayload.length === 0) {
-      // This alert used to always blame the 29 ground-truth chunks, even when
-      // the "AlgoBlocks Big-O Testcases" dataset was the one selected and the
-      // one that actually failed to load -- pointing an admin at the wrong
-      // file entirely while debugging. Point at whichever dataset/path was
-      // actually being fetched.
-      const failedDatasetLabel = datasetOption === "big_o_testcases"
-        ? "the AlgoBlocks Big-O Testcases dataset"
-        : "the ground-truth chunks";
-      const expectedPath = datasetOption === "big_o_testcases"
-        ? "algoblocks_big_o_testcases.json"
-        : "ground_truth_chunk_01..29.json";
-      alert(`Critical Failure: Could not load ${failedDatasetLabel}. Ensure ${expectedPath} exists inside /public/data/evaluation/processed/`);
+      alert("Critical Failure: Could not load the ground-truth chunks. Ensure ground_truth_chunk_01..29.json exist inside /public/data/evaluation/processed/");
       setIsLoading(false);
       setStatusText("Dataset assembly failed.");
       return;
@@ -834,14 +817,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
               className={`dataset-btn ${datasetOption === "chunks" ? "active-ds" : ""}`}
               disabled={isRunning}
             >
-              Tasty Ground Truth Dataset (29 Chunks)
-            </button>
-            <button
-              onClick={() => !isRunning && setDatasetOption("big_o_testcases")}
-              className={`dataset-btn ${datasetOption === "big_o_testcases" ? "active-ds" : ""}`}
-              disabled={isRunning}
-            >
-              AlgoBlocks Big-O Testcases
+              Tasty Ground Truth Dataset
             </button>
           </div>
         </div>

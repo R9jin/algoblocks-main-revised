@@ -1,6 +1,4 @@
 import ast
-import io
-import tokenize
 import uuid
 
 def gen_uid():
@@ -9,70 +7,6 @@ def gen_uid():
 class BlocklyASTConverter:
     def __init__(self):
         self.variables = set()
-        # line_no -> trailing '# comment' text, consumed (popped) as each
-        # statement on that line is converted, so a comment_block gets
-        # chained directly beneath the statement it was written on instead
-        # of being silently dropped by ast.parse (which strips comments).
-        self.line_comments = {}
-
-    # ==========================================
-    # COMMENT PRESERVATION
-    # ==========================================
-    def _extract_line_comments(self, code):
-        comments = {}
-        try:
-            for tok in tokenize.generate_tokens(io.StringIO(code).readline):
-                if tok.type == tokenize.COMMENT:
-                    line_no = tok.start[0]
-                    text = tok.string.lstrip("#").strip()
-                    if text:
-                        comments[line_no] = text
-        except Exception:
-            pass
-        return comments
-
-    # Block types that Blockly does not give a bottom/"next" connection to --
-    # they float standalone in the workspace and can never be the head of a
-    # `next`-chain. procedures_defnoreturn/defreturn are the built-in
-    # examples here. Attempting to chain anything (including a trailing
-    # comment) off one of these via `block["next"]` throws a MissingConnection
-    # error at Blockly.serialization load time -- which, since it happens
-    # inside the *cluster's own* JSON, made the whole enclosing function fail
-    # to load and fall back to a single Raw Block, even though every
-    # statement inside the function converted fine on its own.
-    NO_NEXT_CONNECTION_TYPES = {"procedures_defnoreturn", "procedures_defreturn"}
-
-    def _attach_comment(self, block, node):
-        """If the source line this statement came from also carried a
-        trailing '# comment', chain a comment_block right after it so the
-        note survives the Python -> Blocks sync instead of being cleaned
-        out. Returns the new tail of the [statement, comment?] mini-chain,
-        which callers should use for subsequent `next` linking.
-
-        Blocks with no next connection (see NO_NEXT_CONNECTION_TYPES) can't
-        take that chained comment_block, so for those the comment is instead
-        attached as a native Blockly comment-icon bubble on the block itself
-        -- valid on any block type, no connection required."""
-        if not block:
-            return block
-        lineno = getattr(node, "lineno", None)
-        comment_text = self.line_comments.pop(lineno, None) if lineno else None
-        if not comment_text:
-            return block
-
-        if block.get("type") in self.NO_NEXT_CONNECTION_TYPES:
-            block["icons"] = block.get("icons", {})
-            block["icons"]["comment"] = {
-                "text": comment_text[:500],
-                "pinned": False,
-                "height": 80,
-                "width": 160,
-            }
-            return block
-
-        comment_block = {"type": "comment_block", "id": gen_uid(), "fields": {"TEXT": comment_text[:500]}}
-        block["next"] = {"block": comment_block}
-        return comment_block
 
     # ==========================================
     # TYPE INFERENCE & SAFETY MECHANISM
@@ -99,12 +33,7 @@ class BlocklyASTConverter:
                 if left_t == "Array" or right_t == "Array" or isinstance(node.left, (ast.List, ast.Tuple)): return "Array"
                 if left_t == "String" or right_t == "String": return "String"
                 return "Number"
-            if isinstance(node.op, ast.Mult):
-                left_t = self._infer_type(node.left)
-                right_t = self._infer_type(node.right)
-                if left_t == "String" or right_t == "String": return "String"
-                return "Number"
-            arith_map = {ast.Sub, ast.Div, ast.Pow, ast.FloorDiv}
+            arith_map = {ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.FloorDiv}
             if type(node.op) in arith_map: return "Number"
         if isinstance(node, ast.Call):
             if isinstance(node.func, ast.Name):
@@ -175,9 +104,7 @@ class BlocklyASTConverter:
             clean_code = code.replace('\xa0', ' ').replace('\u200b', '').replace('\t', '    ')
         except Exception:
             clean_code = code
-
-        self.line_comments = self._extract_line_comments(clean_code)
-
+            
         try:
             tree = ast.parse(clean_code)
         except SyntaxError as se:
@@ -190,40 +117,22 @@ class BlocklyASTConverter:
 
         try:
             clusters = []
-            # Parallel array to `clusters`: the [start_line, end_line] (1-indexed,
-            # inclusive) span of original source each cluster covers. Lets the
-            # frontend recover the *exact original text* for just one cluster if
-            # Blockly's connection-type check rejects it at load time, instead of
-            # falling back to the entire file -- see loadFromPython() in
-            # BlocklyWorkspace.jsx, which does per-cluster retry using this.
-            cluster_ranges = []
             current_chain_tail = None
 
             for node in tree.body:
                 block = self.serialize_node(node, is_top_level=True) or self.make_raw_statement(node)
                 if not block: continue
-                node_start = getattr(node, "lineno", None)
-                node_end = getattr(node, "end_lineno", node_start)
-                tail = self._attach_comment(block, node)
 
                 if block.get("type") in ["procedures_defnoreturn", "procedures_defreturn"]:
                     clusters.append(block)
-                    cluster_ranges.append({"start": node_start, "end": node_end})
-                    current_chain_tail = None
+                    current_chain_tail = None 
                 else:
                     if current_chain_tail is None:
                         clusters.append(block)
-                        cluster_ranges.append({"start": node_start, "end": node_end})
+                        current_chain_tail = block
                     else:
                         current_chain_tail["next"] = {"block": block}
-                        # Extend the still-open cluster's range to cover this
-                        # statement too, so a later retry can slice out the
-                        # whole chain's original source, not just its first line.
-                        if cluster_ranges and node_end is not None:
-                            prev_end = cluster_ranges[-1]["end"]
-                            if prev_end is None or node_end > prev_end:
-                                cluster_ranges[-1]["end"] = node_end
-                    current_chain_tail = tail
+                        current_chain_tail = block
 
             y_offset = 20
             for cluster in clusters:
@@ -237,8 +146,7 @@ class BlocklyASTConverter:
                 "blocks": {
                     "variables": vars_array,
                     "blocks": {"languageVersion": 0, "blocks": clusters}
-                },
-                "cluster_ranges": cluster_ranges
+                }
             }
         except Exception as e:
             return self.raw_fallback(code)
@@ -259,24 +167,10 @@ class BlocklyASTConverter:
             }
         }
 
-    STATEMENT_BLOCK_TYPES = {
-        "list_append", "list_insert", "list_remove_value", "list_clear", "list_reverse", 
-        "list_sort_inplace", "set_add", "set_remove", "set_clear", "dict_set_item", 
-        "dict_remove", "variable_swap", "comment_block", "raw_python_statement", 
-        "raw_python_multiline", "procedures_defnoreturn", "procedures_defreturn", 
-        "controls_if", "controls_for", "controls_whileUntil", "controls_forEach", 
-        "list_extend", "list_pop_inplace", "variables_set", "variables_update", 
-        "print_statement", "break_statement", "continue_statement"
-    }
-
     def add_input(self, block_dict, input_name, child_block):
         if not child_block: return
         if isinstance(child_block, dict):
-            btype = child_block.get("type", "")
-            if btype not in self.STATEMENT_BLOCK_TYPES and "previousStatement" not in child_block:
-                child_block.setdefault("output", "Any")
-            else:
-                child_block.pop("output", None)
+            child_block.setdefault("output", "Any")
         block_dict.setdefault("inputs", {})
         block_dict["inputs"][input_name] = {"block": child_block}
 
@@ -287,12 +181,11 @@ class BlocklyASTConverter:
         for node in nodes:
             block = self.serialize_node(node, is_top_level=False) or self.make_raw_statement(node)
             if not block: continue
-            tail = self._attach_comment(block, node)
             if not first:
                 first = block
             elif prev:
                 prev["next"] = {"block": block}
-            prev = tail
+            prev = block
 
         return first
 
@@ -444,21 +337,13 @@ class BlocklyASTConverter:
 
                 if isinstance(node.op, ast.Mult):
                     if self._infer_type(node.left) == "String" or self._infer_type(node.right) == "String":
-                        # text_multiply's block definition declares TEXT: check="String"
-                        # and MULTIPLIER: check="Number". Feeding either slot a value we
-                        # can positively confirm doesn't match (e.g. "a" * "b", a Number
-                        # multiplied into a text slot, etc.) throws a hard Blockly
-                        # connection error and aborts the *entire* sync-to-blocks pass.
-                        # serialize_expr_safe only swaps to a raw-code fallback when the
-                        # mismatch is provable; unknown types (variables, calls) still
-                        # pass straight through, so this never blocks a legitimate case.
                         block = {"type": "text_multiply", "id": gen_uid()}
                         if self._infer_type(node.left) == "String":
-                            self.add_input(block, "TEXT", self.serialize_expr_safe(node.left, ["String"]))
-                            self.add_input(block, "MULTIPLIER", self.serialize_expr_safe(node.right, ["Number"]))
+                            self.add_input(block, "TEXT", self.serialize_expr(node.left))
+                            self.add_input(block, "MULTIPLIER", self.serialize_expr(node.right))
                         else:
-                            self.add_input(block, "TEXT", self.serialize_expr_safe(node.right, ["String"]))
-                            self.add_input(block, "MULTIPLIER", self.serialize_expr_safe(node.left, ["Number"]))
+                            self.add_input(block, "TEXT", self.serialize_expr(node.right))
+                            self.add_input(block, "MULTIPLIER", self.serialize_expr(node.left))
                         return block
 
                 if isinstance(node.op, ast.Mod):
@@ -646,20 +531,20 @@ class BlocklyASTConverter:
                     
                     if method == "join" and len(node.args) == 1:
                         block = {"type": "custom_string_join", "id": gen_uid()}
-                        self.add_input(block, "LIST", self.serialize_expr_safe(node.args[0], ["Array"]))
-                        self.add_input(block, "DELIMITER", self.serialize_expr_safe(obj, ["String"]))
+                        self.add_input(block, "LIST", self.serialize_expr(node.args[0]))
+                        self.add_input(block, "DELIMITER", self.serialize_expr(obj))
                         return block
 
                     if method in ["upper", "lower", "title", "capitalize"] and len(node.args) == 0:
                         block = {"type": "string_case_formatting", "id": gen_uid(), "fields": {"CASE": method}}
-                        self.add_input(block, "STRING", self.serialize_expr_safe(obj, ["String"]))
+                        self.add_input(block, "STRING", self.serialize_expr(obj))
                         return block
 
                     if method == "split":
                         block = {"type": "string_split", "id": gen_uid()}
-                        self.add_input(block, "STRING", self.serialize_expr_safe(obj, ["String"]))
+                        self.add_input(block, "STRING", self.serialize_expr(obj))
                         if len(node.args) == 1:
-                            self.add_input(block, "DELIMITER", self.serialize_expr_safe(node.args[0], ["String"]))
+                            self.add_input(block, "DELIMITER", self.serialize_expr(node.args[0]))
                         else:
                             self.add_input(block, "DELIMITER", {"type": "text", "id": gen_uid(), "fields": {"TEXT": " "}})
                         return block
@@ -926,7 +811,7 @@ class BlocklyASTConverter:
                         if method == "insert" and len(node.value.args) == 2:
                             block = {"type": "list_insert", "id": gen_uid()}
                             self.add_input(block, "LIST", self.serialize_expr(obj))
-                            self.add_input(block, "INDEX", self.serialize_expr_safe(node.value.args[0], ["Number"]))
+                            self.add_input(block, "INDEX", self.serialize_expr(node.value.args[0]))
                             self.add_input(block, "ITEM", self.serialize_expr(node.value.args[1]))
                             return block
 

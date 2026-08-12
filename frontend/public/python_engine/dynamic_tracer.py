@@ -58,7 +58,7 @@ class ExecutionSnapshot:
 class AlgoBlocksTracer:
     """Executes code and captures line-by-line runtime telemetry."""
     
-    def __init__(self, max_steps=150000):
+    def __init__(self, max_steps=15000):
         self.history: List[ExecutionSnapshot] = []
         self.line_hits = Counter()
         self.max_steps = max_steps

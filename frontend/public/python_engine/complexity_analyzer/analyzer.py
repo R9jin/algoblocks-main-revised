@@ -306,62 +306,15 @@ def fallback_analyzer(source_code):
         "lines": [], "call_graph": {}, "error": None
     }
 
-# Modules whose operations are reasonably well-mapped in builtin_complexities
-# / the structural heuristics (heappush/heappop/heapify, bisect family,
-# deque/Counter/defaultdict/OrderedDict basics, sqrt/gcd/pow, lru_cache, and
-# permutations/combinations when used directly as a `for x in ...` iterable).
-# Coverage inside these modules is still imperfect (e.g. Counter.most_common,
-# math.log/factorial, itertools.product/chain aren't costed either), but
-# they're close enough that we don't interrupt the workflow for them.
-KNOWN_SUPPORTED_MODULES = {
-    "heapq", "bisect", "collections", "math", "functools", "itertools",
-}
-
-# Modules that are runnable (Pyodide is unrestricted CPython) but have no
-# entries at all in the analyzer's cost table -- every call from them
-# silently falls back to a default O(1) instead of being flagged, which can
-# make the reported complexity confidently wrong rather than merely
-# incomplete. Anything imported that isn't in KNOWN_SUPPORTED_MODULES and
-# isn't a project-local module gets surfaced as a scope warning.
-_STDLIB_SCOPE_NOTE = (
-    "calls from this library aren't in the analyzer's cost table yet, so "
-    "related lines may default to O(1) or otherwise misreport their real "
-    "time/space complexity."
-)
-
-def detect_unsupported_libraries(tree):
-    """Scan top-level import statements for modules the complexity engine
-    doesn't reliably cost, so the UI can warn the learner before they trust
-    the badge on lines that use them."""
-    found = set()
-    try:
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    top_level = alias.name.split(".")[0]
-                    if top_level not in KNOWN_SUPPORTED_MODULES:
-                        found.add(top_level)
-            elif isinstance(node, ast.ImportFrom):
-                if node.module:
-                    top_level = node.module.split(".")[0]
-                    if top_level not in KNOWN_SUPPORTED_MODULES:
-                        found.add(top_level)
-    except Exception:
-        pass
-    return sorted(found)
-
 def analyze_source_code(source_code):
     import time
     start_time = time.perf_counter()
     
     source_code = preprocess_source(source_code)
-
-    unsupported_libraries = []
-
+    
     try:
         tree = ast.parse(source_code)
-        unsupported_libraries = detect_unsupported_libraries(tree)
-
+        
         trace_data = {"history": [], "line_hits": {}}
         if AlgoBlocksTracer is not None:
             try:
@@ -400,8 +353,7 @@ def analyze_source_code(source_code):
             "call_graph": getattr(analyzer, 'call_graph', {}),
             "error": None,
             "runtime_warning": trace_data.get("runtime_warning"),
-            "runtime_warning_line": trace_data.get("runtime_warning_line"),
-            "unsupported_libraries": unsupported_libraries,
+            "runtime_warning_line": trace_data.get("runtime_warning_line")
         }
     except Exception as e:
         print(f"[AST CRASH FALLBACK TRIGGERED]: {e}")
@@ -416,7 +368,6 @@ def analyze_source_code(source_code):
         results["error"] = str(e)
         results["message"] = f"{type(e).__name__}: {e}"
         results["line"] = getattr(e, "lineno", 1) or 1
-        results.setdefault("unsupported_libraries", unsupported_libraries)
     end_time = time.perf_counter()
     results["analysis_time_ms"] = (end_time - start_time) * 1000
     

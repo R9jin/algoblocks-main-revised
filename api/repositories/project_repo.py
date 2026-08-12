@@ -80,6 +80,84 @@ class ProjectRepository:
         return str(inserted_id)
 
     @staticmethod
+    def insert_if_under_limit(project_data: dict, max_allowed: int):
+        """Atomically check the per-user project count and insert, all inside
+        one real (non-autocommit) transaction serialized by a Postgres
+        advisory lock keyed on the user.
+
+        Previously the count check (count_by_user) and the insert() lived in
+        two separate autocommit statements/connections. Under rapid repeated
+        saves (double-clicks, network retries, or someone spamming the save
+        button), many requests could each read the same "under the limit"
+        count before any of their inserts committed -- a classic
+        check-then-act race -- letting the account end up with far more than
+        MAX_PROJECTS_PER_USER rows. Taking a transaction-scoped advisory
+        lock on the user before counting forces concurrent requests for the
+        same user to run one at a time, so each one sees the effect of the
+        previous one's insert (or rollback) before deciding.
+
+        Returns the new project's id, or None if the user is already at/over
+        the limit (nothing is inserted in that case).
+        """
+        conn = get_db_connection()
+        conn.autocommit = False
+        cursor = conn.cursor()
+        try:
+            user_id = project_data.get("userId")
+            owner_id = project_data.get("owner_id", user_id)
+
+            # Serialize all inserts for this user; released automatically on
+            # COMMIT/ROLLBACK since this is the _xact_ variant.
+            cursor.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', (user_id,))
+
+            cursor.execute(
+                'SELECT COUNT(*) AS count FROM projects WHERE "userId" = %s OR owner_id = %s',
+                (user_id, user_id)
+            )
+            current_count = cursor.fetchone()["count"]
+
+            if current_count >= max_allowed:
+                conn.rollback()
+                return None
+
+            project_id = project_data.get("projectId")
+            if not project_id or str(project_id).startswith("local_"):
+                project_id = str(uuid.uuid4())
+
+            is_synced = project_data.get("isSynced", False)
+            timestamp = project_data.get("timestamp", 0)
+
+            blockly_data = {
+                "title": project_data.get("title", "Untitled"),
+                "name": project_data.get("name", "Untitled"),
+                "description": project_data.get("description", ""),
+                "workspace": project_data.get("workspace", {}),
+                "pythonCode": project_data.get("pythonCode", "")
+            }
+
+            cursor.execute('''
+                INSERT INTO projects ("projectId", "userId", owner_id, "isSynced", timestamp, blockly_data)
+                VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
+            ''', (
+                project_id,
+                user_id,
+                owner_id,
+                is_synced,
+                timestamp,
+                json.dumps(blockly_data)
+            ))
+
+            inserted_id = cursor.fetchone()["id"]
+            conn.commit()
+            return str(inserted_id)
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cursor.close()
+            conn.close()
+
+    @staticmethod
     def update(project_id: str, user_id: str, data: dict):
         conn = get_db_connection()
         cursor = conn.cursor()

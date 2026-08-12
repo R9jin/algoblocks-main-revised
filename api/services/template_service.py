@@ -47,13 +47,18 @@ class TemplateService:
         else:
             user_id = template_data.get("userId")
             if user_id:
-                existing_count = TemplateRepository.count_by_user(user_id)
-                if existing_count >= MAX_TEMPLATES_PER_USER:
+                # Atomic check-and-insert (advisory-lock-guarded transaction)
+                # instead of a separate count check + insert, which raced
+                # under rapid repeated saves -- see
+                # TemplateRepository.save_if_under_limit.
+                inserted_id = TemplateRepository.save_if_under_limit(template_data, MAX_TEMPLATES_PER_USER)
+                if inserted_id is None:
                     raise HTTPException(
                         status_code=403,
                         detail=f"Template limit reached ({MAX_TEMPLATES_PER_USER} max per account). Please delete an existing template before creating a new one."
                     )
-            inserted_id = TemplateRepository.save(template_data)
+            else:
+                inserted_id = TemplateRepository.save(template_data)
             return {
                 "status": "success", 
                 "message": "Template saved successfully", 

@@ -83,84 +83,61 @@ function strictBigONormalizer(raw) {
   return `O(${s})`;
 }
 
-function normalizeJSComplexity(str) {
-  if (!str || str === "-") return "O(1)";
-  const s = String(str).trim();
-  
-  if (/n!/i.test(s)) return "O(n!)";
-  if (/2\^n|2ⁿ|c\^n|exponential/i.test(s)) return "O(2^n)";
-  if (/n\^3|n³|n\^4|n⁴|n\^2|n²|quadratic/i.test(s)) return "O(n^2)";
-  if (/n\s*\*?\s*log\s*n|nlogn|linearithmic/i.test(s)) return "O(n log n)";
-  if (/v\s*\+\s*e|e\s*\+\s*v/i.test(s)) return "O(V + E)";
-  if (/sqrt|√n|n\^0\.5/i.test(s)) return "O(sqrt n)";
-  if (/log\s*n|logn|logarithmic/i.test(s)) return "O(log n)";
-  if (/^o\(\s*n\s*\)$|^n$|linear/i.test(s) || (/\bo\(n\)\b/i.test(s) && !/log/i.test(s))) return "O(n)";
-  if (/^o\(\s*1\s*\)$|^1$|constant/i.test(s)) return "O(1)";
-
-  const lower = s.toLowerCase();
-  if (lower.includes("log")) return "O(log n)";
-  if (lower.includes("n^2") || lower.includes("n*n")) return "O(n^2)";
-  if (lower.includes("n") && !lower.includes("1")) return "O(n)";
-  
-  return "O(1)";
-}
-
 function getGroundTruthTime(obj) {
   if (!obj) return "O(1)";
-  let raw = "O(1)";
-  if (obj.expected_overall_time) raw = obj.expected_overall_time;
-  else if (obj.time_complexity) raw = obj.time_complexity;
-  else if (obj.timeComplexity) raw = obj.timeComplexity;
-  else if (obj.expected_time) raw = obj.expected_time;
-  else if (obj.expectedTime) raw = obj.expectedTime;
-  else if (obj.true_time) raw = obj.true_time;
-  else if (obj.time) raw = obj.time;
-  else if (obj.complexity) raw = obj.complexity;
-  else if (obj.big_o) raw = obj.big_o;
-  else if (obj.bigO) raw = obj.bigO;
-  else {
-    for (const key of Object.keys(obj)) {
-      const val = obj[key];
-      if (typeof val === 'string' && (val.trim().startsWith('O(') || val.trim().startsWith('o('))) {
-        if (key.toLowerCase().includes('time') || key.toLowerCase() === 'o') { raw = val; break; }
-      }
+  if (obj.expected_overall_time) return obj.expected_overall_time;
+  if (obj.time_complexity) return obj.time_complexity;
+  if (obj.timeComplexity) return obj.timeComplexity;
+  if (obj.expected_time) return obj.expected_time;
+  if (obj.expectedTime) return obj.expectedTime;
+  if (obj.true_time) return obj.true_time;
+  if (obj.time) return obj.time;
+  if (obj.complexity) return obj.complexity;
+  if (obj.big_o) return obj.big_o;
+  if (obj.bigO) return obj.bigO;
+
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    if (typeof val === 'string' && (val.trim().startsWith('O(') || val.trim().startsWith('o('))) {
+      if (key.toLowerCase().includes('time') || key.toLowerCase() === 'o') return val;
     }
   }
-  return normalizeJSComplexity(raw);
+  return "O(1)";
 }
 
 function getGroundTruthSpace(obj) {
   if (!obj) return "O(1)";
-  let raw = "O(1)";
-  if (obj.expected_overall_space) raw = obj.expected_overall_space;
-  else if (obj.space_complexity) raw = obj.space_complexity;
-  else if (obj.spaceComplexity) raw = obj.spaceComplexity;
-  else if (obj.expected_space) raw = obj.expected_space;
-  else if (obj.expectedSpace) raw = obj.expectedSpace;
-  else if (obj.true_space) raw = obj.true_space;
-  else if (obj.space) raw = obj.space;
-  else {
-    for (const key of Object.keys(obj)) {
-      const val = obj[key];
-      if (typeof val === 'string' && (val.trim().startsWith('O(') || val.trim().startsWith('o('))) {
-        if (key.toLowerCase().includes('space')) { raw = val; break; }
-      }
+  if (obj.expected_overall_space) return obj.expected_overall_space;
+  if (obj.space_complexity) return obj.space_complexity;
+  if (obj.spaceComplexity) return obj.spaceComplexity;
+  if (obj.expected_space) return obj.expected_space;
+  if (obj.expectedSpace) return obj.expectedSpace;
+  if (obj.true_space) return obj.true_space;
+  if (obj.space) return obj.space;
+
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    if (typeof val === 'string' && (val.trim().startsWith('O(') || val.trim().startsWith('o('))) {
+      if (key.toLowerCase().includes('space')) return val;
     }
   }
-  return normalizeJSComplexity(raw);
+  return "O(1)";
 }
 
 function sortBigOClasses(classes) {
   const order = [
     "O(1)",
+    "O(log min(a, b))",
     "O(log n)",
     "O(sqrt n)",
     "O(n)",
     "O(n log n)",
+    "O(V + E)",
+    "O(n * m)",
     "O(n^2)",
+    "O(n^2 log n)",
     "O(2^n)",
-    "O(n!)",
-    "O(V + E)"
+    "O(3^n)"
   ];
   return classes.sort((a, b) => {
     const idxA = order.indexOf(a);
@@ -173,7 +150,12 @@ function sortBigOClasses(classes) {
 }
 
 function generateClassificationReport(details, expKey, predKey, standardClasses) {
-  const sortedClasses = standardClasses;
+  const classSet = new Set(standardClasses);
+  details.forEach(d => {
+    if (d[expKey] && d[expKey] !== "PARSE_FAIL") classSet.add(d[expKey]);
+  });
+
+  const sortedClasses = sortBigOClasses(Array.from(classSet));
   const report = {};
 
   let macroP = 0, macroR = 0, macroF1 = 0;
@@ -817,8 +799,8 @@ json.dumps(res)
         const spaceAcc = (spacePassedCount / totalCases) * 100;
         const perfectAcc = (bothPassedCount / totalCases) * 100;
 
-        const timeBaseClasses = ["O(1)", "O(log n)", "O(sqrt n)", "O(n)", "O(n log n)", "O(n^2)", "O(2^n)", "O(n!)", "O(V + E)"];
-        const spaceBaseClasses = ["O(1)", "O(log n)", "O(n)", "O(n^2)", "O(2^n)", "O(n!)", "O(V + E)"];
+        const timeBaseClasses = ["O(1)", "O(log n)", "O(sqrt n)", "O(n)", "O(n log n)", "O(n^2)", "O(2^n)", "O(V + E)"];
+        const spaceBaseClasses = ["O(1)", "O(log n)", "O(n)", "O(n^2)", "O(2^n)", "O(V + E)"];
 
         const timeReportData = generateClassificationReport(detailedResults, "expectedTime", "predictedTime", timeBaseClasses);
         const spaceReportData = generateClassificationReport(detailedResults, "expectedSpace", "predictedSpace", spaceBaseClasses);
