@@ -2,6 +2,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
+import SyncLimitNotice from "./components/SyncLimitNotice";
 import OnboardingTour from "./components/OnboardingTour";
 import { OnboardingProvider } from "./context/OnboardingContext";
 import { PyodideProvider } from "./context/PyodideContext";
@@ -87,6 +88,7 @@ function App() {
   return (
     <OnboardingProvider>
       <OfflineIndicator />
+      <SyncLimitNotice />
       <OnboardingTour />
       
       <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>

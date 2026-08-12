@@ -82,6 +82,16 @@ const createInitialTab = (locState = null) => {
   return base;
 };
 
+// Mirrors MAX_PROJECTS_PER_USER / MAX_TEMPLATES_PER_USER in
+// api/services/project_service.py and template_service.py. The backend is
+// the real source of truth and still enforces this -- these constants only
+// let the UI stop a doomed save instantly, at the moment "Save" is
+// pressed, instead of writing a local copy and finding out it's rejected
+// only after a network round trip (or, worse, only after a background
+// sync retry fails silently later).
+const MAX_PROJECTS_PER_USER = 20;
+const MAX_TEMPLATES_PER_USER = 20;
+
 export default function MainApp() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -572,12 +582,37 @@ export default function MainApp() {
     }
   };
 
+  // Counts the user's own saved projects/templates from what's already
+  // loaded client-side (allTemplates, refreshed on mount and after every
+  // save/delete) so the cap can be checked instantly -- no network round
+  // trip needed just to tell someone they're already full.
+  const getUserSavedCount = (saveType) =>
+    allTemplates.filter((t) => !t.isSystem && t.saveType === saveType).length;
+
   const openSaveModal = () => {
     if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) {
       showToast("The workspace is empty. Nothing to save!", "error"); return;
     }
     if (!getUser()) { showToast("You must be logged in to save.", "error"); return; }
     if (isGuest) { showToast("Guest accounts cannot save projects or templates.", "error"); return; }
+
+    // Only a brand-new project/template counts against the cap -- updating
+    // one you already own (activeTab.currentLoadedId set) doesn't add a
+    // new row, so it's always allowed through here regardless of count.
+    const isNewSave = !activeTab.currentLoadedId;
+    const defaultSaveType = activeTab.saveType || "project";
+    if (isNewSave) {
+      const cap = defaultSaveType === "template" ? MAX_TEMPLATES_PER_USER : MAX_PROJECTS_PER_USER;
+      const currentCount = getUserSavedCount(defaultSaveType);
+      if (currentCount >= cap) {
+        showToast(
+          `You've reached the maximum of ${cap} saved ${defaultSaveType === "template" ? "templates" : "projects"}. Delete one before saving a new one.`,
+          "error"
+        );
+        return;
+      }
+    }
+
     setSaveModal({
       isOpen: true, isEditMetadataOnly: false, editingId: activeTab.currentLoadedId, editingData: null,
       title: activeTab.title !== "Untitled Project" ? activeTab.title : "",
@@ -674,6 +709,29 @@ export default function MainApp() {
     const user = getUser();
     if (!user) { showToast("Error: You must be logged in to save.", "error"); return; }
     if (user.isGuest) { showToast("Error: Guest accounts cannot save.", "error"); return; }
+
+    // Final instant cap check, right at the moment "Save" is pressed and
+    // before anything is written locally or sent over the network. This
+    // is a belt-and-suspenders re-check of the one already done in
+    // openSaveModal/the radio buttons -- it catches the case where the
+    // count changed while the modal was open (e.g. another tab saved
+    // something) so the person is stopped here rather than getting an
+    // optimistic "Saved locally" message that a background sync will only
+    // fail on later. The backend's own atomic check is still the final
+    // authority; this just avoids a needless round trip for the common
+    // case where we can already tell it's going to be rejected.
+    if (!saveModal.isEditMetadataOnly && !saveModal.editingId) {
+      const cap = saveModal.saveType === "template" ? MAX_TEMPLATES_PER_USER : MAX_PROJECTS_PER_USER;
+      const currentCount = getUserSavedCount(saveModal.saveType);
+      if (currentCount >= cap) {
+        showToast(
+          `You've reached the maximum of ${cap} saved ${saveModal.saveType === "template" ? "templates" : "projects"}. Delete one before saving a new one.`,
+          "error"
+        );
+        setSaveModal((prev) => ({ ...prev, isOpen: false }));
+        return;
+      }
+    }
 
     setIsSavingModal(true);
     try {
@@ -914,10 +972,20 @@ export default function MainApp() {
             <h2 className="save-modal-title">{saveModal.isEditMetadataOnly ? "Edit Details" : "Save Workspace"}</h2>
             <div className="save-type-selector">
               <label className={saveModal.editingId ? "disabled" : ""}>
-                <input type="radio" name="saveType" disabled={!!saveModal.editingId} checked={saveModal.saveType === "project"} onChange={() => setSaveModal({ ...saveModal, saveType: "project" })} /> Project (Dashboard)
+                <input
+                  type="radio" name="saveType"
+                  disabled={!!saveModal.editingId || getUserSavedCount("project") >= MAX_PROJECTS_PER_USER}
+                  checked={saveModal.saveType === "project"}
+                  onChange={() => setSaveModal({ ...saveModal, saveType: "project" })}
+                /> Project (Dashboard){getUserSavedCount("project") >= MAX_PROJECTS_PER_USER ? " \u2014 limit reached" : ""}
               </label>
               <label className={saveModal.editingId ? "disabled" : ""}>
-                <input type="radio" name="saveType" disabled={!!saveModal.editingId} checked={saveModal.saveType === "template"} onChange={() => setSaveModal({ ...saveModal, saveType: "template" })} /> Template (Sidebar)
+                <input
+                  type="radio" name="saveType"
+                  disabled={!!saveModal.editingId || getUserSavedCount("template") >= MAX_TEMPLATES_PER_USER}
+                  checked={saveModal.saveType === "template"}
+                  onChange={() => setSaveModal({ ...saveModal, saveType: "template" })}
+                /> Template (Sidebar){getUserSavedCount("template") >= MAX_TEMPLATES_PER_USER ? " \u2014 limit reached" : ""}
               </label>
             </div>
             <div className="save-modal-form">
