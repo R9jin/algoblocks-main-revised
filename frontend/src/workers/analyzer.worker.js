@@ -226,6 +226,7 @@ function generateClassificationReport(details, expKey, predKey, standardClasses)
 const ENGINE_MODULE_FILES = [
   "blockly_ast.py",
   "dynamic_tracer.py",
+  "scope_detector.py",
   "complexity_analyzer/__init__.py",
   "complexity_analyzer/analyzer.py",
   "complexity_analyzer/code_preprocessor.py",

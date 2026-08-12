@@ -26,8 +26,11 @@ import { translatePythonError } from "../utils/errorTranslator.js";
 import { syncManager } from "../utils/syncManager.js";
 
 // Default docking arrangement: Blocks and Python are tabbed together in the
-// main center region (mirroring the old toggle button), Console and
-// Complexity are tabbed together docked at the bottom. Any panel can be
+// main center region (mirroring the old toggle button). Console and
+// Complexity are NOT open at boot -- they start collapsed so the workspace
+// canvas gets full space on load, and are opened on demand via the footer
+// bar buttons (see WorkspaceFooterBar.jsx / toggleDockPanel), which dock
+// them into "bottom" tabbed together when opened. Any panel can still be
 // dragged to any other region at runtime; "Reset Workspace Layout" restores
 // exactly this.
 const DEFAULT_DOCK_LAYOUT = {
@@ -36,9 +39,9 @@ const DEFAULT_DOCK_LAYOUT = {
     left: { panelIds: [], size: 280 },
     center: { panelIds: ["blockly", "python"], size: 0 },
     right: { panelIds: [], size: 340 },
-    bottom: { panelIds: ["console", "complexity"], size: 280 },
+    bottom: { panelIds: [], size: 280 },
   },
-  activeTab: { top: null, left: null, center: "blockly", right: null, bottom: "console" },
+  activeTab: { top: null, left: null, center: "blockly", right: null, bottom: null },
 };
 
 const SIDEBAR_TEMPLATES = [
@@ -106,7 +109,7 @@ export default function MainApp() {
   const [activeTabId, setActiveTabId] = useState(tabs[0].id);
 
   const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? window.navigator.onLine : true);
-  const [openPanelIds, setOpenPanelIds] = useState(() => new Set(["blockly", "python", "console", "complexity"]));
+  const [openPanelIds, setOpenPanelIds] = useState(() => new Set(["blockly", "python"]));
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
   const [isSidebarVisible, setIsSidebarVisible] = useState(() => typeof window === "undefined" || window.innerWidth >= 700);
   const [searchTerm, setSearchTerm] = useState("");
