@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { FiArrowLeft, FiCheckCircle, FiLock, FiMail } from "react-icons/fi";
 import { Link } from "react-router-dom";
+import { getErrorMessage } from "../utils/apiError";
 import "../styles/Auth.css";
 
 export default function ForgotPassword() {
@@ -37,7 +38,7 @@ export default function ForgotPassword() {
         setSubmitted(true);
       } else {
         const data = await response.json().catch(() => ({}));
-        showToast(data.detail || "Something went wrong. Please try again.");
+        showToast(getErrorMessage(data, "Something went wrong. Please try again."));
       }
     } catch (error) {
       console.error(error);

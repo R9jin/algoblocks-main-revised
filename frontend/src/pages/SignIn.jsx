@@ -3,6 +3,7 @@ import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useEffect, useRef, useState } from "react";
 import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
+import { getErrorMessage } from "../utils/apiError";
 import { clearLocalUserData, projectsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
 
@@ -106,7 +107,7 @@ export default function SignIn() {
       if (!isMountedRef.current) return;
 
       if (!response.ok || data.status !== "success") {
-        showToast(data.detail || "Invalid email or password"); 
+        showToast(getErrorMessage(data, "Invalid email or password")); 
         setIsLoading(false);
         return;
       }
@@ -211,7 +212,7 @@ export default function SignIn() {
       if (!isMountedRef.current) return;
 
       if (!response.ok || data.status !== "success") {
-        showToast(data.detail || "Google authentication failed");
+        showToast(getErrorMessage(data, "Google authentication failed"));
         return;
       }
 

@@ -98,11 +98,18 @@ export default function AssessmentPage() {
           const normalized = existingResult.data ? { ...existingResult, ...existingResult.data } : existingResult;
           setPrevResult(normalized);
 
-          if (isGlobalPreTest || isGlobalPostTest) {
-            setIsLocked(true);
-            setLoading(false);
-            return;
-          }
+          // BUG FIX: this used to only lock revisits of the global
+          // Pre-Test/Post-Test (isGlobalPreTest || isGlobalPostTest),
+          // leaving the guard off for ordinary per-module quizzes -- a
+          // learner could navigate back to an already-completed module
+          // assessment and it would silently fetch a fresh question set
+          // and let them retake it, instead of showing the locked
+          // results view. The "assessment can only be taken once" rule
+          // applies to every assessment type, not just the two global
+          // ones, so lock on any existing result.
+          setIsLocked(true);
+          setLoading(false);
+          return;
         }
 
         const res = await fetch(`/data/assessments/${moduleId}.json`);
@@ -381,7 +388,7 @@ export default function AssessmentPage() {
               </div>
               <h1 className="results-score" style={{ color }}>{prevResult?.score || 0}%</h1>
               <p className="results-subtitle" style={{ fontSize: "1.2rem", fontWeight: "bold" }}>
-                {isGlobalPreTest ? "Course Diagnostic Completed" : "Final Exam Completed"}
+                {isGlobalPreTest ? "Course Diagnostic Completed" : isGlobalPostTest ? "Final Exam Completed" : `Module ${moduleNum} Quiz Completed`}
               </p>
               <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "#fef2f2", borderLeft: "4px solid #ef4444", borderRadius: "0 8px 8px 0" }}>
                 <p className="results-note" style={{ display: "flex", alignItems: "center", gap: "8px", color: "#b91c1c", margin: 0, fontWeight: "600", fontSize: "0.95rem" }}>

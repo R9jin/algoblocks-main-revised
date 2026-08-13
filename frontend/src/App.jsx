@@ -70,12 +70,22 @@ const AdminOnlyRoute = ({ children }) => (
 function App() {
   const location = useLocation();
 
+  const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+  const isValidUser = userStr && userStr !== "null" && userStr !== "undefined";
+  const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
+
   useEffect(() => {
-    const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-    const isValidUser = userStr && userStr !== "null" && userStr !== "undefined";
-    const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
-    
-    // Manage background sync lifecycle to prevent memory leaks and unauthenticated pings
+    // Manage background sync lifecycle to prevent memory leaks and unauthenticated pings.
+    //
+    // COST NOTE: this used to depend on [location.pathname], which meant every
+    // in-app navigation (Dashboard -> MainApp -> ActivityApp -> ...) tore down
+    // and re-created the sync loop, and startBackgroundSync() fires an
+    // immediate sync burst on every call. A student just clicking around the
+    // app could trigger far more than one sync cycle per 30s. Depending on
+    // [isValidUser, isAuthPage] instead means the effect only re-fires when
+    // auth actually changes (login/logout, or entering/leaving /signin
+    // /signup) -- ordinary navigation between authenticated pages no longer
+    // restarts the sync loop.
     if (isValidUser && !isAuthPage) {
       startBackgroundSync(30000); // 30 seconds interval
     } else {
@@ -83,7 +93,7 @@ function App() {
     }
 
     return () => stopBackgroundSync();
-  }, [location.pathname]);
+  }, [isValidUser, isAuthPage]);
 
   return (
     <OnboardingProvider>
