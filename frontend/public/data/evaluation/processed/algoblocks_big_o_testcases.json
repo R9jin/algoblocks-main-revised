@@ -383,7 +383,7 @@
     "id": "On3_001",
     "name": "O(n^3) - Triple nested loops (count triplets)",
     "code": "# Triple nested loops - O(n^3)\n\ndef count_triplets(arr):\n    n = len(arr)\n    cnt = 0\n    for i in range(n):\n        for j in range(i + 1, n):\n            for k in range(j + 1, n):\n                if arr[i] + arr[j] + arr[k] == 0:\n                    cnt += 1\n    return cnt\n\nif __name__ == '__main__':\n    arr = [0] * 60  # small n to keep runtime sensible\n    print(count_triplets(arr))",
-    "expected_overall_time": "O(n^2)",
+    "expected_overall_time": "O(n^3)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
       {
