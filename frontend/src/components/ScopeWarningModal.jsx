@@ -6,6 +6,7 @@ import "../styles/ScopeWarningModal.css";
 const SEVERITY_META = {
   unsupported: { label: "Unsupported", className: "scope-pill scope-pill-unsupported" },
   partial: { label: "Partial", className: "scope-pill scope-pill-partial" },
+  collision: { label: "Miscosted", className: "scope-pill scope-pill-collision" },
 };
 
 const ScopeWarningModal = ({

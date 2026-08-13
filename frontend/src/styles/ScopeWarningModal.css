@@ -62,6 +62,11 @@
   color: #f0c04a;
 }
 
+.scope-pill-collision {
+  background: rgba(231, 76, 60, 0.22);
+  color: #ff5c4d;
+}
+
 .scope-warning-badge {
   cursor: pointer;
   border: 1px solid rgba(230, 178, 40, 0.35);
