@@ -156,17 +156,22 @@ export const SyncManager = {
                             await templatesDB.save({ ...template, isSynced: true });
                         }
                     } else if (res.status === 403) {
-                        // Same reasoning as the project sync above: a 403 here means
-                        // the account is at the template cap. This is permanent, so
-                        // stop retrying it forever and drop the phantom local copy
-                        // instead of leaving it stuck "unsynced" indefinitely.
-                        await templatesDB.delete(template.templateId || template._id);
-                        let limitMessage = "A locally saved template could not be synced: template limit reached.";
+                        // A 403 can mean the account hit the template cap, but it can also be a
+                        // permission rejection when attempting to update an existing templateId.
+                        // Only treat it as a limit error when the backend detail indicates that.
+                        let errDetail = "";
                         try {
                             const errData = await res.json();
-                            if (errData?.detail) limitMessage = errData.detail;
+                            errDetail = errData?.detail || "";
                         } catch (e) {}
-                        window.dispatchEvent(new CustomEvent("syncLimitReached", { detail: { kind: "template", message: limitMessage } }));
+
+                        if (/limit reached/i.test(errDetail)) {
+                            await templatesDB.delete(template.templateId || template._id);
+                            const limitMessage = errDetail || "A locally saved template could not be synced: template limit reached.";
+                            window.dispatchEvent(new CustomEvent("syncLimitReached", { detail: { kind: "template", message: limitMessage } }));
+                        } else {
+                            console.error("Template sync rejected (403):", errDetail || "(no detail)");
+                        }
                     }
                 } catch (e) {
                     console.error(`Failed to sync template ${template.templateId}`, e);
