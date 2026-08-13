@@ -13,6 +13,7 @@ import { formatComplexity } from "../../utils/formatters";
 import CallGraphVisualizer from "../CallGraphVisualizer.jsx";
 import ComplexityGraph from "../ComplexityGraph.jsx";
 import MemoryVisualizer from "../MemoryVisualizer.jsx";
+import ScopeWarningModal from "../ScopeWarningModal.jsx";
 
 export default function ComplexityPanelContent({
   activeComplexityTab,
@@ -33,6 +34,24 @@ export default function ComplexityPanelContent({
   const safeTotal = analysisResult?.total || "O(1)";
   const safeSpaceTotal = analysisResult?.space_total || "O(1)";
   const safeExplanation = analysisResult?.overall_explanation || "";
+
+  // Which libraries in the code the analyzer has no (or only partial) cost
+  // rules for, per the last analysis run. Gating on a key derived from the
+  // *set* of flagged modules (rather than re-showing on every re-analysis)
+  // means the modal reappears when a genuinely new out-of-scope library
+  // shows up, not on every keystroke-triggered reanalysis of code the user
+  // already acknowledged.
+  const scopeWarnings = analysisResult?.scope_warnings || [];
+  const scopeWarningsKey = scopeWarnings.length
+    ? scopeWarnings.map((w) => `${w.module}:${w.severity}`).sort().join("|")
+    : "";
+  const [ackedScopeWarningsKey, setAckedScopeWarningsKey] = useState("");
+  const [reviewingScopeWarnings, setReviewingScopeWarnings] = useState(false);
+  const scopeGateActive = scopeWarningsKey !== "" && scopeWarningsKey !== ackedScopeWarningsKey;
+  const acknowledgeScopeWarnings = () => {
+    setAckedScopeWarningsKey(scopeWarningsKey);
+    setReviewingScopeWarnings(false);
+  };
 
   let maxWeight = 0;
   let bottleneckIndices = [];
@@ -84,10 +103,28 @@ export default function ComplexityPanelContent({
             </>
           )}
           {extraBadges}
+          {scopeWarnings.length > 0 && (
+            <button
+              type="button"
+              className="total-badge scope-warning-badge"
+              onClick={() => setReviewingScopeWarnings(true)}
+              title="Some libraries used here aren't fully supported by the analyzer"
+            >
+              <FiInfo /> {scopeWarnings.length} library {scopeWarnings.length === 1 ? "warning" : "warnings"}
+            </button>
+          )}
         </div>
       </div>
 
-      {activeComplexityTab === "overall" ? (
+      {scopeGateActive ? (
+        <div className="empty-analysis-state scope-gate-placeholder">
+          <FiInfo size={28} />
+          <p>This code uses libraries the analyzer can't fully reason about, so the results below may be inaccurate.</p>
+          <button type="button" className="btn-modal btn-modal-confirm" onClick={() => setReviewingScopeWarnings(true)}>
+            Review warnings
+          </button>
+        </div>
+      ) : activeComplexityTab === "overall" ? (
         <div className="overall-complexity-wrapper">
           {safeExplanation ? (
             <div className="overall-markdown-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(safeExplanation)) }} />
@@ -182,6 +219,16 @@ export default function ComplexityPanelContent({
           </table>
         </div>
       )}
+
+      <ScopeWarningModal
+        isOpen={scopeGateActive || reviewingScopeWarnings}
+        warnings={scopeWarnings}
+        title="Some libraries here aren't fully supported"
+        proceedText="OK, show analysis"
+        hideCancel={scopeGateActive}
+        onProceed={acknowledgeScopeWarnings}
+        onCancel={() => setReviewingScopeWarnings(false)}
+      />
     </div>
   );
 }

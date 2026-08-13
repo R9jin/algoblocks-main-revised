@@ -1,0 +1,603 @@
+[
+  {
+    "id": "O1_001",
+    "name": "O(1) - Access first element",
+    "code": "# O(1) access example\n\ndef get_first(arr):\n    # direct index access\n    return arr[0]\n\nif __name__ == '__main__':\n    arr = [10, 20, 30, 40]\n    print(get_first(arr))",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "O1_002",
+    "name": "O(1) - Swap two variables (tuple swap)",
+    "code": "# O(1) swap example\n\ndef swap(a, b):\n    # tuple swap returns in constant time\n    return b, a\n\nif __name__ == '__main__':\n    x, y = 1, 2\n    x, y = swap(x, y)\n    print(x, y)",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "O1_003",
+    "name": "O(1) - Check even",
+    "code": "# O(1) parity check\n\ndef is_even(n):\n    return n % 2 == 0\n\nif __name__ == '__main__':\n    print(is_even(42))",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "Ologn_001",
+    "name": "O(log n) - Iterative binary search",
+    "code": "# Iterative binary search - O(log n)\n\ndef binary_search(arr, x):\n    left = 0\n    right = len(arr) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == x:\n            return mid\n        elif arr[mid] < x:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1\n\nif __name__ == '__main__':\n    arr = list(range(0, 1000))\n    print(binary_search(arr, 777))",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "Ologn_002",
+    "name": "O(log n) - Recursive binary search",
+    "code": "# Recursive binary search - O(log n)\n\ndef binary_search_rec(arr, x, left, right):\n    if left > right:\n        return -1\n    mid = (left + right) // 2\n    if arr[mid] == x:\n        return mid\n    elif arr[mid] < x:\n        return binary_search_rec(arr, x, mid + 1, right)\n    else:\n        return binary_search_rec(arr, x, left, mid - 1)\n\nif __name__ == '__main__':\n    arr = list(range(0, 2000))\n    print(binary_search_rec(arr, 1500, 0, len(arr) - 1))",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(log n)",
+    "line_metrics": [
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "local_space": "O(1)",
+        "global_space": "O(log n)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "local_space": "O(1)",
+        "global_space": "O(log n)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "local_space": "O(log n)",
+        "global_space": "O(log n)"
+      }
+    ]
+  },
+  {
+    "id": "Ologn_003",
+    "name": "O(log n) - Exponentiation by squaring",
+    "code": "# Fast power - O(log n)\n\ndef fast_pow(a, n):\n    result = 1\n    base = a\n    exp = n\n    while exp > 0:\n        if exp & 1:\n            result *= base\n        base *= base\n        exp >>= 1\n    return result\n\nif __name__ == '__main__':\n    print(fast_pow(2, 20))",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "On_001",
+    "name": "O(n) - Linear search",
+    "code": "# Linear search - O(n)\n\ndef linear_search(arr, x):\n    for i in range(len(arr)):\n        if arr[i] == x:\n            return i\n    return -1\n\nif __name__ == '__main__':\n    arr = list(range(0, 10000))\n    print(linear_search(arr, 9999))",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "On_002",
+    "name": "O(n) - Sum of array",
+    "code": "# Sum of array - O(n)\n\ndef sum_array(arr):\n    total = 0\n    for v in arr:\n        total += v\n    return total\n\nif __name__ == '__main__':\n    arr = list(range(0, 100000))\n    print(sum_array(arr))",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "On_003",
+    "name": "O(n) - Find maximum",
+    "code": "# Find maximum - O(n)\n\ndef find_max(arr):\n    if not arr:\n        return None\n    m = arr[0]\n    for v in arr[1:]:\n        if v > m:\n            m = v\n    return m\n\nif __name__ == '__main__':\n    arr = list(range(0, 50000))\n    print(find_max(arr))",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "Onlogn_001",
+    "name": "O(n log n) - Built-in sort (Timsort)",
+    "code": "# Built-in sort - typically O(n log n)\n\ndef sorted_example(arr):\n    # Python's sort/timsort is O(n log n) in worst-case\n    return sorted(arr)\n\nif __name__ == '__main__':\n    import random\n    arr = list(range(0, 50000))\n    random.shuffle(arr)\n    arr = sorted_example(arr)\n    print(arr[0], arr[-1])",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(n log n)",
+        "global_time": "O(n log n)",
+        "local_space": "O(n)",
+        "global_space": "O(n)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "local_space": "O(1)",
+        "global_space": "O(n)"
+      }
+    ]
+  },
+  {
+    "id": "Onlogn_002",
+    "name": "O(n log n) - Merge sort implementation",
+    "code": "# Merge sort - O(n log n)\n\ndef merge(left, right):\n    res = []\n    i = j = 0\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            res.append(left[i]); i += 1\n        else:\n            res.append(right[j]); j += 1\n    res.extend(left[i:]); res.extend(right[j:])\n    return res\n\ndef merge_sort(arr):\n    if len(arr) <= 1:\n        return arr\n    mid = len(arr) // 2\n    return merge(merge_sort(arr[:mid]), merge_sort(arr[mid:]))\n\nif __name__ == '__main__':\n    arr = list(range(10000, 0, -1))\n    arr = merge_sort(arr)\n    print(arr[:3], arr[-3:])",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "local_space": "O(1)",
+        "global_space": "O(n)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(n)",
+        "global_time": "O(n log n)",
+        "local_space": "O(n)",
+        "global_space": "O(n)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "local_space": "O(n)",
+        "global_space": "O(n)"
+      }
+    ]
+  },
+  {
+    "id": "Onlogn_003",
+    "name": "O(n log n) - Sorting with key (O(n log n))",
+    "code": "# Sorting with custom key - O(n log n)\n\ndef sort_by_length(strings):\n    # sort uses comparison-based sort under the hood\n    return sorted(strings, key=len)\n\nif __name__ == '__main__':\n    strings = ['s' * i for i in range(20000, 0, -1)]\n    strings = sort_by_length(strings)\n    print(len(strings[0]), len(strings[-1]))",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(n log n)",
+        "global_time": "O(n log n)",
+        "local_space": "O(n)",
+        "global_space": "O(n)"
+      }
+    ]
+  },
+  {
+    "id": "On2_001",
+    "name": "O(n^2) - Bubble sort",
+    "code": "# Bubble sort - O(n^2)\n\ndef bubble_sort(arr):\n    n = len(arr)\n    for i in range(n):\n        for j in range(0, n - i - 1):\n            if arr[j] > arr[j + 1]:\n                arr[j], arr[j + 1] = arr[j + 1], arr[j]\n    return arr\n\nif __name__ == '__main__':\n    arr = list(range(1000, 0, -1))\n    print(bubble_sort(arr)[:3])",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "On2_002",
+    "name": "O(n^2) - Pairwise sums (nested loops)",
+    "code": "# Pairwise sums - O(n^2)\n\ndef pairwise_sums(arr):\n    res = []\n    for i in range(len(arr)):\n        for j in range(i + 1, len(arr)):\n            res.append(arr[i] + arr[j])\n    return res\n\nif __name__ == '__main__':\n    arr = list(range(1000))\n    s = pairwise_sums(arr)\n    print(len(s))",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(n^2)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "local_space": "O(1)",
+        "global_space": "O(n^2)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "local_space": "O(1)",
+        "global_space": "O(n^2)"
+      }
+    ]
+  },
+  {
+    "id": "On2_003",
+    "name": "O(n^2) - Duplicate check with nested loops",
+    "code": "# Duplicate check - O(n^2)\n\ndef has_duplicates(arr):\n    for i in range(len(arr)):\n        for j in range(i + 1, len(arr)):\n            if arr[i] == arr[j]:\n                return True\n    return False\n\nif __name__ == '__main__':\n    arr = list(range(5000)) + [0]\n    print(has_duplicates(arr))",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "On3_001",
+    "name": "O(n^3) - Triple nested loops (count triplets)",
+    "code": "# Triple nested loops - O(n^3)\n\ndef count_triplets(arr):\n    n = len(arr)\n    cnt = 0\n    for i in range(n):\n        for j in range(i + 1, n):\n            for k in range(j + 1, n):\n                if arr[i] + arr[j] + arr[k] == 0:\n                    cnt += 1\n    return cnt\n\nif __name__ == '__main__':\n    arr = [0] * 60  # small n to keep runtime sensible\n    print(count_triplets(arr))",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "On3_002",
+    "name": "O(n^3) - Matrix multiplication (naive)",
+    "code": "# Naive matrix multiplication - O(n^3)\n\ndef matmul(A, B):\n    n = len(A)\n    C = [[0] * n for _ in range(n)]\n    for i in range(n):\n        for j in range(n):\n            for k in range(n):\n                C[i][j] += A[i][k] * B[k][j]\n    return C\n\nif __name__ == '__main__':\n    n = 60\n    A = [[1]*n for _ in range(n)]\n    B = [[1]*n for _ in range(n)]\n    C = matmul(A, B)\n    print(C[0][0])",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(n^2)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(n^2)",
+        "global_time": "O(n^2) (initialization)",
+        "local_space": "O(n^2)",
+        "global_space": "O(n^2)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "local_space": "O(1)",
+        "global_space": "O(n^2)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "local_space": "O(1)",
+        "global_space": "O(n^2)"
+      }
+    ]
+  },
+  {
+    "id": "On3_003",
+    "name": "O(n^3) - Three-way combination processing",
+    "code": "# Three nested loops - combination processing - O(n^3)\n\ndef process_three_way(arr):\n    n = len(arr)\n    s = 0\n    for a in arr:\n        for b in arr:\n            for c in arr:\n                s += (a * b) + c\n    return s\n\nif __name__ == '__main__':\n    arr = list(range(200))\n    print(process_three_way(arr) % 1000)",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "local_space": "O(1)",
+        "global_space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "O2n_001",
+    "name": "O(2^n) - Naive Fibonacci recursion",
+    "code": "# Naive Fibonacci - exponential O(2^n)\n\ndef fib(n):\n    if n <= 1:\n        return n\n    return fib(n - 1) + fib(n - 2)\n\nif __name__ == '__main__':\n    print(fib(30))",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "local_space": "O(1)",
+        "global_space": "O(n)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n)",
+        "local_space": "O(n)",
+        "global_space": "O(n)"
+      }
+    ]
+  },
+  {
+    "id": "O2n_002",
+    "name": "O(2^n) - Subset sum (generate subsets)",
+    "code": "# Generate all subsets (power set) - O(2^n)\n\ndef subsets(arr):\n    res = []\n    n = len(arr)\n    for mask in range(1 << n):\n        cur = []\n        for i in range(n):\n            if mask & (1 << i):\n                cur.append(arr[i])\n        res.append(cur)\n    return res\n\nif __name__ == '__main__':\n    arr = [1,2,3,4,5,6,7,8]\n    print(len(subsets(arr)))",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(2^n)",
+    "line_metrics": [
+      {
+        "lineno": 5,
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n * n)",
+        "local_space": "O(n)",
+        "global_space": "O(2^n * n)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(n)",
+        "global_time": "O(2^n * n)",
+        "local_space": "O(n)",
+        "global_space": "O(2^n * n)"
+      }
+    ]
+  },
+  {
+    "id": "O2n_003",
+    "name": "O(2^n) - Recursive power set (backtracking)",
+    "code": "# Power set by backtracking - O(2^n)\n\ndef backtrack(arr, i, cur, res):\n    if i == len(arr):\n        res.append(cur[:])\n        return\n    # exclude\n    backtrack(arr, i + 1, cur, res)\n    # include\n    cur.append(arr[i])\n    backtrack(arr, i + 1, cur, res)\n    cur.pop()\n\nif __name__ == '__main__':\n    arr = [1,2,3,4,5,6,7,8]\n    res = []\n    backtrack(arr, 0, [], res)\n    print(len(res))",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(2^n)",
+    "line_metrics": [
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "local_space": "O(1)",
+        "global_space": "O(n)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "local_space": "O(n)",
+        "global_space": "O(2^n * n)"
+      }
+    ]
+  },
+  {
+    "id": "Onfact_001",
+    "name": "O(n!) - Generate permutations (recursive backtracking)",
+    "code": "# Permutations by backtracking - O(n!)\n\ndef permute(arr, l, res):\n    if l == len(arr):\n        res.append(arr[:])\n        return\n    for i in range(l, len(arr)):\n        arr[l], arr[i] = arr[i], arr[l]\n        permute(arr, l + 1, res)\n        arr[l], arr[i] = arr[i], arr[l]\n\nif __name__ == '__main__':\n    arr = [1,2,3,4]\n    res = []\n    permute(arr, 0, res)\n    print(len(res))",
+    "expected_overall_time": "O(n!)",
+    "expected_overall_space": "O(n!)",
+    "line_metrics": [
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(n * n!)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(n) (loop iterations)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(n * n!)"
+      }
+    ]
+  },
+  {
+    "id": "Onfact_002",
+    "name": "O(n!) - Recursive permutation generator (using used set)",
+    "code": "# Permutation generation using used set - O(n!)\n\ndef permute_used(arr, path, used, res):\n    if len(path) == len(arr):\n        res.append(path[:])\n        return\n    for i in range(len(arr)):\n        if used[i]:\n            continue\n        used[i] = True\n        path.append(arr[i])\n        permute_used(arr, path, used, res)\n        path.pop()\n        used[i] = False\n\nif __name__ == '__main__':\n    arr = [1,2,3,4]\n    res = []\n    permute_used(arr, [], [False]*len(arr), res)\n    print(len(res))",
+    "expected_overall_time": "O(n!)",
+    "expected_overall_space": "O(n!)",
+    "line_metrics": [
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(n * n!)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(n) (loop)",
+        "global_time": "O(n!)",
+        "local_space": "O(n)",
+        "global_space": "O(n * n!)"
+      }
+    ]
+  },
+  {
+    "id": "Onfact_003",
+    "name": "O(n!) - Count permutations recursively (time demonstration)",
+    "code": "# Counting permutations (conceptual) - O(n!)\n\ndef count_perms(n):\n    if n <= 1:\n        return 1\n    total = 0\n    for i in range(n):\n        # choose element i and count perms of remaining n-1\n        total += count_perms(n - 1)\n    return total\n\nif __name__ == '__main__':\n    print(count_perms(8))",
+    "expected_overall_time": "O(n!)",
+    "expected_overall_space": "O(n!)",
+    "line_metrics": [
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(n)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(n) (loop)",
+        "global_time": "O(n!)",
+        "local_space": "O(1)",
+        "global_space": "O(n)"
+      }
+    ]
+  }
+]

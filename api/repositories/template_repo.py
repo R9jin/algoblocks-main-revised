@@ -96,6 +96,76 @@ class TemplateRepository:
         return str(inserted_id)
 
     @staticmethod
+    def save_if_under_limit(template_data: dict, max_allowed: int):
+        """Atomically check the per-user template count and insert, all
+        inside one real (non-autocommit) transaction serialized by a
+        Postgres advisory lock keyed on the user. See
+        ProjectRepository.insert_if_under_limit for why this is necessary:
+        a separate count-then-insert (each its own autocommit statement)
+        lets concurrent/rapid-fire saves race past the cap.
+
+        Returns the new template's id, or None if the user is already at/
+        over the limit (nothing is inserted in that case).
+        """
+        conn = get_db_connection()
+        conn.autocommit = False
+        cursor = conn.cursor()
+        try:
+            user_id = template_data.get("userId")
+            owner_id = template_data.get("owner_id", user_id)
+
+            cursor.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', (user_id,))
+
+            cursor.execute(
+                'SELECT COUNT(*) AS count FROM templates WHERE "userId" = %s OR owner_id = %s',
+                (user_id, user_id)
+            )
+            current_count = cursor.fetchone()["count"]
+
+            if current_count >= max_allowed:
+                conn.rollback()
+                return None
+
+            template_id = template_data.get("templateId")
+            if not template_id or str(template_id).startswith("local_"):
+                template_id = str(uuid.uuid4())
+
+            category = template_data.get("category", "Custom")
+            is_synced = template_data.get("isSynced", False)
+            timestamp = template_data.get("timestamp", 0)
+
+            blockly_data = {
+                "title": template_data.get("title", "Untitled Template"),
+                "name": template_data.get("name", "Untitled Template"),
+                "description": template_data.get("description", ""),
+                "workspace": template_data.get("workspace", {}),
+                "pythonCode": template_data.get("pythonCode", "")
+            }
+
+            cursor.execute('''
+                INSERT INTO templates ("templateId", category, "userId", owner_id, "isSynced", timestamp, blockly_data)
+                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
+            ''', (
+                template_id,
+                category,
+                user_id,
+                owner_id,
+                is_synced,
+                timestamp,
+                json.dumps(blockly_data)
+            ))
+
+            inserted_id = cursor.fetchone()["id"]
+            conn.commit()
+            return str(inserted_id)
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cursor.close()
+            conn.close()
+
+    @staticmethod
     def update(template_id: str, template_data: dict, user_id: str = None):
         conn = get_db_connection()
         cursor = conn.cursor()

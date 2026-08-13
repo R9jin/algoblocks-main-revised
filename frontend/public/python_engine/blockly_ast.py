@@ -1,12 +1,82 @@
 import ast
+import io
+import tokenize
 import uuid
+
+try:
+    from scope_detector import detect_scope_issues
+except ImportError:
+    def detect_scope_issues(source_code, tree=None):
+        return []
 
 def gen_uid():
     return str(uuid.uuid4())[:15]
 
+# Statement types that own a nested body which is serialized recursively
+# (via serialize_body) before we ever see the parent's block again. For
+# these, only the header line itself (node.lineno) is checked for a
+# trailing comment -- everything from the next line to node.end_lineno
+# belongs to the body and was already handled (or skipped) during that
+# recursive call, so re-scanning the full span here would just misfile an
+# inner comment onto the outer block.
+_COMPOUND_STMT_TYPES = (ast.FunctionDef, ast.ClassDef, ast.If, ast.For, ast.While, ast.Try, ast.With)
+if hasattr(ast, "AsyncFunctionDef"):
+    _COMPOUND_STMT_TYPES = _COMPOUND_STMT_TYPES + (ast.AsyncFunctionDef,)
+if hasattr(ast, "AsyncFor"):
+    _COMPOUND_STMT_TYPES = _COMPOUND_STMT_TYPES + (ast.AsyncFor,)
+if hasattr(ast, "AsyncWith"):
+    _COMPOUND_STMT_TYPES = _COMPOUND_STMT_TYPES + (ast.AsyncWith,)
+def extract_comments(code: str):
+    """
+    Python's ast module discards comments entirely -- they never make it
+    into the tree, so a converter built only on ast.parse() has no way to
+    know a comment ever existed. This runs Python's tokenizer as a
+    separate pre-pass over the raw source to recover them, keyed by the
+    1-indexed source line each comment sits on, so callers can re-attach
+    a comment to whichever statement block owns that line instead of the
+    comment silently vanishing during conversion.
+    """
+    comments = {}
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(code).readline)
+        for tok in tokens:
+            if tok.type == tokenize.COMMENT:
+                line_no = tok.start[0]
+                text = tok.string.lstrip("#").strip()
+                if text:
+                    comments[line_no] = text
+    except Exception:
+        pass
+    return comments
+
+def extract_blank_lines(code: str):
+    """
+    Like extract_comments, blank lines are whitespace as far as ast.parse()
+    is concerned and never survive into the tree. Blockly's own code
+    generator doesn't insert blank lines between statements either -- each
+    block's generator function just returns its own line(s), concatenated
+    directly onto the next, so a round trip through the workspace used to
+    quietly compress every blank line out of the student's code, no matter
+    how it was originally spaced. Returns the 1-indexed line numbers that
+    are empty (or whitespace-only) in the source, so callers can re-insert
+    a `blank_line` marker block wherever a genuine gap existed.
+    """
+    blanks = set()
+    try:
+        for i, line in enumerate(code.split("\n"), start=1):
+            if line.strip() == "":
+                blanks.add(i)
+    except Exception:
+        pass
+    return blanks
+
 class BlocklyASTConverter:
     def __init__(self):
         self.variables = set()
+        self.line_comments = {}
+        self.consumed_comment_lines = set()
+        self.defined_functions = set()
+        self.blank_lines = set()
 
     # ==========================================
     # TYPE INFERENCE & SAFETY MECHANISM
@@ -100,11 +170,15 @@ class BlocklyASTConverter:
 
     def convert(self, code: str):
         self.variables = set()
+        self.consumed_comment_lines = set()
         try:
             clean_code = code.replace('\xa0', ' ').replace('\u200b', '').replace('\t', '    ')
         except Exception:
             clean_code = code
-            
+
+        self.line_comments = extract_comments(clean_code)
+        self.blank_lines = extract_blank_lines(clean_code)
+
         try:
             tree = ast.parse(clean_code)
         except SyntaxError as se:
@@ -115,24 +189,57 @@ class BlocklyASTConverter:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
+        # Names the student actually defined with `def` anywhere in this
+        # file. Only these should ever become a `procedures_callreturn` /
+        # `procedures_callnoreturn` block -- otherwise a call to some
+        # unrecognized name (Fraction(...), Decimal(...), Queue(), etc.)
+        # gets rendered as "call <name>" against a procedure that doesn't
+        # exist in the workspace, which the Blockly code generator can't
+        # resolve and silently regenerates as a placeholder (e.g. 0, or
+        # the bare string of a stringy first argument) instead of the
+        # original call -- destroying the code on the next sync. Anything
+        # not in this set falls through to the raw_python_expression /
+        # raw_python_statement fallback instead, which round-trips exactly.
+        self.defined_functions = {
+            n.name for n in ast.walk(tree)
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+
+        scope_warnings = detect_scope_issues(clean_code, tree)
+
         try:
             clusters = []
             current_chain_tail = None
+            last_chain_line = None
 
             for node in tree.body:
                 block = self.serialize_node(node, is_top_level=True) or self.make_raw_statement(node)
                 if not block: continue
 
+                node_start = getattr(node, "lineno", None)
+
                 if block.get("type") in ["procedures_defnoreturn", "procedures_defreturn"]:
+                    # A trailing comment on the "def foo():" line itself may
+                    # still be unconsumed (everything past it was already
+                    # handled recursively) -- attach it in place, but a
+                    # function definition always starts a fresh cluster for
+                    # whatever statement follows it, regardless.
+                    self._attach_trailing_comments(node, block)
                     clusters.append(block)
-                    current_chain_tail = None 
+                    current_chain_tail = None
                 else:
+                    blank_block = self._maybe_blank_line_block(last_chain_line, node_start) if current_chain_tail is not None else None
+                    tail = self._attach_trailing_comments(node, block)
                     if current_chain_tail is None:
                         clusters.append(block)
-                        current_chain_tail = block
+                    elif blank_block:
+                        current_chain_tail["next"] = {"block": blank_block}
+                        blank_block["next"] = {"block": block}
                     else:
                         current_chain_tail["next"] = {"block": block}
-                        current_chain_tail = block
+                    current_chain_tail = tail
+
+                last_chain_line = getattr(node, "end_lineno", node_start) or node_start
 
             y_offset = 20
             for cluster in clusters:
@@ -143,13 +250,16 @@ class BlocklyASTConverter:
             vars_array = [{"id": v, "name": v} for v in self.variables]
             return {
                 "status": "success",
+                "scope_warnings": scope_warnings,
                 "blocks": {
                     "variables": vars_array,
                     "blocks": {"languageVersion": 0, "blocks": clusters}
                 }
             }
         except Exception as e:
-            return self.raw_fallback(code)
+            fallback = self.raw_fallback(code)
+            fallback["scope_warnings"] = scope_warnings
+            return fallback
         
     def raw_fallback(self, code):
         return {
@@ -174,20 +284,88 @@ class BlocklyASTConverter:
         block_dict.setdefault("inputs", {})
         block_dict["inputs"][input_name] = {"block": child_block}
 
+    def _maybe_blank_line_block(self, last_line, next_line):
+        """
+        If at least one genuinely blank source line sits between the end of
+        the previously-emitted statement and the start of the next one,
+        returns a single `blank_line` marker block to chain between them
+        (collapsing any run of consecutive blank lines to one, matching how
+        most style guides treat extra blank lines anyway). Returns None if
+        there's no gap, or nothing to compare against yet.
+        """
+        if last_line is None or next_line is None:
+            return None
+        for ln in range(last_line + 1, next_line):
+            if ln in self.blank_lines:
+                return {"type": "blank_line", "id": gen_uid()}
+        return None
+
     def serialize_body(self, nodes):
         if not nodes: return None
         first, prev = None, None
+        last_line = None
 
         for node in nodes:
             block = self.serialize_node(node, is_top_level=False) or self.make_raw_statement(node)
             if not block: continue
+
+            node_start = getattr(node, "lineno", None)
+            blank_block = self._maybe_blank_line_block(last_line, node_start) if prev else None
+
             if not first:
                 first = block
             elif prev:
-                prev["next"] = {"block": block}
-            prev = block
+                if blank_block:
+                    prev["next"] = {"block": blank_block}
+                    blank_block["next"] = {"block": block}
+                else:
+                    prev["next"] = {"block": block}
+            tail = self._attach_trailing_comments(node, block)
+            prev = tail
+            last_line = getattr(node, "end_lineno", node_start) or node_start
 
         return first
+
+    def _attach_trailing_comments(self, node, tail_block):
+        """
+        Chains any not-yet-consumed comment(s) sitting on this statement's
+        source line(s) directly beneath its block, as `multi_line_comment`
+        blocks, so a line like:
+
+            print("done")  # Display a message after the loop finishes
+
+        round-trips into a print block followed by a comment block reading
+        "Display a message after the loop finishes", instead of the comment
+        being silently dropped (ast.parse() never sees comments at all).
+
+        Returns the new chain tail (the last comment block appended, or the
+        original block if there was nothing to attach), so callers can keep
+        chaining subsequent statements after whichever block is now last.
+        """
+        start = getattr(node, "lineno", None)
+        if start is None or not self.line_comments:
+            return tail_block
+
+        if isinstance(node, _COMPOUND_STMT_TYPES):
+            end = start
+        else:
+            end = getattr(node, "end_lineno", start) or start
+
+        tail = tail_block
+        for ln in range(start, end + 1):
+            text = self.line_comments.get(ln)
+            if not text or ln in self.consumed_comment_lines:
+                continue
+            self.consumed_comment_lines.add(ln)
+            comment_block = {
+                "type": "multi_line_comment",
+                "id": gen_uid(),
+                "fields": {"TEXT": text},
+            }
+            tail["next"] = {"block": comment_block}
+            tail = comment_block
+
+        return tail
 
     def make_raw_statement(self, node):
         try:
@@ -520,10 +698,15 @@ class BlocklyASTConverter:
                         self.add_input(block, "B", self.serialize_expr_safe(node.args[1], ["Number"]))
                         return block
 
-                    block = {"type": "procedures_callreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.args))]}}
-                    for i, arg in enumerate(node.args):
-                        self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
-                    return block
+                    if name in self.defined_functions:
+                        block = {"type": "procedures_callreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.args))]}}
+                        for i, arg in enumerate(node.args):
+                            self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
+                        return block
+                    # Unrecognized call to a name the student never defined
+                    # (Fraction(...), Decimal(...), Queue(), etc.) -- fall
+                    # through to the raw-expression fallback below rather
+                    # than fabricating a call to a nonexistent procedure.
 
                 elif isinstance(node.func, ast.Attribute):
                     method = node.func.attr
@@ -779,15 +962,38 @@ class BlocklyASTConverter:
                     if isinstance(node.value.func, ast.Name):
                         name = node.value.func.id
                         if name == "print":
+                            args = node.value.args
                             block = {"type": "text_print", "id": gen_uid()}
-                            if node.value.args:
-                                self.add_input(block, "TEXT", self.serialize_expr(node.value.args[0]))
+                            if len(args) == 1:
+                                self.add_input(block, "TEXT", self.serialize_expr(args[0]))
+                            elif len(args) > 1:
+                                # Python's print() joins multiple positional
+                                # args with a single space by default. The
+                                # stock Blockly text_print block only takes
+                                # one TEXT input, so build a text_join tree
+                                # (arg, " ", arg, " ", arg, ...) that
+                                # reproduces the same joined output instead
+                                # of silently dropping every arg past the
+                                # first, which used to turn
+                                # print(a, "+", b, "=", result) into print(a).
+                                parts = []
+                                for i, a in enumerate(args):
+                                    parts.append(self.serialize_expr(a))
+                                    if i < len(args) - 1:
+                                        parts.append({"type": "text", "id": gen_uid(), "fields": {"TEXT": " "}, "output": "String"})
+                                join_block = {"type": "text_join", "id": gen_uid(), "extraState": {"itemCount": len(parts)}}
+                                for i, p in enumerate(parts):
+                                    self.add_input(join_block, f"ADD{i}", p)
+                                self.add_input(block, "TEXT", join_block)
                             return block
 
-                        block = {"type": "procedures_callnoreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.value.args))]}}
-                        for i, arg in enumerate(node.value.args):
-                            self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
-                        return block
+                        if name in self.defined_functions:
+                            block = {"type": "procedures_callnoreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.value.args))]}}
+                            for i, arg in enumerate(node.value.args):
+                                self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
+                            return block
+                        # Unrecognized call to a name the student never
+                        # defined -- fall through to make_raw_statement.
                     
                     elif isinstance(node.value.func, ast.Attribute):
                         method = node.value.func.attr

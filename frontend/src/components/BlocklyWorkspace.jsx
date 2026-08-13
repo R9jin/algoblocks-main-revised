@@ -12,9 +12,10 @@ import * as Blockly from "blockly";
 import "blockly/blocks";
 import * as En from "blockly/msg/en";
 import { pythonGenerator } from "blockly/python";
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { convertPythonToBlocks } from "../workers/analyzerInstance";
 import FloatingErrorDropdown from "./FloatingErrorDropdown.jsx";
+import ScopeWarningModal from "./ScopeWarningModal.jsx";
 
 registerFieldMultilineInput();
 Blockly.setLocale(En);
@@ -94,6 +95,8 @@ const customBlocks = [
     args0: [{ type: "input_value", name: "A" }, { type: "input_value", name: "B" }], inputsInline: true, output: null },
   { type: "multi_line_comment", message0: "comment %1", colour: "#999999", tooltip: "Adds a multi-line docstring comment (wrapped in triple quotes) to the Python code. Often used to document entire functions or block out large text descriptions.",
     args0: [{ type: "field_multilinetext", name: "TEXT", text: "Write multi-line note here", spellcheck: false }], previousStatement: null, nextStatement: null },
+  { type: "blank_line", message0: "\u00b7 \u00b7 \u00b7", colour: "#4a4a4a", tooltip: "Represents a blank line for spacing/readability in the generated Python code. Purely visual -- it has no effect when the code runs.",
+    previousStatement: null, nextStatement: null },
   { type: "raw_python_statement", message0: "Raw Code \n %1", style: "raw_blocks", tooltip: "Directly injects the exact text string as a raw Python statement into the generated code. Use with caution as it bypasses Blockly's syntax and safety checks.",
     args0: [{ type: "field_multilinetext", name: "CODE", text: "print('Hello World')", spellcheck: false }], previousStatement: null, nextStatement: null },
   { type: "raw_python_expression", message0: "Raw Eval \n %1", style: "raw_blocks", tooltip: "Evaluates an exact text string as a raw Python expression, returning a value that can be plugged into other blocks.",
@@ -219,6 +222,7 @@ const toolbox = {
       kind: "category", name: "Text", categorystyle: "text_category",
       contents: [
         { kind: "block", type: "comment_block" }, { kind: "block", type: "multi_line_comment" },
+        { kind: "block", type: "blank_line" },
         { kind: "block", type: "text" }, { kind: "block", type: "text_newline" },
         { kind: "block", type: "text_multiply", inputs: { MULTIPLIER: { shadow: { type: "math_number", fields: { NUM: 2 } } } } },
         { kind: "block", type: "custom_string_join" }, { kind: "block", type: "string_split" },
@@ -308,6 +312,25 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
   const workspace = useRef(null);
   const onChangeRef = useRef(onChange);
   const pendingLoadRef = useRef(null); 
+  const scopeWarningResolveRef = useRef(null);
+  const [scopeWarningState, setScopeWarningState] = useState({ isOpen: false, warnings: [] });
+
+  // Shows the scope-warning modal and pauses until the user decides.
+  // Resolves true ("Proceed anyway") or false ("Cancel").
+  const confirmScopeWarnings = (warnings) => {
+    return new Promise((resolve) => {
+      scopeWarningResolveRef.current = resolve;
+      setScopeWarningState({ isOpen: true, warnings });
+    });
+  };
+
+  const closeScopeWarningModal = (proceed) => {
+    setScopeWarningState({ isOpen: false, warnings: [] });
+    if (scopeWarningResolveRef.current) {
+      scopeWarningResolveRef.current(proceed);
+      scopeWarningResolveRef.current = null;
+    }
+  };
 
   const executeLoad = (json, preservePythonCode) => {
     if (!workspace.current) return;
@@ -381,7 +404,12 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       try {
         const data = await convertPythonToBlocks(cleanCode);
         if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
-        
+
+        if (Array.isArray(data.scope_warnings) && data.scope_warnings.length > 0) {
+          const proceed = await confirmScopeWarnings(data.scope_warnings);
+          if (!proceed) return;
+        }
+
         try { 
           Blockly.Events.setGroup(true);
           workspace.current.clear(); 
@@ -554,6 +582,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       pythonGenerator.forBlock["math_min_max"] = b => [`${b.getFieldValue("OP") === "MAX" ? "max" : "min"}(${getCode(b, "A") || "0"}, ${getCode(b, "B") || "0"})`, pythonGenerator.ORDER_FUNCTION_CALL];
       pythonGenerator.forBlock["comment_block"] = b => `# ${b.getFieldValue("TEXT") || ""}\n`;
       pythonGenerator.forBlock["multi_line_comment"] = b => `"""\n${b.getFieldValue("TEXT") || ""}\n"""\n`;
+      pythonGenerator.forBlock["blank_line"] = () => `\n`;
       
       pythonGenerator.forBlock["text_join"] = function (block) {
         let fStr = "";
@@ -667,6 +696,12 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={blocklyDiv} style={{ height: "100%", width: "100%" }} />
       <FloatingErrorDropdown syntaxErrors={syntaxErrors} />
+      <ScopeWarningModal
+        isOpen={scopeWarningState.isOpen}
+        warnings={scopeWarningState.warnings}
+        onProceed={() => closeScopeWarningModal(true)}
+        onCancel={() => closeScopeWarningModal(false)}
+      />
     </div>
   );
 });

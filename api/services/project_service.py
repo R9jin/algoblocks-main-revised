@@ -38,13 +38,16 @@ class ProjectService:
                 raise HTTPException(status_code=404, detail="Project not found or unauthorized")
             return {"status": "success", "projectId": req.projectId, "synced": True}
         else:
-            existing_count = ProjectRepository.count_by_user(req.userId)
-            if existing_count >= MAX_PROJECTS_PER_USER:
+            # Count-check-then-insert used to be two separate statements,
+            # which raced under rapid repeated saves (see
+            # ProjectRepository.insert_if_under_limit). Do both atomically
+            # under one advisory-lock-guarded transaction instead.
+            project_id = ProjectRepository.insert_if_under_limit(update_data, MAX_PROJECTS_PER_USER)
+            if project_id is None:
                 raise HTTPException(
                     status_code=403,
                     detail=f"Project limit reached ({MAX_PROJECTS_PER_USER} max per account). Please delete an existing project before creating a new one."
                 )
-            project_id = ProjectRepository.insert(update_data)
             return {"status": "success", "projectId": project_id, "synced": True}
 
     @staticmethod

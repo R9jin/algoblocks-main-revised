@@ -1,0 +1,91 @@
+/*frontend\src\styles\ScopeWarningModal.css*/
+.scope-warning-modal {
+  max-width: 520px;
+}
+
+.scope-warning-list {
+  list-style: none;
+  margin: 0 0 20px 0;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scope-warning-item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.scope-warning-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.scope-warning-module {
+  font-family: "Fira Code", "Consolas", monospace;
+  font-size: 0.85rem;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.scope-warning-message {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #c5baff;
+}
+
+.scope-pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.scope-pill-unsupported {
+  background: rgba(231, 76, 60, 0.18);
+  color: #ff8a7a;
+}
+
+.scope-pill-partial {
+  background: rgba(230, 178, 40, 0.18);
+  color: #f0c04a;
+}
+
+.scope-pill-collision {
+  background: rgba(231, 76, 60, 0.22);
+  color: #ff5c4d;
+}
+
+.scope-warning-badge {
+  cursor: pointer;
+  border: 1px solid rgba(230, 178, 40, 0.35);
+  background: rgba(230, 178, 40, 0.14);
+  color: #f0c04a;
+  font-family: inherit;
+}
+.scope-warning-badge:hover {
+  background: rgba(230, 178, 40, 0.22);
+}
+
+.scope-gate-placeholder {
+  flex-direction: column;
+  gap: 12px;
+}
+.scope-gate-placeholder svg {
+  color: #f0c04a;
+}
+.scope-gate-placeholder p {
+  max-width: 380px;
+  margin: 0;
+}

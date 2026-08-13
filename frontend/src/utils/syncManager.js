@@ -109,6 +109,20 @@ export const SyncManager = {
                         } else {
                             await projectsDB.save({ ...project, isSynced: true });
                         }
+                    } else if (res.status === 403) {
+                        // Permanent rejection (account is at the project cap), not a
+                        // connectivity problem -- retrying on the next 30s tick would
+                        // just get 403 forever while this phantom "unsynced" project
+                        // keeps showing up in the local project list as if it were
+                        // real. Drop the local copy and tell the UI so it can surface
+                        // this to the person instead of silently failing forever.
+                        await projectsDB.delete(project.projectId || project._id);
+                        let limitMessage = "A locally saved project could not be synced: project limit reached.";
+                        try {
+                            const errData = await res.json();
+                            if (errData?.detail) limitMessage = errData.detail;
+                        } catch (e) {}
+                        window.dispatchEvent(new CustomEvent("syncLimitReached", { detail: { kind: "project", message: limitMessage } }));
                     }
                 } catch (e) {
                     console.error(`Failed to sync project ${project.projectId}`, e);
@@ -140,6 +154,23 @@ export const SyncManager = {
                             await templatesDB.save({ ...template, templateId: realId, _id: realId, isSynced: true });
                         } else {
                             await templatesDB.save({ ...template, isSynced: true });
+                        }
+                    } else if (res.status === 403) {
+                        // A 403 can mean the account hit the template cap, but it can also be a
+                        // permission rejection when attempting to update an existing templateId.
+                        // Only treat it as a limit error when the backend detail indicates that.
+                        let errDetail = "";
+                        try {
+                            const errData = await res.json();
+                            errDetail = errData?.detail || "";
+                        } catch (e) {}
+
+                        if (/limit reached/i.test(errDetail)) {
+                            await templatesDB.delete(template.templateId || template._id);
+                            const limitMessage = errDetail || "A locally saved template could not be synced: template limit reached.";
+                            window.dispatchEvent(new CustomEvent("syncLimitReached", { detail: { kind: "template", message: limitMessage } }));
+                        } else {
+                            console.error("Template sync rejected (403):", errDetail || "(no detail)");
                         }
                     }
                 } catch (e) {
