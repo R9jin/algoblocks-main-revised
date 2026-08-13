@@ -19,10 +19,13 @@ def gen_uid():
 # belongs to the body and was already handled (or skipped) during that
 # recursive call, so re-scanning the full span here would just misfile an
 # inner comment onto the outer block.
-_COMPOUND_STMT_TYPES = (ast.FunctionDef, ast.If, ast.For, ast.While, ast.Try, ast.With)
+_COMPOUND_STMT_TYPES = (ast.FunctionDef, ast.ClassDef, ast.If, ast.For, ast.While, ast.Try, ast.With)
 if hasattr(ast, "AsyncFunctionDef"):
     _COMPOUND_STMT_TYPES = _COMPOUND_STMT_TYPES + (ast.AsyncFunctionDef,)
-
+if hasattr(ast, "AsyncFor"):
+    _COMPOUND_STMT_TYPES = _COMPOUND_STMT_TYPES + (ast.AsyncFor,)
+if hasattr(ast, "AsyncWith"):
+    _COMPOUND_STMT_TYPES = _COMPOUND_STMT_TYPES + (ast.AsyncWith,)
 def extract_comments(code: str):
     """
     Python's ast module discards comments entirely -- they never make it
