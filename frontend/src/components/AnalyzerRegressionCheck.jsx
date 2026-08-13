@@ -32,6 +32,7 @@ import {
   LuFlaskConical,
   LuRefreshCw,
 } from "react-icons/lu";
+import { getErrorMessage } from "../utils/apiError";
 import "../styles/AnalyzerRegressionCheck.css";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
@@ -206,7 +207,7 @@ export default function AnalyzerRegressionCheck() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Regression check failed");
+      if (!response.ok) throw new Error(getErrorMessage(data, "Regression check failed"));
       setReport(data);
     } catch (err) {
       setError(err.message);

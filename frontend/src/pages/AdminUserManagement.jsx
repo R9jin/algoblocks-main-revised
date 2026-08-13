@@ -24,6 +24,7 @@ import {
   LuX
 } from "react-icons/lu";
 import DashboardHeader from "../components/DashboardHeader";
+import { getErrorMessage } from "../utils/apiError";
 import "../styles/AdminUserManagement.css";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
@@ -149,7 +150,7 @@ const AdminUserManagement = () => {
       });
       
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Failed to fetch users");
+      if (!response.ok) throw new Error(getErrorMessage(data, "Failed to fetch users"));
       
       if (data && Array.isArray(data.users)) {
         setUsers(data.users);
@@ -182,7 +183,7 @@ const AdminUserManagement = () => {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Failed to fetch analytics overview");
+      if (!response.ok) throw new Error(getErrorMessage(data, "Failed to fetch analytics overview"));
       setOverview(data);
     } catch (err) {
       setOverviewError(err.message);
@@ -207,7 +208,7 @@ const AdminUserManagement = () => {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Failed to fetch user metrics");
+      if (!response.ok) throw new Error(getErrorMessage(data, "Failed to fetch user metrics"));
       setUserMetricsCache((prev) => ({ ...prev, [email]: data }));
     } catch (err) {
       setMetricsError((prev) => ({ ...prev, [email]: err.message }));
@@ -295,7 +296,7 @@ const AdminUserManagement = () => {
           });
 
           const data = await response.json();
-          if (!response.ok) throw new Error(data.detail || "Failed to update status");
+          if (!response.ok) throw new Error(getErrorMessage(data, "Failed to update status"));
 
           setUsers(users.map(u => 
             u.email === email ? { ...u, status: newStatus } : u
@@ -361,7 +362,7 @@ const AdminUserManagement = () => {
           });
 
           const data = await response.json();
-          if (!response.ok) throw new Error(data.detail || "Failed to delete user");
+          if (!response.ok) throw new Error(getErrorMessage(data, "Failed to delete user"));
 
           setUsers(users.filter(u => u.email !== email));
           setTimeout(() => {

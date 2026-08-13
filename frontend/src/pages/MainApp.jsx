@@ -161,6 +161,7 @@ export default function MainApp() {
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   const analyzingTabId = useRef(activeTabId);
+  const blocklyAnalyzeTimeoutRef = useRef(null);
 
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
@@ -321,7 +322,7 @@ export default function MainApp() {
     const handleOnline = () => { setIsOnline(true); showToast("Connection restored.", "success"); };
     const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Using local Pyodide.", "error"); };
     window.addEventListener("online", handleOnline); window.addEventListener("offline", handleOffline);
-    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); };
+    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); clearTimeout(blocklyAnalyzeTimeoutRef.current); };
   }, []);
 
   useEffect(() => {
@@ -445,33 +446,21 @@ export default function MainApp() {
     analyzingTabId.current = tabId;
     const cleanCode = sanitizePythonCode(code);
 
-    if (isOnline && API_BASE) {
-      try {
-        const response = await fetch(`${API_BASE}/api/analyze`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ code: cleanCode }) });
-        if (!response.ok) throw new Error("FastAPI analyze failed");
-        const data = await response.json();
-        if (data.status === "success") {
-          const initialCounts = {};
-          (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-          updateTab(tabId, {
-            analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
-            analysisResult: {
-              total: data.total,
-              space_total: data.space_total || "O(1)",
-              overall_explanation: data.overall_explanation || "",
-              lines: data.lines || [],
-              call_graph: data.call_graph || {},
-              is_recursive: data.is_recursive || false,
-              scope_warnings: data.scope_warnings || []
-            },
-            lineExecutions: (prev) => ({ ...prev, ...initialCounts }), syntaxErrors: [],
-          });
-        } else {
-          updateTab(tabId, { syntaxErrors: [{ line: data.line, message: `${data.message}. ${translatePythonError(data.message)}` }] });
-        }
-        return;
-      } catch (error) { console.warn("Online analysis failed, safely falling back locally.", error); }
-    }
+    // Complexity analysis always runs client-side inside the Pyodide
+    // worker -- there used to be an `/api/analyze` REST round-trip
+    // attempted first whenever `isOnline` was true, but that endpoint is
+    // an explicitly-documented static stub (see api/routers/analyze_router.py)
+    // that never runs real analysis. It was firing on every debounced
+    // keystroke *and* on every undebounced Blockly workspace change,
+    // which meant real-time analysis was hammering the backend with
+    // requests that returned a fixed dummy payload -- wasted network
+    // traffic that would only get worse as concurrent users increase,
+    // for zero analytical benefit (and it could briefly show a broken
+    // "undefined" complexity badge if that fetch happened to resolve
+    // before the local fallback ran). Going straight to the worker here
+    // matches ActivityApp.jsx's existing (correct) analysis path and
+    // means this feature scales with the number of student *browsers*
+    // doing the work themselves, not with backend capacity.
     if (workerRef.current) workerRef.current.postMessage({ type: "ANALYZE_CODE", code: cleanCode });
   };
 
@@ -484,7 +473,16 @@ export default function MainApp() {
     const canMarkDirty = Date.now() > (tab.ignoreDirtyUntil || 0);
 
     if (!tab.isEditingCode) {
-      if (oldCode !== newCode) analyzeCode(tabId, newCode);
+      if (oldCode !== newCode) {
+        // Blockly can fire several onChange events for a single user
+        // action (dragging a block, resizing a mutator, etc.), and each
+        // one used to trigger an immediate re-analysis. Debouncing this
+        // the same way the Python-editor path already is (800ms) avoids
+        // spinning up the Pyodide worker many times in quick succession
+        // for what's ultimately one edit.
+        if (blocklyAnalyzeTimeoutRef.current) clearTimeout(blocklyAnalyzeTimeoutRef.current);
+        blocklyAnalyzeTimeoutRef.current = setTimeout(() => analyzeCode(tabId, newCode), 800);
+      }
       updateTab(tabId, { 
         blocklyJson: json, 
         pythonCode: newCode,

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { FiArrowLeft, FiCheckCircle, FiEye, FiEyeOff, FiLock, FiXCircle } from "react-icons/fi";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { getErrorMessage } from "../utils/apiError";
 import "../styles/Auth.css";
 
 export default function ResetPassword() {
@@ -71,7 +72,7 @@ export default function ResetPassword() {
       const data = await response.json();
 
       if (!response.ok) {
-        showToast(data.detail || "Could not reset your password. The link may have expired.");
+        showToast(getErrorMessage(data, "Could not reset your password. The link may have expired."));
         setIsLoading(false);
         return;
       }

@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { LuRefreshCw, LuShield, LuTriangleAlert, LuUserCheck, LuUserPlus, LuUsers } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
+import { getErrorMessage } from "../utils/apiError";
 import EvaluationSuite from "./EvaluationSuite";
 import AnalyzerRegressionCheck from "../components/AnalyzerRegressionCheck";
 import "../styles/AdminUserManagement.css";
@@ -59,7 +60,7 @@ export default function AdminDashboard() {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Failed to fetch users");
+      if (!response.ok) throw new Error(getErrorMessage(data, "Failed to fetch users"));
 
       if (data && Array.isArray(data.users)) setUsers(data.users);
       else if (Array.isArray(data)) setUsers(data);

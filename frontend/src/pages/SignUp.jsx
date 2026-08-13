@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import PolicyConsent from "../components/PolicyConsent";
+import { getErrorMessage } from "../utils/apiError";
 import "../styles/Auth.css";
 
 export default function SignUp() {
@@ -78,7 +79,7 @@ export default function SignUp() {
       if (!isMountedRef.current) return;
 
       if (!response.ok || data.status !== "success") {
-        showToast(data.detail || "Registration failed");
+        showToast(getErrorMessage(data, "Registration failed"));
         setIsLoading(false);
         return;
       }
@@ -143,7 +144,7 @@ export default function SignUp() {
       if (!isMountedRef.current) return;
 
       if (!response.ok || data.status !== "success") {
-        showToast(data.detail || "Google Registration failed");
+        showToast(getErrorMessage(data, "Google Registration failed"));
         return;
       }
 

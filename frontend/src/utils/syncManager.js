@@ -3,6 +3,12 @@ import { assessmentsDB, progressDB, projectsDB, submissionsDB, syncQueueDB, temp
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, '') + "/api";
 
+// Tracks the last onboarding_state payload actually pushed to Postgres, so
+// syncDataWithServer() can skip the POST when nothing changed (see step 5
+// below). Module-level by design: it should persist across sync cycles for
+// the lifetime of the tab, not reset per-call.
+let lastPushedOnboardingState = null;
+
 const getAuthHeaders = () => {
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");
     if (!token) return null;
@@ -181,16 +187,28 @@ export const SyncManager = {
             // 5. Push onboarding tour completion state (guards against the
             // OnboardingContext's own POST never firing in this tab/session,
             // e.g. a stale tab that never re-mounted the provider).
+            //
+            // COST NOTE: this used to fire an unconditional POST every single
+            // sync cycle (every 30s, for every open authenticated tab) even
+            // when onboarding_state hadn't changed since the last push --
+            // pure ambient cost with zero benefit. Compare against what was
+            // last successfully pushed and skip the request when nothing
+            // changed; the "stale tab" guard this exists for is still
+            // covered the moment onboarding_state actually differs.
             try {
                 const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
                 if (storedUser && storedUser !== "null" && storedUser !== "undefined") {
                     const parsedUser = JSON.parse(storedUser);
                     if (parsedUser?.onboarding_state) {
-                        await fetch(`${API_BASE_URL}/update-onboarding`, {
-                            method: "POST",
-                            headers,
-                            body: JSON.stringify({ onboarding_state: parsedUser.onboarding_state })
-                        });
+                        const serializedOnboarding = JSON.stringify(parsedUser.onboarding_state);
+                        if (serializedOnboarding !== lastPushedOnboardingState) {
+                            await fetch(`${API_BASE_URL}/update-onboarding`, {
+                                method: "POST",
+                                headers,
+                                body: JSON.stringify({ onboarding_state: parsedUser.onboarding_state })
+                            });
+                            lastPushedOnboardingState = serializedOnboarding;
+                        }
                     }
                 }
             } catch (e) {
@@ -387,18 +405,48 @@ export const SyncManager = {
 // ==========================================
 
 let syncIntervalId = null;
+let lastPullTimestamp = 0;
+
+// Minimum time between pullRemoteState() calls, independent of the push
+// interval. pullRemoteState() always fires 6 GET requests (progress,
+// assessments, submissions, projects, templates, onboarding) no matter
+// whether anything actually changed remotely -- it exists to catch
+// cross-device edits, which are comparatively rare. syncDataWithServer()
+// (the push side) is already cheap on its own: it loops over locally
+// unsynced records, so it makes zero network calls when there's nothing
+// to push. Throttling the pull side separately, on a longer cadence,
+// keeps cross-device sync working while cutting the dominant source of
+// ambient serverless invocations (and Neon compute wake-ups) per open tab.
+const PULL_MIN_INTERVAL_MS = 120000; // 2 minutes
+
+const maybePullRemoteState = (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastPullTimestamp < PULL_MIN_INTERVAL_MS) return;
+    lastPullTimestamp = now;
+    SyncManager.pullRemoteState();
+};
 
 export const startBackgroundSync = (intervalMs = 30000) => {
     if (syncIntervalId) clearInterval(syncIntervalId);
-    
-    // Initial sync on start
+
+    // Initial sync + pull on start, always forced so the user sees fresh
+    // state right after login/reload rather than waiting for the throttle.
     SyncManager.syncDataWithServer();
-    SyncManager.pullRemoteState();
-    
+    maybePullRemoteState(true);
+
     // Set interval for periodic syncing
     syncIntervalId = setInterval(() => {
-        SyncManager.syncDataWithServer();
-        SyncManager.pullRemoteState();
+        // Skip the whole cycle while the tab is in the background. Students
+        // routinely leave AlgoBlocks open in an inactive tab; there's
+        // nothing to push/pull that anyone is looking at, so there's no
+        // reason to keep hitting the API (and keeping Neon's compute
+        // awake) for it. Sync resumes automatically via the
+        // visibilitychange listener below the moment the tab is focused
+        // again.
+        if (document.hidden) return;
+
+        SyncManager.syncDataWithServer(); // no-op network-wise when nothing's unsynced
+        maybePullRemoteState();           // throttled independently, see above
     }, intervalMs);
 };
 
@@ -408,6 +456,17 @@ export const stopBackgroundSync = () => {
         syncIntervalId = null;
     }
 };
+
+// Catch up immediately when a backgrounded tab regains focus, instead of
+// waiting out the rest of the poll interval -- keeps the UX snappy while
+// still respecting PULL_MIN_INTERVAL_MS so rapid tab-switching can't be
+// used to bypass the throttle.
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && syncIntervalId) {
+        SyncManager.syncDataWithServer();
+        maybePullRemoteState();
+    }
+});
 
 // ==========================================
 // Compatibility exports
