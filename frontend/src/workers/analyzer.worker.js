@@ -318,8 +318,8 @@ self.onmessage = async (e) => {
   // let alone analyzed -- conversion was blocked by a budget that had
   // nothing to do with its actual cost.
   const CODE_LENGTH_LIMITS = {
-    ANALYZE_CODE: 15000,
-    RUN_CODE: 15000,
+    ANALYZE_CODE: 30000,
+    RUN_CODE: 30000,
     PYTHON_TO_BLOCKS: 60000,
   };
   const maxLen = CODE_LENGTH_LIMITS[type];
