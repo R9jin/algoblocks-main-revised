@@ -26,11 +26,8 @@ import { translatePythonError } from "../utils/errorTranslator.js";
 import { syncManager } from "../utils/syncManager.js";
 
 // Default docking arrangement: Blocks and Python are tabbed together in the
-// main center region (mirroring the old toggle button). Console and
-// Complexity are NOT open at boot -- they start collapsed so the workspace
-// canvas gets full space on load, and are opened on demand via the footer
-// bar buttons (see WorkspaceFooterBar.jsx / toggleDockPanel), which dock
-// them into "bottom" tabbed together when opened. Any panel can still be
+// main center region (mirroring the old toggle button), Console and
+// Complexity are tabbed together docked at the bottom. Any panel can be
 // dragged to any other region at runtime; "Reset Workspace Layout" restores
 // exactly this.
 const DEFAULT_DOCK_LAYOUT = {
@@ -39,9 +36,9 @@ const DEFAULT_DOCK_LAYOUT = {
     left: { panelIds: [], size: 280 },
     center: { panelIds: ["blockly", "python"], size: 0 },
     right: { panelIds: [], size: 340 },
-    bottom: { panelIds: [], size: 280 },
+    bottom: { panelIds: ["console", "complexity"], size: 280 },
   },
-  activeTab: { top: null, left: null, center: "blockly", right: null, bottom: null },
+  activeTab: { top: null, left: null, center: "blockly", right: null, bottom: "console" },
 };
 
 const SIDEBAR_TEMPLATES = [

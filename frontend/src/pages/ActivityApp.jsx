@@ -32,9 +32,9 @@ const DEFAULT_DOCK_LAYOUT = {
     left: { panelIds: [], size: 280 },
     center: { panelIds: ["blockly", "python"], size: 0 },
     right: { panelIds: [], size: 340 },
-    bottom: { panelIds: [], size: 280 },
+    bottom: { panelIds: ["console", "complexity"], size: 280 },
   },
-  activeTab: { top: null, left: null, center: "blockly", right: null, bottom: null },
+  activeTab: { top: null, left: null, center: "blockly", right: null, bottom: "console" },
 };
 
 // ULTIMATE FALLBACK: Completely bypasses syncQueueDB errors by using native localStorage queue

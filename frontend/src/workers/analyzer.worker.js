@@ -354,7 +354,7 @@ for _mod in (
     'complexity_explainer.pattern_visitor', 'complexity_explainer.variable_explanations',
     'complexity_explainer.insight_gatherers', 'complexity_explainer.overall_narrative',
     'complexity_explainer.explanation_warnings', 'complexity_explainer.insight_generator',
-    'dynamic_tracer',
+    'dynamic_tracer', 'scope_detector',
 ):
     if _mod in sys.modules:
         del sys.modules[_mod]

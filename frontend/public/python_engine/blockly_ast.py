@@ -46,12 +46,34 @@ def extract_comments(code: str):
         pass
     return comments
 
+def extract_blank_lines(code: str):
+    """
+    Like extract_comments, blank lines are whitespace as far as ast.parse()
+    is concerned and never survive into the tree. Blockly's own code
+    generator doesn't insert blank lines between statements either -- each
+    block's generator function just returns its own line(s), concatenated
+    directly onto the next, so a round trip through the workspace used to
+    quietly compress every blank line out of the student's code, no matter
+    how it was originally spaced. Returns the 1-indexed line numbers that
+    are empty (or whitespace-only) in the source, so callers can re-insert
+    a `blank_line` marker block wherever a genuine gap existed.
+    """
+    blanks = set()
+    try:
+        for i, line in enumerate(code.split("\n"), start=1):
+            if line.strip() == "":
+                blanks.add(i)
+    except Exception:
+        pass
+    return blanks
+
 class BlocklyASTConverter:
     def __init__(self):
         self.variables = set()
         self.line_comments = {}
         self.consumed_comment_lines = set()
         self.defined_functions = set()
+        self.blank_lines = set()
 
     # ==========================================
     # TYPE INFERENCE & SAFETY MECHANISM
@@ -152,6 +174,7 @@ class BlocklyASTConverter:
             clean_code = code
 
         self.line_comments = extract_comments(clean_code)
+        self.blank_lines = extract_blank_lines(clean_code)
 
         try:
             tree = ast.parse(clean_code)
@@ -184,10 +207,13 @@ class BlocklyASTConverter:
         try:
             clusters = []
             current_chain_tail = None
+            last_chain_line = None
 
             for node in tree.body:
                 block = self.serialize_node(node, is_top_level=True) or self.make_raw_statement(node)
                 if not block: continue
+
+                node_start = getattr(node, "lineno", None)
 
                 if block.get("type") in ["procedures_defnoreturn", "procedures_defreturn"]:
                     # A trailing comment on the "def foo():" line itself may
@@ -199,12 +225,18 @@ class BlocklyASTConverter:
                     clusters.append(block)
                     current_chain_tail = None
                 else:
+                    blank_block = self._maybe_blank_line_block(last_chain_line, node_start) if current_chain_tail is not None else None
                     tail = self._attach_trailing_comments(node, block)
                     if current_chain_tail is None:
                         clusters.append(block)
+                    elif blank_block:
+                        current_chain_tail["next"] = {"block": blank_block}
+                        blank_block["next"] = {"block": block}
                     else:
                         current_chain_tail["next"] = {"block": block}
                     current_chain_tail = tail
+
+                last_chain_line = getattr(node, "end_lineno", node_start) or node_start
 
             y_offset = 20
             for cluster in clusters:
@@ -249,19 +281,45 @@ class BlocklyASTConverter:
         block_dict.setdefault("inputs", {})
         block_dict["inputs"][input_name] = {"block": child_block}
 
+    def _maybe_blank_line_block(self, last_line, next_line):
+        """
+        If at least one genuinely blank source line sits between the end of
+        the previously-emitted statement and the start of the next one,
+        returns a single `blank_line` marker block to chain between them
+        (collapsing any run of consecutive blank lines to one, matching how
+        most style guides treat extra blank lines anyway). Returns None if
+        there's no gap, or nothing to compare against yet.
+        """
+        if last_line is None or next_line is None:
+            return None
+        for ln in range(last_line + 1, next_line):
+            if ln in self.blank_lines:
+                return {"type": "blank_line", "id": gen_uid()}
+        return None
+
     def serialize_body(self, nodes):
         if not nodes: return None
         first, prev = None, None
+        last_line = None
 
         for node in nodes:
             block = self.serialize_node(node, is_top_level=False) or self.make_raw_statement(node)
             if not block: continue
+
+            node_start = getattr(node, "lineno", None)
+            blank_block = self._maybe_blank_line_block(last_line, node_start) if prev else None
+
             if not first:
                 first = block
             elif prev:
-                prev["next"] = {"block": block}
+                if blank_block:
+                    prev["next"] = {"block": blank_block}
+                    blank_block["next"] = {"block": block}
+                else:
+                    prev["next"] = {"block": block}
             tail = self._attach_trailing_comments(node, block)
             prev = tail
+            last_line = getattr(node, "end_lineno", node_start) or node_start
 
         return first
 
