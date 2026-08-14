@@ -220,17 +220,47 @@ export const SyncManager = {
             for (const task of queue) {
                 try {
                     if (task.action === "DELETE_PROJECT") {
+                        // Defensive cleanup: a "local_"-prefixed id was never
+                        // pushed to Postgres, so the backend will never
+                        // recognize it -- this DELETE would fail forever and
+                        // keep the queue (and the "Local Pending" count)
+                        // stuck. Drop it locally instead of retrying it.
+                        if (String(task.payload.projectId).startsWith("local_")) {
+                            await syncQueueDB.remove(task.id);
+                            continue;
+                        }
                         const res = await fetch(`${API_BASE_URL}/projects/${task.payload.projectId}`, {
                             method: "DELETE",
                             headers
                         });
-                        if (res.ok) {
+                        if (res.ok || res.status === 404) {
                             await syncQueueDB.remove(task.id);
                         }
                     } else if (task.action === "DELETE_TEMPLATE") {
+                        if (String(task.payload.templateId).startsWith("local_")) {
+                            await syncQueueDB.remove(task.id);
+                            continue;
+                        }
                         const res = await fetch(`${API_BASE_URL}/templates/${task.payload.templateId}`, {
                             method: "DELETE",
                             headers
+                        });
+                        if (res.ok || res.status === 404) {
+                            await syncQueueDB.remove(task.id);
+                        }
+                    } else if (task.action === "RETRY_REQUEST") {
+                        // Generic queued HTTP retry (e.g. assessment/progress
+                        // updates queued by AssessmentPage.jsx via
+                        // syncQueueDB.setItem when the direct submit failed
+                        // or the user was offline). Replays the exact
+                        // request and clears it from the queue once it
+                        // succeeds.
+                        const { url, method, payload: reqPayload } = task.payload || {};
+                        if (!url) { await syncQueueDB.remove(task.id); continue; }
+                        const res = await fetch(url, {
+                            method: method || "POST",
+                            headers,
+                            body: reqPayload !== undefined ? JSON.stringify(reqPayload) : undefined
                         });
                         if (res.ok) {
                             await syncQueueDB.remove(task.id);
@@ -251,7 +281,17 @@ export const SyncManager = {
      */
     async queueProjectDeletion(projectId) {
         await projectsDB.delete(projectId);
-        
+
+        // A "local_"-prefixed id belongs to a project that was created (and,
+        // in this case, deleted) before it was ever pushed to Postgres --
+        // the backend has never heard of it, so there is nothing remote to
+        // delete. Queuing a retry for it would keep failing against the
+        // backend forever (it can't recognize the id) and leave a
+        // permanently-stuck "Local Pending" entry that not even Force Sync
+        // could ever resolve. Deleting the local copy above is the entire
+        // operation in that case.
+        if (String(projectId).startsWith("local_")) return;
+
         if (!navigator.onLine) {
             await syncQueueDB.add("DELETE_PROJECT", { projectId });
             return;
@@ -278,7 +318,12 @@ export const SyncManager = {
         if(templatesDB.delete) {
             await templatesDB.delete(templateId);
         }
-        
+
+        // See queueProjectDeletion above -- a "local_"-prefixed id was never
+        // pushed to Postgres, so there is nothing remote to delete and
+        // nothing worth queuing (it would just fail and get stuck forever).
+        if (String(templateId).startsWith("local_")) return;
+
         if (!navigator.onLine) {
             await syncQueueDB.add("DELETE_TEMPLATE", { templateId });
             return;

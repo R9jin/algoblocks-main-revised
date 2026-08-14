@@ -7,6 +7,7 @@ import {
   FiCircle,
   FiClipboard,
   FiDatabase,
+  FiEye,
   FiFilter,
   FiLock,
   FiRefreshCw,
@@ -403,12 +404,12 @@ export default function LearningPath() {
                   )}
                   {isGlobalPreTestDone ? (
                     <button
-                      className="btn-assessment retake"
+                      className="btn-assessment view-results"
                       onClick={() => navigate(`/assessment/course-pre-test/pre`)}
                       style={{ padding: "10px 20px" }}
                     >
-                      <FiCheckCircle style={{ marginRight: "8px" }} />
-                      Retake Diagnostic
+                      <FiEye style={{ marginRight: "8px" }} />
+                      View Results
                     </button>
                   ) : (
                     <button
@@ -605,13 +606,13 @@ export default function LearningPath() {
                           <>
                             <FiCheckCircle color="#22c55e" size={16} />
                             <button
-                              className="btn-assessment retake"
+                              className="btn-assessment view-results"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/assessment/${module.moduleId}/post`);
                               }}
                             >
-                              Retake
+                              View Results
                             </button>
                           </>
                         ) : (
@@ -657,12 +658,12 @@ export default function LearningPath() {
                     </button>
                   ) : isGlobalPostTestDone ? (
                     <button
-                      className="btn-assessment retake"
+                      className="btn-assessment view-results"
                       onClick={() => navigate(`/assessment/course-post-test/post`)}
                       style={{ padding: "10px 20px" }}
                     >
-                      <FiCheckCircle style={{ marginRight: "8px" }} />
-                      Retake Final Exam
+                      <FiEye style={{ marginRight: "8px" }} />
+                      View Results
                     </button>
                   ) : (
                     <button

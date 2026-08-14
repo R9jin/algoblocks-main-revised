@@ -457,19 +457,6 @@
   flex-wrap: wrap;
 }
 
-.btn-retake {
-  padding: 0.75rem 1.75rem;
-  border-radius: 10px;
-  border: 2px solid #e2deff;
-  background: #fff;
-  color: #5A1398;
-  font-size: 0.92rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.btn-retake:hover { border-color: #5A1398; background: #ede9ff; }
-
 .btn-proceed {
   padding: 0.75rem 1.75rem;
   border-radius: 10px;

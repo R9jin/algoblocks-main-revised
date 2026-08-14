@@ -17,8 +17,14 @@ export default function Projects() {
   const [globalSyncing, setGlobalSyncing] = useState(false);
   const [syncState, setSyncState] = useState({ syncing: false, pendingCount: 0, lastSynced: null });
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", isDanger: false, onConfirmAction: null });
+  const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
   const closeModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }));
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
+  };
 
   useEffect(() => {
     loadProjects();
@@ -107,7 +113,18 @@ export default function Projects() {
       // no .keys() method, so this previously always evaluated to an empty
       // array and silently showed "0 Local Pending" no matter what was
       // actually queued.
-      const queuedActions = await syncQueueDB.getAll();
+      //
+      // syncQueue is a single shared IndexedDB table used for more than
+      // just project deletions -- AssessmentPage.jsx also queues retryable
+      // assessment/progress requests ("RETRY_REQUEST") into the same
+      // table. This page is specifically about projects/templates, so only
+      // count the deletion actions that actually belong to it; otherwise
+      // an unrelated queued assessment retry would inflate the "Local
+      // Pending" badge shown here.
+      const allQueuedActions = await syncQueueDB.getAll();
+      const queuedActions = allQueuedActions.filter(
+        (t) => t.action === "DELETE_PROJECT" || t.action === "DELETE_TEMPLATE"
+      );
 
       // 3. READ LOCAL IDB RECONCILED STATE
       const loadedProjects = [];
@@ -155,17 +172,18 @@ export default function Projects() {
       return;
     }
 
+    const title = proj.title || proj.name || "this project";
     setModalConfig({
       isOpen: true,
       title: "Delete Project?",
-      message: `Are you sure you want to delete "${proj.title || proj.name || "this project"}"? This action cannot be undone.`,
+      message: `Are you sure you want to delete "${title}"? This action cannot be undone.`,
       confirmText: "Delete",
       isDanger: true,
-      onConfirmAction: () => confirmDeleteProject(id),
+      onConfirmAction: () => confirmDeleteProject(id, title),
     });
   };
 
-  const confirmDeleteProject = async (id) => {
+  const confirmDeleteProject = async (id, title) => {
     closeModal();
     // Optimistically drop it from the visible list right away so the UI
     // never looks like the delete "didn't do anything".
@@ -182,8 +200,10 @@ export default function Projects() {
       // when it's not.
       await syncManager.queueProjectDeletion(id);
       await refreshPendingCount();
+      showToast(`"${title || "Project"}" deleted successfully.`, "success");
     } catch (error) {
       console.error("Failed to delete project:", error);
+      showToast("Failed to delete project. Please try again.", "error");
       // Deletion failed outright — reload from source of truth so the
       // project reappears rather than leaving the UI in a false state.
       loadProjects();
@@ -192,9 +212,15 @@ export default function Projects() {
 
   const refreshPendingCount = async () => {
     try {
-      const queuedActions = await syncQueueDB.getAll();
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+      const user = storedUser ? JSON.parse(storedUser) : null;
+      const allQueuedActions = await syncQueueDB.getAll();
+      const queuedActions = allQueuedActions.filter(
+        (t) => t.action === "DELETE_PROJECT" || t.action === "DELETE_TEMPLATE"
+      );
       let unsyncedCount = 0;
       await projectsDB.iterate((value) => {
+        if (user && value.owner_id !== user.email && value.userId !== user.email) return;
         if (!value.isSynced && !value.synced) unsyncedCount++;
       });
       setSyncState(prev => ({ ...prev, pendingCount: unsyncedCount + queuedActions.length, lastSynced: new Date() }));
@@ -222,6 +248,12 @@ export default function Projects() {
         @keyframes projSpin { 100% { transform: rotate(360deg); } }
         .spin-anim { animation: projSpin 1s linear infinite; }
       `}</style>
+
+      {toast.show && (
+        <div className={`projects-toast-notification ${toast.type === "error" ? "projects-toast-error" : "projects-toast-success"}`}>
+          {toast.message}
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={modalConfig.isOpen}
