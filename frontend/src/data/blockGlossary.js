@@ -17,10 +17,10 @@ export const CATEGORY_COLOURS = {
   Math: "#4C97FF",
   Text: "#d5a52a",
   "Input / Output": "#FF8A65",
-  "Lists (Built-in Type)": "#4DB6AC",
-  "Dictionaries (Built-in Type)": "#BA68C8",
-  "Sets & Tuples (Core Built-in Types)": "#7986CB",
-  "Stacks & Queues (Abstract Data Types)": "#F06292",
+  "Lists": "#4DB6AC",
+  "Dictionaries": "#BA68C8",
+  "Sets & Tuples": "#7986CB",
+  "Stacks & Queues": "#F06292",
   Variables: "#f38286",
   Functions: "#7a6b66",
   "Raw Python": "#FF6B6B",
@@ -93,14 +93,6 @@ export const BLOCK_GLOSSARY = [
     useCase: "Use as a shorthand instead of a full If/Else block when you just need to pick between two values, like choosing the larger of two numbers.",
   },
   {
-    type: "procedure_return_value",
-    label: "Return",
-    category: "Logic",
-    python: "return value",
-    description: "Exits the current function and sends the specified value back to wherever the function was called. Any code after this block in the same function does not run.",
-    useCase: "Use at the end of (or partway through) a function to hand back its result, like returning the sum from an add_numbers() function.",
-  },
-  {
     type: "python_type",
     label: "Type Of Value",
     category: "Logic",
@@ -123,14 +115,6 @@ export const BLOCK_GLOSSARY = [
     python: "isinstance(value, type)",
     description: "Checks if a value or variable is exactly an instance of a given data type, returning True if it matches and False otherwise.",
     useCase: "Use to validate input before processing it, like confirming a value is a number before doing math on it.",
-  },
-  {
-    type: "type_cast_advanced",
-    label: "Convert To Type",
-    category: "Logic",
-    python: "float(x)   bool(x)   str(x)   list(x)",
-    description: "Forcefully converts a given variable or value into the designated Python data type (e.g., turning the text '5' into the usable integer/float 5).",
-    useCase: "Use when a value arrives as the wrong type for what you need next, like converting user input (always a string) into a number.",
   },
 
   // ───────────────────────────── Loops ─────────────────────────────
@@ -223,6 +207,14 @@ export const BLOCK_GLOSSARY = [
     python: "int(value)",
     description: "Converts a given value (like a float or a string containing numbers) into an integer. Decimals are truncated, not rounded.",
     useCase: "Use when you need a whole number for indexing or counting, like converting '5' typed by a user into the number 5.",
+  },
+  {
+    type: "type_cast_advanced",
+    label: "Convert To Type",
+    category: "Math",
+    python: "float(x)   bool(x)   str(x)   list(x)",
+    description: "Forcefully converts a given variable or value into the designated Python data type (e.g., turning the text '5' into the usable integer/float 5).",
+    useCase: "Use when a value arrives as the wrong type for what you need next, like converting user input (always a string) into a number.",
   },
   {
     type: "math_min_max",
@@ -337,6 +329,14 @@ export const BLOCK_GLOSSARY = [
     python: '"""\nWrite multi-line note here\n"""',
     description: "Adds a multi-line docstring comment (wrapped in triple quotes) to the Python code. Often used to document entire functions or block out larger text descriptions.",
     useCase: "Use to write a longer explanation at the top of a function or file, like describing what a whole program is meant to do.",
+  },
+  {
+    type: "blank_line",
+    label: "Blank Line",
+    category: "Text",
+    python: "",
+    description: "Represents a blank line for spacing and readability in the generated Python code. Purely visual -- it has no effect when the code runs.",
+    useCase: "Use to separate logical sections of your program, the same way you'd leave a blank line between paragraphs to make hand-written code easier to read.",
   },
   {
     type: "text",
@@ -477,11 +477,11 @@ export const BLOCK_GLOSSARY = [
     useCase: "Use to gather information from the person running the program, like asking for their name.",
   },
 
-  // ────────────────────── Lists (Built-in Type) ──────────────────────
+  // ────────────────────── Lists ──────────────────────
   {
     type: "string_to_list",
     label: "String To List",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "list(string)",
     description: "Converts a string into a list where each character (or separated word) becomes an individual element in the newly created list.",
     useCase: "Use to break a word into individual letters for processing one at a time.",
@@ -489,7 +489,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "lists_create_with",
     label: "Create List With",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "[item1, item2, ...]",
     description: "Creates a new list containing the given items, with an adjustable number of slots.",
     useCase: "Use to build a list from scratch with specific starting values, like a list of student names.",
@@ -497,7 +497,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_append",
     label: "Append To List",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list.append(item)",
     description: "Adds a new item to the very end of an existing list. The list is modified in-place and its size increases by one.",
     useCase: "Use inside a loop to gradually build up a list of results, like collecting all even numbers found.",
@@ -505,7 +505,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_concat",
     label: "Concatenate Two Lists",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "list1 + list2",
     description: "Joins two separate lists together end-to-end to form a single, newly combined list.",
     useCase: "Use to merge two separate collections into one, like combining two teams' rosters.",
@@ -513,7 +513,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_remove_value",
     label: "Remove Value From List",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list.remove(value)",
     description: "Searches for the very first exact match of the specified value in the list and removes it. Later elements shift left to fill the gap.",
     useCase: "Use to take a specific item out of a list, like removing a completed task from a to-do list.",
@@ -521,7 +521,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_pop",
     label: "Pop Last Item (With Return)",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list.pop()",
     description: "Removes the last item from the end of the list and returns that item so it can be assigned to a variable or used immediately.",
     useCase: "Use to implement stack-like behavior, or to grab and remove the most recently added item.",
@@ -529,7 +529,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_pop_statement",
     label: "Pop Last Item (Discard)",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list.pop()  # value discarded",
     description: "Removes the last item from the end of the list but does not return it — the removed item is simply discarded.",
     useCase: "Use when you just want to shrink a list by one and don't care what the removed value was.",
@@ -537,7 +537,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_slice_advanced",
     label: "Slice List",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list[start:end]",
     description: "Extracts a portion (slice) of a list from a start index up to an end index. Leave indices blank to default to the beginning or end of the list.",
     useCase: "Use to grab a chunk of a list, like the first 3 elements or everything after index 5.",
@@ -545,7 +545,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_sort",
     label: "Sort List In-Place",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list.sort(reverse=False)",
     description: "Sorts the elements of the list permanently in-place (modifying the original list) in either ascending or descending order.",
     useCase: "Use when you want the original list itself rearranged, like sorting a scoreboard from highest to lowest.",
@@ -553,7 +553,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_sorted",
     label: "Sorted Copy Of List",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "sorted(my_list, reverse=False)",
     description: "Creates and returns a brand new sorted list, leaving the original list completely untouched and unmodified.",
     useCase: "Use when you need a sorted version for display or comparison but still need the original order preserved elsewhere.",
@@ -561,7 +561,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_reverse",
     label: "Reverse List",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list.reverse()",
     description: "Reverses the order of the items in the list entirely in-place. The first item becomes the last, and the last becomes the first.",
     useCase: "Use to flip the order of a list, like showing the most recent entries first.",
@@ -569,7 +569,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_clear",
     label: "Clear List / Dictionary",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list.clear()",
     description: "Empties the entire collection, aggressively removing all items from the list or dictionary and leaving it completely blank.",
     useCase: "Use to reset a collection back to empty, like clearing a shopping cart list.",
@@ -577,7 +577,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_insert",
     label: "Insert At Index",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list.insert(index, item)",
     description: "Inserts a new item into the list exactly at the given index position. Elements originally at or after this index shift one position to the right.",
     useCase: "Use to place an item in the middle of a list rather than at the end, like inserting a new step into an ordered sequence.",
@@ -585,7 +585,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_count",
     label: "Count Occurrences In List",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list.count(item)",
     description: "Scans the entire list and counts exactly how many times the specified item appears within it.",
     useCase: "Use to tally how often a value shows up, like counting how many times a specific grade was recorded.",
@@ -593,7 +593,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "list_range",
     label: "Create Range Of Numbers",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "list(range(start, end))",
     description: "Generates a list of sequential numbers starting from the 'start' value up to, but not including, the 'end' value.",
     useCase: "Use to quickly build a list of numbers for a loop or for testing, like [1, 2, 3, ..., 9].",
@@ -601,7 +601,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "lists_repeat",
     label: "Create List Repeated",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "[value] * n",
     description: "Creates a new list by repeating a single given value a specified number of times.",
     useCase: "Use to initialize a list of a fixed size with a default value, like a list of ten zeros before filling it in.",
@@ -609,7 +609,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "lists_length",
     label: "Length Of List",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "len(my_list)",
     description: "Returns the number of items currently in a list.",
     useCase: "Use to know how many elements a list holds, often to control a loop's bound.",
@@ -617,7 +617,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "lists_isEmpty",
     label: "Is List Empty?",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "len(my_list) == 0",
     description: "Checks whether a list has zero items, returning True or False.",
     useCase: "Use to guard against processing an empty list, like avoiding a crash when computing an average.",
@@ -625,7 +625,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "lists_indexOf",
     label: "Find Item In List",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list.index(item)",
     description: "Finds the position of the first (or last) occurrence of an item in a list.",
     useCase: "Use to locate where a specific value sits inside a list.",
@@ -633,7 +633,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "lists_getIndex",
     label: "Get Item At Index",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list[index]",
     description: "Retrieves (and optionally removes) an item from a list at a specific position — first, last, a chosen index, or random.",
     useCase: "Use to read a specific element out of a list, like the third item.",
@@ -641,7 +641,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "lists_setIndex",
     label: "Set Item At Index",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list[index] = value",
     description: "Replaces (or inserts) an item at a specific position in a list.",
     useCase: "Use to update a specific slot in a list, like correcting the value stored at index 2.",
@@ -649,7 +649,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "lists_getSublist",
     label: "Get Sublist",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "my_list[start:end]",
     description: "Extracts a portion (sub-list) of a list between two positions.",
     useCase: "Use to grab a chunk of a list, like the first 3 elements.",
@@ -657,7 +657,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "lists_split",
     label: "Split / Join String ⇄ List",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "text.split(delim)   delim.join(list)",
     description: "Splits a string into a list using a delimiter, or joins a list of strings into one string using a delimiter.",
     useCase: "Use to convert between a delimited string (like CSV text) and a list, in either direction.",
@@ -665,17 +665,17 @@ export const BLOCK_GLOSSARY = [
   {
     type: "lists_sort",
     label: "Sorted Copy Of List (Built-in)",
-    category: "Lists (Built-in Type)",
+    category: "Lists",
     python: "sorted(my_list)",
     description: "Returns a new sorted list, either alphabetically or numerically, in ascending or descending order, leaving the original untouched.",
     useCase: "Use as Blockly's standard sorting block when you don't need the extra options offered by AlgoBlocks' 'Sorted Copy Of List' block.",
   },
 
-  // ─────────────────── Dictionaries (Built-in Type) ───────────────────
+  // ─────────────────── Dictionaries ───────────────────
   {
     type: "dict_create_empty",
     label: "Create Empty Dictionary",
-    category: "Dictionaries (Built-in Type)",
+    category: "Dictionaries",
     python: "{}",
     description: "Initializes a new, empty Python dictionary. Dictionaries store data in key-value pairs, allowing for extremely fast lookups by key.",
     useCase: "Use to start building a lookup table, like mapping student names to their grades.",
@@ -683,7 +683,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "dict_set",
     label: "Set Dictionary Key",
-    category: "Dictionaries (Built-in Type)",
+    category: "Dictionaries",
     python: "my_dict[key] = value",
     description: "Adds a new key-value pair to a dictionary or updates the value of an existing key. The key must be a unique, immutable type like a string or number.",
     useCase: "Use to store or update a piece of data under a named key, like recording a student's score.",
@@ -691,7 +691,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "dict_get",
     label: "Get Dictionary Key",
-    category: "Dictionaries (Built-in Type)",
+    category: "Dictionaries",
     python: "my_dict[key]",
     description: "Retrieves the value associated with a specific key in a dictionary. If the key doesn't exist, Python raises a KeyError.",
     useCase: "Use to look up a stored value by name, like fetching a student's score by their name.",
@@ -699,7 +699,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "dict_pair",
     label: "Key : Value Pair",
-    category: "Dictionaries (Built-in Type)",
+    category: "Dictionaries",
     python: "key: value",
     description: "Creates a single key-value pair block, used specifically to populate a new dictionary literal directly upon creation.",
     useCase: "Use alongside 'Create Dictionary From Pairs' to build a dictionary with several entries at once.",
@@ -707,7 +707,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "dict_from_pairs",
     label: "Create Dictionary From Pairs",
-    category: "Dictionaries (Built-in Type)",
+    category: "Dictionaries",
     python: "{key1: value1, key2: value2, ...}",
     description: "Constructs a new dictionary populated with a given list of pre-defined key-value pairs.",
     useCase: "Use to build a whole dictionary in one step, like a starting roster of names and scores.",
@@ -715,7 +715,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "dict_pop",
     label: "Remove Dictionary Key",
-    category: "Dictionaries (Built-in Type)",
+    category: "Dictionaries",
     python: "my_dict.pop(key)",
     description: "Removes the specified key from the dictionary and returns its associated value. Helpful for extracting and deleting data in one step.",
     useCase: "Use to take an entry out of a dictionary while also grabbing its value, like removing a completed order from a pending-orders map.",
@@ -723,17 +723,17 @@ export const BLOCK_GLOSSARY = [
   {
     type: "dict_keys_values",
     label: "Get Keys / Values / Items",
-    category: "Dictionaries (Built-in Type)",
+    category: "Dictionaries",
     python: "list(my_dict.keys())   list(my_dict.values())   list(my_dict.items())",
     description: "Extracts all keys, all values, or all key-value pairs (items) from a dictionary and converts them into a flat list for easy looping.",
     useCase: "Use before a For Each loop when you need to iterate over just the names, just the scores, or both together.",
   },
 
-  // ──────────── Sets & Tuples (Core Built-in Types) ────────────
+  // ──────────── Sets & Tuples ────────────
   {
     type: "tuple_create",
     label: "Create Tuple",
-    category: "Sets & Tuples (Core Built-in Types)",
+    category: "Sets & Tuples",
     python: "(a, b)",
     description: "Creates a tuple, an ordered, unchangeable (immutable) collection of elements. Once created, its items cannot be modified or reassigned.",
     useCase: "Use to group fixed, related values together, like an (x, y) coordinate pair that should never change.",
@@ -741,7 +741,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "set_create_empty",
     label: "Create Empty Set",
-    category: "Sets & Tuples (Core Built-in Types)",
+    category: "Sets & Tuples",
     python: "set()",
     description: "Initializes a new, empty Python set. Sets are unordered collections that strictly do not allow any duplicate elements.",
     useCase: "Use to start collecting unique values, like tracking which usernames have already been seen.",
@@ -749,7 +749,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "set_from_list",
     label: "List To Set",
-    category: "Sets & Tuples (Core Built-in Types)",
+    category: "Sets & Tuples",
     python: "set(my_list)",
     description: "Converts an existing list into a set, automatically filtering out and removing duplicate values, and optimizing it for O(1) constant-time lookups.",
     useCase: "Use to quickly remove duplicates from a list, or to speed up repeated membership checks.",
@@ -757,7 +757,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "set_add",
     label: "Add To Set",
-    category: "Sets & Tuples (Core Built-in Types)",
+    category: "Sets & Tuples",
     python: "my_set.add(item)",
     description: "Adds a single item to a set. If the item already exists in the set, the set remains completely unchanged (no duplicates are added).",
     useCase: "Use to record that a value has been seen, without worrying about accidentally adding it twice.",
@@ -765,7 +765,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "set_remove",
     label: "Remove From Set",
-    category: "Sets & Tuples (Core Built-in Types)",
+    category: "Sets & Tuples",
     python: "my_set.remove(item)",
     description: "Removes a specific item from a set. If the item is not found, Python raises a KeyError and halts execution.",
     useCase: "Use to take a value out of a set, like removing a user who has logged out from an 'active users' set.",
@@ -773,17 +773,17 @@ export const BLOCK_GLOSSARY = [
   {
     type: "set_operations",
     label: "Set Union / Intersection / Difference",
-    category: "Sets & Tuples (Core Built-in Types)",
+    category: "Sets & Tuples",
     python: "set1 | set2   set1 & set2   set1 - set2",
     description: "Performs mathematical set operations: Union combines all elements from both sets, Intersection finds only the common elements, and Difference finds elements unique to one set.",
     useCase: "Use to compare two groups, like finding students enrolled in both of two classes (intersection).",
   },
 
-  // ────────── Stacks & Queues (Abstract Data Types) ──────────
+  // ────────── Stacks & Queues ──────────
   {
     type: "stack_push",
     label: "Push To Stack",
-    category: "Stacks & Queues (Abstract Data Types)",
+    category: "Stacks & Queues",
     python: "stack.append(item)",
     description: "Adds an element to the top of the stack data structure. Under the hood in Python, this is equivalent to appending an item to the end of a list.",
     useCase: "Use to add a new item on top of a stack, like pushing a new 'undo' state.",
@@ -791,7 +791,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "stack_pop",
     label: "Pop From Stack (With Return)",
-    category: "Stacks & Queues (Abstract Data Types)",
+    category: "Stacks & Queues",
     python: "stack.pop()",
     description: "Removes and returns the element at the top of the stack (the most recently added item), following Last-In-First-Out (LIFO) order.",
     useCase: "Use to retrieve and remove the most recently pushed item, like undoing the last action taken.",
@@ -799,7 +799,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "stack_pop_statement",
     label: "Pop From Stack (Discard)",
-    category: "Stacks & Queues (Abstract Data Types)",
+    category: "Stacks & Queues",
     python: "stack.pop()  # value discarded",
     description: "Removes the element at the top of the stack but discards it instantly without returning the value.",
     useCase: "Use when you just need to shrink the stack by one and don't need the removed value.",
@@ -807,7 +807,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "stack_peek",
     label: "Peek Top Of Stack",
-    category: "Stacks & Queues (Abstract Data Types)",
+    category: "Stacks & Queues",
     python: "stack[-1]",
     description: "Looks at and returns the element at the top of the stack without modifying or removing it.",
     useCase: "Use to check what's currently on top of the stack without changing anything, like previewing the next 'undo' action.",
@@ -815,7 +815,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "queue_enqueue",
     label: "Enqueue To Queue",
-    category: "Stacks & Queues (Abstract Data Types)",
+    category: "Stacks & Queues",
     python: "queue.append(item)",
     description: "Adds an element to the back of the queue data structure. Under the hood in Python, this is equivalent to appending an item to the end of a list.",
     useCase: "Use to add a new item to the back of a line, like a new customer joining a waiting queue.",
@@ -823,7 +823,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "queue_dequeue",
     label: "Dequeue From Queue (With Return)",
-    category: "Stacks & Queues (Abstract Data Types)",
+    category: "Stacks & Queues",
     python: "queue.pop(0)",
     description: "Removes and returns the element at the very front of the queue (the oldest item added), following First-In-First-Out (FIFO) order.",
     useCase: "Use to serve the next person in line, retrieving and removing whoever has waited the longest.",
@@ -831,7 +831,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "queue_dequeue_statement",
     label: "Dequeue From Queue (Discard)",
-    category: "Stacks & Queues (Abstract Data Types)",
+    category: "Stacks & Queues",
     python: "queue.pop(0)  # value discarded",
     description: "Removes the element at the very front of the queue but discards it instantly without returning the value.",
     useCase: "Use when you just need to shrink the queue by one and don't need the removed value.",
@@ -839,7 +839,7 @@ export const BLOCK_GLOSSARY = [
   {
     type: "queue_peek",
     label: "Peek Front Of Queue",
-    category: "Stacks & Queues (Abstract Data Types)",
+    category: "Stacks & Queues",
     python: "queue[0]",
     description: "Looks at and returns the element at the very front of the queue without modifying or removing it.",
     useCase: "Use to check who's next in line without actually removing them from the queue yet.",
@@ -887,6 +887,14 @@ export const BLOCK_GLOSSARY = [
     python: "def my_function(params):\n    ...\n    return result",
     description: "Defines a reusable named function that computes and sends back a value to wherever it's called.",
     useCase: "Use to package logic that produces a result you need elsewhere, like a calculate_average(list) function.",
+  },
+  {
+    type: "procedure_return_value",
+    label: "Return",
+    category: "Functions",
+    python: "return value",
+    description: "Exits the current function and sends the specified value back to wherever the function was called. Any code after this block in the same function does not run.",
+    useCase: "Use inside a 'Define Function (With Return)' block to hand back its result, like returning the sum from an add_numbers() function.",
   },
   {
     type: "procedures_callnoreturn",
@@ -947,10 +955,10 @@ export const CATEGORY_ORDER = [
   "Math",
   "Text",
   "Input / Output",
-  "Lists (Built-in Type)",
-  "Dictionaries (Built-in Type)",
-  "Sets & Tuples (Core Built-in Types)",
-  "Stacks & Queues (Abstract Data Types)",
+  "Lists",
+  "Dictionaries",
+  "Sets & Tuples",
+  "Stacks & Queues",
   "Variables",
   "Functions",
   "Raw Python",

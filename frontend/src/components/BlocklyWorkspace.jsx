@@ -21,6 +21,7 @@ registerFieldMultilineInput();
 Blockly.setLocale(En);
 
 let crossTabPluginInitialized = false;
+let proceduresFlyoutPatched = false;
 const DarkTheme = Blockly.Themes.Dark;
 const ModernTheme = Blockly.Themes.Modern;
 
@@ -55,7 +56,7 @@ const sanitizePythonCode = (code) => {
 };
 
 const customBlocks = [
-  { type: "comment_block", message0: "Comment %1", colour: "#999999", tooltip: "Adds a single-line comment to the Python code. Comments are ignored by the computer but help human readers understand the logic of the code.",
+  { type: "comment_block", message0: "Comment %1", colour: "#d5a52a", tooltip: "Adds a single-line comment to the Python code. Comments are ignored by the computer but help human readers understand the logic of the code.",
     args0: [{ type: "field_input", name: "TEXT", text: "write note here" }], previousStatement: null, nextStatement: null },
   { type: "math_assignment", message0: "%1 %2 %3", colour: "#4C97FF", tooltip: "Modifies an existing variable using an assignment operator (+=, -=, *=, /=). For example, using '+=' with a value of 1 will increment the current value of the variable by 1.",
     args0: [{ type: "field_variable", name: "VAR", variable: "item" }, { type: "field_dropdown", name: "OP", options: [["+=", "ADD"], ["-=", "MINUS"], ["*=", "MULTIPLY"], ["/=", "DIVIDE"]] }, { type: "input_value", name: "DELTA", check: "Number" }], inputsInline: true, previousStatement: null, nextStatement: null },
@@ -93,9 +94,9 @@ const customBlocks = [
     args0: [{ type: "field_dropdown", name: "OP", options: [["union", "UNION"], ["intersection", "INTERSECTION"], ["difference", "DIFFERENCE"]] }, { type: "input_value", name: "SET1" }, { type: "input_value", name: "SET2" }], inputsInline: true, output: null },
   { type: "tuple_create", message0: "create tuple with %1 and %2", style: "set_tuple_blocks", tooltip: "Creates a tuple, which is an ordered, unchangeable (immutable) collection of elements. Once created, its items cannot be modified or reassigned.",
     args0: [{ type: "input_value", name: "A" }, { type: "input_value", name: "B" }], inputsInline: true, output: null },
-  { type: "multi_line_comment", message0: "comment %1", colour: "#999999", tooltip: "Adds a multi-line docstring comment (wrapped in triple quotes) to the Python code. Often used to document entire functions or block out large text descriptions.",
+  { type: "multi_line_comment", message0: "comment %1", colour: "#d5a52a", tooltip: "Adds a multi-line docstring comment (wrapped in triple quotes) to the Python code. Often used to document entire functions or block out large text descriptions.",
     args0: [{ type: "field_multilinetext", name: "TEXT", text: "Write multi-line note here", spellcheck: false }], previousStatement: null, nextStatement: null },
-  { type: "blank_line", message0: "\u00b7 \u00b7 \u00b7", colour: "#4a4a4a", tooltip: "Represents a blank line for spacing/readability in the generated Python code. Purely visual -- it has no effect when the code runs.",
+  { type: "blank_line", message0: "\u00b7 \u00b7 \u00b7", colour: "#d5a52a", tooltip: "Represents a blank line for spacing/readability in the generated Python code. Purely visual -- it has no effect when the code runs.",
     previousStatement: null, nextStatement: null },
   { type: "raw_python_statement", message0: "Raw Code \n %1", style: "raw_blocks", tooltip: "Directly injects the exact text string as a raw Python statement into the generated code. Use with caution as it bypasses Blockly's syntax and safety checks.",
     args0: [{ type: "field_multilinetext", name: "CODE", text: "print('Hello World')", spellcheck: false }], previousStatement: null, nextStatement: null },
@@ -151,7 +152,7 @@ const customBlocks = [
     args0: [{ type: "input_value", name: "STRING", check: "String" }, { type: "input_value", name: "DELIMITER", check: "String" }], inputsInline: true, output: "Array" },
   { type: "math_abs_round", message0: "%1 of %2", colour: "#4C97FF", tooltip: "Performs standard mathematical formatting: 'absolute value' strictly strips away any negative signs, while 'round' snaps floating-point decimals to the nearest whole integer.",
     args0: [{ type: "field_dropdown", name: "OP", options: [["absolute value", "abs"], ["round", "round"]] }, { type: "input_value", name: "VALUE", check: "Number" }], output: "Number" },
-  { type: "type_cast_advanced", message0: "convert %1 to %2", colour: "#c1a0e8", tooltip: "Forcefully converts a given variable or value into the designated Python data type (for example, turning a text string '5' into a usable integer 5).",
+  { type: "type_cast_advanced", message0: "convert %1 to %2", colour: "#4C97FF", tooltip: "Forcefully converts a given variable or value into the designated Python data type (for example, turning a text string '5' into a usable integer 5).",
     args0: [{ type: "input_value", name: "VALUE" }, { type: "field_dropdown", name: "TYPE", options: [["float", "float"], ["boolean", "bool"], ["string", "str"], ["list", "list"]] }], inputsInline: true, output: null },
   { type: "string_case_formatting", message0: "convert text %1 to %2", colour: "#d5a52a", tooltip: "Transforms the capitalization styling of a string. Options include forcing all letters to UPPERCASE, making all letters lowercase, Capitalizing Every Word (Title Case), or just capitalizing the first letter.",
     args0: [{ type: "input_value", name: "STRING", check: "String" }, { type: "field_dropdown", name: "CASE", options: [["UPPERCASE", "upper"], ["lowercase", "lower"], ["Title Case", "title"], ["Capitalized", "capitalize"]] }], inputsInline: true, output: "String" },
@@ -187,9 +188,8 @@ const toolbox = {
         { kind: "block", type: "logic_operation" }, { kind: "block", type: "logic_in" },
         { kind: "block", type: "logic_negate" }, { kind: "block", type: "logic_boolean" },
         { kind: "block", type: "logic_null" }, { kind: "block", type: "logic_ternary" },
-        { kind: "block", type: "procedure_return_value" }, { kind: "block", type: "python_type" },
-        { kind: "block", type: "python_type_primitive" }, { kind: "block", type: "python_isinstance" },
-        { kind: "block", type: "type_cast_advanced" }
+        { kind: "block", type: "python_type" },
+        { kind: "block", type: "python_type_primitive" }, { kind: "block", type: "python_isinstance" }
       ]
     },
     {
@@ -208,7 +208,8 @@ const toolbox = {
         { kind: "block", type: "math_arithmetic", inputs: { A: { shadow: { type: "math_number", fields: { NUM: 1 } } }, B: { shadow: { type: "math_number", fields: { NUM: 1 } } } } },
         { kind: "block", type: "math_advanced_operators" },
         { kind: "block", type: "math_assignment", inputs: { DELTA: { shadow: { type: "math_number", fields: { NUM: 1 } } } } },
-        { kind: "block", type: "type_cast_int" }, { kind: "block", type: "math_min_max" },
+        { kind: "block", type: "type_cast_int" }, { kind: "block", type: "type_cast_advanced" },
+        { kind: "block", type: "math_min_max" },
         { kind: "block", type: "math_abs_round" }, { kind: "block", type: "math_single" },
         { kind: "block", type: "math_trig" }, { kind: "block", type: "math_constant" },
         { kind: "block", type: "math_number_property" }, { kind: "block", type: "math_round" },
@@ -241,7 +242,7 @@ const toolbox = {
       ]
     },
     {
-      kind: "category", name: "Lists (Built-in Type)", categorystyle: "list_category",
+      kind: "category", name: "Lists", categorystyle: "list_category",
       contents: [
         { kind: "block", type: "string_to_list" }, { kind: "block", type: "lists_create_with", extraState: { itemCount: 0 } },
         { kind: "block", type: "lists_create_with" }, { kind: "block", type: "list_append" },
@@ -260,7 +261,7 @@ const toolbox = {
       ]
     },
     {
-      kind: "category", name: "Dictionaries (Built-in Type)", categorystyle: "dict_category",
+      kind: "category", name: "Dictionaries", categorystyle: "dict_category",
       contents: [
         { kind: "block", type: "dict_create_empty" },
         { kind: "block", type: "dict_set", inputs: { KEY: { shadow: { type: "text", fields: { TEXT: "key_name" } } }, VALUE: { shadow: { type: "text", fields: { TEXT: "value" } } } } },
@@ -272,7 +273,7 @@ const toolbox = {
       ]
     },
     {
-      kind: "category", name: "Sets & Tuples (Core Built-in Types)", categorystyle: "set_tuple_category",
+      kind: "category", name: "Sets & Tuples", categorystyle: "set_tuple_category",
       contents: [
         { kind: "block", type: "tuple_create" }, { kind: "block", type: "set_create_empty" },
         { kind: "block", type: "set_from_list" }, { kind: "block", type: "set_add" },
@@ -280,7 +281,7 @@ const toolbox = {
       ]
     },
     {
-      kind: "category", name: "Stacks & Queues (Abstract Data Types)", categorystyle: "stack_queue_category",
+      kind: "category", name: "Stacks & Queues", categorystyle: "stack_queue_category",
       contents: [
         { kind: "block", type: "stack_push" }, { kind: "block", type: "stack_pop" },
         { kind: "block", type: "stack_pop_statement" }, { kind: "block", type: "stack_peek" },
@@ -295,7 +296,7 @@ const toolbox = {
         { kind: "block", type: "variable_swap" }
       ]
     },
-    { kind: "category", name: "Functions", categorystyle: "procedure_category", custom: "PROCEDURE" },
+    { kind: "category", name: "Functions", categorystyle: "procedure_category", custom: "PROCEDURE" }, // note: "contents" has no effect on a `custom` category -- see the Blockly.Procedures.flyoutCategory override below, which is how "procedure_return_value" actually gets added to this flyout (mirrors the Variables override further down for the same reason).
     {
       kind: "category", name: "Raw Python", categorystyle: "raw_category",
       contents: [
@@ -458,6 +459,26 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         xmlList.push(blk);
         return xmlList.concat(Blockly.Variables.flyoutCategoryBlocks(ws));
       };
+
+      // The Functions category is also a `custom` (dynamic) flyout, so
+      // "procedure_return_value" (the standalone "return ___" block) is
+      // appended here the same way "variable_swap" is appended above --
+      // wrapping rather than replacing the built-in generator so the
+      // normal function-definition/call blocks are untouched. Guarded by
+      // a module-level flag (same pattern as crossTabPluginInitialized)
+      // so remounting this component doesn't wrap the wrapper and append
+      // the block twice.
+      if (!proceduresFlyoutPatched) {
+        const defaultProceduresFlyoutCategory = Blockly.Procedures.flyoutCategory;
+        Blockly.Procedures.flyoutCategory = function (ws) {
+          const xmlList = defaultProceduresFlyoutCategory(ws);
+          const returnBlk = document.createElement("block");
+          returnBlk.setAttribute("type", "procedure_return_value");
+          xmlList.push(returnBlk);
+          return xmlList;
+        };
+        proceduresFlyoutPatched = true;
+      }
 
       workspace.current = Blockly.inject(blocklyDiv.current, {
         toolbox: toolbox, trashcan: true, move: { scrollbars: true, drag: true, wheel: true },
