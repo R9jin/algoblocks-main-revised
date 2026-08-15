@@ -443,7 +443,7 @@ export default function Dashboard() {
         .dash-spin-anim { animation: dashSpin 1s linear infinite; }
       `}</style>
 
-      <DashboardHeader showBackButton={false} tour={dashboardTour} tourPageId="dashboard" />
+      <DashboardHeader tour={dashboardTour} tourPageId="dashboard" />
       
       <main className="bento-dashboard-content">
         <div className="bento-grid-container">
