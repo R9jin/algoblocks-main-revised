@@ -85,6 +85,8 @@ export default function SignUp() {
       }
 
       if (data.token) {
+        // Google sign-up (or any other pre-verified path) still returns a
+        // token immediately.
         localStorage.removeItem("authToken");
         sessionStorage.removeItem("authToken");
         localStorage.removeItem("token");
@@ -107,10 +109,16 @@ export default function SignUp() {
 
         navigate("/dashboard");
       } else {
-        showToast("Registration successful! Redirecting to login...", "success");
+        // SECURITY: email/password signup no longer auto-logs the user in.
+        // The account is created but stays unverified until they click the
+        // link sent to their inbox; login is blocked until then.
+        showToast(
+          data.message || "Account created! Check your email for a verification link before signing in.",
+          "success"
+        );
         setTimeout(() => {
           if (isMountedRef.current) navigate("/signin");
-        }, 2000);
+        }, 3500);
       }
       
     } catch (error) {

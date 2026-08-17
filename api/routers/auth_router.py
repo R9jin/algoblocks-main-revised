@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Request, Query, Body, Depends
 from typing import Dict, Any
 
-from models import UserLogin, UserCreate, ProgressUpdate, GoogleLoginRequest, AssessmentUpdateRequest, BatchSyncPayload, SyncResponse, ForgotPasswordRequest, ResetPasswordRequest
+from models import UserLogin, UserCreate, ProgressUpdate, GoogleLoginRequest, AssessmentUpdateRequest, BatchSyncPayload, SyncResponse, ForgotPasswordRequest, ResetPasswordRequest, VerifyEmailRequest, ResendVerificationRequest
 from services.auth_service import AuthService
 from limiter import limiter
 from security import get_current_user_email
@@ -38,6 +38,16 @@ def reset_password(request: Request, req: ResetPasswordRequest):
 @limiter.limit("5/minute")
 def google_auth(request: Request, req: GoogleLoginRequest): 
     return AuthService.google_login(req.token)
+
+@router.post("/verify-email")
+@limiter.limit("10/minute")
+def verify_email(request: Request, req: VerifyEmailRequest):
+    return AuthService.verify_email(req.token)
+
+@router.post("/resend-verification")
+@limiter.limit("3/minute")
+def resend_verification(request: Request, req: ResendVerificationRequest):
+    return AuthService.resend_verification(req.email)
 
 @router.get("/get-progress")
 @limiter.limit("30/minute")

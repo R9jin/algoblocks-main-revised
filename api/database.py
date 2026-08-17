@@ -59,6 +59,20 @@ def init_db():
     cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ')
     cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_state JSONB DEFAULT '{}'::jsonb")
 
+    # SECURITY: email verification. New columns are added with DEFAULT TRUE
+    # so every account that already exists (created before this feature
+    # shipped) is grandfathered in as verified and is never locked out of
+    # its own account. The default is then flipped to FALSE so every NEW
+    # column value from this point on defaults to "not verified" -- signup
+    # explicitly sets is_verified=False for freshly created accounts, and
+    # Google-SSO accounts are inserted as already-verified (Google already
+    # confirmed the address). Only the hash of the verification token is
+    # ever persisted, mirroring the password-reset-token pattern above.
+    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT TRUE')
+    cursor.execute('ALTER TABLE users ALTER COLUMN is_verified SET DEFAULT FALSE')
+    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_hash VARCHAR(255)')
+    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_expires TIMESTAMPTZ')
+
     # HYBRID: Projects Table (Relational Sync/Keys + JSONB Blockly Data)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS projects (

@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 # How long a password reset link stays valid for.
 RESET_TOKEN_TTL_MINUTES = 30
 
+# How long a signup email-verification link stays valid for.
+VERIFICATION_TOKEN_TTL_MINUTES = 60 * 24  # 24 hours
+
 class AuthService:
     @staticmethod
     def hash_password(password: str) -> str:
@@ -46,6 +49,13 @@ class AuthService:
         stored_password = user.get("password") if user else None
 
         if not user or not stored_password or not AuthService.verify_password(req.password, stored_password):
+            # SECURITY: log failed login attempts (email + reason only --
+            # never the submitted password) so repeated failures against one
+            # account or a burst across many accounts from one client shows
+            # up in server logs/monitoring as brute-force / credential-
+            # stuffing activity. Rate limiting (5/minute/IP on this route)
+            # is the primary defense; this is the detection/audit trail.
+            logger.warning(f"Failed login attempt for email={req.email}: invalid credentials")
             raise HTTPException(
                 status_code=401, 
                 detail="Invalid credentials."
@@ -55,9 +65,20 @@ class AuthService:
         # had no effect at login -- a suspended account could still sign in
         # normally. Block anything other than an "active" status.
         if user.get("status", "active") != "active":
+            logger.warning(f"Rejected login for suspended account: {req.email}")
             raise HTTPException(
                 status_code=403,
                 detail="This account has been suspended. Contact an administrator."
+            )
+
+        # SECURITY: email/password accounts must verify their address before
+        # they can sign in. Google-SSO accounts are inserted already-verified
+        # (see google_login) and are unaffected by this check.
+        if not user.get("is_verified", True):
+            logger.warning(f"Rejected login for unverified account: {req.email}")
+            raise HTTPException(
+                status_code=403,
+                detail="Please verify your email before signing in. Check your inbox, or request a new verification link."
             )
 
         token = create_access_token({"sub": req.email})
@@ -87,6 +108,7 @@ class AuthService:
             "password": hashed_password,
             "role": "user",
             "isAdmin": False,
+            "is_verified": False,
             "progress": {},
             "assessments": {},
             "onboarding_state": {
@@ -96,7 +118,11 @@ class AuthService:
             }
         })
 
-        token = create_access_token({"sub": req.email})
+        # SECURITY: email verification. A brand new email/password account
+        # cannot sign in (see login()) until it clicks the link in this
+        # email, so no access token is issued here -- unlike the previous
+        # behavior of auto-logging the user in immediately on signup.
+        AuthService._issue_verification_token(req.email, req.name)
 
         return {
             "status": "success",
@@ -104,13 +130,89 @@ class AuthService:
             "name": req.name,
             "role": "user",
             "isAdmin": False,
+            "requiresVerification": True,
+            "message": "Account created. Check your email for a verification link before signing in.",
             "onboarding_state": {
                 "tourSeen": False,
                 "completedAt": None,
                 "pages": {}
-            },
+            }
+        }
+
+    @staticmethod
+    def _issue_verification_token(email: str, name: str) -> bool:
+        """Generates a fresh verification token, persists only its hash, and
+        emails the raw token as a link. Returns whether the email send
+        succeeded (signup/resend both continue regardless, since the token
+        is already saved server-side either way)."""
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=VERIFICATION_TOKEN_TTL_MINUTES)
+
+        UserRepository.set_verification_token(email, token_hash, expires_at)
+
+        sent = mail_service.send_verification_email(
+            to_email=email,
+            to_name=name or "",
+            verification_token=raw_token
+        )
+        if not sent:
+            logger.error(f"Verification email failed to send for {email}")
+        return sent
+
+    @staticmethod
+    def verify_email(token: str):
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        user = UserRepository.find_by_verification_token_hash(token_hash)
+
+        if not user or not user.get("verification_token_expires"):
+            raise HTTPException(status_code=400, detail="Invalid or expired verification link.")
+
+        expires_at = user["verification_token_expires"]
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Invalid or expired verification link.")
+
+        UserRepository.mark_verified(user["email"])
+
+        # Log the user in immediately after verifying, same UX pattern as
+        # reset-password: one less extra step before they can use the app.
+        token = create_access_token({"sub": user["email"]})
+        full_user = UserRepository.find_by_email(user["email"])
+
+        return {
+            "status": "success",
+            "message": "Your email has been verified.",
+            "email": user["email"],
+            "name": full_user.get("name") if full_user else user.get("name"),
+            "role": full_user.get("role", "user") if full_user else "user",
+            "isAdmin": (full_user.get("isAdmin", False) or full_user.get("is_admin", False)) if full_user else False,
+            "progress": full_user.get("progress", {}) if full_user else {},
+            "assessments": full_user.get("assessments", {}) if full_user else {},
+            "onboarding_state": full_user.get("onboarding_state", {}) if full_user else {},
             "token": token
         }
+
+    @staticmethod
+    def resend_verification(email: str):
+        """
+        Always returns the same generic response regardless of whether the
+        email is registered or already verified, so this endpoint can't be
+        used to enumerate accounts (same pattern as forgot_password).
+        """
+        generic_response = {
+            "status": "success",
+            "message": "If that account exists and isn't verified yet, a new verification link has been sent."
+        }
+
+        user = UserRepository.find_by_email(email)
+        if not user or user.get("is_verified", True):
+            return generic_response
+
+        AuthService._issue_verification_token(email, user.get("name", ""))
+        return generic_response
 
     @staticmethod
     def update_progress(req: ProgressUpdate):
@@ -289,6 +391,10 @@ class AuthService:
                     "password": None,
                     "role": "user",
                     "isAdmin": False,
+                    # Google has already verified this email address as part
+                    # of its own OAuth flow, so there's no separate
+                    # verification step for SSO accounts.
+                    "is_verified": True,
                     "progress": {},
                     "assessments": {},
                     "onboarding_state": {
