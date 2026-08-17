@@ -342,17 +342,6 @@ export default function AssessmentPage() {
     navigate("/learning-path");
   };
 
-  const handleRetake = () => {
-    clearDraft(moduleId, type);
-    setSubmitted(false);
-    setSelectedAnswers({});
-    setCurrentIndex(0);
-    setTimeElapsed(0);
-    setLastSavedAt(null);
-    setHasDraft(false);
-    setQuestions((prev) => shuffleArray(prev));
-  };
-
   const handleDiscardDraft = () => {
     clearDraft(moduleId, type);
     setSelectedAnswers({});
@@ -496,9 +485,6 @@ export default function AssessmentPage() {
             </div>
 
             <div className="results-actions">
-              {!(isGlobalPreTest || isGlobalPostTest) && (
-                <button className="btn-retake" onClick={handleRetake}>Retake Assessment</button>
-              )}
               <button className="btn-proceed" onClick={handleProceed}>
                 {isGlobalPreTest ? "Start Curriculum →" : "Back to Learning Path →"}
               </button>

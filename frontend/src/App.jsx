@@ -20,6 +20,7 @@ const LandingPage = lazy(() => import("./pages/HomePage"));
 const LearningPath = lazy(() => import("./pages/LearningPath"));
 const Projects = lazy(() => import("./pages/Projects"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const SignIn = lazy(() => import("./pages/SignIn"));
 const SignUp = lazy(() => import("./pages/SignUp"));
 const UserHomePage = lazy(() => import("./pages/UserHomePage"));
@@ -109,6 +110,7 @@ function App() {
           <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
           <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+          <Route path="/verify-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
           
           {/* Protected Application Routes */}
           {/*

@@ -263,9 +263,22 @@ body {
 .python-view { flex-direction: column; height: 100%; background: var(--panel-bg); display: flex; }
 .python-header { padding: 8px 24px; background: var(--app-bg); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); }
 .python-sync-status { color: var(--text-muted); font-size: 0.85rem; font-weight: 500;}
-.python-sync-btn { color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;}
+.python-sync-btn { color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 8px;}
 .python-sync-btn.active { background: var(--purple-main); cursor: pointer; }
 .python-sync-btn.disabled { background: var(--border-light); color: #94A3B8; cursor: not-allowed; }
+.python-sync-btn.syncing { background: var(--purple-main); opacity: 0.85; cursor: wait; }
+.python-sync-spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: python-sync-spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes python-sync-spin {
+  to { transform: rotate(360deg); }
+}
 .editor-wrapper { flex: 1; position: relative; overflow: hidden; }
 
 /* =========================================

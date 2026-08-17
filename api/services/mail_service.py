@@ -86,3 +86,74 @@ def send_password_reset_email(to_email: str, to_name: str, reset_token: str) -> 
     except requests.RequestException as e:
         logger.error(f"Failed to reach MailerSend API: {e}")
         return False
+
+
+def _build_verification_email_html(name: str, verify_link: str) -> str:
+    safe_name = name or "there"
+    return f"""
+    <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #0A051A; color: #F5F5F5; border-radius: 16px;">
+        <h2 style="color: #F5F5F5; margin-bottom: 8px;">Verify your email</h2>
+        <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+            Hi {safe_name},<br /><br />
+            Thanks for creating an AlgoBlocks account. Please confirm this is your email address
+            by clicking the button below. This link expires in 24 hours.
+        </p>
+        <div style="text-align: center; margin: 28px 0;">
+            <a href="{verify_link}" style="background: #6366f1; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; display: inline-block;">
+                Verify Email
+            </a>
+        </div>
+        <p style="color: #94a3b8; font-size: 13px; line-height: 1.6;">
+            If the button doesn't work, copy and paste this link into your browser:<br />
+            <a href="{verify_link}" style="color: #818cf8; word-break: break-all;">{verify_link}</a>
+        </p>
+        <p style="color: #94a3b8; font-size: 13px; line-height: 1.6;">
+            If you didn't create this account, you can safely ignore this email.
+        </p>
+    </div>
+    """
+
+
+def _build_verification_email_text(name: str, verify_link: str) -> str:
+    safe_name = name or "there"
+    return (
+        f"Hi {safe_name},\n\n"
+        "Thanks for creating an AlgoBlocks account. Confirm your email using the link below "
+        f"(expires in 24 hours):\n\n{verify_link}\n\n"
+        "If you didn't create this account, you can safely ignore this email.\n"
+    )
+
+
+def send_verification_email(to_email: str, to_name: str, verification_token: str) -> bool:
+    """
+    Sends the signup email-verification link via the MailerSend API.
+    Returns True on success, False on any failure (never raises).
+    """
+    if not MAILERSEND_API_KEY:
+        logger.error("MAILERSEND_API_KEY is not set; cannot send verification email.")
+        return False
+
+    verify_link = f"{FRONTEND_URL}/verify-email?token={verification_token}"
+
+    payload = {
+        "from": {"email": MAILERSEND_FROM_EMAIL, "name": MAILERSEND_FROM_NAME},
+        "to": [{"email": to_email, "name": to_name or to_email}],
+        "subject": "Verify your AlgoBlocks account",
+        "html": _build_verification_email_html(to_name, verify_link),
+        "text": _build_verification_email_text(to_name, verify_link),
+    }
+
+    headers = {
+        "Authorization": f"Bearer {MAILERSEND_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        response = requests.post(MAILERSEND_API_URL, json=payload, headers=headers, timeout=10)
+        if response.status_code >= 400:
+            logger.error(f"MailerSend rejected the verification request ({response.status_code}): {response.text}")
+            return False
+        return True
+    except requests.RequestException as e:
+        logger.error(f"Failed to reach MailerSend API for verification email: {e}")
+        return False

@@ -8,9 +8,15 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+import time
 import uvicorn
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+
+# Dedicated logger for request-level auditing (auth failures, API errors,
+# and unusually slow/abusive traffic patterns) so this stream can be
+# filtered/alerted on independently of general application logs.
+access_logger = logging.getLogger("algoblocks.access")
 
 # Initialize PostgreSQL Neon connection and hybrid tables.
 # Runs at import time (not inside a request handler) so it fires exactly
@@ -73,6 +79,63 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def security_headers_and_access_log(request: Request, call_next):
+    """
+    Two things in one pass, since FastAPI/Starlette only lets us wrap the
+    whole request/response cycle once per middleware:
+
+    1. SECURITY HEADERS -- defense-in-depth browser-side protections that
+       cost nothing and don't depend on any single endpoint remembering to
+       set them. This is a pure API (no server-rendered HTML), so this is
+       deliberately a small, safe set rather than a full CSP tuned for a
+       specific page.
+
+    2. ACCESS/ABUSE LOGGING -- every request logged with method, path,
+       status, client IP (respecting X-Forwarded-For the same way the rate
+       limiter's key_func does, since this typically runs behind Vercel's
+       proxy), and duration. 401/403 responses (failed auth / suspended or
+       unverified accounts / IDOR attempts hitting an ownership check) and
+       429s (rate-limit trips) are logged at WARNING so they stand out in
+       log aggregation as the signal an admin would actually want to alert
+       on -- a burst of 401s from one IP, or repeated 429s, is exactly the
+       "unusual traffic pattern" this task asked to be able to detect.
+    """
+    start = time.perf_counter()
+
+    forwarded_for = request.headers.get("x-forwarded-for")
+    client_ip = forwarded_for.split(",")[0].strip() if forwarded_for else (
+        request.client.host if request.client else "unknown"
+    )
+
+    response = await call_next(request)
+
+    duration_ms = (time.perf_counter() - start) * 1000
+
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+    # HSTS only matters over HTTPS; harmless to send unconditionally since
+    # browsers ignore it on plain HTTP anyway, and this API is only ever
+    # served over HTTPS in production (Vercel).
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+
+    log_line = (
+        f'{client_ip} "{request.method} {request.url.path}" '
+        f"{response.status_code} {duration_ms:.1f}ms"
+    )
+    if response.status_code in (401, 403, 429):
+        access_logger.warning(log_line)
+    elif response.status_code >= 500:
+        access_logger.error(log_line)
+    else:
+        access_logger.info(log_line)
+
+    return response
+
 
 app.include_router(auth_router.router, prefix="/api", tags=["Authentication"])
 app.include_router(project_router.router, prefix="/api/projects", tags=["Projects"])

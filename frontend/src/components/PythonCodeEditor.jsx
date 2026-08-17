@@ -9,6 +9,7 @@ export default function PythonCodeEditor({
   isEditingCode = false,
   syntaxErrors = [],
   onSyncToBlocks,
+  isSyncingToBlocks = false,
   onChangeCode,
   onMountEditor
 }) {
@@ -18,14 +19,21 @@ export default function PythonCodeEditor({
     <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"}>
       <div className="python-header">
         <span className="python-sync-status">
-          {isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}
+          {isSyncingToBlocks ? "Converting to blocks..." : isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}
         </span>
         <button
           onClick={onSyncToBlocks}
-          disabled={!isEditingCode || hasSyntaxErrors}
-          className={`python-sync-btn ${isEditingCode && !hasSyntaxErrors ? "active" : "disabled"}`}
+          disabled={!isEditingCode || hasSyntaxErrors || isSyncingToBlocks}
+          className={`python-sync-btn ${isEditingCode && !hasSyntaxErrors && !isSyncingToBlocks ? "active" : "disabled"} ${isSyncingToBlocks ? "syncing" : ""}`}
         >
-          Sync to Blocks
+          {isSyncingToBlocks ? (
+            <>
+              <span className="python-sync-spinner" aria-hidden="true" />
+              Converting...
+            </>
+          ) : (
+            "Sync to Blocks"
+          )}
         </button>
       </div>
 

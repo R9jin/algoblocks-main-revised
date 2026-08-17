@@ -855,6 +855,19 @@ json.dumps(res)
 
   } catch (err) {
     if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: err.message } });
+    // BUG FIX: this used to fall through to the generic { type: 'ERROR' }
+    // reply below for every non-ANALYZE_CODE message type. convertPythonToBlocks()
+    // (analyzerInstance.js) only ever listens for 'PYTHON_TO_BLOCKS_RESULT' --
+    // it has no handler for 'ERROR' -- so any exception that escaped the
+    // inner Python try/except here (a Pyodide-level crash, initPyodide()
+    // failing, JSON.parse failing on a malformed result, etc.) left that
+    // promise permanently unresolved. From the user's side, clicking "Sync
+    // to Blocks" would just hang forever with no error, no timeout, and no
+    // way to recover short of reloading the page -- most reproducible when
+    // converting code that imports an unsupported library, since that's
+    // exactly the code path most likely to hit an edge case the inner
+    // Python try/except didn't anticipate.
+    else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: err.message || 'Failed to convert Python code to blocks.' } });
     else self.postMessage({ type: 'ERROR', data: err.message });
   }
 };

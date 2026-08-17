@@ -1,6 +1,33 @@
 // frontend/src/utils/errorTranslator.js
 
 /**
+ * Pulls the actual "SomeError: detail" summary line out of a full Python
+ * traceback dump (i.e. `traceback.format_exc()`).
+ *
+ * Why this exists: Pyodide's stderr stream delivers a multi-line traceback
+ * as several separate line-batched writes ("Traceback (most recent call
+ * last):", the "File ..., line N" frame(s), then finally the exception
+ * summary). translatePythonError() below is pattern-matched against the
+ * *summary* line's shape ("XError: detail") -- feeding it an intermediate
+ * line like a bare "Traceback (most recent call last):" or a "File ..."
+ * frame produces a nonsensical hint. Callers should accumulate every ERROR
+ * chunk for a run into one string and pass the whole thing through this
+ * function once the run finishes, to reliably isolate the one line worth
+ * translating.
+ *
+ * @param {string} fullErrorText - All stderr text collected for one run.
+ * @returns {string} - The last non-blank line, or "" if there was none.
+ */
+export const extractErrorSummaryLine = (fullErrorText) => {
+  if (!fullErrorText) return "";
+  const lines = String(fullErrorText)
+    .split("\n")
+    .map((l) => l.replace(/\r$/, ""))
+    .filter((l) => l.trim() !== "");
+  return lines.length > 0 ? lines[lines.length - 1].trim() : "";
+};
+
+/**
  * Scans a raw Python error message and returns a deeply contextual, 
  * educational hint to help the user understand and fix the specific issue.
  * * @param {string} errorMsg - The raw error string from Pyodide or the backend analyzer.

@@ -301,12 +301,24 @@ const AdminUserManagement = () => {
           setUsers(users.map(u => 
             u.email === email ? { ...u, status: newStatus } : u
           ));
+
+          setTimeout(() => {
+            showModal({
+              type: "alert",
+              title: newStatus === "suspended" ? "Account Suspended" : "Suspension Reverted",
+              message: newStatus === "suspended"
+                ? `${email}'s account has been suspended. They will no longer be able to sign in.`
+                : `${email}'s account access has been restored. They can sign in normally again.`
+            });
+          }, 300);
         } catch (err) {
-          showModal({
-            type: "alert",
-            title: "Error",
-            message: err.message
-          });
+          setTimeout(() => {
+            showModal({
+              type: "alert",
+              title: "Error",
+              message: err.message
+            });
+          }, 300);
         }
       }
     });

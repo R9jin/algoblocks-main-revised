@@ -15,6 +15,8 @@ export default function SignIn() {
   const [rememberMe, setRememberMe] = useState(true);
   
   const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
+  const [showResendVerification, setShowResendVerification] = useState(false);
+  const [resendState, setResendState] = useState("idle"); // idle | sending | sent
   
   const navigate = useNavigate(); 
 
@@ -91,6 +93,8 @@ export default function SignIn() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true); 
+    setShowResendVerification(false);
+    setResendState("idle");
 
     try {
       const response = await fetch(`${API_BASE}/api/login`, {
@@ -107,7 +111,14 @@ export default function SignIn() {
       if (!isMountedRef.current) return;
 
       if (!response.ok || data.status !== "success") {
-        showToast(getErrorMessage(data, "Invalid email or password")); 
+        const message = getErrorMessage(data, "Invalid email or password");
+        showToast(message);
+        // Backend returns 403 with a message mentioning "verify" for
+        // unverified accounts (see AuthService.login) -- surface a resend
+        // action instead of leaving the user stuck with no path forward.
+        if (response.status === 403 && /verify/i.test(message)) {
+          setShowResendVerification(true);
+        }
         setIsLoading(false);
         return;
       }
@@ -155,6 +166,31 @@ export default function SignIn() {
       showToast("Server not reachable. Check backend connection."); 
     } finally {
       if (isMountedRef.current) setIsLoading(false); 
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendState("sending");
+    try {
+      await fetch(`${API_BASE}/api/resend-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      // Always show the same generic confirmation regardless of the actual
+      // response -- the backend intentionally returns an identical body
+      // whether or not the account exists/is already verified, so the UI
+      // shouldn't leak that distinction either.
+      if (isMountedRef.current) {
+        setResendState("sent");
+        showToast("If that account exists and isn't verified, a new link has been sent.", "success");
+      }
+    } catch (error) {
+      console.error(error);
+      if (isMountedRef.current) {
+        setResendState("idle");
+        showToast("Server not reachable. Check backend connection.");
+      }
     }
   };
 
@@ -322,6 +358,26 @@ export default function SignIn() {
             <button type="submit" className="auth-button" disabled={isLoading}>
               {isLoading ? "Signing In..." : "Sign In"}
             </button> 
+
+            {showResendVerification && (
+              <p style={{ textAlign: "center", fontSize: "0.9rem", color: "#cbd5e1", marginTop: "12px" }}>
+                {resendState === "sent" ? (
+                  "Verification email sent — check your inbox."
+                ) : (
+                  <>
+                    Didn't get the email?{" "}
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={resendState === "sending" || !email}
+                      style={{ background: "none", border: "none", color: "#818cf8", cursor: "pointer", textDecoration: "underline", padding: 0, font: "inherit" }}
+                    >
+                      {resendState === "sending" ? "Sending..." : "Resend verification link"}
+                    </button>
+                  </>
+                )}
+              </p>
+            )}
 
             <div className="social-divider">
               <span>OR</span>

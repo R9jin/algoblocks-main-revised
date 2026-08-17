@@ -1,5 +1,5 @@
 # api/routers/progress_router.py
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from typing import Dict, Any
 import logging
 
@@ -8,12 +8,21 @@ from models import ProgressUpdate, BatchSyncPayload, SyncResponse
 from services.auth_service import AuthService
 from repositories.user_repo import UserRepository
 from security import get_current_user_email
+from limiter import limiter
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+# SECURITY: this whole router previously had no rate limiting at all (unlike
+# auth_router/project_router/admin_router), so an authenticated client (or a
+# stolen/leaked token) could hammer these write-heavy sync endpoints without
+# limit -- a straightforward bot/abuse and DB-load vector. Limits below are
+# generous enough for normal background sync (every 30s, see
+# syncManager.js) while still capping worst-case abuse per client.
+
 @router.post("/update-progress")
-async def update_progress(data: ProgressUpdate, current_user_email: str = Depends(get_current_user_email)):
+@limiter.limit("30/minute")
+async def update_progress(request: Request, data: ProgressUpdate, current_user_email: str = Depends(get_current_user_email)):
     try:
         if data.email != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to update this progress")
@@ -29,7 +38,8 @@ async def update_progress(data: ProgressUpdate, current_user_email: str = Depend
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/sync-submission")
-async def sync_submission(data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
+@limiter.limit("30/minute")
+async def sync_submission(request: Request, data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
     try:
         if data.get("userId") != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to sync this submission")
@@ -46,7 +56,8 @@ async def sync_submission(data: Dict[str, Any] = Body(...), current_user_email: 
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/sync-assessment")
-async def sync_assessment(data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
+@limiter.limit("30/minute")
+async def sync_assessment(request: Request, data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
     try:
         if data.get("userId") != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to sync this assessment")
@@ -63,7 +74,8 @@ async def sync_assessment(data: Dict[str, Any] = Body(...), current_user_email: 
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/batch-sync", response_model=SyncResponse)
-async def batch_sync(payload: BatchSyncPayload, current_user_email: str = Depends(get_current_user_email)):
+@limiter.limit("15/minute")
+async def batch_sync(request: Request, payload: BatchSyncPayload, current_user_email: str = Depends(get_current_user_email)):
     try:
         response = AuthService.batch_sync(payload.dict(), current_user_email)
         return SyncResponse(
@@ -76,7 +88,8 @@ async def batch_sync(payload: BatchSyncPayload, current_user_email: str = Depend
         raise HTTPException(status_code=500, detail="Internal server error during batch sync")
 
 @router.get("/get-submission")
-async def get_submission(activityId: str, moduleId: str, current_user_email: str = Depends(get_current_user_email)):
+@limiter.limit("60/minute")
+async def get_submission(request: Request, activityId: str, moduleId: str, current_user_email: str = Depends(get_current_user_email)):
     try:
         res = AuthService.get_submission(current_user_email, activityId, moduleId)
         if res and res.get("submission"):
@@ -87,7 +100,8 @@ async def get_submission(activityId: str, moduleId: str, current_user_email: str
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get-assessment")
-async def get_assessment(assessmentId: str, current_user_email: str = Depends(get_current_user_email)):
+@limiter.limit("60/minute")
+async def get_assessment(request: Request, assessmentId: str, current_user_email: str = Depends(get_current_user_email)):
     try:
         res = AuthService.get_assessment(current_user_email, assessmentId)
         if res and res.get("assessment"):

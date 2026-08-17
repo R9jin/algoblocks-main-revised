@@ -7,7 +7,7 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT id, name, email, password, status, role, is_admin, onboarding_state FROM users WHERE email = %s', (email,))
+        cursor.execute('SELECT id, name, email, password, status, role, is_admin, is_verified, onboarding_state FROM users WHERE email = %s', (email,))
         user = cursor.fetchone()
         
         if not user:
@@ -70,16 +70,21 @@ class UserRepository:
         cursor = conn.cursor()
         
         is_admin = user_data.get("isAdmin", user_data.get("is_admin", False))
+        # Defaults to False (email/password signups start unverified); pass
+        # is_verified=True explicitly for Google-SSO accounts, since Google
+        # has already confirmed ownership of the address.
+        is_verified = bool(user_data.get("is_verified", False))
         cursor.execute('''
-            INSERT INTO users (name, email, password, status, role, is_admin)
-            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
+            INSERT INTO users (name, email, password, status, role, is_admin, is_verified)
+            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
         ''', (
             user_data.get("name"),
             user_data.get("email"),
             user_data.get("password"),
             user_data.get("status", "active"),
             user_data.get("role", "user"),
-            is_admin
+            is_admin,
+            is_verified
         ))
         inserted_id = cursor.fetchone()["id"]
 
@@ -216,6 +221,46 @@ class UserRepository:
         conn.commit()
         cursor.close()
         conn.close()
+
+    @staticmethod
+    def set_verification_token(email: str, token_hash: str, expires_at):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users SET verification_token_hash = %s, verification_token_expires = %s WHERE email = %s
+        ''', (token_hash, expires_at, email))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    @staticmethod
+    def find_by_verification_token_hash(token_hash: str):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, name, email, is_verified, verification_token_expires
+            FROM users
+            WHERE verification_token_hash = %s
+        ''', (token_hash,))
+        user = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return dict(user) if user else None
+
+    @staticmethod
+    def mark_verified(email: str):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users
+            SET is_verified = TRUE, verification_token_hash = NULL, verification_token_expires = NULL
+            WHERE email = %s
+        ''', (email,))
+        rowcount = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return rowcount
 
     @staticmethod
     def update_password(email: str, hashed_password: str):

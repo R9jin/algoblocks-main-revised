@@ -19,7 +19,7 @@ import { getIntroActivityTour } from "../data/introActivityTours.js";
 import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
 import "../styles/ActivityApp.css";
 import { getComplexityWeight, sanitizePythonCode } from "../utils/asymptoticParser.jsx";
-import { translatePythonError } from "../utils/errorTranslator.js";
+import { extractErrorSummaryLine, translatePythonError } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
 
 // Default docking arrangement, mirrored from MainApp.jsx: Blocks and Python
@@ -98,6 +98,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const renderIntervalRef = useRef(null);
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
+  // See runtimeErrorTextRef in MainApp.jsx for the full rationale: Pyodide
+  // splits a multi-line traceback into several separate stderr messages, so
+  // this buffers all of them for the run in flight and defers hint
+  // generation to RUN_RESULT, once the real "SomeError: detail" summary
+  // line has actually arrived.
+  const runtimeErrorTextRef = useRef("");
   const saveDraftTimeoutRef = useRef(null);
   const latestBlocksJsonRef = useRef(null);
   const testResolveRef = useRef(null);
@@ -313,8 +319,19 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         if (finalOutput.trim() === "") {
           notice = "\n> (Note: Code executed successfully, but no output was printed. Did you call your function?)";
         }
-        
-        setConsoleOutput((prev) => prev + finalOutput + "\n> Program finished." + notice + "\n");
+
+        // The run is genuinely over now -- translate the real "SomeError:
+        // detail" summary line (the last line of whatever traceback text
+        // was buffered), instead of generating a hint per stderr fragment
+        // as they streamed in.
+        let hintBlock = "";
+        if (runtimeErrorTextRef.current.trim()) {
+          const hint = translatePythonError(extractErrorSummaryLine(runtimeErrorTextRef.current));
+          if (hint) hintBlock = `\n${hint}\n`;
+          runtimeErrorTextRef.current = "";
+        }
+
+        setConsoleOutput((prev) => prev + finalOutput + hintBlock + "\n> Program finished." + notice + "\n");
         if (counts) setLineExecutions((prev) => { const next = { ...prev }; Object.keys(counts).forEach((k) => (next[k] = Math.max(next[k] || 0, counts[k]))); return next; });
         setIsEvaluating(false); setIsWaitingForInput(false);
       }
@@ -336,14 +353,24 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       setConsoleOutput((prev) => prev + flushed + data.prompt);
       setIsWaitingForInput(true);
     } else if (type === "ERROR") {
-      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
       if (testResolveRef.current) {
         pendingOutputRef.current += data;
       } else {
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const hint = translatePythonError(data);
-        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
-        setIsEvaluating(false); setIsWaitingForInput(false);
+        // Note: deliberately NOT clearing runTimeoutRef/renderIntervalRef
+        // here -- RUN_RESULT is what actually marks the run as finished, so
+        // the safety-net timeout stays armed in case the worker crashes
+        // before ever sending it.
+        //
+        // Stream the raw traceback text through as it arrives, but only
+        // translate a hint from it once RUN_RESULT confirms the traceback
+        // is complete (see there) -- a lone fragment like "Traceback (most
+        // recent call last):" isn't the "SomeError: detail" summary line
+        // translatePythonError() is built to recognize.
+        const isFirstErrorChunk = runtimeErrorTextRef.current === "";
+        runtimeErrorTextRef.current += data;
+        setConsoleOutput((prev) => prev + flushed + (isFirstErrorChunk ? "\n Runtime Error:\n" : "") + data);
+        setIsWaitingForInput(false);
       }
     }
   };
@@ -720,6 +747,20 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const handleSyncToBlocks = async () => {
     if (workspaceRef.current && generatedPython) {
+      if (isSyncingBlocks) return;
+      if (!isEngineReady) {
+        setConsoleOutput(`Still preparing the Python engine${engineProgress?.stage ? ` (${engineProgress.stage})` : ""}. Please wait a moment and try again.`);
+        focusDockPanel("console"); setConsoleTab("output");
+        return;
+      }
+      // Bring the Blocks panel into view *before* the conversion starts.
+      // loadFromPython() below may pop open the ScopeWarningModal
+      // (rendered inside BlocklyWorkspace) when it detects unsupported or
+      // partially-supported libraries, and pause for the user's decision --
+      // if that dock panel isn't visible/focused when it appears, the
+      // whole sync looks permanently stuck even though it's just waiting
+      // on a confirmation the user can't see.
+      focusDockPanel("blockly");
       setIsSyncingBlocks(true);
       try {
         await workspaceRef.current.loadFromPython(sanitizePythonCode(generatedPython));
@@ -729,7 +770,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         focusDockPanel("blockly");
         showToast("Python code successfully converted into blocks!", "success");
       } catch (e) {
-        setModalConfig({ isOpen: true, title: "Sync Error", message: "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
+        setModalConfig({ isOpen: true, title: "Sync Error", message: e?.message || "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
       } finally {
         setIsSyncingBlocks(false);
       }
@@ -749,7 +790,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); setIsEvaluating(true); setLineExecutions({});
     focusDockPanel("console"); setConsoleTab("output"); setConsoleOutput((prev) => prev + "\n> Running the program...\n");
 
-    outputCountRef.current = 0; pendingOutputRef.current = "";
+    outputCountRef.current = 0; pendingOutputRef.current = ""; runtimeErrorTextRef.current = "";
     runTimeoutRef.current = setTimeout(() => {
       resetWorker(); const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
       setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
@@ -1084,6 +1125,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           isEditingCode={isEditingCode}
           syntaxErrors={syntaxErrors || []}
           onSyncToBlocks={handleSyncToBlocks}
+          isSyncingToBlocks={isSyncingBlocks}
           onChangeCode={(value) => {
             if (isUnmountingRef.current) return;
             const newCode = sanitizePythonCode(value);

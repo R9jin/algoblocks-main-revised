@@ -123,6 +123,18 @@ export const syncQueueDB = {
         const db = await initDB();
         return db.add("syncQueue", { action, payload, timestamp: Date.now() });
     },
+    // Compatibility method: AssessmentPage.jsx (and ActivityApp.jsx's own
+    // localStorage-fallback path) call syncQueueDB.setItem(key, data) to
+    // queue a retryable HTTP call, but this object never actually defined
+    // it -- calling it threw a TypeError, silently dropping the retry
+    // (assessment/progress scores entered while offline could be lost
+    // instead of syncing once back online). Store it as a "RETRY_REQUEST"
+    // task using the same underlying add() so it's picked up by the queue
+    // processor in syncManager.js.
+    async setItem(key, data) {
+        const db = await initDB();
+        return db.add("syncQueue", { action: "RETRY_REQUEST", key, payload: data, timestamp: Date.now() });
+    },
     async getAll() {
         const db = await initDB();
         return db.getAll("syncQueue");

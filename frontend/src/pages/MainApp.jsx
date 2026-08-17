@@ -22,7 +22,7 @@ import "../styles/MainApp.css";
 import { FiActivity, FiChevronRight, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { sanitizePythonCode } from "../utils/asymptoticParser.jsx";
-import { translatePythonError } from "../utils/errorTranslator.js";
+import { extractErrorSummaryLine, translatePythonError } from "../utils/errorTranslator.js";
 import { syncManager } from "../utils/syncManager.js";
 
 // Default docking arrangement: Blocks and Python are tabbed together in the
@@ -66,6 +66,7 @@ const createInitialTab = (locState = null) => {
     pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
     analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
     lineExecutions: {}, analysisTime: "0.0", currentLoadedId: null, saveType: "project",
+    description: "", category: "Custom Templates",
     isDirty: false,
     ignoreDirtyUntil: Date.now() + 1200
   };
@@ -77,6 +78,8 @@ const createInitialTab = (locState = null) => {
     base.saveType = proj.isTemplate ? "template" : "project";
     base.pythonCode = proj.pythonCode || "# Drag blocks to generate Python code";
     base.currentLoadedId = proj._id || proj.templateId;
+    base.description = proj.description || "";
+    base.category = proj.category || "Custom Templates";
     base.isEditingCode = !!(proj.pythonCode && proj.pythonCode !== "# Drag blocks to generate Python code");
   }
   return base;
@@ -111,6 +114,11 @@ export default function MainApp() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(() => typeof window === "undefined" || window.innerWidth >= 700);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEvaluating, setIsEvaluating] = useState(false);
+  // Tracks the in-flight "Sync to Blocks" conversion so the button can show
+  // clear progress feedback instead of appearing to do nothing while the
+  // Python engine works (or, previously, hanging with zero feedback -- see
+  // handleSyncToBlocks / convertPythonToBlocks for the underlying fix).
+  const [isSyncingToBlocks, setIsSyncingToBlocks] = useState(false);
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [consoleTab, setConsoleTab] = useState("output");
@@ -144,6 +152,11 @@ export default function MainApp() {
     isOpen: false, isEditMetadataOnly: false, editingId: null, editingData: null,
     title: "", description: "", category: "Custom Templates", saveType: "project",
   });
+  // Shown instead of jumping straight into the Save modal whenever the tab
+  // currently has a loaded, edited project/template -- lets the person
+  // choose between overwriting the record they opened or branching their
+  // edits off into a brand-new save, rather than silently doing either.
+  const [overwriteChoiceModal, setOverwriteChoiceModal] = useState({ isOpen: false });
   // Guards against spamming the Save button: without this, repeated rapid
   // clicks (or a slow/laggy connection) fire multiple concurrent
   // submitSave() calls, each one racing the others to create its own new
@@ -160,6 +173,13 @@ export default function MainApp() {
   const renderIntervalRef = useRef(null);
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
+  // Accumulates raw stderr text for the run currently in flight. Pyodide
+  // delivers a multi-line traceback as several separate stderr messages
+  // (see the ERROR handler below and extractErrorSummaryLine's doc comment
+  // for why), so this buffers all of them until RUN_RESULT confirms the
+  // run is actually finished, at which point exactly one hint is generated
+  // from the real summary line instead of one bogus hint per fragment.
+  const runtimeErrorTextRef = useRef("");
   const analyzingTabId = useRef(activeTabId);
   const blocklyAnalyzeTimeoutRef = useRef(null);
 
@@ -290,7 +310,16 @@ export default function MainApp() {
         clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         const resultData = data !== undefined && data !== null && data !== "" ? `\n${String(data)}` : "";
-        setConsoleOutput((prev) => prev + flushed + resultData + "\n> Program finished.\n");
+        // The run is genuinely over now, so it's finally safe to say we've
+        // seen the whole traceback (if any) and translate its real summary
+        // line -- not whatever fragment happened to arrive first.
+        let hintBlock = "";
+        if (runtimeErrorTextRef.current.trim()) {
+          const hint = translatePythonError(extractErrorSummaryLine(runtimeErrorTextRef.current));
+          if (hint) hintBlock = `\n${hint}\n`;
+          runtimeErrorTextRef.current = "";
+        }
+        setConsoleOutput((prev) => prev + flushed + resultData + hintBlock + "\n> Program finished.\n");
         if (counts) updateTab(analyzingTabId.current, { lineExecutions: counts });
         setIsEvaluating(false); setIsWaitingForInput(false);
       } else if (type === "OUTPUT") {
@@ -307,11 +336,24 @@ export default function MainApp() {
         setConsoleOutput((prev) => prev + flushed + data.prompt);
         setIsWaitingForInput(true);
       } else if (type === "ERROR") {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const hint = translatePythonError(data);
-        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
-        setIsEvaluating(false); setIsWaitingForInput(false);
+        // Note: deliberately NOT clearing runTimeoutRef/renderIntervalRef
+        // here (unlike the other branches). RUN_RESULT is what actually
+        // marks a run as finished and clears them; leaving the safety-net
+        // timeout armed means that on the rare occasion the worker crashes
+        // before ever sending RUN_RESULT, the run still recovers instead of
+        // leaving isEvaluating stuck true forever.
+        //
+        // Stream the raw traceback text through as it arrives (same live
+        // feel as stdout), but don't translate a hint from this fragment --
+        // it's very likely just one line of a multi-line traceback, not the
+        // "SomeError: detail" summary translatePythonError() expects. Buffer
+        // it and let RUN_RESULT above generate the one real hint once the
+        // full traceback has actually arrived.
+        const isFirstErrorChunk = runtimeErrorTextRef.current === "";
+        runtimeErrorTextRef.current += data;
+        setConsoleOutput((prev) => prev + flushed + (isFirstErrorChunk ? "\n Runtime Error:\n" : "") + data);
+        setIsWaitingForInput(false);
       }
     };
   };
@@ -420,6 +462,12 @@ export default function MainApp() {
         isEditingCode: false, syntaxErrors: [], 
         analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false, call_graph: {} },
         lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
+        // Remember the loaded record's own metadata so that if the user
+        // edits and re-saves, the Save modal can be pre-filled with what's
+        // already stored instead of blank fields (see openSaveModal /
+        // launchSaveModal).
+        description: item.isSystem ? "" : (item.description || ""),
+        category: item.isSystem ? "Custom Templates" : (item.category || "Custom Templates"),
         isDirty: false,
         ignoreDirtyUntil: Date.now() + 1200
       };
@@ -504,15 +552,32 @@ export default function MainApp() {
   }, [activeTab.pythonCode, activeTab.isEditingCode, isOnline, activeTabId, isEngineReady]);
 
   const handleSyncToBlocks = async () => {
+    if (isSyncingToBlocks) return;
     const hasErrors = activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0;
     if (hasErrors) { showToast("Cannot sync to blocks. Please fix Python syntax errors first.", "error"); return; }
+    if (!isEngineReady) {
+      showToast(engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment.", "error");
+      return;
+    }
     if (workspaceRefs.current[activeTabId] && activeTab.pythonCode) {
+      // Bring the Blocks panel into view *before* the conversion starts,
+      // not after it succeeds. If unsupported/partially-supported
+      // libraries are detected, loadFromPython() below pops open the
+      // ScopeWarningModal (rendered inside BlocklyWorkspace) and pauses
+      // for the user's decision -- if that panel isn't the visible/
+      // focused dock tab at that moment, the modal renders inside a
+      // hidden dock region and the whole sync looks permanently "stuck"
+      // even though it's just waiting on a confirmation the user can't
+      // see or click.
+      focusDockPanel("blockly");
+      setIsSyncingToBlocks(true);
       try {
         const cleanCode = sanitizePythonCode(activeTab.pythonCode);
         await workspaceRefs.current[activeTabId].loadFromPython(cleanCode);
         updateTab(activeTabId, { isEditingCode: false, viewMode: "workspace" });
         showToast("Code successfully synced to Blocks", "success");
       } catch (e) { showToast(`Sync Failed: ${e.message}`, "error"); }
+      finally { setIsSyncingToBlocks(false); }
     }
   };
 
@@ -528,6 +593,7 @@ export default function MainApp() {
             analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
             analysisTime: "0.0", lineExecutions: {}, syntaxErrors: [],
             currentLoadedId: null, title: "Untitled Project", saveType: "project",
+            description: "", category: "Custom Templates",
             isDirty: false,
             ignoreDirtyUntil: Date.now() + 1200
           });
@@ -549,7 +615,7 @@ export default function MainApp() {
     setIsEvaluating(true); updateTab(activeTabId, { lineExecutions: {} });
     focusDockPanel("console"); setConsoleTab("output"); setConsoleOutput((prev) => prev + "\n> Running the program...\n");
 
-    outputCountRef.current = 0; pendingOutputRef.current = "";
+    outputCountRef.current = 0; pendingOutputRef.current = ""; runtimeErrorTextRef.current = "";
     renderIntervalRef.current = setInterval(() => {
       if (pendingOutputRef.current) { setConsoleOutput((prev) => prev + pendingOutputRef.current); pendingOutputRef.current = ""; }
     }, 100);
@@ -589,18 +655,19 @@ export default function MainApp() {
   const getUserSavedCount = (saveType) =>
     allTemplates.filter((t) => !t.isSystem && t.saveType === saveType).length;
 
-  const openSaveModal = () => {
-    if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) {
-      showToast("The workspace is empty. Nothing to save!", "error"); return;
-    }
-    if (!getUser()) { showToast("You must be logged in to save.", "error"); return; }
-    if (isGuest) { showToast("Guest accounts cannot save projects or templates.", "error"); return; }
+  // mode: "overwrite" reuses the currently-loaded record's id so submitSave
+  // updates it in place, pre-filled with that record's own saved title,
+  // description, and type. "new" always creates a fresh project/template
+  // (even if one is currently loaded in this tab), pre-filled from the
+  // same loaded metadata as a starting point the person can edit before
+  // saving a separate copy.
+  const launchSaveModal = (mode) => {
+    const isNewSave = mode === "new" || !activeTab.currentLoadedId;
+    const defaultSaveType = activeTab.saveType || "project";
 
     // Only a brand-new project/template counts against the cap -- updating
-    // one you already own (activeTab.currentLoadedId set) doesn't add a
-    // new row, so it's always allowed through here regardless of count.
-    const isNewSave = !activeTab.currentLoadedId;
-    const defaultSaveType = activeTab.saveType || "project";
+    // one you already own doesn't add a new row, so it's always allowed
+    // through here regardless of count.
     if (isNewSave) {
       const cap = defaultSaveType === "template" ? MAX_TEMPLATES_PER_USER : MAX_PROJECTS_PER_USER;
       const currentCount = getUserSavedCount(defaultSaveType);
@@ -613,11 +680,39 @@ export default function MainApp() {
       }
     }
 
+    const hasLoadedTitle = activeTab.title && activeTab.title !== "Untitled Project";
+    const isBranchingCopy = mode === "new" && activeTab.currentLoadedId;
+
     setSaveModal({
-      isOpen: true, isEditMetadataOnly: false, editingId: activeTab.currentLoadedId, editingData: null,
-      title: activeTab.title !== "Untitled Project" ? activeTab.title : "",
-      description: "", category: "Custom Templates", saveType: activeTab.saveType || "project",
+      isOpen: true,
+      isEditMetadataOnly: false,
+      editingId: isNewSave ? null : activeTab.currentLoadedId,
+      editingData: null,
+      title: isBranchingCopy
+        ? `${hasLoadedTitle ? activeTab.title : "Untitled"} (Copy)`
+        : (hasLoadedTitle ? activeTab.title : ""),
+      description: activeTab.description || "",
+      category: activeTab.category || "Custom Templates",
+      saveType: defaultSaveType,
     });
+  };
+
+  const openSaveModal = () => {
+    if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) {
+      showToast("The workspace is empty. Nothing to save!", "error"); return;
+    }
+    if (!getUser()) { showToast("You must be logged in to save.", "error"); return; }
+    if (isGuest) { showToast("Guest accounts cannot save projects or templates.", "error"); return; }
+
+    // A project/template is already loaded in this tab and has been edited
+    // since -- ask whether to overwrite the record that was opened or save
+    // the edits as a new copy, instead of silently doing either.
+    if (activeTab.currentLoadedId && activeTab.isDirty) {
+      setOverwriteChoiceModal({ isOpen: true });
+      return;
+    }
+
+    launchSaveModal(activeTab.currentLoadedId ? "overwrite" : "new");
   };
 
   const openSaveModalRef = useRef(openSaveModal);
@@ -794,7 +889,7 @@ export default function MainApp() {
           setSaveModal((prev) => ({ ...prev, isOpen: false }));
           
           if (!saveModal.isEditMetadataOnly) {
-            updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType, isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
+            updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType, description: saveModal.description || "", category: saveModal.category || "Custom Templates", isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
           }
           
           window.dispatchEvent(new Event("localDataSynced"));
@@ -811,7 +906,7 @@ export default function MainApp() {
     setSaveModal((prev) => ({ ...prev, isOpen: false }));
     
     if (!saveModal.isEditMetadataOnly) {
-      updateTab(activeTabId, { title: saveModal.title, currentLoadedId: id, saveType: saveModal.saveType, isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
+      updateTab(activeTabId, { title: saveModal.title, currentLoadedId: id, saveType: saveModal.saveType, description: saveModal.description || "", category: saveModal.category || "Custom Templates", isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
     }
     
     window.dispatchEvent(new Event("localDataSynced"));
@@ -846,7 +941,7 @@ export default function MainApp() {
       tabs.forEach((t) => {
         if (String(t.currentLoadedId) === String(item._id)) {
           workspaceRefs.current[t.id]?.clear();
-          updateTab(t.id, { currentLoadedId: null, title: "Untitled Project", isDirty: false });
+          updateTab(t.id, { currentLoadedId: null, title: "Untitled Project", description: "", category: "Custom Templates", isDirty: false });
         }
       });
       window.dispatchEvent(new Event("localDataSynced"));
@@ -914,6 +1009,7 @@ export default function MainApp() {
           isEditingCode={activeTab.isEditingCode}
           syntaxErrors={activeTab.syntaxErrors || []}
           onSyncToBlocks={handleSyncToBlocks}
+          isSyncingToBlocks={isSyncingToBlocks}
           onChangeCode={(value) => {
             const cleanValue = sanitizePythonCode(value);
             updateTab(activeTabId, { pythonCode: cleanValue, isEditingCode: true, syntaxErrors: [], isDirty: true });
@@ -965,6 +1061,27 @@ export default function MainApp() {
       <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} isDanger={modalConfig.isDanger} onCancel={closeModal} onConfirm={modalConfig.onConfirmAction} />
 
       {toast.show && <div className={`toast-notification ${toast.type === "error" ? "toast-error" : "toast-success"}`}>{toast.message}</div>}
+
+      {overwriteChoiceModal.isOpen && (
+        <div className="modal-overlay">
+          <div className="custom-modal-content">
+            <div className="custom-modal-header">
+              <h3>Save Changes</h3>
+            </div>
+            <div className="custom-modal-body">
+              <p>
+                "{activeTab.title}" is an already-saved {activeTab.saveType === "template" ? "template" : "project"} that you've edited.
+                Overwrite it with your changes, or save your changes as a new {activeTab.saveType === "template" ? "template" : "project"} instead?
+              </p>
+            </div>
+            <div className="custom-modal-footer">
+              <button className="btn-modal btn-modal-cancel" onClick={() => setOverwriteChoiceModal({ isOpen: false })}>Cancel</button>
+              <button className="btn-modal btn-modal-cancel" onClick={() => { setOverwriteChoiceModal({ isOpen: false }); launchSaveModal("new"); }}>Save as New</button>
+              <button className="btn-modal btn-modal-confirm" onClick={() => { setOverwriteChoiceModal({ isOpen: false }); launchSaveModal("overwrite"); }}>Overwrite</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {saveModal.isOpen && (
         <div className="modal-overlay">
