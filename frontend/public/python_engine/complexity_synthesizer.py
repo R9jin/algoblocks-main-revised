@@ -11,7 +11,7 @@ complexity analysis model.
 
 import re
 try:
-    from complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
+    from complexity_explainer.complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
 except ImportError:
     SemanticNLGEngine = None
     ComprehensiveASTVisitor = None

@@ -72,10 +72,11 @@ const AdminUserManagement = () => {
   });
   const [modalInputValue, setModalInputValue] = useState("");
 
-  // Per-user metrics dropdown state
-  const [expandedEmail, setExpandedEmail] = useState(null);
+  // Per-user metrics dropdown state. Any number of rows can be expanded at
+  // once (a Set of emails), rather than only ever one at a time.
+  const [expandedEmails, setExpandedEmails] = useState(() => new Set());
   const [userMetricsCache, setUserMetricsCache] = useState({});
-  const [metricsLoadingEmail, setMetricsLoadingEmail] = useState(null);
+  const [loadingMetricsEmails, setLoadingMetricsEmails] = useState(() => new Set());
   const [metricsError, setMetricsError] = useState({});
 
   // Cohort-wide analytics dashboard state
@@ -193,14 +194,23 @@ const AdminUserManagement = () => {
   };
 
   const toggleUserMetrics = async (email) => {
-    if (expandedEmail === email) {
-      setExpandedEmail(null);
-      return;
-    }
-    setExpandedEmail(email);
+    // Toggle just this row's membership in the expanded set -- expanding
+    // one user's metrics no longer collapses any other user's already-open
+    // panel, so admins can compare several side by side.
+    setExpandedEmails((prev) => {
+      const next = new Set(prev);
+      if (next.has(email)) {
+        next.delete(email);
+      } else {
+        next.add(email);
+      }
+      return next;
+    });
+
+    if (expandedEmails.has(email)) return; // was open, now collapsing -- nothing to fetch
     if (userMetricsCache[email]) return; // already fetched, just showing cached data
 
-    setMetricsLoadingEmail(email);
+    setLoadingMetricsEmails((prev) => new Set(prev).add(email));
     setMetricsError((prev) => ({ ...prev, [email]: null }));
     try {
       const token = getAuthToken();
@@ -213,7 +223,11 @@ const AdminUserManagement = () => {
     } catch (err) {
       setMetricsError((prev) => ({ ...prev, [email]: err.message }));
     } finally {
-      setMetricsLoadingEmail(null);
+      setLoadingMetricsEmails((prev) => {
+        const next = new Set(prev);
+        next.delete(email);
+        return next;
+      });
     }
   };
 
@@ -602,9 +616,9 @@ const AdminUserManagement = () => {
               </thead>
               <tbody>
                 {filteredUsers.map((user) => {
-                  const isExpanded = expandedEmail === user.email;
+                  const isExpanded = expandedEmails.has(user.email);
                   const cached = userMetricsCache[user.email];
-                  const isLoadingMetrics = metricsLoadingEmail === user.email;
+                  const isLoadingMetrics = loadingMetricsEmails.has(user.email);
                   const rowError = metricsError[user.email];
 
                   return (

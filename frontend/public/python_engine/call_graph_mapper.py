@@ -7,7 +7,7 @@ complexity analysis model.
 """
 import ast
 from collections import deque
-from code_preprocessor import safe_walk, extract_constant
+from complexity_analyzer.code_preprocessor import safe_walk, extract_constant
 import re
 
 

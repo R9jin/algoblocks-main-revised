@@ -20,7 +20,6 @@ import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import { getErrorMessage } from "../utils/apiError";
 import EvaluationSuite from "./EvaluationSuite";
-import AnalyzerRegressionCheck from "../components/AnalyzerRegressionCheck";
 import "../styles/AdminUserManagement.css";
 import "../styles/AdminDashboard.css";
 
@@ -41,7 +40,6 @@ const adminDashboardTour = {
   steps: [
     { target: ".admin-dash-overview-card", title: "User Management at a glance", description: "Quick counts across every account. Open the full manager to search, suspend, or delete accounts." },
     { target: ".admin-dash-eval-section", title: "Dataset Testing", description: "Explore *why* the analyzer gets things right or wrong -- run the full benchmark with per-line detail and charts." },
-    { target: ".admin-dash-regression-section", title: "Analyzer Regression Check", description: "Once you know the numbers, this confirms they *stay* that way -- a fast pass/fail check you can re-run after any code change." },
   ],
 };
 
@@ -172,14 +170,6 @@ export default function AdminDashboard() {
             <p>Full complexity analyzer benchmark, run directly from the dashboard.</p>
           </div>
           <EvaluationSuite embedded />
-        </section>
-
-        <section className="admin-dash-regression-section">
-          <div className="admin-dash-section-intro">
-            <h2>Analyzer Regression Check</h2>
-            <p>Automated pass/fail gate that re-checks the same "overall" accuracy claim after every code change.</p>
-          </div>
-          <AnalyzerRegressionCheck />
         </section>
       </div>
     </div>
