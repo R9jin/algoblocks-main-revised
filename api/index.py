@@ -35,6 +35,21 @@ try:
 except Exception as e:
     logger.error(f"Database initialization failed on startup: {e}", exc_info=True)
 
+# BUG FIX: MailerSend sends (password reset / verification emails) were
+# failing completely silently -- send_password_reset_email() only logs and
+# returns False on failure, by design, so the /forgot-password endpoint can
+# always return the same generic message and not leak whether an account
+# exists. That's correct behavior for the API response, but it meant a
+# missing/misconfigured MAILERSEND_API_KEY (e.g. the .env file placed at the
+# project root instead of api/.env, where database.py's load_dotenv() looks)
+# produced no visible error anywhere. Surface it loudly at startup instead.
+if not os.getenv("MAILERSEND_API_KEY"):
+    logger.warning(
+        "MAILERSEND_API_KEY is not set -- password reset and verification "
+        "emails will silently fail to send. Make sure your .env file is at "
+        "api/.env (not the project root), then restart the server."
+    )
+
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware

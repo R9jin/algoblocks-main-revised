@@ -294,6 +294,16 @@ class AuthService:
         if not user:
             return generic_response
 
+        # BUG FIX: a suspended account could still request (and complete) a
+        # password reset, letting a suspended user regain account access by
+        # just resetting their own password. Silently skip issuing a token
+        # for non-active accounts, but still return the generic response --
+        # otherwise a suspended user's email would get a different response
+        # than a normal one, leaking suspension status through this endpoint.
+        if user.get("status", "active") != "active":
+            logger.warning(f"Ignored password reset request for suspended account: {email}")
+            return generic_response
+
         # Raw token goes in the emailed link; only its hash is ever persisted.
         raw_token = secrets.token_urlsafe(32)
         token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
@@ -342,6 +352,12 @@ class AuthService:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
 
         if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Invalid or expired reset link.")
+
+        # BUG FIX: defense in depth -- if an account gets suspended *after* a
+        # reset token was already issued (but before it's used), don't let
+        # that stale token still complete the reset.
+        if user.get("status", "active") != "active":
             raise HTTPException(status_code=400, detail="Invalid or expired reset link.")
 
         hashed_password = AuthService.hash_password(new_password)
