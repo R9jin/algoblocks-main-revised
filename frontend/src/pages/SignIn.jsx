@@ -15,8 +15,6 @@ export default function SignIn() {
   const [rememberMe, setRememberMe] = useState(true);
   
   const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
-  const [showResendVerification, setShowResendVerification] = useState(false);
-  const [resendState, setResendState] = useState("idle"); // idle | sending | sent
   
   const navigate = useNavigate(); 
 
@@ -127,8 +125,6 @@ export default function SignIn() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true); 
-    setShowResendVerification(false);
-    setResendState("idle");
 
     try {
       const response = await fetchWithTimeout(`${API_BASE}/api/login`, {
@@ -147,12 +143,6 @@ export default function SignIn() {
       if (!response.ok || data.status !== "success") {
         const message = getErrorMessage(data, "Invalid email or password");
         showToast(message);
-        // Backend returns 403 with a message mentioning "verify" for
-        // unverified accounts (see AuthService.login) -- surface a resend
-        // action instead of leaving the user stuck with no path forward.
-        if (response.status === 403 && /verify/i.test(message)) {
-          setShowResendVerification(true);
-        }
         setIsLoading(false);
         return;
       }
@@ -212,52 +202,6 @@ export default function SignIn() {
       }
     } finally {
       if (isMountedRef.current) setIsLoading(false); 
-    }
-  };
-
-  const handleResendVerification = async () => {
-    setResendState("sending");
-    try {
-      const response = await fetchWithTimeout(`${API_BASE}/api/resend-verification`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      // BUG FIX: this used to ignore the response entirely and always show
-      // "Verification email sent", even when the request failed outright
-      // (429 rate limit from the 3/minute limiter, a 422 from a malformed
-      // email, a 500, etc). That made it look like an email was on its way
-      // when nothing was actually sent. The backend's generic-response
-      // privacy pattern (same body whether or not the account exists/is
-      // already verified) only applies to a successful 200 -- a non-2xx
-      // status is a real failure and should be surfaced as one.
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        if (isMountedRef.current) {
-          setResendState("idle");
-          const message = response.status === 429
-            ? "Too many requests -- please wait a bit before trying again."
-            : getErrorMessage(data, "Couldn't send the verification email. Please try again.");
-          showToast(message);
-        }
-        return;
-      }
-
-      if (isMountedRef.current) {
-        setResendState("sent");
-        showToast("If that account exists and isn't verified, a new link has been sent.", "success");
-      }
-    } catch (error) {
-      console.error(error);
-      if (isMountedRef.current) {
-        setResendState("idle");
-        if (error?.name === "AbortError") {
-          showToast("Request is taking too long. Please try again.");
-        } else {
-          showToast("Server not reachable. Check backend connection.");
-        }
-      }
     }
   };
 
@@ -433,26 +377,6 @@ export default function SignIn() {
                 {isLoading ? "Signing In..." : "Sign In"}
               </span>
             </button> 
-
-            {showResendVerification && (
-              <p style={{ textAlign: "center", fontSize: "0.9rem", color: "#cbd5e1", marginTop: "12px" }}>
-                {resendState === "sent" ? (
-                  "Verification email sent — check your inbox."
-                ) : (
-                  <>
-                    Didn't get the email?{" "}
-                    <button
-                      type="button"
-                      onClick={handleResendVerification}
-                      disabled={resendState === "sending" || !email}
-                      style={{ background: "none", border: "none", color: "#818cf8", cursor: "pointer", textDecoration: "underline", padding: 0, font: "inherit" }}
-                    >
-                      {resendState === "sending" ? "Sending..." : "Resend verification link"}
-                    </button>
-                  </>
-                )}
-              </p>
-            )}
 
             <div className="social-divider">
               <span>OR</span>

@@ -2,14 +2,13 @@
 """
 Standalone MailerSend connectivity check.
 
-The backend deliberately swallows MailerSend failures (forgot-password and
-resend-verification always return the same generic "success" response
-regardless of whether the email actually sent, so the endpoint can't be
-used to enumerate accounts -- see AuthService.forgot_password). That's
-correct behavior for the API, but it also means you can't tell from the
-app itself *why* an email didn't arrive. This script sends one real test
-email directly through MailerSend and prints the raw response, so you can
-see the actual reason.
+The backend deliberately swallows MailerSend failures (forgot-password
+always returns the same generic "success" response regardless of whether
+the email actually sent, so the endpoint can't be used to enumerate
+accounts -- see AuthService.forgot_password). That's correct behavior for
+the API, but it also means you can't tell from the app itself *why* an
+email didn't arrive. This script sends one real test email directly through
+MailerSend and prints the raw response, so you can see the actual reason.
 
 Usage:
     cd api
@@ -20,14 +19,11 @@ Run it with TWO DIFFERENT email addresses back to back. If the first
 succeeds and the second fails with something mentioning "trial" or
 "recipient", that confirms the diagnosis below.
 
-Most common reason verification emails aren't arriving: MAILERSEND_API_KEY
+Most common reason password-reset emails aren't arriving: MAILERSEND_API_KEY
 belongs to a Trial-plan account. MailerSend's Trial plan caps outgoing
 mail at 2 DISTINCT RECIPIENT ADDRESSES TOTAL, for the life of the account
 (https://www.mailersend.com/pricing: "The Trial plan lets you send up to
-100 emails/month to 2 recipients"). That's why forgot-password can look
-totally fine (you've probably only ever tested it against 1-2 of your own
-addresses) while account verification fails for almost every new signup
-(each one is a brand-new recipient). This is a MailerSend account setting,
+100 emails/month to 2 recipients"). This is a MailerSend account setting,
 not something fixable in this codebase. To fix it:
   1. Log in to https://app.mailersend.com
   2. Go to Domains -> add and verify a real domain (or Plan & billing ->
@@ -36,9 +32,9 @@ not something fixable in this codebase. To fix it:
   3. Re-run this script with two different addresses -- both should now
      succeed.
 
-In the meantime, an admin can manually verify a user stuck by this from
-Admin > User Management in the app (the "unverified" badge has a
-"manually verify" action next to it), instead of leaving them locked out.
+(Note: account signup no longer uses MailerSend at all -- it's Google-OAuth
+only now, see api/services/auth_service.py:signup_with_google. MailerSend is
+used exclusively for the forgot-password flow.)
 """
 import sys
 import os

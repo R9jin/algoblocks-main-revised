@@ -574,3 +574,46 @@
   background: #dafbe1;
   border-color: #4ac26b;
 }
+
+/* Google-verified email badge on the signup form: sits under the
+   read-only email field populated from Google OAuth, confirming to the
+   user why that field can't be edited. */
+.google-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #116329;
+}
+
+.google-verified-badge svg {
+  flex-shrink: 0;
+}
+
+/* "Continue with Google" as the sole entry point into signup, before the
+   username/password step is shown. */
+.signup-google-start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.signup-switch-account {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--auth-purple-dark, #6541d8);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  align-self: flex-start;
+  margin: -0.5rem 0 1rem;
+}
+
+.signup-switch-account:hover {
+  color: #47249e;
+}

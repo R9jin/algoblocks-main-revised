@@ -27,9 +27,17 @@ def _validate_workspace_size(value):
         raise ValueError(f"workspace exceeds maximum size of {MAX_WORKSPACE_BYTES} bytes")
     return value
 
+# Signup is now Google-OAuth-only (see AuthService.signup_with_google): the
+# frontend never sends a plain email for account creation. `google_token` is
+# the Google Identity Services credential (ID token) obtained from "Continue
+# with Google" on the signup page; the backend independently verifies it and
+# derives the account's email from Google's own response, never from a
+# client-supplied field. `username` replaces the old free-text "name" field
+# on the signup form (the email field there is Google's, pre-filled and
+# read-only).
 class UserCreate(BaseModel):
-    name: str
-    email: EmailStr
+    google_token: str
+    username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=6)
 
 class UserLogin(BaseModel):
@@ -50,12 +58,6 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str = Field(..., min_length=6)
-
-class VerifyEmailRequest(BaseModel):
-    token: str
-
-class ResendVerificationRequest(BaseModel):
-    email: EmailStr
 
 class ProgressUpdate(BaseModel):
     email: Optional[str] = None
