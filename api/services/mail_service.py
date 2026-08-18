@@ -3,17 +3,32 @@ import os
 import re
 import logging
 import requests
+from pathlib import Path
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
+# Safety net: ensure .env is loaded even if this module is imported before
+# database.py's load_dotenv() has run (which is exactly what was happening
+# and causing verification emails to silently fail -- MAILERSEND_API_KEY
+# was None at import time).
+_env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=_env_path)
+
 MAILERSEND_API_URL = "https://api.mailersend.com/v1/email"
 
-MAILERSEND_API_KEY = os.getenv("MAILERSEND_API_KEY")
-# MailerSend requires "from" to be on a verified/trial domain. Defaults to the
-# trial subdomain issued with the account; override with MAILERSEND_FROM_EMAIL
-# once a real sending domain is verified.
-MAILERSEND_FROM_EMAIL = os.getenv("MAILERSEND_FROM_EMAIL", "noreply@test-pzkmgq7popml059v.mlsender.net")
-MAILERSEND_FROM_NAME = os.getenv("MAILERSEND_FROM_NAME", "AlgoBlocks")
+
+def _get_api_key():
+    """Read MAILERSEND_API_KEY lazily so it's always available after .env load."""
+    return os.getenv("MAILERSEND_API_KEY")
+
+
+def _get_from_email():
+    return os.getenv("MAILERSEND_FROM_EMAIL", "noreply@test-pzkmgq7popml059v.mlsender.net")
+
+
+def _get_from_name():
+    return os.getenv("MAILERSEND_FROM_NAME", "AlgoBlocks")
 
 # BUG FIX: this used to be the ONLY source for the link base, hardcoded to
 # "http://localhost:5173" whenever the FRONTEND_URL env var wasn't set on
@@ -93,14 +108,15 @@ def send_password_reset_email(to_email: str, to_name: str, reset_token: str, ori
     Returns True on success, False on any failure (never raises, so a mail
     provider outage can't leak whether an account exists via a stack trace).
     """
-    if not MAILERSEND_API_KEY:
+    api_key = _get_api_key()
+    if not api_key:
         logger.error("MAILERSEND_API_KEY is not set; cannot send password reset email.")
         return False
 
     reset_link = f"{_resolve_frontend_url(origin)}/reset-password?token={reset_token}"
 
     payload = {
-        "from": {"email": MAILERSEND_FROM_EMAIL, "name": MAILERSEND_FROM_NAME},
+        "from": {"email": _get_from_email(), "name": _get_from_name()},
         "to": [{"email": to_email, "name": to_name or to_email}],
         "subject": "Reset your AlgoBlocks password",
         "html": _build_reset_email_html(to_name, reset_link),
@@ -108,7 +124,7 @@ def send_password_reset_email(to_email: str, to_name: str, reset_token: str, ori
     }
 
     headers = {
-        "Authorization": f"Bearer {MAILERSEND_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
 
@@ -164,14 +180,15 @@ def send_verification_email(to_email: str, to_name: str, verification_token: str
     Sends the signup email-verification link via the MailerSend API.
     Returns True on success, False on any failure (never raises).
     """
-    if not MAILERSEND_API_KEY:
+    api_key = _get_api_key()
+    if not api_key:
         logger.error("MAILERSEND_API_KEY is not set; cannot send verification email.")
         return False
 
     verify_link = f"{_resolve_frontend_url(origin)}/verify-email?token={verification_token}"
 
     payload = {
-        "from": {"email": MAILERSEND_FROM_EMAIL, "name": MAILERSEND_FROM_NAME},
+        "from": {"email": _get_from_email(), "name": _get_from_name()},
         "to": [{"email": to_email, "name": to_name or to_email}],
         "subject": "Verify your AlgoBlocks account",
         "html": _build_verification_email_html(to_name, verify_link),
@@ -179,7 +196,7 @@ def send_verification_email(to_email: str, to_name: str, verification_token: str
     }
 
     headers = {
-        "Authorization": f"Bearer {MAILERSEND_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
 
