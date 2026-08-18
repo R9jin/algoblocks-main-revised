@@ -508,6 +508,28 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* BUG FIX: guests have no persisted progress/assessments (isGuest
+            wipes progress/assessments to {} above), so the Performance
+            Metrics sidebar and the Curriculum Path & Mastery list were just
+            rendering hollow, meaningless 0-value cards for them. Guests
+            shouldn't see this section at all -- show a sign-up prompt
+            instead. */}
+        {user.isGuest ? (
+          <div className="profile-content-grid guest-content-grid">
+            <div className="guest-locked-notice">
+              <FiLock size={28} className="guest-locked-icon" />
+              <h3>Track Your Progress</h3>
+              <p>
+                Performance metrics and your curriculum path are only available for
+                registered accounts. Sign up to save your progress, AES/ROG scores,
+                and assessment history.
+              </p>
+              <Link to="/signup" className="btn-resume-learning">
+                <FiCode size={18} /> Sign Up to Start Learning
+              </Link>
+            </div>
+          </div>
+        ) : (
         <div className="profile-content-grid">
           <aside className="profile-sidebar">
             <h3 className="sidebar-title">Performance Metrics</h3>
@@ -830,6 +852,7 @@ export default function ProfilePage() {
             </div>
           </main>
         </div>
+        )}
       </div>
     </div>
   );

@@ -20,8 +20,10 @@ Three tiers, in increasing order of "you should actually go check this":
     entries for at all. Every call from it defaults to O(1), which is
     frequently wrong but at least uniformly so.
   - "partial": a module IS in scope, but the specific name used is a
-    known gap within it (e.g. `random.shuffle`, which the engine treats
-    as O(1) but is actually O(n)).
+    known gap within it. (As of this writing PARTIAL_SUPPORT is empty --
+    math/random/collections/itertools/statistics/heapq/bisect/functools
+    are all fully covered -- but the machinery stays in place for future
+    modules that only get partial coverage.)
   - "collision": the engine didn't just default -- it confidently
     borrowed an unrelated cost rule because a method name happens to
     match a key in builtin_complexities (e.g. Queue.get() costed as a
@@ -32,38 +34,24 @@ Three tiers, in increasing order of "you should actually go check this":
 import ast
 
 # Modules whose in-scope operations are (close to) fully and correctly
-# mapped in ComplexityAnalyzer.builtin_complexities.
-FULLY_SUPPORTED_MODULES = {"heapq", "bisect"}
+# mapped in ComplexityAnalyzer.builtin_complexities: every function and
+# method the standard library exposes on these 8 modules has a cost entry
+# (see the "Standard library module coverage" block in analyzer.py's
+# builtin_complexities, plus library_function_names for the bare
+# `from module import func; func(...)` call form).
+FULLY_SUPPORTED_MODULES = {
+    "math", "random", "collections", "itertools", "statistics", "heapq", "bisect", "functools",
+}
 
 # Modules that ARE in scope, but only partially: some of their names are
 # costed correctly, and some silently default to O(1) or borrow the wrong
 # rule. `gaps` lists the attribute/function names known to be uncovered.
-PARTIAL_SUPPORT = {
-    "collections": {
-        "gaps": {"most_common", "rotate", "maxlen"},
-        "note": "deque/Counter/defaultdict/OrderedDict creation is costed, but methods like most_common() or rotate() default to O(1).",
-    },
-    "math": {
-        "gaps": {"log", "log2", "log10", "factorial", "floor", "ceil", "isqrt", "comb", "perm"},
-        "note": "sqrt/gcd/pow are costed; log, factorial, floor, ceil, comb, and perm default to O(1) (correct by coincidence for a couple of these, not by design).",
-    },
-    "functools": {
-        "gaps": {"reduce", "partial", "cmp_to_key"},
-        "note": "lru_cache/cache are recognized as memoization; reduce(), partial(), and cmp_to_key() are not costed and default to O(1) regardless of iterable size.",
-    },
-    "itertools": {
-        "gaps": {"product", "chain", "groupby", "islice", "accumulate", "zip_longest", "count", "cycle"},
-        "note": "permutations/combinations are only costed when used directly as a for-loop's iterable; everything else in this module defaults to O(1), and permutations/combinations used outside a loop header also default to O(1).",
-    },
-    "random": {
-        "gaps": {"randint", "choice", "shuffle", "sample", "randrange", "uniform", "gauss"},
-        "note": "Nothing in this module is costed. shuffle() and sample() in particular default to O(1) when they're actually O(n).",
-    },
-    "statistics": {
-        "gaps": {"mean", "median", "median_low", "median_high", "stdev", "pstdev", "variance", "pvariance", "mode"},
-        "note": "Nothing in this module is costed; every function here defaults to O(1) regardless of input size.",
-    },
-}
+# (Currently empty -- math, random, collections, itertools, statistics,
+# heapq, bisect, and functools used to be listed here with known gaps;
+# those gaps were closed and the modules promoted to
+# FULLY_SUPPORTED_MODULES above. Left in place, still empty, as the home
+# for any *future* module that's in scope but only partially covered.)
+PARTIAL_SUPPORT = {}
 
 # Modules the engine has no cost entries for at all, with a note on the
 # specific operations most likely to matter in student code. This is not

@@ -490,6 +490,13 @@ class BlocklyASTConverter:
                 self.variables.add(node.id)
                 return {"type": "variables_get", "id": gen_uid(), "fields": {"VAR": {"id": node.id, "name": node.id}}}
 
+            # Bare `math.pi` / `math.e` (an Attribute reference, not a Call)
+            # maps onto the stock math_constant block.
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "math":
+                const_map = {"pi": "PI", "e": "E"}
+                if node.attr in const_map:
+                    return {"type": "math_constant", "id": gen_uid(), "fields": {"CONSTANT": const_map[node.attr]}, "output": "Number"}
+
             if isinstance(node, ast.BinOp):
                 # Advanced Bitwise / Math Operators
                 bitwise_map = {
@@ -711,7 +718,44 @@ class BlocklyASTConverter:
                 elif isinstance(node.func, ast.Attribute):
                     method = node.func.attr
                     obj = node.func.value
-                    
+                    obj_id = obj.id if isinstance(obj, ast.Name) else None
+
+                    # module.func() calls from the fully-supported stdlib
+                    # modules that already have a dedicated stock Blockly
+                    # block -- map them onto that block instead of falling
+                    # through to the raw-code fallback.
+                    if obj_id == "math":
+                        single_op_map = {"sqrt": "ROOT", "log": "LN", "log10": "LOG10", "exp": "EXP"}
+                        if method in single_op_map and len(node.args) == 1:
+                            block = {"type": "math_single", "id": gen_uid(), "fields": {"OP": single_op_map[method]}}
+                            self.add_input(block, "NUM", self.serialize_expr_safe(node.args[0], ["Number"]))
+                            return block
+
+                        round_op_map = {"floor": "ROUNDDOWN", "ceil": "ROUNDUP"}
+                        if method in round_op_map and len(node.args) == 1:
+                            block = {"type": "math_round", "id": gen_uid(), "fields": {"OP": round_op_map[method]}}
+                            self.add_input(block, "NUM", self.serialize_expr_safe(node.args[0], ["Number"]))
+                            return block
+
+                        # NOTE: math.sin/cos/tan/asin/acos/atan are
+                        # deliberately NOT mapped to the stock math_trig
+                        # block here -- that block's own Python generator
+                        # bakes in a degrees<->radians conversion
+                        # (math.sin(math.radians(x)) for SIN, etc.), so
+                        # mapping a bare math.sin(x) call onto it would
+                        # silently change what the round-tripped code
+                        # computes. Left on the raw-fallback path instead,
+                        # which is lossless.
+
+                    if obj_id == "random":
+                        if method == "randint" and len(node.args) == 2:
+                            block = {"type": "math_random_int", "id": gen_uid()}
+                            self.add_input(block, "FROM", self.serialize_expr_safe(node.args[0], ["Number"]))
+                            self.add_input(block, "TO", self.serialize_expr_safe(node.args[1], ["Number"]))
+                            return block
+                        if method == "random" and len(node.args) == 0:
+                            return {"type": "math_random_float", "id": gen_uid()}
+
                     if method == "join" and len(node.args) == 1:
                         block = {"type": "custom_string_join", "id": gen_uid()}
                         self.add_input(block, "LIST", self.serialize_expr(node.args[0]))

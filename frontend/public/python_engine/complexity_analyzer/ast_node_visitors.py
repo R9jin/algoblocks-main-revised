@@ -790,7 +790,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             if f_id == 'set2': f_id = 'set'
             f_id = self.analyzer.aliases.get(f_id, f_id)
             
-            if f_id in self.analyzer.builtin_complexities and f_id in bare_builtins:
+            if f_id in self.analyzer.builtin_complexities and (f_id in bare_builtins or f_id in getattr(self.analyzer, 'library_function_names', ())):
                 if f_id in ['set', 'list', 'dict', 'deque', 'tuple', 'defaultdict', 'Counter', 'OrderedDict']:
                     has_args = bool(getattr(node, 'args', []))
                     is_single_arg = False

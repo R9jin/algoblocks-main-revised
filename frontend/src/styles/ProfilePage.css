@@ -184,6 +184,42 @@
   align-items: start;
 }
 
+/* Guest placeholder (replaces Performance Metrics + Curriculum Path for guest accounts) */
+.guest-content-grid {
+  grid-template-columns: 1fr;
+}
+
+.guest-locked-notice {
+  background: var(--panel-bg);
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0, 0.03);
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.guest-locked-icon {
+  color: var(--purple-main);
+  margin-bottom: 4px;
+}
+
+.guest-locked-notice h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.guest-locked-notice p {
+  margin: 0 0 8px 0;
+  max-width: 480px;
+  color: var(--text-muted, #64748b);
+  line-height: 1.5;
+}
+
 /* Left Sidebar (Stats) */
 .profile-sidebar {
   display: flex;
