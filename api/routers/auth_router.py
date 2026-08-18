@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Request, Query, Body, Depends
 from typing import Dict, Any
 
-from models import UserLogin, UserCreate, ProgressUpdate, GoogleLoginRequest, AssessmentUpdateRequest, BatchSyncPayload, SyncResponse, ForgotPasswordRequest, ResetPasswordRequest
+from models import UserLogin, UserCreate, ProgressUpdate, GoogleLoginRequest, AssessmentUpdateRequest, BatchSyncPayload, SyncResponse, ForgotPasswordRequest, ResetPasswordRequest, VerifyEmailRequest
 from services.auth_service import AuthService
 from limiter import limiter
 from security import get_current_user_email
@@ -17,11 +17,17 @@ def login_user(request: Request, req: UserLogin):
 @router.post("/signup")
 @limiter.limit("5/minute")
 def signup_user(request: Request, req: UserCreate):
-    # SECURITY: signup is Google-OAuth-only. The email that ends up on the
-    # new account comes from AuthService independently re-verifying
-    # req.google_token with Google -- never from a client-supplied email
-    # field (there isn't one on this request model at all).
-    return AuthService.signup_with_google(req.google_token, req.username, req.password)
+    # Classic email/password signup: the account starts unverified and a
+    # verification link is emailed to req.email (see AuthService.signup_with_email).
+    # Pass the requesting frontend's Origin through so the emailed link
+    # points back at wherever the person actually is (local dev, production,
+    # or a preview deployment) instead of a hardcoded/missing FRONTEND_URL.
+    return AuthService.signup_with_email(req.email, req.username, req.password, origin=request.headers.get("origin"))
+
+@router.post("/verify-email")
+@limiter.limit("10/minute")
+def verify_email(request: Request, req: VerifyEmailRequest):
+    return AuthService.verify_email(req.token)
 
 @router.post("/forgot-password")
 @limiter.limit("5/minute")

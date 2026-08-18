@@ -22,6 +22,7 @@ const Projects = lazy(() => import("./pages/Projects"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const SignIn = lazy(() => import("./pages/SignIn"));
 const SignUp = lazy(() => import("./pages/SignUp"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const UserHomePage = lazy(() => import("./pages/UserHomePage"));
 const MainApp = lazy(() => import("./pages/MainApp"));
 const ActivityApp = lazy(() => import("./pages/ActivityApp"));
@@ -107,6 +108,7 @@ function App() {
           <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
           <Route path="/signin" element={<PublicRoute><SignIn /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
+          <Route path="/verify-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
           <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
           

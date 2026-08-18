@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 # How long a password reset link stays valid for.
 RESET_TOKEN_TTL_MINUTES = 30
 
+# How long an email-verification link stays valid for.
+VERIFICATION_TOKEN_TTL_HOURS = 24
+
 class AuthService:
     @staticmethod
     def hash_password(password: str) -> str:
@@ -68,14 +71,13 @@ class AuthService:
                 detail="This account has been suspended. Contact an administrator."
             )
 
-        # SECURITY: accounts must be verified before they can sign in. Every
-        # current signup path (Google-OAuth signup via signup_with_google,
-        # and Google-SSO sign-in via google_login) inserts the row already
-        # verified -- Google has confirmed the address as part of its own
-        # OAuth flow. This only still matters for any pre-existing account
-        # created back when email/password signup required clicking a
-        # MailerSend verification link; an admin can flip such an account to
-        # verified from Admin > User Management if one is ever stuck.
+        # SECURITY: accounts must be verified before they can sign in.
+        # Email/password signups (signup_with_email) start unverified and
+        # only flip to verified once the person clicks the link emailed to
+        # them (see verify_email below). Google-SSO sign-in (google_login)
+        # inserts the row already verified, since Google has confirmed the
+        # address as part of its own OAuth flow. An admin can also flip a
+        # stuck account to verified by hand from Admin > User Management.
         if not user.get("is_verified", True):
             logger.warning(f"Rejected login for unverified account: {req.email}")
             raise HTTPException(
@@ -98,53 +100,13 @@ class AuthService:
         }
 
     @staticmethod
-    def signup_with_google(google_token: str, username: str, password: str):
+    def signup_with_email(email: str, username: str, password: str, origin: str = None):
         """
-        Google-OAuth-based signup. Replaces the old email/password + MailerSend
-        email-verification flow entirely -- there is no path to create an
-        account with a client-typed email anymore.
-
-        SECURITY: the account's email is taken ONLY from Google's own
-        verified response to independently verifying `google_token` (exactly
-        the same id_token.verify_oauth2_token() check google_login() uses
-        for sign-in) -- never from any client-supplied field. The frontend
-        only ever displays this email back to the user as read-only; it has
-        no way to submit a different one, because this request model
-        (models.UserCreate) simply has no email field for the client to set.
-        A successful Google OAuth authentication is treated as sufficient
-        proof of email ownership, so the account is created already verified
-        and no verification email is sent.
+        Classic email/password signup. The account is created unverified
+        and a verification link is emailed to the address the person typed
+        in; they must click it (see verify_email below) before they can log
+        in (see the is_verified gate in login() above).
         """
-        try:
-            client_id = os.getenv("GOOGLE_CLIENT_ID")
-            if not client_id:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Missing GOOGLE_CLIENT_ID in environment"
-                )
-
-            idinfo = id_token.verify_oauth2_token(
-                google_token,
-                requests.Request(),
-                client_id
-            )
-        except ValueError:
-            raise HTTPException(status_code=401, detail="Invalid Google OAuth token")
-
-        email = idinfo.get("email")
-        if not email:
-            raise HTTPException(status_code=400, detail="Google account has no email")
-
-        # Google sets this false in rare cases (e.g. an unverified alias on
-        # a Workspace account). Since a verified Google email is the entire
-        # basis for skipping our own email-verification step, don't accept
-        # one Google itself isn't vouching for.
-        if idinfo.get("email_verified") is False:
-            raise HTTPException(
-                status_code=400,
-                detail="Google has not verified this email address. Please use a verified Google account."
-            )
-
         if UserRepository.find_by_email(email):
             raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -156,10 +118,7 @@ class AuthService:
             "password": hashed_password,
             "role": "user",
             "isAdmin": False,
-            # A successful Google OAuth authentication IS the email
-            # verification -- the account is active immediately, no
-            # verification email, no link to click.
-            "is_verified": True,
+            "is_verified": False,
             "progress": {},
             "assessments": {},
             "onboarding_state": {
@@ -169,19 +128,57 @@ class AuthService:
             }
         })
 
-        user = UserRepository.find_by_email(email)
-        token = create_access_token({"sub": email})
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=VERIFICATION_TOKEN_TTL_HOURS)
+        UserRepository.set_verification_token(email, token_hash, expires_at)
+
+        sent = mail_service.send_verification_email(email, username, raw_token, origin=origin)
+        if not sent:
+            logger.error(f"Failed to send verification email to {email}")
 
         return {
             "status": "success",
-            "email": email,
-            "name": username,
-            "role": "user",
-            "isAdmin": False,
-            "progress": user.get("progress", {}) if user else {},
-            "assessments": user.get("assessments", {}) if user else {},
-            "onboarding_state": user.get("onboarding_state", {}) if user else {},
-            "token": token
+            "message": "Account created! Check your email for a link to verify your account before signing in."
+        }
+
+    @staticmethod
+    def verify_email(token: str):
+        """
+        Verifies a signup email-verification token, activates the account,
+        and logs the person straight in (same pattern as reset_password).
+        """
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        user = UserRepository.find_by_verification_token_hash(token_hash)
+
+        if not user or not user.get("verification_token_expires"):
+            raise HTTPException(status_code=400, detail="This verification link is invalid or has expired.")
+
+        expires_at = user["verification_token_expires"]
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="This verification link is invalid or has expired.")
+
+        if user.get("status", "active") != "active":
+            raise HTTPException(status_code=403, detail="This account has been suspended. Contact an administrator.")
+
+        UserRepository.mark_verified(user["email"])
+
+        full_user = UserRepository.find_by_email(user["email"])
+        token_value = create_access_token({"sub": user["email"]})
+
+        return {
+            "status": "success",
+            "email": user["email"],
+            "name": full_user.get("name") if full_user else user.get("name"),
+            "role": full_user.get("role", "user") if full_user else "user",
+            "isAdmin": (full_user.get("isAdmin", False) or full_user.get("is_admin", False)) if full_user else False,
+            "progress": full_user.get("progress", {}) if full_user else {},
+            "assessments": full_user.get("assessments", {}) if full_user else {},
+            "onboarding_state": full_user.get("onboarding_state", {}) if full_user else {},
+            "token": token_value
         }
 
     @staticmethod
@@ -287,16 +284,18 @@ class AuthService:
             logger.warning(f"Ignored password reset request for unverified account: {email}")
             return generic_response
 
-        # CHANGE: this used to generate a token immediately and email it via
-        # MailerSend. MailerSend's trial-plan recipient cap made that
-        # undeliverable for most accounts (see mail_service.py), so instead
-        # this just flags the account as having a pending request -- no
-        # token exists yet. An admin reviews pending requests in
-        # Admin > User Management and explicitly grants one; that's the only
-        # place a real, usable reset token gets issued (see
-        # approve_password_reset below). mail_service is no longer called
-        # from this flow at all.
-        UserRepository.request_password_reset(email)
+        # Generate a real reset token immediately and email it straight to
+        # the user via Gmail SMTP -- no admin approval step in between.
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+
+        UserRepository.set_reset_token(email, token_hash, expires_at)
+
+        sent = mail_service.send_password_reset_email(email, user.get("name"), raw_token, origin=origin)
+        if not sent:
+            logger.error(f"Failed to send password reset email to {email}")
+
         return generic_response
 
     @staticmethod
@@ -305,11 +304,11 @@ class AuthService:
 
     @staticmethod
     def approve_password_reset(email: str, origin: str = None):
-        """Admin-triggered: issues the actual reset token for a pending
-        request. Returns the full reset link so the admin can hand it to
-        the user directly (chat, phone, in person) -- there's no email step
-        anymore. Reuses mail_service's origin-aware URL resolution purely
-        for the link-building logic (no email is sent)."""
+        """Legacy admin override, kept for accounts stuck from the old
+        manual-approval workaround. Issues a reset token directly and
+        returns the link so an admin can hand it to the user by hand.
+        Not part of the normal flow anymore -- forgot_password() above
+        emails the token itself now."""
         user = UserRepository.find_by_email(email)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")

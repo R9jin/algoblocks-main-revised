@@ -35,19 +35,21 @@ try:
 except Exception as e:
     logger.error(f"Database initialization failed on startup: {e}", exc_info=True)
 
-# BUG FIX: MailerSend sends (password reset emails) were failing completely
-# silently -- send_password_reset_email() only logs and returns False on
-# failure, by design, so the /forgot-password endpoint can always return the
-# same generic message and not leak whether an account exists. That's
-# correct behavior for the API response, but it meant a missing/misconfigured
-# MAILERSEND_API_KEY (e.g. the .env file placed at the project root instead
-# of api/.env, where database.py's load_dotenv() looks) produced no visible
-# error anywhere. Surface it loudly at startup instead.
-if not os.getenv("MAILERSEND_API_KEY"):
+# BUG FIX: outgoing mail (verification + password reset emails) was failing
+# completely silently -- send_verification_email()/send_password_reset_email()
+# only log and return False on failure, by design, so the /signup and
+# /forgot-password endpoints can always return their generic responses
+# without leaking whether an account exists. That's correct behavior for
+# the API response, but it meant missing/misconfigured SMTP credentials
+# (e.g. the .env file placed at the project root instead of api/.env, where
+# database.py's load_dotenv() looks) produced no visible error anywhere.
+# Surface it loudly at startup instead.
+if not os.getenv("SMTP_USERNAME") or not os.getenv("SMTP_PASSWORD"):
     logger.warning(
-        "MAILERSEND_API_KEY is not set -- password reset emails will "
-        "silently fail to send. Make sure your .env file is at api/.env "
-        "(not the project root), then restart the server."
+        "SMTP_USERNAME / SMTP_PASSWORD are not set -- verification and "
+        "password reset emails will silently fail to send. Make sure your "
+        ".env file is at api/.env (not the project root), then restart "
+        "the server."
     )
 
 from slowapi import _rate_limit_exceeded_handler

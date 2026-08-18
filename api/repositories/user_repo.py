@@ -108,6 +108,34 @@ class UserRepository:
         return str(inserted_id)
 
     @staticmethod
+    def set_verification_token(email: str, token_hash: str, expires_at):
+        """Stores the hashed email-verification token for a freshly created
+        (unverified) account. Mirrors set_reset_token's pattern -- only the
+        hash is ever stored, never the raw token."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users SET verification_token_hash = %s, verification_token_expires = %s WHERE email = %s
+        ''', (token_hash, expires_at, email))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    @staticmethod
+    def find_by_verification_token_hash(token_hash: str):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, name, email, status, is_verified, verification_token_expires
+            FROM users
+            WHERE verification_token_hash = %s
+        ''', (token_hash,))
+        user = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return dict(user) if user else None
+
+    @staticmethod
     def update_progress(email: str, lesson_id: str, score: float):
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -306,10 +334,10 @@ class UserRepository:
     @staticmethod
     def mark_verified(email: str):
         # Used by the admin "manually verify" action (Admin > User
-        # Management) for any pre-existing account left over from the old
-        # email/password + MailerSend-link signup flow. New accounts (via
-        # Google-OAuth signup or Google sign-in) are always inserted already
-        # verified and never need this.
+        # Management) as an override for accounts whose verification email
+        # never arrived. Normal email/password signups verify themselves
+        # via the emailed link (see AuthService.verify_email); Google-SSO
+        # accounts are inserted already verified and never need this.
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''

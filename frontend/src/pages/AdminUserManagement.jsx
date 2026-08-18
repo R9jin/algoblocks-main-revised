@@ -92,10 +92,9 @@ const AdminUserManagement = () => {
   const [pendingRespondents, setPendingRespondents] = useState([]); // emails checked in the picker, not yet applied
 
   // Pending forgot-password requests, for the Admin > User Management
-  // review panel. Replaces MailerSend entirely -- a user's own
-  // /forgot-password call just flags their account (see
-  // auth_service.forgot_password); nothing sends until an admin approves
-  // one here.
+  // review panel. Legacy manual-override path: normal forgot-password
+  // requests now email the user directly (see auth_service.forgot_password),
+  // so this list stays empty in the common case.
   const [resetRequests, setResetRequests] = useState([]);
   const [resetRequestsLoading, setResetRequestsLoading] = useState(true);
   const [resetRequestsError, setResetRequestsError] = useState(null);
@@ -370,11 +369,8 @@ const AdminUserManagement = () => {
 
   const handleManualVerify = (email) => {
     // Manually marks an account verified, bypassing the email-link flow.
-    // Exists to unblock accounts stuck unverified because MailerSend's
-    // Trial-plan sending domain only delivers to the first 2 distinct
-    // recipient addresses -- everyone after that never receives the
-    // verification email and can't sign in. See api/routers/admin_router.py
-    // for the full explanation.
+    // A manual override for accounts whose verification email never
+    // arrived (spam filtering, typo'd address, etc).
     showModal({
       type: "confirm",
       title: "Manually Verify Account",
@@ -593,7 +589,7 @@ const AdminUserManagement = () => {
                 <LuUsers size={14} />
                 {resetRequestsLoading
                   ? "Checking..."
-                  : `${resetRequests.length} pending request${resetRequests.length === 1 ? "" : "s"} -- MailerSend is no longer used, approve here to grant access`}
+                  : `${resetRequests.length} pending request${resetRequests.length === 1 ? "" : "s"} -- normal forgot-password requests now email the user directly; this is a manual override for stuck accounts`}
               </div>
             </div>
             <div className="analytics-dashboard-actions">

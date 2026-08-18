@@ -27,10 +27,8 @@ def get_all_users(request: Request, admin_email: str = Depends(get_current_admin
             user["isAdmin"] = user.get("is_admin", False)
             # Same camelCase mapping for is_verified -- needed so the admin
             # panel can show/act on unverified accounts (see the manual
-            # "Verify" action below, which exists specifically to work
-            # around MailerSend's Trial-plan 2-recipient cap blocking
-            # verification emails to anyone past the first couple of
-            # signups; see mail_service.py for the full explanation).
+            # "Verify" action below, a manual override for accounts whose
+            # verification email never arrived).
             user["isVerified"] = user.get("is_verified", False)
                 
         return {"status": "success", "users": users}
@@ -83,17 +81,9 @@ def manually_verify_user(
 ):
     """
     Marks an account as email-verified directly, bypassing the normal
-    click-the-link flow entirely.
-    
-    Added specifically to work around a MailerSend account limitation:
-    the Trial plan (the auto-issued *.mlsender.net sending domain) caps
-    outgoing mail at 2 distinct recipient addresses total, so verification
-    emails to any signup past the first couple silently fail to deliver --
-    the account is stuck unverified and unable to log in, with no email
-    ever arriving to unblock it (see api/services/mail_service.py and
-    api/scripts/test_mailersend.py for the full diagnosis). Until the
-    MailerSend plan is upgraded, this lets an admin unblock an affected
-    account by hand instead of leaving it locked out.
+    click-the-link flow entirely. Useful as a manual override if a
+    person's verification email never arrives (spam filtering, a typo'd
+    address, etc.) and an admin needs to unblock them by hand.
     """
     if not email:
         raise HTTPException(status_code=400, detail="Missing email")
@@ -116,11 +106,12 @@ def get_pending_password_resets(
     admin_email: str = Depends(get_current_admin_user)
 ):
     """
-    Accounts with a pending forgot-password request, for Admin > User
-    Management to review. Replaces MailerSend-based delivery entirely: the
-    user's own /forgot-password call just flags the account here instead of
-    sending an email (see auth_service.forgot_password); nothing else in
-    the app writes reset_requested_at.
+    Accounts with a pending forgot-password request. Legacy: normal
+    forgot-password requests now email the user directly (see
+    AuthService.forgot_password) -- this list stays empty unless
+    something explicitly calls UserRepository.request_password_reset,
+    which nothing in the current flow does. Kept as a manual-override
+    path for edge cases (e.g. an account's email is unreachable).
     """
     try:
         return {"status": "success", "requests": AuthService.list_pending_password_resets()}

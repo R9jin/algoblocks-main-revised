@@ -36,7 +36,7 @@ const PRIVACY_SECTIONS = [
   },
   {
     heading: "4. Who we share it with",
-    body: `We do not share your personal information with third parties for their own marketing purposes. Limited technical processors are used to run the platform itself: our hosting provider (Vercel), our database provider (Neon/PostgreSQL), our transactional email provider (MailerSend, used only for password-reset emails), and, if you choose to sign in with Google, Google's OAuth service to verify your identity. Each only receives the minimum data needed to perform its function.`,
+    body: `We do not share your personal information with third parties for their own marketing purposes. Limited technical processors are used to run the platform itself: our hosting provider (Vercel), our database provider (Neon/PostgreSQL), our transactional email provider (Google/Gmail SMTP, used for account verification and password-reset emails), and, if you choose to sign in with Google, Google's OAuth service to verify your identity. Each only receives the minimum data needed to perform its function.`,
   },
   {
     heading: "5. Data retention",
