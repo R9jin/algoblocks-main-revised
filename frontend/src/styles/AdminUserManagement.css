@@ -308,21 +308,6 @@
   transition: all 0.2s ease;
 }
 
-.admin-action-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-  transform: none !important;
-}
-
-/* This page's loading spinners (.spinner-icon, used both here and on the
-   password-reset-notifications panel above) rely on @keyframes spin.
-   Defining it here directly -- rather than assuming some other page's CSS
-   happens to be loaded first -- means the spin animation always plays. */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 .admin-action-btn.suspend {
   color: #d97706;
 }

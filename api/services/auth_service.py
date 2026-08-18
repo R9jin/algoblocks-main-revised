@@ -292,15 +292,6 @@ class AuthService:
 
         UserRepository.set_reset_token(email, token_hash, expires_at)
 
-        # Log this for the read-only "Password Reset Notifications" panel in
-        # Admin > User Management -- purely informational, the user isn't
-        # waiting on an admin for anything; the email below is what actually
-        # gets them back into their account.
-        try:
-            UserRepository.request_password_reset(email)
-        except Exception as e:
-            logger.warning(f"Failed to record password-reset notification for {email}: {e}")
-
         sent = mail_service.send_password_reset_email(email, user.get("name"), raw_token, origin=origin)
         if not sent:
             logger.error(f"Failed to send password reset email to {email}")
@@ -308,12 +299,34 @@ class AuthService:
         return generic_response
 
     @staticmethod
-    def list_password_reset_notifications():
+    def list_pending_password_resets():
         return UserRepository.find_pending_reset_requests()
 
     @staticmethod
-    def dismiss_password_reset_notification(email: str):
-        rowcount = UserRepository.dismiss_password_reset_notification(email)
+    def approve_password_reset(email: str, origin: str = None):
+        """Legacy admin override, kept for accounts stuck from the old
+        manual-approval workaround. Issues a reset token directly and
+        returns the link so an admin can hand it to the user by hand.
+        Not part of the normal flow anymore -- forgot_password() above
+        emails the token itself now."""
+        user = UserRepository.find_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+
+        rowcount = UserRepository.approve_password_reset(email, token_hash, expires_at)
+        if rowcount == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        reset_link = f"{mail_service._resolve_frontend_url(origin)}/reset-password?token={raw_token}"
+        return {"status": "success", "reset_link": reset_link, "expires_at": expires_at.isoformat()}
+
+    @staticmethod
+    def deny_password_reset(email: str):
+        rowcount = UserRepository.deny_password_reset(email)
         if rowcount == 0:
             raise HTTPException(status_code=404, detail="User not found")
         return {"status": "success"}

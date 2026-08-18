@@ -177,12 +177,11 @@ def init_db():
     cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ')
     cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_state JSONB DEFAULT '{}'::jsonb")
 
-    # NULL = no notification pending; a timestamp = the user recently
-    # triggered forgot-password. AuthService.forgot_password sets this
-    # (in addition to emailing the reset token directly) purely so the
-    # read-only "Password Reset Notifications" panel in Admin > User
-    # Management has something to show -- an admin dismissing it doesn't
-    # affect the account or any token in flight.
+    # Legacy admin-override plumbing for forgot-password: NULL = no pending
+    # request; a timestamp = requested-but-not-yet-reviewed. Nothing in the
+    # normal flow writes this anymore -- AuthService.forgot_password emails
+    # a reset token directly now -- but it's kept for the manual-override
+    # path in Admin > User Management (see AuthService.approve_password_reset).
     cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_requested_at TIMESTAMPTZ')
 
     # SECURITY: email verification. New columns are added with DEFAULT TRUE

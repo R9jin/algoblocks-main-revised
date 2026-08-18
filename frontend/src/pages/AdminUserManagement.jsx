@@ -91,33 +91,14 @@ const AdminUserManagement = () => {
   const [selectedRespondents, setSelectedRespondents] = useState([]); // emails currently applied to the dashboard
   const [pendingRespondents, setPendingRespondents] = useState([]); // emails checked in the picker, not yet applied
 
-  // Read-only log of accounts that have recently used forgot-password, for
-  // the Admin > User Management notifications panel. Purely informational:
-  // forgot-password already emails the reset link straight to the user
-  // (see auth_service.forgot_password), so there's nothing here for an
-  // admin to approve -- dismissing an entry just clears the notification.
-  const [resetNotifications, setResetNotifications] = useState([]);
-  const [resetNotificationsLoading, setResetNotificationsLoading] = useState(true);
-  const [resetNotificationsError, setResetNotificationsError] = useState(null);
-  const [dismissingResetEmails, setDismissingResetEmails] = useState(() => new Set());
-
-  // Tracks which per-row action (verify / suspend-activate / delete) is
-  // currently in flight for which user, so the triggering button can show
-  // a spinner instead of just sitting there until the confirmation modal
-  // pops up out of nowhere once the request finally resolves. Keyed as
-  // "email|action" so a user can have at most one of each action pending
-  // at a time, independent of any other row.
-  const [pendingRowActions, setPendingRowActions] = useState(() => new Set());
-  const rowActionKey = (email, action) => `${email}|${action}`;
-  const isRowActionPending = (email, action) => pendingRowActions.has(rowActionKey(email, action));
-  const setRowActionPending = (email, action, pending) => {
-    setPendingRowActions((prev) => {
-      const next = new Set(prev);
-      const key = rowActionKey(email, action);
-      if (pending) next.add(key); else next.delete(key);
-      return next;
-    });
-  };
+  // Pending forgot-password requests, for the Admin > User Management
+  // review panel. Legacy manual-override path: normal forgot-password
+  // requests now email the user directly (see auth_service.forgot_password),
+  // so this list stays empty in the common case.
+  const [resetRequests, setResetRequests] = useState([]);
+  const [resetRequestsLoading, setResetRequestsLoading] = useState(true);
+  const [resetRequestsError, setResetRequestsError] = useState(null);
+  const [processingResetEmails, setProcessingResetEmails] = useState(() => new Set());
 
   const standardUsers = useMemo(
     () => (Array.isArray(users) ? users.filter(u => !(u.isAdmin || u.role === "admin")) : []),
@@ -196,28 +177,28 @@ const AdminUserManagement = () => {
     }
   };
 
-  const fetchResetNotifications = async () => {
-    setResetNotificationsLoading(true);
-    setResetNotificationsError(null);
+  const fetchResetRequests = async () => {
+    setResetRequestsLoading(true);
+    setResetRequestsError(null);
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/admin/password-reset-notifications`, {
+      const response = await fetch(`${API_BASE}/api/admin/password-reset-requests`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(getErrorMessage(data, "Failed to fetch password reset notifications"));
-      setResetNotifications(Array.isArray(data.requests) ? data.requests : []);
+      if (!response.ok) throw new Error(getErrorMessage(data, "Failed to fetch password reset requests"));
+      setResetRequests(Array.isArray(data.requests) ? data.requests : []);
     } catch (err) {
-      setResetNotificationsError(err.message);
+      setResetRequestsError(err.message);
     } finally {
-      setResetNotificationsLoading(false);
+      setResetRequestsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchUsers();
     fetchOverview();
-    fetchResetNotifications();
+    fetchResetRequests();
   }, []);
 
   const fetchOverview = async (emailsOverride) => {
@@ -346,7 +327,6 @@ const AdminUserManagement = () => {
       message: `Are you sure you want to change this account's status to ${newStatus === "suspended" ? "Suspended" : "Active"}?`,
       isDanger: newStatus === "suspended",
       onConfirm: async () => {
-        setRowActionPending(email, "status", true);
         try {
           const token = getAuthToken();
           const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}/status`, {
@@ -382,8 +362,6 @@ const AdminUserManagement = () => {
               message: err.message
             });
           }, 300);
-        } finally {
-          setRowActionPending(email, "status", false);
         }
       }
     });
@@ -399,7 +377,6 @@ const AdminUserManagement = () => {
       message: `Mark ${email} as verified without them clicking an email link? Use this if their verification email never arrived.`,
       isDanger: false,
       onConfirm: async () => {
-        setRowActionPending(email, "verify", true);
         try {
           const token = getAuthToken();
           const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}/verify`, {
@@ -432,36 +409,79 @@ const AdminUserManagement = () => {
               message: err.message
             });
           }, 300);
-        } finally {
-          setRowActionPending(email, "verify", false);
         }
       }
     });
   };
 
-  const handleDismissResetNotification = (email) => {
+  const handleApproveReset = (email) => {
     showModal({
       type: "confirm",
-      title: "Dismiss Notification",
-      message: `Dismiss the password-reset notification for ${email}? The reset link was already emailed directly to them -- this just clears it from this list.`,
+      title: "Grant Password Reset",
+      message: `Approve ${email}'s request to reset their password? You'll get a one-time link to send them directly (chat, phone, in person) -- it expires in 30 minutes.`,
       isDanger: false,
       onConfirm: async () => {
-        setDismissingResetEmails((prev) => new Set(prev).add(email));
+        setProcessingResetEmails((prev) => new Set(prev).add(email));
         try {
           const token = getAuthToken();
-          const response = await fetch(`${API_BASE}/api/admin/password-reset-notifications/${encodeURIComponent(email)}/dismiss`, {
+          const response = await fetch(`${API_BASE}/api/admin/password-reset-requests/${encodeURIComponent(email)}/approve`, {
             method: "POST",
             headers: { "Authorization": `Bearer ${token}` }
           });
           const data = await response.json();
-          if (!response.ok) throw new Error(getErrorMessage(data, "Failed to dismiss notification"));
-          setResetNotifications((prev) => prev.filter((r) => r.email !== email));
+          if (!response.ok) throw new Error(getErrorMessage(data, "Failed to approve reset request"));
+
+          setResetRequests((prev) => prev.filter((r) => r.email !== email));
+
+          try {
+            await navigator.clipboard.writeText(data.reset_link);
+          } catch (e) { /* clipboard may be unavailable; link is still shown below */ }
+
+          setTimeout(() => {
+            showModal({
+              type: "alert",
+              title: "Reset Link Ready (copied to clipboard)",
+              message: `Send this link to ${email} -- it expires in 30 minutes:\n\n${data.reset_link}`
+            });
+          }, 300);
         } catch (err) {
           setTimeout(() => {
             showModal({ type: "alert", title: "Error", message: err.message });
           }, 300);
         } finally {
-          setDismissingResetEmails((prev) => {
+          setProcessingResetEmails((prev) => {
+            const next = new Set(prev);
+            next.delete(email);
+            return next;
+          });
+        }
+      }
+    });
+  };
+
+  const handleDenyReset = (email) => {
+    showModal({
+      type: "confirm",
+      title: "Dismiss Reset Request",
+      message: `Dismiss ${email}'s password reset request without granting access? They can submit a new request later if needed.`,
+      isDanger: true,
+      onConfirm: async () => {
+        setProcessingResetEmails((prev) => new Set(prev).add(email));
+        try {
+          const token = getAuthToken();
+          const response = await fetch(`${API_BASE}/api/admin/password-reset-requests/${encodeURIComponent(email)}/deny`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(getErrorMessage(data, "Failed to dismiss reset request"));
+          setResetRequests((prev) => prev.filter((r) => r.email !== email));
+        } catch (err) {
+          setTimeout(() => {
+            showModal({ type: "alert", title: "Error", message: err.message });
+          }, 300);
+        } finally {
+          setProcessingResetEmails((prev) => {
             const next = new Set(prev);
             next.delete(email);
             return next;
@@ -499,7 +519,6 @@ const AdminUserManagement = () => {
           return;
         }
 
-        setRowActionPending(email, "delete", true);
         try {
           const token = getAuthToken();
           
@@ -541,8 +560,6 @@ const AdminUserManagement = () => {
               message: err.message
             });
           }, 300);
-        } finally {
-          setRowActionPending(email, "delete", false);
         }
       }
     });
@@ -567,33 +584,33 @@ const AdminUserManagement = () => {
         <div className="admin-analytics-dashboard">
           <div className="analytics-dashboard-header">
             <div>
-              <h2><LuMailWarning size={22} /> Password Reset Notifications</h2>
+              <h2><LuMailWarning size={22} /> Pending Password Reset Requests</h2>
               <div className="analytics-scope-indicator">
                 <LuUsers size={14} />
-                {resetNotificationsLoading
+                {resetRequestsLoading
                   ? "Checking..."
-                  : `${resetNotifications.length} recent notification${resetNotifications.length === 1 ? "" : "s"} -- informational only; the reset link is emailed straight to the user, no admin action needed`}
+                  : `${resetRequests.length} pending request${resetRequests.length === 1 ? "" : "s"} -- normal forgot-password requests now email the user directly; this is a manual override for stuck accounts`}
               </div>
             </div>
             <div className="analytics-dashboard-actions">
-              <button onClick={fetchResetNotifications} className="admin-refresh-btn small">
+              <button onClick={fetchResetRequests} className="admin-refresh-btn small">
                 <LuRefreshCw size={16} /> Refresh
               </button>
             </div>
           </div>
 
-          {resetNotificationsLoading ? (
+          {resetRequestsLoading ? (
             <div className="admin-loading-state compact">
               <LuRefreshCw size={28} className="spinner-icon" style={{ animation: 'spin 2s linear infinite' }} />
-              <span>Loading notifications...</span>
+              <span>Loading pending requests...</span>
             </div>
-          ) : resetNotificationsError ? (
+          ) : resetRequestsError ? (
             <div className="admin-message-box error">
               <LuBan size={24} />
-              <span>{resetNotificationsError}</span>
+              <span>{resetRequestsError}</span>
             </div>
-          ) : resetNotifications.length === 0 ? (
-            <div className="analytics-empty-note">No recent password reset requests.</div>
+          ) : resetRequests.length === 0 ? (
+            <div className="analytics-empty-note">No pending password reset requests right now.</div>
           ) : (
             <div className="admin-table-container">
               <table className="admin-table">
@@ -605,8 +622,8 @@ const AdminUserManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {resetNotifications.map((r) => {
-                    const isDismissing = dismissingResetEmails.has(r.email);
+                  {resetRequests.map((r) => {
+                    const isProcessing = processingResetEmails.has(r.email);
                     return (
                       <tr key={r.email}>
                         <td>
@@ -617,16 +634,18 @@ const AdminUserManagement = () => {
                         <td>
                           <div style={{ display: "flex", gap: "8px" }}>
                             <button
-                              className="admin-refresh-btn small outline"
-                              disabled={isDismissing}
-                              onClick={() => handleDismissResetNotification(r.email)}
+                              className="admin-refresh-btn small"
+                              disabled={isProcessing}
+                              onClick={() => handleApproveReset(r.email)}
                             >
-                              {isDismissing ? (
-                                <LuRefreshCw size={16} className="spinner-icon" style={{ animation: 'spin 2s linear infinite' }} />
-                              ) : (
-                                <LuX size={16} />
-                              )}
-                              {isDismissing ? "Dismissing..." : "Dismiss"}
+                              <LuCheck size={16} /> Approve
+                            </button>
+                            <button
+                              className="admin-refresh-btn small outline"
+                              disabled={isProcessing}
+                              onClick={() => handleDenyReset(r.email)}
+                            >
+                              <LuX size={16} /> Deny
                             </button>
                           </div>
                         </td>
@@ -884,32 +903,23 @@ const AdminUserManagement = () => {
                             onClick={() => handleManualVerify(user.email)}
                             title="Manually verify this account (use if their verification email never arrived)"
                             className="admin-action-btn activate"
-                            disabled={isRowActionPending(user.email, "verify")}
                           >
-                            {isRowActionPending(user.email, "verify")
-                              ? <LuRefreshCw size={18} className="spinner-icon" style={{ animation: 'spin 2s linear infinite' }} />
-                              : <LuMailWarning size={20} />}
+                            <LuMailWarning size={20} />
                           </button>
                         )}
                         <button 
                           onClick={() => handleStatusToggle(user.email, user.status)}
                           title={isSuspendedStatus(user.status) ? "Restore Account Access" : "Suspend Account Access"}
                           className={`admin-action-btn ${isSuspendedStatus(user.status) ? "activate" : "suspend"}`}
-                          disabled={isRowActionPending(user.email, "status")}
                         >
-                          {isRowActionPending(user.email, "status")
-                            ? <LuRefreshCw size={18} className="spinner-icon" style={{ animation: 'spin 2s linear infinite' }} />
-                            : (isSuspendedStatus(user.status) ? <LuCheck size={20} /> : <LuBan size={20} />)}
+                          {isSuspendedStatus(user.status) ? <LuCheck size={20} /> : <LuBan size={20} />}
                         </button>
                         <button 
                           onClick={() => handleDelete(user.email)}
                           title="Purge Account (Requires Admin Verification)"
                           className="admin-action-btn delete"
-                          disabled={isRowActionPending(user.email, "delete")}
                         >
-                          {isRowActionPending(user.email, "delete")
-                            ? <LuRefreshCw size={18} className="spinner-icon" style={{ animation: 'spin 2s linear infinite' }} />
-                            : <LuTrash2 size={20} />}
+                          <LuTrash2 size={20} />
                         </button>
                       </div>
                     </td>
