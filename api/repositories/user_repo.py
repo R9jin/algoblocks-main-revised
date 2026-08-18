@@ -211,6 +211,74 @@ class UserRepository:
         conn.close()
 
     @staticmethod
+    def request_password_reset(email: str):
+        """Flags an account as having a pending, admin-reviewable reset
+        request. Does NOT touch reset_token_hash -- no token exists yet,
+        an admin has to approve first (see approve_password_reset)."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'UPDATE users SET reset_requested_at = now() WHERE email = %s',
+            (email,)
+        )
+        rowcount = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return rowcount
+
+    @staticmethod
+    def find_pending_reset_requests():
+        """Lightweight listing for Admin > User Management -- deliberately
+        just these columns (not find_by_email's heavier progress/assessments
+        joins), since this can run on every admin panel load."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT email, name, reset_requested_at
+            FROM users
+            WHERE reset_requested_at IS NOT NULL
+            ORDER BY reset_requested_at ASC
+        ''')
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def approve_password_reset(email: str, token_hash: str, expires_at):
+        """Issues the actual reset token and clears the pending flag, in
+        one statement -- an admin either grants a real, usable token or
+        the request stays pending; there's no in-between state."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users
+            SET reset_token_hash = %s, reset_token_expires = %s, reset_requested_at = NULL
+            WHERE email = %s
+        ''', (token_hash, expires_at, email))
+        rowcount = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return rowcount
+
+    @staticmethod
+    def deny_password_reset(email: str):
+        """Clears the pending flag without issuing a token."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'UPDATE users SET reset_requested_at = NULL WHERE email = %s',
+            (email,)
+        )
+        rowcount = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return rowcount
+
+    @staticmethod
     def find_by_reset_token_hash(token_hash: str):
         conn = get_db_connection()
         cursor = conn.cursor()

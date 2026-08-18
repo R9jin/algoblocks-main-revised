@@ -91,6 +91,16 @@ const AdminUserManagement = () => {
   const [selectedRespondents, setSelectedRespondents] = useState([]); // emails currently applied to the dashboard
   const [pendingRespondents, setPendingRespondents] = useState([]); // emails checked in the picker, not yet applied
 
+  // Pending forgot-password requests, for the Admin > User Management
+  // review panel. Replaces MailerSend entirely -- a user's own
+  // /forgot-password call just flags their account (see
+  // auth_service.forgot_password); nothing sends until an admin approves
+  // one here.
+  const [resetRequests, setResetRequests] = useState([]);
+  const [resetRequestsLoading, setResetRequestsLoading] = useState(true);
+  const [resetRequestsError, setResetRequestsError] = useState(null);
+  const [processingResetEmails, setProcessingResetEmails] = useState(() => new Set());
+
   const standardUsers = useMemo(
     () => (Array.isArray(users) ? users.filter(u => !(u.isAdmin || u.role === "admin")) : []),
     [users]
@@ -168,9 +178,28 @@ const AdminUserManagement = () => {
     }
   };
 
+  const fetchResetRequests = async () => {
+    setResetRequestsLoading(true);
+    setResetRequestsError(null);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE}/api/admin/password-reset-requests`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(getErrorMessage(data, "Failed to fetch password reset requests"));
+      setResetRequests(Array.isArray(data.requests) ? data.requests : []);
+    } catch (err) {
+      setResetRequestsError(err.message);
+    } finally {
+      setResetRequestsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchOverview();
+    fetchResetRequests();
   }, []);
 
   const fetchOverview = async (emailsOverride) => {
@@ -389,6 +418,83 @@ const AdminUserManagement = () => {
     });
   };
 
+  const handleApproveReset = (email) => {
+    showModal({
+      type: "confirm",
+      title: "Grant Password Reset",
+      message: `Approve ${email}'s request to reset their password? You'll get a one-time link to send them directly (chat, phone, in person) -- it expires in 30 minutes.`,
+      isDanger: false,
+      onConfirm: async () => {
+        setProcessingResetEmails((prev) => new Set(prev).add(email));
+        try {
+          const token = getAuthToken();
+          const response = await fetch(`${API_BASE}/api/admin/password-reset-requests/${encodeURIComponent(email)}/approve`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(getErrorMessage(data, "Failed to approve reset request"));
+
+          setResetRequests((prev) => prev.filter((r) => r.email !== email));
+
+          try {
+            await navigator.clipboard.writeText(data.reset_link);
+          } catch (e) { /* clipboard may be unavailable; link is still shown below */ }
+
+          setTimeout(() => {
+            showModal({
+              type: "alert",
+              title: "Reset Link Ready (copied to clipboard)",
+              message: `Send this link to ${email} -- it expires in 30 minutes:\n\n${data.reset_link}`
+            });
+          }, 300);
+        } catch (err) {
+          setTimeout(() => {
+            showModal({ type: "alert", title: "Error", message: err.message });
+          }, 300);
+        } finally {
+          setProcessingResetEmails((prev) => {
+            const next = new Set(prev);
+            next.delete(email);
+            return next;
+          });
+        }
+      }
+    });
+  };
+
+  const handleDenyReset = (email) => {
+    showModal({
+      type: "confirm",
+      title: "Dismiss Reset Request",
+      message: `Dismiss ${email}'s password reset request without granting access? They can submit a new request later if needed.`,
+      isDanger: true,
+      onConfirm: async () => {
+        setProcessingResetEmails((prev) => new Set(prev).add(email));
+        try {
+          const token = getAuthToken();
+          const response = await fetch(`${API_BASE}/api/admin/password-reset-requests/${encodeURIComponent(email)}/deny`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(getErrorMessage(data, "Failed to dismiss reset request"));
+          setResetRequests((prev) => prev.filter((r) => r.email !== email));
+        } catch (err) {
+          setTimeout(() => {
+            showModal({ type: "alert", title: "Error", message: err.message });
+          }, 300);
+        } finally {
+          setProcessingResetEmails((prev) => {
+            const next = new Set(prev);
+            next.delete(email);
+            return next;
+          });
+        }
+      }
+    });
+  };
+
   const handleDelete = (email) => {
     if (currentUser.email && email === currentUser.email) {
       showModal({
@@ -477,6 +583,83 @@ const AdminUserManagement = () => {
           <button onClick={fetchUsers} className="admin-refresh-btn">
             <LuRefreshCw size={20} /> Sync Directory
           </button>
+        </div>
+
+        <div className="admin-analytics-dashboard">
+          <div className="analytics-dashboard-header">
+            <div>
+              <h2><LuMailWarning size={22} /> Pending Password Reset Requests</h2>
+              <div className="analytics-scope-indicator">
+                <LuUsers size={14} />
+                {resetRequestsLoading
+                  ? "Checking..."
+                  : `${resetRequests.length} pending request${resetRequests.length === 1 ? "" : "s"} -- MailerSend is no longer used, approve here to grant access`}
+              </div>
+            </div>
+            <div className="analytics-dashboard-actions">
+              <button onClick={fetchResetRequests} className="admin-refresh-btn small">
+                <LuRefreshCw size={16} /> Refresh
+              </button>
+            </div>
+          </div>
+
+          {resetRequestsLoading ? (
+            <div className="admin-loading-state compact">
+              <LuRefreshCw size={28} className="spinner-icon" style={{ animation: 'spin 2s linear infinite' }} />
+              <span>Loading pending requests...</span>
+            </div>
+          ) : resetRequestsError ? (
+            <div className="admin-message-box error">
+              <LuBan size={24} />
+              <span>{resetRequestsError}</span>
+            </div>
+          ) : resetRequests.length === 0 ? (
+            <div className="analytics-empty-note">No pending password reset requests right now.</div>
+          ) : (
+            <div className="admin-table-container">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Requested</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resetRequests.map((r) => {
+                    const isProcessing = processingResetEmails.has(r.email);
+                    return (
+                      <tr key={r.email}>
+                        <td>
+                          <div style={{ fontWeight: 600 }}>{r.name || r.email}</div>
+                          <div style={{ fontSize: "0.85rem", color: "#94a3b8" }}>{r.email}</div>
+                        </td>
+                        <td>{r.reset_requested_at ? new Date(r.reset_requested_at).toLocaleString() : "--"}</td>
+                        <td>
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <button
+                              className="admin-refresh-btn small"
+                              disabled={isProcessing}
+                              onClick={() => handleApproveReset(r.email)}
+                            >
+                              <LuCheck size={16} /> Approve
+                            </button>
+                            <button
+                              className="admin-refresh-btn small outline"
+                              disabled={isProcessing}
+                              onClick={() => handleDenyReset(r.email)}
+                            >
+                              <LuX size={16} /> Deny
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div className="admin-analytics-dashboard">

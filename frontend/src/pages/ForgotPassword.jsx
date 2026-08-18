@@ -62,18 +62,19 @@ export default function ForgotPassword() {
             ) : (
               <FiLock className="auth-icon" size={32} style={{ color: "#818cf8", marginBottom: "8px" }} />
             )}
-            <h2>{submitted ? "Check your inbox" : "Forgot your password?"}</h2>
+            <h2>{submitted ? "Request received" : "Forgot your password?"}</h2>
           </div>
 
           {submitted ? (
             <p className="auth-instruction" style={{ textAlign: "center", marginBottom: "24px", color: "#cbd5e1", fontSize: "0.95rem" }}>
-              If an account exists for <strong>{email}</strong>, we've sent a link to reset your password.
-              It expires in 30 minutes — be sure to check your spam folder if it doesn't show up shortly.
+              If an account exists for <strong>{email}</strong>, an admin has been notified and will
+              review your request. Once approved, you'll be given a link to reset your password.
             </p>
           ) : (
             <>
               <p className="auth-instruction" style={{ textAlign: "center", marginBottom: "24px", color: "#cbd5e1", fontSize: "0.95rem" }}>
-                Enter the email address associated with your account and we'll send you a link to reset your password.
+                Enter the email address associated with your account. An admin will review your
+                request and grant you access to reset your password.
               </p>
 
               <form onSubmit={handleSubmit}>
@@ -93,7 +94,7 @@ export default function ForgotPassword() {
                 </div>
 
                 <button type="submit" className="auth-button" disabled={isLoading}>
-                  {isLoading ? "Sending..." : "Send Reset Link"}
+                  {isLoading ? "Sending..." : "Request Password Reset"}
                 </button>
               </form>
             </>

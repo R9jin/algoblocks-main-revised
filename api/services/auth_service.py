@@ -261,6 +261,7 @@ class AuthService:
 
         user = UserRepository.find_by_email(email)
         if not user:
+            logger.info(f"Password reset requested for an email with no account: {email}")
             return generic_response
 
         # BUG FIX: a suspended account could still request (and complete) a
@@ -286,23 +287,50 @@ class AuthService:
             logger.warning(f"Ignored password reset request for unverified account: {email}")
             return generic_response
 
-        # Raw token goes in the emailed link; only its hash is ever persisted.
+        # CHANGE: this used to generate a token immediately and email it via
+        # MailerSend. MailerSend's trial-plan recipient cap made that
+        # undeliverable for most accounts (see mail_service.py), so instead
+        # this just flags the account as having a pending request -- no
+        # token exists yet. An admin reviews pending requests in
+        # Admin > User Management and explicitly grants one; that's the only
+        # place a real, usable reset token gets issued (see
+        # approve_password_reset below). mail_service is no longer called
+        # from this flow at all.
+        UserRepository.request_password_reset(email)
+        return generic_response
+
+    @staticmethod
+    def list_pending_password_resets():
+        return UserRepository.find_pending_reset_requests()
+
+    @staticmethod
+    def approve_password_reset(email: str, origin: str = None):
+        """Admin-triggered: issues the actual reset token for a pending
+        request. Returns the full reset link so the admin can hand it to
+        the user directly (chat, phone, in person) -- there's no email step
+        anymore. Reuses mail_service's origin-aware URL resolution purely
+        for the link-building logic (no email is sent)."""
+        user = UserRepository.find_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
         raw_token = secrets.token_urlsafe(32)
         token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
 
-        UserRepository.set_reset_token(email, token_hash, expires_at)
+        rowcount = UserRepository.approve_password_reset(email, token_hash, expires_at)
+        if rowcount == 0:
+            raise HTTPException(status_code=404, detail="User not found")
 
-        sent = mail_service.send_password_reset_email(
-            to_email=email,
-            to_name=user.get("name", ""),
-            reset_token=raw_token,
-            origin=origin
-        )
-        if not sent:
-            logger.error(f"Password reset email failed to send for {email}")
+        reset_link = f"{mail_service._resolve_frontend_url(origin)}/reset-password?token={raw_token}"
+        return {"status": "success", "reset_link": reset_link, "expires_at": expires_at.isoformat()}
 
-        return generic_response
+    @staticmethod
+    def deny_password_reset(email: str):
+        rowcount = UserRepository.deny_password_reset(email)
+        if rowcount == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {"status": "success"}
 
     @staticmethod
     def verify_reset_token(token: str):

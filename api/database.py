@@ -177,6 +177,14 @@ def init_db():
     cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ')
     cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_state JSONB DEFAULT '{}'::jsonb")
 
+    # BUG FIX: forgot-password no longer sends an email at all (MailerSend's
+    # trial-plan recipient cap made that undeliverable for most accounts --
+    # see mail_service.py). Instead /forgot-password just flags the account
+    # here; an admin reviews pending requests in Admin > User Management and
+    # explicitly grants one, which is what actually issues the reset token.
+    # NULL = no pending request; a timestamp = requested-but-not-yet-reviewed.
+    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_requested_at TIMESTAMPTZ')
+
     # SECURITY: email verification. New columns are added with DEFAULT TRUE
     # so every account that already exists (created before this feature
     # shipped) is grandfathered in as verified and is never locked out of

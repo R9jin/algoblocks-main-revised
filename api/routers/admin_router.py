@@ -7,6 +7,7 @@ from security import get_current_admin_user
 from repositories.user_repo import UserRepository
 from services.admin_analytics_service import AdminAnalyticsService
 from services.analyzer_diagnostics_service import AnalyzerDiagnosticsService
+from services.auth_service import AuthService
 from limiter import limiter
 
 router = APIRouter()
@@ -107,6 +108,69 @@ def manually_verify_user(
     except Exception as e:
         logger.error(f"Error manually verifying user in PostgreSQL: {str(e)}")
         raise HTTPException(status_code=500, detail="Error verifying user")
+
+@router.get("/password-reset-requests")
+@limiter.limit("30/minute")
+def get_pending_password_resets(
+    request: Request,
+    admin_email: str = Depends(get_current_admin_user)
+):
+    """
+    Accounts with a pending forgot-password request, for Admin > User
+    Management to review. Replaces MailerSend-based delivery entirely: the
+    user's own /forgot-password call just flags the account here instead of
+    sending an email (see auth_service.forgot_password); nothing else in
+    the app writes reset_requested_at.
+    """
+    try:
+        return {"status": "success", "requests": AuthService.list_pending_password_resets()}
+    except Exception as e:
+        logger.error(f"Error fetching pending password reset requests: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching pending password reset requests")
+
+
+@router.post("/password-reset-requests/{email}/approve")
+@limiter.limit("20/minute")
+def approve_password_reset_request(
+    email: str,
+    request: Request,
+    admin_email: str = Depends(get_current_admin_user)
+):
+    """
+    Grants a pending reset request: issues the actual reset token and
+    returns the full /reset-password?token=... link. The admin is
+    responsible for getting that link to the user (chat, phone, in person)
+    -- there's no email step in this flow.
+    """
+    if not email:
+        raise HTTPException(status_code=400, detail="Missing email")
+    try:
+        return AuthService.approve_password_reset(email, origin=request.headers.get("origin"))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error approving password reset for {email}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error approving password reset")
+
+
+@router.post("/password-reset-requests/{email}/deny")
+@limiter.limit("20/minute")
+def deny_password_reset_request(
+    email: str,
+    request: Request,
+    admin_email: str = Depends(get_current_admin_user)
+):
+    """Dismisses a pending request without issuing a token."""
+    if not email:
+        raise HTTPException(status_code=400, detail="Missing email")
+    try:
+        return AuthService.deny_password_reset(email)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error denying password reset for {email}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error denying password reset")
+
 
 @router.delete("/users/{email}")
 @limiter.limit("10/minute")
