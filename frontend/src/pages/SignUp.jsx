@@ -112,13 +112,23 @@ export default function SignUp() {
         // SECURITY: email/password signup no longer auto-logs the user in.
         // The account is created but stays unverified until they click the
         // link sent to their inbox; login is blocked until then.
+        //
+        // BUG FIX: this used to show the backend's "check your email"
+        // message unconditionally, even on the (until now, silent) case
+        // where the verification email actually failed to send --
+        // `verificationEmailSent === false`. The account still exists, so
+        // this still routes to /signin, but with an honest warning instead
+        // of a false promise that an email is on its way.
+        const emailSent = data.verificationEmailSent !== false;
         showToast(
-          data.message || "Account created! Check your email for a verification link before signing in.",
-          "success"
+          data.message || (emailSent
+            ? "Account created! Check your email for a verification link before signing in."
+            : "Account created, but the verification email couldn't be sent. Try resending it from the sign-in page."),
+          emailSent ? "success" : "error"
         );
         setTimeout(() => {
           if (isMountedRef.current) navigate("/signin");
-        }, 3500);
+        }, emailSent ? 3500 : 5000);
       }
       
     } catch (error) {

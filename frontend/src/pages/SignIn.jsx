@@ -218,15 +218,32 @@ export default function SignIn() {
   const handleResendVerification = async () => {
     setResendState("sending");
     try {
-      await fetch(`${API_BASE}/api/resend-verification`, {
+      const response = await fetchWithTimeout(`${API_BASE}/api/resend-verification`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      // Always show the same generic confirmation regardless of the actual
-      // response -- the backend intentionally returns an identical body
-      // whether or not the account exists/is already verified, so the UI
-      // shouldn't leak that distinction either.
+
+      // BUG FIX: this used to ignore the response entirely and always show
+      // "Verification email sent", even when the request failed outright
+      // (429 rate limit from the 3/minute limiter, a 422 from a malformed
+      // email, a 500, etc). That made it look like an email was on its way
+      // when nothing was actually sent. The backend's generic-response
+      // privacy pattern (same body whether or not the account exists/is
+      // already verified) only applies to a successful 200 -- a non-2xx
+      // status is a real failure and should be surfaced as one.
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        if (isMountedRef.current) {
+          setResendState("idle");
+          const message = response.status === 429
+            ? "Too many requests -- please wait a bit before trying again."
+            : getErrorMessage(data, "Couldn't send the verification email. Please try again.");
+          showToast(message);
+        }
+        return;
+      }
+
       if (isMountedRef.current) {
         setResendState("sent");
         showToast("If that account exists and isn't verified, a new link has been sent.", "success");
@@ -235,7 +252,11 @@ export default function SignIn() {
       console.error(error);
       if (isMountedRef.current) {
         setResendState("idle");
-        showToast("Server not reachable. Check backend connection.");
+        if (error?.name === "AbortError") {
+          showToast("Request is taking too long. Please try again.");
+        } else {
+          showToast("Server not reachable. Check backend connection.");
+        }
       }
     }
   };

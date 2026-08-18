@@ -122,7 +122,24 @@ class AuthService:
         # cannot sign in (see login()) until it clicks the link in this
         # email, so no access token is issued here -- unlike the previous
         # behavior of auto-logging the user in immediately on signup.
-        AuthService._issue_verification_token(req.email, req.name, origin=origin)
+        #
+        # BUG FIX: this used to call _issue_verification_token() and discard
+        # its return value, then unconditionally tell the user to "check
+        # your email" -- even when the send genuinely failed (missing/bad
+        # MAILERSEND_API_KEY, MailerSend rejecting the request, the API
+        # being unreachable, etc). The account was still created either way
+        # (the token is persisted server-side regardless), so the signup
+        # itself correctly succeeds -- but the response now reflects whether
+        # an email actually went out, instead of always claiming it did.
+        email_sent = AuthService._issue_verification_token(req.email, req.name, origin=origin)
+
+        if email_sent:
+            message = "Account created. Check your email for a verification link before signing in."
+        else:
+            message = (
+                "Account created, but we couldn't send the verification email right now. "
+                "Use \"Resend verification link\" on the sign-in page to try again."
+            )
 
         return {
             "status": "success",
@@ -131,7 +148,8 @@ class AuthService:
             "role": "user",
             "isAdmin": False,
             "requiresVerification": True,
-            "message": "Account created. Check your email for a verification link before signing in.",
+            "verificationEmailSent": email_sent,
+            "message": message,
             "onboarding_state": {
                 "tourSeen": False,
                 "completedAt": None,
@@ -304,6 +322,19 @@ class AuthService:
             logger.warning(f"Ignored password reset request for suspended account: {email}")
             return generic_response
 
+        # BUG FIX: an account that never verified its email could still
+        # request (and complete) a password reset -- letting someone reset
+        # the password on an account before ever proving they own the inbox,
+        # and letting an unverified account bypass the "must verify before
+        # sign-in" gate in login() entirely (reset password -> the reset
+        # itself doesn't set is_verified, but nothing stopped them from
+        # trying). Silently skip issuing a token here, same generic-response
+        # pattern as the suspended-account case above, so this endpoint still
+        # can't be used to enumerate accounts or their verification status.
+        if not user.get("is_verified", True):
+            logger.warning(f"Ignored password reset request for unverified account: {email}")
+            return generic_response
+
         # Raw token goes in the emailed link; only its hash is ever persisted.
         raw_token = secrets.token_urlsafe(32)
         token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
@@ -358,6 +389,12 @@ class AuthService:
         # reset token was already issued (but before it's used), don't let
         # that stale token still complete the reset.
         if user.get("status", "active") != "active":
+            raise HTTPException(status_code=400, detail="Invalid or expired reset link.")
+
+        # BUG FIX: same defense-in-depth as the suspended-account check above
+        # -- if a reset token was issued for an account that was (or became)
+        # unverified before this fix, don't let it complete the reset either.
+        if not user.get("is_verified", True):
             raise HTTPException(status_code=400, detail="Invalid or expired reset link.")
 
         hashed_password = AuthService.hash_password(new_password)
