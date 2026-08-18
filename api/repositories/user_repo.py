@@ -167,7 +167,7 @@ class UserRepository:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, name, email, status, role, is_admin
+            SELECT id, name, email, status, role, is_admin, is_verified
             FROM users
         ''')
         users = cursor.fetchall()

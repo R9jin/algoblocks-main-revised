@@ -11,6 +11,7 @@ import {
   LuFilter,
   LuFlaskConical,
   LuListChecks,
+  LuMailWarning,
   LuRefreshCw,
   LuSearch,
   LuShield,
@@ -338,6 +339,56 @@ const AdminUserManagement = () => {
     });
   };
 
+  const handleManualVerify = (email) => {
+    // Manually marks an account verified, bypassing the email-link flow.
+    // Exists to unblock accounts stuck unverified because MailerSend's
+    // Trial-plan sending domain only delivers to the first 2 distinct
+    // recipient addresses -- everyone after that never receives the
+    // verification email and can't sign in. See api/routers/admin_router.py
+    // for the full explanation.
+    showModal({
+      type: "confirm",
+      title: "Manually Verify Account",
+      message: `Mark ${email} as verified without them clicking an email link? Use this if their verification email never arrived.`,
+      isDanger: false,
+      onConfirm: async () => {
+        try {
+          const token = getAuthToken();
+          const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}/verify`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            }
+          });
+
+          const data = await response.json();
+          if (!response.ok) throw new Error(getErrorMessage(data, "Failed to verify user"));
+
+          setUsers(users.map(u =>
+            u.email === email ? { ...u, isVerified: true } : u
+          ));
+
+          setTimeout(() => {
+            showModal({
+              type: "alert",
+              title: "Account Verified",
+              message: `${email} can now sign in normally.`
+            });
+          }, 300);
+        } catch (err) {
+          setTimeout(() => {
+            showModal({
+              type: "alert",
+              title: "Error",
+              message: err.message
+            });
+          }, 300);
+        }
+      }
+    });
+  };
+
   const handleDelete = (email) => {
     if (currentUser.email && email === currentUser.email) {
       showModal({
@@ -646,6 +697,10 @@ const AdminUserManagement = () => {
                         <span className="admin-badge badge-suspended">
                           <LuBan size={16} /> Suspended
                         </span>
+                      ) : user.isVerified === false && !(user.isAdmin || user.role === "admin") ? (
+                        <span className="admin-badge badge-suspended" title="Verification email may not have been delivered -- see the Verify action">
+                          <LuMailWarning size={16} /> Unverified
+                        </span>
                       ) : (
                         <span className="admin-badge badge-active">
                           <LuCheck size={16} /> Active Access
@@ -664,6 +719,15 @@ const AdminUserManagement = () => {
                     </td>
                     <td className="td-actions">
                       <div className="admin-actions">
+                        {user.isVerified === false && !(user.isAdmin || user.role === "admin") && (
+                          <button
+                            onClick={() => handleManualVerify(user.email)}
+                            title="Manually verify this account (use if their verification email never arrived)"
+                            className="admin-action-btn activate"
+                          >
+                            <LuMailWarning size={20} />
+                          </button>
+                        )}
                         <button 
                           onClick={() => handleStatusToggle(user.email, user.status)}
                           title={isSuspendedStatus(user.status) ? "Restore Account Access" : "Suspend Account Access"}

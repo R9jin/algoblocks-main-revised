@@ -132,10 +132,18 @@ def send_password_reset_email(to_email: str, to_name: str, reset_token: str, ori
         response = requests.post(MAILERSEND_API_URL, json=payload, headers=headers, timeout=10)
         if response.status_code >= 400:
             logger.error(f"MailerSend rejected the request ({response.status_code}): {response.text}")
+            # Fallback so testing/dev isn't completely blocked while the
+            # MailerSend account issue gets sorted out (see the trial-plan
+            # note in send_verification_email below) -- the token itself is
+            # already saved server-side regardless of whether the email
+            # went out, so this link is fully valid; it's just only
+            # reachable here, in the server logs, instead of an inbox.
+            logger.warning(f"Reset link for {to_email} (email delivery failed): {reset_link}")
             return False
         return True
     except requests.RequestException as e:
         logger.error(f"Failed to reach MailerSend API: {e}")
+        logger.warning(f"Reset link for {to_email} (email delivery failed): {reset_link}")
         return False
 
 
@@ -179,6 +187,26 @@ def send_verification_email(to_email: str, to_name: str, verification_token: str
     """
     Sends the signup email-verification link via the MailerSend API.
     Returns True on success, False on any failure (never raises).
+
+    KNOWN LIMITATION (not fixable from this code): the MailerSend account
+    behind MAILERSEND_API_KEY is on the Trial plan (MAILERSEND_FROM_EMAIL
+    is the auto-issued *.mlsender.net trial domain). MailerSend's Trial
+    plan caps outgoing mail at 2 distinct recipient addresses TOTAL, for
+    the life of the account -- see
+    https://www.mailersend.com/pricing ("The Trial plan lets you send up
+    to 100 emails/month to 2 recipients"). That's exactly why forgot-
+    password looked fine (repeated tests all went to the same 1-2 email
+    addresses) while verification failed almost every time (every new
+    signup is a brand-new recipient, so only the first couple of accounts
+    ever actually received their email). Run
+    `python api/scripts/test_mailersend.py <email>` to see MailerSend's
+    real rejection reason directly. To fix it for real: upgrade the
+    MailerSend account to the Free plan (500 emails/month) or Hobby plan
+    (3,000/month) -- both need a verified domain + billing info entered,
+    but Hobby costs nothing under the free allowance. Until then, an admin
+    can manually verify a stuck account from Admin > User Management (see
+    the new POST /api/admin/users/{email}/verify route), and this function
+    also logs the verification link server-side on failure as a fallback.
     """
     api_key = _get_api_key()
     if not api_key:
@@ -204,8 +232,10 @@ def send_verification_email(to_email: str, to_name: str, verification_token: str
         response = requests.post(MAILERSEND_API_URL, json=payload, headers=headers, timeout=10)
         if response.status_code >= 400:
             logger.error(f"MailerSend rejected the verification request ({response.status_code}): {response.text}")
+            logger.warning(f"Verification link for {to_email} (email delivery failed): {verify_link}")
             return False
         return True
     except requests.RequestException as e:
         logger.error(f"Failed to reach MailerSend API for verification email: {e}")
+        logger.warning(f"Verification link for {to_email} (email delivery failed): {verify_link}")
         return False
