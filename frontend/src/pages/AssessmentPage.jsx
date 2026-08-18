@@ -88,6 +88,18 @@ export default function AssessmentPage() {
   const isGlobalPostTest = moduleId === "course-post-test";
   const moduleNum = (isGlobalPreTest || isGlobalPostTest) ? "Overall" : moduleId?.split("-").pop();
 
+  // BUG FIX: assessments are Learning Path content and guests are gated out
+  // of the Learning Path listing (see LearningPath.jsx), but this route is
+  // reachable directly by URL. Bounce guests back to /learning-path, which
+  // shows the sign-up prompt instead of quiz content.
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+    const user = storedUser ? JSON.parse(storedUser) : {};
+    if (user.isGuest) {
+      navigate("/learning-path", { replace: true });
+    }
+  }, [navigate]);
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -357,7 +369,7 @@ export default function AssessmentPage() {
   if (loading) {
     return (
       <div className="assessment-page">
-        <DashboardHeader />
+        <DashboardHeader backTo="/learning-path" backText="Back to Learning Path" />
         <div className="assessment-loading">Loading assessment...</div>
       </div>
     );
@@ -367,7 +379,7 @@ export default function AssessmentPage() {
     const { label, color, icon } = getScoreLabel(prevResult?.score || 0);
     return (
       <div className="assessment-page">
-        <DashboardHeader />
+        <DashboardHeader backTo="/learning-path" backText="Back to Learning Path" />
         <div className="assessment-results-wrapper">
           <div className="results-card">
             <div className="results-header">
@@ -399,7 +411,7 @@ export default function AssessmentPage() {
   if (questions.length === 0) {
     return (
       <div className="assessment-page">
-        <DashboardHeader />
+        <DashboardHeader backTo="/learning-path" backText="Back to Learning Path" />
         <div className="assessment-loading">Assessment not available for this module.</div>
       </div>
     );
@@ -410,7 +422,7 @@ export default function AssessmentPage() {
     const correctCount = Math.round((score / 100) * questions.length);
     return (
       <div className="assessment-page">
-        <DashboardHeader />
+        <DashboardHeader backTo="/learning-path" backText="Back to Learning Path" />
         <div className="assessment-results-wrapper">
           <div className="results-card">
             <div className="results-header">
@@ -521,7 +533,7 @@ export default function AssessmentPage() {
 
   return (
     <div className="assessment-page">
-      <DashboardHeader />
+      <DashboardHeader backTo="/learning-path" backText="Back to Learning Path" />
 
       <div className="assessment-wrapper">
         <div className="assessment-header">

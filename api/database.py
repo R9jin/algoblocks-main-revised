@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from dotenv import load_dotenv
 import psycopg2
+import psycopg2.pool
 from psycopg2.extras import RealDictCursor
 
 logger = logging.getLogger(__name__)
@@ -16,9 +17,99 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError(f"No DATABASE_URL found in environment variables. Please check your .env file at {env_path}.")
 
+# PERFORMANCE FIX ("faster fetching of data / faster system load"):
+# every repository method used to call psycopg2.connect(...) directly and
+# conn.close() when done, with NO pooling anywhere. Neon is a remote,
+# managed Postgres -- each of those was a fresh TCP connection + TLS
+# handshake + auth round trip to Neon, on literally every single database
+# call the API makes, including ones that ran back-to-back inside the same
+# request. That's the single biggest latency cost in this backend.
+#
+# PooledConnection below is a psycopg2 connection subclass whose close()
+# returns the connection to a small pool instead of tearing down the
+# socket. This is deliberately done as a subclass override rather than
+# changing all the call sites: every repository file already does
+# `conn = get_db_connection(); ...; conn.close()`, and that pattern keeps
+# working completely unchanged -- "closing" a connection now just means
+# "give it back for reuse". The pool itself is a module-level singleton,
+# so it's created once per warm serverless instance and reused across
+# every request that instance handles; only a cold start pays the full
+# reconnect cost.
+class PooledConnection(psycopg2.extensions.connection):
+    # Re-entrancy guard for the one edge case where the pool itself needs
+    # to actually close a connection instead of pooling it (over capacity,
+    # or the connection turned out to be dead) -- psycopg2's pool does
+    # that by calling conn.close() on it, which would otherwise loop right
+    # back into putconn() forever. See close() below.
+    _pool_return_in_progress = False
+
+    def close(self):
+        if self._pool_return_in_progress:
+            self._pool_return_in_progress = False
+            super().close()
+            return
+
+        pool = _get_pool()
+        if pool is None or self.closed:
+            super().close()
+            return
+
+        try:
+            self._pool_return_in_progress = True
+            pool.putconn(self)
+        except Exception:
+            # Pool couldn't take it back (e.g. pool already closed during
+            # shutdown) -- fall back to a real close so the connection
+            # doesn't leak.
+            self._pool_return_in_progress = False
+            try:
+                super().close()
+            except Exception:
+                pass
+
+
+_connection_pool = None
+
+
+def _get_pool():
+    global _connection_pool
+    if _connection_pool is None:
+        # ThreadedConnectionPool (not SimpleConnectionPool) is required here:
+        # FastAPI runs plain `def` route handlers (all of ours are sync, not
+        # `async def`) in a worker thread pool, so concurrent requests can
+        # legitimately call get_db_connection() from different threads at
+        # the same time. SimpleConnectionPool isn't thread-safe; this is.
+        _connection_pool = psycopg2.pool.ThreadedConnectionPool(
+            1, 10, DATABASE_URL,
+            cursor_factory=RealDictCursor,
+            connection_factory=PooledConnection,
+        )
+    return _connection_pool
+
+
 def get_db_connection():
     try:
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+        pool = _get_pool()
+        conn = pool.getconn()
+
+        # Defensive reset: guarantees a freshly-checked-out connection
+        # always behaves like "give it back to the pool" the next time
+        # someone calls close() on it, regardless of what state it was
+        # left in on a previous cycle.
+        conn._pool_return_in_progress = False
+
+        if conn.closed:
+            # Connection died while sitting idle in the pool (e.g. Neon's
+            # free tier terminated it after a period of inactivity).
+            # Discard it and get a fresh one rather than handing back
+            # something that will fail on first use.
+            try:
+                pool.putconn(conn, close=True)
+            except Exception:
+                pass
+            conn = pool.getconn()
+            conn._pool_return_in_progress = False
+
         conn.autocommit = True
         return conn
     except Exception as e:

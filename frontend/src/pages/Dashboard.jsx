@@ -443,7 +443,15 @@ export default function Dashboard() {
         .dash-spin-anim { animation: dashSpin 1s linear infinite; }
       `}</style>
 
-      <DashboardHeader tour={dashboardTour} tourPageId="dashboard" />
+      {/* BUG FIX: DashboardHeader's default backTo="/" sent signed-in
+          students to the marketing landing page, which immediately bounces
+          them right back to /dashboard (PublicRoute redirects any
+          authenticated session away from "/") -- the button looked broken
+          because nothing visibly happened. /home (UserHomePage) is the
+          actual signed-in "home base" for students, so point it there
+          instead. Dashboard.jsx only ever renders for non-admin accounts
+          (see App.jsx), so /home is always reachable here. */}
+      <DashboardHeader backTo="/home" backText="Back to Home" tour={dashboardTour} tourPageId="dashboard" />
       
       <main className="bento-dashboard-content">
         <div className="bento-grid-container">

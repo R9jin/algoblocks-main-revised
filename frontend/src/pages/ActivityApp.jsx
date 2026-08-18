@@ -1372,6 +1372,21 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
 const ActivityApp = () => {
   const { moduleId, activityId } = useParams();
+  const navigate = useNavigate();
+
+  // BUG FIX: activities are Learning Path content, and guests are gated out
+  // of the Learning Path listing (see LearningPath.jsx) -- but this route
+  // is reachable directly by URL, which would otherwise let a guest open a
+  // module's activity anyway. Bounce back to /learning-path, which shows
+  // the sign-up prompt instead of module content.
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+    const user = storedUser ? JSON.parse(storedUser) : {};
+    if (user.isGuest) {
+      navigate("/learning-path", { replace: true });
+    }
+  }, [navigate]);
+
   return <ActivityAppInner key={`${moduleId}-${activityId}`} moduleId={moduleId} activityId={activityId} />;
 };
 

@@ -132,12 +132,14 @@ export default function SignIn() {
 
       activeStorage.setItem("authToken", data.token);
       activeStorage.setItem("token", data.token);
-      
+
+      const isAdminAccount = data.isAdmin === true || data.is_admin === true || data.role === "admin" || data.role === "Admin";
+
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
         role: data.role || "user",
-        isAdmin: data.isAdmin === true || data.is_admin === true || data.role === "admin" || data.role === "Admin",
+        isAdmin: isAdminAccount,
         progress: data.progress || {},
         assessments: data.assessments || {},
         onboarding_state: data.onboarding_state || { tourSeen: false, completedAt: null, pages: {} }
@@ -158,7 +160,12 @@ export default function SignIn() {
       // it server-side.
       window.dispatchEvent(new Event("localDataSynced"));
 
-      navigate("/dashboard"); 
+      // BUG FIX: this always sent every account to /dashboard. Regular
+      // students have a dedicated home base at /home (UserHomePage) --
+      // /dashboard is meant to be reached from there. Admin accounts have
+      // no /home (it's a StudentOnlyRoute) so they still land on /dashboard
+      // directly.
+      navigate(isAdminAccount ? "/dashboard" : "/home");
       
     } catch (error) {
       if (!isMountedRef.current) return;
@@ -261,12 +268,14 @@ export default function SignIn() {
 
       activeStorage.setItem("authToken", data.token);
       activeStorage.setItem("token", data.token);
-      
+
+      const isAdminAccount = data.isAdmin === true || data.is_admin === true || data.role === "admin" || data.role === "Admin";
+
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
         role: data.role || "user",
-        isAdmin: data.isAdmin === true || data.is_admin === true || data.role === "admin" || data.role === "Admin",
+        isAdmin: isAdminAccount,
         progress: data.progress || {},
         assessments: data.assessments || {},
         onboarding_state: data.onboarding_state || { tourSeen: false, completedAt: null, pages: {} }
@@ -278,7 +287,8 @@ export default function SignIn() {
 
       window.dispatchEvent(new Event("localDataSynced"));
 
-      navigate("/dashboard");
+      // Same regular-student-vs-admin destination fix as the email/password flow.
+      navigate(isAdminAccount ? "/dashboard" : "/home");
       
     } catch (error) {
       if (!isMountedRef.current) return;

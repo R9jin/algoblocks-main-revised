@@ -17,12 +17,16 @@ def login_user(request: Request, req: UserLogin):
 @router.post("/signup")
 @limiter.limit("5/minute")
 def signup_user(request: Request, req: UserCreate): 
-    return AuthService.signup(req)
+    return AuthService.signup(req, origin=request.headers.get("origin"))
 
 @router.post("/forgot-password")
 @limiter.limit("5/minute")
 def forgot_password(request: Request, req: ForgotPasswordRequest):
-    return AuthService.forgot_password(req.email)
+    # BUG FIX: pass the requesting frontend's Origin through so the emailed
+    # reset link points back at wherever the person actually is (local dev,
+    # production, or a preview deployment) instead of a hardcoded/missing
+    # FRONTEND_URL env var. See mail_service._resolve_frontend_url.
+    return AuthService.forgot_password(req.email, origin=request.headers.get("origin"))
 
 @router.get("/verify-reset-token")
 @limiter.limit("20/minute")
@@ -47,7 +51,7 @@ def verify_email(request: Request, req: VerifyEmailRequest):
 @router.post("/resend-verification")
 @limiter.limit("3/minute")
 def resend_verification(request: Request, req: ResendVerificationRequest):
-    return AuthService.resend_verification(req.email)
+    return AuthService.resend_verification(req.email, origin=request.headers.get("origin"))
 
 @router.get("/get-progress")
 @limiter.limit("30/minute")

@@ -473,9 +473,18 @@ export default function ProfilePage() {
           </div>
 
           <div className="profile-header-actions">
-            <Link to="/learning-path" className="btn-resume-learning">
-              <FiCode size={18} /> Continue Learning
-            </Link>
+            {/* BUG FIX: guests are blocked from the Learning Path (nothing
+                would persist for them there anyway) -- point this button at
+                Sign Up instead of a link that just bounces them back out. */}
+            {user.isGuest ? (
+              <Link to="/signup" className="btn-resume-learning">
+                <FiCode size={18} /> Sign Up to Start Learning
+              </Link>
+            ) : (
+              <Link to="/learning-path" className="btn-resume-learning">
+                <FiCode size={18} /> Continue Learning
+              </Link>
+            )}
           </div>
         </div>
 
@@ -557,11 +566,19 @@ export default function ProfilePage() {
                   </div>
                   <div className="mastery-card-right">
                     {milestones.preTest ? (
-                      <span className="milestone-status cleared">
-                        <FiCheckCircle className="status-inline-icon" /> Baseline Recorded
-                      </span>
+                      // BUG FIX: this used to be a static, unclickable badge --
+                      // once the pre-test was completed there was no way to
+                      // get back to the results screen from the Profile page.
+                      // AssessmentPage already renders a locked results view
+                      // (score, label, breakdown) once a completed attempt is
+                      // detected, so this just links there like the
+                      // equivalent "View Results" button on the Learning Path
+                      // page already does.
+                      <Link to="/assessment/course-pre-test/pre" className="btn-milestone-action violet view-results-link">
+                        <FiCheckCircle className="status-inline-icon" /> Baseline Recorded — View Results
+                      </Link>
                     ) : (
-                      <Link to="/assessment/course-pre-test" className="btn-milestone-action violet">
+                      <Link to="/assessment/course-pre-test/pre" className="btn-milestone-action violet">
                         Take Pre-Test
                       </Link>
                     )}
@@ -721,11 +738,16 @@ export default function ProfilePage() {
                             </div>
                             <div className="act-right">
                               {mod.quiz && (mod.quiz.passed || mod.quiz.score !== undefined) ? (
-                                <span className={`metric-badge aes-badge ${mod.quiz.passed || (mod.quiz.score !== undefined && mod.quiz.score >= 50) ? 'perfect' : 'good'}`}>
+                                // BUG FIX: same "no way back to results" issue
+                                // as the pre/post-test milestones -- wrap the
+                                // score badge in a link to the completed
+                                // quiz's results view instead of leaving it
+                                // as inert text.
+                                <Link to={`/assessment/${mod.moduleId}/post`} className={`metric-badge aes-badge ${mod.quiz.passed || (mod.quiz.score !== undefined && mod.quiz.score >= 50) ? 'perfect' : 'good'}`}>
                                   Score: {formatMilestoneScore(mod.quiz)}
-                                </span>
+                                </Link>
                               ) : mod.quiz && mod.quiz.isUnlocked ? (
-                                <Link to={`/assessment/module-${modNumber}`} className="btn-take-quiz">
+                                <Link to={`/assessment/${mod.moduleId}/post`} className="btn-take-quiz">
                                   Take Quiz
                                 </Link>
                               ) : (
@@ -769,11 +791,11 @@ export default function ProfilePage() {
                   </div>
                   <div className="mastery-card-right">
                     {milestones.postTest ? (
-                      <span className="milestone-status validated">
-                        <FiCheckCircle className="status-inline-icon" /> Completed
-                      </span>
+                      <Link to="/assessment/course-post-test/post" className="milestone-status validated view-results-link">
+                        <FiCheckCircle className="status-inline-icon" /> Completed — View Results
+                      </Link>
                     ) : isPostTestUnlocked ? (
-                      <Link to="/assessment/course-post-test" className="btn-milestone-action gold">
+                      <Link to="/assessment/course-post-test/post" className="btn-milestone-action gold">
                         <FiUnlock style={{ marginRight: '6px' }}/> Take Final Exam
                       </Link>
                     ) : (

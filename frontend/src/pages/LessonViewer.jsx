@@ -259,6 +259,17 @@ export default function LessonViewer() {
   );
   const isAdmin = storedUser.role === "admin" || storedUser.isAdmin === true;
 
+  // BUG FIX: guests are blocked from the Learning Path listing itself, but
+  // this page is reachable directly by URL (e.g. a bookmarked/shared link),
+  // which would otherwise bypass that gate entirely. Bounce guests back to
+  // /learning-path, which renders its own sign-up prompt instead of module
+  // content.
+  useEffect(() => {
+    if (storedUser.isGuest) {
+      navigate("/learning-path", { replace: true });
+    }
+  }, [storedUser.isGuest, navigate]);
+
   useEffect(() => {
     const loadOfflineData = async () => {
       try {

@@ -1,5 +1,6 @@
 # api/services/mail_service.py
 import os
+import re
 import logging
 import requests
 
@@ -13,7 +14,45 @@ MAILERSEND_API_KEY = os.getenv("MAILERSEND_API_KEY")
 # once a real sending domain is verified.
 MAILERSEND_FROM_EMAIL = os.getenv("MAILERSEND_FROM_EMAIL", "noreply@test-pzkmgq7popml059v.mlsender.net")
 MAILERSEND_FROM_NAME = os.getenv("MAILERSEND_FROM_NAME", "AlgoBlocks")
+
+# BUG FIX: this used to be the ONLY source for the link base, hardcoded to
+# "http://localhost:5173" whenever the FRONTEND_URL env var wasn't set on
+# the deployed backend. Every password-reset/verification email sent from
+# production then contained a localhost link, since the Vercel deployment
+# never had FRONTEND_URL configured. Rather than depend on that env var
+# being set correctly for every environment (local dev, this project's
+# production domain, and every Vercel preview-deployment subdomain), the
+# link is now built from the Origin header of the request that triggered
+# the email -- i.e. wherever the person actually clicked "Forgot Password"
+# from -- and only falls back to FRONTEND_URL/localhost if that header is
+# missing or untrusted. Kept in sync with the CORS allowlist in api/index.py.
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+
+_ALLOWED_FRONTEND_ORIGINS = {
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://algoblocks-main-revised.vercel.app",
+}
+_ALLOWED_FRONTEND_ORIGIN_REGEX = re.compile(
+    r"^https://algoblocks-main-revised(-[a-zA-Z0-9-]+)?\.vercel\.app$"
+)
+
+
+def _resolve_frontend_url(origin: str = None) -> str:
+    """
+    Picks the link base for an outgoing email. Prefers the caller-supplied
+    Origin (the frontend origin that actually made the API request), but
+    only if it matches the same allowlist/regex the CORS middleware trusts
+    -- so this can never be used to inject an arbitrary link into an email
+    (e.g. via a spoofed Origin header) even if some upstream proxy forwards
+    an unexpected value. Falls back to FRONTEND_URL when Origin is missing
+    or untrusted.
+    """
+    if origin:
+        origin = origin.rstrip("/")
+        if origin in _ALLOWED_FRONTEND_ORIGINS or _ALLOWED_FRONTEND_ORIGIN_REGEX.match(origin):
+            return origin
+    return FRONTEND_URL
 
 
 def _build_reset_email_html(name: str, reset_link: str) -> str:
@@ -52,7 +91,7 @@ def _build_reset_email_text(name: str, reset_link: str) -> str:
     )
 
 
-def send_password_reset_email(to_email: str, to_name: str, reset_token: str) -> bool:
+def send_password_reset_email(to_email: str, to_name: str, reset_token: str, origin: str = None) -> bool:
     """
     Sends the password reset email via the MailerSend API.
     Returns True on success, False on any failure (never raises, so a mail
@@ -62,7 +101,7 @@ def send_password_reset_email(to_email: str, to_name: str, reset_token: str) -> 
         logger.error("MAILERSEND_API_KEY is not set; cannot send password reset email.")
         return False
 
-    reset_link = f"{FRONTEND_URL}/reset-password?token={reset_token}"
+    reset_link = f"{_resolve_frontend_url(origin)}/reset-password?token={reset_token}"
 
     payload = {
         "from": {"email": MAILERSEND_FROM_EMAIL, "name": MAILERSEND_FROM_NAME},
@@ -124,7 +163,7 @@ def _build_verification_email_text(name: str, verify_link: str) -> str:
     )
 
 
-def send_verification_email(to_email: str, to_name: str, verification_token: str) -> bool:
+def send_verification_email(to_email: str, to_name: str, verification_token: str, origin: str = None) -> bool:
     """
     Sends the signup email-verification link via the MailerSend API.
     Returns True on success, False on any failure (never raises).
@@ -133,7 +172,7 @@ def send_verification_email(to_email: str, to_name: str, verification_token: str
         logger.error("MAILERSEND_API_KEY is not set; cannot send verification email.")
         return False
 
-    verify_link = f"{FRONTEND_URL}/verify-email?token={verification_token}"
+    verify_link = f"{_resolve_frontend_url(origin)}/verify-email?token={verification_token}"
 
     payload = {
         "from": {"email": MAILERSEND_FROM_EMAIL, "name": MAILERSEND_FROM_NAME},

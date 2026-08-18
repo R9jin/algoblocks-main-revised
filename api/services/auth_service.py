@@ -96,7 +96,7 @@ class AuthService:
         }
 
     @staticmethod
-    def signup(req: UserCreate):
+    def signup(req: UserCreate, origin: str = None):
         if UserRepository.find_by_email(req.email):
             raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -122,7 +122,7 @@ class AuthService:
         # cannot sign in (see login()) until it clicks the link in this
         # email, so no access token is issued here -- unlike the previous
         # behavior of auto-logging the user in immediately on signup.
-        AuthService._issue_verification_token(req.email, req.name)
+        AuthService._issue_verification_token(req.email, req.name, origin=origin)
 
         return {
             "status": "success",
@@ -140,7 +140,7 @@ class AuthService:
         }
 
     @staticmethod
-    def _issue_verification_token(email: str, name: str) -> bool:
+    def _issue_verification_token(email: str, name: str, origin: str = None) -> bool:
         """Generates a fresh verification token, persists only its hash, and
         emails the raw token as a link. Returns whether the email send
         succeeded (signup/resend both continue regardless, since the token
@@ -154,7 +154,8 @@ class AuthService:
         sent = mail_service.send_verification_email(
             to_email=email,
             to_name=name or "",
-            verification_token=raw_token
+            verification_token=raw_token,
+            origin=origin
         )
         if not sent:
             logger.error(f"Verification email failed to send for {email}")
@@ -196,7 +197,7 @@ class AuthService:
         }
 
     @staticmethod
-    def resend_verification(email: str):
+    def resend_verification(email: str, origin: str = None):
         """
         Always returns the same generic response regardless of whether the
         email is registered or already verified, so this endpoint can't be
@@ -211,7 +212,7 @@ class AuthService:
         if not user or user.get("is_verified", True):
             return generic_response
 
-        AuthService._issue_verification_token(email, user.get("name", ""))
+        AuthService._issue_verification_token(email, user.get("name", ""), origin=origin)
         return generic_response
 
     @staticmethod
@@ -279,7 +280,7 @@ class AuthService:
         }
 
     @staticmethod
-    def forgot_password(email: str):
+    def forgot_password(email: str, origin: str = None):
         """
         Always returns the same generic response whether or not the email is
         registered, so this endpoint can't be used to enumerate accounts.
@@ -303,7 +304,8 @@ class AuthService:
         sent = mail_service.send_password_reset_email(
             to_email=email,
             to_name=user.get("name", ""),
-            reset_token=raw_token
+            reset_token=raw_token,
+            origin=origin
         )
         if not sent:
             logger.error(f"Password reset email failed to send for {email}")

@@ -372,6 +372,54 @@ export default function LearningPath() {
   });
   const isGlobalPostTestUnlocked = isAdmin || isCurriculumComplete;
 
+  // BUG FIX: Guest sessions have nowhere to persist progress/assessments
+  // (see clearLocalUserData()/isGuest handling above -- everything resets
+  // to zero on next guest login), so letting guests into the curriculum
+  // just let them "complete" lessons and quizzes that vanish the moment
+  // they leave. Gate the whole page behind a sign-up prompt instead of
+  // hiding this per-module, so there's no dead-end where a guest opens a
+  // module card and finds broken/locked content underneath.
+  if (isGuest) {
+    return (
+      <div className="learning-path-page">
+        <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" showBackButton />
+        <div className="learning-path-container">
+          <div
+            className="module-card-v2"
+            style={{
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: "16px",
+              border: "2px solid #7c5cff",
+              background: "linear-gradient(145deg, rgba(124, 92, 255, 0.1) 0%, rgba(30, 41, 59, 0) 100%)",
+              margin: "40px auto",
+              maxWidth: "560px",
+              padding: "32px",
+            }}
+          >
+            <div className="module-card-icon" style={{ backgroundColor: "#7c5cff15" }}>
+              <FiLock size={32} color="#7c5cff" />
+            </div>
+            <h2 style={{ margin: 0 }}>Sign up to access the Learning Path</h2>
+            <p style={{ margin: 0, color: "#94a3b8" }}>
+              Guest sessions don't save progress, so lessons, activities, and quiz
+              results can't be tracked here. Create a free account to unlock the
+              full curriculum and keep your progress across visits.
+            </p>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button className="btn-assessment start" style={{ padding: "12px 24px" }} onClick={() => navigate("/signup")}>
+                Create Free Account
+              </button>
+              <button className="btn-assessment view-results" style={{ padding: "12px 24px" }} onClick={() => navigate("/dashboard")}>
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="learning-path-page">
       <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" tour={learningPathTour} tourPageId="learning-path" />

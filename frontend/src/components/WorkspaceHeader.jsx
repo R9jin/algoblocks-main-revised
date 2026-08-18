@@ -52,7 +52,11 @@ export default function WorkspaceHeader({
 
       <div className="wh-right">
         <TourHelpButton pageId={tourPageId} tour={tour} label="Replay workspace tour" />
-        {!isGuest && isAdmin && (
+        {/* BUG FIX: Import/Export was accidentally scoped to admin accounts
+            only (`isAdmin` in the condition below). It's a workspace file
+            operation, not an admin feature -- every signed-in student
+            should have it back, guests excluded same as Save. */}
+        {!isGuest && (
           <div className="wh-file-actions">
             <button className="wh-action-icon" onClick={handleExport} title="Export JSON">
               <FiDownload size={18} />
