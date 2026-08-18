@@ -45,7 +45,16 @@
 }
 
 .policy-consent-hint {
-  margin: -10px 0 14px 0;
+  /* BUG FIX: this used a negative top margin (-10px), which assumed the
+     hint would always render immediately after the checkbox row. On
+     SignUp.jsx it actually renders AFTER the "Create Account" submit
+     button instead (shown only while the checkbox is unchecked, so the
+     button stays visible but disabled) -- the negative margin pulled the
+     hint text up into the bottom of that button instead of sitting
+     cleanly below it. A small positive top margin fixes the overlap
+     regardless of what element ends up directly above the hint.
+  */
+  margin: 8px 0 4px 0;
   font-size: 0.78rem;
   color: var(--auth-text-muted, #59636e);
   text-align: center;

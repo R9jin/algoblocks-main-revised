@@ -240,9 +240,12 @@ class UserRepository:
 
     @staticmethod
     def request_password_reset(email: str):
-        """Flags an account as having a pending, admin-reviewable reset
-        request. Does NOT touch reset_token_hash -- no token exists yet,
-        an admin has to approve first (see approve_password_reset)."""
+        """Timestamps an account as having triggered a forgot-password flow,
+        purely for the read-only "Password Reset Notifications" panel in
+        Admin > User Management. The actual reset token is issued and
+        emailed directly to the user by AuthService.forgot_password
+        regardless of this call -- this is just a visibility log, not a
+        gate the user is waiting on."""
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -274,26 +277,11 @@ class UserRepository:
         return [dict(r) for r in rows]
 
     @staticmethod
-    def approve_password_reset(email: str, token_hash: str, expires_at):
-        """Issues the actual reset token and clears the pending flag, in
-        one statement -- an admin either grants a real, usable token or
-        the request stays pending; there's no in-between state."""
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE users
-            SET reset_token_hash = %s, reset_token_expires = %s, reset_requested_at = NULL
-            WHERE email = %s
-        ''', (token_hash, expires_at, email))
-        rowcount = cursor.rowcount
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return rowcount
-
-    @staticmethod
-    def deny_password_reset(email: str):
-        """Clears the pending flag without issuing a token."""
+    def dismiss_password_reset_notification(email: str):
+        """Clears the notification flag once an admin has seen it. Does not
+        touch reset_token_hash/expires -- the token (if any) was already
+        issued and emailed straight to the user by forgot_password(); this
+        only clears the admin-facing notification."""
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
