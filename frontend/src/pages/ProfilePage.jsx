@@ -108,7 +108,15 @@ export default function ProfilePage() {
             const headers = { "Content-Type": "application/json" };
             if (token) headers["Authorization"] = `Bearer ${token}`;
 
-            const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
+            // PERFORMANCE FIX: these two API calls don't depend on each
+            // other, but were previously awaited one after the other --
+            // doubling the network wait on every profile-page load. Firing
+            // them together with Promise.all cuts that in half.
+            const [progRes, assmRes] = await Promise.all([
+              fetch(`${API_BASE}/api/get-progress`, { headers }),
+              fetch(`${API_BASE}/api/get-assessments`, { headers }),
+            ]);
+
             if (progRes.ok) {
               const data = await progRes.json();
               for (const [key, val] of Object.entries(data.progress || data)) {
@@ -116,7 +124,6 @@ export default function ProfilePage() {
               }
             }
 
-            const assmRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
             if (assmRes.ok) {
               const data = await assmRes.json();
               for (const [key, val] of Object.entries(data.assessments || data)) {
@@ -165,12 +172,25 @@ export default function ProfilePage() {
 
         setMilestones({ preTest: preTestData, postTest: postTestData });
 
+        // PERFORMANCE FIX: these 7 module files were being fetched one at a
+        // time in a loop -- each `await` inside the loop blocks the next
+        // request from even starting, so this paid for 7 sequential round
+        // trips where 7 parallel ones would do. Firing them all at once
+        // with Promise.all is the single biggest fix for slow profile-page
+        // loads.
         const allActivities = {};
-        for (let i = 0; i <= 6; i++) {
-          try {
-            const res = await fetch(`/data/activities/module_${i}.json`);
-            if (res.ok) allActivities[`module-${i}`] = await res.json();
-          } catch (e) { console.warn(`Could not load module_${i}.json`); }
+        const moduleResults = await Promise.all(
+          Array.from({ length: 7 }, (_, i) =>
+            fetch(`/data/activities/module_${i}.json`)
+              .then(async (res) => (res.ok ? [i, await res.json()] : null))
+              .catch((e) => { console.warn(`Could not load module_${i}.json`); return null; })
+          )
+        );
+        for (const result of moduleResults) {
+          if (result) {
+            const [i, json] = result;
+            allActivities[`module-${i}`] = json;
+          }
         }
 
         let tLessons = 0, cLessons = 0;

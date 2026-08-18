@@ -3,8 +3,15 @@ import json
 
 class UserRepository:
     @staticmethod
-    def find_by_email(email: str):
-        conn = get_db_connection()
+    def find_by_email(email: str, conn=None):
+        # PERFORMANCE: accepts an already-open connection so callers that
+        # need several queries in one request (e.g. AdminAnalyticsService)
+        # can share a single connection instead of opening a new one per
+        # helper call. Falls back to opening/closing its own when called
+        # standalone, same as before.
+        owns_conn = conn is None
+        if owns_conn:
+            conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute('SELECT id, name, email, password, status, role, is_admin, is_verified, onboarding_state FROM users WHERE email = %s', (email,))
@@ -12,7 +19,8 @@ class UserRepository:
         
         if not user:
             cursor.close()
-            conn.close()
+            if owns_conn:
+                conn.close()
             return None
             
         user_dict = dict(user)
@@ -61,7 +69,8 @@ class UserRepository:
         user_dict["onboarding_state"] = user_dict.get("onboarding_state") or {}
         
         cursor.close()
-        conn.close()
+        if owns_conn:
+            conn.close()
         return user_dict
 
     @staticmethod
@@ -150,8 +159,11 @@ class UserRepository:
         conn.close()
         
     @staticmethod
-    def find_all_users():
-        conn = get_db_connection()
+    def find_all_users(conn=None):
+        # PERFORMANCE: same shared-connection pattern as find_by_email above.
+        owns_conn = conn is None
+        if owns_conn:
+            conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -161,7 +173,8 @@ class UserRepository:
         users = cursor.fetchall()
         
         cursor.close()
-        conn.close()
+        if owns_conn:
+            conn.close()
         return [dict(u) for u in users]
 
     @staticmethod

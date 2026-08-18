@@ -16,25 +16,118 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError(f"No DATABASE_URL found in environment variables. Please check your .env file at {env_path}.")
 
-# BUG FIX / REVERT: this used to run through a module-level psycopg2
-# ThreadedConnectionPool (a PooledConnection subclass whose close() gave
-# the connection back to the pool instead of really closing it), intended
-# to cut down on reconnect latency. In practice it's what broke
-# password-reset emails: DATABASE_URL already points at Neon's own
-# "-pooler" endpoint (PgBouncer), which silently drops idle backend
-# connections without the client-side socket ever flipping conn.closed to
-# true. Infrequently-hit routes like /forgot-password would sit idle in
-# our own pool for a while, get handed back a connection that *looked*
-# open, and then blow up with an unhandled "server closed the connection
-# unexpectedly" on the very first query (UserRepository.find_by_email) --
-# before send_password_reset_email() was ever reached. That's an
-# unhandled 500, so nothing appeared to happen and no email went out.
-# Stacking a client-side pool on top of Neon's own pooler is redundant
-# anyway (Neon explicitly recommends against it), so this reverts to a
-# plain connect-per-call, which is what the last known-working version did.
+import os
+import json
+import logging
+from pathlib import Path
+from dotenv import load_dotenv
+import psycopg2
+import psycopg2.pool
+from psycopg2.extras import RealDictCursor
+
+logger = logging.getLogger(__name__)
+
+api_dir = Path(__file__).resolve().parent
+env_path = api_dir / ".env"
+load_dotenv(dotenv_path=env_path)
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError(f"No DATABASE_URL found in environment variables. Please check your .env file at {env_path}.")
+
+# PERFORMANCE FIX: every call to get_db_connection() used to open a brand
+# new TCP+TLS connection to Neon (ap-southeast-1) and tear it down again on
+# close() -- that round trip is the actual bulk of "slow loading" on every
+# page (login/signup/forgot-password each pay it once; dashboard/user-
+# management/profile pay it 2-3x since they make several DB calls per
+# request). A pool fixes that.
+#
+# This was tried once before and reverted: it broke password-reset emails,
+# because DATABASE_URL points at Neon's own "-pooler" endpoint (PgBouncer),
+# which can silently drop an idle backend connection without the client
+# socket's `.closed` flag ever flipping to true -- so a stale connection
+# would get handed back out looking fine, and the first real query on it
+# (an infrequently-hit route like /forgot-password was most exposed to
+# this) blew up with an unhandled 500 before anything else ran.
+#
+# The fix here isn't "don't pool" -- it's to stop trusting `.closed` and
+# actually test the connection with a cheap `SELECT 1` before handing it
+# to a caller, discarding and reconnecting if that fails. That's the
+# standard pattern for anything sitting behind PgBouncer-style poolers.
+class PooledConnection(psycopg2.extensions.connection):
+    # Re-entrancy guard: when a connection needs to be truly closed rather
+    # than pooled (over capacity, or discarded as dead), something calls
+    # conn.close() on it -- which is *this* method -- and without this
+    # guard that would just try to hand it back to the pool again. Setting
+    # this flag first makes close() do a real close instead.
+    _pool_return_in_progress = False
+
+    def close(self):
+        if self._pool_return_in_progress:
+            self._pool_return_in_progress = False
+            super().close()
+            return
+
+        pool = _get_pool()
+        if pool is None or self.closed:
+            super().close()
+            return
+
+        try:
+            self._pool_return_in_progress = True
+            pool.putconn(self)
+        except Exception:
+            self._pool_return_in_progress = False
+            try:
+                super().close()
+            except Exception:
+                pass
+
+
+_connection_pool = None
+
+
+def _get_pool():
+    global _connection_pool
+    if _connection_pool is None:
+        # ThreadedConnectionPool: FastAPI runs our sync `def` route handlers
+        # in a worker thread pool, so concurrent requests legitimately call
+        # get_db_connection() from different threads at once.
+        _connection_pool = psycopg2.pool.ThreadedConnectionPool(
+            1, 10, DATABASE_URL,
+            cursor_factory=RealDictCursor,
+            connection_factory=PooledConnection,
+        )
+    return _connection_pool
+
+
+def _discard(conn):
+    """Force a real close (bypassing the pool) for a connection we know is dead."""
+    conn._pool_return_in_progress = True
+    try:
+        conn.close()
+    except Exception:
+        pass
+
+
 def get_db_connection():
     try:
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+        pool = _get_pool()
+        conn = pool.getconn()
+        conn._pool_return_in_progress = False
+
+        try:
+            if conn.closed:
+                raise psycopg2.OperationalError("connection already closed")
+            # Liveness ping -- this is what actually catches a Neon-side
+            # idle drop that .closed alone would miss.
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+        except Exception:
+            _discard(conn)
+            conn = pool.getconn()
+            conn._pool_return_in_progress = False
+
         conn.autocommit = True
         return conn
     except Exception as e:

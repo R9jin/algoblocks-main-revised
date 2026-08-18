@@ -68,31 +68,42 @@ def _find_milestone(assessments: Dict[str, Any], keywords: List[str]) -> Optiona
     return None
 
 
-def _fetch_all_submission_rows() -> List[Dict[str, Any]]:
-    conn = get_db_connection()
+# PERFORMANCE: each of these used to open its own get_db_connection(), so
+# a single dashboard/profile request could pay for 2-3 separate connection
+# acquisitions back to back. They now accept an already-open connection
+# (still falling back to opening their own when called standalone) so the
+# callers below can share one connection across the whole request.
+def _fetch_all_submission_rows(conn=None) -> List[Dict[str, Any]]:
+    owns_conn = conn is None
+    if owns_conn:
+        conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute('SELECT "userId" AS email, data FROM submissions')
         rows = cursor.fetchall()
     finally:
         cursor.close()
-        conn.close()
+        if owns_conn:
+            conn.close()
     return [dict(r) for r in rows]
 
 
-def _fetch_all_assessment_rows() -> List[Dict[str, Any]]:
+def _fetch_all_assessment_rows(conn=None) -> List[Dict[str, Any]]:
     """Reconstructs the old {email, data} shape (data = {assessment_key:
     {score, correct, total}}) from the normalized `assessments` table, so
     the fuzzy pre-test/post-test key matching below (_find_milestone) can
     stay unchanged."""
-    conn = get_db_connection()
+    owns_conn = conn is None
+    if owns_conn:
+        conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("SELECT email, assessment_key, score, correct, total FROM assessments")
         rows = cursor.fetchall()
     finally:
         cursor.close()
-        conn.close()
+        if owns_conn:
+            conn.close()
 
     grouped: Dict[str, Dict[str, Any]] = {}
     for r in rows:
@@ -104,15 +115,18 @@ def _fetch_all_assessment_rows() -> List[Dict[str, Any]]:
     return [{"email": email, "data": data} for email, data in grouped.items()]
 
 
-def _fetch_submissions_for_user(email: str) -> List[Dict[str, Any]]:
-    conn = get_db_connection()
+def _fetch_submissions_for_user(email: str, conn=None) -> List[Dict[str, Any]]:
+    owns_conn = conn is None
+    if owns_conn:
+        conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute('SELECT data FROM submissions WHERE "userId" = %s', (email,))
         rows = cursor.fetchall()
     finally:
         cursor.close()
-        conn.close()
+        if owns_conn:
+            conn.close()
     return [r["data"] for r in rows if r.get("data")]
 
 
@@ -238,13 +252,19 @@ def _interpret_hakes_g(g: Optional[float]) -> Optional[str]:
 class AdminAnalyticsService:
     @staticmethod
     def get_user_metrics(email: str) -> Dict[str, Any]:
-        user = UserRepository.find_by_email(email)
-        if not user:
-            return None
+        # PERFORMANCE: one shared connection for both queries instead of
+        # find_by_email and _fetch_submissions_for_user each opening their own.
+        conn = get_db_connection()
+        try:
+            user = UserRepository.find_by_email(email, conn=conn)
+            if not user:
+                return None
+            submissions = _fetch_submissions_for_user(email, conn=conn)
+        finally:
+            conn.close()
 
         progress = user.get("progress") or {}
         assessments = user.get("assessments") or {}
-        submissions = _fetch_submissions_for_user(email)
 
         metrics = _submission_metrics(submissions)
         pre_test = _find_milestone(assessments, PRETEST_KEYWORDS)
@@ -279,7 +299,18 @@ class AdminAnalyticsService:
         computation is restricted to that subset of standard-user emails.
         Otherwise every non-admin user is included.
         """
-        all_users = UserRepository.find_all_users()
+        # PERFORMANCE: one shared connection for all three queries instead
+        # of find_all_users/_fetch_all_submission_rows/_fetch_all_assessment_rows
+        # each opening their own -- this is the main dashboard endpoint, so
+        # it was paying for 3 separate connection acquisitions per load.
+        conn = get_db_connection()
+        try:
+            all_users = UserRepository.find_all_users(conn=conn)
+            submission_rows = _fetch_all_submission_rows(conn=conn)
+            assessment_rows = _fetch_all_assessment_rows(conn=conn)
+        finally:
+            conn.close()
+
         standard_users = [
             u for u in all_users
             if not u.get("is_admin") and (u.get("role") or "user") != "admin"
@@ -291,9 +322,6 @@ class AdminAnalyticsService:
             target_emails = standard_emails & requested
         else:
             target_emails = standard_emails
-
-        submission_rows = _fetch_all_submission_rows()
-        assessment_rows = _fetch_all_assessment_rows()
 
         all_submissions = [
             row.get("data") for row in submission_rows
