@@ -71,10 +71,6 @@ def _build_reset_email_html(name: str, reset_link: str) -> str:
             </a>
         </div>
         <p style="color: #94a3b8; font-size: 13px; line-height: 1.6;">
-            If the button doesn't work, copy and paste this link into your browser:<br />
-            <a href="{reset_link}" style="color: #818cf8; word-break: break-all;">{reset_link}</a>
-        </p>
-        <p style="color: #94a3b8; font-size: 13px; line-height: 1.6;">
             If you didn't request this, you can safely ignore this email — your password will remain unchanged.
         </p>
     </div>
