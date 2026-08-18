@@ -45,6 +45,33 @@ export default function SignIn() {
     }, 4000);
   };
 
+  // Wraps fetch with a hard timeout so a slow/hanging backend (cold start,
+  // stalled request, etc.) can never freeze the UI indefinitely -- the
+  // fetch rejects on its own after `timeoutMs` instead of leaving the
+  // caller's await stuck forever.
+  const fetchWithTimeout = (url, options = {}, timeoutMs = 12000) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+  };
+
+  // Guards the background sync below against a race where the user has
+  // already signed out or signed into a *different* account in this tab
+  // by the time the cloud fetch resolves -- checked against localStorage
+  // directly (not isMountedRef) since this now runs after this component
+  // has already navigated away and unmounted.
+  const isStillCurrentSession = (token) => {
+    const current = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+    return current === token;
+  };
+
+  // BUG FIX: this used to be awaited before navigate() ran, so the sign-in
+  // page sat on "Signing In..." for as long as these two extra requests
+  // took -- and if either one hung (slow backend, cold start), the page
+  // looked completely frozen even though the login itself had already
+  // succeeded. Cloud sync is no longer on the critical path to /dashboard
+  // or /home: it's kicked off in the background right after navigation,
+  // guarded by isStillCurrentSession() instead of component-mount state.
   const syncUserCloudData = async (userEmail, token) => {
     try {
       // BUG FIX: this already cleared projects/templates/syncQueue on every
@@ -55,6 +82,7 @@ export default function SignIn() {
       // freshly-authenticated user's own progress/assessments get pulled
       // back in by syncDownFromServer() right after login.
       await clearLocalUserData();
+      if (!isStillCurrentSession(token)) return;
 
       const headers = {
         "Content-Type": "application/json",
@@ -62,9 +90,11 @@ export default function SignIn() {
       };
 
       const [projRes, tempRes] = await Promise.all([
-        fetch(`${API_BASE}/api/projects`, { headers }),
-        fetch(`${API_BASE}/api/templates`, { headers })
-      ]); 
+        fetchWithTimeout(`${API_BASE}/api/projects`, { headers }),
+        fetchWithTimeout(`${API_BASE}/api/templates`, { headers })
+      ]);
+
+      if (!isStillCurrentSession(token)) return;
 
       if (projRes.ok) {
         const projData = await projRes.json();
@@ -85,6 +115,10 @@ export default function SignIn() {
           }
         }
       } 
+      // Data landed after the fact (dashboard/home already mounted from
+      // navigate() below) -- let anything reading projectsDB/templatesDB
+      // know there's fresh data to pick up.
+      window.dispatchEvent(new Event("localDataSynced"));
     } catch (error) {
       console.warn("Could not pull data from cloud. Proceeding with local data.", error); 
     }
@@ -97,7 +131,7 @@ export default function SignIn() {
     setResendState("idle");
 
     try {
-      const response = await fetch(`${API_BASE}/api/login`, {
+      const response = await fetchWithTimeout(`${API_BASE}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -145,13 +179,6 @@ export default function SignIn() {
         onboarding_state: data.onboarding_state || { tourSeen: false, completedAt: null, pages: {} }
       })); 
 
-      await syncUserCloudData(data.email, data.token); 
-
-      // Re-check after the second await — syncUserCloudData clears and
-      // repopulates projectsDB/templatesDB, which must never happen after
-      // a newer sign-in/sign-up has already taken over this browser tab.
-      if (!isMountedRef.current) return;
-
       // OnboardingContext (and a few other pages) only re-read storage on
       // mount or on this event — without it, navigating to /dashboard here
       // is a client-side transition, so OnboardingContext keeps whatever
@@ -165,12 +192,24 @@ export default function SignIn() {
       // /dashboard is meant to be reached from there. Admin accounts have
       // no /home (it's a StudentOnlyRoute) so they still land on /dashboard
       // directly.
+      //
+      // BUG FIX: navigation used to wait on syncUserCloudData (two more
+      // network requests) before firing. If either one was slow or hung,
+      // the whole sign-in page appeared to freeze even though the user was
+      // already successfully authenticated. Storage has everything a
+      // freshly-loaded /home or /dashboard needs, so navigate right away
+      // and let cloud sync finish in the background.
       navigate(isAdminAccount ? "/dashboard" : "/home");
-      
+      syncUserCloudData(data.email, data.token);
+
     } catch (error) {
       if (!isMountedRef.current) return;
-      console.error(error); 
-      showToast("Server not reachable. Check backend connection."); 
+      if (error?.name === "AbortError") {
+        showToast("Sign in is taking too long. Please check your connection and try again.");
+      } else {
+        console.error(error);
+        showToast("Server not reachable. Check backend connection.");
+      }
     } finally {
       if (isMountedRef.current) setIsLoading(false); 
     }
@@ -244,7 +283,7 @@ export default function SignIn() {
   const handleGoogleSuccess = async (credentialResponse) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/auth/google`, {
+      const response = await fetchWithTimeout(`${API_BASE}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: credentialResponse.credential }),
@@ -281,19 +320,21 @@ export default function SignIn() {
         onboarding_state: data.onboarding_state || { tourSeen: false, completedAt: null, pages: {} }
       }));
 
-      await syncUserCloudData(data.email, data.token);
-
-      if (!isMountedRef.current) return;
-
       window.dispatchEvent(new Event("localDataSynced"));
 
-      // Same regular-student-vs-admin destination fix as the email/password flow.
+      // Same regular-student-vs-admin destination fix as the email/password flow,
+      // and same "don't block navigation on cloud sync" fix -- see handleSubmit.
       navigate(isAdminAccount ? "/dashboard" : "/home");
-      
+      syncUserCloudData(data.email, data.token);
+
     } catch (error) {
       if (!isMountedRef.current) return;
-      console.error("Google Authentication error:", error);
-      showToast("Server not reachable. Check backend connection.");
+      if (error?.name === "AbortError") {
+        showToast("Google sign-in is taking too long. Please try again.");
+      } else {
+        console.error("Google Authentication error:", error);
+        showToast("Server not reachable. Check backend connection.");
+      }
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }
@@ -366,7 +407,10 @@ export default function SignIn() {
             </div>
             
             <button type="submit" className="auth-button" disabled={isLoading}>
-              {isLoading ? "Signing In..." : "Sign In"}
+              <span className="auth-button-content">
+                {isLoading && <span className="auth-spinner" aria-hidden="true" />}
+                {isLoading ? "Signing In..." : "Sign In"}
+              </span>
             </button> 
 
             {showResendVerification && (
@@ -411,7 +455,10 @@ export default function SignIn() {
               onClick={handleGuestLogin}
               disabled={isLoading}
             >
-              {isLoading ? "Preparing..." : "Continue as Guest"}
+              <span className="auth-button-content">
+                {isLoading && <span className="auth-spinner" aria-hidden="true" />}
+                {isLoading ? "Preparing..." : "Continue as Guest"}
+              </span>
             </button> 
 
           </form>

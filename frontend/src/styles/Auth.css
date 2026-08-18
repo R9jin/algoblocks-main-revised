@@ -198,6 +198,29 @@
   transform: none;
 }
 
+/* Loading spinner shown inside auth buttons while a request is in flight,
+   so waiting reads as "working" rather than "frozen". */
+.auth-button-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.auth-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #FFFFFF;
+  animation: auth-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Secondary/Guest Button */
 .auth-button.guest-button {
   background: rgba(255, 255, 255, 0.05);
