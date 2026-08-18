@@ -115,6 +115,15 @@ def get_db_connection():
         pool = _get_pool()
         conn = pool.getconn()
         conn._pool_return_in_progress = False
+        # autocommit must be set BEFORE anything runs a query on this
+        # connection. psycopg2 connections default to autocommit=False,
+        # so the liveness ping below would otherwise open an implicit
+        # transaction -- and setting .autocommit afterward issues a
+        # SET SESSION under the hood, which Postgres rejects while a
+        # transaction is open ("set_session cannot be used inside a
+        # transaction"). Setting it first keeps every statement,
+        # including the ping itself, in autocommit mode.
+        conn.autocommit = True
 
         try:
             if conn.closed:
@@ -127,8 +136,8 @@ def get_db_connection():
             _discard(conn)
             conn = pool.getconn()
             conn._pool_return_in_progress = False
+            conn.autocommit = True
 
-        conn.autocommit = True
         return conn
     except Exception as e:
         logger.error(f"Error connecting to PostgreSQL Neon: {e}", exc_info=True)
