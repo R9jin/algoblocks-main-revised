@@ -3,6 +3,23 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 const STORAGE_PREFIX = "algoblocks_onboarding";
 const OnboardingContext = createContext(null);
 
+// The four curated per-activity intro tours (see introActivityTours.js) each
+// walk through the SAME generic workspace chrome (Run button, console,
+// test cases, Evaluate Efficiency) as part of teaching their specific
+// concept -- they're a superset of the generic fallback `activityTour`
+// defined in ActivityApp.jsx, not a separate thing. But each curated tour
+// is stored under its own unique pageId ("activity-{moduleId}-{activityId}"),
+// while the fallback always uses one shared pageId
+// ("activity-workspace-tour"). Without this link, finishing or skipping a
+// curated tour on a lesson's first activity never marked the fallback's
+// pageId as seen, so the very next activity in the same lesson (which has
+// no curated tour of its own and falls back to the generic one) auto-showed
+// the tour again -- even though the learner had just gone through
+// (or explicitly skipped) essentially the same walkthrough seconds earlier.
+const GENERIC_ACTIVITY_TOUR_PAGE_ID = "activity-workspace-tour";
+const isCuratedActivityTourPageId = (pageId) =>
+  typeof pageId === "string" && pageId.startsWith("activity-") && pageId !== GENERIC_ACTIVITY_TOUR_PAGE_ID;
+
 const getUserKey = (user) => {
   const email = user?.email || user?.name || "anonymous";
   return `${STORAGE_PREFIX}_${email}`;
@@ -328,26 +345,52 @@ export function OnboardingProvider({ children }) {
     });
   };
 
+  // When a curated per-activity intro tour is finished or skipped, its
+  // content has effectively already covered the generic fallback tour too
+  // (see the GENERIC_ACTIVITY_TOUR_PAGE_ID comment above) -- mark the
+  // fallback seen at the same time, unless it's already been individually
+  // seen/opened before (in which case leave its own bookkeeping alone).
+  const withLinkedGenericTour = (pages, pageId, timestamp) => {
+    if (!isCuratedActivityTourPageId(pageId)) return pages;
+    const existingGeneric = pages[GENERIC_ACTIVITY_TOUR_PAGE_ID] || {};
+    if (existingGeneric.seen) return pages;
+    return {
+      ...pages,
+      [GENERIC_ACTIVITY_TOUR_PAGE_ID]: {
+        ...existingGeneric,
+        seen: true,
+        replayCount: Number(existingGeneric.replayCount || 0),
+        lastSeenAt: timestamp,
+        lastCompletedAt: existingGeneric.lastCompletedAt || null,
+        lastSkippedAt: existingGeneric.lastSkippedAt || timestamp,
+      },
+    };
+  };
+
   // Records that a tour was actually completed — the user reached the final
   // step and clicked Finish. Sets `seen: true` (the flag pages check before
   // auto-showing a tour again) and records lastCompletedAt for analytics.
   const markPageCompleted = (pageId, completedAt = new Date().toISOString()) => {
     if (!pageId) return;
-    setState((prev) => ({
-      ...normalizeState(prev),
-      tourSeen: true,
-      completedAt: prev.completedAt || completedAt,
-      pages: {
-        ...normalizeState(prev).pages,
+    setState((prev) => {
+      const normalized = normalizeState(prev);
+      const pagesWithPrimary = {
+        ...normalized.pages,
         [pageId]: {
-          ...(normalizeState(prev).pages?.[pageId] || {}),
+          ...(normalized.pages?.[pageId] || {}),
           seen: true,
-          replayCount: Number(normalizeState(prev).pages?.[pageId]?.replayCount || 0),
+          replayCount: Number(normalized.pages?.[pageId]?.replayCount || 0),
           lastSeenAt: completedAt,
           lastCompletedAt: completedAt,
         },
-      },
-    }));
+      };
+      return {
+        ...normalized,
+        tourSeen: true,
+        completedAt: normalized.completedAt || completedAt,
+        pages: withLinkedGenericTour(pagesWithPrimary, pageId, completedAt),
+      };
+    });
   };
 
   // Records that a tour was explicitly dismissed via "Skip Tour". Per the
@@ -358,19 +401,23 @@ export function OnboardingProvider({ children }) {
   // affecting the auto-show gate, which checks `seen` either way.
   const markPageDismissed = (pageId, dismissedAt = new Date().toISOString()) => {
     if (!pageId) return;
-    setState((prev) => ({
-      ...normalizeState(prev),
-      pages: {
-        ...normalizeState(prev).pages,
+    setState((prev) => {
+      const normalized = normalizeState(prev);
+      const pagesWithPrimary = {
+        ...normalized.pages,
         [pageId]: {
-          ...(normalizeState(prev).pages?.[pageId] || {}),
+          ...(normalized.pages?.[pageId] || {}),
           seen: true,
-          replayCount: Number(normalizeState(prev).pages?.[pageId]?.replayCount || 0),
+          replayCount: Number(normalized.pages?.[pageId]?.replayCount || 0),
           lastSeenAt: dismissedAt,
           lastSkippedAt: dismissedAt,
         },
-      },
-    }));
+      };
+      return {
+        ...normalized,
+        pages: withLinkedGenericTour(pagesWithPrimary, pageId, dismissedAt),
+      };
+    });
   };
 
   const api = useMemo(() => ({

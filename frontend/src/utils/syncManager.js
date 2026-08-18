@@ -381,9 +381,32 @@ export const SyncManager = {
                 const subData = await submissionsRes.json();
                 if (subData.submissions) {
                     for (const sub of subData.submissions) {
-                        const localSub = await submissionsDB.get(sub.activityId);
-                        if (!localSub || localSub.isSynced || (localSub.timestamp || 0) < (sub.timestamp || 0)) {
-                            await submissionsDB.save({ ...sub, isSynced: true });
+                        // BUG FIX: this used to look up `sub.activityId` (e.g. "m0_l1_a1"),
+                        // but submissions are keyed locally by the composite string
+                        // "${userId}_${moduleId}_${activityId}" -- that lookup could
+                        // never match, so every pulled submission was treated as "not
+                        // present locally" and re-saved via submissionsDB.save(sub).
+                        // Older submissions synced before the id fix above won't have
+                        // `sub.id` either, so reconstruct the same composite key as a
+                        // fallback instead of skipping them.
+                        const subId = sub.id || (sub.userId && sub.moduleId && sub.activityId
+                            ? `${sub.userId}_${sub.moduleId}_${sub.activityId}`
+                            : null);
+                        if (!subId) continue;
+
+                        try {
+                            const localSub = await submissionsDB.get(subId);
+                            if (!localSub || localSub.isSynced || (localSub.timestamp || 0) < (sub.timestamp || 0)) {
+                                // submissionsDB's store requires an "id" key -- without
+                                // it, save() throws and (previously) aborted this whole
+                                // for-loop, silently skipping every submission after it
+                                // AND the Projects/Templates/Onboarding pulls below.
+                                await submissionsDB.save({ ...sub, id: subId, isSynced: true });
+                            }
+                        } catch (e) {
+                            // Isolated to this one record -- one bad/legacy row can no
+                            // longer take down the rest of the sync cycle.
+                            console.error(`Failed to merge pulled submission ${subId}`, e);
                         }
                     }
                 }
@@ -395,9 +418,14 @@ export const SyncManager = {
                 const projData = await projRes.json();
                 const items = Array.isArray(projData) ? projData : projData.projects || [];
                 for (const remoteProj of items) {
-                    const localProj = await projectsDB.get(remoteProj.projectId);
-                    if (!localProj || localProj.isSynced || (localProj.timestamp || 0) < (remoteProj.timestamp || 0)) {
-                        await projectsDB.save({ ...remoteProj, isSynced: true });
+                    try {
+                        const localProj = await projectsDB.get(remoteProj.projectId);
+                        if (!localProj || localProj.isSynced || (localProj.timestamp || 0) < (remoteProj.timestamp || 0)) {
+                            await projectsDB.save({ ...remoteProj, isSynced: true });
+                        }
+                    } catch (e) {
+                        // Isolated per-record, same reasoning as the submissions pull above.
+                        console.error(`Failed to merge pulled project ${remoteProj.projectId}`, e);
                     }
                 }
             }
@@ -408,9 +436,13 @@ export const SyncManager = {
                 const tplData = await tplRes.json();
                 const items = Array.isArray(tplData) ? tplData : tplData.templates || [];
                 for (const remoteTpl of items) {
-                    const localTpl = await templatesDB.get(remoteTpl.templateId);
-                    if (!localTpl || localTpl.isSynced || (localTpl.timestamp || 0) < (remoteTpl.timestamp || 0)) {
-                        await templatesDB.save({ ...remoteTpl, isSynced: true });
+                    try {
+                        const localTpl = await templatesDB.get(remoteTpl.templateId);
+                        if (!localTpl || localTpl.isSynced || (localTpl.timestamp || 0) < (remoteTpl.timestamp || 0)) {
+                            await templatesDB.save({ ...remoteTpl, isSynced: true });
+                        }
+                    } catch (e) {
+                        console.error(`Failed to merge pulled template ${remoteTpl.templateId}`, e);
                     }
                 }
             }

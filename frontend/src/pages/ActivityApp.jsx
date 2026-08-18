@@ -483,6 +483,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
 
     const finalSubId = `${state.userId}_${moduleId}_${activityId}`;
+    // BUG FIX: this composite id was never included in the payload sent to
+    // the server, only used as the local IndexedDB key. get-all-submissions
+    // echoes back exactly the JSON blob it was given, so every synced
+    // submission came back from the server with no "id" -- which broke
+    // matching it against the local record on the next pull (see
+    // syncManager.js pullRemoteState) and made merging fail outright.
+    payload.id = finalSubId;
     try { submissionsDB.setItem(finalSubId, { ...payload, isSynced: false }); } catch (e) {}
 
     if (navigator && navigator.onLine && API_BASE) {
@@ -672,6 +679,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       initial_aes: latestStateRef.current.initial_aes, final_aes: latestStateRef.current.final_aes,
       rog: (latestStateRef.current.final_aes || 0) - (latestStateRef.current.initial_aes || 0),
       passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total, testCases: finalTestResults, target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime, target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace, workspace: { blocklyJson: safeJson || {} }, pythonCode: pythonCode || "", timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false,
+      // BUG FIX: see triggerFinalSave's identical comment -- without this,
+      // the server round-trips this submission with no "id", which is what
+      // broke matching it back against the local IndexedDB record (keyed
+      // by this same composite string) on the next pull from the server.
+      id: submissionId,
     };
 
     try { await submissionsDB.setItem(submissionId, payload); window.dispatchEvent(new Event("localDataSynced")); } catch (e) { }
