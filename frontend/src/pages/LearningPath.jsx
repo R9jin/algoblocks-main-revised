@@ -298,6 +298,9 @@ export default function LearningPath() {
     if (!module) return false;
 
     const modActs = activitiesData[moduleId] || {};
+    // If activity data hasn't loaded for this module yet, return false
+    // conservatively so the opt-count check isn't skipped while loading.
+    if (Object.keys(modActs).length === 0) return false;
 
     const lessonsDone = module.lessons.every((lesson) => {
       const lessonNum = lesson.lessonId.split("-")[2];
@@ -497,7 +500,10 @@ export default function LearningPath() {
             }
 
             const optimizationsLocked = isAdmin ? false : lockMap[lastLessonId] || !AreLessonsCompleteForOpts;
-            const postAssessmentLocked = isAdmin ? false : !moduleComplete && !postComplete;
+            const optMinReqForQuiz = hasOptimizations ? getMinReq(module.moduleId, optimizations, true) : 0;
+            const completedOptCountForQuiz = optimizations.filter(o => checkActivityDone(module.moduleId, o.id)).length;
+            const optsMeetMinForQuiz = !hasOptimizations || completedOptCountForQuiz >= optMinReqForQuiz;
+            const postAssessmentLocked = isAdmin ? false : (!moduleComplete || !optsMeetMinForQuiz) && !postComplete;
             const isModuleCompletelyLocked = isAdmin ? false : lockMap[module.lessons[0]?.lessonId];
 
             return (

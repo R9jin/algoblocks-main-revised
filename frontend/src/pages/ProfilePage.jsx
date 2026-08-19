@@ -112,9 +112,10 @@ export default function ProfilePage() {
             // other, but were previously awaited one after the other --
             // doubling the network wait on every profile-page load. Firing
             // them together with Promise.all cuts that in half.
-            const [progRes, assmRes] = await Promise.all([
+            const [progRes, assmRes, subsRes] = await Promise.all([
               fetch(`${API_BASE}/api/get-progress`, { headers }),
               fetch(`${API_BASE}/api/get-assessments`, { headers }),
+              fetch(`${API_BASE}/api/get-all-submissions`, { headers }),
             ]);
 
             if (progRes.ok) {
@@ -128,6 +129,15 @@ export default function ProfilePage() {
               const data = await assmRes.json();
               for (const [key, val] of Object.entries(data.assessments || data)) {
                 initialAssm[key] = val; await assessmentsDB.setItem(key, { ...val, isSynced: true });
+              }
+            }
+
+            if (subsRes.ok) {
+              const subData = await subsRes.json();
+              for (const sub of (subData.submissions || [])) {
+                if (!sub || !sub.moduleId || !sub.activityId) continue;
+                const subId = sub.id || `${sub.userId}_${sub.moduleId}_${sub.activityId}`;
+                if (subId) await submissionsDB.setItem(subId, { ...sub, id: subId, isSynced: true });
               }
             }
           } catch (e) { console.warn("Cloud sync warning:", e); }
@@ -218,6 +228,8 @@ export default function ProfilePage() {
             const mappedActs = acts.map((act) => {
               const sub = userSubs[mod.moduleId]?.[act.id];
               let aes = 0; let rog = 0; let isCompleted = false;
+              let passedTests = null; let totalTests = null;
+              let actualTime = null; let actualSpace = null;
 
               if (sub) {
                 aes = sub.final_aes !== null && sub.final_aes !== undefined ? sub.final_aes : sub.score || 0;
@@ -227,13 +239,18 @@ export default function ProfilePage() {
                 rog = sub.rog || 0;
                 isCompleted = aes >= 50 || sub.status === "passed";
 
+                passedTests = sub.passedTestCases ?? sub.passed_tests ?? null;
+                totalTests = sub.totalTestCases ?? sub.total_tests ?? null;
+                actualTime = sub.actual_complexity || null;
+                actualSpace = sub.actual_space_complexity || null;
+
                 if (isCompleted) lessonCompletedActs++;
                 
                 modAesSum += aes; modAesCount++; globalAesSum += aes; globalAesCount++;
                 if (rog > 0) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
               }
 
-              return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted };
+              return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, passedTests, totalTests, actualTime, actualSpace };
             });
 
             const minRequired = lesson.minimumActivities || acts.length;
@@ -273,6 +290,8 @@ export default function ProfilePage() {
           const mappedOptimizations = rawOptimizations.map((act) => {
             const sub = userSubs[mod.moduleId]?.[act.id];
             let aes = 0; let rog = 0; let isCompleted = false;
+            let passedTests = null; let totalTests = null;
+            let actualTime = null; let actualSpace = null;
 
             if (sub) {
               aes = sub.final_aes !== null && sub.final_aes !== undefined ? sub.final_aes : sub.score || 0;
@@ -281,6 +300,11 @@ export default function ProfilePage() {
 
               rog = sub.rog || 0;
               isCompleted = aes >= 50 || sub.status === "passed";
+
+              passedTests = sub.passedTestCases ?? sub.passed_tests ?? null;
+              totalTests = sub.totalTestCases ?? sub.total_tests ?? null;
+              actualTime = sub.actual_complexity || null;
+              actualSpace = sub.actual_space_complexity || null;
 
               if (isCompleted) optCompletedCount++;
 
@@ -291,7 +315,7 @@ export default function ProfilePage() {
               optCompletedCount++;
             }
 
-            return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted };
+            return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, passedTests, totalTests, actualTime, actualSpace };
           });
 
           const modClean = mod.moduleId.toLowerCase().replace(/[-_ ]/g, ''); 
@@ -695,15 +719,30 @@ export default function ProfilePage() {
                                       </div>
                                     </div>
                                     <div className="act-right">
-                                      {lesson.isUnlocked ? (
-                                        <>
+                                      {(lesson.isUnlocked || act.isCompleted) ? (
+                                        <div className="act-metrics-group">
                                           <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
                                             AES: {act.aes > 0 ? `${act.aes}%` : '--'}
                                           </span>
                                           <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
                                             ROG: {act.rog > 0 ? `+${act.rog}` : '--'}
                                           </span>
-                                        </>
+                                          {act.passedTests !== null && act.totalTests !== null && (
+                                            <span className={`metric-badge tests-badge ${act.passedTests === act.totalTests ? 'perfect' : act.passedTests > 0 ? 'good' : 'empty'}`}>
+                                              Tests: {act.passedTests}/{act.totalTests}
+                                            </span>
+                                          )}
+                                          {act.actualTime && (
+                                            <span className="metric-badge complexity-badge">
+                                              Time: {act.actualTime}
+                                            </span>
+                                          )}
+                                          {act.actualSpace && (
+                                            <span className="metric-badge complexity-badge">
+                                              Space: {act.actualSpace}
+                                            </span>
+                                          )}
+                                        </div>
                                       ) : (
                                         <span className="locked-text">Locked</span>
                                       )}
@@ -746,15 +785,30 @@ export default function ProfilePage() {
                                     </div>
                                   </div>
                                   <div className="act-right">
-                                    {mod.optimizations.isUnlocked ? (
-                                      <>
+                                    {(mod.optimizations.isUnlocked || act.isCompleted) ? (
+                                      <div className="act-metrics-group">
                                         <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
                                           AES: {act.aes > 0 ? `${act.aes}%` : '--'}
                                         </span>
                                         <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
                                           ROG: {act.rog > 0 ? `+${act.rog}` : '--'}
                                         </span>
-                                      </>
+                                        {act.passedTests !== null && act.totalTests !== null && (
+                                          <span className={`metric-badge tests-badge ${act.passedTests === act.totalTests ? 'perfect' : act.passedTests > 0 ? 'good' : 'empty'}`}>
+                                            Tests: {act.passedTests}/{act.totalTests}
+                                          </span>
+                                        )}
+                                        {act.actualTime && (
+                                          <span className="metric-badge complexity-badge">
+                                            Time: {act.actualTime}
+                                          </span>
+                                        )}
+                                        {act.actualSpace && (
+                                          <span className="metric-badge complexity-badge">
+                                            Space: {act.actualSpace}
+                                          </span>
+                                        )}
+                                      </div>
                                     ) : (
                                       <span className="locked-text">Locked</span>
                                     )}
