@@ -708,6 +708,101 @@
   color: #241b52;
 }
 
+.admin-user-current-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: #f8f8fb;
+  border: 1px solid #ece8f8;
+  border-radius: 10px;
+  color: #5b5675;
+  font-size: 0.85rem;
+}
+
+.admin-user-current-status > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-right: auto;
+}
+
+.status-text {
+  font-size: 1rem;
+}
+
+.status-text.active { color: #15803d; }
+.status-text.suspended { color: #b91c1c; }
+
+.admin-activity-history {
+  margin-top: 20px;
+}
+
+.admin-activity-history-heading {
+  margin-bottom: 10px;
+  color: #241b52;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.admin-activity-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #ece8f8;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.admin-activity-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.admin-activity-table th,
+.admin-activity-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0edf7;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-activity-table th {
+  color: #94a3b8;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-activity-table td:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-activity-table small {
+  color: #94a3b8;
+}
+
+.activity-status {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.activity-status.passed { color: #15803d; }
+.activity-status.failed { color: #b91c1c; }
+.activity-status.draft { color: #b45309; }
+
+.admin-activity-empty {
+  padding: 16px;
+  border: 1px dashed #d8cbff;
+  border-radius: 10px;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
 @media (max-width: 768px) {
   .analytics-dashboard-header {
     flex-direction: column;

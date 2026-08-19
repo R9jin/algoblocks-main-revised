@@ -478,7 +478,10 @@ class AuthService:
             "target_complexity", "actual_complexity", 
             "target_space_complexity", "actual_space_complexity", 
             "workspace", "pythonCode", "timestamp", "submittedAt", "isSynced",
-            "initial_aes", "final_aes", "rog", "functional_passed", "functional_total"
+            "initial_aes", "final_aes", "rog", "functional_passed", "functional_total",
+            "latest_aes", "baseline_actual_complexity", "baseline_actual_space_complexity",
+            "latest_actual_complexity", "latest_actual_space_complexity",
+            "complexity_passed", "complexity_total", "hidden_passed", "hidden_total"
         ]
         
         safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}

@@ -221,10 +221,10 @@ export const SyncManager = {
                             // repeated "Template sync rejected (403)" console spam
                             // and needless load on the endpoint). Drop the local
                             // copy so it stops looping, same as the limit case.
-                            console.error("Template sync rejected (403), dropping stale local record:", errDetail || "(no detail)");
                             await templatesDB.delete(template.templateId || template._id);
-                            const permissionMessage = errDetail || "A locally saved template could not be synced: you don't have permission to modify it.";
-                            window.dispatchEvent(new CustomEvent("syncLimitReached", { detail: { kind: "template-permission", title: "Sync issue", message: permissionMessage } }));
+                            // This is stale local state, not a current-page
+                            // action. It has already been removed above, so
+                            // do not surface a global popup from MainApp.
                         }
                     }
                 } catch (e) {

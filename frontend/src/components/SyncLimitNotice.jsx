@@ -1,5 +1,6 @@
 // frontend/src/components/SyncLimitNotice.jsx
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 // Background sync (syncManager.js) periodically pushes any locally-saved,
 // not-yet-synced projects/templates up to the backend. If the account is
@@ -11,17 +12,20 @@ import { useEffect, useState } from "react";
 // mounted once at the app root (see App.jsx) so the notice surfaces no
 // matter which page the person is on when a queued save finally fails.
 export default function SyncLimitNotice() {
+  const location = useLocation();
   const [notice, setNotice] = useState(null);
   const [title, setTitle] = useState("Sync limit reached");
 
   useEffect(() => {
     const handleLimitReached = (e) => {
+      const kind = e.detail?.kind || "";
+      if (kind.startsWith("template") && location.pathname.startsWith("/activity/")) return;
       setTitle(e.detail?.title || "Sync limit reached");
       setNotice(e.detail?.message || "A locally saved item could not be synced: limit reached.");
     };
     window.addEventListener("syncLimitReached", handleLimitReached);
     return () => window.removeEventListener("syncLimitReached", handleLimitReached);
-  }, []);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!notice) return;

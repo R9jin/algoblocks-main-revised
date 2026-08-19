@@ -387,14 +387,14 @@ export default function MainApp() {
           if (pRes.ok) {
             const pData = await pRes.json().catch(()=>({}));
             for (const cp of pData.projects || pData || []) {
-              if (cp.owner_id === user.email || cp.userId === user.email) await projectsDB.setItem(cp._id, { ...cp, synced: true, isSynced: true });
+              if (cp.owner_id === user.email || cp.userId === user.email) await projectsDB.setItem(cp.projectId || cp._id, { ...cp, projectId: cp.projectId || cp._id, synced: true, isSynced: true });
             }
           }
           const tRes = await fetch(`${API_BASE}/api/templates?userId=${encodeURIComponent(user.email)}`, { headers });
           if (tRes.ok) {
             const tData = await tRes.json().catch(()=>({}));
             for (const ct of tData.templates || tData || []) {
-              if (ct.owner_id === user.email || ct.userId === user.email) await templatesDB.setItem(ct._id, { ...ct, synced: true, isSynced: true });
+              if (ct.owner_id === user.email || ct.userId === user.email) await templatesDB.setItem(ct.templateId || ct._id, { ...ct, templateId: ct.templateId || ct._id, synced: true, isSynced: true });
             }
           }
         } catch (e) { console.warn("MainApp templates cloud sync degraded offline:", e); }

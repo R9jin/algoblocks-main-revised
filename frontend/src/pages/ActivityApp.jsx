@@ -114,7 +114,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     userId: null, json: null, pythonCode: "# Drag blocks to generate Python code",
     score: 0, passed: 0, testResults: [], actualTime: "O(n^2)", actualSpace: "O(1)",
     status: "draft", type: "activity", targetTime: "O(n)", targetSpace: "O(1)",
-    initial_aes: null, final_aes: null
+    initial_aes: null, final_aes: null, latest_aes: null, rog: 0,
+    functional_passed: 0, functional_total: 0, complexity_passed: 0, complexity_total: 0, hidden_passed: 0, hidden_total: 0,
+    baseline_actualTime: null, baseline_actualSpace: null,
+    latest_actualTime: null, latest_actualSpace: null
   });
 
   const [currentAes, setCurrentAes] = useState(0);
@@ -269,7 +272,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const visibleTests = originalTests.filter((tc) => !tc.isHidden);
     const hiddenTests = originalTests.filter((tc) => tc.isHidden);
     const timeTarget = activityDataResolved.targetTimeComplexity || "O(n)";
-    const spaceTarget = activityDataResolved.targetSpaceComplexity || "O(n)";
+    const spaceTarget = activityDataResolved.targetSpaceComplexity || "O(1)";
     return [
       ...visibleTests,
       { isComplexityTest: true, title: "Time Complexity Check", target: timeTarget, call: "Static Code Analysis", expected: `<= ${timeTarget}`, isHidden: false },
@@ -448,7 +451,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       type: foundActivity.type || (foundLessonKey === "optimizations" ? "optimization" : "activity"),
       difficulty: foundActivity.difficulty || (foundLessonKey === "optimizations" ? "Advanced" : "Easy"),
       targetTimeComplexity: foundActivity.targetTime || foundActivity.targetTimeComplexity || "O(n)",
-      targetSpaceComplexity: foundActivity.targetSpace || foundActivity.targetSpaceComplexity || "O(n)",
+      targetSpaceComplexity: foundActivity.targetSpace || foundActivity.targetSpaceComplexity || "O(1)",
       testCasesList: (foundActivity.testCasesPool || []).map((tc) => ({ call: tc.call, expected: tc.expected, isHidden: !!tc.isHidden })),
       templateUrl: foundActivity.templateUrl || null,
     };
@@ -495,9 +498,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const payload = {
       userId: state.userId, moduleId: moduleId, activityId: activityId, type: state.type || "activity", status: state.status || "draft",
       score: state.score, maxScore: 100,
-      initial_aes: state.initial_aes, final_aes: state.final_aes,
+      initial_aes: state.initial_aes, final_aes: state.final_aes, latest_aes: state.latest_aes,
+      baseline_actual_complexity: state.baseline_actualTime, baseline_actual_space_complexity: state.baseline_actualSpace,
+      latest_actual_complexity: state.latest_actualTime, latest_actual_space_complexity: state.latest_actualSpace,
       rog: (state.final_aes || 0) - (state.initial_aes || 0),
       passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
+      functional_passed: state.functional_passed, functional_total: state.functional_total,
+      complexity_passed: state.complexity_passed, complexity_total: state.complexity_total,
+      hidden_passed: state.hidden_passed, hidden_total: state.hidden_total,
       testCases: state.testResults, target_complexity: state.targetTime || "O(n)", actual_complexity: state.actualTime,
       target_space_complexity: state.targetSpace || "O(1)", actual_space_complexity: state.actualSpace,
       workspace: { blocklyJson: currentJson || {} }, pythonCode: state.pythonCode, timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: true,
@@ -591,10 +599,22 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
             latestStateRef.current.initial_aes = finalSubmissionToLoad.initial_aes ?? null;
             latestStateRef.current.final_aes = finalSubmissionToLoad.final_aes ?? null;
+            latestStateRef.current.latest_aes = finalSubmissionToLoad.latest_aes ?? finalSubmissionToLoad.final_aes ?? null;
+            latestStateRef.current.baseline_actualTime = finalSubmissionToLoad.baseline_actual_complexity ?? null;
+            latestStateRef.current.baseline_actualSpace = finalSubmissionToLoad.baseline_actual_space_complexity ?? null;
+            latestStateRef.current.latest_actualTime = finalSubmissionToLoad.latest_actual_complexity ?? finalSubmissionToLoad.actual_complexity ?? null;
+            latestStateRef.current.latest_actualSpace = finalSubmissionToLoad.latest_actual_space_complexity ?? finalSubmissionToLoad.actual_space_complexity ?? null;
+            latestStateRef.current.rog = finalSubmissionToLoad.rog ?? 0;
+            latestStateRef.current.functional_passed = finalSubmissionToLoad.functional_passed ?? 0;
+            latestStateRef.current.functional_total = finalSubmissionToLoad.functional_total ?? 0;
+            latestStateRef.current.complexity_passed = finalSubmissionToLoad.complexity_passed ?? 0;
+            latestStateRef.current.complexity_total = finalSubmissionToLoad.complexity_total ?? 0;
+            latestStateRef.current.hidden_passed = finalSubmissionToLoad.hidden_passed ?? 0;
+            latestStateRef.current.hidden_total = finalSubmissionToLoad.hidden_total ?? 0;
             latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
             latestStateRef.current.status = finalSubmissionToLoad.status || "draft";
 
-            let loadedScore = finalSubmissionToLoad.score || 0;
+            let loadedScore = finalSubmissionToLoad.latest_aes ?? finalSubmissionToLoad.final_aes ?? finalSubmissionToLoad.score ?? 0;
             if (finalSubmissionToLoad.maxScore === 5 && loadedScore <= 5) loadedScore = (loadedScore / 5) * 100;
 
             const computedAes = Math.min(loadedScore, 100);
@@ -602,7 +622,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
             const loadedInitAes = finalSubmissionToLoad.initial_aes ?? null;
             if (loadedInitAes !== null) {
-              const calcRog = computedAes - loadedInitAes;
+              const baselineTime = finalSubmissionToLoad.baseline_actual_complexity || finalSubmissionToLoad.actual_complexity;
+              const baselineSpace = finalSubmissionToLoad.baseline_actual_space_complexity || finalSubmissionToLoad.actual_space_complexity;
+              const latestTime = finalSubmissionToLoad.latest_actual_complexity || finalSubmissionToLoad.actual_complexity;
+              const latestSpace = finalSubmissionToLoad.latest_actual_space_complexity || finalSubmissionToLoad.actual_space_complexity;
+              const sameClasses = String(baselineTime || "").replace(/\s+/g, "").toLowerCase() === String(latestTime || "").replace(/\s+/g, "").toLowerCase()
+                && String(baselineSpace || "").replace(/\s+/g, "").toLowerCase() === String(latestSpace || "").replace(/\s+/g, "").toLowerCase();
+              const calcRog = sameClasses ? 0 : computedAes - loadedInitAes;
               setCurrentRog(calcRog > 0 ? calcRog : 0);
             }
 
@@ -697,9 +723,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const payload = {
       userId: latestStateRef.current.userId, moduleId: moduleId, activityId: activityId, type: latestStateRef.current.type || "activity", status: finalStatus,
       score: finalScore, maxScore: 100,
-      initial_aes: latestStateRef.current.initial_aes, final_aes: latestStateRef.current.final_aes,
-      rog: (latestStateRef.current.final_aes || 0) - (latestStateRef.current.initial_aes || 0),
-      passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total, testCases: finalTestResults, target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime, target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace, workspace: { blocklyJson: safeJson || {} }, pythonCode: pythonCode || "", timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false,
+      initial_aes: latestStateRef.current.initial_aes, final_aes: latestStateRef.current.final_aes, latest_aes: latestStateRef.current.latest_aes,
+      baseline_actual_complexity: latestStateRef.current.baseline_actualTime, baseline_actual_space_complexity: latestStateRef.current.baseline_actualSpace,
+      latest_actual_complexity: latestStateRef.current.latest_actualTime, latest_actual_space_complexity: latestStateRef.current.latest_actualSpace,
+      rog: latestStateRef.current.rog || 0,
+      passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total,
+      functional_passed: latestStateRef.current.functional_passed, functional_total: latestStateRef.current.functional_total,
+      complexity_passed: latestStateRef.current.complexity_passed, complexity_total: latestStateRef.current.complexity_total,
+      hidden_passed: latestStateRef.current.hidden_passed, hidden_total: latestStateRef.current.hidden_total,
+      testCases: finalTestResults, target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime, target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace, workspace: { blocklyJson: safeJson || {} }, pythonCode: pythonCode || "", timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false,
       // BUG FIX: see triggerFinalSave's identical comment -- without this,
       // the server round-trips this submission with no "id", which is what
       // broke matching it back against the local IndexedDB record (keyed
@@ -980,7 +1012,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     if (!isLast && nextActivity) {
       if (meetsThreshold) {
-        setModalConfig({ isOpen: true, title: "Lesson Unlocked!", message: promptMsg + "\n\nYou can move on to the next lesson now, or stay here to complete the remaining optional practice activities.", confirmText: "Go to Next Lesson", cancelText: "Continue Practicing", isDanger: false, onConfirmAction: () => { closeModal(); navigate("/learning-path"); }, onCancelAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); } });
+        setModalConfig({ isOpen: true, title: "Lesson Unlocked!", message: promptMsg + "\n\nYou have reached the minimum requirement. Choose whether to stay, continue to the next activity, or move on to the next lesson.", confirmText: "Next Lesson", cancelText: "Stay Here", secondaryText: "Next Activity", isDanger: false, onConfirmAction: () => { closeModal(); navigate("/learning-path"); }, onSecondaryAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal });
       } else {
         setModalConfig({ isOpen: true, title: "Activity Evaluated", message: promptMsg + "\n\nReady for the next challenge?", confirmText: "Next Activity", cancelText: "Stay Here", isDanger: false, onConfirmAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal });
       }
@@ -1080,11 +1112,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     setIsEvaluating(false);
 
     const tsr = functionalTotal > 0 ? (functionalPassed / functionalTotal) : 1.0;
-    const targetTimeWeight = getComplexityWeight(activityDataResolved?.targetTimeComplexity || "O(n)");
-    const actualTimeWeight = getComplexityWeight(analysisResult.total || "O(n^2)");
+    const targetTimeWeight = getComplexityWeight(activityDataResolved?.targetTimeComplexity, 6) || 6;
+    const actualTimeWeight = getComplexityWeight(analysisResult.total, 6) || 6;
 
-    const targetSpaceWeight = getComplexityWeight(activityDataResolved?.targetSpaceComplexity || "O(1)");
-    const actualSpaceWeight = getComplexityWeight(analysisResult.space_total || "O(n)");
+    const targetSpaceWeight = getComplexityWeight(activityDataResolved?.targetSpaceComplexity, 6) || 6;
+    const actualSpaceWeight = getComplexityWeight(analysisResult.space_total, 6) || 6;
 
     const safeActualTime = actualTimeWeight > 0 ? actualTimeWeight : 6;
     const safeActualSpace = actualSpaceWeight > 0 ? actualSpaceWeight : 6;
@@ -1100,27 +1132,36 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     setCurrentAes(aes);
 
-    let initialAes = latestStateRef.current.initial_aes;
-
-    if (initialAes === null || initialAes === undefined) {
-      if (activityDataResolved?.type === "optimization") {
-        initialAes = 50;
-      } else {
-        initialAes = aes;
-      }
-    }
-
-    if (aes < initialAes && latestStateRef.current.status !== "passed") {
-      initialAes = aes;
-    }
+    const initialAes = latestStateRef.current.initial_aes ?? aes;
+    const bestAes = Math.max(latestStateRef.current.final_aes ?? aes, aes);
 
     latestStateRef.current.initial_aes = initialAes;
-    latestStateRef.current.final_aes = aes;
+    latestStateRef.current.final_aes = bestAes;
+    latestStateRef.current.latest_aes = aes;
+    latestStateRef.current.latest_actualTime = analysisResult.total || "O(1)";
+    latestStateRef.current.latest_actualSpace = analysisResult.space_total || "O(1)";
+    if (latestStateRef.current.baseline_actualTime === null) {
+      latestStateRef.current.baseline_actualTime = analysisResult.total || "O(1)";
+      latestStateRef.current.baseline_actualSpace = analysisResult.space_total || "O(1)";
+    }
 
-    const calculatedRog = aes - initialAes;
+    const sameTimeClass = String(latestStateRef.current.baseline_actualTime || "").replace(/\s+/g, "").toLowerCase() === String(latestStateRef.current.latest_actualTime || "").replace(/\s+/g, "").toLowerCase();
+    const sameSpaceClass = String(latestStateRef.current.baseline_actualSpace || "").replace(/\s+/g, "").toLowerCase() === String(latestStateRef.current.latest_actualSpace || "").replace(/\s+/g, "").toLowerCase();
+    const calculatedRog = sameTimeClass && sameSpaceClass ? 0 : Math.max(0, bestAes - initialAes);
+    latestStateRef.current.rog = calculatedRog;
+    latestStateRef.current.functional_passed = functionalPassed;
+    latestStateRef.current.functional_total = functionalTotal;
+    latestStateRef.current.complexity_passed = processedTestCases.filter((tc, index) => tc.isComplexityTest && fullOutput.includes(`Test ${index + 1}: PASSED`)).length;
+    latestStateRef.current.complexity_total = processedTestCases.filter((tc) => tc.isComplexityTest).length;
+    latestStateRef.current.hidden_passed = processedTestCases.filter((tc, index) => tc.isHidden && fullOutput.includes(`Test ${index + 1}: PASSED`)).length;
+    latestStateRef.current.hidden_total = processedTestCases.filter((tc) => tc.isHidden).length;
     setCurrentRog(calculatedRog > 0 ? calculatedRog : 0);
 
-    const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
+    const testResults = processedTestCases.map((tc, idx) => ({
+      id: `tc_${idx}`,
+      category: tc.isComplexityTest ? "complexity" : tc.isHidden ? "hidden" : "functional",
+      status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed"
+    }));
 
     const trueFinalJsonToSave = getFailsafeWorkspaceJson() || latestStateRef.current.json;
 
@@ -1396,7 +1437,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         </aside>
       </Split>
 
-      <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} cancelText={modalConfig.cancelText} isDanger={modalConfig.isDanger} onCancel={modalConfig.onCancelAction || closeModal} onConfirm={modalConfig.onConfirmAction} />
+      <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} cancelText={modalConfig.cancelText} secondaryText={modalConfig.secondaryText} isDanger={modalConfig.isDanger} onCancel={modalConfig.onCancelAction || closeModal} onSecondary={modalConfig.onSecondaryAction} onConfirm={modalConfig.onConfirmAction} />
       <BigOModal isOpen={isBigOModalOpen} onClose={() => setIsBigOModalOpen(false)} />
       <BlockGlossaryModal isOpen={isBlockGlossaryOpen} onClose={() => setIsBlockGlossaryOpen(false)} />
     </div>

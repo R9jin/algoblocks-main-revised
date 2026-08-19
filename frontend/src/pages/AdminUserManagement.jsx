@@ -939,6 +939,18 @@ const AdminUserManagement = () => {
                               <span>{rowError}</span>
                             </div>
                           ) : cached ? (
+                            <>
+                            <div className="admin-user-current-status">
+                              <div>
+                                <span className="metric-pill-label">Current account status</span>
+                                <strong className={isSuspendedStatus(user.status) ? "status-text suspended" : "status-text active"}>
+                                  {isSuspendedStatus(user.status) ? "Suspended" : "Active"}
+                                </strong>
+                              </div>
+                              <span>{user.isVerified ? "Email verified" : "Email unverified"}</span>
+                              <span>{cached.account?.role === "admin" ? "Administrator" : "Student account"}</span>
+                              <span>Last recorded activity: {cached.activities?.[0]?.timestamp ? new Date(cached.activities[0].timestamp).toLocaleString() : "No activity yet"}</span>
+                            </div>
                             <div className="admin-metrics-grid">
                               <div className="admin-metric-pill">
                                 <span className="metric-pill-label">TSR</span>
@@ -968,7 +980,41 @@ const AdminUserManagement = () => {
                                 <span className="metric-pill-label">Progress Entries</span>
                                 <span className="metric-pill-value">{cached.metrics.progress_entries}</span>
                               </div>
+                              <div className="admin-metric-pill">
+                                <span className="metric-pill-label">Functional Tests</span>
+                                <span className="metric-pill-value">{cached.metrics.functional_tests?.passed || 0} / {cached.metrics.functional_tests?.total || 0}</span>
+                              </div>
+                              <div className="admin-metric-pill">
+                                <span className="metric-pill-label">Complexity Checks</span>
+                                <span className="metric-pill-value">{cached.metrics.complexity_tests?.passed || 0} / {cached.metrics.complexity_tests?.total || 0}</span>
+                              </div>
+                              <div className="admin-metric-pill">
+                                <span className="metric-pill-label">Hidden Tests</span>
+                                <span className="metric-pill-value">{cached.metrics.hidden_tests?.passed || 0} / {cached.metrics.hidden_tests?.total || 0}</span>
+                              </div>
                             </div>
+                            <div className="admin-activity-history">
+                              <div className="admin-activity-history-heading">Current activity records</div>
+                              {cached.activities?.length ? (
+                                <div className="admin-activity-table-wrap">
+                                  <table className="admin-activity-table">
+                                    <thead><tr><th>Activity</th><th>Status</th><th>AES</th><th>ROG</th><th>Time</th><th>Space</th><th>Tests</th></tr></thead>
+                                    <tbody>{cached.activities.map((activity) => (
+                                      <tr key={`${activity.moduleId}-${activity.activityId}`}>
+                                        <td><strong>{activity.activityId || "Unknown activity"}</strong><small>{activity.moduleId || "--"}</small></td>
+                                        <td><span className={`activity-status ${activity.status === "passed" ? "passed" : activity.status === "failed" ? "failed" : "draft"}`}>{activity.status}</span></td>
+                                        <td>{activity.aes ?? "--"}%</td>
+                                        <td>+{activity.rog ?? 0}</td>
+                                        <td>{activity.time || "--"}</td>
+                                        <td>{activity.space || "--"}</td>
+                                        <td>{activity.tests?.passed || 0}/{activity.tests?.total || 0}</td>
+                                      </tr>
+                                    ))}</tbody>
+                                  </table>
+                                </div>
+                              ) : <div className="admin-activity-empty">No activity submissions recorded yet.</div>}
+                            </div>
+                            </>
                           ) : null}
                         </div>
                       </td>

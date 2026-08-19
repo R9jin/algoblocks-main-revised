@@ -130,8 +130,35 @@ def _fetch_submissions_for_user(email: str, conn=None) -> List[Dict[str, Any]]:
     return [r["data"] for r in rows if r.get("data")]
 
 
+def _test_breakdown(sub: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
+    results = sub.get("testCases") or []
+    categories = {"functional": {"passed": 0, "total": 0}, "complexity": {"passed": 0, "total": 0}, "hidden": {"passed": 0, "total": 0}}
+    for test in results:
+        category = test.get("category") if isinstance(test, dict) else None
+        # Legacy records have no category metadata. Keep all observed results
+        # countable as functional tests instead of trusting their stale 0 total.
+        if category not in categories:
+            category = "functional"
+        categories[category]["total"] += 1
+        if isinstance(test, dict) and test.get("status") == "passed":
+            categories[category]["passed"] += 1
+
+    # New records have authoritative category counters. Use them when present,
+    # but always fall back to the result array for old rows with 0 totals.
+    for category, prefix in (("functional", "functional"), ("complexity", "complexity"), ("hidden", "hidden")):
+        stored_total = sub.get(f"{prefix}_total")
+        stored_passed = sub.get(f"{prefix}_passed")
+        if isinstance(stored_total, (int, float)) and stored_total > 0:
+            categories[category] = {"passed": int(stored_passed or 0), "total": int(stored_total)}
+
+    return categories
+
+
 def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
     aes_values, rog_values, tsr_values = [], [], []
+    functional_passed = functional_total = 0
+    complexity_passed = complexity_total = 0
+    hidden_passed = hidden_total = 0
     passed_count = 0
 
     for sub in submissions:
@@ -142,14 +169,29 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
         if isinstance(final_aes, (int, float)):
             aes_values.append(final_aes)
 
-        rog = sub.get("rog")
+        baseline_time = sub.get("baseline_actual_complexity") or sub.get("actual_complexity")
+        latest_time = sub.get("latest_actual_complexity") or sub.get("actual_complexity")
+        baseline_space = sub.get("baseline_actual_space_complexity") or sub.get("actual_space_complexity")
+        latest_space = sub.get("latest_actual_space_complexity") or sub.get("actual_space_complexity")
+        same_classes = str(baseline_time or "").replace(" ", "").lower() == str(latest_time or "").replace(" ", "").lower() and str(baseline_space or "").replace(" ", "").lower() == str(latest_space or "").replace(" ", "").lower()
+        rog = 0 if same_classes else sub.get("rog")
         if isinstance(rog, (int, float)):
             rog_values.append(rog)
 
-        total = sub.get("total_tests") or sub.get("totalTestCases")
+        breakdown = _test_breakdown(sub)
+        functional_passed += breakdown["functional"]["passed"]
+        functional_total += breakdown["functional"]["total"]
+        complexity_passed += breakdown["complexity"]["passed"]
+        complexity_total += breakdown["complexity"]["total"]
+        hidden_passed += breakdown["hidden"]["passed"]
+        hidden_total += breakdown["hidden"]["total"]
+
+        breakdown_total = sum(item["total"] for item in breakdown.values())
+        breakdown_passed = sum(item["passed"] for item in breakdown.values())
+        total = sub.get("total_tests") or sub.get("totalTestCases") or breakdown_total
         passed = sub.get("passed_tests")
-        if passed is None:
-            passed = sub.get("passedTestCases")
+        if not isinstance(passed, (int, float)) or (passed == 0 and breakdown_passed > 0):
+            passed = sub.get("passedTestCases") or breakdown_passed
         if isinstance(total, (int, float)) and total > 0 and isinstance(passed, (int, float)):
             tsr_values.append(passed / total)
 
@@ -162,7 +204,40 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
         "tsr": round(statistics.mean(tsr_values) * 100, 1) if tsr_values else None,
         "activities_attempted": len(submissions),
         "activities_passed": passed_count,
+        "functional_tests": {"passed": functional_passed, "total": functional_total},
+        "complexity_tests": {"passed": complexity_passed, "total": complexity_total},
+        "hidden_tests": {"passed": hidden_passed, "total": hidden_total},
     }
+
+
+def _submission_details(submissions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    details = []
+    for sub in submissions:
+        if not isinstance(sub, dict):
+            continue
+        baseline_time = sub.get("baseline_actual_complexity") or sub.get("actual_complexity")
+        latest_time = sub.get("latest_actual_complexity") or sub.get("actual_complexity")
+        baseline_space = sub.get("baseline_actual_space_complexity") or sub.get("actual_space_complexity")
+        latest_space = sub.get("latest_actual_space_complexity") or sub.get("actual_space_complexity")
+        same_classes = str(baseline_time or "").replace(" ", "").lower() == str(latest_time or "").replace(" ", "").lower() and str(baseline_space or "").replace(" ", "").lower() == str(latest_space or "").replace(" ", "").lower()
+        safe_rog = 0 if same_classes else sub.get("rog", 0)
+        details.append({
+            "moduleId": sub.get("moduleId"),
+            "activityId": sub.get("activityId"),
+            "type": sub.get("type", "activity"),
+            "status": sub.get("status", "draft"),
+            "aes": sub.get("latest_aes", sub.get("final_aes", sub.get("score"))),
+            "rog": safe_rog,
+            "time": sub.get("latest_actual_complexity", sub.get("actual_complexity")),
+            "space": sub.get("latest_actual_space_complexity", sub.get("actual_space_complexity")),
+            "tests": {
+                "passed": sum(item["passed"] for item in _test_breakdown(sub).values()),
+                "total": sum(item["total"] for item in _test_breakdown(sub).values()),
+                **_test_breakdown(sub),
+            },
+            "timestamp": sub.get("timestamp") or sub.get("submittedAt"),
+        })
+    return sorted(details, key=lambda item: str(item.get("timestamp") or ""), reverse=True)
 
 
 # ---------------------------------------------------------------------------
@@ -274,6 +349,13 @@ class AdminAnalyticsService:
             "status": "success",
             "email": email,
             "name": user.get("name"),
+            "account": {
+                "status": user.get("status", "active"),
+                "role": user.get("role", "user"),
+                "verified": bool(user.get("is_verified", False)),
+                "progress_entries": len(progress),
+                "assessment_entries": len(assessments),
+            },
             "metrics": {
                 **metrics,
                 "progress_entries": len(progress),
@@ -282,6 +364,7 @@ class AdminAnalyticsService:
                 "preTest": pre_test,
                 "postTest": post_test,
             },
+            "activities": _submission_details(submissions),
         }
 
     @staticmethod

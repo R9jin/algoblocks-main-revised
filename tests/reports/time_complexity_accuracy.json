@@ -114,7 +114,7 @@
       "name": "Algorithm Snippet",
       "source_file": "ground_truth_chunk_07.json",
       "expected": "O(n)",
-      "predicted": "O(n log n)",
+      "predicted": "O(n^2)",
       "analyzer_status": "success"
     },
     {
@@ -306,7 +306,7 @@
       "name": "python3 program to find med in",
       "source_file": "ground_truth_chunk_16.json",
       "expected": "O(n)",
-      "predicted": "O(n log n)",
+      "predicted": "O(n^2)",
       "analyzer_status": "success"
     },
     {

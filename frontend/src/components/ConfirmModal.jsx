@@ -7,6 +7,8 @@ const ConfirmModal = ({
   message, 
   onConfirm, 
   onCancel, 
+  onSecondary,
+  secondaryText = "More Options",
   confirmText = "Confirm", 
   cancelText = "Cancel",
   isDanger = false 
@@ -26,6 +28,11 @@ const ConfirmModal = ({
           <button className="btn-modal btn-modal-cancel" onClick={onCancel}>
             {cancelText}
           </button>
+          {onSecondary && (
+            <button className="btn-modal btn-modal-confirm" onClick={onSecondary}>
+              {secondaryText}
+            </button>
+          )}
           <button 
             className={`btn-modal ${isDanger ? 'btn-modal-danger' : 'btn-modal-confirm'}`} 
             onClick={onConfirm}

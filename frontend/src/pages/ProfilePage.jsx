@@ -72,6 +72,40 @@ export default function ProfilePage() {
     return "Completed";
   };
 
+  const getTestBreakdown = (sub) => {
+    const results = Array.isArray(sub?.testCases) ? sub.testCases : [];
+    const legacyResults = results.some((test) => test.category)
+      ? results
+      : results.map((test, index) => ({ ...test, category: index >= Math.max(0, results.length - 2) ? "complexity" : "functional" }));
+    const count = (category) => legacyResults.filter((test) => test.category === category);
+    const score = (category) => {
+      const tests = count(category);
+      return { passed: tests.filter((test) => test.status === "passed").length, total: tests.length };
+    };
+    const functional = sub?.functional_total > 0
+      ? { passed: sub.functional_passed || 0, total: sub.functional_total }
+      : score("functional");
+    const complexity = sub?.complexity_total > 0
+      ? { passed: sub.complexity_passed || 0, total: sub.complexity_total }
+      : score("complexity");
+    const hidden = sub?.hidden_total > 0
+      ? { passed: sub.hidden_passed || 0, total: sub.hidden_total }
+      : score("hidden");
+    const total = functional.total + complexity.total + hidden.total || sub?.totalTestCases || sub?.total_tests || 0;
+    const passed = functional.passed + complexity.passed + hidden.passed || sub?.passedTestCases || sub?.passed_tests || 0;
+    return { functional, complexity, hidden, passed, total };
+  };
+
+  const getSafeRog = (sub) => {
+    const baselineTime = sub?.baseline_actual_complexity || sub?.actual_complexity;
+    const baselineSpace = sub?.baseline_actual_space_complexity || sub?.actual_space_complexity;
+    const latestTime = sub?.latest_actual_complexity || sub?.actual_complexity;
+    const latestSpace = sub?.latest_actual_space_complexity || sub?.actual_space_complexity;
+    const sameClasses = String(baselineTime || "").replace(/\s+/g, "").toLowerCase() === String(latestTime || "").replace(/\s+/g, "").toLowerCase()
+      && String(baselineSpace || "").replace(/\s+/g, "").toLowerCase() === String(latestSpace || "").replace(/\s+/g, "").toLowerCase();
+    return sameClasses ? 0 : Math.max(0, Number(sub?.rog) || 0);
+  };
+
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
@@ -229,20 +263,28 @@ export default function ProfilePage() {
               const sub = userSubs[mod.moduleId]?.[act.id];
               let aes = 0; let rog = 0; let isCompleted = false;
               let passedTests = null; let totalTests = null;
+              let testBreakdown = null;
               let actualTime = null; let actualSpace = null;
+              let baselineTime = null; let baselineSpace = null;
+              let latestTime = null; let latestSpace = null;
 
               if (sub) {
-                aes = sub.final_aes !== null && sub.final_aes !== undefined ? sub.final_aes : sub.score || 0;
+                aes = sub.latest_aes ?? sub.final_aes ?? sub.score ?? 0;
                 if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100; 
                 aes = Math.min(aes, 100);
 
-                rog = sub.rog || 0;
+                rog = getSafeRog(sub);
                 isCompleted = aes >= 50 || sub.status === "passed";
 
                 passedTests = sub.passedTestCases ?? sub.passed_tests ?? null;
                 totalTests = sub.totalTestCases ?? sub.total_tests ?? null;
+                testBreakdown = getTestBreakdown(sub);
                 actualTime = sub.actual_complexity || null;
                 actualSpace = sub.actual_space_complexity || null;
+                baselineTime = sub.baseline_actual_complexity || actualTime;
+                baselineSpace = sub.baseline_actual_space_complexity || actualSpace;
+                latestTime = sub.latest_actual_complexity || actualTime;
+                latestSpace = sub.latest_actual_space_complexity || actualSpace;
 
                 if (isCompleted) lessonCompletedActs++;
                 
@@ -250,7 +292,7 @@ export default function ProfilePage() {
                 if (rog > 0) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
               }
 
-              return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, passedTests, totalTests, actualTime, actualSpace };
+              return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, passedTests, totalTests, testBreakdown, actualTime, actualSpace, baselineTime, baselineSpace, latestTime, latestSpace };
             });
 
             const minRequired = lesson.minimumActivities || acts.length;
@@ -291,20 +333,28 @@ export default function ProfilePage() {
             const sub = userSubs[mod.moduleId]?.[act.id];
             let aes = 0; let rog = 0; let isCompleted = false;
             let passedTests = null; let totalTests = null;
+            let testBreakdown = null;
             let actualTime = null; let actualSpace = null;
+            let baselineTime = null; let baselineSpace = null;
+            let latestTime = null; let latestSpace = null;
 
             if (sub) {
-              aes = sub.final_aes !== null && sub.final_aes !== undefined ? sub.final_aes : sub.score || 0;
+              aes = sub.latest_aes ?? sub.final_aes ?? sub.score ?? 0;
               if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100;
               aes = Math.min(aes, 100);
 
-              rog = sub.rog || 0;
+              rog = getSafeRog(sub);
               isCompleted = aes >= 50 || sub.status === "passed";
 
               passedTests = sub.passedTestCases ?? sub.passed_tests ?? null;
               totalTests = sub.totalTestCases ?? sub.total_tests ?? null;
+              testBreakdown = getTestBreakdown(sub);
               actualTime = sub.actual_complexity || null;
               actualSpace = sub.actual_space_complexity || null;
+              baselineTime = sub.baseline_actual_complexity || actualTime;
+              baselineSpace = sub.baseline_actual_space_complexity || actualSpace;
+              latestTime = sub.latest_actual_complexity || actualTime;
+              latestSpace = sub.latest_actual_space_complexity || actualSpace;
 
               if (isCompleted) optCompletedCount++;
 
@@ -315,7 +365,7 @@ export default function ProfilePage() {
               optCompletedCount++;
             }
 
-            return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, passedTests, totalTests, actualTime, actualSpace };
+            return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, passedTests, totalTests, testBreakdown, actualTime, actualSpace, baselineTime, baselineSpace, latestTime, latestSpace };
           });
 
           const modClean = mod.moduleId.toLowerCase().replace(/[-_ ]/g, ''); 
@@ -727,9 +777,9 @@ export default function ProfilePage() {
                                           <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
                                             ROG: {act.rog > 0 ? `+${act.rog}` : '--'}
                                           </span>
-                                          {act.passedTests !== null && act.totalTests !== null && (
-                                            <span className={`metric-badge tests-badge ${act.passedTests === act.totalTests ? 'perfect' : act.passedTests > 0 ? 'good' : 'empty'}`}>
-                                              Tests: {act.passedTests}/{act.totalTests}
+                                          {act.testBreakdown && (
+                                            <span className="metric-badge tests-badge">
+                                              Functional: {act.testBreakdown.functional.passed}/{act.testBreakdown.functional.total} | Complexity: {act.testBreakdown.complexity.passed}/{act.testBreakdown.complexity.total} | Hidden: {act.testBreakdown.hidden.passed}/{act.testBreakdown.hidden.total}
                                             </span>
                                           )}
                                           {act.actualTime && (
@@ -740,6 +790,11 @@ export default function ProfilePage() {
                                           {act.actualSpace && (
                                             <span className="metric-badge complexity-badge">
                                               Space: {act.actualSpace}
+                                            </span>
+                                          )}
+                                          {act.baselineTime && act.latestTime && (
+                                            <span className="metric-badge complexity-badge">
+                                              Time: {act.baselineTime} -&gt; {act.latestTime} | Space: {act.baselineSpace || "--"} -&gt; {act.latestSpace || "--"}
                                             </span>
                                           )}
                                         </div>
@@ -793,9 +848,9 @@ export default function ProfilePage() {
                                         <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
                                           ROG: {act.rog > 0 ? `+${act.rog}` : '--'}
                                         </span>
-                                        {act.passedTests !== null && act.totalTests !== null && (
-                                          <span className={`metric-badge tests-badge ${act.passedTests === act.totalTests ? 'perfect' : act.passedTests > 0 ? 'good' : 'empty'}`}>
-                                            Tests: {act.passedTests}/{act.totalTests}
+                                        {act.testBreakdown && (
+                                          <span className="metric-badge tests-badge">
+                                            Functional: {act.testBreakdown.functional.passed}/{act.testBreakdown.functional.total} | Complexity: {act.testBreakdown.complexity.passed}/{act.testBreakdown.complexity.total} | Hidden: {act.testBreakdown.hidden.passed}/{act.testBreakdown.hidden.total}
                                           </span>
                                         )}
                                         {act.actualTime && (
@@ -806,6 +861,11 @@ export default function ProfilePage() {
                                         {act.actualSpace && (
                                           <span className="metric-badge complexity-badge">
                                             Space: {act.actualSpace}
+                                          </span>
+                                        )}
+                                        {act.baselineTime && act.latestTime && (
+                                          <span className="metric-badge complexity-badge">
+                                            Before: {act.baselineTime} / {act.baselineSpace || "--"} -&gt; Latest: {act.latestTime} / {act.latestSpace || "--"}
                                           </span>
                                         )}
                                       </div>
