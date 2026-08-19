@@ -267,8 +267,10 @@ export default function ProfilePage() {
               let actualTime = null; let actualSpace = null;
               let baselineTime = null; let baselineSpace = null;
               let latestTime = null; let latestSpace = null;
+              let hasSubmission = false;
 
               if (sub) {
+                hasSubmission = true;
                 aes = sub.latest_aes ?? sub.final_aes ?? sub.score ?? 0;
                 if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100; 
                 aes = Math.min(aes, 100);
@@ -292,7 +294,7 @@ export default function ProfilePage() {
                 if (rog > 0) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
               }
 
-              return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, passedTests, totalTests, testBreakdown, actualTime, actualSpace, baselineTime, baselineSpace, latestTime, latestSpace };
+              return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, hasSubmission, passedTests, totalTests, testBreakdown, actualTime, actualSpace, baselineTime, baselineSpace, latestTime, latestSpace };
             });
 
             const minRequired = lesson.minimumActivities || acts.length;
@@ -337,8 +339,10 @@ export default function ProfilePage() {
             let actualTime = null; let actualSpace = null;
             let baselineTime = null; let baselineSpace = null;
             let latestTime = null; let latestSpace = null;
+            let hasSubmission = false;
 
             if (sub) {
+              hasSubmission = true;
               aes = sub.latest_aes ?? sub.final_aes ?? sub.score ?? 0;
               if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100;
               aes = Math.min(aes, 100);
@@ -365,7 +369,7 @@ export default function ProfilePage() {
               optCompletedCount++;
             }
 
-            return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, passedTests, totalTests, testBreakdown, actualTime, actualSpace, baselineTime, baselineSpace, latestTime, latestSpace };
+            return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, hasSubmission, passedTests, totalTests, testBreakdown, actualTime, actualSpace, baselineTime, baselineSpace, latestTime, latestSpace };
           });
 
           const modClean = mod.moduleId.toLowerCase().replace(/[-_ ]/g, ''); 
@@ -760,16 +764,16 @@ export default function ProfilePage() {
                             ) : (
                               <div className="activities-list">
                                 {lesson.activities.map((act) => (
-                                  <div key={act.id} className={`activity-row ${act.isCompleted ? 'completed-row' : ''} ${!lesson.isUnlocked ? 'locked-row' : ''}`}>
+                                  <div key={act.id} className={`activity-row ${act.isCompleted ? 'completed-row' : ''} ${!lesson.isUnlocked && !act.hasSubmission ? 'locked-row' : ''}`}>
                                     <div className="act-left">
-                                      {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : lesson.isUnlocked ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
+                                      {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : lesson.isUnlocked || act.hasSubmission ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
                                       <div className="act-info">
                                         <span className="act-title">{act.title}</span>
                                         <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'easy'}`}>{act.difficulty || 'Easy'}</span>
                                       </div>
                                     </div>
                                     <div className="act-right">
-                                      {(lesson.isUnlocked || act.isCompleted) ? (
+                                      {(lesson.isUnlocked || act.isCompleted || act.hasSubmission) ? (
                                         <div className="act-metrics-group">
                                           <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
                                             AES: {act.aes > 0 ? `${act.aes}%` : '--'}
@@ -831,16 +835,16 @@ export default function ProfilePage() {
 
                             <div className="activities-list">
                               {mod.optimizations.activities.map((act) => (
-                                <div key={act.id} className={`activity-row ${act.isCompleted ? 'completed-row' : ''} ${!mod.optimizations.isUnlocked ? 'locked-row' : ''}`}>
+                                  <div key={act.id} className={`activity-row ${act.isCompleted ? 'completed-row' : ''} ${!mod.optimizations.isUnlocked && !act.hasSubmission ? 'locked-row' : ''}`}>
                                   <div className="act-left">
-                                    {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : mod.optimizations.isUnlocked ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
+                                    {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : mod.optimizations.isUnlocked || act.hasSubmission ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
                                     <div className="act-info">
                                       <span className="act-title">{act.title}</span>
                                       <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'medium'}`}>{act.difficulty || 'Medium'}</span>
                                     </div>
                                   </div>
                                   <div className="act-right">
-                                    {(mod.optimizations.isUnlocked || act.isCompleted) ? (
+                                    {(mod.optimizations.isUnlocked || act.isCompleted || act.hasSubmission) ? (
                                       <div className="act-metrics-group">
                                         <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
                                           AES: {act.aes > 0 ? `${act.aes}%` : '--'}
