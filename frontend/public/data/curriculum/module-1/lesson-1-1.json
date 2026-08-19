@@ -26,7 +26,7 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction to Algorithm Complexity",
-      "content": "Big-O measures how an algorithm's workload grows as its input size `n` grows -- not how fast it runs on your machine today, but how it'll hold up as data scales.\n\nWhy bother? Three reasons: **Performance** -- slow algorithms waste real time and resources. **Scalability** -- going from 1,000 to 1,000,000 items slows an O(n²) algorithm 1,000x, but an O(n log n) one only ~20x. **Portability** -- it lets you compare algorithms without caring what hardware or language they run on."
+      "content": "You've already seen the Complexity Analyzer stamp your blocks with an O(n) or O(n²) rating. This lesson is where you learn to read that rating like the analyzer does -- and eventually, to predict it yourself before you even open the tab.\n\nBig-O measures how an algorithm's workload grows as its input size `n` grows -- not how fast it happens to run on your machine today, but how it'll hold up once the data gets big. Two algorithms can look identical on a 10-item test case and behave completely differently once that input hits a million.\n\nWhy does that matter? Three reasons: **Performance** -- slow algorithms waste real time and resources. **Scalability** -- going from 1,000 to 1,000,000 items slows an O(n²) algorithm down by roughly 1,000x, while an O(n log n) one only slows down by about 20x. **Portability** -- Big-O lets you compare two algorithms on their own merits, without caring what hardware or language either one happens to run on."
     },
     {
       "id": "cost-models",

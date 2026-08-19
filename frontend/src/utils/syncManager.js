@@ -31,7 +31,26 @@ export const SyncManager = {
         const headers = getAuthHeaders();
         if (!headers) return; // User not logged in, ignore sync
 
+        // Progress records in IndexedDB are stored WITHOUT an `email` field
+        // (see db.js: the `progress` store is keyed only by `lesson_id`, not
+        // namespaced per user at all). `/api/update-progress` requires the
+        // payload's `email` to match the authenticated account and 403s
+        // otherwise. Resolving the current account's email here lets us
+        // stamp it onto every progress payload before it goes out, instead
+        // of forwarding the raw (email-less) IndexedDB record as-is.
+        let currentUserEmail = null;
         try {
+            const storedUserRaw = localStorage.getItem("user") || sessionStorage.getItem("user");
+            if (storedUserRaw && storedUserRaw !== "null" && storedUserRaw !== "undefined") {
+                currentUserEmail = JSON.parse(storedUserRaw)?.email || null;
+            }
+        } catch (e) {
+            // Best-effort only; if this fails the progress POST below will
+            // just 403 same as before and get cleaned up there.
+        }
+
+        try {
+
             // 1. Gather all unsynced data from IndexedDB
             const allProgress = await progressDB.getAll();
             const unsyncedProgress = allProgress.filter(p => !p.isSynced);
@@ -55,9 +74,25 @@ export const SyncManager = {
                     const res = await fetch(`${API_BASE_URL}/update-progress`, {
                         method: "POST",
                         headers,
-                        body: JSON.stringify(p)
+                        // Stamp the current account's email onto the payload --
+                        // see the currentUserEmail comment above. Falls back to
+                        // whatever (if anything) was already on the record.
+                        body: JSON.stringify({ ...p, email: p.email || currentUserEmail })
                     });
-                    if (res.ok) await progressDB.save({ ...p, isSynced: true });
+                    if (res.ok) {
+                        await progressDB.save({ ...p, isSynced: true });
+                    } else if (res.status === 403) {
+                        // A 403 here means the backend rejected the email/account
+                        // match outright -- not a connectivity blip, and retrying
+                        // on the next 30s tick with the exact same payload would
+                        // just 403 forever (this was previously spamming
+                        // update-progress every cycle and eventually tripping the
+                        // endpoint's own rate limit). There's no fixable local
+                        // state to retry with, so drop this record rather than
+                        // let it loop indefinitely.
+                        console.error("Progress sync rejected (403), dropping stale local record:", p.lesson_id);
+                        await progressDB.delete(p.lesson_id);
+                    }
                 } catch (e) {
                     console.error("Failed to sync progress", e);
                 }
@@ -176,7 +211,20 @@ export const SyncManager = {
                             const limitMessage = errDetail || "A locally saved template could not be synced: template limit reached.";
                             window.dispatchEvent(new CustomEvent("syncLimitReached", { detail: { kind: "template", message: limitMessage } }));
                         } else {
-                            console.error("Template sync rejected (403):", errDetail || "(no detail)");
+                            // A genuine ownership/permission rejection (e.g. this
+                            // templateId belongs to another account, or doesn't
+                            // exist) is just as permanent as the cap case above --
+                            // retrying the identical payload every 30s tick would
+                            // 403 forever. Previously this branch only logged and
+                            // left the record marked unsynced, so it got retried
+                            // on every single sync cycle indefinitely (visible as
+                            // repeated "Template sync rejected (403)" console spam
+                            // and needless load on the endpoint). Drop the local
+                            // copy so it stops looping, same as the limit case.
+                            console.error("Template sync rejected (403), dropping stale local record:", errDetail || "(no detail)");
+                            await templatesDB.delete(template.templateId || template._id);
+                            const permissionMessage = errDetail || "A locally saved template could not be synced: you don't have permission to modify it.";
+                            window.dispatchEvent(new CustomEvent("syncLimitReached", { detail: { kind: "template-permission", title: "Sync issue", message: permissionMessage } }));
                         }
                     }
                 } catch (e) {

@@ -19,10 +19,10 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Time complexity asks *how long*. **Space complexity** asks *how much RAM*.",
+      "content": "Every lesson so far has asked one question: *how long does this take?* This lesson asks a different one: *how much memory does this need?*\n\nTime complexity asks **how long**. Space complexity asks **how much RAM**. They're measured the same way -- in Big-O, as a function of input size `n` -- but they're tracking two genuinely different resources, and an algorithm can be excellent at one while being terrible at the other.",
       "subsections": [
-        { "id": "intro-ram", "title": "Time vs Space", "content": "A program that crashes from running out of memory is just as broken as one that's too slow." },
-        { "id": "intro-balance", "title": "The Balancing Act", "content": "Caching speeds up repeated work but can grow to gigabytes. Recomputing instead of storing uses less memory but runs slower -- there's rarely a free lunch." },
+        { "id": "intro-ram", "title": "Time vs Space", "content": "A program that crashes from running out of memory has failed just as completely as one that's too slow to be useful -- it just fails in a different, sometimes more sudden way. You'll see both kinds of failure in this course, and it's worth being able to diagnose which one you're looking at." },
+        { "id": "intro-balance", "title": "The Balancing Act", "content": "Caching speeds up repeated work but can grow to gigabytes if left unchecked. Recomputing instead of storing uses less memory but runs slower. There's rarely a free lunch -- and recognizing that tradeoff, rather than being surprised by it later, is most of what this lesson is really teaching." },
         {
           "id": "intro-questions",
           "title": "Answering Important Questions",

@@ -34,45 +34,78 @@ export default function BlockExampleWorkspace({ workspaceState, onWorkspaceReady
   useEffect(() => {
     if (!containerRef.current) return;
     let ws = null;
-    try {
-      // No `toolbox` key at all -- there is nothing to drag new blocks in
-      // from. No trashcan -- nothing to drag existing blocks into to
-      // delete them. Blocks stay fully movable (that part is intentional).
-      // wheel:false (both move and zoom) is deliberate: otherwise every
-      // mouse-wheel tick over this small canvas gets captured by Blockly to
-      // pan/zoom the mini workspace instead of scrolling the modal/page
-      // underneath it, which feels like the page is stuck/lagging.
-      ws = Blockly.inject(containerRef.current, {
-        theme: pastelTheme,
-        renderer: "geras",
-        trashcan: false,
-        sounds: false,
-        move: { scrollbars: true, drag: true, wheel: false },
-        zoom: { controls: false, wheel: false, startScale: 0.85 },
-      });
-      workspaceRef.current = ws;
+    let cancelled = false;
 
-      // Suppress change events entirely while loading the pristine example.
-      // This is the standard, correct way to do a bulk/programmatic load in
-      // Blockly, and guarantees loading never fires a flood of per-block
-      // create events to anything that might be listening.
-      Blockly.Events.disable();
+    // React 18 StrictMode double-invokes every effect in development:
+    // mount -> cleanup -> mount again, all synchronously in the same tick,
+    // before the browser paints or flushes microtasks. Calling
+    // Blockly.inject() directly here would let that first "throwaway"
+    // pass create a real workspace, load blocks into it, and then
+    // immediately dispose() it -- before Blockly ever got a chance to
+    // actually draw those blocks.
+    //
+    // That matters because Blockly 10+'s render manager doesn't render
+    // per-workspace: every pending block render on the *whole page* is
+    // batched into one shared requestAnimationFrame pass
+    // (core/render_management.ts). If the disposed workspace's blocks are
+    // still sitting in that shared queue when the frame flushes, trying to
+    // render them throws (their SVG groups are already gone) -- and since
+    // it's one shared batch, that throw can take down every *other*
+    // workspace's still-pending render in the same frame with it. With
+    // several of these example widgets on one page (the Block Explorer
+    // glossary, or a lesson with multiple playgrounds), that's exactly the
+    // "first one renders fine, every one after it is blank" pattern this
+    // was causing.
+    //
+    // Deferring the real work to a microtask sidesteps it: by the time it
+    // runs, StrictMode's synchronous mount/cleanup/remount dance has
+    // already finished, so the throwaway first pass's `cancelled` flag is
+    // already true and it skips creating a workspace entirely -- only the
+    // surviving second pass ever calls Blockly.inject.
+    queueMicrotask(() => {
+      if (cancelled || !containerRef.current) return;
       try {
-        Blockly.serialization.workspaces.load(pristineStateRef.current, ws, { recordUndo: false });
-        lockBlocks(ws);
-      } finally {
-        Blockly.Events.enable();
-      }
+        // No `toolbox` key at all -- there is nothing to drag new blocks in
+        // from. No trashcan -- nothing to drag existing blocks into to
+        // delete them. Blocks stay fully movable (that part is intentional).
+        // wheel:false (both move and zoom) is deliberate: otherwise every
+        // mouse-wheel tick over this small canvas gets captured by Blockly to
+        // pan/zoom the mini workspace instead of scrolling the modal/page
+        // underneath it, which feels like the page is stuck/lagging.
+        ws = Blockly.inject(containerRef.current, {
+          theme: pastelTheme,
+          renderer: "geras",
+          trashcan: false,
+          sounds: false,
+          move: { scrollbars: true, drag: true, wheel: false },
+          zoom: { controls: false, wheel: false, startScale: 0.85 },
+        });
+        workspaceRef.current = ws;
 
-      onWorkspaceReady?.(ws);
-      requestAnimationFrame(() => {
-        try { ws.zoomToFit(); ws.scrollCenter(); Blockly.svgResize(ws); } catch (e) { /* best-effort framing */ }
-      });
-    } catch (e) {
-      console.warn("Block glossary: couldn't render the example workspace.", e);
-    }
+        // Suppress change events entirely while loading the pristine example.
+        // This is the standard, correct way to do a bulk/programmatic load in
+        // Blockly, and guarantees loading never fires a flood of per-block
+        // create events to anything that might be listening.
+        Blockly.Events.disable();
+        try {
+          Blockly.serialization.workspaces.load(pristineStateRef.current, ws, { recordUndo: false });
+          lockBlocks(ws);
+        } finally {
+          Blockly.Events.enable();
+        }
+
+        onWorkspaceReady?.(ws);
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          try { ws.zoomToFit(); ws.scrollCenter(); Blockly.svgResize(ws); } catch (e) { /* best-effort framing */ }
+        });
+      } catch (e) {
+        console.warn("Block glossary: couldn't render the example workspace.", e);
+      }
+    });
 
     return () => {
+      cancelled = true;
       if (ws) ws.dispose();
       workspaceRef.current = null;
     };

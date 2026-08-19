@@ -21,7 +21,6 @@ registerFieldMultilineInput();
 Blockly.setLocale(En);
 
 let crossTabPluginInitialized = false;
-let proceduresFlyoutPatched = false;
 const DarkTheme = Blockly.Themes.Dark;
 const ModernTheme = Blockly.Themes.Modern;
 
@@ -177,7 +176,51 @@ const customBlocks = [
 if (Blockly.common && Blockly.common.defineBlocksWithJsonArray) { Blockly.common.defineBlocksWithJsonArray(customBlocks); } 
 else { Blockly.defineBlocksWithJsonArray(customBlocks); }
 
-const toolbox = {
+// Both of these patch Blockly's built-in dynamic ("custom") flyout
+// categories to splice in blocks that only exist in this app --
+// "variable_swap" into Variables, "procedure_return_value" (the standalone
+// "return ___" block) into Functions. They used to live inside
+// BlocklyWorkspace's mount effect, which meant the toolbox only actually
+// had these two blocks in it once the real Activity workspace had been
+// mounted at least once in the browser session. BlockPlaygroundWorkspace.jsx
+// (the editable playground embedded in Lesson pages) imports this same
+// `toolbox` config but is very often the FIRST Blockly workspace a learner
+// ever opens -- e.g. clicking into a lesson's "Try it yourself" playground
+// before ever visiting an actual Activity. In that order, these blocks were
+// still fully defined and would render correctly if a saved/synced example
+// already contained one, but neither flyout override had run yet, so
+// neither block was ever actually draggable in from that toolbox.
+//
+// Moving the patches here -- module-level, evaluated exactly once as soon
+// as anything imports this file (toolbox, pastelTheme, or the default
+// export) -- means they're in place before the FIRST Blockly.inject() call
+// anywhere in the app, regardless of which component makes it.
+Blockly.Variables.flyoutCategory = function (ws) {
+  let xmlList = [];
+  let btn = document.createElement("button");
+  btn.setAttribute("text", "Create variable...");
+  btn.setAttribute("callbackKey", "CREATE_VARIABLE");
+  ws.registerButtonCallback("CREATE_VARIABLE", (b) => Blockly.Variables.createVariableButtonHandler(b.getTargetWorkspace()));
+  xmlList.push(btn);
+  let blk = document.createElement("block");
+  blk.setAttribute("type", "variable_swap");
+  xmlList.push(blk);
+  return xmlList.concat(Blockly.Variables.flyoutCategoryBlocks(ws));
+};
+
+const defaultProceduresFlyoutCategory = Blockly.Procedures.flyoutCategory;
+Blockly.Procedures.flyoutCategory = function (ws) {
+  const xmlList = defaultProceduresFlyoutCategory(ws);
+  const returnBlk = document.createElement("block");
+  returnBlk.setAttribute("type", "procedure_return_value");
+  xmlList.push(returnBlk);
+  return xmlList;
+};
+
+// Exported so other surfaces (e.g. the editable lesson block playgrounds)
+// can offer the exact same set of blocks, in the exact same categories, as
+// the real workspace -- instead of maintaining a second, drifting copy.
+export const toolbox = {
   kind: "categoryToolbox",
   contents: [
     { kind: "search", name: "Search", contents: [] },
@@ -296,7 +339,37 @@ const toolbox = {
         { kind: "block", type: "variable_swap" }
       ]
     },
-    { kind: "category", name: "Functions", categorystyle: "procedure_category", custom: "PROCEDURE" }, // note: "contents" has no effect on a `custom` category -- see the Blockly.Procedures.flyoutCategory override below, which is how "procedure_return_value" actually gets added to this flyout (mirrors the Variables override further down for the same reason).
+    {
+      kind: "category", name: "Functions", categorystyle: "procedure_category", custom: "PROCEDURE",
+      // For a `custom` category, "contents" has ZERO effect on what actually
+      // renders when the flyout opens -- that's entirely driven by the
+      // Blockly.Procedures.flyoutCategory override below (which is how
+      // "procedure_return_value" actually gets added, mirroring the
+      // Variables override further down for the same reason).
+      //
+      // But "contents" is NOT purely decorative: the @blockly/toolbox-search
+      // plugin builds its search index by walking ONLY the static toolbox
+      // JSON's "contents" trees -- it never invokes flyoutCategory overrides,
+      // so it has no way to discover blocks that only exist because a custom
+      // category injects them at render time. With this category left empty,
+      // every block in Functions -- including the four static ones that are
+      // always available regardless of what the learner has defined --
+      // was completely unsearchable via the toolbox's search bar, even
+      // though clicking into Functions directly showed them just fine.
+      //
+      // Listed here: only the STATIC blocks (always available, not tied to
+      // a specific user-defined function). "procedures_callnoreturn" /
+      // "procedures_callreturn" are deliberately NOT listed -- those are
+      // generated per actual function the learner has created (same as
+      // "variables_get"/"variables_set" aren't listed under Variables
+      // above), so there's no single generic block to search for.
+      contents: [
+        { kind: "block", type: "procedures_defnoreturn" },
+        { kind: "block", type: "procedures_defreturn" },
+        { kind: "block", type: "procedures_ifreturn" },
+        { kind: "block", type: "procedure_return_value" }
+      ]
+    },
     {
       kind: "category", name: "Raw Python", categorystyle: "raw_category",
       contents: [
@@ -447,44 +520,30 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     if (blocklyDiv.current) {
       if (Blockly.ShortcutRegistry.registry.getRegistry()["startSearch"]) Blockly.ShortcutRegistry.registry.unregister("startSearch");
 
-      Blockly.Variables.flyoutCategory = function (ws) {
-        let xmlList = [];
-        let btn = document.createElement("button");
-        btn.setAttribute("text", "Create variable..."); 
-        btn.setAttribute("callbackKey", "CREATE_VARIABLE");
-        ws.registerButtonCallback("CREATE_VARIABLE", (b) => Blockly.Variables.createVariableButtonHandler(b.getTargetWorkspace()));
-        xmlList.push(btn);
-        let blk = document.createElement("block"); 
-        blk.setAttribute("type", "variable_swap"); 
-        xmlList.push(blk);
-        return xmlList.concat(Blockly.Variables.flyoutCategoryBlocks(ws));
-      };
-
-      // The Functions category is also a `custom` (dynamic) flyout, so
-      // "procedure_return_value" (the standalone "return ___" block) is
-      // appended here the same way "variable_swap" is appended above --
-      // wrapping rather than replacing the built-in generator so the
-      // normal function-definition/call blocks are untouched. Guarded by
-      // a module-level flag (same pattern as crossTabPluginInitialized)
-      // so remounting this component doesn't wrap the wrapper and append
-      // the block twice.
-      if (!proceduresFlyoutPatched) {
-        const defaultProceduresFlyoutCategory = Blockly.Procedures.flyoutCategory;
-        Blockly.Procedures.flyoutCategory = function (ws) {
-          const xmlList = defaultProceduresFlyoutCategory(ws);
-          const returnBlk = document.createElement("block");
-          returnBlk.setAttribute("type", "procedure_return_value");
-          xmlList.push(returnBlk);
-          return xmlList;
-        };
-        proceduresFlyoutPatched = true;
-      }
+      // Variables' and Procedures' dynamic flyout categories (including the
+      // "variable_swap" / "procedure_return_value" splices) are patched at
+      // module load time now, above -- see the comment there for why.
 
       workspace.current = Blockly.inject(blocklyDiv.current, {
         toolbox: toolbox, trashcan: true, move: { scrollbars: true, drag: true, wheel: true },
         zoom: { controls: true, wheel: true, startScale: 1.0, maxScale: 3, minScale: 0.3, scaleSpeed: 1.2 },
         renderer: "geras", theme: pastelTheme, grid: { spacing: 25, length: 3, colour: "#6e6e6e", snap: true }
       });
+
+      // Belt-and-braces: explicitly wire the built-in "VARIABLE"/"PROCEDURE"
+      // custom categories to our patched flyouts on THIS workspace instance,
+      // via Blockly's public registerToolboxCategoryCallback API, instead of
+      // relying on Blockly to pick up the Blockly.Procedures.flyoutCategory /
+      // Blockly.Variables.flyoutCategory monkey-patch above on its own. That
+      // patch alone was the "fix" for this before, but it silently didn't
+      // take effect for manual toolbox browsing (only toolbox-search, which
+      // reads the static "contents" JSON directly, ever found
+      // procedure_return_value / variable_swap) -- clicking into Functions
+      // or Variables still rendered without them. Calling this directly
+      // guarantees the callback actually used by this workspace is ours,
+      // regardless of whatever Blockly does internally by default.
+      workspace.current.registerToolboxCategoryCallback("VARIABLE", Blockly.Variables.flyoutCategory);
+      workspace.current.registerToolboxCategoryCallback("PROCEDURE", Blockly.Procedures.flyoutCategory);
 
       try {
         (searchPlugin = new WorkspaceSearch(workspace.current)).init(); 

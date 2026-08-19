@@ -8,10 +8,13 @@
 import DOMPurify from "dompurify";
 import React, { useState } from "react";
 import { FiChevronDown, FiInfo } from "react-icons/fi";
+import { BLOCK_EXAMPLES } from "../../data/blockExamples";
+import { useExampleWorker } from "../../hooks/useExampleWorker.js";
 import { formatExplanation, getComplexityColor, getComplexityWeight, parseMarkdown } from "../../utils/asymptoticParser.jsx";
 import { formatComplexity } from "../../utils/formatters";
 import CallGraphVisualizer from "../CallGraphVisualizer.jsx";
 import ComplexityGraph from "../ComplexityGraph.jsx";
+import LessonBlockPlayground from "../LessonBlockPlayground.jsx";
 import MemoryVisualizer from "../MemoryVisualizer.jsx";
 import ScopeWarningModal from "../ScopeWarningModal.jsx";
 
@@ -29,6 +32,11 @@ export default function ComplexityPanelContent({
 }) {
   const [expandedLines, setExpandedLines] = useState({});
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
+
+  // Own isolated execution worker for the "try an example" playground shown
+  // while there's nothing to analyze yet -- separate from whatever engine
+  // is running the student's actual project.
+  const exampleWorker = useExampleWorker();
 
   const lines = analysisResult?.lines || [];
   const safeTotal = analysisResult?.total || "O(1)";
@@ -131,6 +139,13 @@ export default function ComplexityPanelContent({
           ) : (
             <div className="empty-analysis-state">
               <p>Run code analysis to see the complete overall complexity report.</p>
+              {BLOCK_EXAMPLES.controls_for && (
+                <LessonBlockPlayground
+                  example={BLOCK_EXAMPLES.controls_for}
+                  runner={exampleWorker}
+                  caption="While you wait, see how a loop like this gets analyzed: each pass through the blocks costs time, so a loop over n items costs O(n)."
+                />
+              )}
             </div>
           )}
         </div>

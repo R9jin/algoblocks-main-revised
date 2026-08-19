@@ -19,12 +19,12 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Some algorithms stay fast at millions of inputs; others fall apart. Complexity classes group algorithms by how their workload grows with input size.",
+      "content": "You now know how to read a Big-O rating. The next skill is recognizing one on sight -- glancing at a piece of code and knowing, before you even run it, roughly how it'll behave at scale.\n\nSome algorithms stay fast even at millions of inputs; others quietly fall apart the moment real-world data shows up. Complexity classes are how we group algorithms by that behavior -- by how their workload grows as input size grows, not by how they happen to perform on the small test case sitting in front of you right now.",
       "subsections": [
         {
           "id": "intro-shapes",
           "title": "Characteristic Shapes",
-          "content": "Each class has a recognizable shape -- learn to spot it directly in code, not just in a formula:",
+          "content": "Each class has a recognizable shape once you know to look for it -- learn to spot it directly in a loop's structure, not just in an abstract formula:",
           "bullets": ["O(1) is flat.", "O(log n) rises slowly.", "O(n) climbs steadily.", "O(n log n) curves moderately.", "O(n²) shoots up steeply.", "O(2^n) explodes."]
         }
       ]

@@ -4,8 +4,10 @@ import {
   FiBarChart2,
   FiBookOpen,
   FiCheckCircle,
+  FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
+  FiChevronUp,
   FiCircle,
   FiClipboard,
   FiClock,
@@ -15,10 +17,14 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import BigOChart from "../components/BigOChart";
 import CodeSnippet from "../components/CodeSnippet";
+import LessonBlockPlayground from "../components/LessonBlockPlayground";
 import TourHelpButton from "../components/TourHelpButton";
 import { useOnboarding } from "../context/OnboardingContext";
+import { BLOCK_EXAMPLES } from "../data/blockExamples";
 import curriculumIndex from "../data/curriculumIndex";
+import { LESSON_BLOCK_PLAYGROUNDS } from "../data/lessonBlockPlaygrounds";
 import { assessmentsDB, curriculumCacheDB, progressDB } from "../db";
+import { useExampleWorker } from "../hooks/useExampleWorker.js";
 import "../styles/LessonViewer.css";
 import "../styles/Skeleton.css";
 
@@ -227,6 +233,79 @@ function renderChart(chart) {
   );
 }
 
+// Looks up any interactive block playgrounds mapped to this section/
+// subsection id (see data/lessonBlockPlaygrounds.js) and renders one
+// collapsed dropdown row per matched example. Silently renders nothing if
+// there's no mapping for this id, or if a mapped key doesn't resolve to a
+// real BLOCK_EXAMPLES entry -- a lesson should never break because of a
+// missing example.
+//
+// Each entry in the mapping array is either a plain string (the
+// BLOCK_EXAMPLES key, using that example's generic goal/role text as-is)
+// or a { key, caption } object -- caption overrides the example's generic
+// "Goal" line with wording grounded in *this* lesson's own scenario, so a
+// glossary example that's reused across lessons still reads as specific
+// to the one it's embedded in.
+//
+// Blockly 10's render manager batches every pending block render on the
+// *whole page* into one shared requestAnimationFrame pass, not per
+// workspace (core/render_management.ts). Mounting several
+// LessonBlockPlayground workspaces at once on a lesson page means their
+// renders share that one batch, and in practice only the first ever
+// actually draws -- every workspace after it comes up blank. Rather than
+// fight that, only one playground is ever mounted at a time: each example
+// starts collapsed behind a dropdown button, and the Blockly workspace
+// underneath is created fresh (and fully rendered, with nothing else
+// competing for the same render batch) only while its dropdown is open.
+// Opening a different one closes whichever was open, and closing one
+// unmounts its workspace entirely rather than just hiding it, so the next
+// open is always a clean, complete mount.
+function renderBlockPlaygrounds(lessonId, sectionId, exampleWorker, openPlaygroundId, onTogglePlayground) {
+  const entries = LESSON_BLOCK_PLAYGROUNDS[lessonId]?.[sectionId];
+  if (!entries?.length) return null;
+
+  return (
+    <div className="lesson-block-playgrounds">
+      {entries.map((entry) => {
+        const key = typeof entry === "string" ? entry : entry.key;
+        const caption = typeof entry === "string" ? undefined : entry.caption;
+        const example = BLOCK_EXAMPLES[key];
+        if (!example) return null;
+
+        const playgroundId = `${sectionId}-${key}`;
+        const isOpen = openPlaygroundId === playgroundId;
+        const label = caption || example.goal || "Try it yourself";
+
+        return (
+          <div
+            key={playgroundId}
+            className={`lesson-block-playground-dropdown${isOpen ? " open" : ""}`}
+          >
+            <button
+              type="button"
+              className="lesson-block-playground-dropdown-toggle"
+              onClick={() => onTogglePlayground(isOpen ? null : playgroundId)}
+              aria-expanded={isOpen}
+            >
+              <span className="lesson-block-playground-badge">Try it yourself</span>
+              <span className="lesson-block-playground-dropdown-label">{label}</span>
+              {isOpen ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+            </button>
+
+            {isOpen && (
+              <LessonBlockPlayground
+                example={example}
+                caption={caption}
+                runner={exampleWorker}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function LessonViewer() {
   const { moduleId, lessonId } = useParams();
   const navigate = useNavigate();
@@ -236,11 +315,24 @@ export default function LessonViewer() {
   const [loading, setLoading] = useState(true);
   const [expandedModules, setExpandedModules] = useState(new Set([moduleId]));
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  // Tracks which single block playground dropdown (if any) is expanded
+  // across the *entire* lesson page, keyed by its "<sectionId>-<key>" id
+  // (see renderBlockPlaygrounds above). Deliberately one piece of state
+  // for the whole lesson rather than one per section, so opening a
+  // playground anywhere on the page always closes any other open one --
+  // guaranteeing at most one Blockly workspace is ever mounted at a time.
+  const [openPlaygroundId, setOpenPlaygroundId] = useState(null);
 
   const [userProgress, setUserProgress] = useState({});
   const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
   const [assessments, setAssessments] = useState({});
+
+  // One shared, isolated example-execution worker for every interactive
+  // block playground on this lesson page -- separate from the worker the
+  // real workspace/activities use, so running a lesson example never
+  // touches (or is touched by) the student's actual project state.
+  const exampleWorker = useExampleWorker();
 
   const lessonTour = {
     id: "lesson-viewer-tour",
@@ -412,6 +504,10 @@ export default function LessonViewer() {
       }
     };
     loadLesson();
+    // A new lesson means a whole new set of playground ids -- close
+    // whatever was open on the previous lesson rather than carrying a
+    // stale (and now meaningless) id across the navigation.
+    setOpenPlaygroundId(null);
   }, [moduleId, lessonId]);
 
   const hasPostAssessment = (mId) => assessments[`${mId}_post_assessment`] !== undefined;
@@ -669,6 +765,7 @@ export default function LessonViewer() {
                     {renderBullets(section.bullets)}
                     {renderChart(section.chart)}
                     {renderCodeSnippets(section.codeSnippets)}
+                    {renderBlockPlaygrounds(lessonId, section.id, exampleWorker, openPlaygroundId, setOpenPlaygroundId)}
                     {section.subsections?.map((subsection) => (
                       <div key={subsection.id || subsection.title} className="lesson-subsection">
                         <h3>{subsection.title}</h3>
@@ -676,6 +773,7 @@ export default function LessonViewer() {
                         {renderBullets(subsection.bullets)}
                         {renderChart(subsection.chart)}
                         {renderCodeSnippets(subsection.codeSnippets)}
+                        {renderBlockPlaygrounds(lessonId, subsection.id, exampleWorker, openPlaygroundId, setOpenPlaygroundId)}
                       </div>
                     ))}
                   </section>

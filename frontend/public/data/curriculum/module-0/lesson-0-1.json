@@ -6,31 +6,50 @@
   "difficulty": "Beginner",
   "estimatedTime": "12 min",
   "prerequisites": "None",
-  "tags": ["workspace", "visual programming", "algorithm basics"],
+  "tags": [
+    "workspace",
+    "visual programming",
+    "algorithm basics"
+  ],
   "activities": [
-    { "id": "m0_l1_a1", "title": "Your First Program" },
-    { "id": "m0_l1_a2", "title": "Returning Text" },
-    { "id": "m0_l1_a3", "title": "Using Inputs (Parameters)" },
-    { "id": "m0_l1_a4", "title": "Joining Text Together" },
-    { "id": "m0_l1_a5", "title": "Making a List" }
+    {
+      "id": "m0_l1_a1",
+      "title": "Your First Program"
+    },
+    {
+      "id": "m0_l1_a2",
+      "title": "Returning Text"
+    },
+    {
+      "id": "m0_l1_a3",
+      "title": "Using Inputs (Parameters)"
+    },
+    {
+      "id": "m0_l1_a4",
+      "title": "Joining Text Together"
+    },
+    {
+      "id": "m0_l1_a5",
+      "title": "Making a List"
+    }
   ],
   "sections": [
     {
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "In text-based code, a missing semicolon can stop you cold. AlgoBlocks skips that entirely: you build programs by snapping together blocks that only fit in valid combinations, so you spend your energy on *logic*, not syntax.\n\nBlocks connect end-to-end or nest inside each other to build up full programs. That drag-and-drop approach lets you experiment quickly and focus on the real skills -- sequencing, logic design, breaking problems into steps."
+      "content": "Welcome in. Before you write a single algorithm, let's get comfortable with the room you'll be working in.\n\nIf you've never written code before, here's the good news: AlgoBlocks doesn't ask you to type any of it. In a normal text editor, one missing colon or misplaced space can stop your program cold before it even runs. Here, you build programs by snapping together blocks that only connect in valid ways -- so a block simply won't fit somewhere it doesn't belong. That means the energy you'd normally spend hunting for typos goes straight into *logic* instead: what should happen, and in what order.\n\nBlocks connect end-to-end (like Lego bricks in a row) or nest inside each other (like a box within a box) to build up a full program. In your first activity, **Your First Program**, you'll drag out a function block and snap a piece of text into it -- that's the whole idea in miniature."
     },
     {
       "id": "workspace-overview",
       "type": "concept",
       "title": "Overview of the Workspace",
-      "content": "The workspace has a few key areas:",
+      "content": "Open the workspace for the first time and it can look like a lot at once. It really only breaks down into a few areas, each with one job:",
       "subsections": [
         {
           "id": "toolbox",
           "title": "The Toolbox",
-          "content": "On the left. Blocks are grouped into categories that mirror Python's own capabilities:",
+          "content": "On the left edge sits the Toolbox -- your palette of every block you're allowed to use. It's organized into drawers, and each drawer mirrors something Python itself can do:",
           "bullets": [
             "**Logic:** If/Else, comparisons, booleans, type checks.",
             "**Loops:** Repeat, While, For-Each, Pass/Break/Continue.",
@@ -47,32 +66,32 @@
         {
           "id": "block-anatomy",
           "title": "Understanding Block Anatomy and Colors",
-          "content": "Shape tells you how a block connects:",
+          "content": "You can usually tell what a block does just by its shape, before you even read the label:",
           "bullets": [
-            "**Statement Blocks:** Notch on top, bump on bottom -- stack vertically, run in sequence.",
-            "**Value Blocks:** Puzzle-tab on the side -- plug into a statement block's input slot; they can't stand alone.",
-            "**Color Coding:** Logic = purple, Math = blue, Text = gold, Lists = teal, and so on -- helps you scan the toolbox fast."
+            "**Statement Blocks:** a notch on top and a bump on the bottom, like a jigsaw piece meant to stack. These are actions -- \"do this, then do this\" -- and they chain vertically, top to bottom.",
+            "**Value Blocks:** a puzzle-tab on the side instead. These represent a *value* -- a number, a piece of text, the result of a calculation -- and they plug sideways into another block's input slot. A value block can't just sit on the canvas by itself; it needs somewhere to plug in, the same way `5` on its own isn't a Python statement, but `x = 5` is.",
+            "**Color Coding:** Logic is purple, Math is blue, Text is gold, Lists are teal, and so on. Once it clicks, you can spot a loop or a math block from across the screen without reading a single word."
           ]
         },
         {
           "id": "workspace-canvas",
           "title": "The Workspace Canvas",
-          "content": "The center area, where you drag blocks and connect them. Blocks snap together automatically near a valid connection point, with a visual hint showing where they'll land. Stack vertically for sequence, nest for conditionals and loops."
+          "content": "The wide open middle area is the canvas -- your actual workbench. Drag a block in from the Toolbox and drop it near another block; if the connection is valid, you'll see a highlighted outline showing exactly where it will snap into place. Stack blocks vertically for a sequence of steps, or nest one inside another for loops and conditionals."
         },
         {
           "id": "workspace-controls",
           "title": "Workspace Controls and Error Correction",
-          "content": "Drag a block to the trash icon to delete it, or right-click for a delete/duplicate menu. Duplicate is a fast way to build repetitive logic."
+          "content": "Made a mistake? Drag the offending block onto the trash icon, or right-click it for a menu with Delete and Duplicate. Duplicate is worth knowing early -- it's the fastest way to build up repetitive logic without re-assembling a block from scratch every time."
         },
         {
           "id": "real-time-python",
-          "title": "Real-time Python Code Generation",
-          "content": "As you edit blocks, a side panel shows the equivalent Python live -- a direct line from visual logic to real code. An incomplete structure (like a missing input) shows a red error badge; clicking it shows exactly how that gap becomes a Python syntax error."
+          "title": "Real-Time Python Code Generation",
+          "content": "This is the feature that ties everything together: a side panel that shows the equivalent Python code, updating live as you edit blocks. Build the **Your First Program** activity and watch that panel -- snapping a text block into a function's return slot will make a line like `return \"Hello World\"` appear instantly. If a structure is incomplete, like a slot with nothing plugged in, you'll see a red error badge; click it and it explains exactly how that gap would show up as a Python syntax error. Get in the habit of glancing at this panel -- it's quietly teaching you to read real Python the whole time you're building."
         },
         {
           "id": "output-console",
           "title": "The Output Console",
-          "content": "At the bottom. Hitting Run executes the generated code and prints output here, along with timing and line-by-line trace info. Infinite loops or runtime errors show a stop button and a message pointing at the problem block."
+          "content": "At the bottom of the screen. Press Run and the generated code executes, with whatever it prints showing up here, alongside timing information and a line-by-line trace. If something goes wrong -- an infinite loop, a runtime error -- you'll get a stop button and a message pointing at the exact block responsible."
         }
       ]
     },
@@ -80,37 +99,41 @@
       "id": "sequential-execution",
       "type": "deep_dive",
       "title": "Understanding Sequential Execution",
-      "content": "Unless a loop or conditional says otherwise, programs run top to bottom. Getting this model right is the foundation for everything else.",
+      "content": "Here's the single most important habit to build before anything else: unless a loop or conditional says otherwise, a program runs from top to bottom, one instruction after another. It sounds almost too obvious to mention -- but nearly every confusing bug a beginner hits traces back to forgetting it.",
       "subsections": [
         {
           "id": "what-is-sequential",
           "title": "What is Sequential Execution?",
-          "content": "Each instruction runs in the order it's connected, first block to last:",
-          "bullets": ["1. print \"First\"", "2. print \"Second\"", "3. print \"Third\""]
+          "content": "Picture three blocks stacked in a column. The computer doesn't glance ahead or skip around -- it runs the first, then the second, then the third, in exactly the order they're connected:",
+          "bullets": [
+            "1. print \"First\"",
+            "2. print \"Second\"",
+            "3. print \"Third\""
+          ]
         },
         {
           "id": "micro-transition-sequence",
           "title": "Micro-Transition: One Step at a Time",
-          "content": "Start simple: stack 'print A' above 'print B' and A always runs first. That top-to-bottom habit is the base for every algorithm you'll build."
+          "content": "Try the smallest possible version yourself: stack a 'print A' block directly above a 'print B' block. Run it -- A prints first, every single time. That top-to-bottom habit is the base every algorithm in this course builds on, so it's worth internalizing now while the example is this simple."
         },
         {
           "id": "sequential-behavior",
           "title": "Execution Behavior",
-          "content": "Swap the block order and the output changes to match. This is the core execution model behind every imperative language, blocks or not."
+          "content": "Now drag 'print B' above 'print A' instead and run it again. The output flips to match. Nothing mysterious happened -- the computer just followed the new order. This is the core execution model behind every imperative programming language that exists, blocks or not."
         },
         {
           "id": "why-order-matters",
           "title": "Why Order Matters",
-          "content": "Get the order wrong and you get wrong answers. For an averaging program:",
+          "content": "Get the order wrong and you don't get an error -- you get a wrong *answer*, which is often harder to catch. Take a program that averages a list of numbers:",
           "bullets": [
-            "**Correct:** sum the values, then divide, then print the result.",
-            "**Incorrect:** print the average *before* calculating it -- you'd print an undefined or stale value."
+            "**Correct order:** sum the values, then divide by the count, then print the result.",
+            "**Incorrect order:** print the result *before* calculating it. There's nothing broken about the blocks themselves -- you'd just be printing an undefined or leftover value, because the calculation hadn't happened yet."
           ]
         },
         {
           "id": "visualizing-flow",
           "title": "Visualizing Flow",
-          "content": "The vertical stack of blocks *is* the execution order. Loops and conditionals wrap blocks in containers, but what's inside still runs sequentially."
+          "content": "One useful way to think about it: the vertical stack of blocks *is* the execution order, drawn out in space. Loops and conditionals will soon wrap groups of blocks in containers that can repeat or skip, but whatever's inside those containers still runs top to bottom, exactly like this."
         }
       ]
     },
@@ -118,33 +141,33 @@
       "id": "visual-learning",
       "type": "real_world_connection",
       "title": "Why Visual Learning Matters",
-      "content": "Text-based syntax eats a lot of a beginner's attention -- often more time fighting typos than solving the actual problem.",
+      "content": "It's fair to ask: why blocks at all, instead of just typing Python from day one? In most intro courses, syntax eats an enormous share of a beginner's attention -- more time spent chasing a missing colon or a stray space than actually solving the problem in front of them.",
       "subsections": [
         {
           "id": "reducing-barriers",
           "title": "How Visual Programming Reduces Barriers",
-          "content": "No indentation rules to memorize: drag an 'if' block, snap in a comparison, attach the body. Invalid connections simply don't fit."
+          "content": "There's no indentation to get exactly right by hand: drag out an 'if' block, snap a comparison into its condition slot, attach the body underneath. If a connection is invalid, the pieces simply won't fit together -- the interface catches the mistake before you ever run the program."
         },
         {
           "id": "construction-based",
           "title": "Construction-Based Learning",
-          "content": "You learn by building, not by watching. Assembling a working program block by block is how variables, conditionals, and loops actually stick."
+          "content": "You learn this by building, not by watching someone else build it. Snapping a working program together piece by piece is how ideas like variables, conditionals, and loops actually stick -- far more than reading about them ever does."
         },
         {
           "id": "focus-algorithmic",
           "title": "Focus on Algorithmic Reasoning",
-          "content": "With syntax out of the way, you can focus on:",
+          "content": "With syntax mostly out of the way, your attention is free for the skills that actually transfer to any language you learn later:",
           "bullets": [
-            "**Algorithmic reasoning:** designing solutions step by step.",
-            "**Pattern recognition:** spotting when a loop beats repeating yourself.",
-            "**Structural decomposition:** breaking a big task into smaller ones.",
-            "**Debugging:** tracing logic, not chasing typos."
+            "**Algorithmic reasoning:** designing a solution step by step, before worrying about how to type it.",
+            "**Pattern recognition:** noticing when a loop would replace ten repeated blocks.",
+            "**Structural decomposition:** breaking one big, intimidating task into several small, manageable ones.",
+            "**Debugging:** tracing through *logic* to find a mistake, instead of squinting at characters looking for a typo."
           ]
         },
         {
           "id": "scaffolding-text",
           "title": "Scaffolding to Text-Based Languages",
-          "content": "The live Python panel quietly teaches you real syntax as you go, so moving to writing Python by hand later feels familiar, not foreign."
+          "content": "None of this is wasted once you move on to typing Python by hand -- quite the opposite. That live Python panel has been quietly teaching you real syntax the entire time, so the transition later feels like recognizing an old friend, not starting over from zero."
         }
       ]
     },
@@ -152,37 +175,67 @@
       "id": "python-to-blocks",
       "type": "concept",
       "title": "Translating Python to Blocks",
-      "content": "Lessons often describe algorithms in plain Python terms. Here's the quick translation key:",
+      "content": "Lessons in this course will often describe an algorithm using plain Python terms first, since that's the language of computer science generally. Here's your quick translation key for turning that description into blocks -- come back to this table any time a lesson mentions one of these words and you're not sure which drawer to open.",
       "subsections": [
-        { "id": "translate-functions", "title": "Defining Functions", "content": "Open **Functions** and use the function-definition block." },
-        { "id": "translate-loops", "title": "Iterating with Loops", "content": "Open **Loops** for anything that counts or repeats." },
-        { "id": "translate-arrays", "title": "Appending to Arrays", "content": "Open **Lists** and use the append-to-list block." },
-        { "id": "translate-dictionaries", "title": "Using Hash Maps", "content": "Open **Dictionaries** and use \"set key in dictionary.\"" }
+        {
+          "id": "translate-functions",
+          "title": "Defining Functions",
+          "content": "Open the **Functions** drawer and use the function-definition block. In Python, this is what `def hello():` looks like -- it names a reusable chunk of instructions you can call later."
+        },
+        {
+          "id": "translate-loops",
+          "title": "Iterating with Loops",
+          "content": "Open **Loops** for anything that counts or repeats. \"For each item...\" or \"repeat n times\" both point here."
+        },
+        {
+          "id": "translate-arrays",
+          "title": "Appending to Arrays",
+          "content": "Open **Lists** and use the append-to-list block. If a description says \"add to the end of the array,\" this is the block."
+        },
+        {
+          "id": "translate-dictionaries",
+          "title": "Using Hash Maps",
+          "content": "Open **Dictionaries** and use \"set key in dictionary.\" Whenever a description talks about a hash map or key/value pairs, this is the Python concept it's referring to."
+        }
       ]
     },
     {
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",
-      "content": "That's the workspace. Experiment freely, watch the console for feedback, and use the Python panel whenever you want to see what your blocks actually mean.",
+      "content": "That's the full tour. From here, the best way to learn the workspace is to just start moving blocks around -- experiment freely, keep an eye on the console for feedback, and check the Python panel any time you're curious what your blocks actually mean underneath.",
       "subsections": [
         {
           "id": "sum-components",
           "title": "Three Main Components",
-          "content": "The workspace boils down to three areas:",
+          "content": "The workspace boils down to three areas working together:",
           "bullets": [
-            "**Toolbox:** categorized blocks.",
-            "**Workspace Canvas:** where you build.",
-            "**Output Console:** results, timing, and errors."
+            "**Toolbox:** every block you can use, organized by category.",
+            "**Workspace Canvas:** where you actually build, by dragging and connecting.",
+            "**Output Console:** where you see results, timing, and errors."
           ]
         },
-        { "id": "sum-real-time", "title": "Real-Time Feedback", "content": "Live Python generation plus error highlighting shows you exactly how blocks translate to code." },
-        { "id": "sum-sequential", "title": "Sequential Execution", "content": "Top to bottom, unless a loop or conditional changes the flow -- the foundation for debugging and design alike." }
+        {
+          "id": "sum-real-time",
+          "title": "Real-Time Feedback",
+          "content": "Live Python generation, plus error highlighting on incomplete blocks, shows you exactly how your visual logic translates to real code -- as you build it, not after."
+        },
+        {
+          "id": "sum-sequential",
+          "title": "Sequential Execution",
+          "content": "Top to bottom, unless a loop or conditional changes the flow. It's the simplest rule in this lesson, and also the one every debugging skill you'll build later depends on."
+        }
       ]
     }
   ],
   "references": [
-    { "title": "Blockly Documentation", "url": "https://developers.google.com/blockly" },
-    { "title": "Visual Programming Concepts", "url": "https://scratch.mit.edu" }
+    {
+      "title": "Blockly Documentation",
+      "url": "https://developers.google.com/blockly"
+    },
+    {
+      "title": "Visual Programming Concepts",
+      "url": "https://scratch.mit.edu"
+    }
   ]
 }

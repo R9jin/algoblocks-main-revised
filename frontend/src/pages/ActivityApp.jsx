@@ -13,7 +13,7 @@ import ConsolePanelContent from "../components/panelContent/ConsolePanelContent.
 import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
 import TourHelpButton from "../components/TourHelpButton";
 import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
-import { useOnboarding } from "../context/OnboardingContext";
+import { useOnboarding, GENERIC_ACTIVITY_TOUR_PAGE_ID } from "../context/OnboardingContext";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { getIntroActivityTour } from "../data/introActivityTours.js";
 import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
@@ -194,10 +194,31 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   });
   const resolvedActivityTour = introTour || activityTour;
 
-  // Auto-show this activity's tour the first time the learner opens it.
-  // ActivityAppInner is remounted (via a `key={moduleId-activityId}` on the
-  // outer component) every time the user switches activities, so this ref
-  // is naturally scoped per-activity and won't leak into a different one.
+  // Auto-show an activity tour ONLY the very first time a fresh account
+  // opens the Activity App -- not once per lesson. ActivityAppInner is
+  // remounted (via a `key={moduleId-activityId}` on the outer component)
+  // every time the user switches activities, so this ref is naturally
+  // scoped per-activity and won't by itself prevent a re-show on the next
+  // activity/lesson.
+  //
+  // The actual "only once, ever" guarantee comes from what we check here:
+  // GENERIC_ACTIVITY_TOUR_PAGE_ID's `seen` flag, NOT
+  // resolvedActivityTour.pageId's. Each of the 4 curated Module-0 intro
+  // tours (see introActivityTours.js) has its own unique pageId
+  // ("activity-{moduleId}-{activityId}"), so gating on that per-tour id
+  // meant finishing/skipping lesson 1's tour never stopped lesson 2, 3, or
+  // 4's first activity from popping its own "never seen" curated tour --
+  // one auto-show per lesson instead of one for the whole account. Gating
+  // on the single shared generic pageId instead means: whichever tour
+  // happens to be the first one this account ever opens (curated or
+  // generic) is the only one that ever auto-shows. markPageCompleted/
+  // markPageDismissed already mark this shared pageId seen whenever a
+  // curated tour finishes (see withLinkedGenericTour in
+  // OnboardingContext.jsx), so this stays in sync automatically.
+  //
+  // Manual replay (the "Replay activity tour" button) is untouched -- it
+  // still opens resolvedActivityTour, the tour actually relevant to *this*
+  // specific activity, and still records its own pageId's bookkeeping.
   const activityTourAttemptedRef = useRef(false);
   useEffect(() => {
     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -206,8 +227,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (user.isGuest) return;
     if (activityTourAttemptedRef.current) return;
     if (!isHydrated) return;
-    const completed = Boolean(onboardingState?.pages?.[resolvedActivityTour.pageId]?.seen);
-    if (completed) return;
+    const alreadySeenAnyActivityTour = Boolean(onboardingState?.pages?.[GENERIC_ACTIVITY_TOUR_PAGE_ID]?.seen);
+    if (alreadySeenAnyActivityTour) return;
     const timer = setTimeout(() => {
       activityTourAttemptedRef.current = true;
       startTour(resolvedActivityTour);

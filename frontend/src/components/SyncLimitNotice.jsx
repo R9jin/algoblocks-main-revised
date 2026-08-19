@@ -12,9 +12,11 @@ import { useEffect, useState } from "react";
 // matter which page the person is on when a queued save finally fails.
 export default function SyncLimitNotice() {
   const [notice, setNotice] = useState(null);
+  const [title, setTitle] = useState("Sync limit reached");
 
   useEffect(() => {
     const handleLimitReached = (e) => {
+      setTitle(e.detail?.title || "Sync limit reached");
       setNotice(e.detail?.message || "A locally saved item could not be synced: limit reached.");
     };
     window.addEventListener("syncLimitReached", handleLimitReached);
@@ -34,7 +36,7 @@ export default function SyncLimitNotice() {
       <div className="network-popup-content">
         <span className="network-icon">⚠️</span>
         <div>
-          <strong>Sync limit reached</strong>
+          <strong>{title}</strong>
           <p>{notice}</p>
         </div>
       </div>

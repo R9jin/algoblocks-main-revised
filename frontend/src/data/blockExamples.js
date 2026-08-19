@@ -1510,6 +1510,177 @@ export const BLOCK_EXAMPLES = {
     "role": "The Count With block manages the loop variable i, automatically stepping it from 1 to 5.",
     "interaction": "It creates and updates the variable i itself, and the Print block inside simply reads whatever value i currently holds."
   },
+  "controls_for_nested": {
+    "workspaceState": {
+      "blocks": {
+        "languageVersion": 0,
+        "blocks": [
+          {
+            "type": "controls_for",
+            "id": "nlOuterFor001",
+            "x": 0,
+            "y": 0,
+            "fields": {
+              "VAR": {
+                "id": "nlVarI"
+              }
+            },
+            "inputs": {
+              "FROM": {
+                "block": {
+                  "type": "math_number",
+                  "id": "nlFromI",
+                  "fields": {
+                    "NUM": 0
+                  }
+                }
+              },
+              "TO": {
+                "block": {
+                  "type": "math_number",
+                  "id": "nlToI",
+                  "fields": {
+                    "NUM": 3
+                  }
+                }
+              },
+              "BY": {
+                "block": {
+                  "type": "math_number",
+                  "id": "nlByI",
+                  "fields": {
+                    "NUM": 1
+                  }
+                }
+              },
+              "DO": {
+                "block": {
+                  "type": "controls_for",
+                  "id": "nlInnerFor001",
+                  "fields": {
+                    "VAR": {
+                      "id": "nlVarJ"
+                    }
+                  },
+                  "inputs": {
+                    "FROM": {
+                      "block": {
+                        "type": "math_number",
+                        "id": "nlFromJ",
+                        "fields": {
+                          "NUM": 0
+                        }
+                      }
+                    },
+                    "TO": {
+                      "block": {
+                        "type": "math_number",
+                        "id": "nlToJ",
+                        "fields": {
+                          "NUM": 3
+                        }
+                      }
+                    },
+                    "BY": {
+                      "block": {
+                        "type": "math_number",
+                        "id": "nlByJ",
+                        "fields": {
+                          "NUM": 1
+                        }
+                      }
+                    },
+                    "DO": {
+                      "block": {
+                        "type": "text_print",
+                        "id": "nlPrint001",
+                        "inputs": {
+                          "TEXT": {
+                            "block": {
+                              "type": "text_join",
+                              "id": "nlJoin001",
+                              "extraState": {
+                                "itemCount": 5
+                              },
+                              "inputs": {
+                                "ADD0": {
+                                  "block": {
+                                    "type": "text",
+                                    "id": "nlT0",
+                                    "fields": {
+                                      "TEXT": "pair ("
+                                    }
+                                  }
+                                },
+                                "ADD1": {
+                                  "block": {
+                                    "type": "variables_get",
+                                    "id": "nlGetI",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "nlVarI"
+                                      }
+                                    }
+                                  }
+                                },
+                                "ADD2": {
+                                  "block": {
+                                    "type": "text",
+                                    "id": "nlT1",
+                                    "fields": {
+                                      "TEXT": ", "
+                                    }
+                                  }
+                                },
+                                "ADD3": {
+                                  "block": {
+                                    "type": "variables_get",
+                                    "id": "nlGetJ",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "nlVarJ"
+                                      }
+                                    }
+                                  }
+                                },
+                                "ADD4": {
+                                  "block": {
+                                    "type": "text",
+                                    "id": "nlT2",
+                                    "fields": {
+                                      "TEXT": ")"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "variables": [
+        {
+          "name": "i",
+          "id": "nlVarI"
+        },
+        {
+          "name": "j",
+          "id": "nlVarJ"
+        }
+      ]
+    },
+    "pythonPreview": "i = None\nj = None\n\nfor i in range(3):\n    for j in range(3):\n        print(f\"pair ({i}, {j})\")",
+    "goal": "See why a loop nested inside another loop costs n × n, not n — print every (i, j) pair from two small ranges.",
+    "role": "The outer Count With block (i) restarts the ENTIRE inner loop from scratch on every single one of its passes.",
+    "interaction": "For each of the outer loop's 3 passes, the inner Count With block (j) runs all 3 of its own passes — 3 × 3 = 9 total prints. Add one more item to either range and the total jumps to 16, not 4: that squared growth is what makes this O(n²)."
+  },
   "controls_forEach": {
     "workspaceState": {
       "blocks": {

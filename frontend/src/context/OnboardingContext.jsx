@@ -16,7 +16,14 @@ const OnboardingContext = createContext(null);
 // no curated tour of its own and falls back to the generic one) auto-showed
 // the tour again -- even though the learner had just gone through
 // (or explicitly skipped) essentially the same walkthrough seconds earlier.
-const GENERIC_ACTIVITY_TOUR_PAGE_ID = "activity-workspace-tour";
+// Exported so ActivityApp.jsx can gate its AUTO-SHOW decision on this single
+// shared id instead of on whichever specific tour (curated or generic) is
+// about to be shown. See the auto-show effect in ActivityApp.jsx for why:
+// without a single shared gate, each of the 4 curated Module-0 intro tours
+// (one per lesson) has its own never-before-seen pageId, so a learner who
+// already sat through lesson 1's tour still gets popped again on lesson 2,
+// 3, and 4's first activity -- one auto-show per lesson instead of one ever.
+export const GENERIC_ACTIVITY_TOUR_PAGE_ID = "activity-workspace-tour";
 const isCuratedActivityTourPageId = (pageId) =>
   typeof pageId === "string" && pageId.startsWith("activity-") && pageId !== GENERIC_ACTIVITY_TOUR_PAGE_ID;
 

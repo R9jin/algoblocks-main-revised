@@ -1,0 +1,250 @@
+/* frontend/src/styles/LessonBlockPlayground.css
+   Mirrors the visual language of the Block Explorer's read-only
+   .block-example-* classes (see BlockGlossaryModal.css) but wrapped in its
+   own card so it can drop into a lesson section, with an added header row
+   for the "editable" badge + Reset button. */
+
+/* Collapsed-by-default wrapper around each playground. Only one of these
+   ever has its content mounted at a time (see renderBlockPlaygrounds in
+   LessonViewer.jsx) -- opening the Blockly workspace only while its
+   dropdown is expanded is what keeps multiple playgrounds on one lesson
+   page from fighting over Blockly's shared render batch. */
+.lesson-block-playground-dropdown {
+    margin: 22px 0;
+    border: 1px solid #E4DEFA;
+    border-radius: 12px;
+    background: #FAF9FF;
+    overflow: hidden;
+}
+
+.lesson-block-playground-dropdown-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 14px 18px;
+    text-align: left;
+    cursor: pointer;
+    color: #2b005c;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.lesson-block-playground-dropdown-toggle:hover {
+    background: rgba(108, 92, 231, 0.06);
+}
+
+.lesson-block-playground-dropdown-label {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.lesson-block-playground-dropdown-toggle svg {
+    flex-shrink: 0;
+    color: #6C5CE7;
+}
+
+.lesson-block-playground-dropdown.open .lesson-block-playground-dropdown-toggle {
+    border-bottom: 1px solid #E4DEFA;
+}
+
+.lesson-block-playground {
+    margin: 22px 0;
+    padding: 16px 18px 18px;
+    background: #FAF9FF;
+    border: 1px solid #E4DEFA;
+    border-radius: 12px;
+}
+
+/* Nested inside a dropdown (the lesson-page case), the dropdown itself
+   already supplies the margin/border/background, so the inner card
+   shouldn't double them up. Left as-is for standalone uses of
+   LessonBlockPlayground outside a dropdown (e.g. ComplexityPanelContent). */
+.lesson-block-playground-dropdown .lesson-block-playground {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+}
+
+.lesson-block-playground-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+}
+
+.lesson-block-playground-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6C5CE7;
+    background: rgba(108, 92, 231, 0.1);
+    border: 1px solid rgba(108, 92, 231, 0.25);
+    border-radius: 999px;
+    padding: 4px 10px;
+}
+
+.lesson-block-playground-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: white;
+    color: #6C5CE7;
+    border: 1px solid #E4DEFA;
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.lesson-block-playground-reset:hover {
+    background: #F1EDFF;
+    border-color: #6C5CE7;
+}
+
+.lesson-block-playground-goal {
+    font-size: 0.92rem;
+    color: #4b5563;
+    margin: 0 0 6px 0 !important;
+    line-height: 1.5;
+}
+
+.lesson-block-playground-hint {
+    font-size: 0.82rem;
+    color: #888;
+    font-style: italic;
+    margin: 8px 0 10px;
+}
+
+.block-playground-canvas {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid #E4DEFA;
+    background: #ffffff;
+    position: relative;
+    overflow: hidden;
+    overscroll-behavior: contain;
+    margin-bottom: 14px;
+    resize: vertical;
+    min-height: 200px;
+}
+
+.lesson-block-playground-code-row {
+    margin-bottom: 12px;
+}
+
+.lesson-block-playground-section-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6C5CE7;
+    margin-bottom: 6px;
+}
+
+.lesson-block-playground-python-code {
+    display: block;
+    background: #2b2b40;
+    color: #d5c9ff;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.82rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.lesson-block-playground-run-row {
+    margin-bottom: 10px;
+}
+
+.lesson-block-playground-run-btn {
+    background: #6C5CE7;
+    color: white;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.lesson-block-playground-run-btn:hover:not(:disabled) {
+    background: #5b4bd1;
+}
+
+.lesson-block-playground-run-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.lesson-block-playground-console {
+    background: #1e1e2e;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.lesson-block-playground-console .lesson-block-playground-section-label {
+    color: #B8A0FF;
+}
+
+.lesson-block-playground-console-output {
+    margin: 0;
+    color: #d1fae5;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.82rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.lesson-block-playground-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    color: #EBE4FF;
+    font-size: 0.85rem;
+}
+
+.lesson-block-playground-input-row input {
+    flex: 1;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #6C5CE7;
+    background: #2b2b40;
+    color: white;
+    font-size: 0.85rem;
+}
+
+.lesson-block-playground-input-row button {
+    background: #6C5CE7;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .lesson-block-playground {
+        padding: 12px 12px 14px;
+    }
+    .block-playground-canvas {
+        min-height: 240px;
+    }
+}

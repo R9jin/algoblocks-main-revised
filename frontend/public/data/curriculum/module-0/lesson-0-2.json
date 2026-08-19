@@ -6,26 +6,51 @@
   "difficulty": "Beginner",
   "estimatedTime": "18 min",
   "prerequisites": "The Workspace",
-  "tags": ["blockly", "variables", "loops", "conditions", "arrays"],
+  "tags": [
+    "blockly",
+    "variables",
+    "loops",
+    "conditions",
+    "arrays"
+  ],
   "activities": [
-    { "id": "m0_l2_a1", "title": "Storing Data in Variables" },
-    { "id": "m0_l2_a2", "title": "Making Decisions (If/Else)" },
-    { "id": "m0_l2_a3", "title": "Repeating Actions (Loops)" },
-    { "id": "m0_l2_a4", "title": "Defensive Programming: Safe Array Access" },
-    { "id": "m0_l2_a5", "title": "Adding to a List" }
+    {
+      "id": "m0_l2_a1",
+      "title": "Storing Data in Variables"
+    },
+    {
+      "id": "m0_l2_a2",
+      "title": "Making Decisions (If/Else)"
+    },
+    {
+      "id": "m0_l2_a3",
+      "title": "Repeating Actions (Loops)"
+    },
+    {
+      "id": "m0_l2_a4",
+      "title": "Defensive Programming: Safe Array Access"
+    },
+    {
+      "id": "m0_l2_a5",
+      "title": "Adding to a List"
+    }
   ],
   "sections": [
     {
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Every algorithm in this course is built from the same handful of core constructs, each shown as connectable, color-coded blocks.",
+      "content": "Strip away the specifics of any algorithm you'll meet in this course -- sorting, searching, pathfinding, whatever -- and you'll find it's built from the same small handful of ingredients, over and over. This lesson introduces all five, and along the way, you'll see your first real bits of Python syntax, since every one of these blocks generates code you'll be reading for the rest of the course.",
       "subsections": [
-        { "id": "intro-what-are-components", "title": "What are Core Components?", "content": "Just like a mechanic has a standard toolkit, almost every program -- however complex -- is assembled from the same small set of building blocks." },
+        {
+          "id": "intro-what-are-components",
+          "title": "What are Core Components?",
+          "content": "Think of a mechanic's toolkit: a wrench, a screwdriver, pliers, a socket set. Almost any repair, however complicated, comes down to using a few standard tools in the right combination. Programming works the same way -- a handful of core building blocks, combined differently, is enough to build almost anything."
+        },
         {
           "id": "intro-the-five-pillars",
           "title": "The Five Pillars of Programming",
-          "content": "Master these five and you can build almost anything:",
+          "content": "Master these five and you already have most of what you need for this entire course:",
           "bullets": [
             "**Variables:** your program's memory.",
             "**Loops:** repetition.",
@@ -40,57 +65,107 @@
       "id": "variables",
       "type": "concept",
       "title": "Variables: The Program's Memory",
-      "content": "Variables hold information while your algorithm runs -- without them, a program can't remember anything.",
+      "content": "A program that can't remember anything can't do much. Variables are how it remembers -- they hold information while your algorithm runs, so a value calculated in one step can be used again three steps later.",
       "subsections": [
-        { "id": "var-concept", "title": "Concept: Allocated Storage", "content": "Think of a variable as a labeled box in memory: give it a name, then read or overwrite what's inside whenever you like." },
+        {
+          "id": "var-concept",
+          "title": "Concept: Allocated Storage",
+          "content": "Think of a variable as a labeled box: you give it a name, and from then on you can look inside to read what's there, or open it up and put something new in. In the **Variables** drawer, the Set block is how you write a label and put something in the box; the Get block is how you read what's currently inside."
+        },
         {
           "id": "var-data-types",
           "title": "Common Data Types",
-          "content": "A variable can hold:",
+          "content": "A variable can hold different kinds of values:",
           "bullets": [
-            "**Numbers:** math and loop counters.",
-            "**Strings:** text.",
-            "**Booleans:** True or False."
+            "**Numbers:** for math and loop counters.",
+            "**Strings:** for text.",
+            "**Booleans:** for True or False."
           ]
         },
         {
           "id": "var-operations",
           "title": "Variable Operations",
-          "content": "Three actions cover most of what you'll do:",
+          "content": "Three actions cover almost everything you'll do with a variable:",
           "bullets": [
-            "**Create:** define a new variable with a name.",
+            "**Create:** define a new variable and give it a name.",
             "**Set:** give it a starting value.",
-            "**Change:** update it based on its current value (e.g. increment by 1)."
+            "**Change:** update it based on whatever it currently holds (e.g. increment by 1)."
           ]
         },
-        { "id": "var-best-practices", "title": "Best Practices", "content": "Always set a variable before you try to change it -- modifying an unset variable throws a runtime error, since there's no baseline value yet." }
+        {
+          "id": "var-python-syntax",
+          "title": "Reading the Python: Assignment",
+          "content": "Drop a Set block onto the canvas and the Python panel shows something like this. It's worth learning to read it now, since you'll see this shape constantly:",
+          "codeSnippets": [
+            {
+              "title": "Creating a variable",
+              "language": "python",
+              "code": "x = 5"
+            }
+          ]
+        },
+        {
+          "id": "var-python-syntax-explained",
+          "title": "What This Means",
+          "content": "Here, `x` is the variable's name -- the label on the box -- and the single equals sign `=` means \"store the value on the right into the variable on the left.\" It doesn't mean \"equals\" the way it does in a math class equation; it means *assign*. After this line runs, `x` holds the value `5`, and it'll keep holding it until something else changes it."
+        },
+        {
+          "id": "var-best-practices",
+          "title": "Best Practices",
+          "content": "Always Set a variable before you try to Change it. Changing a variable that was never given a starting value throws a runtime error -- there's no baseline value to update yet, the same way you can't add \"$5 more\" to a box that was never opened in the first place."
+        }
       ]
     },
     {
       "id": "loops",
       "type": "deep_dive",
       "title": "Loops: The Engines of Repetition",
-      "content": "A loop replaces a stack of repeated blocks with one reusable one -- keeping your algorithms compact and scalable.",
+      "content": "Without loops, repeating an action ten times means placing the same block ten times. A loop replaces that whole stack with one reusable block -- your algorithms stay compact even as the amount of repetition grows.",
       "subsections": [
         {
           "id": "loops-types",
           "title": "Types of Loops",
-          "content": "Three loop shapes, three use cases:",
+          "content": "Three loop shapes, each suited to a different situation:",
           "bullets": [
-            "**Repeat (Counted):** runs a fixed number of times -- use when you know the count upfront.",
-            "**While (Conditional):** runs until a condition goes False -- use when the count is dynamic.",
-            "**For-Each (Iterative):** automatically visits every item in an array."
+            "**Repeat (Counted):** runs a fixed number of times -- reach for this when you already know the count.",
+            "**While (Conditional):** runs until a condition turns False -- use this when the count depends on something that changes as you go.",
+            "**For-Each (Iterative):** automatically visits every item in an array, one at a time."
           ]
         },
-        { "id": "micro-transition-loops", "title": "Micro-Transition: The Clock Analogy", "content": "Before nesting loops, get comfortable with a single one -- like a minute hand needing 60 full turns before the hour hand ticks once." },
-        { "id": "loops-pointer-paradigm", "title": "The Pointer Paradigm", "content": "Sometimes you need more control than For-Each gives you -- a While loop with your own tracking variables lets you walk an array from both ends at once, a key technique for optimized algorithms." },
+        {
+          "id": "loops-python-syntax",
+          "title": "Reading the Python: for i in range(5)",
+          "content": "A Repeat block that runs 5 times generates Python that looks like this:",
+          "codeSnippets": [
+            {
+              "title": "Counting with a for-loop",
+              "language": "python",
+              "code": "for i in range(5):\n    print(i)"
+            }
+          ]
+        },
+        {
+          "id": "loops-python-syntax-explained",
+          "title": "What This Means",
+          "content": "Breaking that down: `for i in range(5):` means \"let `i` take on each value from 0 up to, but not including, 5 -- so 0, 1, 2, 3, 4 -- running the indented block below once per value.\" `i` is just a loop counter you can name anything; `range(5)` is what generates those five numbers. The colon `:` at the end of the line, and the indentation on the line below, are how Python marks \"everything indented under here belongs to the loop.\" No braces, no `end` keyword -- indentation *is* the structure. That's exactly what the Repeat block is doing visually: whatever blocks you nest inside it are the ones that repeat."
+        },
+        {
+          "id": "micro-transition-loops",
+          "title": "Micro-Transition: The Clock Analogy",
+          "content": "Before nesting one loop inside another, get comfortable with a single loop by itself -- like how a minute hand needs to complete 60 full turns before the hour hand ticks forward just once. Nested loops are coming soon, but they're much easier to reason about once a single loop feels automatic."
+        },
+        {
+          "id": "loops-pointer-paradigm",
+          "title": "The Pointer Paradigm",
+          "content": "Sometimes a For-Each loop isn't flexible enough. A While loop paired with your own tracking variables lets you walk through an array from both ends at once, skip around, or move at a variable pace -- a technique you'll lean on heavily once algorithms start getting optimized for speed."
+        },
         {
           "id": "loops-pitfalls",
           "title": "Common Pitfalls to Avoid",
-          "content": "Watch your termination conditions:",
+          "content": "Two mistakes to watch for as you write your own loops:",
           "bullets": [
-            "**Infinite Loops:** a While condition that never goes False -- make sure something inside the loop actually updates it.",
-            "**Off-By-One Errors:** running one iteration too many or too few from a boundary mistake."
+            "**Infinite Loops:** a While condition that never becomes False. Always double-check that something *inside* the loop actually changes the value the condition depends on.",
+            "**Off-By-One Errors:** running one iteration too many or too few, usually from a small mistake at a boundary -- like looping through indices 0 to 5 when the last valid index is actually 4."
           ]
         }
       ]
@@ -99,89 +174,130 @@
       "id": "conditions",
       "type": "concept",
       "title": "Conditional Logic: Making Decisions",
-      "content": "Conditionals let your program branch -- checking its current state and picking the right path.",
+      "content": "So far, everything has run in a straight line. Conditionals are what let a program branch -- checking its current state and choosing which path to take next, instead of always doing the same thing.",
       "subsections": [
         {
           "id": "cond-toolbox",
           "title": "The Logic Toolbox",
-          "content": "Decisions boil down to True/False evaluations, built from:",
+          "content": "Every decision your program makes eventually boils down to a True/False question, built from:",
           "bullets": [
-            "**Comparisons:** equality, greater/less-than.",
-            "**Boolean Operators:** AND, OR, NOT to combine conditions."
+            "**Comparisons:** equality, greater-than, less-than.",
+            "**Boolean Operators:** AND, OR, NOT, for combining multiple conditions into one."
           ]
+        },
+        {
+          "id": "cond-python-syntax",
+          "title": "Reading the Python: if x > 5",
+          "content": "Snap a comparison into an If block's condition slot, and the Python panel shows something like this:",
+          "codeSnippets": [
+            {
+              "title": "Branching with if",
+              "language": "python",
+              "code": "if x > 5:\n    print(\"big\")\nelse:\n    print(\"small\")"
+            }
+          ]
+        },
+        {
+          "id": "cond-python-syntax-explained",
+          "title": "What This Means",
+          "content": "`if x > 5:` asks a question -- \"is the value in `x` greater than 5?\" -- and only runs the indented block underneath it when the answer is True. The `else:` block underneath is the fallback: whatever runs when that question is False instead. Notice the same pattern from loops: a colon `:` opens the block, and indentation shows what belongs inside it."
         },
         {
           "id": "cond-structures",
           "title": "Structural Variants",
-          "content": "Three shapes of branching:",
+          "content": "Conditionals come in three shapes, depending on how many paths you need:",
           "bullets": [
-            "**If:** runs only when true.",
-            "**If / Else:** one path or the other.",
-            "**If / Else-If / Else:** checks multiple conditions top to bottom."
+            "**If:** runs only when its condition is true; otherwise, nothing happens.",
+            "**If / Else:** exactly one of two paths always runs.",
+            "**If / Else-If / Else:** checks several conditions in order, top to bottom, running the first one that matches."
           ]
         },
-        { "id": "cond-nested", "title": "Nested Conditionals", "content": "An If inside an If lets you check a sub-condition -- e.g. confirm admin status, then check a more specific permission." }
+        {
+          "id": "cond-nested",
+          "title": "Nested Conditionals",
+          "content": "An If block placed inside another If lets you check a more specific sub-condition once the outer one is already satisfied -- for example, confirm someone is an admin first, then check a more specific permission only if that's true."
+        }
       ]
     },
     {
       "id": "arrays",
       "type": "concept",
       "title": "Arrays: Organizing Collections",
-      "content": "An array holds many related values in one ordered structure, instead of a separate variable for each one.",
+      "content": "Storing five test scores in five separately-named variables gets unwieldy fast -- and completely falls apart once you don't know the count in advance. An array solves this by holding many related values in a single, ordered structure.",
       "subsections": [
         {
           "id": "arr-zero-index",
           "title": "Zero-Based Indexing",
-          "content": "Indexing starts at 0:",
-          "bullets": ["First item → index 0.", "Second item → index 1.", "Last item → length − 1."]
+          "content": "One quirk worth memorizing early: indexing starts at 0, not 1.",
+          "bullets": [
+            "First item → index 0.",
+            "Second item → index 1.",
+            "Last item → length − 1."
+          ]
         },
-        { "id": "micro-transition-arrays", "title": "Micro-Transition: Safe Array Reading", "content": "Practice *reading* from a list with a simple loop before you start modifying it -- small safe steps avoid crashes." },
+        {
+          "id": "micro-transition-arrays",
+          "title": "Micro-Transition: Safe Array Reading",
+          "content": "Before you start modifying a list, practice just *reading* from one with a simple loop. Getting comfortable reading safely first -- and noticing when an index might not exist -- avoids a lot of crashes once you start writing to arrays."
+        },
         {
           "id": "arr-operations",
           "title": "Array Operations",
-          "content": "Core moves in the Arrays toolbox:",
+          "content": "The core moves you'll reach for again and again, all found in the Lists drawer:",
           "bullets": [
-            "**Get / Set at Index:** read or overwrite a specific position.",
-            "**Append / Insert:** add an item at the end or at a specific index.",
-            "**Length:** count how many items are in the array."
+            "**Get / Set at Index:** read or overwrite the value at a specific position.",
+            "**Append / Insert:** add a new item at the end, or at a specific index.",
+            "**Length:** count how many items are currently in the array."
           ]
         },
-        { "id": "arr-iteration", "title": "Iterating Through Arrays", "content": "Arrays and loops go together naturally -- a For-Each loop over an array is the most common pattern you'll use." }
+        {
+          "id": "arr-iteration",
+          "title": "Iterating Through Arrays",
+          "content": "Arrays and loops are practically inseparable -- a For-Each loop that visits every item in an array is one of the single most common patterns you'll build throughout this course."
+        }
       ]
     },
     {
       "id": "math-operations",
       "type": "real_world_connection",
       "title": "Math Operations: The Engine of Calculation",
-      "content": "Math blocks drive score-keeping, loop counters, and array boundary checks throughout your algorithms.",
+      "content": "Math blocks are the quiet workhorse behind score-keeping, loop counters, and array boundary checks -- they show up inside almost everything else you build, even when a lesson isn't specifically \"about\" math.",
       "subsections": [
-        { "id": "math-available", "title": "Available Math Blocks", "content": "Standard arithmetic plus Modulo, Exponents, rounding utilities, and random integer generation." },
-        { "id": "math-order", "title": "Order of Operations", "content": "Math blocks snap together horizontally and follow standard order of operations -- innermost block resolves first, working outward." }
+        {
+          "id": "math-available",
+          "title": "Available Math Blocks",
+          "content": "Beyond standard arithmetic, the Math drawer includes Modulo (remainder), Exponents, rounding utilities, and random integer generation."
+        },
+        {
+          "id": "math-order",
+          "title": "Order of Operations",
+          "content": "Math blocks snap together horizontally, nested inside each other, and they follow the same order of operations you already know from math class -- the innermost block resolves first, and the result works its way outward."
+        }
       ]
     },
     {
       "id": "beyond-the-core",
       "type": "deep_dive",
       "title": "Exploring Beyond the Core Components",
-      "content": "The five pillars are the foundation -- a few more toolbox categories round out what you can build.",
+      "content": "The five pillars above are the foundation everything else sits on -- but a few more toolbox categories will round out what you can build as activities need them.",
       "subsections": [
         {
           "id": "other-categories",
           "title": "Other Toolbox Categories",
-          "content": "As activities need them:",
+          "content": "You'll pick these up naturally as lessons introduce them:",
           "bullets": [
-            "**Input / Output:** print to console, prompt for input.",
+            "**Input / Output:** print to console, or prompt for input.",
             "**Text / Strings:** concatenate, measure length, change case.",
-            "**Functions:** bundle instructions into a reusable custom block."
+            "**Functions:** bundle a group of instructions into one reusable custom block."
           ]
         },
         {
           "id": "power-of-experimentation",
           "title": "The Power of Experimentation",
-          "content": "The fastest way to learn a new block:",
+          "content": "The fastest way to actually learn what a new block does isn't reading about it -- it's trying it:",
           "bullets": [
-            "**Direct Manipulation:** drop it on the canvas, feed it test values, run it, read the output.",
-            "**Python Observation:** watch the live Python panel to see exactly what it translates to."
+            "**Direct Manipulation:** drop the block on the canvas, feed it some test values, hit Run, and read the output.",
+            "**Python Observation:** watch the live Python panel to see exactly what that block translates to."
           ]
         }
       ]
@@ -190,7 +306,7 @@
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",
-      "content": "Real algorithms combine these five pillars together. Here's what that looks like for finding the highest score in a classroom:",
+      "content": "Real algorithms weave these five pillars together rather than using them one at a time. Here's what that looks like for a classic task -- finding the highest score in a classroom:",
       "subsections": [
         {
           "id": "sum-combining",
@@ -203,12 +319,23 @@
             "4. **(Conditionals)** If the current score beats \"highest\"...",
             "5. **(Variables)** ...update \"highest\" to the current score."
           ]
+        },
+        {
+          "id": "sum-python-recap",
+          "title": "Three Syntax Shapes to Remember",
+          "content": "You've now met the three most common Python shapes you'll see for the rest of this course: `x = 5` to store a value, `for i in range(5):` to repeat, and `if x > 5:` to branch. Every one of them follows the same rule -- a colon opens a block, and indentation shows what's inside it. Recognizing these three patterns on sight is most of what it takes to read any Python snippet in this course."
         }
       ]
     }
   ],
   "references": [
-    { "title": "Blockly Official Documentation", "url": "https://developers.google.com/blockly" },
-    { "title": "Programiz — Python Programming Basics", "url": "https://www.programiz.com/python-programming" }
+    {
+      "title": "Blockly Official Documentation",
+      "url": "https://developers.google.com/blockly"
+    },
+    {
+      "title": "Programiz — Python Programming Basics",
+      "url": "https://www.programiz.com/python-programming"
+    }
   ]
 }
