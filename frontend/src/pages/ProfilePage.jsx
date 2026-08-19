@@ -237,6 +237,21 @@ export default function ProfilePage() {
           }
         }
 
+        // The latest lesson with a saved activity is the learner's current
+        // working lesson. Keep that lesson open even when an older lesson
+        // still has unfinished optional activities; only lessons after it
+        // are future work and should remain locked on Profile.
+        let activeLessonId = null;
+        for (const mod of curriculumIndex) {
+          for (const lesson of mod.lessons) {
+            const lessonNumber = lesson.lessonId.split("-")[2];
+            const lessonActivities = allActivities[mod.moduleId]?.[`lesson_${lessonNumber}`] || [];
+            if (lessonActivities.some((act) => userSubs[mod.moduleId]?.[act.id])) {
+              activeLessonId = lesson.lessonId;
+            }
+          }
+        }
+
         let tLessons = 0, cLessons = 0;
         let globalAesSum = 0, globalAesCount = 0;
         let globalRogSum = 0, globalRogCount = 0;
@@ -305,7 +320,7 @@ export default function ProfilePage() {
               isLessonCompleted = true;
             }
 
-            const currentUnlockState = pathUnlocked;
+            const currentUnlockState = pathUnlocked || lesson.lessonId === activeLessonId;
 
             if (!isLessonCompleted && acts.length > 0) {
               pathUnlocked = false; // Stop progression if minimum activities aren't completed
