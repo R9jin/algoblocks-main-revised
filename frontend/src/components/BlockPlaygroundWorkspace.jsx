@@ -18,7 +18,7 @@
 import * as Blockly from "blockly";
 import "blockly/blocks";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import { pastelTheme, toolbox } from "./BlocklyWorkspace.jsx";
+import { pastelTheme, registerCustomPythonGenerators, toolbox } from "./BlocklyWorkspace.jsx";
 
 function loadPristine(ws, state) {
   Blockly.Events.disable();
@@ -100,6 +100,19 @@ const BlockPlaygroundWorkspace = forwardRef(function BlockPlaygroundWorkspace(
         // variable_swap when clicked manually, even though search finds them.
         ws.registerToolboxCategoryCallback("VARIABLE", Blockly.Variables.flyoutCategory);
         ws.registerToolboxCategoryCallback("PROCEDURE", Blockly.Procedures.flyoutCategory);
+        // Also make sure every custom block (dictionaries, sets,
+        // stacks/queues, text_join, list index get/set, math_change, etc.)
+        // actually has a Python generator registered before we ever try to
+        // generate code below. Those generators used to only get attached
+        // when the full <BlocklyWorkspace/> (MainApp/ActivityApp) mounted --
+        // a lesson page that never opens the real workspace would hit
+        // pythonGenerator.workspaceToCode() for a fully-connected example
+        // using one of those blocks, get an exception, and fall back to the
+        // "connect all the blocks together" placeholder even though nothing
+        // was actually wrong with the blocks. registerCustomPythonGenerators
+        // is idempotent, so calling it here is a no-op if MainApp/ActivityApp
+        // already registered everything earlier in the session.
+        registerCustomPythonGenerators();
         loadPristine(ws, workspaceState);
 
         const notifyChange = () => onWorkspaceChange?.(ws);

@@ -240,11 +240,79 @@
     cursor: pointer;
 }
 
+/* Footer tab strip -- Console / Complexity -- styled to match the same
+   .footer-tab look used at the bottom of the real MainApp/ActivityApp
+   workspace (see WorkspaceShared.css), so switching to the Complexity view
+   here feels like the same product, not a different mini-tool. */
+.lesson-block-playground-footer-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    background: var(--dark-bg, #1D0B30);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.lesson-block-playground-footer-tabs .footer-tab {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.lesson-block-playground-complexity-panel {
+    height: 460px;
+    max-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel-bg, #F8FAFC);
+    border: 1px solid var(--border-light, #E2E8F0);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.lesson-block-playground-complexity-panel .complexity-content {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.lesson-block-playground-complexity-panel .overall-complexity-wrapper,
+.lesson-block-playground-complexity-panel .complexity-table-wrapper,
+.lesson-block-playground-complexity-panel .memory-wrapper,
+.lesson-block-playground-complexity-panel .callgraph-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.lesson-block-playground-complexity-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 100%;
+    color: #888;
+    font-size: 0.88rem;
+    text-align: center;
+    padding: 20px;
+}
+
 @media (max-width: 768px) {
     .lesson-block-playground {
         padding: 12px 12px 14px;
     }
     .block-playground-canvas {
         min-height: 240px;
+    }
+    .lesson-block-playground-complexity-panel {
+        height: 380px;
     }
 }

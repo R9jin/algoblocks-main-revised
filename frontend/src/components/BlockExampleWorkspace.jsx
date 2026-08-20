@@ -2,7 +2,7 @@
 import * as Blockly from "blockly";
 import "blockly/blocks";
 import { useEffect, useRef } from "react";
-import { pastelTheme } from "./BlocklyWorkspace.jsx";
+import { pastelTheme, registerCustomPythonGenerators } from "./BlocklyWorkspace.jsx";
 
 // Locks every block in the workspace down to "movable for exploration only":
 // no deleting, no field/mutation edits, no right-click menu (which is where
@@ -81,6 +81,12 @@ export default function BlockExampleWorkspace({ workspaceState, onWorkspaceReady
           zoom: { controls: false, wheel: false, startScale: 0.85 },
         });
         workspaceRef.current = ws;
+        // Same reasoning as BlockPlaygroundWorkspace.jsx: without this, a
+        // glossary example using a custom block (dictionaries, sets,
+        // stacks/queues, etc.) has no Python generator to fall back to if
+        // the caller's pythonPreview cache is ever stale or missing.
+        // Idempotent, so harmless if MainApp/ActivityApp already ran it.
+        registerCustomPythonGenerators();
 
         // Suppress change events entirely while loading the pristine example.
         // This is the standard, correct way to do a bulk/programmatic load in

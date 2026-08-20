@@ -91,6 +91,31 @@ export function useExampleWorker() {
     if (workerRef.current) workerRef.current.postMessage({ type: "INPUT_RESPONSE", data: value });
   }, []);
 
+  // Static complexity analysis (the same ANALYZE_CODE/ANALYZE_RESULT
+  // round-trip MainApp and ActivityApp use for their Complexity tab) on
+  // this same isolated worker/thread. Kept on its own listener ref so it
+  // can't collide with a concurrent runCode() listener on the same worker
+  // instance -- a lesson playground may run the example AND analyze its
+  // complexity independently.
+  const analyzeListenerRef = useRef(null);
+  const analyzeCode = useCallback(async (code) => {
+    const worker = await ensureWorker();
+    if (analyzeListenerRef.current) worker.removeEventListener("message", analyzeListenerRef.current);
+
+    return new Promise((resolve) => {
+      const handleMessage = (event) => {
+        if (event.data?.type === "ANALYZE_RESULT") {
+          worker.removeEventListener("message", handleMessage);
+          analyzeListenerRef.current = null;
+          resolve(event.data.data);
+        }
+      };
+      analyzeListenerRef.current = handleMessage;
+      worker.addEventListener("message", handleMessage);
+      worker.postMessage({ type: "ANALYZE_CODE", code });
+    });
+  }, [ensureWorker]);
+
   useEffect(() => {
     return () => {
       if (workerRef.current) workerRef.current.terminate();
@@ -98,5 +123,5 @@ export function useExampleWorker() {
     };
   }, []);
 
-  return { runCode, sendInput, isBooting };
+  return { runCode, sendInput, analyzeCode, isBooting };
 }
