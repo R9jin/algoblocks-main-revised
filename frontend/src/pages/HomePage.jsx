@@ -91,33 +91,33 @@ export default function LandingPage() {
           <div className="cards-grid learning-topics-grid">
             <div className="card glass-panel">
               <div className="card-icon"><span className="card-icon-badge topic-symbol" aria-hidden="true">O(n)</span></div>
-              <h3>Big-O Notation</h3>
-              <p>Understand how running time and memory use grow as input sizes increase.</p>
+              <h3>Asymptotic Analysis</h3>
+              <p>Measure algorithm performance with Big-O, Big-Omega, and Big-Theta, and learn to recognize common growth rates on sight.</p>
             </div>
             <div className="card glass-panel">
-              <div className="card-icon"><span className="card-icon-badge topic-symbol" aria-hidden="true">S</span></div>
-              <h3>Searching &amp; Sorting</h3>
-              <p>Explore foundational techniques for finding and organizing data efficiently.</p>
+              <div className="card-icon"><span className="card-icon-badge topic-symbol" aria-hidden="true">BF</span></div>
+              <h3>Brute Force</h3>
+              <p>See how checking every possibility guarantees a correct answer, and where that approach gets too expensive to scale.</p>
             </div>
             <div className="card glass-panel">
               <div className="card-icon"><span className="card-icon-badge topic-symbol" aria-hidden="true">D&amp;C</span></div>
               <h3>Divide and Conquer</h3>
-              <p>Break large problems into smaller pieces, solve them, and combine the results.</p>
+              <p>Split a problem into identical smaller pieces, solve each recursively, and watch the call stack track every suspended call.</p>
             </div>
             <div className="card glass-panel">
               <div className="card-icon"><span className="card-icon-badge topic-symbol" aria-hidden="true">G</span></div>
               <h3>Greedy Algorithms</h3>
-              <p>Learn when locally optimal choices can lead to an efficient overall solution.</p>
+              <p>See how locally optimal choices lead to fast, efficient solutions -- and the cases where they miss the true optimum.</p>
             </div>
             <div className="card glass-panel">
               <div className="card-icon"><span className="card-icon-badge topic-symbol" aria-hidden="true">DP</span></div>
               <h3>Dynamic Programming</h3>
-              <p>Reuse solutions to overlapping subproblems to avoid repeated work.</p>
+              <p>Store and reuse solutions to overlapping subproblems instead of recomputing them from scratch.</p>
             </div>
             <div className="card glass-panel">
               <div className="card-icon"><span className="card-icon-badge topic-symbol" aria-hidden="true">BT</span></div>
               <h3>Backtracking</h3>
-              <p>Explore possible choices systematically and recover when a path does not work.</p>
+              <p>Explore decision paths recursively, roll back when a choice fails, and prune paths that can't lead to a solution.</p>
             </div>
           </div>
         </section>
@@ -167,6 +167,14 @@ export default function LandingPage() {
               <h3>Memory Visualization</h3><p>Watch values and data structures change as your algorithm runs.</p>
             </div>
             <div className="card glass-panel">
+              <div className="card-icon"><span className="card-icon-badge topic-symbol" aria-hidden="true">CG</span></div>
+              <h3>Call Graph Visualizer</h3><p>Trace recursive calls as a stack and graph to see how divide-and-conquer, backtracking, and DP problems branch and return.</p>
+            </div>
+            <div className="card glass-panel">
+              <div className="card-icon"><span className="card-icon-badge topic-symbol" aria-hidden="true">TC</span></div>
+              <h3>Test Case Runner</h3><p>Run your solution against test cases and get instant pass/fail feedback alongside your complexity results.</p>
+            </div>
+            <div className="card glass-panel">
               <div className="card-icon"><span className="card-icon-badge topic-symbol" aria-hidden="true">GO</span></div>
               <h3>Guided Learning</h3><p>Follow structured lessons that build understanding one concept at a time.</p>
             </div>
@@ -188,7 +196,7 @@ export default function LandingPage() {
           </div>
           <div className="module-grid">
             <div className="module-card glass-panel"><span>Module 0</span><h3>Getting Started</h3></div>
-            <div className="module-card glass-panel"><span>Module 1</span><h3>Big-O Notation</h3></div>
+            <div className="module-card glass-panel"><span>Module 1</span><h3>Algorithm Foundations</h3></div>
             <div className="module-card glass-panel"><span>Module 2</span><h3>Brute Force</h3></div>
             <div className="module-card glass-panel"><span>Module 3</span><h3>Divide &amp; Conquer</h3></div>
             <div className="module-card glass-panel"><span>Module 4</span><h3>Greedy</h3></div>
