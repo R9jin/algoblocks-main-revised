@@ -685,9 +685,8 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     loadFromPython: async (pythonCode) => {
       if (!workspace.current || !pythonCode) return;
       const cleanCode = sanitizePythonCode(pythonCode);
-      try {
-        const data = await convertPythonToBlocks(cleanCode);
-        if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
+      const data = await convertPythonToBlocks(cleanCode);
+      if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
 
         if (Array.isArray(data.scope_warnings) && data.scope_warnings.length > 0) {
           const proceed = await confirmScopeWarnings(data.scope_warnings);
@@ -722,7 +721,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
             resolve();
           }, 100);
         });
-      } catch (e) { throw e; }
     },
     resize: () => { if (workspace.current) { Blockly.svgResize(workspace.current); workspace.current.markFocused(); } }
   }));

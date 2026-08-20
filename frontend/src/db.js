@@ -6,7 +6,7 @@ const DB_VERSION = 6; // Bumped to 6 to fix submissions keyPath
 
 export const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {
-        upgrade(db, oldVersion, newVersion, transaction) {
+        upgrade(db) {
             if (!db.objectStoreNames.contains("projects")) {
                 const store = db.createObjectStore("projects", { keyPath: "projectId" });
                 store.createIndex("userId", "userId", { unique: false });
@@ -36,11 +36,11 @@ export const initDB = async () => {
             subStore.createIndex("isSynced", "isSynced", { unique: false });
             
             if (!db.objectStoreNames.contains("syncQueue")) {
-                const store = db.createObjectStore("syncQueue", { keyPath: "id", autoIncrement: true });
+                db.createObjectStore("syncQueue", { keyPath: "id", autoIncrement: true });
             }
 
             if (!db.objectStoreNames.contains("curriculumCache")) {
-                const store = db.createObjectStore("curriculumCache", { keyPath: "id" });
+                db.createObjectStore("curriculumCache", { keyPath: "id" });
             }
         },
     });

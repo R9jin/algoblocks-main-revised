@@ -14,7 +14,6 @@ export default function WorkspaceHeader({
   currentProjectTitle,
   isEvaluating,
   isGuest,
-  isAdmin,
   tour,
   tourPageId,
   isEngineReady = true,

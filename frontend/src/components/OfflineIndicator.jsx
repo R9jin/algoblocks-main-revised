@@ -1,5 +1,5 @@
 // frontend/src/components/OfflineIndicator.jsx
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 // Global variable to enforce a Strict Singleton pattern.
 // This guarantees only ONE popup can ever exist in the DOM, 
@@ -14,14 +14,14 @@ export default function OfflineIndicator() {
     const statusRef = useRef('online');
     const hideTimeoutRef = useRef(null);
     const abortControllerRef = useRef(null);
-    const instanceId = useRef(Math.random().toString(36).substring(2, 9));
+    const instanceId = useId();
 
     useEffect(() => {
         // --- Singleton Logic ---
         if (!activeInstanceId) {
-            activeInstanceId = instanceId.current;
-            setIsPrimary(true);
-        } else if (activeInstanceId !== instanceId.current) {
+            activeInstanceId = instanceId;
+            window.setTimeout(() => setIsPrimary(true), 0);
+        } else if (activeInstanceId !== instanceId) {
             return; // A primary instance already exists. Ignore this duplicate.
         }
 
@@ -115,7 +115,7 @@ export default function OfflineIndicator() {
         checkRealConnectivity();
 
         return () => {
-            if (activeInstanceId === instanceId.current) {
+            if (activeInstanceId === instanceId) {
                 activeInstanceId = null;
                 window.removeEventListener('online', handleOnline);
                 window.removeEventListener('offline', handleOffline);

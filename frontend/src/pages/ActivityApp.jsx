@@ -87,7 +87,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const { state: onboardingState, isHydrated, startTour } = useOnboarding();
   
   const isReadyRef = useRef(false);
-  const isWorkspaceLoadedRef = useRef(false);
   const isUnmountingRef = useRef(false); 
   const loadTimeRef = useRef(0); 
   

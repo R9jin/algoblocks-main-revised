@@ -5,7 +5,10 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Public Python/Pyodide bundles are runtime assets, not source modules.
+  // Linting their generated code produces thousands of unreachable-code and
+  // browser-global findings that obscure actionable frontend errors.
+  globalIgnores(['dist', 'public/**']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -23,7 +26,12 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      'react-refresh/only-export-components': 'off',
+      'no-unused-vars': ['error', {
+        varsIgnorePattern: '^[A-Z_]',
+        caughtErrors: 'none',
+      }],
     },
   },
 ])

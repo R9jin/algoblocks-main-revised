@@ -1,7 +1,7 @@
 import { FiHelpCircle } from "react-icons/fi";
 import { useOnboarding } from "../context/OnboardingContext";
 
-export default function TourHelpButton({ pageId, label = "Help tour", tour }) {
+export default function TourHelpButton({ label = "Help tour", tour }) {
   const { startTour } = useOnboarding();
 
   if (!tour) return null;

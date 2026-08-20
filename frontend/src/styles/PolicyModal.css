@@ -45,8 +45,9 @@
 }
 
 .policy-consent-hint {
-  margin: -10px 0 14px 0;
+  margin: 8px 0 14px 0;
   font-size: 0.78rem;
+  line-height: 1.4;
   color: var(--auth-text-muted, #59636e);
   text-align: center;
 }

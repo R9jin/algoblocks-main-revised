@@ -1,7 +1,7 @@
 // frontend/src/pages/SignUp.jsx
 import { useEffect, useRef, useState } from "react";
 import { FiCheckCircle, FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import PolicyConsent from "../components/PolicyConsent";
 import { getErrorMessage } from "../utils/apiError";
 import "../styles/Auth.css";
@@ -23,8 +23,6 @@ export default function SignUp() {
   const [submitted, setSubmitted] = useState(false);
 
   const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
-
-  const navigate = useNavigate();
 
   const rawApiUrl = import.meta.env.VITE_API_URL || "";
   const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;

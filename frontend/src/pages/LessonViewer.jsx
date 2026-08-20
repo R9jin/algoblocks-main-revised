@@ -19,7 +19,6 @@ import BigOChart from "../components/BigOChart";
 import CodeSnippet from "../components/CodeSnippet";
 import LessonBlockPlayground from "../components/LessonBlockPlayground";
 import TourHelpButton from "../components/TourHelpButton";
-import { useOnboarding } from "../context/OnboardingContext";
 import { BLOCK_EXAMPLES } from "../data/blockExamples";
 import curriculumIndex from "../data/curriculumIndex";
 import { LESSON_BLOCK_PLAYGROUNDS } from "../data/lessonBlockPlaygrounds";
@@ -329,7 +328,6 @@ function renderBlockPlaygrounds(lessonId, sectionId, exampleWorker, openPlaygrou
 export default function LessonViewer() {
   const { moduleId, lessonId } = useParams();
   const navigate = useNavigate();
-  const { startTour } = useOnboarding();
 
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -552,8 +550,6 @@ export default function LessonViewer() {
       for (const l of module.lessons) {
         lockMap[l.lessonId] = isAdmin ? false : isNextLocked;
         if (!isNextLocked) {
-          const details = lessonDetails[l.lessonId];
-          const firstActivityId = details?.activities?.[0]?.id;
           const prog = userProgress[l.lessonId] || 0;
           if (prog < 1) {
             isNextLocked = true;

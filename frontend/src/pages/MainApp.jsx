@@ -103,7 +103,7 @@ export default function MainApp() {
   
   const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
-  const { worker, isEngineReady, resetWorker, progress: engineProgress, engineError } = usePyodide();
+  const { worker, isEngineReady, resetWorker, progress: engineProgress } = usePyodide();
 
   const [tabs, setTabs] = useState([createInitialTab(location.state)]);
   const [activeTabId, setActiveTabId] = useState(tabs[0].id);

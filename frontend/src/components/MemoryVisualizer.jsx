@@ -51,7 +51,7 @@ function parseContainerPreview(preview) {
   if (!'[({'.includes(first)) return null; // placeholder text, not a real repr
 
   const truncated = trimmed.endsWith('...');
-  let inner = trimmed.slice(1).replace(/[\]\)}]\s*$/, '');
+  let inner = trimmed.slice(1).replace(/[\])}]\s*$/, '');
   if (truncated) inner = inner.replace(/\.\.\.$/, '');
 
   const rawParts = splitTopLevel(inner).filter(Boolean);

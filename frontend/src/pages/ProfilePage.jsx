@@ -287,7 +287,7 @@ export default function ProfilePage() {
           Array.from({ length: 7 }, (_, i) =>
             fetch(`/data/activities/module_${i}.json`)
               .then(async (res) => (res.ok ? [i, await res.json()] : null))
-              .catch((e) => { console.warn(`Could not load module_${i}.json`); return null; })
+              .catch(() => { console.warn(`Could not load module_${i}.json`); return null; })
           )
         );
         for (const result of moduleResults) {

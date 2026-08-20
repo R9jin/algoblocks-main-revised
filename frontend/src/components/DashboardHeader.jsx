@@ -15,20 +15,20 @@ export default function DashboardHeader({
   tour,
   tourPageId,
 }) {
-  const [user, setUser] = useState(null);
+  const [user] = useState(() => {
+    try {
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch {
+      return null;
+    }
+  });
   const [open, setOpen] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
   const [isGlobalSyncing, setIsGlobalSyncing] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser || "{}"));
-    }
-  }, []);
 
   useEffect(() => {
     const onStart = () => setIsGlobalSyncing(true);

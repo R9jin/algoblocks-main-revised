@@ -61,6 +61,8 @@ export const PyodideProvider = ({ children }) => {
     };
 
     useEffect(() => {
+        // Worker initialization intentionally updates provider state after mount.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         initGlobalWorker();
         return () => {
             setWorker((prevWorker) => {

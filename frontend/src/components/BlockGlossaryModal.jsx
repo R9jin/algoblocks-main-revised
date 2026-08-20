@@ -26,7 +26,6 @@ function BlockPreview({ type }) {
 
   useEffect(() => {
     if (!containerRef.current) return;
-    setFailed(false);
     let ws = null;
     try {
       ws = Blockly.inject(containerRef.current, {
@@ -50,7 +49,7 @@ function BlockPreview({ type }) {
       });
     } catch (e) {
       console.warn(`Block glossary: couldn't render a live preview for "${type}"`, e);
-      setFailed(true);
+      window.setTimeout(() => setFailed(true), 0);
     }
 
     return () => {

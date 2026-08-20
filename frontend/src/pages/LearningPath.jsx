@@ -79,7 +79,6 @@ export default function LearningPath() {
   const [userProgress, setUserProgress] = useState({});
   const [assessments, setAssessments] = useState({});
   const [submissions, setSubmissions] = useState({});
-  const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
   const [isLoadingCurriculum, setIsLoadingCurriculum] = useState(true);
 
@@ -225,7 +224,6 @@ export default function LearningPath() {
 
         await Promise.all(fetchPromises);
 
-        setLessonDetails(details);
         setActivitiesData(acts);
       } catch (e) {
         console.error("Error loading curriculum:", e);

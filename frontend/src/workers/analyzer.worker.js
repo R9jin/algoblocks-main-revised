@@ -3,8 +3,6 @@ let pyodide = null;
 let pyodidePromise = null; 
 
 let inputResolve = null;
-let isWaitingForInput = false;
-
 const EQUIVALENCE_MAP = {
   "t(n) = t(n/2) + o(1)": "O(log n)",
   "t(n) = 2t(n/2) + o(n)": "O(n log n)",
@@ -294,10 +292,10 @@ async function initPyodide() {
 }
 
 self.onmessage = async (e) => {
-  const { type, code, data, testCases } = e.data;
+  const { type, code, data } = e.data;
 
   if (type === 'INPUT_RESPONSE') {
-    if (inputResolve) { isWaitingForInput = false; inputResolve(data); inputResolve = null; }
+    if (inputResolve) { inputResolve(data); inputResolve = null; }
     return;
   }
 
@@ -475,8 +473,7 @@ output
       });
       pyodide.globals.set("custom_input_async", async (prompt) => {
         return new Promise((resolve) => {
-          inputResolve = (value) => { isWaitingForInput = false; resolve(value); };
-          isWaitingForInput = true;
+          inputResolve = (value) => { resolve(value); };
           const safePrompt = prompt === undefined ? "" : String(prompt);
           self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: safePrompt } });
         });

@@ -159,11 +159,12 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { state: onboardingState, isHydrated, startTour } = useOnboarding();
   const [recentProjects, setRecentProjects] = useState([]);
-  const [systemTemplates, setSystemTemplates] = useState(SYSTEM_TEMPLATES);
+  const [systemTemplates] = useState(SYSTEM_TEMPLATES);
   const [userTemplates, setUserTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSyncingLive, setIsSyncingLive] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const dashboardLoadInFlightRef = useRef(false);
 
   const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
   
@@ -220,8 +221,10 @@ export default function Dashboard() {
   }, [currentUser, onboardingState, isHydrated, startTour]);
 
   const loadDashboardData = useCallback(async () => {
+    if (dashboardLoadInFlightRef.current) return;
+    dashboardLoadInFlightRef.current = true;
+
     try {
-      setLoading(true);
       const user = currentUser ? { ...currentUser } : null;
 
       // Ensure user progress is heavily merged from local IndexedDB 
@@ -374,6 +377,7 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
     } finally {
+      dashboardLoadInFlightRef.current = false;
       setLoading(false);
     }
   }, [currentUser]);

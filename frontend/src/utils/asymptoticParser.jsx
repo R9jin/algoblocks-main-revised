@@ -74,7 +74,7 @@ export const parseMarkdown = (str) => {
   html = html.replace(/\*\*(Asymptotic Simplification|Final Asymptotic Complexity:?|Complexity Summary)\*\*/g, '<h5 class="overall-section-title">$1</h5>');
 
   html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-  html = html.replace(/([a-zA-Z0-9_]+)\^([a-zA-Z0-9\+\-\/]+)/g, '$1<sup>$2</sup>');
+  html = html.replace(/([a-zA-Z0-9_]+)\^([a-zA-Z0-9+\x2f-]+)/g, '$1<sup>$2</sup>');
 
   html = html.replace(/^`([TS]\(n\)\s*=.*?)`$/gm, '<div class="math-block">$1</div>');
   html = html.replace(/`([TS]\(n\)\s*=.*?)`/g, '<div class="math-block">$1</div>');
@@ -106,7 +106,7 @@ export const parseMarkdown = (str) => {
   return parsedBlocks.join('');
 };
 
-export const formatExplanation = (text, isBottleneck, isLocalTab) => {
+export const formatExplanation = (text) => {
   if (!text) return null;
 
   const headerRegex = /(?=\*\*Local Analysis:\*\*|\*\*Global Impact:\*\*|\*\*Educational Insight:\*\*|\*\*Bottleneck Warning:\*\*|\*\*Space Bottleneck:\*\*|\*\*Algorithmic Mastery:\*\*|\*\*Local & Global Analysis:\*\*|\*Profiler verified)/;
