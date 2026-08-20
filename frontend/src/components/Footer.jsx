@@ -30,7 +30,6 @@ export default function Footer() {
 
       <div className="footer-bottom">
         <p>AlgoBlocks is an educational platform built for learning and research purposes.</p>
-        <p>&copy; 2026 AlgoBlocks. All rights reserved.</p>
       </div>
     </footer>
   );
