@@ -492,11 +492,26 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
           }
         } finally { Blockly.Events.setGroup(false); }
 
-        setTimeout(() => {
-          if (workspace.current && onChangeRef.current) {
-            onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonCode);
-          }
-        }, 100);
+        // This delivers the just-loaded blocks/code back to the caller's
+        // state via onChangeRef, and used to fire inside a bare, unawaited
+        // setTimeout -- so the promise below resolved (and callers like
+        // handleSyncToBlocks proceeded to flip viewMode to "workspace" and
+        // show a success toast) up to 100ms *before* this actually ran.
+        // The redirect to the Blocks view would then beat the real delivery
+        // of the synced state, which is exactly backwards. Wrapping it in a
+        // promise that the outer async function awaits keeps the 100ms
+        // settle time Blockly needs (for block layout/connections to
+        // stabilize before it's safe to read back workspaceToCode/save)
+        // while guaranteeing loadFromPython() doesn't resolve until that
+        // delivery has actually happened.
+        await new Promise((resolve) => {
+          setTimeout(() => {
+            if (workspace.current && onChangeRef.current) {
+              onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonCode);
+            }
+            resolve();
+          }, 100);
+        });
       } catch (e) { throw e; }
     },
     resize: () => { if (workspace.current) { Blockly.svgResize(workspace.current); workspace.current.markFocused(); } }
