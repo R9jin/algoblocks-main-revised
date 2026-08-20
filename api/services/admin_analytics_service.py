@@ -169,12 +169,11 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
         if isinstance(final_aes, (int, float)):
             aes_values.append(final_aes)
 
-        baseline_time = sub.get("baseline_actual_complexity") or sub.get("actual_complexity")
-        latest_time = sub.get("latest_actual_complexity") or sub.get("actual_complexity")
-        baseline_space = sub.get("baseline_actual_space_complexity") or sub.get("actual_space_complexity")
-        latest_space = sub.get("latest_actual_space_complexity") or sub.get("actual_space_complexity")
-        same_classes = str(baseline_time or "").replace(" ", "").lower() == str(latest_time or "").replace(" ", "").lower() and str(baseline_space or "").replace(" ", "").lower() == str(latest_space or "").replace(" ", "").lower()
-        rog = 0 if same_classes else sub.get("rog")
+        # Per the paper: ROG = AES_Final - AES_Baseline, with no added
+        # requirement that the Big-O complexity class itself changed --
+        # a resubmission that only fixed correctness (same class, higher
+        # TSR) still raised AES and is still a real refactoring gain.
+        rog = sub.get("rog")
         if isinstance(rog, (int, float)):
             rog_values.append(rog)
 
@@ -215,12 +214,9 @@ def _submission_details(submissions: List[Dict[str, Any]]) -> List[Dict[str, Any
     for sub in submissions:
         if not isinstance(sub, dict):
             continue
-        baseline_time = sub.get("baseline_actual_complexity") or sub.get("actual_complexity")
-        latest_time = sub.get("latest_actual_complexity") or sub.get("actual_complexity")
-        baseline_space = sub.get("baseline_actual_space_complexity") or sub.get("actual_space_complexity")
-        latest_space = sub.get("latest_actual_space_complexity") or sub.get("actual_space_complexity")
-        same_classes = str(baseline_time or "").replace(" ", "").lower() == str(latest_time or "").replace(" ", "").lower() and str(baseline_space or "").replace(" ", "").lower() == str(latest_space or "").replace(" ", "").lower()
-        safe_rog = 0 if same_classes else sub.get("rog", 0)
+        # Same ROG definition as _submission_metrics above -- trust the
+        # stored value, no complexity-class-changed gate.
+        safe_rog = sub.get("rog", 0)
         details.append({
             "moduleId": sub.get("moduleId"),
             "activityId": sub.get("activityId"),

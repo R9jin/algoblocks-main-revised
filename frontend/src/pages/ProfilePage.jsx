@@ -5,9 +5,12 @@ import {
   FiAlertTriangle,
   FiBookOpen,
   FiCheckCircle,
+  FiCheckSquare,
   FiChevronDown,
+  FiClock,
   FiCode,
   FiCpu,
+  FiDatabase,
   FiInfo,
   FiLock,
   FiMail,
@@ -15,7 +18,8 @@ import {
   FiTarget,
   FiTrendingUp,
   FiUnlock,
-  FiUsers
+  FiUsers,
+  FiZap
 } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
@@ -119,15 +123,13 @@ export default function ProfilePage() {
     return { functional, complexity, hidden, passed, total };
   };
 
-  const getSafeRog = (sub) => {
-    const baselineTime = sub?.baseline_actual_complexity || sub?.actual_complexity;
-    const baselineSpace = sub?.baseline_actual_space_complexity || sub?.actual_space_complexity;
-    const latestTime = sub?.latest_actual_complexity || sub?.actual_complexity;
-    const latestSpace = sub?.latest_actual_space_complexity || sub?.actual_space_complexity;
-    const sameClasses = String(baselineTime || "").replace(/\s+/g, "").toLowerCase() === String(latestTime || "").replace(/\s+/g, "").toLowerCase()
-      && String(baselineSpace || "").replace(/\s+/g, "").toLowerCase() === String(latestSpace || "").replace(/\s+/g, "").toLowerCase();
-    return sameClasses ? 0 : Math.max(0, Number(sub?.rog) || 0);
-  };
+  // Per the paper: ROG = AES_Final - AES_Baseline for that activity, with
+  // no additional requirement that the Big-O complexity class itself
+  // changed -- a resubmission that only fixed correctness (same class,
+  // higher TSR) still raised AES and is still a real refactoring gain.
+  // ActivityApp.jsx already stores the correct value in `sub.rog`; this
+  // just guards against a negative or missing number reaching the UI.
+  const getSafeRog = (sub) => Math.max(0, Number(sub?.rog) || 0);
 
   // Harder lessons should demand fewer activities to count as "cleared,"
   // not the same fixed majority as an easy one -- a lesson full of Hard
@@ -819,6 +821,7 @@ export default function ProfilePage() {
                           <span className="mastery-fraction">
                             {mod.completed} of {mod.total} lessons cleared
                             {mod.avgAes > 0 && <span className="mod-inline-metric"> • Avg AES: {mod.avgAes}%</span>}
+                            {mod.avgRog > 0 && <span className="mod-inline-metric"> • Avg ROG: +{mod.avgRog}</span>}
                           </span>
                         </div>
                       </div>
@@ -860,51 +863,86 @@ export default function ProfilePage() {
                               </div>
                             ) : (
                               <div className="activities-list">
-                                {lesson.activities.map((act) => (
-                                  <div key={act.id} className={`activity-row ${act.isCompleted ? 'completed-row' : ''} ${!lesson.isUnlocked && !act.hasSubmission ? 'locked-row' : ''}`}>
-                                    <div className="act-left">
-                                      {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : lesson.isUnlocked || act.hasSubmission ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
-                                      <div className="act-info">
-                                        <span className="act-title">{act.title}</span>
-                                        <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'easy'}`}>{act.difficulty || 'Easy'}</span>
-                                      </div>
-                                    </div>
-                                    <div className="act-right">
-                                      {(lesson.isUnlocked || act.isCompleted || act.hasSubmission) ? (
-                                        <div className="act-metrics-group">
-                                          <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
-                                            AES: {act.aes > 0 ? `${act.aes}%` : '--'}
-                                          </span>
-                                          <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
-                                            ROG: {act.rog > 0 ? `+${act.rog}` : '--'}
-                                          </span>
-                                          {act.testBreakdown && (
-                                            <span className="metric-badge tests-badge">
-                                              Functional: {act.testBreakdown.functional.passed}/{act.testBreakdown.functional.total} | Complexity: {act.testBreakdown.complexity.passed}/{act.testBreakdown.complexity.total} | Hidden: {act.testBreakdown.hidden.passed}/{act.testBreakdown.hidden.total}
-                                            </span>
-                                          )}
-                                          {act.actualTime && (
-                                            <span className="metric-badge complexity-badge">
-                                              Time: {act.actualTime}
-                                            </span>
-                                          )}
-                                          {act.actualSpace && (
-                                            <span className="metric-badge complexity-badge">
-                                              Space: {act.actualSpace}
-                                            </span>
-                                          )}
-                                          {act.baselineTime && act.latestTime && (
-                                            <span className="metric-badge complexity-badge">
-                                              Time: {act.baselineTime} -&gt; {act.latestTime} | Space: {act.baselineSpace || "--"} -&gt; {act.latestSpace || "--"}
-                                            </span>
-                                          )}
+                                {lesson.activities.map((act) => {
+                                  const isActUnlocked = lesson.isUnlocked || act.isCompleted || act.hasSubmission;
+                                  return (
+                                  <div key={act.id} className={`activity-row diff-${act.difficulty?.toLowerCase() || 'easy'} ${act.isCompleted ? 'completed-row' : ''} ${!isActUnlocked ? 'locked-row' : ''}`}>
+                                    <div className="activity-row-top">
+                                      <div className="act-left">
+                                        {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : isActUnlocked ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
+                                        <div className="act-info">
+                                          <span className="act-title">{act.title}</span>
+                                          <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'easy'}`}>{act.difficulty || 'Easy'}</span>
                                         </div>
-                                      ) : (
-                                        <span className="locked-text">Locked</span>
+                                      </div>
+                                      {!isActUnlocked && (
+                                        <span className="locked-text"><FiLock /> Locked</span>
                                       )}
                                     </div>
+                                    {isActUnlocked && (
+                                      <div className="act-metrics-group">
+                                        <div className="metric-cluster score-cluster">
+                                          <span className="cluster-label"><FiZap /> Score</span>
+                                          <div className="cluster-values">
+                                            <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
+                                              AES {act.aes > 0 ? `${act.aes}%` : '--'}
+                                            </span>
+                                            <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
+                                              <FiTrendingUp className="badge-icon" /> {act.rog > 0 ? `+${act.rog}` : '--'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        {act.testBreakdown && (
+                                          <div className="metric-cluster tests-cluster">
+                                            <span className="cluster-label"><FiCheckSquare /> Tests</span>
+                                            <div className="cluster-values">
+                                              <span className="metric-badge tests-badge">
+                                                Func {act.testBreakdown.functional.passed}/{act.testBreakdown.functional.total}
+                                              </span>
+                                              <span className="metric-badge tests-badge">
+                                                Complexity {act.testBreakdown.complexity.passed}/{act.testBreakdown.complexity.total}
+                                              </span>
+                                              <span className="metric-badge tests-badge">
+                                                Hidden {act.testBreakdown.hidden.passed}/{act.testBreakdown.hidden.total}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {(act.actualTime || act.actualSpace) && (
+                                          <div className="metric-cluster complexity-cluster">
+                                            <span className="cluster-label"><FiCpu /> Complexity</span>
+                                            <div className="cluster-values">
+                                              {act.actualTime && (
+                                                <span className="metric-badge complexity-badge">
+                                                  <FiClock className="badge-icon" /> {act.actualTime}
+                                                </span>
+                                              )}
+                                              {act.actualSpace && (
+                                                <span className="metric-badge complexity-badge">
+                                                  <FiDatabase className="badge-icon" /> {act.actualSpace}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )}
+                                        {act.baselineTime && act.latestTime && (
+                                          <div className="metric-cluster trend-cluster">
+                                            <span className="cluster-label"><FiTrendingUp /> Improvement</span>
+                                            <div className="cluster-values">
+                                              <span className="metric-badge trend-badge">
+                                                Time {act.baselineTime} &rarr; {act.latestTime}
+                                              </span>
+                                              <span className="metric-badge trend-badge">
+                                                Space {act.baselineSpace || "--"} &rarr; {act.latestSpace || "--"}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
@@ -931,51 +969,86 @@ export default function ProfilePage() {
                             </div>
 
                             <div className="activities-list">
-                              {mod.optimizations.activities.map((act) => (
-                                  <div key={act.id} className={`activity-row ${act.isCompleted ? 'completed-row' : ''} ${!mod.optimizations.isUnlocked && !act.hasSubmission ? 'locked-row' : ''}`}>
-                                  <div className="act-left">
-                                    {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : mod.optimizations.isUnlocked || act.hasSubmission ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
-                                    <div className="act-info">
-                                      <span className="act-title">{act.title}</span>
-                                      <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'medium'}`}>{act.difficulty || 'Medium'}</span>
+                              {mod.optimizations.activities.map((act) => {
+                                const isActUnlocked = mod.optimizations.isUnlocked || act.isCompleted || act.hasSubmission;
+                                return (
+                                  <div key={act.id} className={`activity-row diff-${act.difficulty?.toLowerCase() || 'medium'} ${act.isCompleted ? 'completed-row' : ''} ${!isActUnlocked ? 'locked-row' : ''}`}>
+                                    <div className="activity-row-top">
+                                      <div className="act-left">
+                                        {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : isActUnlocked ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
+                                        <div className="act-info">
+                                          <span className="act-title">{act.title}</span>
+                                          <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'medium'}`}>{act.difficulty || 'Medium'}</span>
+                                        </div>
+                                      </div>
+                                      {!isActUnlocked && (
+                                        <span className="locked-text"><FiLock /> Locked</span>
+                                      )}
                                     </div>
-                                  </div>
-                                  <div className="act-right">
-                                    {(mod.optimizations.isUnlocked || act.isCompleted || act.hasSubmission) ? (
+                                    {isActUnlocked && (
                                       <div className="act-metrics-group">
-                                        <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
-                                          AES: {act.aes > 0 ? `${act.aes}%` : '--'}
-                                        </span>
-                                        <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
-                                          ROG: {act.rog > 0 ? `+${act.rog}` : '--'}
-                                        </span>
+                                        <div className="metric-cluster score-cluster">
+                                          <span className="cluster-label"><FiZap /> Score</span>
+                                          <div className="cluster-values">
+                                            <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
+                                              AES {act.aes > 0 ? `${act.aes}%` : '--'}
+                                            </span>
+                                            <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
+                                              <FiTrendingUp className="badge-icon" /> {act.rog > 0 ? `+${act.rog}` : '--'}
+                                            </span>
+                                          </div>
+                                        </div>
                                         {act.testBreakdown && (
-                                          <span className="metric-badge tests-badge">
-                                            Functional: {act.testBreakdown.functional.passed}/{act.testBreakdown.functional.total} | Complexity: {act.testBreakdown.complexity.passed}/{act.testBreakdown.complexity.total} | Hidden: {act.testBreakdown.hidden.passed}/{act.testBreakdown.hidden.total}
-                                          </span>
+                                          <div className="metric-cluster tests-cluster">
+                                            <span className="cluster-label"><FiCheckSquare /> Tests</span>
+                                            <div className="cluster-values">
+                                              <span className="metric-badge tests-badge">
+                                                Func {act.testBreakdown.functional.passed}/{act.testBreakdown.functional.total}
+                                              </span>
+                                              <span className="metric-badge tests-badge">
+                                                Complexity {act.testBreakdown.complexity.passed}/{act.testBreakdown.complexity.total}
+                                              </span>
+                                              <span className="metric-badge tests-badge">
+                                                Hidden {act.testBreakdown.hidden.passed}/{act.testBreakdown.hidden.total}
+                                              </span>
+                                            </div>
+                                          </div>
                                         )}
-                                        {act.actualTime && (
-                                          <span className="metric-badge complexity-badge">
-                                            Time: {act.actualTime}
-                                          </span>
-                                        )}
-                                        {act.actualSpace && (
-                                          <span className="metric-badge complexity-badge">
-                                            Space: {act.actualSpace}
-                                          </span>
+                                        {(act.actualTime || act.actualSpace) && (
+                                          <div className="metric-cluster complexity-cluster">
+                                            <span className="cluster-label"><FiCpu /> Complexity</span>
+                                            <div className="cluster-values">
+                                              {act.actualTime && (
+                                                <span className="metric-badge complexity-badge">
+                                                  <FiClock className="badge-icon" /> {act.actualTime}
+                                                </span>
+                                              )}
+                                              {act.actualSpace && (
+                                                <span className="metric-badge complexity-badge">
+                                                  <FiDatabase className="badge-icon" /> {act.actualSpace}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
                                         )}
                                         {act.baselineTime && act.latestTime && (
-                                          <span className="metric-badge complexity-badge">
-                                            Before: {act.baselineTime} / {act.baselineSpace || "--"} -&gt; Latest: {act.latestTime} / {act.latestSpace || "--"}
-                                          </span>
+                                          <div className="metric-cluster trend-cluster">
+                                            <span className="cluster-label"><FiTrendingUp /> Improvement</span>
+                                            <div className="cluster-values">
+                                              <span className="metric-badge trend-badge">
+                                                Time {act.baselineTime} &rarr; {act.latestTime}
+                                              </span>
+                                              <span className="metric-badge trend-badge">
+                                                Space {act.baselineSpace || "--"} &rarr; {act.latestSpace || "--"}
+                                              </span>
+                                            </div>
+                                          </div>
                                         )}
                                       </div>
-                                    ) : (
-                                      <span className="locked-text">Locked</span>
                                     )}
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         )}

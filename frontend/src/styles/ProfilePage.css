@@ -453,11 +453,12 @@
    4. Module Dropdown Details (Lessons & Activities) 
 ========================================================= */
 .module-dropdown-content {
-  padding: 20px;
-  background: #FFFFFF;
+  padding: 18px 20px 22px;
+  background: var(--app-bg);
+  border-top: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
   animation: slideDownFade 0.3s ease-out forwards;
 }
 
@@ -467,83 +468,176 @@
 }
 
 .lesson-block {
-  border-left: 3px solid var(--border-light);
-  padding-left: 15px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lesson-block.locked-block {
+  background: #FAFBFC;
+  box-shadow: none;
+}
+
+.lesson-block.optimization-block {
+  border-color: rgba(121, 40, 202, 0.25);
+  background: linear-gradient(180deg, rgba(121, 40, 202, 0.035) 0%, #FFFFFF 90px);
 }
 
 .lesson-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .lesson-title {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: var(--text-main);
+  line-height: 1.3;
+}
+
+.locked-block .lesson-title {
+  color: var(--text-muted);
+}
+
+.lesson-status-indicators {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.activity-count-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--purple-main);
+  background: var(--purple-alpha);
+  border: 1px solid rgba(121, 40, 202, 0.25);
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.activity-count-badge.cleared {
+  color: var(--green-success);
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.lesson-lock-icon {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  opacity: 0.7;
 }
 
 .lesson-check {
   color: var(--green-success);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  flex-shrink: 0;
 }
 
 .activities-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .activity-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 10px;
   background: var(--app-bg);
-  padding: 10px 16px;
-  border-radius: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
   border: 1px solid var(--border-light);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.activity-row.completed-row {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.activity-row.locked-row {
+  background: #F8F9FB;
+  opacity: 0.65;
 }
 
 .activity-row.empty-row {
-  justify-content: flex-start;
+  flex-direction: row;
+  align-items: center;
+  background: transparent;
+  border-style: dashed;
+}
+
+.empty-text {
   color: var(--text-muted);
   font-style: italic;
-  font-size: 0.85rem;
+  font-size: 0.83rem;
+}
+
+.activity-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .act-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .act-icon {
   color: var(--purple-main);
-  opacity: 0.7;
+  opacity: 0.75;
+  flex-shrink: 0;
+  font-size: 1rem;
 }
+
+.act-icon.success { color: var(--green-success); opacity: 1; }
+.act-icon.locked { color: var(--text-muted); opacity: 0.6; }
 
 .act-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  min-width: 0;
 }
 
 .act-title {
-  font-size: 0.9rem;
+  font-size: 0.87rem;
   font-weight: 600;
   color: var(--text-main);
 }
 
 .act-difficulty {
-  font-size: 0.7rem;
+  display: inline-block;
+  width: fit-content;
+  font-size: 0.6rem;
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
 }
-.act-difficulty.easy { color: var(--green-success); }
-.act-difficulty.medium { color: var(--orange-warn); }
-.act-difficulty.hard, .act-difficulty.advanced { color: #EF4444; }
+.act-difficulty.easy { color: var(--green-success); background: rgba(16, 185, 129, 0.1); }
+.act-difficulty.medium { color: var(--orange-warn); background: rgba(245, 158, 11, 0.1); }
+.act-difficulty.hard, .act-difficulty.advanced { color: #EF4444; background: rgba(239, 68, 68, 0.1); }
+
+.activity-row.diff-easy { border-left: 3px solid rgba(16, 185, 129, 0.45); }
+.activity-row.diff-medium { border-left: 3px solid rgba(245, 158, 11, 0.45); }
+.activity-row.diff-hard, .activity-row.diff-advanced { border-left: 3px solid rgba(239, 68, 68, 0.45); }
+.activity-row.locked-row { border-left-color: var(--border-light) !important; }
 
 .act-right {
   display: flex;
@@ -551,12 +645,75 @@
   gap: 10px;
 }
 
-.metric-badge {
-  font-size: 0.75rem;
+.locked-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
   font-weight: 700;
-  padding: 4px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.act-metrics-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 12px 2px calc(1rem + 12px); /* align under the title, past the icon */
+  margin-top: 2px;
+  border-top: 1px dashed var(--border-light);
+}
+
+.metric-cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-bottom: 8px;
+}
+
+.cluster-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+}
+
+.cluster-label svg {
+  font-size: 0.75rem;
+}
+
+.cluster-values {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-icon {
+  font-size: 0.72rem;
+  margin-right: 1px;
+  position: relative;
+  top: 1px;
+}
+
+.metric-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
   border-radius: 6px;
   font-family: "Fira Code", monospace;
+  white-space: nowrap;
+  line-height: 1.5;
 }
 
 .aes-badge.perfect { background: rgba(16, 185, 129, 0.1); color: var(--green-success); border: 1px solid rgba(16, 185, 129, 0.3);}
@@ -564,7 +721,25 @@
 .aes-badge.empty { background: transparent; color: var(--text-muted); border: 1px dashed var(--border-light); opacity: 0.6;}
 
 .rog-badge.active { background: rgba(245, 158, 11, 0.1); color: var(--orange-warn); border: 1px solid rgba(245, 158, 11, 0.3);}
-.rog-badge.empty { display: none; }
+.rog-badge.empty { background: transparent; color: var(--text-muted); border: 1px dashed var(--border-light); opacity: 0.5; }
+
+.tests-badge {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3B82F6;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.complexity-badge {
+  background: rgba(124, 92, 255, 0.1);
+  color: #7c5cff;
+  border: 1px solid rgba(124, 92, 255, 0.22);
+}
+
+.metric-badge.trend-badge {
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--blue-info);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+}
 
 /* Loading State */
 .loading-spinner {
@@ -678,10 +853,16 @@
     justify-content: space-between;
   }
 
-  .activity-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+  .activity-row-top {
+    flex-wrap: wrap;
+  }
+
+  .act-metrics-group {
+    padding-left: 0;
+  }
+
+  .lesson-header {
+    flex-wrap: wrap;
   }
 }
 
@@ -852,9 +1033,13 @@
 }
 
 .module-quiz-block {
-  margin-top: 12px;
-  border-top: 1px dashed rgba(139, 92, 246, 0.35);
-  padding-top: 14px;
+  margin-top: 2px;
+}
+
+.module-quiz-block .activity-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .quiz-label {
@@ -881,35 +1066,4 @@
 .btn-take-quiz:hover {
   background: #7c3aed;
   color: #ffffff;
-}
-
-/* Additional metric badges for activity test case and complexity data */
-.metric-badge.tests-badge {
-  background: rgba(59, 130, 246, 0.12);
-  color: #3b82f6;
-}
-
-.metric-badge.tests-badge.perfect {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-}
-
-.metric-badge.tests-badge.good {
-  background: rgba(249, 115, 22, 0.12);
-  color: #f97316;
-}
-
-.metric-badge.complexity-badge {
-  background: rgba(124, 92, 255, 0.1);
-  color: #7c5cff;
-  font-family: 'Courier New', monospace;
-  font-size: 0.7rem;
-}
-
-.act-metrics-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  justify-content: flex-end;
-  align-items: center;
 }

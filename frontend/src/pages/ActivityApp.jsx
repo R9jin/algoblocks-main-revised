@@ -516,7 +516,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       initial_aes: state.initial_aes, final_aes: state.final_aes, latest_aes: state.latest_aes,
       baseline_actual_complexity: state.baseline_actualTime, baseline_actual_space_complexity: state.baseline_actualSpace,
       latest_actual_complexity: state.latest_actualTime, latest_actual_space_complexity: state.latest_actualSpace,
-      rog: (state.final_aes || 0) - (state.initial_aes || 0),
+      rog: Math.max(0, (state.final_aes || 0) - (state.initial_aes || 0)),
       passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
       functional_passed: state.functional_passed, functional_total: state.functional_total,
       complexity_passed: state.complexity_passed, complexity_total: state.complexity_total,
@@ -637,13 +637,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
             const loadedInitAes = finalSubmissionToLoad.initial_aes ?? null;
             if (loadedInitAes !== null) {
-              const baselineTime = finalSubmissionToLoad.baseline_actual_complexity || finalSubmissionToLoad.actual_complexity;
-              const baselineSpace = finalSubmissionToLoad.baseline_actual_space_complexity || finalSubmissionToLoad.actual_space_complexity;
-              const latestTime = finalSubmissionToLoad.latest_actual_complexity || finalSubmissionToLoad.actual_complexity;
-              const latestSpace = finalSubmissionToLoad.latest_actual_space_complexity || finalSubmissionToLoad.actual_space_complexity;
-              const sameClasses = String(baselineTime || "").replace(/\s+/g, "").toLowerCase() === String(latestTime || "").replace(/\s+/g, "").toLowerCase()
-                && String(baselineSpace || "").replace(/\s+/g, "").toLowerCase() === String(latestSpace || "").replace(/\s+/g, "").toLowerCase();
-              const calcRog = sameClasses ? 0 : computedAes - loadedInitAes;
+              // Per the paper: ROG = AES_Final - AES_Baseline, no
+              // "complexity class must have changed" condition.
+              const calcRog = computedAes - loadedInitAes;
               setCurrentRog(calcRog > 0 ? calcRog : 0);
             }
 
@@ -1160,9 +1156,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       latestStateRef.current.baseline_actualSpace = analysisResult.space_total || "O(1)";
     }
 
-    const sameTimeClass = String(latestStateRef.current.baseline_actualTime || "").replace(/\s+/g, "").toLowerCase() === String(latestStateRef.current.latest_actualTime || "").replace(/\s+/g, "").toLowerCase();
-    const sameSpaceClass = String(latestStateRef.current.baseline_actualSpace || "").replace(/\s+/g, "").toLowerCase() === String(latestStateRef.current.latest_actualSpace || "").replace(/\s+/g, "").toLowerCase();
-    const calculatedRog = sameTimeClass && sameSpaceClass ? 0 : Math.max(0, bestAes - initialAes);
+    // Per the paper's definition: ROG = AES_Final − AES_Baseline, where
+    // Baseline is the AES of the learner's very first evaluation (pass or
+    // fail) and Final is the highest AES recorded for this activity since.
+    // No extra "did the Big-O class change" condition -- a resubmission
+    // that only fixes correctness (same complexity class, higher TSR)
+    // still raised AES and is still a real refactoring gain.
+    const calculatedRog = Math.max(0, bestAes - initialAes);
     latestStateRef.current.rog = calculatedRog;
     latestStateRef.current.functional_passed = functionalPassed;
     latestStateRef.current.functional_total = functionalTotal;
