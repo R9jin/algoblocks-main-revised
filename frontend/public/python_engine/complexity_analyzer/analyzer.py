@@ -190,6 +190,7 @@ class ComplexityAnalyzer:
             'comb': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Computes the number of combinations; cost scales with n.'},
             'perm': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Computes the number of permutations; cost scales with n.'},
             'isqrt': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the integer square root.'},
+            'sqrt': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the square root; a single constant-time math operation.'},
             'floor': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Rounds down to the nearest integer.'},
             'ceil': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Rounds up to the nearest integer.'},
             'trunc': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Truncates the fractional part of a number.'},
@@ -263,6 +264,7 @@ class ComplexityAnalyzer:
             'paretovariate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a Pareto distribution.'},
             'weibullvariate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a Weibull distribution.'},
             'triangular': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a triangular distribution.'},
+            'binomialvariate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a binomial distribution.'},
 
             # -- collections ---------------------------------------------
             'most_common': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Sorts Counter entries by count to return the most frequent ones.'},
@@ -275,6 +277,14 @@ class ComplexityAnalyzer:
             'popitem': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Removes and returns a (key, value) pair.'},
             'setdefault': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Looks up a key, inserting a default if missing. Average-case O(1).'},
             'fromkeys': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Builds a new mapping with the given keys, all set to the same value.'},
+            'total': {'time': 'O(n)', 'space': 'O(1)', 'desc': "Sums all of a Counter's values; a single pass over its entries."},
+            'new_child': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Prepends a new empty (or given) mapping to a ChainMap.'},
+            'parents': {'time': 'O(1)', 'space': 'O(1)', 'desc': "Returns a ChainMap of all but the first of this ChainMap's mappings."},
+            '_replace': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Builds a new namedtuple with some fields replaced; copies every field.'},
+            '_asdict': {'time': 'O(n)', 'space': 'O(n)', 'desc': "Builds a new dict from a namedtuple's fields; copies every field."},
+            '_make': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Builds a new namedtuple instance from an iterable of field values.'},
+            'update': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Merges another mapping/iterable in, touching every incoming element (dict.update, set.update, Counter.update).'},
+            'namedtuple': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Generates a new lightweight tuple subclass with named fields; a fixed, small amount of class-building work independent of input size.'},
 
             # -- itertools -------------------------------------------------
             # All of these build a lazy iterator: the call itself does not
@@ -296,6 +306,10 @@ class ComplexityAnalyzer:
             'takewhile': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator that stops once a predicate is false.'},
             'filterfalse': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator keeping elements for which a predicate is false.'},
             'pairwise': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator of consecutive overlapping pairs.'},
+            'combinations': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator of r-length combinations; consuming it is where the real (combinatorial) cost shows up.'},
+            'combinations_with_replacement': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator of r-length combinations with repeated elements allowed; consuming it is where the real (combinatorial) cost shows up.'},
+            'permutations': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator of r-length permutations; consuming it is where the real (combinatorial) cost shows up.'},
+            'batched': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator grouping the input into fixed-length batches; consuming it is where the real cost shows up.'},
 
             # -- functools -------------------------------------------------
             'reduce': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Cumulatively applies a function across an iterable; visits every element once.'},
@@ -304,6 +318,13 @@ class ComplexityAnalyzer:
             'wraps': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Copies metadata from a wrapped function onto a decorator.'},
             'total_ordering': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Fills in missing comparison methods on a class.'},
             'singledispatch': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Registers a function as a single-dispatch generic function.'},
+            'cache': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Wraps a function with an unbounded memoization cache; applying the decorator itself is constant-time (the cache grows as the wrapped function is called).'},
+            'lru_cache': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Wraps a function with a bounded least-recently-used memoization cache; applying the decorator itself is constant-time.'},
+            'cached_property': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Wraps a method so its result is computed once and cached on the instance.'},
+            'partialmethod': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Wraps a method with some arguments pre-filled, like partial() but for class methods.'},
+            'singledispatchmethod': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Registers a method as a single-dispatch generic method.'},
+            'update_wrapper': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Copies metadata from a wrapped function onto a wrapper function.'},
+            'recursive_repr': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Wraps __repr__ to guard against infinite recursion on self-referential objects.'},
 
             # -- heapq (heappush/heappop/heapify already above) ------------
             'heappushpop': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Pushes then pops the heap in one call.'},
@@ -343,7 +364,8 @@ class ComplexityAnalyzer:
         # module.func() attribute call -- still resolves to the cost
         # entries above instead of silently defaulting. Deliberately
         # excludes instance-method-only names (most_common, rotate,
-        # appendleft, move_to_end, popitem, setdefault, fromkeys, ...)
+        # appendleft, move_to_end, popitem, setdefault, fromkeys, total,
+        # new_child, parents, _replace, _asdict, _make, update, ...)
         # since those are never called as bare names.
         self.library_function_names = {
             # math
@@ -352,18 +374,22 @@ class ComplexityAnalyzer:
             'fmod', 'frexp', 'ldexp', 'modf', 'copysign', 'isclose', 'isfinite', 'isinf', 'isnan',
             'degrees', 'radians', 'hypot', 'dist', 'remainder', 'nextafter', 'ulp', 'gamma',
             'lgamma', 'erf', 'erfc', 'sumprod', 'cbrt', 'acos', 'asin', 'atan', 'atan2', 'cos',
-            'sin', 'tan', 'acosh', 'asinh', 'atanh', 'cosh', 'sinh', 'tanh',
+            'sin', 'tan', 'acosh', 'asinh', 'atanh', 'cosh', 'sinh', 'tanh', 'sqrt',
             # random
             'random', 'randint', 'randrange', 'uniform', 'choice', 'choices', 'shuffle', 'sample',
             'seed', 'getstate', 'setstate', 'getrandbits', 'randbytes', 'betavariate',
             'expovariate', 'gammavariate', 'gauss', 'lognormvariate', 'normalvariate',
-            'vonmisesvariate', 'paretovariate', 'weibullvariate', 'triangular',
+            'vonmisesvariate', 'paretovariate', 'weibullvariate', 'triangular', 'binomialvariate',
             # itertools
             'product', 'chain', 'groupby', 'islice', 'accumulate', 'zip_longest', 'cycle',
             'repeat', 'starmap', 'tee', 'compress', 'dropwhile', 'takewhile', 'filterfalse',
-            'pairwise',
+            'pairwise', 'combinations', 'combinations_with_replacement', 'permutations', 'batched',
             # functools
             'reduce', 'partial', 'cmp_to_key', 'wraps', 'total_ordering', 'singledispatch',
+            'cache', 'lru_cache', 'update_wrapper', 'recursive_repr', 'cached_property',
+            'partialmethod', 'singledispatchmethod',
+            # collections
+            'namedtuple',
             # heapq
             'heappush', 'heappop', 'heapify', 'heappushpop', 'heapreplace', 'merge', 'nlargest', 'nsmallest',
             # bisect

@@ -478,6 +478,21 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const state = latestStateRef.current;
     if (!state.userId) return;
 
+    // ANTI-CORRUPTION GUARD: if the boot effect hasn't finished loading the
+    // existing submission yet (e.g. the user opened this activity and
+    // navigated away again before the local/cloud fetch resolved),
+    // latestStateRef.current is still sitting at its initial defaults
+    // (functional_total: 0, complexity_total: 0, hidden_total: 0,
+    // actualTime: "O(n^2)", etc). Saving here would upsert those defaults
+    // over a previously correct submission, wiping out real AES/test-case/
+    // complexity data -- which is exactly what was showing up as
+    // "Functional: 0/0 | Complexity: 0/0" and a stale "O(n^2)" complexity
+    // on the Profile page for activities that were actually completed.
+    // Every other autosave path in this file (handleWorkspaceChange, the
+    // analyzer-trigger effect) already guards on isReadyRef for the same
+    // reason -- triggerFinalSave was the one path that didn't.
+    if (!isReadyRef.current) return;
+
     let currentJson = getFailsafeWorkspaceJson();
     const isJsonEmpty = !currentJson || Object.keys(currentJson).length === 0 || (currentJson.blocks && currentJson.blocks.blocks && currentJson.blocks.blocks.length === 0);
     const hasValidPython = state.pythonCode && state.pythonCode !== "# Drag blocks to generate Python code" && state.pythonCode.trim() !== "";

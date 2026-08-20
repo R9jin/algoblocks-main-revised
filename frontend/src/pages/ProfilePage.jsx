@@ -88,14 +88,32 @@ export default function ProfilePage() {
     const complexity = sub?.complexity_total > 0
       ? { passed: sub.complexity_passed || 0, total: sub.complexity_total }
       : score("complexity");
-    const definedHiddenTotal = Array.isArray(activity?.testCasesPool)
+    // The activity's testCasesPool (loaded fresh from the module JSON) is
+    // the source of truth for how many hidden tests an activity actually
+    // has -- a saved submission's hidden_total can be stale (e.g. content
+    // was edited after the student submitted, or an older/corrupted
+    // submission carried over a stray count) and shouldn't be able to
+    // conjure up a hidden test that doesn't exist. When we know the pool,
+    // it wins outright: activities with 0 defined hidden tests always show
+    // 0/0, never "0/1", no matter what the submission says.
+    const hasKnownPool = Array.isArray(activity?.testCasesPool);
+    const definedHiddenTotal = hasKnownPool
       ? activity.testCasesPool.filter((test) => test?.isHidden).length
       : 0;
-    const hidden = sub?.hidden_total > 0
-      ? { passed: sub.hidden_passed || 0, total: sub.hidden_total }
-      : score("hidden").total > 0
-        ? score("hidden")
-        : { passed: sub?.hidden_passed || 0, total: definedHiddenTotal };
+    let hidden;
+    if (hasKnownPool) {
+      const legacyHiddenPassed = score("hidden").passed || 0;
+      const reportedPassed = sub?.hidden_passed > 0 ? sub.hidden_passed : legacyHiddenPassed;
+      hidden = { passed: Math.min(reportedPassed, definedHiddenTotal), total: definedHiddenTotal };
+    } else {
+      // No activity data available (e.g. module JSON failed to load) --
+      // fall back to whatever the submission itself reports.
+      hidden = sub?.hidden_total > 0
+        ? { passed: sub.hidden_passed || 0, total: sub.hidden_total }
+        : score("hidden").total > 0
+          ? score("hidden")
+          : { passed: sub?.hidden_passed || 0, total: 0 };
+    }
     const total = functional.total + complexity.total + hidden.total || sub?.totalTestCases || sub?.total_tests || 0;
     const passed = functional.passed + complexity.passed + hidden.passed || sub?.passedTestCases || sub?.passed_tests || 0;
     return { functional, complexity, hidden, passed, total };

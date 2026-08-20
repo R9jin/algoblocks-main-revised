@@ -47,6 +47,12 @@ from complexity_analyzer.ast_node_visitors import ASTNodeVisitor
 from complexity_analyzer.complexity_synthesizer import ComplexitySynthesizer
 
 try:
+    from scope_detector import detect_scope_issues
+except ImportError:
+    def detect_scope_issues(source_code, tree=None):
+        return []
+
+try:
     from complexity_explainer.complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
 except ImportError:
     SemanticNLGEngine = None
@@ -161,7 +167,237 @@ class ComplexityAnalyzer:
             'range': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Creates mathematical range object.'},
             'clear': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Empties the container.'},
             'get': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Looks up dictionary key. Evaluated as worst-case O(n) due to hash collisions.'},
-            'popleft': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Removes first element of deque.'}
+            'popleft': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Removes first element of deque.'},
+
+            # -----------------------------------------------------------
+            # Standard library module coverage: math, random, collections,
+            # itertools, statistics, heapq, bisect, functools.
+            #
+            # These are the modules scope_detector.py advertises as
+            # in-scope (FULLY_SUPPORTED_MODULES). Everything below is
+            # keyed by bare attribute/function name (this dict has no
+            # notion of "which module"), so a handful of these names can
+            # still collide with an unrelated rule above if some other
+            # out-of-scope object happens to expose a same-named method --
+            # scope_detector.NAME_COLLISION_NOTES documents that residual
+            # risk for out-of-scope modules. Within the 8 supported
+            # modules themselves there are no such collisions.
+            # -----------------------------------------------------------
+
+            # -- math --------------------------------------------------
+            'lcm': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Computes the least common multiple via the Euclidean algorithm.'},
+            'factorial': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Multiplies every integer from 1 to n together.'},
+            'comb': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Computes the number of combinations; cost scales with n.'},
+            'perm': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Computes the number of permutations; cost scales with n.'},
+            'isqrt': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the integer square root.'},
+            'sqrt': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the square root; a single constant-time math operation.'},
+            'floor': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Rounds down to the nearest integer.'},
+            'ceil': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Rounds up to the nearest integer.'},
+            'trunc': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Truncates the fractional part of a number.'},
+            'log': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes a logarithm; a single constant-time math operation regardless of the value passed in.'},
+            'log2': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes a base-2 logarithm; a single constant-time math operation.'},
+            'log10': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes a base-10 logarithm; a single constant-time math operation.'},
+            'log1p': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes log(1 + x); a single constant-time math operation.'},
+            'exp': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes e raised to a power.'},
+            'exp2': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes 2 raised to a power.'},
+            'expm1': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes e^x - 1 with better precision for small x.'},
+            'fabs': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Returns the float absolute value.'},
+            'fsum': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Sums an iterable of floats with extra precision; scans every element.'},
+            'prod': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Multiplies every element of an iterable together; scans every element.'},
+            'fmod': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the floating-point remainder.'},
+            'frexp': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Decomposes a float into mantissa and exponent.'},
+            'ldexp': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes x * (2**i).'},
+            'modf': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Splits a float into fractional and integer parts.'},
+            'copysign': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Returns a value with the magnitude of one argument and the sign of another.'},
+            'isclose': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Compares two floats for approximate equality.'},
+            'isfinite': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Checks whether a float is neither infinite nor NaN.'},
+            'isinf': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Checks whether a float is infinite.'},
+            'isnan': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Checks whether a float is NaN.'},
+            'degrees': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Converts radians to degrees.'},
+            'radians': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Converts degrees to radians.'},
+            'hypot': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the Euclidean norm for a fixed, small number of coordinates.'},
+            'dist': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the Euclidean distance between two points.'},
+            'remainder': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the IEEE 754 remainder.'},
+            'nextafter': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Returns the next representable float after x towards y.'},
+            'ulp': {'time': 'O(1)', 'space': 'O(1)', 'desc': "Returns the value of the least significant bit of a float."},
+            'gamma': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the gamma function.'},
+            'lgamma': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the natural log of the absolute value of the gamma function.'},
+            'erf': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the error function.'},
+            'erfc': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the complementary error function.'},
+            'sumprod': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Sums the products of two equal-length iterables; scans every element.'},
+            'cbrt': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the cube root.'},
+            'acos': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the arc cosine.'},
+            'asin': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the arc sine.'},
+            'atan': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the arc tangent.'},
+            'atan2': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the arc tangent of y/x, using the signs to pick the quadrant.'},
+            'cos': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the cosine.'},
+            'sin': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the sine.'},
+            'tan': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the tangent.'},
+            'acosh': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the inverse hyperbolic cosine.'},
+            'asinh': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the inverse hyperbolic sine.'},
+            'atanh': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the inverse hyperbolic tangent.'},
+            'cosh': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the hyperbolic cosine.'},
+            'sinh': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the hyperbolic sine.'},
+            'tanh': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Computes the hyperbolic tangent.'},
+
+            # -- random --------------------------------------------------
+            'random': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Generates one pseudo-random float in [0.0, 1.0).'},
+            'randint': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Generates one pseudo-random integer in an inclusive range.'},
+            'randrange': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Generates one pseudo-random integer from a range.'},
+            'uniform': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Generates one pseudo-random float in a range.'},
+            'choice': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Picks a single random element from a sequence.'},
+            'choices': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Picks k random elements with replacement; cost scales with k requested.'},
+            'shuffle': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Randomly reorders a sequence in-place; touches every element (Fisher-Yates).'},
+            'sample': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Picks k unique random elements without replacement; worst case scales with the population size.'},
+            'seed': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Initializes the random number generator.'},
+            'getstate': {'time': 'O(1)', 'space': 'O(1)', 'desc': "Captures the generator's internal state."},
+            'setstate': {'time': 'O(1)', 'space': 'O(1)', 'desc': "Restores the generator's internal state."},
+            'getrandbits': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Generates a fixed-width random integer.'},
+            'randbytes': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Generates n random bytes; cost scales with the number of bytes requested.'},
+            'betavariate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a Beta distribution.'},
+            'expovariate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from an exponential distribution.'},
+            'gammavariate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a Gamma distribution.'},
+            'gauss': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a Gaussian (normal) distribution.'},
+            'lognormvariate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a log-normal distribution.'},
+            'normalvariate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a normal distribution.'},
+            'vonmisesvariate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a von Mises distribution.'},
+            'paretovariate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a Pareto distribution.'},
+            'weibullvariate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a Weibull distribution.'},
+            'triangular': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a triangular distribution.'},
+            'binomialvariate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Samples from a binomial distribution.'},
+
+            # -- collections ---------------------------------------------
+            'most_common': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Sorts Counter entries by count to return the most frequent ones.'},
+            'rotate': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Rotates a deque; worst-case shifts every element.'},
+            'appendleft': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Adds an element to the front of a deque.'},
+            'extendleft': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Adds every element of an iterable to the front of a deque.'},
+            'elements': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Expands a Counter back out into an iterator repeating each element by its count.'},
+            'subtract': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Subtracts counts from a Counter for every element of an iterable.'},
+            'move_to_end': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Moves an existing OrderedDict key to either end.'},
+            'popitem': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Removes and returns a (key, value) pair.'},
+            'setdefault': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Looks up a key, inserting a default if missing. Average-case O(1).'},
+            'fromkeys': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Builds a new mapping with the given keys, all set to the same value.'},
+            'total': {'time': 'O(n)', 'space': 'O(1)', 'desc': "Sums all of a Counter's values; a single pass over its entries."},
+            'new_child': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Prepends a new empty (or given) mapping to a ChainMap.'},
+            'parents': {'time': 'O(1)', 'space': 'O(1)', 'desc': "Returns a ChainMap of all but the first of this ChainMap's mappings."},
+            '_replace': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Builds a new namedtuple with some fields replaced; copies every field.'},
+            '_asdict': {'time': 'O(n)', 'space': 'O(n)', 'desc': "Builds a new dict from a namedtuple's fields; copies every field."},
+            '_make': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Builds a new namedtuple instance from an iterable of field values.'},
+            'update': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Merges another mapping/iterable in, touching every incoming element (dict.update, set.update, Counter.update).'},
+            'namedtuple': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Generates a new lightweight tuple subclass with named fields; a fixed, small amount of class-building work independent of input size.'},
+
+            # -- itertools -------------------------------------------------
+            # All of these build a lazy iterator: the call itself does not
+            # consume the underlying data, so constructing one is O(1).
+            # The cost of actually walking the results shows up wherever
+            # that iterator is later consumed (e.g. a for-loop or list()).
+            'product': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy Cartesian-product iterator; consuming it is where the real cost shows up.'},
+            'chain': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator that links several iterables together.'},
+            'groupby': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy grouping iterator over consecutive matching keys.'},
+            'islice': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy slice iterator over another iterable.'},
+            'accumulate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy running-total iterator.'},
+            'zip_longest': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator pairing elements, padding the shorter iterables.'},
+            'cycle': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator that repeats an iterable forever.'},
+            'repeat': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator that yields the same value repeatedly.'},
+            'starmap': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator applying a function to argument tuples.'},
+            'tee': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Splits one iterator into several independent ones, buffering elements one consumer has seen but another has not.'},
+            'compress': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator filtering by a parallel selectors iterable.'},
+            'dropwhile': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator that drops elements until a predicate is false.'},
+            'takewhile': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator that stops once a predicate is false.'},
+            'filterfalse': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator keeping elements for which a predicate is false.'},
+            'pairwise': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator of consecutive overlapping pairs.'},
+            'combinations': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator of r-length combinations; consuming it is where the real (combinatorial) cost shows up.'},
+            'combinations_with_replacement': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator of r-length combinations with repeated elements allowed; consuming it is where the real (combinatorial) cost shows up.'},
+            'permutations': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator of r-length permutations; consuming it is where the real (combinatorial) cost shows up.'},
+            'batched': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Builds a lazy iterator grouping the input into fixed-length batches; consuming it is where the real cost shows up.'},
+
+            # -- functools -------------------------------------------------
+            'reduce': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Cumulatively applies a function across an iterable; visits every element once.'},
+            'partial': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Wraps a function with some arguments pre-filled.'},
+            'cmp_to_key': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Wraps an old-style comparator as a sort key; the sort itself carries the real cost.'},
+            'wraps': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Copies metadata from a wrapped function onto a decorator.'},
+            'total_ordering': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Fills in missing comparison methods on a class.'},
+            'singledispatch': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Registers a function as a single-dispatch generic function.'},
+            'cache': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Wraps a function with an unbounded memoization cache; applying the decorator itself is constant-time (the cache grows as the wrapped function is called).'},
+            'lru_cache': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Wraps a function with a bounded least-recently-used memoization cache; applying the decorator itself is constant-time.'},
+            'cached_property': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Wraps a method so its result is computed once and cached on the instance.'},
+            'partialmethod': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Wraps a method with some arguments pre-filled, like partial() but for class methods.'},
+            'singledispatchmethod': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Registers a method as a single-dispatch generic method.'},
+            'update_wrapper': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Copies metadata from a wrapped function onto a wrapper function.'},
+            'recursive_repr': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Wraps __repr__ to guard against infinite recursion on self-referential objects.'},
+
+            # -- heapq (heappush/heappop/heapify already above) ------------
+            'heappushpop': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Pushes then pops the heap in one call.'},
+            'heapreplace': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Pops then pushes the heap in one call.'},
+            'merge': {'time': 'O(n log n)', 'space': 'O(1)', 'desc': 'Lazily merges several sorted iterables into one sorted iterator.'},
+            'nlargest': {'time': 'O(n log n)', 'space': 'O(1)', 'desc': 'Finds the n largest items (n is usually a small, fixed count); time is approximated as a full sort, but the result itself is not sized off the input.'},
+            'nsmallest': {'time': 'O(n log n)', 'space': 'O(1)', 'desc': 'Finds the n smallest items (n is usually a small, fixed count); time is approximated as a full sort, but the result itself is not sized off the input.'},
+
+            # -- bisect (bisect/bisect_left/bisect_right/insort already above) --
+            'insort_left': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Finds the insertion point in O(log n) but shifts items in O(n).'},
+            'insort_right': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Finds the insertion point in O(log n) but shifts items in O(n).'},
+
+            # -- statistics --------------------------------------------------
+            'mean': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Averages every value in the dataset; a single pass.'},
+            'fmean': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Fast floating-point average; a single pass.'},
+            'geometric_mean': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Computes the geometric mean; a single pass.'},
+            'harmonic_mean': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Computes the harmonic mean; a single pass.'},
+            'median': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Sorts the dataset to find the middle value(s).'},
+            'median_low': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Sorts the dataset to find the lower of the two middle values.'},
+            'median_high': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Sorts the dataset to find the higher of the two middle values.'},
+            'median_grouped': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Sorts the dataset to estimate the median of grouped continuous data.'},
+            'mode': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Counts occurrences of every value to find the most common one.'},
+            'multimode': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Counts occurrences of every value to find all tied most-common ones.'},
+            'stdev': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Computes the sample standard deviation; a pass over the dataset.'},
+            'pstdev': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Computes the population standard deviation; a pass over the dataset.'},
+            'variance': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Computes the sample variance; a pass over the dataset.'},
+            'pvariance': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Computes the population variance; a pass over the dataset.'},
+            'quantiles': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Sorts the dataset to divide it into equal-probability intervals.'},
+            'correlation': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Computes the correlation coefficient between two equal-length datasets; a single pass.'},
+            'covariance': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Computes the covariance between two equal-length datasets; a single pass.'},
+            'linear_regression': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Fits a line to the dataset; a single pass.'},
+        }
+
+        # Module-level (importable-by-name) functions from the 8 fully
+        # supported standard-library modules, used so that
+        # `from module import func; func(...)` -- a bare Name call, not a
+        # module.func() attribute call -- still resolves to the cost
+        # entries above instead of silently defaulting. Deliberately
+        # excludes instance-method-only names (most_common, rotate,
+        # appendleft, move_to_end, popitem, setdefault, fromkeys, total,
+        # new_child, parents, _replace, _asdict, _make, update, ...)
+        # since those are never called as bare names.
+        self.library_function_names = {
+            # math
+            'gcd', 'lcm', 'pow', 'factorial', 'comb', 'perm', 'isqrt', 'floor', 'ceil', 'trunc',
+            'log', 'log2', 'log10', 'log1p', 'exp', 'exp2', 'expm1', 'fabs', 'fsum', 'prod',
+            'fmod', 'frexp', 'ldexp', 'modf', 'copysign', 'isclose', 'isfinite', 'isinf', 'isnan',
+            'degrees', 'radians', 'hypot', 'dist', 'remainder', 'nextafter', 'ulp', 'gamma',
+            'lgamma', 'erf', 'erfc', 'sumprod', 'cbrt', 'acos', 'asin', 'atan', 'atan2', 'cos',
+            'sin', 'tan', 'acosh', 'asinh', 'atanh', 'cosh', 'sinh', 'tanh', 'sqrt',
+            # random
+            'random', 'randint', 'randrange', 'uniform', 'choice', 'choices', 'shuffle', 'sample',
+            'seed', 'getstate', 'setstate', 'getrandbits', 'randbytes', 'betavariate',
+            'expovariate', 'gammavariate', 'gauss', 'lognormvariate', 'normalvariate',
+            'vonmisesvariate', 'paretovariate', 'weibullvariate', 'triangular', 'binomialvariate',
+            # itertools
+            'product', 'chain', 'groupby', 'islice', 'accumulate', 'zip_longest', 'cycle',
+            'repeat', 'starmap', 'tee', 'compress', 'dropwhile', 'takewhile', 'filterfalse',
+            'pairwise', 'combinations', 'combinations_with_replacement', 'permutations', 'batched',
+            # functools
+            'reduce', 'partial', 'cmp_to_key', 'wraps', 'total_ordering', 'singledispatch',
+            'cache', 'lru_cache', 'update_wrapper', 'recursive_repr', 'cached_property',
+            'partialmethod', 'singledispatchmethod',
+            # collections
+            'namedtuple',
+            # heapq
+            'heappush', 'heappop', 'heapify', 'heappushpop', 'heapreplace', 'merge', 'nlargest', 'nsmallest',
+            # bisect
+            'bisect', 'bisect_left', 'bisect_right', 'insort', 'insort_left', 'insort_right',
+            # statistics
+            'mean', 'fmean', 'geometric_mean', 'harmonic_mean', 'median', 'median_low',
+            'median_high', 'median_grouped', 'mode', 'multimode', 'stdev', 'pstdev', 'variance',
+            'pvariance', 'quantiles', 'correlation', 'covariance', 'linear_regression',
         }
         self.aliases = {}
         if SemanticNLGEngine:
@@ -353,7 +589,8 @@ def analyze_source_code(source_code):
             "call_graph": getattr(analyzer, 'call_graph', {}),
             "error": None,
             "runtime_warning": trace_data.get("runtime_warning"),
-            "runtime_warning_line": trace_data.get("runtime_warning_line")
+            "runtime_warning_line": trace_data.get("runtime_warning_line"),
+            "scope_warnings": detect_scope_issues(source_code, tree)
         }
     except Exception as e:
         print(f"[AST CRASH FALLBACK TRIGGERED]: {e}")
@@ -368,6 +605,7 @@ def analyze_source_code(source_code):
         results["error"] = str(e)
         results["message"] = f"{type(e).__name__}: {e}"
         results["line"] = getattr(e, "lineno", 1) or 1
+        results.setdefault("scope_warnings", [])
     end_time = time.perf_counter()
     results["analysis_time_ms"] = (end_time - start_time) * 1000
     
