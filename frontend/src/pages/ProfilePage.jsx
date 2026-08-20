@@ -72,7 +72,7 @@ export default function ProfilePage() {
     return "Completed";
   };
 
-  const getTestBreakdown = (sub) => {
+  const getTestBreakdown = (sub, activity = null) => {
     const results = Array.isArray(sub?.testCases) ? sub.testCases : [];
     const legacyResults = results.some((test) => test.category)
       ? results
@@ -88,9 +88,14 @@ export default function ProfilePage() {
     const complexity = sub?.complexity_total > 0
       ? { passed: sub.complexity_passed || 0, total: sub.complexity_total }
       : score("complexity");
+    const definedHiddenTotal = Array.isArray(activity?.testCasesPool)
+      ? activity.testCasesPool.filter((test) => test?.isHidden).length
+      : 0;
     const hidden = sub?.hidden_total > 0
       ? { passed: sub.hidden_passed || 0, total: sub.hidden_total }
-      : score("hidden");
+      : score("hidden").total > 0
+        ? score("hidden")
+        : { passed: sub?.hidden_passed || 0, total: definedHiddenTotal };
     const total = functional.total + complexity.total + hidden.total || sub?.totalTestCases || sub?.total_tests || 0;
     const passed = functional.passed + complexity.passed + hidden.passed || sub?.passedTestCases || sub?.passed_tests || 0;
     return { functional, complexity, hidden, passed, total };
@@ -295,7 +300,7 @@ export default function ProfilePage() {
 
                 passedTests = sub.passedTestCases ?? sub.passed_tests ?? null;
                 totalTests = sub.totalTestCases ?? sub.total_tests ?? null;
-                testBreakdown = getTestBreakdown(sub);
+                testBreakdown = getTestBreakdown(sub, act);
                 actualTime = sub.actual_complexity || null;
                 actualSpace = sub.actual_space_complexity || null;
                 baselineTime = sub.baseline_actual_complexity || actualTime;
@@ -367,7 +372,7 @@ export default function ProfilePage() {
 
               passedTests = sub.passedTestCases ?? sub.passed_tests ?? null;
               totalTests = sub.totalTestCases ?? sub.total_tests ?? null;
-              testBreakdown = getTestBreakdown(sub);
+              testBreakdown = getTestBreakdown(sub, act);
               actualTime = sub.actual_complexity || null;
               actualSpace = sub.actual_space_complexity || null;
               baselineTime = sub.baseline_actual_complexity || actualTime;
