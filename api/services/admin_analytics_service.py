@@ -368,7 +368,10 @@ class AdminAnalyticsService:
         }
 
     @staticmethod
-    def get_cohort_overview(selected_emails: Optional[List[str]] = None) -> Dict[str, Any]:
+    def get_cohort_overview(
+        selected_emails: Optional[List[str]] = None,
+        post_test_completed_only: bool = False,
+    ) -> Dict[str, Any]:
         """
         Computes the cohort-wide learning impact metrics.
 
@@ -381,6 +384,15 @@ class AdminAnalyticsService:
         session where only certain respondents should count), the
         computation is restricted to that subset of standard-user emails.
         Otherwise every non-admin user is included.
+
+        If `post_test_completed_only` is True, the computation is further
+        restricted to standard users who have an actual recorded post-test
+        score -- i.e. accounts that finished the course post-test, as
+        opposed to accounts that are still mid-curriculum or never sat the
+        post-test at all. This narrows *both* the system-generated
+        submission metrics and the assessment-based measures to the same
+        completer cohort, so the dashboard reflects one consistent group of
+        finished respondents rather than mixing in partial data.
         """
         # PERFORMANCE: one shared connection for all three queries instead
         # of find_all_users/_fetch_all_submission_rows/_fetch_all_assessment_rows
@@ -405,6 +417,21 @@ class AdminAnalyticsService:
             target_emails = standard_emails & requested
         else:
             target_emails = standard_emails
+
+        # Figure out which standard users actually have a recorded post-test
+        # score. Computed against the full assessment set (not yet narrowed
+        # to target_emails) so it reflects true completion regardless of
+        # who's currently selected.
+        post_test_completers: set = set()
+        if post_test_completed_only:
+            for row in assessment_rows:
+                email = row.get("email")
+                if email not in standard_emails:
+                    continue
+                data = row.get("data") or {}
+                if _find_milestone(data, POSTTEST_KEYWORDS) is not None:
+                    post_test_completers.add(email)
+            target_emails = target_emails & post_test_completers
 
         all_submissions = [
             row.get("data") for row in submission_rows
@@ -458,7 +485,9 @@ class AdminAnalyticsService:
             "status": "success",
             "user_count": len(target_emails),
             "total_standard_users": len(standard_emails),
-            "is_filtered": bool(selected_emails),
+            "is_filtered": bool(selected_emails) or post_test_completed_only,
+            "post_test_completed_only": post_test_completed_only,
+            "post_test_completers": len(post_test_completers) if post_test_completed_only else None,
             "paired_test_takers": n,
             "system_generated": cohort_submission_metrics,
             "assessment_based": {

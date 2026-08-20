@@ -219,6 +219,7 @@ def get_user_metrics(
 def get_analytics_overview(
     request: Request,
     emails: str = None,
+    post_test_only: bool = False,
     admin_email: str = Depends(get_current_admin_user)
 ):
     """
@@ -236,12 +237,20 @@ def get_analytics_overview(
     specific set of standard-user respondents -- useful during a live
     data-gathering session where only certain accounts should count
     toward the study's results. Omit it to include every standard user.
+
+    Pass `?post_test_only=true` to further restrict the computation to
+    standard users who have actually finished the post-test -- i.e.
+    accounts with a recorded post-test score. This can be combined with
+    `emails` (both filters apply together) or used on its own.
     """
     try:
         selected_emails = None
         if emails:
             selected_emails = [e.strip() for e in emails.split(",") if e.strip()]
-        return AdminAnalyticsService.get_cohort_overview(selected_emails=selected_emails)
+        return AdminAnalyticsService.get_cohort_overview(
+            selected_emails=selected_emails,
+            post_test_completed_only=post_test_only,
+        )
     except Exception as e:
         logger.error(f"Error computing analytics overview: {str(e)}")
         raise HTTPException(status_code=500, detail="Error computing analytics overview")

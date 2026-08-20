@@ -844,10 +844,43 @@
   text-decoration: underline;
 }
 
+.analytics-scope-divider {
+  color: #cbc4e0;
+  padding: 0 2px;
+}
+
 .analytics-dashboard-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
   flex-shrink: 0;
+}
+
+.admin-checkbox-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #d8cbff;
+  border-radius: 8px;
+  color: #5A1398;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.admin-checkbox-toggle:hover {
+  background: #ede6ff;
+}
+
+.admin-checkbox-toggle input[type="checkbox"] {
+  accent-color: #5A1398;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
 }
 
 .admin-refresh-btn.small.outline {

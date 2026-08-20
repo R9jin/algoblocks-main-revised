@@ -91,6 +91,12 @@ const AdminUserManagement = () => {
   const [selectedRespondents, setSelectedRespondents] = useState([]); // emails currently applied to the dashboard
   const [pendingRespondents, setPendingRespondents] = useState([]); // emails checked in the picker, not yet applied
 
+  // When on, the dashboard only processes standard-user accounts that have
+  // an actual recorded post-test score -- i.e. accounts that finished the
+  // course post-test -- rather than mixing in respondents who are still
+  // mid-curriculum or never took it. Combines (AND) with respondent selection.
+  const [postTestOnly, setPostTestOnly] = useState(false);
+
   // Pending forgot-password requests, for the Admin > User Management
   // review panel. Legacy manual-override path: normal forgot-password
   // requests now email the user directly (see auth_service.forgot_password),
@@ -201,15 +207,24 @@ const AdminUserManagement = () => {
     fetchResetRequests();
   }, []);
 
-  const fetchOverview = async (emailsOverride) => {
+  // `postTestOnlyOverride` lets callers pass the intended value explicitly
+  // (e.g. the checkbox's onChange handler, where the new value hasn't hit
+  // state yet) instead of relying on a possibly-stale `postTestOnly` closure.
+  const fetchOverview = async (emailsOverride, postTestOnlyOverride) => {
     setOverviewLoading(true);
     setOverviewError(null);
     try {
       const token = getAuthToken();
-      const emailsParam = Array.isArray(emailsOverride) && emailsOverride.length > 0
-        ? `?emails=${encodeURIComponent(emailsOverride.join(","))}`
-        : "";
-      const response = await fetch(`${API_BASE}/api/admin/analytics/overview${emailsParam}`, {
+      const params = new URLSearchParams();
+      if (Array.isArray(emailsOverride) && emailsOverride.length > 0) {
+        params.set("emails", emailsOverride.join(","));
+      }
+      const wantsPostTestOnly = postTestOnlyOverride !== undefined ? postTestOnlyOverride : postTestOnly;
+      if (wantsPostTestOnly) {
+        params.set("post_test_only", "true");
+      }
+      const query = params.toString();
+      const response = await fetch(`${API_BASE}/api/admin/analytics/overview${query ? `?${query}` : ""}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
@@ -220,6 +235,12 @@ const AdminUserManagement = () => {
     } finally {
       setOverviewLoading(false);
     }
+  };
+
+  const togglePostTestOnly = () => {
+    const next = !postTestOnly;
+    setPostTestOnly(next);
+    fetchOverview(selectedRespondents.length > 0 ? selectedRespondents : undefined, next);
   };
 
   const toggleUserMetrics = async (email) => {
@@ -675,9 +696,24 @@ const AdminUserManagement = () => {
                     All standard users{overview ? ` (n=${overview.total_standard_users})` : ""} &middot; admin accounts excluded
                   </>
                 )}
+                {postTestOnly && (
+                  <>
+                    <span className="analytics-scope-divider">&middot;</span>
+                    <LuFlaskConical size={14} />
+                    Post-test completers only{overview?.post_test_completers != null ? ` (${overview.post_test_completers})` : ""}
+                  </>
+                )}
               </div>
             </div>
             <div className="analytics-dashboard-actions">
+              <label className="admin-checkbox-toggle" title="Only process accounts that have finished (recorded a score for) the post-test">
+                <input
+                  type="checkbox"
+                  checked={postTestOnly}
+                  onChange={togglePostTestOnly}
+                />
+                <LuFilter size={14} /> Post-test completers only
+              </label>
               <button onClick={openRespondentPicker} className="admin-refresh-btn small outline">
                 <LuListChecks size={16} /> Select Respondents
               </button>
