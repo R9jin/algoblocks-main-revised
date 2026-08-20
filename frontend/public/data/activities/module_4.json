@@ -3,6 +3,7 @@
     {
       "id": "m4_l1_a1",
       "title": "Greedy Selection: Largest First",
+      "difficulty": "Easy",
       "task": [
         "A greedy algorithm makes the locally optimal choice at each stage. When maximizing a value, the optimal local choice is selecting the maximum available magnitude.",
         "We will implement a greedy choice by sorting a dataset and extracting the largest element.",
@@ -41,6 +42,7 @@
     {
       "id": "m4_l1_a2",
       "title": "Greedy Selection: Smallest First",
+      "difficulty": "Easy",
       "task": [
         "Conversely, when minimizing a cost function, the optimal local choice is the element with the smallest magnitude.",
         "",
@@ -78,6 +80,7 @@
     {
       "id": "m4_l1_a3",
       "title": "Greedy Aggregation: Top K Sum",
+      "difficulty": "Medium",
       "task": [
         "To maximize a cumulative sum given a restricted number of selections (K), a greedy algorithm continuously selects the largest remaining elements.",
         "",
@@ -117,6 +120,7 @@
     {
       "id": "m4_l1_a4",
       "title": "Greedy Minimization: Closest Number",
+      "difficulty": "Easy",
       "task": [
         "Greedy choices can evaluate derived metrics, such as identifying an element that minimizes the absolute mathematical difference to a target.",
         "",
@@ -155,6 +159,7 @@
     {
       "id": "m4_l1_a5",
       "title": "Greedy Navigation: Minimum Cost Path",
+      "difficulty": "Easy",
       "task": [
         "In navigation scenarios, a greedy strategy dictates moving to the adjacent node with the lowest immediate cost, disregarding potential future bottlenecks.",
         "",
@@ -190,6 +195,7 @@
     {
       "id": "m4_l2_a1",
       "title": "Standard Denominations (Philippine Cashier)",
+      "difficulty": "Easy",
       "task": [
         "The Coin Change Problem seeks to minimize the total number of coins dispensed. When utilizing standard currencies, a greedy algorithm successfully yields the optimal solution.",
         "",
@@ -230,6 +236,7 @@
     {
       "id": "m4_l2_a2",
       "title": "Standard Denominations (US Cashier)",
+      "difficulty": "Easy",
       "task": [
         "Applying the exact greedy methodology to a distinct currency system verifies the algorithm's interoperability with standard denomination structures.",
         "",
@@ -267,6 +274,7 @@
     {
       "id": "m4_l2_a3",
       "title": "Coin Breakdown Distribution",
+      "difficulty": "Medium",
       "task": [
         "To provide operational transparency, the algorithm must record the specific denominations allocated rather than merely the total sum.",
         "",
@@ -301,6 +309,7 @@
     {
       "id": "m4_l2_a4",
       "title": "Arbitrary Currency System",
+      "difficulty": "Medium",
       "task": [
         "A robust greedy algorithm must self-organize the dataset prior to execution. If a currency system is provided unsorted, the algorithm must execute an O(n log n) preprocessing phase.",
         "",
@@ -333,6 +342,7 @@
     {
       "id": "m4_l2_a5",
       "title": "Exact Change Validation",
+      "difficulty": "Medium",
       "task": [
         "The Greedy Choice Property is not mathematically flawless. If an arbitrary coin system lacks a 1-unit denomination, the greedy algorithm may fail to process the exact amount.",
         "",
@@ -373,6 +383,7 @@
     {
       "id": "m4_l3_a1",
       "title": "Activity Preprocessing (Sorting by End Time)",
+      "difficulty": "Easy",
       "task": [
         "The Activity Selection algorithm maximizes concurrent scheduling by unconditionally prioritizing tasks that terminate the earliest.",
         "To achieve O(n log n) efficiency, the dataset must be sorted utilizing the termination boundaries.",
@@ -405,6 +416,7 @@
     {
       "id": "m4_l3_a2",
       "title": "The Event Scheduler",
+      "difficulty": "Medium",
       "task": [
         "Upon structural preprocessing, a single O(n) linear sweep is sufficient to greedily aggregate compatible activities.",
         "",
@@ -444,6 +456,7 @@
     {
       "id": "m4_l3_a3",
       "title": "Algorithmic Conflict Detection",
+      "difficulty": "Medium",
       "task": [
         "Evaluating sequence validity requires an algorithm capable of detecting structural overlap between continuous states.",
         "",
@@ -482,6 +495,7 @@
     {
       "id": "m4_l3_a4",
       "title": "Aggregating Scheduled Duration",
+      "difficulty": "Easy",
       "task": [
         "To determine the operational efficiency of the scheduled blocks, the algorithm must dynamically map and aggregate the structural differences.",
         "",
@@ -521,6 +535,7 @@
     {
       "id": "m4_l3_a5",
       "title": "Facility Allocation (Max Overlap)",
+      "difficulty": "Hard",
       "task": [
         "Determining the minimum number of rooms required to host all events requires tracking the maximum state of concurrency.",
         "",

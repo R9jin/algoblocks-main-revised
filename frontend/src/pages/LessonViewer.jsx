@@ -233,6 +233,26 @@ function renderChart(chart) {
   );
 }
 
+// Renders one or more real product screenshots attached to a section or
+// subsection via an `images` array (each entry: { src, alt, caption }).
+// `src` is expected to point at /assets/*.png, matching the same public
+// asset paths already used elsewhere in the app (e.g. the sidebar icons).
+// Silently renders nothing if the section has no images, so this is safe
+// to call unconditionally alongside renderChart/renderCodeSnippets.
+function renderImages(images) {
+  if (!images?.length) return null;
+  return (
+    <div className="lesson-image-gallery">
+      {images.map((image, index) => (
+        <figure className="lesson-image-panel" key={image.src || index}>
+          <img src={image.src} alt={image.alt || ""} loading="lazy" />
+          {image.caption && <figcaption>{formatText(image.caption)}</figcaption>}
+        </figure>
+      ))}
+    </div>
+  );
+}
+
 // Looks up any interactive block playgrounds mapped to this section/
 // subsection id (see data/lessonBlockPlaygrounds.js) and renders one
 // collapsed dropdown row per matched example. Silently renders nothing if
@@ -764,6 +784,7 @@ export default function LessonViewer() {
                     {renderParagraphs(section.content)}
                     {renderBullets(section.bullets)}
                     {renderChart(section.chart)}
+                    {renderImages(section.images)}
                     {renderCodeSnippets(section.codeSnippets)}
                     {renderBlockPlaygrounds(lessonId, section.id, exampleWorker, openPlaygroundId, setOpenPlaygroundId)}
                     {section.subsections?.map((subsection) => (
@@ -772,6 +793,7 @@ export default function LessonViewer() {
                         {renderParagraphs(subsection.content, "lesson-subsection-content")}
                         {renderBullets(subsection.bullets)}
                         {renderChart(subsection.chart)}
+                        {renderImages(subsection.images)}
                         {renderCodeSnippets(subsection.codeSnippets)}
                         {renderBlockPlaygrounds(lessonId, subsection.id, exampleWorker, openPlaygroundId, setOpenPlaygroundId)}
                       </div>

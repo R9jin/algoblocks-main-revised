@@ -129,6 +129,41 @@ export default function ProfilePage() {
     return sameClasses ? 0 : Math.max(0, Number(sub?.rog) || 0);
   };
 
+  // Harder lessons should demand fewer activities to count as "cleared,"
+  // not the same fixed majority as an easy one -- a lesson full of Hard
+  // activities is doing its job if the learner clears even one or two of
+  // them, while an all-Easy lesson can reasonably ask for about half.
+  // Ranked so a lesson's overall difficulty is whichever of its activities
+  // is hardest (one Hard activity in an otherwise-Easy lesson still makes
+  // it a "Hard lesson" for this purpose), since that's the activity that
+  // was actually gating completion.
+  const DIFFICULTY_RANK = { easy: 0, beginner: 0, medium: 1, intermediate: 1, hard: 2, advanced: 3 };
+  const getLessonDifficulty = (acts) => {
+    let hardest = "easy";
+    let hardestRank = 0;
+    for (const act of acts) {
+      const d = (act.difficulty || "easy").toLowerCase();
+      const rank = DIFFICULTY_RANK[d] ?? 0;
+      if (rank > hardestRank) { hardestRank = rank; hardest = d; }
+    }
+    return hardest;
+  };
+  const getMinRequiredForDifficulty = (difficulty, actsLength) => {
+    if (actsLength <= 0) return 0;
+    switch (difficulty) {
+      case "advanced":
+      case "hard":
+        // "Only 1 or 2 activities" -- cap at 2, and never ask for more than
+        // there actually are (a 1-activity Hard lesson still just needs 1).
+        return Math.min(2, actsLength);
+      case "medium":
+      case "intermediate":
+        return Math.max(1, Math.ceil(actsLength / 3));
+      default: // easy / beginner / unrated
+        return Math.max(1, Math.ceil(actsLength / 2));
+    }
+  };
+
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
@@ -260,17 +295,24 @@ export default function ProfilePage() {
           }
         }
 
-        // The latest lesson with a saved activity is the learner's current
-        // working lesson. Keep that lesson open even when an older lesson
-        // still has unfinished optional activities; only lessons after it
-        // are future work and should remain locked on Profile.
-        let activeLessonId = null;
+        // Any lesson the learner has actually saved work in should stay
+        // visibly open on Profile -- not just the single most-recent one.
+        // This used to track one "activeLessonId" (whichever lesson, across
+        // every module, happened to be the LAST one found with a
+        // submission), so if a tester had submissions scattered across
+        // several lessons in the same module (e.g. 3.1, 3.2, 3.3, 3.4), only
+        // the very last of those got force-unlocked -- every earlier lesson
+        // they'd genuinely worked on fell back to `pathUnlocked` and showed
+        // as locked, with a padlock next to the lesson title, even though
+        // it visibly contained real, submitted activity data. A Set of every
+        // touched lesson keeps all of them open.
+        const touchedLessonIds = new Set();
         for (const mod of curriculumIndex) {
           for (const lesson of mod.lessons) {
             const lessonNumber = lesson.lessonId.split("-")[2];
             const lessonActivities = allActivities[mod.moduleId]?.[`lesson_${lessonNumber}`] || [];
             if (lessonActivities.some((act) => userSubs[mod.moduleId]?.[act.id])) {
-              activeLessonId = lesson.lessonId;
+              touchedLessonIds.add(lesson.lessonId);
             }
           }
         }
@@ -335,7 +377,24 @@ export default function ProfilePage() {
               return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, hasSubmission, passedTests, totalTests, testBreakdown, actualTime, actualSpace, baselineTime, baselineSpace, latestTime, latestSpace };
             });
 
-            const minRequired = lesson.minimumActivities || acts.length;
+            // `lesson.minimumActivities` is never actually set anywhere in
+            // curriculumIndex.js, so this always fell back to acts.length --
+            // silently requiring every single activity in a lesson (5/5,
+            // not "a passing majority") before the lesson counted as
+            // cleared. That's stricter than how an individual activity is
+            // judged "done" elsewhere (AES >= 50%, not 100%), and it's what
+            // was pinning the module progress bar at 0% and cascading
+            // `pathUnlocked = false` through every later lesson/module --
+            // skipping or under-scoring even one of five activities meant
+            // the lesson (and everything after it) could never unlock,
+            // no matter how well the rest were done. `lesson.minimumActivities`
+            // still wins outright when the data does specify one; otherwise
+            // the requirement now scales down with how hard the lesson's
+            // activities actually are, so a lesson full of Hard problems
+            // only asks for 1-2 cleared instead of the same flat majority
+            // an all-Easy lesson would need.
+            const lessonDifficulty = getLessonDifficulty(acts);
+            const minRequired = lesson.minimumActivities || getMinRequiredForDifficulty(lessonDifficulty, acts.length);
             let isLessonCompleted = false;
             if (acts.length > 0 && lessonCompletedActs >= minRequired) {
               isLessonCompleted = true;
@@ -343,7 +402,7 @@ export default function ProfilePage() {
               isLessonCompleted = true;
             }
 
-            const currentUnlockState = pathUnlocked || lesson.lessonId === activeLessonId;
+            const currentUnlockState = pathUnlocked || touchedLessonIds.has(lesson.lessonId);
 
             if (!isLessonCompleted && acts.length > 0) {
               pathUnlocked = false; // Stop progression if minimum activities aren't completed

@@ -43,7 +43,14 @@
         {
           "id": "intro-analyzer",
           "title": "The Complexity Tab",
-          "content": "The workspace's Complexity tab automatically reads your blocks and reports two numbers, both in a notation called Big-O: **Time Complexity** (how the number of operations scales) and **Space Complexity** (how memory use scales). You'll build both intuitions in this lesson using the activities from **Task 1**, where a Constant-Time evaluation is your very first hands-on example."
+          "content": "The workspace's Complexity tab automatically reads your blocks and reports two numbers, both in a notation called Big-O: **Time Complexity** (how the number of operations scales) and **Space Complexity** (how memory use scales). You'll build both intuitions in this lesson using the activities from **Task 1**, where a Constant-Time evaluation is your very first hands-on example.",
+          "images": [
+            {
+              "src": "/assets/local-complexity-analysis.png",
+              "alt": "The Complexity Analysis panel showing a line-by-line breakdown of local time and space complexity for a Bubble Sort function, alongside total time and space",
+              "caption": "The Complexity tab breaks a program down line by line, showing local Big-O for each line plus the totals at the top."
+            }
+          ]
         },
         {
           "id": "intro-graph",

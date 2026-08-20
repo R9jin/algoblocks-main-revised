@@ -61,6 +61,13 @@
             "**Variables:** Create storage, swap values.",
             "**Functions:** Define reusable procedures with return values.",
             "**Raw Python:** Drop in text-based code directly for advanced use."
+          ],
+          "images": [
+            {
+              "src": "/assets/blockly-workspace.png",
+              "alt": "The AlgoBlocks workspace showing the block toolbox on the left and an assembled Bubble Sort program built from blocks",
+              "caption": "The Toolbox (left) and Workspace Canvas, with a Bubble Sort program built entirely from blocks."
+            }
           ]
         },
         {
@@ -86,12 +93,31 @@
         {
           "id": "real-time-python",
           "title": "Real-Time Python Code Generation",
-          "content": "This is the feature that ties everything together: a side panel that shows the equivalent Python code, updating live as you edit blocks. Build the **Your First Program** activity and watch that panel -- snapping a text block into a function's return slot will make a line like `return \"Hello World\"` appear instantly. If a structure is incomplete, like a slot with nothing plugged in, you'll see a red error badge; click it and it explains exactly how that gap would show up as a Python syntax error. Get in the habit of glancing at this panel -- it's quietly teaching you to read real Python the whole time you're building."
+          "content": "This is the feature that ties everything together: a side panel that shows the equivalent Python code, updating live as you edit blocks. Build the **Your First Program** activity and watch that panel -- snapping a text block into a function's return slot will make a line like `return \"Hello World\"` appear instantly. If a structure is incomplete, like a slot with nothing plugged in, you'll see a red error badge; click it and it explains exactly how that gap would show up as a Python syntax error. Get in the habit of glancing at this panel -- it's quietly teaching you to read real Python the whole time you're building.",
+          "images": [
+            {
+              "src": "/assets/python-code-workspace.png",
+              "alt": "The Python code panel showing generated code synced live from the block workspace, with Blocks/Python tabs and a Run Code button",
+              "caption": "Switching to the Python tab shows the exact code your blocks generate, kept in sync automatically."
+            }
+          ]
         },
         {
           "id": "output-console",
           "title": "The Output Console",
-          "content": "At the bottom of the screen. Press Run and the generated code executes, with whatever it prints showing up here, alongside timing information and a line-by-line trace. If something goes wrong -- an infinite loop, a runtime error -- you'll get a stop button and a message pointing at the exact block responsible."
+          "content": "At the bottom of the screen. Press Run and the generated code executes, with whatever it prints showing up here, alongside timing information and a line-by-line trace. If something goes wrong -- an infinite loop, a runtime error -- you'll get a stop button and a message pointing at the exact block responsible.",
+          "images": [
+            {
+              "src": "/assets/terminal.png",
+              "alt": "The Console Panel's Terminal Output tab showing printed program output after running a Bubble Sort program",
+              "caption": "Terminal Output: whatever your program prints shows up here after you press Run."
+            },
+            {
+              "src": "/assets/line-by-line-executions.png",
+              "alt": "The Console Panel's Line Executions tab showing a per-line hit count and frequency bar for each executed line of code",
+              "caption": "Line Executions: a per-line hit count, so you can see exactly how many times each line actually ran."
+            }
+          ]
         }
       ]
     },
