@@ -104,7 +104,7 @@
   left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: #5b5675;
 }
 
 .admin-search-input {
@@ -127,7 +127,8 @@
 }
 
 .admin-search-input::placeholder {
-  color: #94a3b8;
+  color: #5b5675;
+  opacity: 1;
 }
 
 .admin-filter-container {
@@ -243,7 +244,7 @@
 }
 
 .admin-user-email {
-  color: #94a3b8;
+  color: #59636e;
   font-size: 0.9rem;
 }
 

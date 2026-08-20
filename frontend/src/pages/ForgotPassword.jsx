@@ -66,13 +66,13 @@ export default function ForgotPassword() {
           </div>
 
           {submitted ? (
-            <p className="auth-instruction" style={{ textAlign: "center", marginBottom: "24px", color: "#cbd5e1", fontSize: "0.95rem" }}>
+            <p className="auth-instruction" style={{ textAlign: "center", marginBottom: "24px", fontSize: "0.95rem" }}>
               If an account exists for <strong>{email}</strong>, a password reset link has been
               sent to that address. Check your inbox (and spam folder).
             </p>
           ) : (
             <>
-              <p className="auth-instruction" style={{ textAlign: "center", marginBottom: "24px", color: "#cbd5e1", fontSize: "0.95rem" }}>
+              <p className="auth-instruction" style={{ textAlign: "center", marginBottom: "24px", fontSize: "0.95rem" }}>
                 Enter the email address associated with your account and we'll send you a
                 link to reset your password.
               </p>

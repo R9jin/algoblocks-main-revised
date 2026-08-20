@@ -199,7 +199,7 @@
 }
 
 .bento-project-card:hover .btn-delete-project {
-  color: #94A3B8;
+  color: #475569;
 }
 
 .btn-delete-project:hover {
@@ -319,7 +319,7 @@
   width: 80px;
   height: 80px;
   background: #F8FAFC;
-  color: #94A3B8;
+  color: #64748B;
   border-radius: 20px;
   display: flex;
   align-items: center;

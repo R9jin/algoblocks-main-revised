@@ -414,6 +414,10 @@
   margin: -0.5rem 0 1.75rem;
 }
 
+.auth-instruction {
+  color: var(--auth-text-muted);
+}
+
 .auth-title-with-icon {
   display: flex;
   align-items: center;

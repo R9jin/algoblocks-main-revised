@@ -273,7 +273,7 @@ html {
 
 .btn-start-activity.disabled, .btn-start-activity:disabled, .btn-read-lesson:disabled {
   background: #e2e8f0;
-  color: #94a3b8;
+  color: #475569;
   cursor: not-allowed;
 }
 
@@ -307,7 +307,7 @@ html {
 .assessment-row.post.locked {
   background: #f8f8fb;
   border-left: 3px solid #cbd5e1;
-  opacity: 0.65;
+  opacity: 0.85;
 }
 
 .assessment-row.done.pre {
@@ -338,7 +338,7 @@ html {
 }
 
 .assessment-row.locked .assessment-row-left svg {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .assessment-row-label {
@@ -348,7 +348,7 @@ html {
 }
 
 .assessment-row.locked .assessment-row-label {
-  color: #94a3b8;
+  color: #475569;
 }
 
 .assessment-score-badge {
@@ -368,7 +368,7 @@ html {
 
 .assessment-gate-note {
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: #64748b;
   font-style: italic;
 }
 
