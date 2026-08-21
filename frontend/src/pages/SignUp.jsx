@@ -1,9 +1,10 @@
 // frontend/src/pages/SignUp.jsx
 import { useEffect, useRef, useState } from "react";
-import { FiCheckCircle, FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
+import { FiCheckCircle, FiEye, FiEyeOff, FiLock, FiMail, FiUser, FiCheck, FiX } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import PolicyConsent from "../components/PolicyConsent";
 import { getErrorMessage } from "../utils/apiError";
+import { PASSWORD_REQUIREMENTS, getPasswordPolicyError } from "../utils/passwordPolicy";
 import "../styles/Auth.css";
 
 // Classic email/password signup. The account is created unverified and a
@@ -54,6 +55,12 @@ export default function SignUp() {
 
     if (password !== confirmPassword) {
       showToast("Passwords do not match");
+      return;
+    }
+
+    const passwordError = getPasswordPolicyError(password);
+    if (passwordError) {
+      showToast(passwordError);
       return;
     }
 
@@ -162,7 +169,7 @@ export default function SignUp() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Create a password"
                   required
-                  minLength={6}
+                  minLength={8}
                   disabled={isLoading}
                   className="password-input"
                 />
@@ -176,6 +183,19 @@ export default function SignUp() {
                   {showPassword ? <FiEyeOff /> : <FiEye />}
                 </button>
               </div>
+              {password.length > 0 && (
+                <ul className="password-requirements-list" aria-live="polite">
+                  {PASSWORD_REQUIREMENTS.map((req) => {
+                    const met = req.test(password);
+                    return (
+                      <li key={req.key} className={met ? "met" : "unmet"}>
+                        {met ? <FiCheck aria-hidden="true" /> : <FiX aria-hidden="true" />}
+                        {req.label}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
 
             <div className="form-group">
@@ -188,7 +208,7 @@ export default function SignUp() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm your password"
                   required
-                  minLength={6}
+                  minLength={8}
                   disabled={isLoading}
                   className="password-input"
                 />

@@ -1,8 +1,9 @@
 // frontend/src/pages/ResetPassword.jsx
 import { useEffect, useState } from "react";
-import { FiArrowLeft, FiCheckCircle, FiEye, FiEyeOff, FiLock, FiXCircle } from "react-icons/fi";
+import { FiArrowLeft, FiCheckCircle, FiEye, FiEyeOff, FiLock, FiXCircle, FiCheck, FiX } from "react-icons/fi";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getErrorMessage } from "../utils/apiError";
+import { PASSWORD_REQUIREMENTS, getPasswordPolicyError } from "../utils/passwordPolicy";
 import "../styles/Auth.css";
 
 export default function ResetPassword() {
@@ -52,8 +53,9 @@ export default function ResetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (password.length < 6) {
-      showToast("Password must be at least 6 characters.");
+    const passwordError = getPasswordPolicyError(password);
+    if (passwordError) {
+      showToast(passwordError);
       return;
     }
     if (password !== confirmPassword) {
@@ -139,7 +141,7 @@ export default function ResetPassword() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter a new password"
                       required
-                      minLength={6}
+                      minLength={8}
                       disabled={isLoading}
                       className="password-input"
                     />
@@ -153,6 +155,19 @@ export default function ResetPassword() {
                       {showPassword ? <FiEyeOff /> : <FiEye />}
                     </button>
                   </div>
+                  {password.length > 0 && (
+                    <ul className="password-requirements-list" aria-live="polite">
+                      {PASSWORD_REQUIREMENTS.map((req) => {
+                        const met = req.test(password);
+                        return (
+                          <li key={req.key} className={met ? "met" : "unmet"}>
+                            {met ? <FiCheck aria-hidden="true" /> : <FiX aria-hidden="true" />}
+                            {req.label}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
 
                 <div className="form-group">
@@ -165,7 +180,7 @@ export default function ResetPassword() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Re-enter your new password"
                       required
-                      minLength={6}
+                      minLength={8}
                       disabled={isLoading}
                       className="password-input"
                     />

@@ -37,11 +37,17 @@ export const getErrorMessage = (data, fallback = "Something went wrong. Please t
       .map((item) => {
         if (typeof item === "string") return item;
         if (item && typeof item.msg === "string") {
+          // Pydantic v2 prefixes any ValueError raised inside a
+          // field_validator (e.g. our password strength check in
+          // models.py) with "Value error, " -- strip that boilerplate so
+          // the toast reads "Password must include at least one number."
+          // instead of "password: Value error, Password must include..."
+          const cleanedMsg = item.msg.replace(/^Value error,\s*/i, "");
           // loc is usually ["body", "<field>"] -- surface the field name
           // when present so "String should have at least 6 characters"
           // reads as "password: String should have at least 6 characters".
           const field = Array.isArray(item.loc) ? item.loc[item.loc.length - 1] : null;
-          return field && typeof field === "string" ? `${field}: ${item.msg}` : item.msg;
+          return field && typeof field === "string" ? `${field}: ${cleanedMsg}` : cleanedMsg;
         }
         return null;
       })

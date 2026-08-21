@@ -85,11 +85,18 @@ class AuthService:
                 detail="This account hasn't been verified yet. Contact an administrator for help."
             )
 
-        token = create_access_token({"sub": req.email})
+        # BUG FIX: sign the token with the email exactly as stored in the
+        # DB, not whatever casing the person typed at the login form. Every
+        # other authenticated route trusts this "sub" claim and compares it
+        # case-sensitively against the DB, so a token minted with the typed
+        # (possibly differently-cased) email could itself cause the same
+        # "looks logged in but nothing matches" symptom one layer down.
+        canonical_email = user.get("email", req.email)
+        token = create_access_token({"sub": canonical_email})
 
         return {
             "status": "success",
-            "email": req.email,
+            "email": canonical_email,
             "name": user.get("name"),
             "role": user.get("role", "user"),
             "isAdmin": user.get("isAdmin", False) or user.get("is_admin", False),
@@ -398,7 +405,10 @@ class AuthService:
                 client_id
             )
 
-            email = idinfo.get("email")
+            # BUG FIX: normalize casing here too, same reasoning as the
+            # email/password path -- keeps Google-SSO accounts consistent
+            # with everything else instead of reintroducing the mismatch.
+            email = (idinfo.get("email") or "").strip().lower()
             name = idinfo.get("name", "")
 
             if not email:

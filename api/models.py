@@ -27,13 +27,36 @@ def _validate_workspace_size(value):
         raise ValueError(f"workspace exceeds maximum size of {MAX_WORKSPACE_BYTES} bytes")
     return value
 
+def _validate_password_strength(value: str) -> str:
+    # BUG FIX / hardening: previously the only rule was a 6-character
+    # minimum, so e.g. "111111" or "aaaaaa" was accepted. bcrypt hashes and
+    # verifies those exactly as reliably as any other password -- character
+    # variety was never actually the cause of login failures -- but a
+    # 6-char, single-character-class password is trivially guessable/
+    # brute-forceable, so it's worth requiring real complexity regardless.
+    # This has to live here (not just in the frontend form) because a
+    # frontend-only check does nothing to stop a request sent straight to
+    # this API.
+    if len(value) < 8:
+        raise ValueError("Password must be at least 8 characters long.")
+    if not any(ch.isalpha() for ch in value):
+        raise ValueError("Password must include at least one letter.")
+    if not any(ch.isdigit() for ch in value):
+        raise ValueError("Password must include at least one number.")
+    return value
+
 # Classic email/password signup (see AuthService.signup_with_email). The
 # account is created unverified and a verification link is emailed to
 # `email`; the person must click it before they can sign in.
 class UserCreate(BaseModel):
     email: EmailStr
     username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=6)
+    password: str = Field(..., min_length=8)
+
+    @field_validator("password")
+    @classmethod
+    def check_password_strength(cls, value: str) -> str:
+        return _validate_password_strength(value)
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -52,7 +75,12 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    new_password: str = Field(..., min_length=6)
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator("new_password")
+    @classmethod
+    def check_password_strength(cls, value: str) -> str:
+        return _validate_password_strength(value)
 
 class VerifyEmailRequest(BaseModel):
     token: str

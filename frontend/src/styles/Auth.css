@@ -621,3 +621,47 @@
 .signup-switch-account:hover {
   color: #47249e;
 }
+
+/* Live password requirements checklist (SignUp / ResetPassword).
+   Auth.css cards are dark glassmorphism (see .auth-card above), so these
+   need to read clearly against that dark background -- not the pale/muted
+   tones used for password requirements-style spelling on the light-theme
+   pages of the app. */
+.password-requirements-list {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.password-requirements-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.password-requirements-list li svg {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.password-requirements-list li.unmet {
+  color: #cbd5e1;
+}
+
+.password-requirements-list li.unmet svg {
+  color: #f87171;
+}
+
+.password-requirements-list li.met {
+  color: #86efac;
+}
+
+.password-requirements-list li.met svg {
+  color: #4ade80;
+}

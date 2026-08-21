@@ -13,8 +13,18 @@ class UserRepository:
         if owns_conn:
             conn = get_db_connection()
         cursor = conn.cursor()
-        
-        cursor.execute('SELECT id, name, email, password, status, role, is_admin, is_verified, onboarding_state FROM users WHERE email = %s', (email,))
+
+        # BUG FIX: email is a plain VARCHAR column and nothing normalizes
+        # casing on write, so "User@Gmail.com" and "user@gmail.com" used to
+        # be treated as different accounts by a case-sensitive `=`. That
+        # meant someone who signed up with mixed-case autocapitalized email
+        # (e.g. on mobile) could reset their password successfully (reset
+        # is looked up by token, not by typed email) and then still get a
+        # 401 "Invalid credentials" on their very next login, because the
+        # email they *typed* didn't byte-for-byte match what was stored.
+        # Compare case-insensitively so lookups work regardless of what
+        # casing is already in the database, without needing a migration.
+        cursor.execute('SELECT id, name, email, password, status, role, is_admin, is_verified, onboarding_state FROM users WHERE LOWER(email) = LOWER(%s)', (email,))
         user = cursor.fetchone()
         
         if not user:
@@ -25,10 +35,17 @@ class UserRepository:
             
         user_dict = dict(user)
 
+        # Use the email exactly as stored (not whatever casing the caller
+        # passed in) for the follow-up queries below, so progress/assessment
+        # rows -- which were written using the canonical stored casing --
+        # still match even when the caller looked this user up with
+        # different casing.
+        canonical_email = user_dict["email"]
+
         # progress is now one row per (email, lesson_id); reconstruct the
         # {lesson_id: score} shape callers already expect so nothing
         # downstream (routers, frontend) has to change.
-        cursor.execute('SELECT lesson_id, score FROM progress WHERE email = %s', (email,))
+        cursor.execute('SELECT lesson_id, score FROM progress WHERE email = %s', (canonical_email,))
         user_dict["progress"] = {r["lesson_id"]: r["score"] for r in cursor.fetchall()}
 
         # same idea for assessments: one row per (email, assessment_key),
@@ -38,7 +55,7 @@ class UserRepository:
                    completed_at, completed, passed, attempts, is_synced,
                    client_timestamp, answers
             FROM assessments WHERE email = %s
-        ''', (email,))
+        ''', (canonical_email,))
         assessments = {}
         for r in cursor.fetchall():
             entry = {
@@ -83,12 +100,18 @@ class UserRepository:
         # is_verified=True explicitly for Google-SSO accounts, since Google
         # has already confirmed ownership of the address.
         is_verified = bool(user_data.get("is_verified", False))
+        # BUG FIX: normalize email to lowercase on write so new accounts
+        # can't be created with casing that later fails to case-insensitive-
+        # match at login (see find_by_email above for the full story).
+        email_value = user_data.get("email")
+        if email_value:
+            email_value = email_value.strip().lower()
         cursor.execute('''
             INSERT INTO users (name, email, password, status, role, is_admin, is_verified)
             VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
         ''', (
             user_data.get("name"),
-            user_data.get("email"),
+            email_value,
             user_data.get("password"),
             user_data.get("status", "active"),
             user_data.get("role", "user"),
