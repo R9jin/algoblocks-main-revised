@@ -9,6 +9,7 @@ from fastapi.security import OAuth2PasswordBearer
 
 # Replaced PyMongo collection with the PostgreSQL user repository
 from repositories.user_repo import UserRepository
+from services.mail_service import SUPPORT_EMAIL
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ async def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
             logger.warning(f"Rejected request: {email} account is not active")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="This account has been suspended. Contact an administrator.",
+                detail=f"This account has been suspended. Contact an administrator at {SUPPORT_EMAIL} for help.",
             )
 
         return email

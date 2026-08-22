@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Request, Query, Body, Depends
 from typing import Dict, Any
 
-from models import UserLogin, UserCreate, ProgressUpdate, GoogleLoginRequest, AssessmentUpdateRequest, BatchSyncPayload, SyncResponse, ForgotPasswordRequest, ResetPasswordRequest, VerifyEmailRequest
+from models import UserLogin, UserCreate, ProgressUpdate, GoogleLoginRequest, AssessmentUpdateRequest, BatchSyncPayload, SyncResponse, ForgotPasswordRequest, ResetPasswordRequest, VerifyEmailRequest, ResendVerificationRequest
 from services.auth_service import AuthService
 from limiter import limiter
 from security import get_current_user_email
@@ -28,6 +28,14 @@ def signup_user(request: Request, req: UserCreate):
 @limiter.limit("10/minute")
 def verify_email(request: Request, req: VerifyEmailRequest):
     return AuthService.verify_email(req.token)
+
+@router.post("/resend-verification")
+@limiter.limit("3/minute")
+def resend_verification(request: Request, req: ResendVerificationRequest):
+    # Same 5/minute-ish tier as other pre-auth email-sending endpoints
+    # (forgot-password), kept slightly tighter (3/minute) since this one
+    # is easy to spam from the "check your email" screen right after signup.
+    return AuthService.resend_verification_email(req.email, origin=request.headers.get("origin"))
 
 @router.post("/forgot-password")
 @limiter.limit("5/minute")

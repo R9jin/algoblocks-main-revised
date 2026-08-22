@@ -15,6 +15,7 @@ from models import UserLogin, ProgressUpdate, AssessmentUpdateRequest
 from database import get_db_connection
 from security import create_access_token
 from services import mail_service
+from services.mail_service import SUPPORT_EMAIL
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class AuthService:
             logger.warning(f"Rejected login for suspended account: {req.email}")
             raise HTTPException(
                 status_code=403,
-                detail="This account has been suspended. Contact an administrator."
+                detail=f"This account has been suspended. Contact an administrator at {SUPPORT_EMAIL} for help."
             )
 
         # SECURITY: accounts must be verified before they can sign in.
@@ -82,7 +83,7 @@ class AuthService:
             logger.warning(f"Rejected login for unverified account: {req.email}")
             raise HTTPException(
                 status_code=403,
-                detail="This account hasn't been verified yet. Contact an administrator for help."
+                detail=f"This account hasn't been verified yet. Contact an administrator at {SUPPORT_EMAIL} for help."
             )
 
         # BUG FIX: sign the token with the email exactly as stored in the
@@ -144,10 +145,54 @@ class AuthService:
         if not sent:
             logger.error(f"Failed to send verification email to {email}")
 
+        # emailSent tells the frontend whether to show the normal "check
+        # your inbox" instructions or the "we couldn't send it, contact an
+        # admin" fallback -- the account exists and is unverified either
+        # way, so the person is never silently stuck with no path forward.
         return {
             "status": "success",
-            "message": "Account created! Check your email for a link to verify your account before signing in."
+            "message": "Account created! Check your email for a link to verify your account before signing in.",
+            "emailSent": sent
         }
+
+    @staticmethod
+    def resend_verification_email(email: str, origin: str = None):
+        """
+        Re-sends the signup verification link. Mirrors forgot_password's
+        enumeration-safe pattern: always returns the same generic response
+        so this endpoint can't be used to probe which emails have accounts,
+        are already verified, or are suspended.
+        """
+        generic_response = {
+            "status": "success",
+            "message": "If that account needs verifying, we've sent a new verification link."
+        }
+
+        user = UserRepository.find_by_email(email)
+        if not user:
+            logger.info(f"Verification resend requested for an email with no account: {email}")
+            return generic_response
+
+        if user.get("status", "active") != "active":
+            logger.warning(f"Ignored verification resend for suspended account: {email}")
+            return generic_response
+
+        if user.get("is_verified", True):
+            # Already verified -- nothing to resend. Don't reveal that via
+            # the response; the person can just go sign in.
+            logger.info(f"Verification resend requested for an already-verified account: {email}")
+            return generic_response
+
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=VERIFICATION_TOKEN_TTL_HOURS)
+        UserRepository.set_verification_token(email, token_hash, expires_at)
+
+        sent = mail_service.send_verification_email(email, user.get("name", ""), raw_token, origin=origin)
+        if not sent:
+            logger.error(f"Failed to resend verification email to {email}")
+
+        return generic_response
 
     @staticmethod
     def verify_email(token: str):
@@ -169,7 +214,7 @@ class AuthService:
             raise HTTPException(status_code=400, detail="This verification link is invalid or has expired.")
 
         if user.get("status", "active") != "active":
-            raise HTTPException(status_code=403, detail="This account has been suspended. Contact an administrator.")
+            raise HTTPException(status_code=403, detail=f"This account has been suspended. Contact an administrator at {SUPPORT_EMAIL} for help.")
 
         UserRepository.mark_verified(user["email"])
 
@@ -424,7 +469,7 @@ class AuthService:
             if user and user.get("status", "active") != "active":
                 raise HTTPException(
                     status_code=403,
-                    detail="This account has been suspended. Contact an administrator."
+                    detail=f"This account has been suspended. Contact an administrator at {SUPPORT_EMAIL} for help."
                 )
 
             if not user:

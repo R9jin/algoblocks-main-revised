@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
 _env_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=_env_path)
 
+# --- Support contact -------------------------------------------------------
+# Shown to users when they need a human (account suspended, unverified with
+# no working inbox, etc.) -- single source of truth so it's never out of
+# sync across auth_service.py / security.py / the frontend.
+SUPPORT_EMAIL = "algoblocks.app@gmail.com"
+
 # --- SMTP configuration (Gmail) -------------------------------------------
 # Read lazily (not at import time) so tests / scripts that set the env vars
 # after import still work, and so a missing var doesn't crash the module.

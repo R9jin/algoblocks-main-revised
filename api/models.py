@@ -85,6 +85,9 @@ class ResetPasswordRequest(BaseModel):
 class VerifyEmailRequest(BaseModel):
     token: str
 
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
 class ProgressUpdate(BaseModel):
     email: Optional[str] = None
     lesson_id: str
