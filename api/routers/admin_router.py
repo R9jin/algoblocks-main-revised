@@ -5,7 +5,12 @@ import logging
 
 from security import get_current_admin_user
 from repositories.user_repo import UserRepository
-from services.admin_analytics_service import AdminAnalyticsService
+from services.admin_analytics_service import (
+    AdminAnalyticsService,
+    _fetch_all_assessment_rows,
+    _find_milestone,
+    POSTTEST_KEYWORDS,
+)
 from services.analyzer_diagnostics_service import AnalyzerDiagnosticsService
 from services.auth_service import AuthService
 from limiter import limiter
@@ -18,7 +23,21 @@ logger = logging.getLogger(__name__)
 def get_all_users(request: Request, admin_email: str = Depends(get_current_admin_user)):
     try:
         users = UserRepository.find_all_users()
-        
+
+        # Reuses the exact same fuzzy assessment-key matching the analytics
+        # dashboard's "post-test only" filter already uses (see
+        # admin_analytics_service.py), so a user counts as having completed
+        # the post-test here if and only if they'd also count there --
+        # no second, slightly-different definition of "completed" to drift
+        # out of sync.
+        assessment_rows = _fetch_all_assessment_rows()
+        post_test_completers = set()
+        for row in assessment_rows:
+            email = row.get("email")
+            data = row.get("data") or {}
+            if _find_milestone(data, POSTTEST_KEYWORDS) is not None:
+                post_test_completers.add(email)
+
         for user in users:
             if "password" in user:
                 del user["password"]
@@ -30,7 +49,13 @@ def get_all_users(request: Request, admin_email: str = Depends(get_current_admin
             # "Verify" action below, a manual override for accounts whose
             # verification email never arrived).
             user["isVerified"] = user.get("is_verified", False)
-                
+            # Powers the "Post-test completed only" row filter in
+            # AdminUserManagement.jsx -- lets an admin narrow the user list
+            # down to just the respondents who actually finished the study's
+            # post-test, instead of scrolling past everyone still mid-
+            # curriculum or who never started.
+            user["hasCompletedPostTest"] = user.get("email") in post_test_completers
+
         return {"status": "success", "users": users}
     except Exception as e:
         logger.error(f"Error fetching users via PostgreSQL: {str(e)}")

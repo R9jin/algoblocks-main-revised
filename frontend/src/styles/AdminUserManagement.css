@@ -903,6 +903,20 @@
   width: 100%;
 }
 
+.respondent-picker-scope-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f5f0ff;
+  color: #5A1398;
+  border: 1px solid #e4d6ff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 4px 0 12px;
+}
+
 .respondent-picker-toolbar {
   display: flex;
   align-items: center;

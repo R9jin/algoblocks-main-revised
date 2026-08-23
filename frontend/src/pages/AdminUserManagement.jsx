@@ -60,6 +60,13 @@ const AdminUserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all"); 
   const [statusFilter, setStatusFilter] = useState("all"); 
+  // Narrows the row list to just standard users who have a recorded
+  // post-test score -- lets an admin scoping a live evaluation round
+  // (e.g. reviewing "who's actually finished the study") skip past
+  // accounts still mid-curriculum or that never started. Independent of
+  // the "Post-test only" toggle further down, which scopes the cohort
+  // analytics dashboard rather than this table.
+  const [postTestRowFilter, setPostTestRowFilter] = useState("all"); // all | completed | not_completed
 
   // Custom Modal State
   const [modalConfig, setModalConfig] = useState({
@@ -111,8 +118,25 @@ const AdminUserManagement = () => {
     [users]
   );
 
+  // When "Post-test completers only" is on, the picker should only list (and
+  // let you toggle) accounts that actually have a recorded post-test score --
+  // otherwise you're hunting for the handful of real completers inside a
+  // list of 18 mixed accounts. Falls back to every standard user when the
+  // toggle is off, so the picker still works for scoping the wider dashboard.
+  const respondentPickerUsers = useMemo(
+    () => (postTestOnly ? standardUsers.filter(u => u.hasCompletedPostTest === true) : standardUsers),
+    [standardUsers, postTestOnly]
+  );
+
   const openRespondentPicker = () => {
-    setPendingRespondents(selectedRespondents.length > 0 ? selectedRespondents : standardUsers.map(u => u.email));
+    // Pre-check the intersection of whatever's currently applied with the
+    // list actually shown, so switching the post-test-only toggle on doesn't
+    // leave stale, no-longer-visible emails silently checked in the picker.
+    const eligibleEmails = respondentPickerUsers.map(u => u.email);
+    const startingSelection = selectedRespondents.length > 0
+      ? selectedRespondents.filter(e => eligibleEmails.includes(e))
+      : eligibleEmails;
+    setPendingRespondents(startingSelection);
     setIsSelectingRespondents(true);
   };
 
@@ -297,10 +321,15 @@ const AdminUserManagement = () => {
       const matchesStatus = 
         statusFilter === "all" ? true : 
         statusFilter === "active" ? !isSuspendedStatus(user.status) : isSuspendedStatus(user.status);
+
+      const matchesPostTest =
+        postTestRowFilter === "all" ? true :
+        postTestRowFilter === "completed" ? user.hasCompletedPostTest === true :
+        user.hasCompletedPostTest !== true;
         
-      return matchesSearch && matchesRole && matchesStatus;
+      return matchesSearch && matchesRole && matchesStatus && matchesPostTest;
     });
-  }, [users, searchTerm, roleFilter, statusFilter]);
+  }, [users, searchTerm, roleFilter, statusFilter, postTestRowFilter]);
 
   // Modal Handlers
   const showModal = (config) => {
@@ -853,6 +882,17 @@ const AdminUserManagement = () => {
               <option value="active">Active Accounts</option>
               <option value="suspended">Suspended Accounts</option>
             </select>
+
+            <select
+              value={postTestRowFilter}
+              onChange={(e) => setPostTestRowFilter(e.target.value)}
+              className="admin-filter-select"
+              title="Filter by whether the account has a recorded post-test score"
+            >
+              <option value="all">View All (Post-Test)</option>
+              <option value="completed">Post-Test Completed</option>
+              <option value="not_completed">Post-Test Not Completed</option>
+            </select>
           </div>
         </div>
 
@@ -894,6 +934,11 @@ const AdminUserManagement = () => {
                       <div className="admin-user-info">
                         <span className="admin-user-name">{user.name || "Unnamed Profile"}</span>
                         <span className="admin-user-email">{user.email}</span>
+                        {!(user.isAdmin || user.role === "admin") && user.hasCompletedPostTest && (
+                          <span className="admin-badge badge-active" style={{ marginTop: "4px", width: "fit-content", fontSize: "0.72rem", padding: "3px 10px" }}>
+                            <LuAward size={13} /> Post-Test Completed
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td>
@@ -1145,18 +1190,26 @@ const AdminUserManagement = () => {
             <div className="admin-modal-body">
               <p>Choose which standard-user accounts count toward the Overall Learning Impact dashboard. Administrator accounts are never included.</p>
 
+              {postTestOnly && (
+                <div className="respondent-picker-scope-note">
+                  <LuFlaskConical size={14} /> Showing post-test completers only ({respondentPickerUsers.length} of {standardUsers.length} standard users) &mdash; uncheck the toggle to pick from everyone.
+                </div>
+              )}
+
               <div className="respondent-picker-toolbar">
-                <button className="respondent-picker-link" onClick={() => setPendingRespondents(standardUsers.map(u => u.email))}>Select All</button>
+                <button className="respondent-picker-link" onClick={() => setPendingRespondents(respondentPickerUsers.map(u => u.email))}>Select All</button>
                 <span className="respondent-picker-divider">&middot;</span>
                 <button className="respondent-picker-link" onClick={() => setPendingRespondents([])}>Clear All</button>
-                <span className="respondent-picker-count">{pendingRespondents.length} / {standardUsers.length} selected</span>
+                <span className="respondent-picker-count">{pendingRespondents.length} / {respondentPickerUsers.length} selected</span>
               </div>
 
               <div className="respondent-picker-list">
-                {standardUsers.length === 0 ? (
-                  <div className="admin-empty-state">No standard-user accounts found.</div>
+                {respondentPickerUsers.length === 0 ? (
+                  <div className="admin-empty-state">
+                    {postTestOnly ? "No standard-user accounts have a recorded post-test score yet." : "No standard-user accounts found."}
+                  </div>
                 ) : (
-                  standardUsers.map((u) => (
+                  respondentPickerUsers.map((u) => (
                     <label key={u.email} className="respondent-picker-item">
                       <input
                         type="checkbox"
