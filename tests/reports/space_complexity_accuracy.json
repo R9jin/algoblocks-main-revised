@@ -1,8 +1,8 @@
 {
   "metric": "expected_overall_space vs analyzer 'space_total'",
   "n": 266,
-  "correct": 234,
-  "accuracy": 0.8797,
+  "correct": 235,
+  "accuracy": 0.8835,
   "floor": 0.8,
   "mismatches": [
     {
@@ -110,14 +110,6 @@
       "analyzer_status": "success"
     },
     {
-      "id": "algo_n2_104",
-      "name": "Python3 program to find distance of nearest",
-      "source_file": "ground_truth_chunk_11.json",
-      "expected": "O(n^2)",
-      "predicted": "O(V + E)",
-      "analyzer_status": "error"
-    },
-    {
       "id": "algo_n2_112",
       "name": "Python3 code to move matrix elements",
       "source_file": "ground_truth_chunk_12.json",
@@ -163,7 +155,7 @@
       "source_file": "ground_truth_chunk_19.json",
       "expected": "O(1)",
       "predicted": "O(n)",
-      "analyzer_status": "error"
+      "analyzer_status": "success"
     },
     {
       "id": "algo_n2_205",
@@ -178,8 +170,8 @@
       "name": "Python3 program to illustrate if a given array can represent",
       "source_file": "ground_truth_chunk_21.json",
       "expected": "O(2^n)",
-      "predicted": "O(n)",
-      "analyzer_status": "error"
+      "predicted": "O(log n)",
+      "analyzer_status": "success"
     },
     {
       "id": "algo_n2_207",

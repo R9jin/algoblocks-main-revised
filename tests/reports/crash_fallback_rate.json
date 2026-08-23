@@ -1,7 +1,7 @@
 {
   "n": 266,
-  "crashes": 9,
-  "rate": 0.0338,
+  "crashes": 3,
+  "rate": 0.0113,
   "ceiling": 0.06,
   "crashed_entries": [
     {
@@ -10,44 +10,14 @@
       "error": "SyntaxError: unexpected character after line continuation character (<unknown>, line 29)"
     },
     {
-      "id": "algo_n2_104",
-      "source_file": "ground_truth_chunk_11.json",
-      "error": "AttributeError: 'str' object has no attribute '_fields'"
-    },
-    {
       "id": "algo_n2_141",
       "source_file": "ground_truth_chunk_15.json",
       "error": "SyntaxError: unexpected character after line continuation character (<unknown>, line 10)"
     },
     {
-      "id": "algo_n2_142",
-      "source_file": "ground_truth_chunk_15.json",
-      "error": "AttributeError: 'str' object has no attribute '_fields'"
-    },
-    {
-      "id": "algo_n3_156",
-      "source_file": "ground_truth_chunk_16.json",
-      "error": "AttributeError: 'str' object has no attribute '_fields'"
-    },
-    {
       "id": "algo_n_172",
       "source_file": "ground_truth_chunk_18.json",
       "error": "SyntaxError: expected ':' (<unknown>, line 57)"
-    },
-    {
-      "id": "algo_n_185",
-      "source_file": "ground_truth_chunk_19.json",
-      "error": "AttributeError: 'str' object has no attribute '_fields'"
-    },
-    {
-      "id": "algo_n_206",
-      "source_file": "ground_truth_chunk_21.json",
-      "error": "AttributeError: 'str' object has no attribute '_fields'"
-    },
-    {
-      "id": "algo_n_215",
-      "source_file": "ground_truth_chunk_22.json",
-      "error": "AttributeError: 'str' object has no attribute '_fields'"
     }
   ]
 }

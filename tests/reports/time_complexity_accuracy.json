@@ -203,7 +203,7 @@
       "source_file": "ground_truth_chunk_11.json",
       "expected": "O(n^2)",
       "predicted": "O(V + E)",
-      "analyzer_status": "error"
+      "analyzer_status": "success"
     },
     {
       "id": "algo_n_123",
@@ -251,7 +251,7 @@
       "source_file": "ground_truth_chunk_15.json",
       "expected": "O(1)",
       "predicted": "O(n^2)",
-      "analyzer_status": "error"
+      "analyzer_status": "success"
     },
     {
       "id": "algo_nlogn_147",
@@ -290,8 +290,8 @@
       "name": "Python3 program to find smallest possible",
       "source_file": "ground_truth_chunk_16.json",
       "expected": "O(n^2)",
-      "predicted": "O(n)",
-      "analyzer_status": "error"
+      "predicted": "O(2^n)",
+      "analyzer_status": "success"
     },
     {
       "id": "algo_1_159",
@@ -387,7 +387,7 @@
       "source_file": "ground_truth_chunk_21.json",
       "expected": "O(2^n)",
       "predicted": "O(n)",
-      "analyzer_status": "error"
+      "analyzer_status": "success"
     },
     {
       "id": "algo_n2_212",
@@ -402,8 +402,8 @@
       "name": "Python3 program for range minimum",
       "source_file": "ground_truth_chunk_22.json",
       "expected": "O(n^2)",
-      "predicted": "O(n)",
-      "analyzer_status": "error"
+      "predicted": "O(2^n)",
+      "analyzer_status": "success"
     },
     {
       "id": "algo_n2_216",

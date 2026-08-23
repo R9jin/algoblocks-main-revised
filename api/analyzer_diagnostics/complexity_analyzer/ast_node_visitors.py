@@ -38,6 +38,22 @@ class ASTNodeVisitor(ast.NodeVisitor):
     def _visit_block(self, body):
         hit_terminal = False
         for item in body:
+            # BUG FIX: `body` is not guaranteed to be a list of AST nodes --
+            # e.g. `ast.Global`/`ast.Nonlocal`.names is a list of plain
+            # strings, not ast.AST instances. The stdlib's own
+            # ast.NodeVisitor.generic_visit guards against this
+            # (`if isinstance(item, AST): self.visit(item)`), but this
+            # custom block-visitor previously called self.visit(item)
+            # unconditionally. self.visit() dispatches on
+            # node.__class__.__name__ (here 'str'), falls through to
+            # generic_visit, and immediately crashes in ast.iter_fields()
+            # with "'str' object has no attribute '_fields'" -- which took
+            # down the whole analysis (any function containing a bare
+            # `global x` or `nonlocal x` statement) and silently dropped it
+            # to the crude regex fallback_analyzer. Skipping non-AST items
+            # here restores the same safety the stdlib traversal has.
+            if not isinstance(item, ast.AST):
+                continue
             if hit_terminal:
                 prev_dead = self.analyzer.in_dead_code
                 self.analyzer.in_dead_code = True
