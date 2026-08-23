@@ -70,6 +70,7 @@ export default function LessonBlockPlayground({ example, runner, caption }) {
             call_graph: data.call_graph || {},
             is_recursive: data.is_recursive || false,
             scope_warnings: data.scope_warnings || [],
+            logic_warnings: data.logic_warnings || [],
           });
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
         } else {
@@ -85,17 +86,59 @@ export default function LessonBlockPlayground({ example, runner, caption }) {
     return () => clearTimeout(analyzeTimeoutRef.current);
   }, [activeFooterTab, pythonCode, codeUnavailable, runner]);
 
-  const handleWorkspaceChange = useCallback((ws) => {
+  const handleWorkspaceChange = useCallback((ws, meta = {}) => {
+    if (meta.isEmpty) {
+      // Ground truth from BlockPlaygroundWorkspace's own block count, not
+      // from whatever the generator happens to return -- guarantees the
+      // Python and Complexity panels always go blank the moment every
+      // block is gone, regardless of any generator-side quirk.
+      setPythonCode("");
+      setCodeUnavailable(true);
+      return;
+    }
     try {
       const code = pythonGenerator.workspaceToCode(ws).trim();
       setPythonCode(code);
       setCodeUnavailable(!code);
     } catch (e) {
       // A block was deleted/left with an empty required socket, or two
-      // pieces don't fit together the way Python expects. Keep the last
-      // good code on screen isn't right either (it'd be describing blocks
-      // that no longer exist), so show a friendly placeholder instead.
-      setCodeUnavailable(true);
+      // pieces don't fit together the way Python expects. workspaceToCode
+      // fails the WHOLE generation on a single bad stack, even when every
+      // other stack on the canvas is perfectly valid -- so before giving
+      // up entirely, try generating each top-level stack on its own and
+      // keep whichever ones succeed. Any stack that still can't be
+      // translated is shown as an inline "Raw Code" placeholder (the same
+      // language as the toolbox's own Raw Code/Raw Block blocks) instead
+      // of silently vanishing, so it's obvious which specific piece needs
+      // fixing rather than losing the whole preview to one broken block.
+      try {
+        const topBlocks = ws.getTopBlocks(true);
+        let anyOk = false;
+        const salvaged = topBlocks
+          .map((block) => {
+            try {
+              const raw = pythonGenerator.blockToCode(block, true);
+              const text = (Array.isArray(raw) ? raw[0] : raw)?.trim();
+              if (text) {
+                anyOk = true;
+                return text;
+              }
+              return null;
+            } catch (blockErr) {
+              return `# Raw Code: couldn't translate this "${block.type}" block -- check what's plugged into it.`;
+            }
+          })
+          .filter(Boolean);
+
+        if (anyOk) {
+          setPythonCode(salvaged.join("\n\n"));
+          setCodeUnavailable(false);
+        } else {
+          setCodeUnavailable(true);
+        }
+      } catch (salvageErr) {
+        setCodeUnavailable(true);
+      }
     }
   }, []);
 

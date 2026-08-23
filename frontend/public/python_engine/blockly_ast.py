@@ -81,6 +81,35 @@ class BlocklyASTConverter:
     # ==========================================
     # TYPE INFERENCE & SAFETY MECHANISM
     # ==========================================
+    # Which of _infer_type's return values correspond to an output "check"
+    # that's actually enforced somewhere in this project's block set (either
+    # a hard-coded socket check, like logic_operation's Boolean-only inputs,
+    # or Blockly's built-in logic_compare onchange guard, which silently
+    # unplugs both operands the instant it sees two non-overlapping output
+    # checks). "Dictionary"/"Set"/"Any" don't correspond to any real
+    # restriction in this project (dict_create_empty, set_create_empty,
+    # variables_get, etc. all declare output: null, i.e. wildcard), so they
+    # deliberately fall through to None ("no real check, always compatible")
+    # rather than being treated as a distinct enforced type.
+    _ENFORCED_COMPARE_TYPES = {"Array", "Boolean", "Number", "String"}
+
+    def _compare_operand_check(self, node):
+        t = self._infer_type(node)
+        return t if t in self._ENFORCED_COMPARE_TYPES else None
+
+    def _types_incompatible_for_compare(self, left, right):
+        """True only when both sides have a statically-known, ENFORCED
+        output type and those types differ -- e.g. `len(arr) == []`
+        (Number vs Array). Mirrors Blockly's own connectionChecker rule for
+        logic_compare's onchange guard: a None/wildcard side is always
+        compatible, matching how a bare variable (variables_get, output
+        null) is never flagged even though its runtime type is unknown."""
+        a = self._compare_operand_check(left)
+        b = self._compare_operand_check(right)
+        if a is None or b is None:
+            return False
+        return a != b
+
     def _infer_type(self, node):
         if isinstance(node, (ast.List, ast.Tuple)): return "Array"
         if isinstance(node, ast.Dict): return "Dictionary"
@@ -566,6 +595,26 @@ class BlocklyASTConverter:
                 
                 def build_compare(left, op, right):
                     if type(op) not in op_map: return self.make_raw_expr(node)
+                    # SAFETY: Blockly's stock logic_compare block has a
+                    # built-in onchange handler (connectionChecker.
+                    # doTypeChecks) that fires the instant this block loads
+                    # into the workspace, and silently unplugs BOTH operands
+                    # if their output types don't overlap at all (e.g.
+                    # Number vs Array -- comparing `len(arr)` against a list
+                    # literal `[]`). Without this guard, a comparison like
+                    # `len(arr) == []` serializes into a perfectly
+                    # well-formed, correctly-nested block tree that Blockly
+                    # itself then tears apart on load, leaving the compare
+                    # block empty (silently defaulting to comparing 0 == 0
+                    # when code is regenerated) and both real operands
+                    # floating, disconnected, elsewhere in the workspace.
+                    # Falling back to a single raw-eval block keeps the
+                    # student's exact (however buggy) comparison visible and
+                    # editable as one clickable block, instead of silently
+                    # producing a broken-looking workspace with no
+                    # indication of what went wrong.
+                    if self._types_incompatible_for_compare(left, right):
+                        return self.make_raw_expr(node)
                     b = {"type": "logic_compare", "id": gen_uid(), "fields": {"OP": op_map[type(op)]}}
                     self.add_input(b, "A", self.serialize_expr(left))
                     self.add_input(b, "B", self.serialize_expr(right))

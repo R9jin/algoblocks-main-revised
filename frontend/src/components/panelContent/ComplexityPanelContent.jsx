@@ -8,13 +8,10 @@
 import DOMPurify from "dompurify";
 import React, { useState } from "react";
 import { FiChevronDown, FiInfo } from "react-icons/fi";
-import { BLOCK_EXAMPLES } from "../../data/blockExamples";
-import { useExampleWorker } from "../../hooks/useExampleWorker.js";
 import { formatExplanation, getComplexityColor, getComplexityWeight, parseMarkdown } from "../../utils/asymptoticParser.jsx";
 import { formatComplexity } from "../../utils/formatters";
 import CallGraphVisualizer from "../CallGraphVisualizer.jsx";
 import ComplexityGraph from "../ComplexityGraph.jsx";
-import LessonBlockPlayground from "../LessonBlockPlayground.jsx";
 import MemoryVisualizer from "../MemoryVisualizer.jsx";
 import ScopeWarningModal from "../ScopeWarningModal.jsx";
 
@@ -32,11 +29,6 @@ export default function ComplexityPanelContent({
 }) {
   const [expandedLines, setExpandedLines] = useState({});
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
-
-  // Own isolated execution worker for the "try an example" playground shown
-  // while there's nothing to analyze yet -- separate from whatever engine
-  // is running the student's actual project.
-  const exampleWorker = useExampleWorker();
 
   const lines = analysisResult?.lines || [];
   const safeTotal = analysisResult?.total || "O(1)";
@@ -60,6 +52,15 @@ export default function ComplexityPanelContent({
     setAckedScopeWarningsKey(scopeWarningsKey);
     setReviewingScopeWarnings(false);
   };
+
+  // Static "this parses and runs fine, but is almost certainly a bug"
+  // findings from logic_lint.py (e.g. `if len(arr) == []:`). Unlike the
+  // scope warnings above, these say nothing about whether the *complexity
+  // numbers* are trustworthy -- the code's Big-O reading is unaffected --
+  // so they're surfaced as a plain, non-blocking list rather than a modal
+  // gate in front of the results.
+  const logicWarnings = analysisResult?.logic_warnings || [];
+  const [showLogicWarnings, setShowLogicWarnings] = useState(false);
 
   let maxWeight = 0;
   let bottleneckIndices = [];
@@ -121,8 +122,29 @@ export default function ComplexityPanelContent({
               <FiInfo /> {scopeWarnings.length} library {scopeWarnings.length === 1 ? "warning" : "warnings"}
             </button>
           )}
+          {logicWarnings.length > 0 && (
+            <button
+              type="button"
+              className="total-badge logic-warning-badge"
+              onClick={() => setShowLogicWarnings((v) => !v)}
+              title="Code that runs without errors but is probably still a bug"
+            >
+              <FiInfo /> {logicWarnings.length} possible {logicWarnings.length === 1 ? "bug" : "bugs"}
+            </button>
+          )}
         </div>
       </div>
+
+      {showLogicWarnings && logicWarnings.length > 0 && (
+        <ul className="logic-warning-panel">
+          {logicWarnings.map((w, i) => (
+            <li key={`${w.line}-${i}`} className="logic-warning-item">
+              <div className="logic-warning-item-head">Line {w.line}</div>
+              <p className="logic-warning-message">{w.message.replace(/^LogicWarning:\s*/, "")}</p>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {scopeGateActive ? (
         <div className="empty-analysis-state scope-gate-placeholder">
@@ -136,18 +158,7 @@ export default function ComplexityPanelContent({
         <div className="overall-complexity-wrapper">
           {safeExplanation ? (
             <div className="overall-markdown-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(safeExplanation)) }} />
-          ) : (
-            <div className="empty-analysis-state">
-              <p>Run code analysis to see the complete overall complexity report.</p>
-              {BLOCK_EXAMPLES.controls_for && (
-                <LessonBlockPlayground
-                  example={BLOCK_EXAMPLES.controls_for}
-                  runner={exampleWorker}
-                  caption="While you wait, see how a loop like this gets analyzed: each pass through the blocks costs time, so a loop over n items costs O(n)."
-                />
-              )}
-            </div>
-          )}
+          ) : null}
         </div>
       ) : activeComplexityTab === "memory" ? (
         <div className="memory-wrapper">

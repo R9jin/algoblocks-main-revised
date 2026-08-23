@@ -334,7 +334,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           lines: data.lines || [],
           call_graph: data.call_graph || {},
           is_recursive: data.is_recursive || false,
-          scope_warnings: data.scope_warnings || []
+          scope_warnings: data.scope_warnings || [],
+          logic_warnings: data.logic_warnings || []
         });
         
         latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";

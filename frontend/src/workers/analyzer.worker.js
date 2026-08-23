@@ -225,6 +225,7 @@ const ENGINE_MODULE_FILES = [
   "blockly_ast.py",
   "dynamic_tracer.py",
   "scope_detector.py",
+  "logic_lint.py",
   "complexity_analyzer/__init__.py",
   "complexity_analyzer/analyzer.py",
   "complexity_analyzer/code_preprocessor.py",
@@ -421,6 +422,14 @@ try:
             "line": output_dict.get("runtime_warning_line") or 1,
             "message": output_dict["runtime_warning"]
         }]
+    elif isinstance(output_dict, dict) and output_dict.get("logic_warnings"):
+        # Code parsed AND ran fine -- no SyntaxError, no traceback -- but
+        # logic_lint.py noticed a pattern that's almost certainly a bug
+        # anyway (e.g. \`len(arr) == []\`, which just silently never fires
+        # instead of crashing). Nothing else in this pipeline would ever
+        # catch these, so surface them through the same error list the
+        # popup on the right already renders.
+        output_dict["multiple_errors"] = list(output_dict["logic_warnings"])
     output = json.dumps(output_dict)
 except Exception as e:
     custom_errs = gather_custom_lint_errors(user_code)

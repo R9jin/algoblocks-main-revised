@@ -39,6 +39,26 @@ function frameWorkspace(ws) {
     } catch (e) {
       /* best-effort framing only */
     }
+    // Safety net for the shared-render-batch race described above: a
+    // sibling playground's disposed workspace throwing mid-frame can, in
+    // rare cases, still leave THIS workspace's blocks present in the
+    // model but never actually drawn (canvas looks empty even though
+    // getTopBlocks() is not). One extra synchronous render pass on the
+    // next frame catches that -- cheap and a no-op if everything already
+    // drew correctly the first time -- without letting a failure here
+    // take down any other workspace's render.
+    requestAnimationFrame(() => {
+      try {
+        const blockCount = ws.getAllBlocks(false).length;
+        const drawnCount = ws.getCanvas()?.querySelectorAll(".blocklyDraggable").length ?? 0;
+        if (blockCount > 0 && drawnCount < blockCount) {
+          ws.render();
+          Blockly.svgResize(ws);
+        }
+      } catch (e) {
+        /* best-effort re-render only -- never let this throw past here */
+      }
+    });
   });
 }
 
@@ -115,7 +135,18 @@ const BlockPlaygroundWorkspace = forwardRef(function BlockPlaygroundWorkspace(
         registerCustomPythonGenerators();
         loadPristine(ws, workspaceState);
 
-        const notifyChange = () => onWorkspaceChange?.(ws);
+        const notifyChange = () => {
+          // Ground-truth emptiness, straight from the workspace model
+          // rather than from whatever pythonGenerator happens to produce.
+          // A generator quirk (stale internal cache, a comment-only block,
+          // etc.) can in principle still emit non-empty text for a
+          // genuinely block-less canvas; trashing every block should
+          // always -- unconditionally -- clear the Python/Complexity
+          // panels, so the caller gets this as an explicit, checked fact
+          // instead of inferring it from the generated string.
+          const isEmpty = ws.getTopBlocks(false).length === 0;
+          onWorkspaceChange?.(ws, { isEmpty });
+        };
         // Fire once immediately so the Python panel reflects the pristine
         // example as soon as the workspace is up, same as the read-only
         // glossary version does on ready.
@@ -154,7 +185,7 @@ const BlockPlaygroundWorkspace = forwardRef(function BlockPlaygroundWorkspace(
         if (!ws) return;
         loadPristine(ws, workspaceState);
         frameWorkspace(ws);
-        onWorkspaceChange?.(ws);
+        onWorkspaceChange?.(ws, { isEmpty: ws.getTopBlocks(false).length === 0 });
       },
       getWorkspace: () => workspaceRef.current,
     }),

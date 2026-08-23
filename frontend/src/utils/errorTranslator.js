@@ -45,6 +45,18 @@ export const translatePythonError = (errorMsg) => {
   // =========================================================================
   const rules = [
     // -------------------------------------------------------------------------
+    // 0. STATIC LOGIC WARNINGS (logic_lint.py, via analyzer.worker.js)
+    // -------------------------------------------------------------------------
+    // These never come from a Python traceback -- the code in question
+    // parses fine and raises nothing at all (e.g. `if len(arr) == []:`
+    // just silently never fires). logic_lint.py already writes a complete,
+    // specific, human-facing explanation for these, so it's passed through
+    // as-is instead of being pattern-matched like a raw exception string.
+    {
+      test: /^LogicWarning: ([\s\S]*)$/,
+      generate: (match) => match[1],
+    },
+    // -------------------------------------------------------------------------
     // 1. SYNTAX & STRUCTURAL ERRORS
     // -------------------------------------------------------------------------
     {
