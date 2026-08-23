@@ -53,6 +53,12 @@ const pushToSyncQueue = (key, data) => {
   } catch (e) { console.error("Sync queue failed:", e); }
 };
 
+// Prefix used by the per-activity "which blocks do I need" hint (see
+// annotate_blocks.py / the activity JSON's task arrays). Matched here so it
+// can render with a real FiGrid icon + chip styling instead of a plain-text
+// emoji glyph.
+const BLOCKS_HINT_PREFIX = "Blocks you'll need:";
+
 const renderFormattedTask = (text) => {
   if (!text) return null;
   const parseStr = (str) => {
@@ -67,11 +73,33 @@ const renderFormattedTask = (text) => {
     return out;
   };
 
+  // Renders the "Blocks you'll need: Category: Label | Category: Label"
+  // line as an icon + a row of chips, one per block, instead of a plain
+  // paragraph -- keeps it visually distinct from the rest of the
+  // instructions without resorting to a text emoji.
+  const renderBlocksHint = (line, idx) => {
+    const rest = line.slice(BLOCKS_HINT_PREFIX.length).trim();
+    const chips = rest.split("|").map((s) => s.trim()).filter(Boolean);
+    return (
+      <div key={idx} className="activity-blocks-hint">
+        <FiGrid size={14} className="activity-blocks-hint-icon" aria-hidden="true" />
+        <span className="activity-blocks-hint-label">Blocks you'll need:</span>
+        <span className="activity-blocks-hint-chips">
+          {chips.map((chip, i) => (
+            <span key={i} className="activity-blocks-hint-chip">{chip}</span>
+          ))}
+        </span>
+      </div>
+    );
+  };
+
   if (Array.isArray(text)) {
     return (
       <div className="activity-task-description">
         {text.map((line, idx) => (
-          <p key={idx} style={{ minHeight: line === "" ? "1rem" : "auto", margin: "4px 0", color: "var(--text-main)", fontSize: "0.9rem", lineHeight: "1.6" }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseStr(line)) }} />
+          typeof line === "string" && line.startsWith(BLOCKS_HINT_PREFIX)
+            ? renderBlocksHint(line, idx)
+            : <p key={idx} style={{ minHeight: line === "" ? "1rem" : "auto", margin: "4px 0", color: "var(--text-main)", fontSize: "0.9rem", lineHeight: "1.6" }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseStr(line)) }} />
         ))}
       </div>
     );

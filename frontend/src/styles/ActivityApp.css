@@ -129,3 +129,47 @@
     font-size: 1.05rem;
   }
 }
+
+/* "Blocks you'll need" hint row -- see renderFormattedTask in
+   ActivityApp.jsx. Uses an FiGrid icon rather than a text emoji, styled as
+   a small chip row so it reads as UI, not prose. */
+.activity-blocks-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 10px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(124, 92, 255, 0.08);
+  border: 1px solid rgba(124, 92, 255, 0.25);
+}
+
+.activity-blocks-hint-icon {
+  color: var(--purple-main, #7c5cff);
+  flex-shrink: 0;
+}
+
+.activity-blocks-hint-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--purple-main, #7c5cff);
+  white-space: nowrap;
+}
+
+.activity-blocks-hint-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.activity-blocks-hint-chip {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
