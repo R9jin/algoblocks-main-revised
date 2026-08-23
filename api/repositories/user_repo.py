@@ -24,7 +24,7 @@ class UserRepository:
         # email they *typed* didn't byte-for-byte match what was stored.
         # Compare case-insensitively so lookups work regardless of what
         # casing is already in the database, without needing a migration.
-        cursor.execute('SELECT id, name, email, password, status, role, is_admin, is_verified, onboarding_state FROM users WHERE LOWER(email) = LOWER(%s)', (email,))
+        cursor.execute('SELECT id, name, email, password, status, role, is_admin, is_verified, onboarding_state, failed_login_attempts, locked_until, last_failed_login_at, token_version FROM users WHERE LOWER(email) = LOWER(%s)', (email,))
         user = cursor.fetchone()
         
         if not user:
@@ -384,6 +384,86 @@ class UserRepository:
         cursor.close()
         conn.close()
         return rowcount
+
+    # --- Brute-force lockout -------------------------------------------
+
+    @staticmethod
+    def increment_failed_login(email: str, decay_minutes: int):
+        """Atomically increments the failed-attempt counter and returns the
+        new value. If the previous failure was more than decay_minutes ago,
+        the counter restarts at 1 instead of continuing to climb -- so
+        scattered typos across a session (or across days) don't quietly add
+        up to a lockout; only a real burst of rapid attempts does.
+
+        The increment/reset happens inside the UPDATE itself (not a separate
+        read-then-write) so concurrent failed attempts against the same
+        account can't race each other into under-counting.
+        """
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users SET
+                failed_login_attempts = CASE
+                    WHEN last_failed_login_at IS NULL
+                         OR last_failed_login_at < now() - make_interval(mins => %s)
+                    THEN 1
+                    ELSE failed_login_attempts + 1
+                END,
+                last_failed_login_at = now()
+            WHERE LOWER(email) = LOWER(%s)
+            RETURNING failed_login_attempts
+        ''', (decay_minutes, email))
+        row = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return row["failed_login_attempts"] if row else None
+
+    @staticmethod
+    def lock_account(email: str, minutes: int):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users SET locked_until = now() + make_interval(mins => %s)
+            WHERE LOWER(email) = LOWER(%s)
+        ''', (minutes, email))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    @staticmethod
+    def reset_login_attempts(email: str):
+        """Called on every successful login so a lockout doesn't outlive
+        its purpose once the account owner proves they know the password."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_failed_login_at = NULL
+            WHERE LOWER(email) = LOWER(%s)
+        ''', (email,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    # --- JWT revocation (token_version) ---------------------------------
+
+    @staticmethod
+    def bump_token_version(email: str):
+        """Invalidates every token already issued for this account (they
+        all carry the old token_version as their 'tv' claim, which will no
+        longer match). Called on password reset and explicit logout-all."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users SET token_version = token_version + 1
+            WHERE LOWER(email) = LOWER(%s)
+            RETURNING token_version
+        ''', (email,))
+        row = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return row["token_version"] if row else None
 
     @staticmethod
     def get_onboarding_state(email: str):

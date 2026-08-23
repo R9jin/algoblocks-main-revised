@@ -139,6 +139,14 @@ async def security_headers_and_access_log(request: Request, call_next):
     # browsers ignore it on plain HTTP anyway, and this API is only ever
     # served over HTTPS in production (Vercel).
     response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    # SECURITY: minimal CSP. Every response here is JSON (no server-rendered
+    # HTML/JS/CSS of our own), so "default-src 'none'" costs nothing and
+    # closes off any endpoint that might someday reflect user input as
+    # HTML. Skipped on FastAPI's own docs UI (/docs, /redoc) since Swagger/
+    # ReDoc load their JS/CSS from a CDN and would otherwise be broken by
+    # this policy.
+    if request.url.path not in ("/docs", "/redoc", "/openapi.json"):
+        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
 
     log_line = (
         f'{client_ip} "{request.method} {request.url.path}" '

@@ -25,6 +25,21 @@ RESET_TOKEN_TTL_MINUTES = 30
 # How long an email-verification link stays valid for.
 VERIFICATION_TOKEN_TTL_HOURS = 24
 
+# SECURITY: per-account brute-force lockout thresholds. Independent of the
+# per-IP rate limit on the /login route -- this one follows the account
+# regardless of how many different IPs an attacker spreads the attempts
+# across (credential stuffing, botnets, etc.).
+#
+# Tuned to be a safety net against sustained automated attacks, not a trap
+# for someone who fat-fingers their own password a few times: 10 wrong
+# attempts (not 5) before anything happens, only a 5-minute cooldown (not
+# 15), and the counter resets itself if 20 minutes pass without another
+# failure -- so a handful of typos spread across a session never adds up to
+# a lock, only a real burst of rapid-fire attempts does.
+LOGIN_LOCKOUT_THRESHOLD = 10
+LOGIN_LOCKOUT_MINUTES = 5
+LOGIN_ATTEMPT_DECAY_MINUTES = 20
+
 class AuthService:
     @staticmethod
     def hash_password(password: str) -> str:
@@ -47,6 +62,29 @@ class AuthService:
     @staticmethod
     def login(req: UserLogin):
         user = UserRepository.find_by_email(req.email)
+
+        # SECURITY: check the lockout BEFORE verifying the password. If we
+        # checked after, a locked account with a correctly-guessed password
+        # would still log in (defeating the lockout entirely), and checking
+        # order would leak "was that the right password?" through timing/
+        # response differences.
+        if user and user.get("locked_until"):
+            locked_until = user["locked_until"]
+            if locked_until.tzinfo is None:
+                locked_until = locked_until.replace(tzinfo=timezone.utc)
+            if locked_until > datetime.now(timezone.utc):
+                remaining_minutes = max(1, int((locked_until - datetime.now(timezone.utc)).total_seconds() // 60) + 1)
+                logger.warning(f"Rejected login for locked account: {req.email} ({remaining_minutes}m remaining)")
+                raise HTTPException(
+                    status_code=429,
+                    detail=(
+                        f"For your account's security, sign-in is paused for about "
+                        f"{remaining_minutes} more minute(s) after several incorrect attempts. "
+                        f"Please try again shortly, or contact an administrator at "
+                        f"{SUPPORT_EMAIL} if you need help sooner."
+                    )
+                )
+
         stored_password = user.get("password") if user else None
 
         if not user or not stored_password or not AuthService.verify_password(req.password, stored_password):
@@ -57,6 +95,19 @@ class AuthService:
             # stuffing activity. Rate limiting (5/minute/IP on this route)
             # is the primary defense; this is the detection/audit trail.
             logger.warning(f"Failed login attempt for email={req.email}: invalid credentials")
+
+            # Only track/lock attempts against accounts that actually exist
+            # -- there's nothing to lock otherwise, and it keeps this from
+            # writing rows for typo'd/nonexistent emails.
+            if user:
+                new_count = UserRepository.increment_failed_login(user["email"], LOGIN_ATTEMPT_DECAY_MINUTES)
+                if new_count is not None and new_count >= LOGIN_LOCKOUT_THRESHOLD:
+                    UserRepository.lock_account(user["email"], LOGIN_LOCKOUT_MINUTES)
+                    logger.warning(
+                        f"Account locked after {new_count} failed attempts: {user['email']} "
+                        f"({LOGIN_LOCKOUT_MINUTES}m lockout)"
+                    )
+
             raise HTTPException(
                 status_code=401, 
                 detail="Invalid credentials."
@@ -86,6 +137,10 @@ class AuthService:
                 detail=f"This account hasn't been verified yet. Contact an administrator at {SUPPORT_EMAIL} for help."
             )
 
+        # Correct password + account in good standing: clear any lockout
+        # state so it doesn't outlive its purpose.
+        UserRepository.reset_login_attempts(user["email"])
+
         # BUG FIX: sign the token with the email exactly as stored in the
         # DB, not whatever casing the person typed at the login form. Every
         # other authenticated route trusts this "sub" claim and compares it
@@ -93,7 +148,12 @@ class AuthService:
         # (possibly differently-cased) email could itself cause the same
         # "looks logged in but nothing matches" symptom one layer down.
         canonical_email = user.get("email", req.email)
-        token = create_access_token({"sub": canonical_email})
+        # SECURITY: embed the account's current token_version as "tv" so
+        # this token can be revoked later (password reset, logout-all)
+        # without needing a growing blocklist table -- see security.py's
+        # get_current_user_email, which rejects any token whose "tv" no
+        # longer matches the account's live token_version.
+        token = create_access_token({"sub": canonical_email, "tv": user.get("token_version", 0)})
 
         return {
             "status": "success",
@@ -358,9 +418,12 @@ class AuthService:
     def approve_password_reset(email: str, origin: str = None):
         """Legacy admin override, kept for accounts stuck from the old
         manual-approval workaround. Issues a reset token directly and
-        returns the link so an admin can hand it to the user by hand.
-        Not part of the normal flow anymore -- forgot_password() above
-        emails the token itself now."""
+        returns the link so an admin can hand it to the user by hand
+        (chat, phone, in person) -- this is an intentional out-of-band
+        delivery path (see AdminUserManagement.jsx's confirm dialog), not
+        an oversight, so the raw link is returned here on purpose. Not part
+        of the normal flow anymore -- forgot_password() above emails the
+        token itself now."""
         user = UserRepository.find_by_email(email)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -430,8 +493,24 @@ class AuthService:
         hashed_password = AuthService.hash_password(new_password)
         UserRepository.update_password(user["email"], hashed_password)
         UserRepository.clear_reset_token(user["email"])
+        # SECURITY: invalidate every token issued before this reset. Without
+        # this, a token stolen/leaked before the person noticed and reset
+        # their password would keep working for up to 7 days regardless --
+        # resetting the password wouldn't actually lock the attacker out.
+        UserRepository.bump_token_version(user["email"])
+        # Also clear any lockout -- a successful reset proves ownership of
+        # the account just as much as a correct password would.
+        UserRepository.reset_login_attempts(user["email"])
 
         return {"status": "success", "message": "Your password has been reset. You can now sign in."}
+
+    @staticmethod
+    def logout_all_sessions(email: str):
+        """Invalidates every outstanding token for this account, including
+        the one used to call this endpoint -- the caller will need to log
+        in again afterward. Exposed as POST /api/logout-all."""
+        UserRepository.bump_token_version(email)
+        return {"status": "success", "message": "You've been logged out of all sessions."}
 
     @staticmethod
     def google_login(token: str):
@@ -493,7 +572,7 @@ class AuthService:
                 })
                 user = UserRepository.find_by_email(email)
 
-            backend_token = create_access_token({"sub": email})
+            backend_token = create_access_token({"sub": email, "tv": user.get("token_version", 0)})
 
             return {
                 "status": "success",

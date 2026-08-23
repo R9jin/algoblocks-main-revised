@@ -14,6 +14,14 @@ router = APIRouter(tags=["Auth & Progress"])
 def login_user(request: Request, req: UserLogin): 
     return AuthService.login(req)
 
+@router.post("/logout-all")
+@limiter.limit("5/minute")
+def logout_all(request: Request, email: str = Depends(get_current_user_email)):
+    """Bumps the account's token_version, invalidating every outstanding
+    token (including the one used to call this) -- see AuthService.
+    logout_all_sessions / security.py's tv-claim check."""
+    return AuthService.logout_all_sessions(email)
+
 @router.post("/signup")
 @limiter.limit("5/minute")
 def signup_user(request: Request, req: UserCreate):

@@ -198,6 +198,29 @@ def init_db():
     cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_hash VARCHAR(255)')
     cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_expires TIMESTAMPTZ')
 
+    # SECURITY: per-account brute-force lockout. Rate limiting (limiter.py)
+    # is per-IP only, so a distributed or IP-rotating attacker could still
+    # grind through passwords for one specific account indefinitely.
+    # failed_login_attempts counts consecutive bad passwords; a successful
+    # login resets it to 0. locked_until, once set, blocks login (even with
+    # the correct password) until it passes -- see AuthService.login.
+    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER DEFAULT 0')
+    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ')
+    # Timestamp of the most recent failed attempt, used to "forget" old
+    # failures after a while (see AuthService.login) -- so a few typos
+    # spread out over a session don't quietly accumulate into a lockout.
+    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_failed_login_at TIMESTAMPTZ')
+
+    # SECURITY: JWT revocation. Tokens are stateless HS256 with no server-side
+    # session, so there was previously no way to invalidate a token that had
+    # already been issued -- only a live status check (see get_current_user_
+    # email) covered the "suspended account" case. Every token now carries
+    # the account's token_version as its "tv" claim at mint time; bumping
+    # this column instantly invalidates every token issued before the bump,
+    # without needing a growing blocklist table. See AuthService.login,
+    # AuthService.reset_password, and AuthService.logout_all_sessions.
+    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER DEFAULT 0')
+
     # HYBRID: Projects Table (Relational Sync/Keys + JSONB Blockly Data)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS projects (

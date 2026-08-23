@@ -64,6 +64,20 @@ async def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
                 detail=f"This account has been suspended. Contact an administrator at {SUPPORT_EMAIL} for help.",
             )
 
+        # SECURITY: JWT revocation via token_version. A token minted before
+        # this feature existed has no "tv" claim at all -- treat that as 0
+        # so those already-issued tokens keep working until the next event
+        # that bumps the column (password reset, logout-all), rather than
+        # invalidating every outstanding session the moment this shipped.
+        token_version = payload.get("tv", 0)
+        if token_version != user.get("token_version", 0):
+            logger.warning(f"Rejected request: {email} token_version mismatch (revoked session)")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Your session has been revoked (password changed or logged out elsewhere). Please log in again.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
         return email
         
     except jwt.ExpiredSignatureError:
