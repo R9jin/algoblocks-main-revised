@@ -4,24 +4,6 @@ import logging
 from pathlib import Path
 from dotenv import load_dotenv
 import psycopg2
-from psycopg2.extras import RealDictCursor
-
-logger = logging.getLogger(__name__)
-
-api_dir = Path(__file__).resolve().parent
-env_path = api_dir / ".env"
-load_dotenv(dotenv_path=env_path)
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError(f"No DATABASE_URL found in environment variables. Please check your .env file at {env_path}.")
-
-import os
-import json
-import logging
-from pathlib import Path
-from dotenv import load_dotenv
-import psycopg2
 import psycopg2.pool
 from psycopg2.extras import RealDictCursor
 

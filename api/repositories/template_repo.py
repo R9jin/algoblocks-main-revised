@@ -231,9 +231,23 @@ class TemplateRepository:
                 set_clauses.append("timestamp = %s")
                 values.append(template_data["timestamp"])
                 
-            for key, val in blockly_updates.items():
-                set_clauses.append(f"blockly_data = jsonb_set(blockly_data, %s, %s, true)")
-                values.extend([f'{{{key}}}', json.dumps(val)])
+            if blockly_updates:
+                # BUG FIX: previously this appended one
+                # "blockly_data = jsonb_set(...)" SET-clause per changed key,
+                # so updating >=2 of these fields in the same save (e.g.
+                # renaming a template while also saving new blocks) produced
+                # "SET blockly_data = ..., blockly_data = ..." -- Postgres
+                # rejects multiple assignments to the same column outright,
+                # so the whole save failed with a DB error. Nest the
+                # jsonb_set() calls into a single expression/assignment
+                # instead so any number of keys can be updated atomically.
+                expr = "blockly_data"
+                jsonb_params = []
+                for key, val in blockly_updates.items():
+                    expr = f"jsonb_set({expr}, %s, %s, true)"
+                    jsonb_params.extend([f'{{{key}}}', json.dumps(val)])
+                set_clauses.append(f"blockly_data = {expr}")
+                values.extend(jsonb_params)
                 
             if set_clauses:
                 set_clause_str = ", ".join(set_clauses)
