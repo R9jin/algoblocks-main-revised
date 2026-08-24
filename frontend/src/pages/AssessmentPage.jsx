@@ -3,10 +3,49 @@ import { useEffect, useRef, useState } from "react";
 import { FiAlertTriangle, FiAward, FiBarChart2, FiBookOpen, FiCheck, FiCheckCircle, FiChevronLeft, FiChevronRight, FiClock, FiFileText, FiInfo, FiLock, FiSave, FiTarget, FiTrendingUp, FiX } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
-import { assessmentsDB, progressDB, syncQueueDB } from "../db";
+import { assessmentsDB, curriculumCacheDB, progressDB, syncQueueDB } from "../db";
 import "../styles/AssessmentPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
+
+// OFFLINE FIX: AssessmentPage used to call fetch(targetFile) directly, so it
+// depended entirely on the Workbox precache intercepting that exact request.
+// If the service worker hadn't precached this specific file yet (fresh
+// device, dev server with no SW, cache eviction, etc.) the fetch failed with
+// no fallback and the page showed "Assessment not available", even though
+// LearningPath.jsx and ActivityApp.jsx already have an IndexedDB-backed
+// fallback for their own JSON (curriculumCacheDB / templatesDB). This gives
+// assessment question sets the same layered resilience: try the network
+// (which the SW transparently serves from precache when offline, per the
+// ignoreURLParametersMatching config in vite.config.js), then fall back to
+// the shared curriculumCacheDB entry keyed by the same URL LearningPath
+// would use if it ever prefetches this file, caching a fresh copy whenever
+// the network attempt succeeds.
+async function fetchAssessmentWithCache(url) {
+  try {
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      try {
+        await curriculumCacheDB.setItem(url, data);
+      } catch (e) {
+        // best-effort cache write; a failed write shouldn't block using the data
+      }
+      return data;
+    }
+  } catch (e) {
+    // network/SW fetch failed (likely offline with nothing precached yet) -- fall through to cache
+  }
+
+  try {
+    const cached = await curriculumCacheDB.getItem(url);
+    if (cached) return cached;
+  } catch (e) {
+    // ignore -- handled by the caller's catch-all below
+  }
+
+  throw new Error(`Assessment fetch failed for ${url} and no cache available.`);
+}
 
 // BUG-09 Fix: Scope draft keys by user email
 const getDraftKey = (moduleId, type) => {
@@ -126,9 +165,7 @@ export default function AssessmentPage() {
           }
         }
 
-        const res = await fetch(targetFile);
-        if (!res.ok) throw new Error("Assessment not found");
-        const data = await res.json();
+        const data = await fetchAssessmentWithCache(targetFile);
         setModuleTitle(data.moduleTitle || "");
         setAssessmentVersion(data.version || (isPostTest ? 2 : 1));
 

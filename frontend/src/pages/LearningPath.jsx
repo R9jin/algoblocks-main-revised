@@ -208,6 +208,29 @@ export default function LearningPath() {
           }
         };
 
+        // OFFLINE FIX: warm the same curriculumCacheDB store with every
+        // assessment JSON (per-module pretest/posttest plus the course-level
+        // pre/post test) that AssessmentPage.jsx reads from. Without this,
+        // a learner had to have already opened each assessment once online
+        // for it to be cached -- browsing the Learning Path itself didn't
+        // guarantee assessments would work offline, only lessons/activities
+        // did. This makes the whole learning path (lessons, activities, AND
+        // assessments) equally available offline after one online visit.
+        const warmAssessmentCache = async (url) => {
+          try {
+            const cachedData = await curriculumCacheDB.getItem(url);
+            if (cachedData) return;
+
+            const res = await fetch(url);
+            if (res.ok) {
+              const data = await res.json();
+              await curriculumCacheDB.setItem(url, data);
+            }
+          } catch (e) {
+            console.warn(`Failed to precache assessment ${url}`, e);
+          }
+        };
+
         for (const module of curriculumIndex) {
           const mid = module.moduleId.split("-").pop();
           
@@ -220,7 +243,13 @@ export default function LearningPath() {
               fetchWithCache(`/data/curriculum/${module.moduleId}/${lesson.lessonId}.json`, 'lesson', lesson.lessonId)
             );
           }
+
+          fetchPromises.push(warmAssessmentCache(`/data/assessments/${module.moduleId}.json`));
         }
+
+        fetchPromises.push(warmAssessmentCache(`/data/assessments/course-pre-test.json`));
+        fetchPromises.push(warmAssessmentCache(`/data/assessments/course-post-test.json`));
+        fetchPromises.push(warmAssessmentCache(`/data/assessments/course-post-test-v1.json`));
 
         await Promise.all(fetchPromises);
 
