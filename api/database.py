@@ -293,6 +293,19 @@ def init_db():
         )
     ''')
 
+    # BUG FIX: `answers` (question-id -> selected-option map) existed on
+    # this table and in the `sync_assessment` write path, but the write
+    # path the frontend actually calls after every quiz/pre-test/post-test
+    # submission -- update_assessment() below -- never wrote to it, so
+    # individual item-level choices were being silently discarded and only
+    # the aggregate score/correct/total survived. `question_ids` is added
+    # alongside it because `answers` is keyed by the question's position in
+    # that attempt (0, 1, 2...), not a stable question ID; without also
+    # storing which question occupied each position, the recorded answers
+    # can't be matched back to specific curriculum questions for item-level
+    # analysis (e.g. if question order or the question pool changes later).
+    cursor.execute('ALTER TABLE assessments ADD COLUMN IF NOT EXISTS question_ids JSONB')
+
     _backfill_progress_from_legacy(cursor)
     _backfill_assessments_from_legacy(cursor)
 
@@ -443,13 +456,14 @@ def _backfill_assessments_from_legacy(cursor):
             if not isinstance(entry, dict):
                 continue
             answers = entry.get("answers")
+            question_ids = entry.get("questionIds")
             try:
                 cursor.execute('''
                     INSERT INTO assessments (
                         email, assessment_key, score, max_score, correct, total,
                         time_elapsed, completed_at, completed, passed, attempts,
-                        is_synced, client_timestamp, answers
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        is_synced, client_timestamp, answers, question_ids
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (email, assessment_key) DO NOTHING
                 ''', (
                     email, key,
@@ -460,6 +474,7 @@ def _backfill_assessments_from_legacy(cursor):
                     entry.get("attempts"), entry.get("isSynced"),
                     entry.get("timestamp"),
                     json.dumps(answers) if answers is not None else None,
+                    json.dumps(question_ids) if question_ids is not None else None,
                 ))
                 migrated += 1
             except Exception as e:

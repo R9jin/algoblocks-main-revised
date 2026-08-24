@@ -327,7 +327,9 @@ class AuthService:
             "total": req.total,
             "timeElapsed": req.timeElapsed,
             "completedAt": req.completedAt,
-            "attempts": req.attempts
+            "attempts": req.attempts,
+            "answers": req.answers,
+            "questionIds": req.questionIds,
         }
             
         UserRepository.update_assessment(req.email, req.assessment_key, save_data)
@@ -720,13 +722,14 @@ class AuthService:
         # same row, and vice versa. `answers` is the one column that
         # legitimately stays JSONB (a variable question-id -> answer map).
         answers = payload.get("answers")
+        question_ids = payload.get("questionIds")
         cursor.execute('''
             INSERT INTO assessments (
                 email, assessment_key, score, max_score, correct, total,
                 time_elapsed, completed_at, completed, passed, attempts,
-                is_synced, client_timestamp, answers, updated_at
+                is_synced, client_timestamp, answers, question_ids, updated_at
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
             ON CONFLICT (email, assessment_key) DO UPDATE SET
                 score = COALESCE(EXCLUDED.score, assessments.score),
                 max_score = COALESCE(EXCLUDED.max_score, assessments.max_score),
@@ -740,6 +743,7 @@ class AuthService:
                 is_synced = COALESCE(EXCLUDED.is_synced, assessments.is_synced),
                 client_timestamp = COALESCE(EXCLUDED.client_timestamp, assessments.client_timestamp),
                 answers = COALESCE(EXCLUDED.answers, assessments.answers),
+                question_ids = COALESCE(EXCLUDED.question_ids, assessments.question_ids),
                 updated_at = now()
         ''', (
             user_id, module_id,
@@ -747,6 +751,7 @@ class AuthService:
             payload.get("timeElapsed"), payload.get("completedAt"), payload.get("completed"), payload.get("passed"),
             payload.get("attempts"), payload.get("isSynced"), payload.get("timestamp"),
             json.dumps(answers) if answers is not None else None,
+            json.dumps(question_ids) if question_ids is not None else None,
         ))
 
         conn.commit() # <--- CRITICAL FIX: Save the transaction!
@@ -763,7 +768,7 @@ class AuthService:
         cursor = conn.cursor()
         cursor.execute('''
             SELECT score, max_score, correct, total, time_elapsed, completed_at,
-                   completed, passed, attempts, is_synced, client_timestamp, answers
+                   completed, passed, attempts, is_synced, client_timestamp, answers, question_ids
             FROM assessments WHERE email = %s AND assessment_key = %s
         ''', (email, moduleId))
         row = cursor.fetchone()
@@ -790,6 +795,8 @@ class AuthService:
             assessment["passed"] = row["passed"]
         if row["answers"] is not None:
             assessment["answers"] = row["answers"]
+        if row["question_ids"] is not None:
+            assessment["questionIds"] = row["question_ids"]
         if row["client_timestamp"] is not None:
             assessment["timestamp"] = row["client_timestamp"]
         if row["is_synced"] is not None:

@@ -177,20 +177,23 @@ class UserRepository:
     @staticmethod
     def update_assessment(email: str, assessment_key: str, data: dict):
         # `data` here only carries a subset of columns (score/correct/total/
-        # timeElapsed/completedAt/attempts) -- the fuller sync_assessment
-        # write path (auth_service.py) may already have set maxScore/
-        # completed/passed/answers/etc. on this same row. COALESCE on
+        # timeElapsed/completedAt/attempts/answers/questionIds) -- the fuller
+        # sync_assessment write path (auth_service.py) may already have set
+        # maxScore/completed/passed/etc. on this same row. COALESCE on
         # conflict means we only overwrite the columns we were actually
         # given, instead of nulling out the others.
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        answers = data.get("answers")
+        question_ids = data.get("questionIds")
+
         cursor.execute('''
             INSERT INTO assessments (
                 email, assessment_key, score, correct, total,
-                time_elapsed, completed_at, attempts, updated_at
+                time_elapsed, completed_at, attempts, answers, question_ids, updated_at
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, now())
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
             ON CONFLICT (email, assessment_key) DO UPDATE SET
                 score = COALESCE(EXCLUDED.score, assessments.score),
                 correct = COALESCE(EXCLUDED.correct, assessments.correct),
@@ -198,11 +201,15 @@ class UserRepository:
                 time_elapsed = COALESCE(EXCLUDED.time_elapsed, assessments.time_elapsed),
                 completed_at = COALESCE(EXCLUDED.completed_at, assessments.completed_at),
                 attempts = COALESCE(EXCLUDED.attempts, assessments.attempts),
+                answers = COALESCE(EXCLUDED.answers, assessments.answers),
+                question_ids = COALESCE(EXCLUDED.question_ids, assessments.question_ids),
                 updated_at = now()
         ''', (
             email, assessment_key,
             data.get("score"), data.get("correct"), data.get("total"),
             data.get("timeElapsed"), data.get("completedAt"), data.get("attempts"),
+            json.dumps(answers) if answers is not None else None,
+            json.dumps(question_ids) if question_ids is not None else None,
         ))
 
         conn.commit() # <--- CRITICAL FIX: Save the transaction!

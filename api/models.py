@@ -103,6 +103,15 @@ class AssessmentUpdateRequest(BaseModel):
     timeElapsed: int
     completedAt: str
     attempts: int
+    # BUG FIX: the frontend (AssessmentPage.jsx handleSubmit) has always
+    # built and sent `answers` (question position -> selected option index)
+    # and `questionIds` (position -> question id) in this same POST body,
+    # but this model never declared them. FastAPI/Pydantic silently drops
+    # any field not declared on the model, so the individual choices a
+    # respondent made on a pre-test/post-test/quiz were never even reaching
+    # the service layer -- only the aggregate score/correct/total survived.
+    answers: Optional[Dict[str, Any]] = None
+    questionIds: Optional[List[Any]] = None
 
 class ProjectSyncRequest(BaseModel):
     userId: Optional[str] = None
