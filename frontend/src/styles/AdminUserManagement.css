@@ -652,21 +652,22 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #f1edfc;
-  color: #7c3aed;
+  background: #ede6ff;
+  color: #5A1398;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
   flex-shrink: 0;
   outline: none;
-  border: 1px solid #ddd6fe;
+  border: 1px solid #d8cbff;
 }
 
 .metric-info-badge:hover,
 .metric-info-badge:focus-visible {
-  background: #7c3aed;
+  background: #5A1398;
   color: #ffffff;
-  border-color: #7c3aed;
+  border-color: #5A1398;
+  box-shadow: 0 0 0 3px rgba(90, 19, 152, 0.15);
 }
 
 .metric-info-icon {
@@ -713,6 +714,7 @@
 .metric-info-badge:focus-visible .metric-tooltip-popup {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
   transform: translateX(-50%) translateY(-2px);
 }
 
@@ -845,7 +847,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
+  color: #5b5675;
 }
 
 .metric-pill-value {
@@ -1322,5 +1324,32 @@
 @media (max-width: 640px) {
   .analytics-dashboard-actions {
     flex-wrap: wrap;
+  }
+
+  /* RESPONSIVE FIX: the popup used to center itself on its trigger badge
+     (left: 50%; transform: translateX(-50%)), so a badge sitting near the
+     left/right edge of a narrow screen pushed half the popup off-screen
+     regardless of the max-width cap. Anchoring to the viewport instead of
+     the trigger keeps it fully on-screen no matter where the badge sits. */
+  .metric-tooltip-popup {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 16px;
+    top: auto;
+    width: auto;
+    max-width: none;
+    max-height: 60vh;
+    overflow-y: auto;
+    transform: translateY(8px);
+  }
+
+  .metric-info-badge:hover .metric-tooltip-popup,
+  .metric-info-badge:focus-visible .metric-tooltip-popup {
+    transform: translateY(0);
+  }
+
+  .metric-tooltip-popup::after {
+    display: none;
   }
 }

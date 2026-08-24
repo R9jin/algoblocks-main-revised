@@ -1187,9 +1187,10 @@ const AdminUserManagement = () => {
                               <div className="admin-metric-pill">
                                 <span className="metric-pill-label">
                                   <MetricTooltip
-                                    title="User Task Success Rate (TSR)"
-                                    formula="TSR = (Passed Test Cases / Total Test Cases) × 100%"
-                                    desc="Average functional correctness across all activities attempted by this student."
+                                    title="This User's Mean Task Success Rate (TSR)"
+                                    meanFormula="Mean TSR = (1 / M) × Σ [ TSR_k ] × 100%"
+                                    baseFormula="where TSR_k = (Passed Test Cases / Total Test Cases) for activity k"
+                                    desc="Calculated by computing the test pass rate for every activity this student submitted, summing across all M activities they attempted, and dividing by M."
                                   >
                                     TSR
                                   </MetricTooltip>
@@ -1199,9 +1200,10 @@ const AdminUserManagement = () => {
                               <div className="admin-metric-pill">
                                 <span className="metric-pill-label">
                                   <MetricTooltip
-                                    title="User Algorithmic Efficiency Score (AES)"
-                                    formula="AES = ⌊(TSR × Efficiency) × 100⌋"
-                                    desc="Multiplicative score grading correctness and target Big-O time and space complexity conformance."
+                                    title="This User's Mean Algorithmic Efficiency Score (AES)"
+                                    meanFormula="Mean AES = (1 / M) × Σ [ AES_k ]"
+                                    baseFormula="where AES_k = ⌊(TSR_k × Efficiency_k) × 100⌋ for activity k"
+                                    desc="Averages every activity's AES across all M activities this student attempted. Efficiency = [min(W_target/W_actual, 1.0) for Time & Space] / 2, using 1-9 Asymptotic Weights."
                                   >
                                     AES
                                   </MetricTooltip>
@@ -1211,9 +1213,10 @@ const AdminUserManagement = () => {
                               <div className="admin-metric-pill">
                                 <span className="metric-pill-label">
                                   <MetricTooltip
-                                    title="User Refactoring Optimization Gain (ROG)"
-                                    formula="ROG = AES_final - AES_baseline"
-                                    desc="Average efficiency score improvement gained by this student through code refactoring."
+                                    title="This User's Mean Refactoring Optimization Gain (ROG)"
+                                    meanFormula="Mean ROG = (1 / M) × Σ [ AES_final,k - AES_baseline,k ]"
+                                    baseFormula="where ROG_k = AES_final,k - AES_baseline,k for activity k this student refactored"
+                                    desc="Averages the AES improvement from this student's baseline (first passing) submission to their final submission, across all M activities where a refactor was recorded."
                                   >
                                     ROG
                                   </MetricTooltip>
