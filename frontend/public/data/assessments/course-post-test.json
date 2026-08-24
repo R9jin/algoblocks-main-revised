@@ -1,5 +1,6 @@
 {
   "moduleId": "course-post-test",
+  "version": 2,
   "moduleTitle": "Comprehensive Algorithmic Foundations Post-Test",
   "description": "Congratulations on reaching the end of the curriculum! This final diagnostic exam evaluates your complete mastery of algorithms, complexity analysis, and optimization strategies across all modules.",
   "questions": [

@@ -631,6 +631,151 @@
 }
 
 /* =========================================================
+   METRIC TOOLTIPS & FORMULA POPUPS
+========================================================= */
+.metric-tooltip-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: middle;
+  position: relative;
+}
+
+.metric-tooltip-text {
+  display: inline;
+}
+
+.metric-info-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #f1edfc;
+  color: #7c3aed;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  flex-shrink: 0;
+  outline: none;
+  border: 1px solid #ddd6fe;
+}
+
+.metric-info-badge:hover,
+.metric-info-badge:focus-visible {
+  background: #7c3aed;
+  color: #ffffff;
+  border-color: #7c3aed;
+}
+
+.metric-info-icon {
+  pointer-events: none;
+}
+
+.metric-tooltip-popup {
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 330px;
+  max-width: calc(100vw - 36px);
+  padding: 12px 14px;
+  background: #19163b;
+  color: #f8fafc;
+  border: 1px solid #3b336a;
+  border-radius: 9px;
+  box-shadow: 0 14px 32px -4px rgba(15, 23, 42, 0.55), 0 4px 10px -2px rgba(15, 23, 42, 0.3);
+  font-size: 0.76rem;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: normal;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.metric-tooltip-popup::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #19163b transparent transparent transparent;
+}
+
+.metric-info-badge:hover .metric-tooltip-popup,
+.metric-info-badge:focus-visible .metric-tooltip-popup {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.metric-tooltip-popup .tooltip-title {
+  display: block;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #f3e8ff;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  padding-bottom: 4px;
+}
+
+.tooltip-formula-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.tooltip-formula-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #c084fc;
+}
+
+.metric-tooltip-popup .tooltip-formula {
+  display: block;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fde047;
+  padding: 4px 7px;
+  border-radius: 4px;
+  line-height: 1.35;
+  word-break: break-word;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.metric-tooltip-popup .tooltip-formula.mean-formula {
+  background: rgba(168, 85, 247, 0.18);
+  color: #fef08a;
+  border-color: rgba(168, 85, 247, 0.35);
+  font-weight: 600;
+}
+
+.metric-tooltip-popup .tooltip-formula.base-formula {
+  background: rgba(255, 255, 255, 0.06);
+  color: #93c5fd;
+  font-size: 0.7rem;
+}
+
+.metric-tooltip-popup .tooltip-desc {
+  display: block;
+  font-size: 0.72rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+
+/* =========================================================
    PER-USER METRICS DROPDOWN
 ========================================================= */
 .th-metrics,

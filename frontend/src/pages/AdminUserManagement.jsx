@@ -10,6 +10,7 @@ import {
   LuChevronUp,
   LuFilter,
   LuFlaskConical,
+  LuInfo,
   LuListChecks,
   LuMailWarning,
   LuRefreshCw,
@@ -27,6 +28,31 @@ import {
 import DashboardHeader from "../components/DashboardHeader";
 import { getErrorMessage } from "../utils/apiError";
 import "../styles/AdminUserManagement.css";
+
+const MetricTooltip = ({ title, meanFormula, baseFormula, formula, desc, children }) => (
+  <span className="metric-tooltip-wrapper">
+    <span className="metric-tooltip-text">{children}</span>
+    <span className="metric-info-badge" tabIndex={0} role="button" aria-label={`Information for ${title || "metric"}`}>
+      <LuInfo size={13} className="metric-info-icon" />
+      <span className="metric-tooltip-popup">
+        {title && <strong className="tooltip-title">{title}</strong>}
+        {meanFormula && (
+          <div className="tooltip-formula-group">
+            <span className="tooltip-formula-label">Overall Mean Formula:</span>
+            <code className="tooltip-formula mean-formula">{meanFormula}</code>
+          </div>
+        )}
+        {(baseFormula || formula) && (
+          <div className="tooltip-formula-group">
+            {meanFormula && <span className="tooltip-formula-label">Activity Base Formula:</span>}
+            <code className="tooltip-formula base-formula">{baseFormula || formula}</code>
+          </div>
+        )}
+        {desc && <span className="tooltip-desc">{desc}</span>}
+      </span>
+    </span>
+  </span>
+);
 
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
@@ -275,7 +301,7 @@ const AdminUserManagement = () => {
       setOverview(data);
     } catch (err) {
       const isOffline = !navigator.onLine || err.message?.includes("Failed to fetch") || err.name === "TypeError";
-      setOverviewError(isOffline ? "Cohort analytics requires a live backend connection." : err.message);
+      setOverviewError(isOffline ? "Learning analytics requires a live backend connection." : err.message);
     } finally {
       setOverviewLoading(false);
     }
@@ -775,7 +801,7 @@ const AdminUserManagement = () => {
           {overviewLoading ? (
             <div className="admin-loading-state compact">
               <LuRefreshCw size={28} className="spinner-icon" style={{ animation: 'spin 2s linear infinite' }} />
-              <span>Computing cohort analytics...</span>
+              <span>Computing learning analytics...</span>
             </div>
           ) : overviewError ? (
             <div className="admin-message-box error">
@@ -790,28 +816,64 @@ const AdminUserManagement = () => {
                   <div className="analytics-card-icon tsr"><LuActivity size={20} /></div>
                   <div className="analytics-card-body">
                     <span className="analytics-card-value">{overview.system_generated.tsr !== null ? `${overview.system_generated.tsr}%` : "--"}</span>
-                    <span className="analytics-card-label">Avg Task Success Rate (TSR)</span>
+                    <span className="analytics-card-label">
+                      <MetricTooltip
+                        title="Average Task Success Rate (Mean TSR)"
+                        meanFormula="Mean TSR = (1 / M) × Σ [ TSR_k ] × 100%"
+                        baseFormula="where TSR_k = (Passed Test Cases / Total Test Cases) for activity k"
+                        desc="Calculated by computing the test pass rate for every individual activity submission, summing them across all M submissions completed by standard students, and dividing by total submissions M."
+                      >
+                        Avg Task Success Rate (TSR)
+                      </MetricTooltip>
+                    </span>
                   </div>
                 </div>
                 <div className="analytics-card">
                   <div className="analytics-card-icon aes"><LuTarget size={20} /></div>
                   <div className="analytics-card-body">
                     <span className="analytics-card-value">{overview.system_generated.aes !== null ? `${overview.system_generated.aes}%` : "--"}</span>
-                    <span className="analytics-card-label">Avg Algorithmic Efficiency Score (AES)</span>
+                    <span className="analytics-card-label">
+                      <MetricTooltip
+                        title="Average Algorithmic Efficiency Score (Mean AES)"
+                        meanFormula="Mean AES = (1 / M) × Σ [ AES_k ]"
+                        baseFormula="where AES_k = ⌊(TSR_k × Efficiency_k) × 100⌋"
+                        desc="Calculated by averaging all activity AES scores across all M submissions. Efficiency = [min(W_target/W_actual, 1.0) for Time & Space] / 2 using 1-9 Asymptotic Weights."
+                      >
+                        Avg Algorithmic Efficiency Score (AES)
+                      </MetricTooltip>
+                    </span>
                   </div>
                 </div>
                 <div className="analytics-card">
                   <div className="analytics-card-icon rog"><LuTrendingUp size={20} /></div>
                   <div className="analytics-card-body">
                     <span className="analytics-card-value">{overview.system_generated.rog !== null ? `+${overview.system_generated.rog}` : "--"}</span>
-                    <span className="analytics-card-label">Avg Refactoring Optimization Gain (ROG)</span>
+                    <span className="analytics-card-label">
+                      <MetricTooltip
+                        title="Average Refactoring Optimization Gain (Mean ROG)"
+                        meanFormula="Mean ROG = (1 / M) × Σ [ AES_final,k - AES_baseline,k ]"
+                        baseFormula="where ROG_k = AES_final,k - AES_baseline,k for activity k"
+                        desc="Calculated by computing the score improvement from initial baseline attempt to final refactored solution for each activity, summed across all M submissions and divided by total submissions M."
+                      >
+                        Avg Refactoring Optimization Gain (ROG)
+                      </MetricTooltip>
+                    </span>
                   </div>
                 </div>
                 <div className="analytics-card">
                   <div className="analytics-card-icon count"><LuUsers size={20} /></div>
                   <div className="analytics-card-body">
                     <span className="analytics-card-value">{overview.user_count}</span>
-                    <span className="analytics-card-label">Respondents Included{overview.is_filtered ? " (Selected)" : ""}</span>
+                    <span className="analytics-card-label">
+                      <MetricTooltip
+                        title="Total Respondents (Standard Users)"
+                        meanFormula="N = Count(Unique Standard Student Users)"
+                        baseFormula="Filter criteria: non-admin student accounts"
+                        desc="Total number of registered standard student accounts whose submission histories are aggregated into this learning impact overview."
+                      >
+                        Respondents Included{overview.is_filtered ? " (Selected)" : ""}
+                      </MetricTooltip>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -825,14 +887,32 @@ const AdminUserManagement = () => {
                     <div className="analytics-card-icon mean"><LuAward size={20} /></div>
                     <div className="analytics-card-body">
                       <span className="analytics-card-value">{overview.assessment_based.mean_pretest}% &rarr; {overview.assessment_based.mean_posttest}%</span>
-                      <span className="analytics-card-label">Mean Pre-test &rarr; Post-test</span>
+                      <span className="analytics-card-label">
+                        <MetricTooltip
+                          title="Mean Pre-test → Post-test Diagnostic Scores"
+                          meanFormula="Mean Score (x̄) = (1 / n) × Σ [ Score_i ]"
+                          baseFormula="where Score_i = (Correct Answers / Total Questions) × 100%"
+                          desc="Calculated as the arithmetic mean score on the initial diagnostic pre-test compared against the comprehensive post-test for all n paired completers."
+                        >
+                          Mean Pre-test &rarr; Post-test
+                        </MetricTooltip>
+                      </span>
                     </div>
                   </div>
                   <div className="analytics-card">
                     <div className="analytics-card-icon sd"><LuChartBar size={20} /></div>
                     <div className="analytics-card-body">
                       <span className="analytics-card-value">SD {overview.assessment_based.sd_pretest} / {overview.assessment_based.sd_posttest}</span>
-                      <span className="analytics-card-label">Standard Deviation (Pre / Post)</span>
+                      <span className="analytics-card-label">
+                        <MetricTooltip
+                          title="Standard Deviation (Pre / Post SD)"
+                          meanFormula="SD = √ [ (1 / (n - 1)) × Σ (X_i - x̄)² ]"
+                          baseFormula="where X_i = student test score, x̄ = group mean score"
+                          desc="Calculated separately for pre-test and post-test to quantify the variance and dispersion of individual student scores around the group mean."
+                        >
+                          Standard Deviation (Pre / Post)
+                        </MetricTooltip>
+                      </span>
                     </div>
                   </div>
                   <div className="analytics-card">
@@ -842,10 +922,17 @@ const AdminUserManagement = () => {
                         t = {overview.assessment_based.t_value ?? "--"} (df = {overview.assessment_based.degrees_of_freedom ?? "--"})
                       </span>
                       <span className="analytics-card-label">
-                        Paired Samples t-Test
-                        {overview.assessment_based.p_value !== null && (
-                          <> &middot; p = {overview.assessment_based.p_value} &middot; {overview.assessment_based.significant_at_0_05 ? "Significant (α=.05)" : "Not significant (α=.05)"}</>
-                        )}
+                        <MetricTooltip
+                          title="Paired Samples t-Test"
+                          meanFormula="t = d̄ / ( S_d / √n )"
+                          baseFormula="where d̄ = (1/n) Σ (Post_i - Pre_i), S_d = SD of differences"
+                          desc="Tests whether the mean difference between students' paired pre-test and post-test scores is statistically significant at α = 0.05 (df = n - 1)."
+                        >
+                          Paired Samples t-Test
+                          {overview.assessment_based.p_value !== null && (
+                            <> &middot; p = {overview.assessment_based.p_value} &middot; {overview.assessment_based.significant_at_0_05 ? "Significant (α=.05)" : "Not significant (α=.05)"}</>
+                          )}
+                        </MetricTooltip>
                       </span>
                     </div>
                   </div>
@@ -853,14 +940,32 @@ const AdminUserManagement = () => {
                     <div className="analytics-card-icon cohend"><LuTarget size={20} /></div>
                     <div className="analytics-card-body">
                       <span className="analytics-card-value">d = {overview.assessment_based.cohens_d ?? "--"}</span>
-                      <span className="analytics-card-label">Cohen's d &middot; {overview.assessment_based.cohens_d_interpretation || "--"}</span>
+                      <span className="analytics-card-label">
+                        <MetricTooltip
+                          title="Cohen's d Effect Size"
+                          meanFormula="d = d̄ / S_d"
+                          baseFormula="where d̄ = Mean Difference, S_d = Standard Deviation of Differences"
+                          desc="Quantifies the standardized magnitude of the learning gain: 0.20 = Small Effect, 0.50 = Medium Effect, 0.80+ = Large Effect."
+                        >
+                          Cohen's d &middot; {overview.assessment_based.cohens_d_interpretation || "--"}
+                        </MetricTooltip>
+                      </span>
                     </div>
                   </div>
                   <div className="analytics-card">
                     <div className="analytics-card-icon hakesg"><LuTrendingUp size={20} /></div>
                     <div className="analytics-card-body">
                       <span className="analytics-card-value">g = {overview.assessment_based.hakes_g ?? "--"}</span>
-                      <span className="analytics-card-label">Hake's Normalized Gain &middot; {overview.assessment_based.hakes_g_interpretation || "--"}</span>
+                      <span className="analytics-card-label">
+                        <MetricTooltip
+                          title="Hake's Normalized Learning Gain (g)"
+                          meanFormula="g = (Mean Post% - Mean Pre%) / (100% - Mean Pre%)"
+                          baseFormula="where 100% = Maximum possible assessment score"
+                          desc="Measures the fraction of maximum possible learning gain realized by students: g < 0.30 (Low Gain), 0.30 ≤ g < 0.70 (Medium Gain), g ≥ 0.70 (High Gain)."
+                        >
+                          Hake's Normalized Gain &middot; {overview.assessment_based.hakes_g_interpretation || "--"}
+                        </MetricTooltip>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1080,43 +1185,123 @@ const AdminUserManagement = () => {
                             </div>
                             <div className="admin-metrics-grid">
                               <div className="admin-metric-pill">
-                                <span className="metric-pill-label">TSR</span>
+                                <span className="metric-pill-label">
+                                  <MetricTooltip
+                                    title="User Task Success Rate (TSR)"
+                                    formula="TSR = (Passed Test Cases / Total Test Cases) × 100%"
+                                    desc="Average functional correctness across all activities attempted by this student."
+                                  >
+                                    TSR
+                                  </MetricTooltip>
+                                </span>
                                 <span className="metric-pill-value">{cached.metrics.tsr !== null ? `${cached.metrics.tsr}%` : "No data"}</span>
                               </div>
                               <div className="admin-metric-pill">
-                                <span className="metric-pill-label">AES</span>
+                                <span className="metric-pill-label">
+                                  <MetricTooltip
+                                    title="User Algorithmic Efficiency Score (AES)"
+                                    formula="AES = ⌊(TSR × Efficiency) × 100⌋"
+                                    desc="Multiplicative score grading correctness and target Big-O time and space complexity conformance."
+                                  >
+                                    AES
+                                  </MetricTooltip>
+                                </span>
                                 <span className="metric-pill-value">{cached.metrics.aes !== null ? `${cached.metrics.aes}%` : "No data"}</span>
                               </div>
                               <div className="admin-metric-pill">
-                                <span className="metric-pill-label">ROG</span>
+                                <span className="metric-pill-label">
+                                  <MetricTooltip
+                                    title="User Refactoring Optimization Gain (ROG)"
+                                    formula="ROG = AES_final - AES_baseline"
+                                    desc="Average efficiency score improvement gained by this student through code refactoring."
+                                  >
+                                    ROG
+                                  </MetricTooltip>
+                                </span>
                                 <span className="metric-pill-value">{cached.metrics.rog !== null ? `+${cached.metrics.rog}` : "No data"}</span>
                               </div>
                               <div className="admin-metric-pill">
-                                <span className="metric-pill-label">Activities</span>
+                                <span className="metric-pill-label">
+                                  <MetricTooltip
+                                    title="Activities Completion"
+                                    formula="Passed Activities / Attempted Activities"
+                                    desc="Number of activities cleared (AES ≥ 50% or status = passed) out of total attempted."
+                                  >
+                                    Activities
+                                  </MetricTooltip>
+                                </span>
                                 <span className="metric-pill-value">{cached.metrics.activities_passed} / {cached.metrics.activities_attempted} passed</span>
                               </div>
                               <div className="admin-metric-pill">
-                                <span className="metric-pill-label">Pre-Test</span>
+                                <span className="metric-pill-label">
+                                  <MetricTooltip
+                                    title="Course Pre-Test Score"
+                                    formula="(Correct Answers / Total Questions) × 100%"
+                                    desc="Diagnostic baseline score achieved prior to starting learning modules."
+                                  >
+                                    Pre-Test
+                                  </MetricTooltip>
+                                </span>
                                 <span className="metric-pill-value">{cached.milestones.preTest !== null ? `${Math.round(cached.milestones.preTest)}%` : "Not taken"}</span>
                               </div>
                               <div className="admin-metric-pill">
-                                <span className="metric-pill-label">Post-Test</span>
+                                <span className="metric-pill-label">
+                                  <MetricTooltip
+                                    title="Course Post-Test Score"
+                                    formula="(Correct Answers / Total Questions) × 100%"
+                                    desc="Summative diagnostic score achieved after completing course modules."
+                                  >
+                                    Post-Test
+                                  </MetricTooltip>
+                                </span>
                                 <span className="metric-pill-value">{cached.milestones.postTest !== null ? `${Math.round(cached.milestones.postTest)}%` : "Not taken"}</span>
                               </div>
                               <div className="admin-metric-pill">
-                                <span className="metric-pill-label">Progress Entries</span>
+                                <span className="metric-pill-label">
+                                  <MetricTooltip
+                                    title="Curriculum Progress Entries"
+                                    formula="Count(Completed Milestones)"
+                                    desc="Total number of lessons, quizzes, and diagnostic assessments recorded as completed."
+                                  >
+                                    Progress Entries
+                                  </MetricTooltip>
+                                </span>
                                 <span className="metric-pill-value">{cached.metrics.progress_entries}</span>
                               </div>
                               <div className="admin-metric-pill">
-                                <span className="metric-pill-label">Functional Tests</span>
+                                <span className="metric-pill-label">
+                                  <MetricTooltip
+                                    title="Functional Test Cases"
+                                    formula="Passed Functional Tests / Total Functional Tests"
+                                    desc="Total individual unit test assertions cleared across all activity submissions."
+                                  >
+                                    Functional Tests
+                                  </MetricTooltip>
+                                </span>
                                 <span className="metric-pill-value">{cached.metrics.functional_tests?.passed || 0} / {cached.metrics.functional_tests?.total || 0}</span>
                               </div>
                               <div className="admin-metric-pill">
-                                <span className="metric-pill-label">Complexity Checks</span>
+                                <span className="metric-pill-label">
+                                  <MetricTooltip
+                                    title="Complexity Checks"
+                                    formula="Passed Complexity Tests / Total Complexity Tests"
+                                    desc="Static code analysis assertions verifying compliance with optimal time and space Big-O targets."
+                                  >
+                                    Complexity Checks
+                                  </MetricTooltip>
+                                </span>
                                 <span className="metric-pill-value">{cached.metrics.complexity_tests?.passed || 0} / {cached.metrics.complexity_tests?.total || 0}</span>
                               </div>
                               <div className="admin-metric-pill">
-                                <span className="metric-pill-label">Hidden Tests</span>
+                                <span className="metric-pill-label">
+                                  <MetricTooltip
+                                    title="Hidden Test Cases"
+                                    formula="Passed Hidden Tests / Total Hidden Tests"
+                                    desc="Randomized edge-case unit tests validating algorithmic robustness and generalization."
+                                  >
+                                    Hidden Tests
+                                  </MetricTooltip>
+                                </span>
                                 <span className="metric-pill-value">{cached.metrics.hidden_tests?.passed || 0} / {cached.metrics.hidden_tests?.total || 0}</span>
                               </div>
                             </div>

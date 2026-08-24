@@ -80,6 +80,7 @@ export default function AssessmentPage() {
   const [hasDraft, setHasDraft] = useState(false);
   const [prevResult, setPrevResult] = useState(null);
   const [isLocked, setIsLocked] = useState(false);
+  const [assessmentVersion, setAssessmentVersion] = useState(1);
 
   const timerRef = useRef(null);
   const autoSaveRef = useRef(null);
@@ -106,47 +107,66 @@ export default function AssessmentPage() {
         const assessmentKey = `${moduleId}_${type}_assessment`;
         const existingResult = await assessmentsDB.getItem(assessmentKey);
         
+        let existingNormalized = null;
         if (existingResult) {
-          const normalized = existingResult.data ? { ...existingResult, ...existingResult.data } : existingResult;
-          setPrevResult(normalized);
+          existingNormalized = existingResult.data ? { ...existingResult, ...existingResult.data } : existingResult;
+          setPrevResult(existingNormalized);
+          setScore(existingNormalized.score || 0);
+          setTimeElapsed(existingNormalized.timeElapsed || 0);
+        }
 
-          // BUG FIX: this used to only lock revisits of the global
-          // Pre-Test/Post-Test (isGlobalPreTest || isGlobalPostTest),
-          // leaving the guard off for ordinary per-module quizzes -- a
-          // learner could navigate back to an already-completed module
-          // assessment and it would silently fetch a fresh question set
-          // and let them retake it, instead of showing the locked
-          // results view. The "assessment can only be taken once" rule
-          // applies to every assessment type, not just the two global
-          // ones, so lock on any existing result.
+        const isPostTest = moduleId === "course-post-test";
+        let targetFile = `/data/assessments/${moduleId}.json`;
+        if (isPostTest && existingNormalized) {
+          // If the user completed the older post test (version 1 or unversioned legacy record),
+          // load the exact v1 question set they answered so their answer review matches perfectly.
+          const isLegacyV1 = existingNormalized.version === 1 || !existingNormalized.version;
+          if (isLegacyV1) {
+            targetFile = `/data/assessments/course-post-test-v1.json`;
+          }
+        }
+
+        const res = await fetch(targetFile);
+        if (!res.ok) throw new Error("Assessment not found");
+        const data = await res.json();
+        setModuleTitle(data.moduleTitle || "");
+        setAssessmentVersion(data.version || (isPostTest ? 2 : 1));
+
+        if (existingNormalized) {
+          if (existingNormalized.questionIds && existingNormalized.questionIds.length > 0) {
+            const idMap = Object.fromEntries((data.questions || []).map((q) => [q.id, q]));
+            const restored = existingNormalized.questionIds.map((id) => idMap[id]).filter(Boolean);
+            setQuestions(restored.length > 0 ? restored : (data.questions || []));
+          } else {
+            setQuestions(data.questions || []);
+          }
+
+          if (existingNormalized.answers || existingNormalized.selectedAnswers) {
+            setSelectedAnswers(existingNormalized.answers || existingNormalized.selectedAnswers || {});
+          }
+
           setIsLocked(true);
           setLoading(false);
           return;
         }
 
-        const res = await fetch(`/data/assessments/${moduleId}.json`);
-        if (!res.ok) throw new Error("Assessment not found");
-        const data = await res.json();
-
         const draft = loadDraft(moduleId, type);
         if (draft && draft.questionIds) {
-          const idMap = Object.fromEntries(data.questions.map((q) => [q.id, q]));
+          const idMap = Object.fromEntries((data.questions || []).map((q) => [q.id, q]));
           const restored = draft.questionIds.map((id) => idMap[id]).filter(Boolean);
-          if (restored.length === data.questions.length) {
+          if (restored.length === (data.questions || []).length) {
             setQuestions(restored);
             setSelectedAnswers(draft.selectedAnswers || {});
             setCurrentIndex(draft.currentIndex || 0);
             setTimeElapsed(draft.timeElapsed || 0);
             setHasDraft(true);
-            setModuleTitle(data.moduleTitle);
             setLoading(false);
             return;
           }
         }
 
-        const shuffled = shuffleArray(data.questions);
+        const shuffled = shuffleArray(data.questions || []);
         setQuestions(shuffled);
-        setModuleTitle(data.moduleTitle);
       } catch (err) {
         console.error("Failed to load assessment:", err);
       } finally {
@@ -281,6 +301,10 @@ export default function AssessmentPage() {
       timeElapsed,
       completedAt: new Date().toISOString(),
       attempts: (prevResult?.attempts ?? 0) + 1,
+      version: assessmentVersion || (isGlobalPostTest ? 2 : 1),
+      questionIds: questions.map((q) => q.id),
+      answers: selectedAnswers,
+      selectedAnswers: selectedAnswers,
     };
 
     await assessmentsDB.setItem(assessmentKey, result);
@@ -375,40 +399,7 @@ export default function AssessmentPage() {
     );
   }
 
-  if (isLocked) {
-    const { label, color, icon } = getScoreLabel(prevResult?.score || 0);
-    return (
-      <div className="assessment-page">
-        <DashboardHeader backTo="/learning-path" backText="Back to Learning Path" />
-        <div className="assessment-results-wrapper">
-          <div className="results-card">
-            <div className="results-header">
-              <div className="results-badge" style={{ borderColor: color }}>
-                <span className="results-icon" style={{ display: "inline-flex", color }}>{icon}</span>
-                <span className="results-label" style={{ color }}>{label}</span>
-              </div>
-              <h1 className="results-score" style={{ color }}>{prevResult?.score || 0}%</h1>
-              <p className="results-subtitle" style={{ fontSize: "1.2rem", fontWeight: "bold" }}>
-                {isGlobalPreTest ? "Course Diagnostic Completed" : isGlobalPostTest ? "Final Exam Completed" : `Module ${moduleNum} Quiz Completed`}
-              </p>
-              <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "#fef2f2", borderLeft: "4px solid #ef4444", borderRadius: "0 8px 8px 0" }}>
-                <p className="results-note" style={{ display: "flex", alignItems: "center", gap: "8px", color: "#b91c1c", margin: 0, fontWeight: "600", fontSize: "0.95rem" }}>
-                  <FiLock size={18} style={{ flexShrink: 0 }} /> For research and data integrity purposes, this assessment can only be taken once. Your score has been securely recorded.
-                </p>
-              </div>
-            </div>
-            <div className="results-actions" style={{ marginTop: "30px", justifyContent: "center" }}>
-              <button className="btn-proceed" onClick={handleProceed}>
-                Return to Learning Path →
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (questions.length === 0) {
+  if (questions.length === 0 && !submitted && !isLocked) {
     return (
       <div className="assessment-page">
         <DashboardHeader backTo="/learning-path" backText="Back to Learning Path" />
@@ -417,9 +408,18 @@ export default function AssessmentPage() {
     );
   }
 
-  if (submitted) {
-    const { label, color, icon } = getScoreLabel(score);
-    const correctCount = Math.round((score / 100) * questions.length);
+  if (submitted || isLocked) {
+    const activeScore = submitted ? score : (prevResult?.score ?? score ?? 0);
+    const activeTime = submitted ? timeElapsed : (prevResult?.timeElapsed ?? timeElapsed ?? 0);
+    const activeAttempts = prevResult?.attempts || (submitted ? 1 : 1);
+    const { label, color, icon } = getScoreLabel(activeScore);
+    const hasRecordedAnswers = Object.keys(selectedAnswers).length > 0;
+    const correctCount = hasRecordedAnswers
+      ? questions.filter((q, i) => selectedAnswers[i] === q.answer).length
+      : (prevResult?.correct !== undefined && prevResult?.correct !== null)
+        ? prevResult.correct
+        : Math.round((activeScore / 100) * (questions.length || 1));
+
     return (
       <div className="assessment-page">
         <DashboardHeader backTo="/learning-path" backText="Back to Learning Path" />
@@ -430,13 +430,21 @@ export default function AssessmentPage() {
                 <span className="results-icon" style={{ display: "inline-flex", color }}>{icon}</span>
                 <span className="results-label" style={{ color }}>{label}</span>
               </div>
-              <h1 className="results-score" style={{ color }}>{score}%</h1>
+              <h1 className="results-score" style={{ color }}>{activeScore}%</h1>
               <p className="results-subtitle">
                 {isGlobalPreTest ? "Comprehensive Course Diagnostic" : isGlobalPostTest ? "Comprehensive Course Final Exam" : `Module ${moduleNum} Quiz: ${moduleTitle}`}
               </p>
               <p className="results-attempt">
-                Attempt #{(prevResult?.attempts ?? 0) + 1} &nbsp;·&nbsp; {formatTime(timeElapsed)} taken
+                Attempt #{activeAttempts} &nbsp;·&nbsp; {formatTime(activeTime)} taken
               </p>
+
+              {isLocked && (
+                <div style={{ marginTop: "18px", padding: "14px 18px", backgroundColor: "#fef2f2", borderLeft: "4px solid #ef4444", borderRadius: "0 8px 8px 0", textAlign: "left" }}>
+                  <p className="results-note" style={{ display: "flex", alignItems: "center", gap: "8px", color: "#b91c1c", margin: 0, fontWeight: "600", fontSize: "0.95rem" }}>
+                    <FiLock size={18} style={{ flexShrink: 0 }} /> For research and data integrity purposes, this assessment can only be taken once. Your score and full answer review are preserved below.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="results-stats">
@@ -445,56 +453,67 @@ export default function AssessmentPage() {
                 <span className="stat-label">Correct</span>
               </div>
               <div className="stat-box">
-                <span className="stat-number">{questions.length - correctCount}</span>
+                <span className="stat-number">{questions.length ? questions.length - correctCount : 0}</span>
                 <span className="stat-label">Incorrect</span>
               </div>
               <div className="stat-box">
-                <span className="stat-number">{questions.length}</span>
+                <span className="stat-number">{questions.length || prevResult?.total || 0}</span>
                 <span className="stat-label">Total</span>
               </div>
             </div>
 
-            <div className="results-review">
-              <h3>Answer Review</h3>
-              <div className="review-list">
-                {questions.map((q, i) => {
-                  const userAnswer = selectedAnswers[i];
-                  const correct = userAnswer === q.answer;
-                  return (
-                    <div key={q.id} className={`review-item ${correct ? "correct" : "incorrect"}`}>
-                      <div className="review-item-header">
-                        <span className="review-num">Q{i + 1}</span>
-                        <span className="review-icon">
-                          {correct ? <FiCheck color="#22c55e" /> : <FiX color="#ef4444" />}
-                        </span>
-                        <span className="review-question">
-                          {q.type === "code" && <span className="review-code-tag">CODE</span>}
-                          {q.question}
-                        </span>
-                      </div>
-                      {!correct && (
-                        <div className="review-answer-detail">
-                          {q.code && (
-                            <div className="review-code-snippet">
-                              <pre>{q.code}</pre>
-                            </div>
-                          )}
-                          <span className="your-answer">
-                            Your answer: <em>{userAnswer !== undefined ? q.options[userAnswer] : "Not answered"}</em>
+            {questions.length > 0 && (
+              <div className="results-review">
+                <h3>Answer Review</h3>
+                <div className="review-list">
+                  {questions.map((q, i) => {
+                    const userAnswer = selectedAnswers[i];
+                    const hasAnswer = userAnswer !== undefined && userAnswer !== null;
+                    const correct = hasAnswer ? userAnswer === q.answer : false;
+                    return (
+                      <div key={q.id || i} className={`review-item ${hasAnswer ? (correct ? "correct" : "incorrect") : "neutral"}`}>
+                        <div className="review-item-header">
+                          <span className="review-num">Q{i + 1}</span>
+                          <span className="review-icon">
+                            {hasAnswer ? (
+                              correct ? <FiCheck color="#22c55e" /> : <FiX color="#ef4444" />
+                            ) : (
+                              <FiInfo color="#8b5cf6" />
+                            )}
                           </span>
-                          <span className="correct-answer">
-                            Correct: <em>{q.options[q.answer]}</em>
-                          </span>
-                          <span className="explanation-text" style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                            <FiInfo style={{ marginTop: "3px", flexShrink: 0, color: "#eab308" }} /> {q.explanation}
+                          <span className="review-question">
+                            {q.type === "code" && <span className="review-code-tag">CODE</span>}
+                            {q.question}
                           </span>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        {(!correct || !hasAnswer) && (
+                          <div className="review-answer-detail">
+                            {q.code && (
+                              <div className="review-code-snippet">
+                                <pre>{q.code}</pre>
+                              </div>
+                            )}
+                            {hasAnswer && (
+                              <span className="your-answer">
+                                Your answer: <em>{q.options?.[userAnswer] ?? "Not answered"}</em>
+                              </span>
+                            )}
+                            <span className="correct-answer">
+                              Correct: <em>{q.options?.[q.answer] ?? ""}</em>
+                            </span>
+                            {q.explanation && (
+                              <span className="explanation-text" style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                                <FiInfo style={{ marginTop: "3px", flexShrink: 0, color: "#eab308" }} /> {q.explanation}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="results-actions">
               <button className="btn-proceed" onClick={handleProceed}>
@@ -520,7 +539,7 @@ export default function AssessmentPage() {
                 </span>
               </p>
             )}
-            {!(isGlobalPreTest || isGlobalPostTest) && score >= 75 && (
+            {!(isGlobalPreTest || isGlobalPostTest) && activeScore >= 75 && (
               <p className="results-note" style={{ display: "flex", alignItems: "center", gap: "8px", color: "#22c55e" }}>
                 <FiCheckCircle size={18} style={{ flexShrink: 0 }} /> Great performance! You've demonstrated strong understanding of Module {moduleNum} concepts.
               </p>
