@@ -10,13 +10,17 @@ export default defineConfig({
       // 1. Force workbox to grab your template and activity JSONs
       includeAssets: [
         'templates/**/*.json', 
-        'activities/**/*.json',
-        'assets/**/*'
+        'data/**/*.json',
+        'assets/**/*',
+        'pyodide/*',
+        'python_engine/**/*'
       ],
       workbox: {
         maximumFileSizeToCacheInBytes: 15000000, // 15MB limit for Pyodide
-        // 2. Ensure JSON is in the manifest
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,mjs,py,json}']
+        // 2. Ensure all assets, python code, and zip archives are in the manifest
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,mjs,py,json,zip}'],
+        // 3. Ignore cache-buster timestamp query parameters during offline cache matching
+        ignoreURLParametersMatching: [/^t$/, /^utm_/, /^fbclid$/]
       }
     })
   ],

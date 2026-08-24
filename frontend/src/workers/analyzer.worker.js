@@ -264,10 +264,22 @@ async function initPyodide() {
         const cacheBuster = "?t=" + Date.now();
 
         self.postMessage({ type: "ENGINE_PROGRESS", stage: "Loading analyzer modules...", percent: 65 });
+        const fetchEngineModule = async (name) => {
+          try {
+            const res = await fetch("/python_engine/" + name + cacheBuster);
+            if (res.ok) {
+              const text = await res.text();
+              if (!text.toLowerCase().includes("<!doctype html>")) return text;
+            }
+          } catch (err) {
+            // Network fetch failed (offline) — fall through to clean Service Worker precache URL
+          }
+          const fallbackRes = await fetch("/python_engine/" + name);
+          return await fallbackRes.text();
+        };
+
         const moduleSources = await Promise.all(
-          ENGINE_MODULE_FILES.map(name =>
-            fetch("/python_engine/" + name + cacheBuster).then(res => res.text())
-          )
+          ENGINE_MODULE_FILES.map(name => fetchEngineModule(name))
         );
 
         if (moduleSources.some(c => c.toLowerCase().includes("<!doctype html>"))) {

@@ -4,6 +4,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
 import SyncLimitNotice from "./components/SyncLimitNotice";
 import OnboardingTour from "./components/OnboardingTour";
+import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import { OnboardingProvider } from "./context/OnboardingContext";
 import { PyodideProvider } from "./context/PyodideContext";
 import { startBackgroundSync, stopBackgroundSync } from "./utils/syncManager";
@@ -102,6 +103,7 @@ function App() {
       <SyncLimitNotice />
       <OnboardingTour />
       
+      <RouteErrorBoundary>
       <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
         <Routes>
           {/* Public Auth Routes */}
@@ -164,6 +166,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      </RouteErrorBoundary>
     </OnboardingProvider>
   );
 }

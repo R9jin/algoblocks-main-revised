@@ -64,7 +64,8 @@ export default function AdminDashboard() {
       else if (Array.isArray(data)) setUsers(data);
       else setUsers([]);
     } catch (err) {
-      setError(err.message);
+      const isOffline = !navigator.onLine || err.message?.includes("Failed to fetch") || err.name === "TypeError";
+      setError(isOffline ? "Live user directory is unavailable while offline. Connect to the internet to load database records." : err.message);
     } finally {
       setLoading(false);
     }

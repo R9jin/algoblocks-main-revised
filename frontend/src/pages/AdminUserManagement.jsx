@@ -87,6 +87,23 @@ const AdminUserManagement = () => {
   const [loadingMetricsEmails, setLoadingMetricsEmails] = useState(() => new Set());
   const [metricsError, setMetricsError] = useState({});
 
+  // Per-user activity history collapsible dropdowns & module filter states
+  const [expandedActivitySections, setExpandedActivitySections] = useState(() => new Set());
+  const [userActivityModuleFilters, setUserActivityModuleFilters] = useState({});
+
+  const toggleActivitySection = (email) => {
+    setExpandedActivitySections((prev) => {
+      const next = new Set(prev);
+      if (next.has(email)) next.delete(email);
+      else next.add(email);
+      return next;
+    });
+  };
+
+  const setModuleFilterForUser = (email, moduleId) => {
+    setUserActivityModuleFilters((prev) => ({ ...prev, [email]: moduleId }));
+  };
+
   // Cohort-wide analytics dashboard state
   const [overview, setOverview] = useState(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
@@ -201,7 +218,8 @@ const AdminUserManagement = () => {
         setUsers([]);
       }
     } catch (err) {
-      setError(err.message);
+      const isOffline = !navigator.onLine || err.message?.includes("Failed to fetch") || err.name === "TypeError";
+      setError(isOffline ? "Live user management is unavailable while offline. Connect to the internet to load database records." : err.message);
     } finally {
       setLoading(false);
     }
@@ -219,7 +237,8 @@ const AdminUserManagement = () => {
       if (!response.ok) throw new Error(getErrorMessage(data, "Failed to fetch password reset requests"));
       setResetRequests(Array.isArray(data.requests) ? data.requests : []);
     } catch (err) {
-      setResetRequestsError(err.message);
+      const isOffline = !navigator.onLine || err.message?.includes("Failed to fetch") || err.name === "TypeError";
+      setResetRequestsError(isOffline ? "Password reset queue unavailable offline." : err.message);
     } finally {
       setResetRequestsLoading(false);
     }
@@ -255,7 +274,8 @@ const AdminUserManagement = () => {
       if (!response.ok) throw new Error(getErrorMessage(data, "Failed to fetch analytics overview"));
       setOverview(data);
     } catch (err) {
-      setOverviewError(err.message);
+      const isOffline = !navigator.onLine || err.message?.includes("Failed to fetch") || err.name === "TypeError";
+      setOverviewError(isOffline ? "Cohort analytics requires a live backend connection." : err.message);
     } finally {
       setOverviewLoading(false);
     }
@@ -672,10 +692,10 @@ const AdminUserManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {resetRequests.map((r) => {
+                  {resetRequests.map((r, rIdx) => {
                     const isProcessing = processingResetEmails.has(r.email);
                     return (
-                      <tr key={r.email}>
+                      <tr key={r.email || r._id || `reset-${rIdx}`}>
                         <td>
                           <div style={{ fontWeight: 600 }}>{r.name || r.email}</div>
                           <div style={{ fontSize: "0.85rem", color: "#94a3b8" }}>{r.email}</div>
@@ -921,14 +941,40 @@ const AdminUserManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => {
+                {filteredUsers.map((user, userIdx) => {
                   const isExpanded = expandedEmails.has(user.email);
                   const cached = userMetricsCache[user.email];
                   const isLoadingMetrics = loadingMetricsEmails.has(user.email);
                   const rowError = metricsError[user.email];
+                  const isActivityExpanded = expandedActivitySections.has(user.email);
+                  const userModuleFilter = userActivityModuleFilters[user.email] || "all";
+
+                  const userActivities = Array.isArray(cached?.activities) ? cached.activities : [];
+                  const moduleMap = {};
+                  userActivities.forEach((act) => {
+                    const mod = act.moduleId || "Other";
+                    if (!moduleMap[mod]) moduleMap[mod] = { count: 0, passed: 0 };
+                    moduleMap[mod].count += 1;
+                    if (act.status === "passed") moduleMap[mod].passed += 1;
+                  });
+
+                  const moduleOptions = Object.keys(moduleMap).sort().map((modId) => {
+                    const rawNum = modId.replace(/[^0-9]/g, "");
+                    const label = rawNum !== "" ? `Module ${rawNum}` : modId;
+                    return {
+                      id: modId,
+                      label,
+                      count: moduleMap[modId].count,
+                      passed: moduleMap[modId].passed,
+                    };
+                  });
+
+                  const filteredActivities = userModuleFilter === "all"
+                    ? userActivities
+                    : userActivities.filter((act) => (act.moduleId || "Other") === userModuleFilter);
 
                   return (
-                  <Fragment key={user.email || Math.random()}>
+                  <Fragment key={user.email || user._id || `user-${userIdx}`}>
                   <tr>
                     <td>
                       <div className="admin-user-info">
@@ -1075,25 +1121,104 @@ const AdminUserManagement = () => {
                               </div>
                             </div>
                             <div className="admin-activity-history">
-                              <div className="admin-activity-history-heading">Current activity records</div>
-                              {cached.activities?.length ? (
-                                <div className="admin-activity-table-wrap">
-                                  <table className="admin-activity-table">
-                                    <thead><tr><th>Activity</th><th>Status</th><th>AES</th><th>ROG</th><th>Time</th><th>Space</th><th>Tests</th></tr></thead>
-                                    <tbody>{cached.activities.map((activity) => (
-                                      <tr key={`${activity.moduleId}-${activity.activityId}`}>
-                                        <td><strong>{activity.activityId || "Unknown activity"}</strong><small>{activity.moduleId || "--"}</small></td>
-                                        <td><span className={`activity-status ${activity.status === "passed" ? "passed" : activity.status === "failed" ? "failed" : "draft"}`}>{activity.status}</span></td>
-                                        <td>{activity.aes ?? "--"}%</td>
-                                        <td>+{activity.rog ?? 0}</td>
-                                        <td>{activity.time || "--"}</td>
-                                        <td>{activity.space || "--"}</td>
-                                        <td>{activity.tests?.passed || 0}/{activity.tests?.total || 0}</td>
-                                      </tr>
-                                    ))}</tbody>
-                                  </table>
+                              <button
+                                type="button"
+                                className={`admin-activity-dropdown-toggle ${isActivityExpanded ? "open" : ""}`}
+                                onClick={() => toggleActivitySection(user.email)}
+                                aria-expanded={isActivityExpanded}
+                              >
+                                <div className="admin-activity-toggle-left">
+                                  <LuListChecks size={18} className="admin-activity-toggle-icon" />
+                                  <span className="admin-activity-toggle-title">Activity Records</span>
+                                  <span className="admin-activity-count-badge">
+                                    {userActivities.length} total
+                                  </span>
+                                  {cached.metrics?.activities_passed !== undefined && (
+                                    <span className="admin-activity-passed-badge">
+                                      {cached.metrics.activities_passed} / {cached.metrics.activities_attempted || userActivities.length} passed
+                                    </span>
+                                  )}
                                 </div>
-                              ) : <div className="admin-activity-empty">No activity submissions recorded yet.</div>}
+                                <div className="admin-activity-toggle-right">
+                                  <span className="admin-activity-toggle-hint">
+                                    {isActivityExpanded ? "Collapse records" : "Expand records dropdown"}
+                                  </span>
+                                  {isActivityExpanded ? <LuChevronUp size={18} /> : <LuChevronDown size={18} />}
+                                </div>
+                              </button>
+
+                              {isActivityExpanded && (
+                                <div className="admin-activity-dropdown-body">
+                                  {userActivities.length > 0 ? (
+                                    <>
+                                      <div className="admin-activity-filter-bar">
+                                        <div className="admin-activity-filter-group">
+                                          <label htmlFor={`module-filter-${user.email}`}>
+                                            <LuFilter size={14} /> Filter by Module:
+                                          </label>
+                                          <select
+                                            id={`module-filter-${user.email}`}
+                                            value={userModuleFilter}
+                                            onChange={(e) => setModuleFilterForUser(user.email, e.target.value)}
+                                            className="admin-activity-module-select"
+                                          >
+                                            <option value="all">All Modules ({userActivities.length})</option>
+                                            {moduleOptions.map((mod) => (
+                                              <option key={mod.id} value={mod.id}>
+                                                {mod.label} ({mod.count} activities · {mod.passed} passed)
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                        <div className="admin-activity-filter-stats">
+                                          Showing <strong>{filteredActivities.length}</strong> of {userActivities.length} activities
+                                        </div>
+                                      </div>
+
+                                      <div className="admin-activity-table-wrap">
+                                        <table className="admin-activity-table">
+                                          <thead>
+                                            <tr>
+                                              <th>Activity</th>
+                                              <th>Module</th>
+                                              <th>Status</th>
+                                              <th>AES</th>
+                                              <th>ROG</th>
+                                              <th>Time</th>
+                                              <th>Space</th>
+                                              <th>Tests</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {filteredActivities.map((activity, actIdx) => (
+                                              <tr key={activity._id || activity.id || `${activity.moduleId || "mod"}-${activity.activityId || "act"}-${activity.timestamp || ""}-${actIdx}`}>
+                                                <td>
+                                                  <strong>{activity.activityId || "Unknown activity"}</strong>
+                                                </td>
+                                                <td>
+                                                  <span className="admin-module-chip">{activity.moduleId || "--"}</span>
+                                                </td>
+                                                <td>
+                                                  <span className={`activity-status ${activity.status === "passed" ? "passed" : activity.status === "failed" ? "failed" : "draft"}`}>
+                                                    {activity.status}
+                                                  </span>
+                                                </td>
+                                                <td>{activity.aes !== null && activity.aes !== undefined ? `${activity.aes}%` : "--"}</td>
+                                                <td>+{activity.rog ?? 0}</td>
+                                                <td><code className="admin-complexity-code">{activity.time || "--"}</code></td>
+                                                <td><code className="admin-complexity-code">{activity.space || "--"}</code></td>
+                                                <td>{activity.tests?.passed || 0}/{activity.tests?.total || 0}</td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="admin-activity-empty">No activity submissions recorded yet.</div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                             </>
                           ) : null}
@@ -1209,8 +1334,8 @@ const AdminUserManagement = () => {
                     {postTestOnly ? "No standard-user accounts have a recorded post-test score yet." : "No standard-user accounts found."}
                   </div>
                 ) : (
-                  respondentPickerUsers.map((u) => (
-                    <label key={u.email} className="respondent-picker-item">
+                  respondentPickerUsers.map((u, uIdx) => (
+                    <label key={u.email || u._id || `resp-${uIdx}`} className="respondent-picker-item">
                       <input
                         type="checkbox"
                         checked={pendingRespondents.includes(u.email)}

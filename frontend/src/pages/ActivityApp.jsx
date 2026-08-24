@@ -16,7 +16,7 @@ import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
 import { useOnboarding, GENERIC_ACTIVITY_TOUR_PAGE_ID } from "../context/OnboardingContext";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { getIntroActivityTour } from "../data/introActivityTours.js";
-import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
+import { curriculumCacheDB, progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
 import "../styles/ActivityApp.css";
 import { getComplexityWeight, sanitizePythonCode } from "../utils/asymptoticParser.jsx";
 import { extractErrorSummaryLine, translatePythonError } from "../utils/errorTranslator.js";
@@ -446,12 +446,38 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           const json = await res.json();
           try { await templatesDB.setItem(cacheKey, json); } catch (e) { }
           return json;
-        } else throw new Error("Response is not JSON format");
-      } else throw new Error(`HTTP error ${res.status}`);
-    } catch (e) { console.warn(`Network fetch failed for ${url}, falling back to cache.`, e); }
+        }
+      }
+    } catch (e) { console.warn(`Network fetch failed for ${url}, falling back to Service Worker / local cache.`, e); }
+    
+    // Offline Service Worker Precache Fallback
+    try {
+      const swRes = await fetch(url);
+      if (swRes.ok) {
+        const contentType = swRes.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const json = await swRes.json();
+          try { await templatesDB.setItem(cacheKey, json); } catch (e) { }
+          return json;
+        }
+      }
+    } catch (e) { }
+
     try {
       const cached = await templatesDB.getItem(cacheKey);
       if (cached) return cached;
+    } catch (e) { }
+    // BUG FIX: LearningPath.jsx pre-fetches this exact same activities/lesson
+    // JSON while the learner is browsing the Learning Path online, but it
+    // caches into a different IndexedDB store (curriculumCacheDB, keyed by
+    // the raw URL) than this function checks (templatesDB, keyed by a
+    // "activities:module_X" cacheKey). That mismatch meant the offline
+    // fallback here reported "no cache available" -- and threw -- even when
+    // the data had already been fetched and cached moments earlier. Check
+    // curriculumCacheDB under its own key scheme before giving up.
+    try {
+      const sharedCached = await curriculumCacheDB.getItem(url);
+      if (sharedCached) return sharedCached;
     } catch (e) { }
     throw new Error(`Fetch failed for ${url} and no cache available.`);
   };
