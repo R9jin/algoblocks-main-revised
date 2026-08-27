@@ -150,7 +150,7 @@ export default function UserHomePage() {
     steps: [
       { target: ".user-home-hero", title: "Continue learning", description: "Pick up where you left off or head back into the curriculum." },
       { target: ".user-home-hero-actions", title: "Quick actions", description: "Jump straight to the learning path or the workspace from here." },
-      { target: ".user-home-feature-grid, .explore-features-grid", title: "Explore tools", description: "Review the major learning tools and what each one does." },
+      { target: ".explore-list", title: "Explore tools", description: "Review the major learning tools and what each one does." },
     ],
   };
 

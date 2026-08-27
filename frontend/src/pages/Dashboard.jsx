@@ -188,7 +188,7 @@ export default function Dashboard() {
     steps: [
       { target: ".bento-hero-card", title: "Start here", description: "Launch a blank workspace or continue from the main entry point for the app." },
       { target: ".bento-learning-card", title: "Track learning progress", description: "See your next module, lesson progress, and what is currently unlocked." },
-      { target: ".view-all-projects-btn", title: "Open saved work", description: "Jump back into saved projects and templates from one place." },
+      { target: ".bento-recent-card", title: "Open saved work", description: "Jump back into saved projects and templates from one place." },
       { target: ".bento-help-section", title: "Help and references", description: "Use the built-in FAQs when you want a refresher without leaving the page." },
     ],
   };

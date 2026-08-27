@@ -206,9 +206,9 @@ const AdminUserManagement = () => {
     pageId: "admin-users",
     title: "Admin Tour",
     steps: [
-      { target: ".dashboard-header, .page-header", title: "Admin overview", description: "Use the top controls to search, filter, and refresh the user list." },
-      { target: ".admin-table, .users-table, .user-card-list", title: "Manage accounts", description: "Review user records and apply status or deletion actions carefully." },
-      { target: ".custom-modal, .modal-overlay", title: "Confirm changes", description: "Sensitive actions always route through a confirmation dialog." },
+      { target: ".admin-header", title: "Admin overview", description: "Use the top controls to search, filter, and refresh the user list." },
+      { target: ".admin-analytics-dashboard", title: "Manage accounts", description: "Review performance analytics across all accounts and apply actions carefully." },
+      { target: ".admin-toolbar", title: "User directory", description: "Search and filter accounts, then expand any row in the table below to see activity details and apply actions." },
     ],
   };
 
