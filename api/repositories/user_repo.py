@@ -53,7 +53,7 @@ class UserRepository:
         cursor.execute('''
             SELECT assessment_key, score, max_score, correct, total, time_elapsed,
                    completed_at, completed, passed, attempts, is_synced,
-                   client_timestamp, answers
+                   client_timestamp, answers, question_ids
             FROM assessments WHERE email = %s
         ''', (canonical_email,))
         assessments = {}
@@ -76,6 +76,26 @@ class UserRepository:
                 entry["passed"] = r["passed"]
             if r["answers"] is not None:
                 entry["answers"] = r["answers"]
+            # BUG FIX (post-test answer review mismatch): this query used to omit
+            # question_ids entirely, even though the single-assessment lookup in
+            # AuthService.get_assessment (and the write path in sync_assessment)
+            # both treat it as part of the record. Every assessment is stored with
+            # its questions in the shuffled order the user actually saw at submit
+            # time, and `answers` is a *positional* map ({"0": optionIndex, ...})
+            # keyed to that exact order -- it is meaningless without questionIds
+            # to anchor it back to specific question IDs.
+            # Since this find_by_email() result is what /get-assessments (and
+            # therefore the frontend's pullRemoteState -> assessmentsDB hydration)
+            # returns, dropping question_ids here meant AssessmentPage had no way
+            # to restore the original question order on a fresh device/session.
+            # It silently fell back to the *unshuffled* JSON order while `answers`
+            # still referred to the shuffled order, so position i's stored answer
+            # got matched against a completely different question -- correct
+            # answers rendered as wrong ("X") with unrelated "Your answer" text,
+            # even though the aggregate score/correct count (read straight from
+            # the `correct`/`total` columns) was still accurate.
+            if r["question_ids"] is not None:
+                entry["questionIds"] = r["question_ids"]
             if r["client_timestamp"] is not None:
                 entry["timestamp"] = r["client_timestamp"]
             if r["is_synced"] is not None:
