@@ -519,6 +519,24 @@ export const SyncManager = {
                     }
                 }
             }
+
+            // BUG FIX: "localDataSynced" used to only be dispatched from inside
+            // the onboarding-state branch above, so it only fired when the
+            // account actually had a server-side onboarding_state to apply.
+            // Progress/assessments/submissions/projects/templates were still
+            // pulled and written to IndexedDB just fine on every cycle -- but
+            // LearningPath.jsx, Dashboard.jsx, and Projects.jsx all listen for
+            // this exact event to know when to re-read local DB state into
+            // React state, and never got told anything had changed. Net
+            // effect: a freshly-synced "passed" submission (e.g. finishing an
+            // activity on another device, or the periodic background pull
+            // catching up) would sit correctly in IndexedDB while the
+            // Learning Path's "Activities Done" counts and unlock state kept
+            // showing whatever was loaded on the last full page mount, until
+            // the user hard-refreshed. Fire it once here, unconditionally,
+            // after every successful pull cycle so all of that local state
+            // actually gets refreshed.
+            window.dispatchEvent(new Event("localDataSynced"));
         } catch (error) {
             console.error("Failed to pull remote Postgres state:", error);
         }
