@@ -1027,13 +1027,38 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const user = JSON.parse(storedUser);
     const userProgress = user.progress || {};
 
-    const diffs = lessonActivitiesResolved.map(a => (a.difficulty || 'Easy').toLowerCase());
-    const types = lessonActivitiesResolved.map(a => (a.type || 'activity').toLowerCase());
+    // BUG FIX (threshold inconsistency): Previously used per-activity difficulty
+    // (Easy/Medium/Hard) from the activity JSON, which disagreed with LearningPath.jsx
+    // which uses module-level difficulty from the moduleIcons config. Now both use
+    // the same module-level difficulty mapping so displayed "Min. X" matches the
+    // actual unlock gate.
+    const isOptimizationLesson = lessonActivitiesResolved.some(
+      (a) => (a.type || "").toLowerCase() === "optimization" || (a.id || "").includes("opt")
+    );
 
-    let threshold = 3;
-    if (types.includes('optimization') || lessonActivitiesResolved.some(a => a.id.includes('opt'))) threshold = 2;
-    else if (diffs.includes('hard') || diffs.includes('advanced')) threshold = 1;
-    else if (diffs.includes('medium') || diffs.includes('intermediate')) threshold = 2;
+    let threshold;
+    if (isOptimizationLesson) {
+      threshold = 2;
+    } else {
+      // Map module difficulty (Beginner/Intermediate/Advanced) → min activities needed.
+      // This must stay in sync with LearningPath.jsx::getMinReq().
+      const modNum = String(moduleId).replace(/[^0-9]/g, "");
+      const moduleKey = `module-${modNum}`;
+      // Inline the same difficulty lookup used in LearningPath moduleIcons
+      const moduleDifficulty = {
+        "module-0": "Beginner",
+        "module-1": "Beginner",
+        "module-2": "Intermediate",
+        "module-3": "Intermediate",
+        "module-4": "Intermediate",
+        "module-5": "Advanced",
+        "module-6": "Advanced",
+      }[moduleKey] || "Beginner";
+
+      if (moduleDifficulty === "Beginner") threshold = 3;
+      else if (moduleDifficulty === "Intermediate") threshold = 2;
+      else threshold = 1; // Advanced
+    }
 
     threshold = Math.min(threshold, lessonActivitiesResolved.length);
 
@@ -1049,11 +1074,21 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       if (userProgress[lessonKey] >= 50) {
           passedCount++;
       } else {
-          // Backup fetch just in case it's missing from dict but in IndexedDB
+          // BUG FIX (progress desync): previously checked `sub.score >= 50`.
+          // `score` is the latest-attempt AES, which may be lower than a prior
+          // passing attempt. LearningPath.jsx::checkActivityDone uses `final_aes`
+          // (the best-ever AES). Now both use the same field so an activity that
+          // was once passed is never incorrectly un-marked after a lower re-attempt.
           const subId = `${user.email}_${moduleId}_${act.id}`;
           try {
             const sub = await submissionsDB.getItem(subId);
-            if (sub && sub.score >= 50) passedCount++;
+            if (sub) {
+              let bestAes = sub.final_aes !== undefined && sub.final_aes !== null
+                ? sub.final_aes
+                : sub.score || 0;
+              if (sub.maxScore === 5 && bestAes <= 5) bestAes = (bestAes / 5) * 100;
+              if (bestAes >= 50 || sub.status === "passed") passedCount++;
+            }
           } catch (e) { }
       }
     }
@@ -1271,7 +1306,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     try { localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: aes })); } catch(e) {}
 
     const lessonKey = `${moduleId}:${activityId}`;
-    try { await savePartialProgress(lessonKey, aes); } catch(e) { console.error(e) }
+    // BUG FIX (progress desync): previously saved raw `aes` (current attempt score).
+    // If the user re-attempts and scores lower, this would overwrite the stored progress
+    // with a lower value and un-mark an already-passed activity on reload.
+    // Fix: save the best-ever AES (latestStateRef.current.final_aes = Math.max(prev, current))
+    // so a lower re-attempt never reduces the stored progress.
+    const bestAesForProgress = latestStateRef.current.final_aes ?? aes;
+    try { await savePartialProgress(lessonKey, bestAesForProgress); } catch(e) { console.error(e) }
 
     await handleSuccess(aes, functionalPassed, functionalTotal, calculatedRog);
   };
@@ -1555,12 +1596,32 @@ const ActivityApp = () => {
   // is reachable directly by URL, which would otherwise let a guest open a
   // module's activity anyway. Bounce back to /learning-path, which shows
   // the sign-up prompt instead of module content.
+  // Also gate out non-guests who haven't completed the pre-test yet --
+  // the pre-test is the entry gate for the entire curriculum, and bypassing
+  // it via direct URL defeats the lock system entirely.
   useEffect(() => {
     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     const user = storedUser ? JSON.parse(storedUser) : {};
     if (user.isGuest) {
       navigate("/learning-path", { replace: true });
+      return;
     }
+    // Admin users bypass all locks
+    if (user.role === "admin" || user.isAdmin === true) return;
+
+    // Check pre-test gate asynchronously
+    const checkPreTest = async () => {
+      try {
+        const { assessmentsDB: aDB } = await import("../db.js");
+        const preTestResult = await aDB.getItem("course-pre-test_pre_assessment");
+        if (!preTestResult) {
+          navigate("/learning-path", { replace: true });
+        }
+      } catch (e) {
+        // If we can't check, allow access (don't block on DB errors)
+      }
+    };
+    checkPreTest();
   }, [navigate]);
 
   return <ActivityAppInner key={`${moduleId}-${activityId}`} moduleId={moduleId} activityId={activityId} />;

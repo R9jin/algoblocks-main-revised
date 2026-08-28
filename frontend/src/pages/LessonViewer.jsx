@@ -608,7 +608,7 @@ export default function LessonViewer() {
       <aside className={`lesson-modules-sidebar ${!isSidebarVisible ? "hidden" : ""}`}>
         <div className="sidebar-header">
           <button className="back-button" onClick={() => navigate("/learning-path")}>
-            <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Dashboard
+            <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Learning Path
           </button>
         </div>
         <div className="modules-header">

@@ -132,13 +132,37 @@ export default function AssessmentPage() {
   // of the Learning Path listing (see LearningPath.jsx), but this route is
   // reachable directly by URL. Bounce guests back to /learning-path, which
   // shows the sign-up prompt instead of quiz content.
+  // Also gate out logged-in users who haven't completed the pre-test yet
+  // (the pre-test is the entry gate for the entire curriculum).
   useEffect(() => {
     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     const user = storedUser ? JSON.parse(storedUser) : {};
     if (user.isGuest) {
       navigate("/learning-path", { replace: true });
+      return;
     }
-  }, [navigate]);
+    // Admin users bypass all locks
+    if (user.role === "admin" || user.isAdmin === true) return;
+    // The global pre-test and post-test routes are self-contained -- the
+    // pre-test itself can always be accessed (it IS the gate). The
+    // post-test is gated by completing all modules (LearningPath.jsx handles
+    // that UI lock). For all module-level assessments, require the pre-test.
+    const isGlobalTest = moduleId === "course-pre-test" || moduleId === "course-post-test";
+    if (isGlobalTest) return;
+
+    // Check pre-test gate for module-level assessments
+    const checkPreTest = async () => {
+      try {
+        const preTestResult = await assessmentsDB.getItem("course-pre-test_pre_assessment");
+        if (!preTestResult) {
+          navigate("/learning-path", { replace: true });
+        }
+      } catch (e) {
+        // If we can't check, allow access (don't block on DB errors)
+      }
+    };
+    checkPreTest();
+  }, [navigate, moduleId]);
 
   useEffect(() => {
     const load = async () => {
@@ -328,6 +352,21 @@ export default function AssessmentPage() {
     setScore(finalScore);
     setSubmitted(true);
 
+    // BUG FIX (Quiz answer review mismatch): Previously answers were stored keyed
+    // by positional index ({0: optIdx, 1: optIdx, ...}). On reload the questions
+    // array is reconstructed in the order of questionIds, which may differ from
+    // the original submission order once questions are filtered/edited in the JSON.
+    // That mismatch made correct answers appear wrong in the review.
+    // Fix: also store answers keyed by question ID so the review can always look up
+    // the right answer regardless of question order on reload.
+    const answersByPosition = selectedAnswers; // kept for backward compat
+    const answersByQuestionId = {};
+    questions.forEach((q, i) => {
+      if (selectedAnswers[i] !== undefined && selectedAnswers[i] !== null) {
+        answersByQuestionId[q.id] = selectedAnswers[i];
+      }
+    });
+
     const assessmentKey = `${moduleId}_${type}_assessment`;
     const result = {
       moduleId,
@@ -340,8 +379,11 @@ export default function AssessmentPage() {
       attempts: (prevResult?.attempts ?? 0) + 1,
       version: assessmentVersion || (isGlobalPostTest ? 2 : 1),
       questionIds: questions.map((q) => q.id),
-      answers: selectedAnswers,
-      selectedAnswers: selectedAnswers,
+      // answersByQuestionId is authoritative for the review panel.
+      // answers/selectedAnswers (positional) are kept for backward compatibility.
+      answersByQuestionId,
+      answers: answersByPosition,
+      selectedAnswers: answersByPosition,
     };
 
     await assessmentsDB.setItem(assessmentKey, result);
@@ -450,12 +492,34 @@ export default function AssessmentPage() {
     const activeTime = submitted ? timeElapsed : (prevResult?.timeElapsed ?? timeElapsed ?? 0);
     const activeAttempts = prevResult?.attempts || (submitted ? 1 : 1);
     const { label, color, icon } = getScoreLabel(activeScore);
-    const hasRecordedAnswers = Object.keys(selectedAnswers).length > 0;
-    const correctCount = hasRecordedAnswers
-      ? questions.filter((q, i) => selectedAnswers[i] === q.answer).length
-      : (prevResult?.correct !== undefined && prevResult?.correct !== null)
-        ? prevResult.correct
-        : Math.round((activeScore / 100) * (questions.length || 1));
+
+    // BUG FIX (Quiz score mismatch / answers not viewable):
+    // Build a lookup map: question ID → the option index the user chose.
+    // Priority: answersByQuestionId (new format, stored at submit time keyed by q.id)
+    //           → fall back to positional selectedAnswers (old format) by mapping
+    //             questions[i].id → selectedAnswers[i] for the currently-restored
+    //             question order.
+    // This is the ONLY place we derive per-question "did the user answer this correctly",
+    // so it must be stable regardless of whether questions were reordered on reload.
+    const savedById = prevResult?.answersByQuestionId || {};
+    const answerLookup = { ...savedById };
+    // If the user just submitted (selectedAnswers is live), build the ID map from it.
+    // If restoring a locked result that only has positional answers, rebuild by ID.
+    if (Object.keys(answerLookup).length === 0) {
+      questions.forEach((q, i) => {
+        const a = selectedAnswers[i];
+        if (a !== undefined && a !== null) answerLookup[q.id] = a;
+      });
+    }
+
+    // correctCount: use the saved value from the stored result — NEVER recompute
+    // it by re-grading the live question array, because the question array may be
+    // in a different order than it was when the user submitted (restoring via IDs
+    // does not guarantee the same positional order). Using the saved value ensures
+    // the badge % and the correct/incorrect counts are always in sync.
+    const correctCount = (prevResult?.correct !== undefined && prevResult?.correct !== null)
+      ? prevResult.correct
+      : questions.filter((q) => answerLookup[q.id] === q.answer).length;
 
     return (
       <div className="assessment-page">
@@ -504,7 +568,10 @@ export default function AssessmentPage() {
                 <h3>Answer Review</h3>
                 <div className="review-list">
                   {questions.map((q, i) => {
-                    const userAnswer = selectedAnswers[i];
+                    // BUG FIX: look up by question ID (not positional index) so the
+                    // review is correct even when questions are restored in a
+                    // different order than they were originally answered.
+                    const userAnswer = answerLookup[q.id];
                     const hasAnswer = userAnswer !== undefined && userAnswer !== null;
                     const correct = hasAnswer ? userAnswer === q.answer : false;
                     return (
