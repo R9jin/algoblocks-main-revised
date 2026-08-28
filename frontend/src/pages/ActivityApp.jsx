@@ -571,7 +571,16 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       initial_aes: state.initial_aes, final_aes: state.final_aes, latest_aes: state.latest_aes,
       baseline_actual_complexity: state.baseline_actualTime, baseline_actual_space_complexity: state.baseline_actualSpace,
       latest_actual_complexity: state.latest_actualTime, latest_actual_space_complexity: state.latest_actualSpace,
-      rog: Math.max(0, (state.final_aes || 0) - (state.initial_aes || 0)),
+      // BUG FIX: previously Math.max(0, (state.final_aes || 0) - (state.initial_aes || 0))
+      // -- for a workspace that was opened/auto-saved but never actually
+      // evaluated (state.final_aes/initial_aes both null), the `|| 0`
+      // fallback silently turned "no evaluation happened" into a real
+      // rog=0 that synced to the server and got averaged into the cohort
+      // ROG metric as a phantom "no gain" attempt. Only compute a real
+      // rog once an evaluation has actually produced a final_aes; leave
+      // it null otherwise so the admin dashboard can tell "never
+      // attempted" apart from "attempted, no gain."
+      rog: state.final_aes != null ? Math.max(0, state.final_aes - (state.initial_aes || 0)) : null,
       passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
       functional_passed: state.functional_passed, functional_total: state.functional_total,
       complexity_passed: state.complexity_passed, complexity_total: state.complexity_total,
@@ -792,7 +801,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       initial_aes: latestStateRef.current.initial_aes, final_aes: latestStateRef.current.final_aes, latest_aes: latestStateRef.current.latest_aes,
       baseline_actual_complexity: latestStateRef.current.baseline_actualTime, baseline_actual_space_complexity: latestStateRef.current.baseline_actualSpace,
       latest_actual_complexity: latestStateRef.current.latest_actualTime, latest_actual_space_complexity: latestStateRef.current.latest_actualSpace,
-      rog: latestStateRef.current.rog || 0,
+      // BUG FIX: see triggerFinalSave's identical comment -- without this,
+      // a draft-save that happens before any evaluation has run (e.g. the
+      // isDraft=true calls below) synced the ref's untouched default
+      // rog=0 alongside a null final_aes, which the admin dashboard's ROG
+      // average then counted as a real (phantom) zero-gain attempt.
+      rog: latestStateRef.current.final_aes != null ? (latestStateRef.current.rog || 0) : null,
       passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total,
       functional_passed: latestStateRef.current.functional_passed, functional_total: latestStateRef.current.functional_total,
       complexity_passed: latestStateRef.current.complexity_passed, complexity_total: latestStateRef.current.complexity_total,

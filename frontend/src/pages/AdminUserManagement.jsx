@@ -851,9 +851,9 @@ const AdminUserManagement = () => {
                     <span className="analytics-card-label">
                       <MetricTooltip
                         title="Average Refactoring Optimization Gain (Mean ROG)"
-                        meanFormula="Mean ROG = (1 / M) × Σ [ AES_final,k - AES_baseline,k ]"
+                        meanFormula="Mean ROG = (1 / M') × Σ [ AES_final,k - AES_baseline,k ]  for k where gain > 0"
                         baseFormula="where ROG_k = AES_final,k - AES_baseline,k for activity k"
-                        desc="Calculated by computing the score improvement from initial baseline attempt to final refactored solution for each activity, summed across all M submissions and divided by total submissions M."
+                        desc={`Calculated by computing the score improvement from initial baseline attempt to final refactored solution for each activity, averaged only over the M' = ${overview.system_generated.rog_refactored_count ?? 0} submissions that actually recorded a gain (excludes never-attempted drafts and first-try passes with nothing to improve).`}
                       >
                         Avg Refactoring Optimization Gain (ROG)
                       </MetricTooltip>

@@ -169,13 +169,26 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
         if isinstance(final_aes, (int, float)):
             aes_values.append(final_aes)
 
-        # Per the paper: ROG = AES_Final - AES_Baseline, with no added
-        # requirement that the Big-O complexity class itself changed --
-        # a resubmission that only fixed correctness (same class, higher
-        # TSR) still raised AES and is still a real refactoring gain.
-        rog = sub.get("rog")
-        if isinstance(rog, (int, float)):
-            rog_values.append(rog)
+            # Per the paper: ROG = AES_Final - AES_Baseline, with no added
+            # requirement that the Big-O complexity class itself changed --
+            # a resubmission that only fixed correctness (same class, higher
+            # TSR) still raised AES and is still a real refactoring gain.
+            #
+            # Gated on final_aes being present (same as aes_values above)
+            # AND on rog > 0: this average is now specifically "mean gain
+            # among activities where a refactor actually happened," not
+            # "mean gain across every submission." That deliberately drops
+            # two kinds of zero: never-evaluated drafts (final_aes is None,
+            # already excluded by the outer gate) and legitimate first-try
+            # passes (final_aes present, rog == 0 because there was nothing
+            # to improve on resubmission). Neither represents a refactor,
+            # so neither belongs in a metric about refactor size. This
+            # trades "average gain per activity" for "average gain per
+            # activity that was actually refactored" -- see rog_refactored_count
+            # below for how many submissions that average is drawn from.
+            rog = sub.get("rog")
+            if isinstance(rog, (int, float)) and rog > 0:
+                rog_values.append(rog)
 
         breakdown = _test_breakdown(sub)
         functional_passed += breakdown["functional"]["passed"]
@@ -200,6 +213,10 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {
         "aes": round(statistics.mean(aes_values), 1) if aes_values else None,
         "rog": round(statistics.mean(rog_values), 1) if rog_values else None,
+        # How many submissions the "rog" average above was actually drawn
+        # from (i.e. how many had rog > 0), for context next to a number
+        # that no longer represents "every submission."
+        "rog_refactored_count": len(rog_values),
         "tsr": round(statistics.mean(tsr_values) * 100, 1) if tsr_values else None,
         "activities_attempted": len(submissions),
         "activities_passed": passed_count,
@@ -215,8 +232,12 @@ def _submission_details(submissions: List[Dict[str, Any]]) -> List[Dict[str, Any
         if not isinstance(sub, dict):
             continue
         # Same ROG definition as _submission_metrics above -- trust the
-        # stored value, no complexity-class-changed gate.
-        safe_rog = sub.get("rog", 0)
+        # stored value, no complexity-class-changed gate. rog is now sent
+        # as an explicit null (not 0) for rows that were never evaluated
+        # (see ActivityApp.jsx) -- .get("rog", 0) only applies its default
+        # when the key is *missing*, not when it's present-but-null, so
+        # normalize that to 0 here for the per-activity table display.
+        safe_rog = sub.get("rog") if sub.get("rog") is not None else 0
         details.append({
             "moduleId": sub.get("moduleId"),
             "activityId": sub.get("activityId"),
