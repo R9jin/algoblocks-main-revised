@@ -43,7 +43,20 @@ body {
 .gutter-horizontal { cursor: col-resize; }
 .gutter:hover { background-color: var(--purple-main); }
 
-.workspace-main { display: flex; flex-direction: column; height: 100%; position: relative; background-color: var(--panel-bg); transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+.workspace-main {
+  display: flex; flex-direction: column; height: 100%; position: relative; background-color: var(--panel-bg); transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  /* The footer-label breakpoint below used to key off @media (viewport
+     width), so opening the left/right side panels could squeeze this
+     center panel down to a few hundred px while the *page* was still
+     well over 768px wide -- the footer buttons kept their text labels
+     and just relied on horizontal scrolling, which read as overlapping/
+     cramped on compressed layouts. A container query keys off this
+     panel's own width instead, so the footer drops to icon-only
+     whenever the workspace itself is compressed, regardless of how
+     wide the browser window is. */
+  container-type: inline-size;
+  container-name: workspace-panel;
+}
 
 /* =========================================
    TOAST NOTIFICATIONS
@@ -418,6 +431,28 @@ body {
 }
 .footer-action-icon:hover { background: rgba(239, 68, 68, 0.2); color: #FCA5A5; }
 .footer-action-icon.reset-layout-btn:hover { background: rgba(121, 40, 202, 0.25); color: #D8B4FE; }
+
+/* Icon-only footer once the workspace panel itself is compressed (e.g.
+   side panels open, split-screen, embedded webview) -- reacts to this
+   panel's actual width via the container query above, not just the
+   full page viewport, so labels never sit half-scrolled/overlapping. */
+@container workspace-panel (max-width: 700px) {
+  .workspace-footer {
+    padding: 0 8px;
+  }
+
+  .footer-left, .footer-right {
+    gap: 4px;
+  }
+
+  .footer-tab, .footer-action-icon {
+    padding: 8px 10px;
+  }
+
+  .footer-tab span, .footer-action-icon span {
+    display: none;
+  }
+}
 
 /* UTILITIES */
 .d-none { display: none !important; }
