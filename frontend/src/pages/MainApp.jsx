@@ -19,7 +19,7 @@ import WorkspaceHeader from "../components/WorkspaceHeader.jsx";
 import { projectsDB, templatesDB } from "../db.js";
 import "../styles/MainApp.css";
 
-import { FiActivity, FiChevronRight, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
+import { FiActivity, FiChevronLeft, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { sanitizePythonCode } from "../utils/asymptoticParser.jsx";
 import { extractErrorSummaryLine, translatePythonError } from "../utils/errorTranslator.js";
@@ -1187,7 +1187,7 @@ export default function MainApp() {
 
         <main className="workspace-main">
           <button className={`sidebar-toggle-btn ${!isSidebarVisible ? "closed" : ""}`} onClick={() => setIsSidebarVisible(!isSidebarVisible)} title="Toggle Sidebar">
-            <FiChevronRight className="toggle-icon" size={16} />
+            <FiChevronLeft className="toggle-icon" size={16} />
           </button>
 
           <div className="editor-tab-bar">

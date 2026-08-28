@@ -16,6 +16,7 @@ import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
 import { useOnboarding, GENERIC_ACTIVITY_TOUR_PAGE_ID } from "../context/OnboardingContext";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { getIntroActivityTour } from "../data/introActivityTours.js";
+import curriculumIndex from "../data/curriculumIndex.js";
 import { curriculumCacheDB, progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
 import "../styles/ActivityApp.css";
 import { getComplexityWeight, sanitizePythonCode } from "../utils/asymptoticParser.jsx";
@@ -1045,6 +1046,24 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     return { passedCount, threshold, isCompleted: passedCount >= threshold };
   };
 
+  // "Next Lesson" in the completion modal is supposed to open the reading
+  // content for the lesson that comes right after this one -- not just drop
+  // the learner back on the generic /learning-path listing. topicIdResolved
+  // is already in the exact "lesson-{moduleNum}-{lessonNum}" form used as
+  // lessonId in curriculumIndex, so we can look the current lesson up there,
+  // grab whichever one is next in that module's lessons array, and route
+  // straight to it. If this was the last lesson in the module (no next
+  // lesson to open), fall back to the learning path listing.
+  const resolveNextLessonPath = () => {
+    if (!topicIdResolved) return "/learning-path";
+    const module = curriculumIndex.find((m) => Array.isArray(m.lessons) && m.lessons.some((l) => l.lessonId === topicIdResolved));
+    if (!module) return "/learning-path";
+    const lessonIndex = module.lessons.findIndex((l) => l.lessonId === topicIdResolved);
+    const nextLesson = lessonIndex >= 0 ? module.lessons[lessonIndex + 1] : null;
+    if (!nextLesson) return "/learning-path";
+    return `/learning-path/${module.moduleId}/${nextLesson.lessonId}`;
+  };
+
   const handleSuccess = async (aesScore, funcPassed, funcTotal, currentRog) => {
     const currentIndex = lessonActivitiesResolved.findIndex((a) => a.id === activityId);
     const isLast = currentIndex === lessonActivitiesResolved.length - 1;
@@ -1077,7 +1096,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     if (!isLast && nextActivity) {
       if (meetsThreshold) {
-        setModalConfig({ isOpen: true, title: "Lesson Unlocked!", message: promptMsg + "\n\nYou have reached the minimum requirement. Choose whether to stay, continue to the next activity, or move on to the next lesson.", confirmText: "Next Lesson", cancelText: "Stay Here", secondaryText: "Next Activity", isDanger: false, onConfirmAction: () => { closeModal(); navigate("/learning-path"); }, onSecondaryAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal });
+        setModalConfig({ isOpen: true, title: "Lesson Unlocked!", message: promptMsg + "\n\nYou have reached the minimum requirement. Choose whether to stay, continue to the next activity, or move on to the next lesson.", confirmText: "Next Lesson", cancelText: "Stay Here", secondaryText: "Next Activity", isDanger: false, onConfirmAction: () => { closeModal(); navigate(resolveNextLessonPath()); }, onSecondaryAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal });
       } else {
         setModalConfig({ isOpen: true, title: "Activity Evaluated", message: promptMsg + "\n\nReady for the next challenge?", confirmText: "Next Activity", cancelText: "Stay Here", isDanger: false, onConfirmAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal });
       }
@@ -1410,7 +1429,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
         <main className="workspace-main activity-center-panel">
           <button className={`sidebar-toggle-btn ${!isLeftPanelVisible ? "closed" : ""}`} onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)} title="Toggle Instructions">
-            <FiChevronRight className="toggle-icon" />
+            <FiChevronLeft className="toggle-icon" />
           </button>
           <button className={`sidebar-toggle-btn right-panel-toggle ${!isRightPanelVisible ? "closed" : ""}`} onClick={() => setIsRightPanelVisible(!isRightPanelVisible)} title="Toggle Test Cases">
             <FiChevronLeft className="toggle-icon" />
