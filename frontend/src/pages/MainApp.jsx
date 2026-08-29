@@ -321,6 +321,16 @@ export default function MainApp() {
     return () => clearTimeout(emergencySaveDebounceRef.current);
   }, [tabs]);
 
+  // SPREAD-OUT AUTOSAVE: the debounce above resets on every keystroke while
+  // typing in the Python editor, so a long, uninterrupted typing streak can
+  // keep it from ever actually firing. This periodic flush is independent
+  // of that debounce, so the recoverable snapshot is never more than a few
+  // seconds stale no matter how continuously someone is editing.
+  useEffect(() => {
+    const intervalId = setInterval(emergencySaveNow, 4000);
+    return () => clearInterval(intervalId);
+  }, []);
+
   // Let the person know their previous unsaved work came back, rather than
   // silently repopulating tabs -- otherwise a recovered draft can look like
   // it appeared from nowhere.

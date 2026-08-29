@@ -670,6 +670,22 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
   }, []);
 
+  // SPREAD-OUT AUTOSAVE: the unload listeners above only cover a clean
+  // exit. Someone typing continuously in the Python editor can keep the
+  // existing 1.5s autosave debounce (handleWorkspaceAutoSave below)
+  // perpetually reset, so it may never actually fire during a long,
+  // uninterrupted editing streak -- and a hard crash, tab kill, or lost
+  // connection never fires beforeunload/pagehide at all. This interval is
+  // a periodic, debounce-independent flush of the same synchronous
+  // localStorage snapshot, so the recoverable copy is never more than a
+  // few seconds stale regardless of how the session ends.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (isReadyRef.current && !isUnmountingRef.current) emergencySaveNow();
+    }, 4000);
+    return () => clearInterval(intervalId);
+  }, []);
+
   useEffect(() => {
     let cancelled = false; 
     isReadyRef.current = false;
@@ -933,6 +949,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const handleWorkspaceAutoSave = (json, pythonCode) => {
     if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
     saveDraftTimeoutRef.current = setTimeout(async () => {
+      // Flush the synchronous localStorage snapshot in the same breath as
+      // the IndexedDB/server draft save, so both stay in lockstep on every
+      // settled edit -- not just at unload or on the 4s interval.
+      emergencySaveNow();
       if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") {
         await saveSubmission(json, pythonCode, null, null, totalTests, null, latestStateRef.current.actualTime, latestStateRef.current.actualSpace, true);
       }
