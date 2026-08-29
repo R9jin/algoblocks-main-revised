@@ -317,7 +317,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   };
 
   useEffect(() => {
-    const handleOnline = () => { setIsOnline(true); showToast("Connection restored. Syncing drafts...", "success"); };
+    const handleOnline = () => {
+      setIsOnline(true);
+      showToast("Connection restored. Syncing drafts...", "success");
+      // FIX: Flush in-memory workspace state to IndexedDB immediately on
+      // reconnect, before the global syncManager 'online' burst runs.
+      // The autosave debouncer has a 1.5 s delay, so if the user was
+      // editing while offline the latest latestStateRef values may not
+      // yet be persisted when the sync kicks off -- triggering a save
+      // here closes that window so the upcoming push cycle includes the
+      // freshest state rather than whatever was last debounced.
+      triggerFinalSave();
+    };
     const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Saving drafts locally.", "error"); };
     window.addEventListener("online", handleOnline); window.addEventListener("offline", handleOffline);
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
@@ -604,8 +615,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       try {
         const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
         fetch(`${API_BASE}/api/sync-submission`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload), keepalive: true });
-      } catch (err) { pushToSyncQueue(`sync_${finalSubId}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); }
-    } else pushToSyncQueue(`sync_${finalSubId}`, { type: "SUBMISSION", action: "UPSERT", data: payload });
+      } catch (err) { pushToSyncQueue(`sync_${finalSubId}`, { url: `${API_BASE}/api/sync-submission`, method: "POST", payload: payload }); }
+    } else pushToSyncQueue(`sync_${finalSubId}`, { url: `${API_BASE}/api/sync-submission`, method: "POST", payload: payload });
   };
 
   useEffect(() => {
@@ -821,7 +832,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     try { await submissionsDB.setItem(submissionId, payload); window.dispatchEvent(new Event("localDataSynced")); } catch (e) { }
 
-    if (navigator && !navigator.onLine) { pushToSyncQueue(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); return; }
+    if (navigator && !navigator.onLine) { pushToSyncQueue(`sync_${submissionId}_${Date.now()}`, { url: `${API_BASE}/api/sync-submission`, method: "POST", payload: { ...payload, isSynced: true } }); return; }
 
     try {
       const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -831,7 +842,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
            try { await submissionsDB.setItem(submissionId, { ...payload, isSynced: true }); } catch(e) {}
         } else throw new Error("Server rejected submission");
       }
-    } catch (err) { pushToSyncQueue(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); }
+    } catch (err) { pushToSyncQueue(`sync_${submissionId}_${Date.now()}`, { url: `${API_BASE}/api/sync-submission`, method: "POST", payload: { ...payload, isSynced: true } }); }
   };
 
   const handleWorkspaceAutoSave = (json, pythonCode) => {
@@ -978,8 +989,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         if (res.ok) {
            try { await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: true }); } catch (e) {}
         } else throw new Error("Sync failed with status: " + res.status);
-      } catch (error) { pushToSyncQueue(`sync_prog_${lessonId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload }); }
-    } else if (!user.isGuest) pushToSyncQueue(`sync_prog_${lessonId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload });
+      } catch (error) { pushToSyncQueue(`sync_prog_${lessonId}_${Date.now()}`, { url: `${API_BASE}/api/update-progress`, method: "POST", payload: payload }); }
+    } else if (!user.isGuest) pushToSyncQueue(`sync_prog_${lessonId}_${Date.now()}`, { url: `${API_BASE}/api/update-progress`, method: "POST", payload: payload });
   };
 
   const completeFullTopic = async (topicId) => {
@@ -1001,8 +1012,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         if (res.ok) {
             try { await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: true }); } catch (e) {}
         } else throw new Error("Sync failed with status: " + res.status);
-      } catch (error) { pushToSyncQueue(`sync_prog_${topicId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload }); }
-    } else if (!user.isGuest) pushToSyncQueue(`sync_prog_${topicId}_${Date.now()}`, { type: "PROGRESS", action: "UPSERT", data: payload });
+      } catch (error) { pushToSyncQueue(`sync_prog_${topicId}_${Date.now()}`, { url: `${API_BASE}/api/update-progress`, method: "POST", payload: payload }); }
+    } else if (!user.isGuest) pushToSyncQueue(`sync_prog_${topicId}_${Date.now()}`, { url: `${API_BASE}/api/update-progress`, method: "POST", payload: payload });
   };
 
   const executeTest = async (codeToRun) => {

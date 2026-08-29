@@ -252,7 +252,8 @@ export default function AssessmentPage() {
       };
       saveDraft(moduleId, type, draft);
       setLastSavedAt(new Date().toISOString());
-    }, 10_000);
+    }, 3_000); // FIX: Reduced from 10 000 ms → 3 000 ms to minimize elapsed-time
+               // loss on hard crash (tab kill, power loss, etc.).
 
     return () => clearInterval(autoSaveRef.current);
   }, [submitted, loading, questions, selectedAnswers, currentIndex, timeElapsed, moduleId, type, isLocked]);
