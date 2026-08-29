@@ -22,10 +22,26 @@ import TourHelpButton from "../components/TourHelpButton";
 import { BLOCK_EXAMPLES } from "../data/blockExamples";
 import curriculumIndex from "../data/curriculumIndex";
 import { LESSON_BLOCK_PLAYGROUNDS } from "../data/lessonBlockPlaygrounds";
-import { assessmentsDB, curriculumCacheDB, progressDB } from "../db";
+import { assessmentsDB, curriculumCacheDB, progressDB, submissionsDB } from "../db";
 import { useExampleWorker } from "../hooks/useExampleWorker.js";
 import "../styles/LessonViewer.css";
 import "../styles/Skeleton.css";
+import { syncDownFromServer } from "../utils/syncManager";
+
+// Mirrors the difficulty map in LearningPath.jsx (kept local here since it's
+// only used to size the "how many activities count as done" requirement --
+// see getMinReq below). If these two ever drift, module-completion state
+// will disagree between the Learning Path and the Lesson Viewer again, so
+// keep this in sync with LearningPath.jsx's moduleIcons difficulties.
+const MODULE_DIFFICULTY = {
+  "module-0": "Beginner",
+  "module-1": "Beginner",
+  "module-2": "Intermediate",
+  "module-3": "Intermediate",
+  "module-4": "Intermediate",
+  "module-5": "Advanced",
+  "module-6": "Advanced",
+};
 
 // This app never renders LaTeX/MathJax anywhere — Big-O notation is always
 // shown as plain styled text (e.g. `O(n log n)`), never `$O(n \log n)$`.
@@ -345,6 +361,7 @@ export default function LessonViewer() {
   const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
   const [assessments, setAssessments] = useState({});
+  const [submissions, setSubmissions] = useState({});
 
   // One shared, isolated example-execution worker for every interactive
   // block playground on this lesson page -- separate from the worker the
@@ -386,6 +403,7 @@ export default function LessonViewer() {
         const API_BASE = import.meta.env.VITE_API_URL || "";
         let initialProg = storedUser.progress || {};
         let initialAssm = storedUser.assessments || {};
+        const initialSubs = {};
 
         await progressDB.iterate((value, key) => {
           initialProg[key] = value.score !== undefined ? value.score : value;
@@ -393,9 +411,22 @@ export default function LessonViewer() {
         await assessmentsDB.iterate((value, key) => {
           initialAssm[key] = value;
         });
+        // BUG FIX: this page previously never read submissionsDB at all, so
+        // isModuleComplete()/hasPostAssessment() had no way to see per-
+        // activity completions -- only whole-lesson userProgress. That's
+        // what let a module (and every module after it, since locking is
+        // sequential) show as locked here while Learning Path, which does
+        // read submissions, correctly showed it complete.
+        await submissionsDB.iterate((val) => {
+          if (val && val.userId === storedUser.email) {
+            if (!initialSubs[val.moduleId]) initialSubs[val.moduleId] = {};
+            initialSubs[val.moduleId][val.activityId] = val;
+          }
+        });
 
         setUserProgress(initialProg);
         setAssessments(initialAssm);
+        setSubmissions(initialSubs);
 
         if (navigator.onLine && storedUser.email && !storedUser.isGuest) {
           try {
@@ -433,11 +464,21 @@ export default function LessonViewer() {
             console.warn("Could not fetch latest progress from cloud:", e);
           }
         }
+
+        // submissionsDB itself is kept current by syncDownFromServer() (see
+        // below) writing straight into IndexedDB, then re-reading it here
+        // via the localDataSynced listener -- same pattern LearningPath.jsx
+        // uses, so both pages end up looking at the same submission data.
       } catch (e) {
         console.warn("Error loading offline progress:", e);
       }
     };
     loadOfflineData();
+    syncDownFromServer();
+
+    const handleSync = () => loadOfflineData();
+    window.addEventListener("localDataSynced", handleSync);
+    return () => window.removeEventListener("localDataSynced", handleSync);
   }, []);
 
   useEffect(() => {
@@ -528,34 +569,137 @@ export default function LessonViewer() {
     setOpenPlaygroundId(null);
   }, [moduleId, lessonId]);
 
-  const hasPostAssessment = (mId) => assessments[`${mId}_post_assessment`] !== undefined;
+  // BUG FIX: the old hasPostAssessment did an EXACT string match --
+  // assessments[`${mId}_post_assessment`] !== undefined -- against whatever
+  // key format the assessments store happens to use. LearningPath.jsx
+  // never relied on that exact format; it normalizes keys (strips
+  // -/_/space, lowercases) and matches against several plausible variants.
+  // Whenever a module's real key didn't happen to match the strict format
+  // here, this page saw the post-test as "not done" even though Learning
+  // Path -- and the server -- correctly considered it complete. Because
+  // locking is sequential (buildLockMap below), one such mismatch locked
+  // every module after it, which is exactly the "modules 3-6 locked"
+  // symptom. This now mirrors LearningPath.jsx's getQuizData exactly.
+  const checkActivityDone = (mId, actId) => {
+    const sub = submissions[mId]?.[actId];
+    if (!sub) return false;
+
+    let aes = sub.final_aes !== null && sub.final_aes !== undefined ? sub.final_aes : sub.score || 0;
+    if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100;
+    aes = Math.min(aes, 100);
+
+    return aes >= 50 || sub.status === "passed";
+  };
+
+  const getMinReq = (mId, activities, isOpt = false) => {
+    if (!activities || activities.length === 0) return 0;
+    if (isOpt) return Math.min(2, activities.length);
+
+    const difficulty = MODULE_DIFFICULTY[mId] || "Beginner";
+    if (difficulty === "Beginner") return Math.min(3, activities.length);
+    if (difficulty === "Intermediate") return Math.min(2, activities.length);
+    if (difficulty === "Advanced") return Math.min(1, activities.length);
+
+    return activities.length;
+  };
+
+  const getQuizData = (mId) => {
+    const modClean = String(mId).toLowerCase().replace(/[-_ ]/g, "");
+    const targetQuizKeys = [`${modClean}assessment`, `${modClean}quiz`, `${modClean}test`, modClean, `${modClean}postassessment`];
+
+    for (const [k, v] of Object.entries(assessments || {})) {
+      const kc = String(k).toLowerCase().replace(/[-_ ]/g, "");
+      if (targetQuizKeys.includes(kc)) {
+        return v;
+      }
+    }
+    return null;
+  };
+
+  const findMilestoneData = (keywords) => {
+    const cleanKws = keywords.map((k) => String(k).toLowerCase().replace(/[-_ ]/g, ""));
+    for (const [k, v] of Object.entries(assessments || {})) {
+      const cleanKey = String(k).toLowerCase().replace(/[-_ ]/g, "");
+      if (cleanKws.some((kw) => cleanKey.includes(kw))) {
+        if (v !== null && v !== undefined && (v.completed || v.passed || v.score !== undefined || v.correct !== undefined)) {
+          return v;
+        }
+      }
+    }
+    return null;
+  };
+
+  const hasPostAssessment = (mId) => {
+    const quizData = getQuizData(mId);
+    if (!quizData) return false;
+    return quizData.passed || quizData.completed || (quizData.score !== undefined && quizData.score >= 50);
+  };
 
   const isModuleComplete = (mId) => {
     const module = curriculumIndex.find((m) => m.moduleId === mId);
     if (!module) return false;
-    return module.lessons.every((l) => {
-      const details = lessonDetails[l.lessonId];
-      const firstActivityId = details?.activities?.[0]?.id;
-      if (!firstActivityId) return (userProgress[l.lessonId] || 0) >= 1;
-      return (userProgress[l.lessonId] || 0) >= 1; 
+
+    const modActs = activitiesData[mId] || {};
+    if (Object.keys(modActs).length === 0) return false;
+
+    const lessonsDone = module.lessons.every((lesson) => {
+      const lessonNum = lesson.lessonId.split("-")[2];
+      const activities = modActs[`lesson_${lessonNum}`] || [];
+      if (activities.length === 0) return (userProgress[lesson.lessonId] || 0) >= 1;
+
+      const minReq = getMinReq(mId, activities, false);
+      const completedCount = activities.filter((a) => checkActivityDone(mId, a.id)).length;
+      return completedCount >= minReq;
     });
+
+    if (!lessonsDone) return false;
+
+    const optimizations = modActs.optimizations || [];
+    if (optimizations.length > 0) {
+      const optMinReq = getMinReq(mId, optimizations, true);
+      const completedOptCount = optimizations.filter((o) => checkActivityDone(mId, o.id)).length;
+      if (completedOptCount < optMinReq) return false;
+    }
+
+    return true;
   };
 
   const buildLockMap = () => {
     const lockMap = {};
-    const isGlobalPreTestDone = assessments["course-pre-test_pre_assessment"] !== undefined;
+    const isGlobalPreTestDone = findMilestoneData(["pretest", "coursepretest"]) !== null;
     let isNextLocked = isAdmin ? false : !isGlobalPreTestDone;
 
     for (const module of curriculumIndex) {
+      const modActs = activitiesData[module.moduleId] || {};
+
       for (const l of module.lessons) {
         lockMap[l.lessonId] = isAdmin ? false : isNextLocked;
+
         if (!isNextLocked) {
-          const prog = userProgress[l.lessonId] || 0;
-          if (prog < 1) {
-            isNextLocked = true;
+          const lessonNum = l.lessonId.split("-")[2];
+          const activities = modActs[`lesson_${lessonNum}`] || [];
+
+          if (activities.length > 0) {
+            const minReq = getMinReq(module.moduleId, activities, false);
+            const completedCount = activities.filter((a) => checkActivityDone(module.moduleId, a.id)).length;
+            if (completedCount < minReq) {
+              isNextLocked = true;
+            }
+          } else {
+            if ((userProgress[l.lessonId] || 0) < 1) isNextLocked = true;
           }
         }
       }
+
+      const optimizations = modActs.optimizations || [];
+      if (optimizations.length > 0 && !isNextLocked) {
+        const optMinReq = getMinReq(module.moduleId, optimizations, true);
+        const completedOptCount = optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length;
+        if (completedOptCount < optMinReq) {
+          isNextLocked = true;
+        }
+      }
+
       const postComplete = hasPostAssessment(module.moduleId);
       if (!postComplete && !isAdmin) isNextLocked = true;
     }

@@ -212,27 +212,48 @@ export default function ProfilePage() {
               fetch(`${API_BASE}/api/get-all-submissions`, { headers }),
             ]);
 
+            // PERFORMANCE FIX: these three loops previously did
+            // `for (...) { ...; await store.setItem(...) }` -- awaiting
+            // each IndexedDB write one at a time before starting the next.
+            // Each setItem() is its own independent transaction, so with a
+            // learner's full history (progress per lesson, an assessment
+            // per module, and a submission per activity across all 7
+            // modules -- easily 100+ entries combined) this serialized
+            // dozens of round trips to IndexedDB back-to-back, and
+            // setLoading(false) couldn't fire until every single one
+            // finished. None of these writes depend on each other, so
+            // firing them all at once with Promise.all lets the browser
+            // run them concurrently instead -- this was the single
+            // biggest contributor to a slow-rendering Profile page.
             if (progRes.ok) {
               const data = await progRes.json();
-              for (const [key, val] of Object.entries(data.progress || data)) {
-                initialProg[key] = val; await progressDB.setItem(key, { score: val, isSynced: true });
-              }
+              const entries = Object.entries(data.progress || data);
+              for (const [key, val] of entries) initialProg[key] = val;
+              await Promise.all(
+                entries.map(([key, val]) => progressDB.setItem(key, { score: val, isSynced: true }))
+              );
             }
 
             if (assmRes.ok) {
               const data = await assmRes.json();
-              for (const [key, val] of Object.entries(data.assessments || data)) {
-                initialAssm[key] = val; await assessmentsDB.setItem(key, { ...val, isSynced: true });
-              }
+              const entries = Object.entries(data.assessments || data);
+              for (const [key, val] of entries) initialAssm[key] = val;
+              await Promise.all(
+                entries.map(([key, val]) => assessmentsDB.setItem(key, { ...val, isSynced: true }))
+              );
             }
 
             if (subsRes.ok) {
               const subData = await subsRes.json();
-              for (const sub of (subData.submissions || [])) {
-                if (!sub || !sub.moduleId || !sub.activityId) continue;
-                const subId = sub.id || `${sub.userId}_${sub.moduleId}_${sub.activityId}`;
-                if (subId) await submissionsDB.setItem(subId, { ...sub, id: subId, isSynced: true });
-              }
+              const validSubs = (subData.submissions || []).filter(
+                (sub) => sub && sub.moduleId && sub.activityId
+              );
+              await Promise.all(
+                validSubs.map((sub) => {
+                  const subId = sub.id || `${sub.userId}_${sub.moduleId}_${sub.activityId}`;
+                  return submissionsDB.setItem(subId, { ...sub, id: subId, isSynced: true });
+                })
+              );
             }
           } catch (e) { console.warn("Cloud sync warning:", e); }
         }

@@ -4,8 +4,18 @@ import { openDB } from "idb";
 const DB_NAME = "AlgoBlocksDB";
 const DB_VERSION = 6; // Bumped to 6 to fix submissions keyPath
 
+// PERFORMANCE FIX: initDB() used to call openDB(...) fresh every single
+// time it was invoked -- and every method on createStoreWrapper below
+// (get, setItem, getAll, delete, ...) calls initDB() internally. That
+// meant a page loading, say, 100 submissions issued 100 separate
+// indexedDB.open() calls instead of reusing one connection, each paying
+// its own connection-setup cost on top of the actual read/write. Caching
+// the open connection's promise means every caller after the first just
+// awaits the same already-resolving (or already-resolved) connection.
+let dbPromise = null;
 export const initDB = async () => {
-    return openDB(DB_NAME, DB_VERSION, {
+    if (!dbPromise) {
+        dbPromise = openDB(DB_NAME, DB_VERSION, {
         upgrade(db) {
             if (!db.objectStoreNames.contains("projects")) {
                 const store = db.createObjectStore("projects", { keyPath: "projectId" });
@@ -43,7 +53,14 @@ export const initDB = async () => {
                 db.createObjectStore("curriculumCache", { keyPath: "id" });
             }
         },
-    });
+        }).catch((e) => {
+            // Don't let a poisoned cache permanently break every DB call --
+            // clear it so the next initDB() call gets a fresh attempt.
+            dbPromise = null;
+            throw e;
+        });
+    }
+    return dbPromise;
 };
 
 const createStoreWrapper = (storeName, keyPath) => {
