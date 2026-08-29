@@ -60,6 +60,27 @@ const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("
 const getUser = () => { const userStr = localStorage.getItem("user") || sessionStorage.getItem("user"); return userStr ? JSON.parse(userStr) : null; };
 const getAuthHeaders = () => { const token = getToken(); return token ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` } : { "Content-Type": "application/json" }; };
 
+// EMERGENCY SAVE (scratch workspace): unlike ActivityApp.jsx, tabs here are
+// only ever persisted when the user explicitly presses Save -- there is no
+// autosave to IndexedDB/server at all. The only thing standing between a
+// refresh and total data loss was the `beforeunload` "are you sure you want
+// to leave?" confirmation, which doesn't fire reliably on mobile browsers,
+// doesn't fire at all for a crash/force-quit, and can simply be dismissed
+// with "Leave anyway". This mirrors the fix applied to ActivityApp.jsx:
+// synchronous localStorage snapshots of dirty tabs, written continuously
+// and on every unload-type signal, recovered back into the workspace on
+// the next visit.
+const emergencyTabsKey = (userEmail) => userEmail ? `algoblocks_emergency_tabs_${userEmail}` : null;
+
+function readEmergencyTabsSnapshot(userEmail) {
+  try {
+    const key = emergencyTabsKey(userEmail);
+    if (!key) return null;
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
 const createInitialTab = (locState = null) => {
   const base = {
     id: `tab-${Date.now()}`, title: "Untitled Project", viewMode: "workspace", blocklyJson: null,
@@ -85,6 +106,23 @@ const createInitialTab = (locState = null) => {
   return base;
 };
 
+// Builds the tabs/activeTabId the workspace should boot with: a recovered
+// emergency snapshot wins over a blank tab, but never overrides an
+// explicit incoming projectToLoad (the user asked to open something
+// specific -- that intent shouldn't be silently replaced by an old draft).
+const getInitialTabsState = (locState = null) => {
+  if (!locState?.projectToLoad) {
+    const user = getUser();
+    const snapshot = readEmergencyTabsSnapshot(user?.email);
+    if (snapshot && Array.isArray(snapshot.tabs) && snapshot.tabs.length > 0) {
+      const activeId = snapshot.tabs.some((t) => t.id === snapshot.activeTabId) ? snapshot.activeTabId : snapshot.tabs[0].id;
+      return { tabs: snapshot.tabs, activeTabId: activeId, recovered: true };
+    }
+  }
+  const tab = createInitialTab(locState);
+  return { tabs: [tab], activeTabId: tab.id, recovered: false };
+};
+
 // Mirrors MAX_PROJECTS_PER_USER / MAX_TEMPLATES_PER_USER in
 // api/services/project_service.py and template_service.py. The backend is
 // the real source of truth and still enforces this -- these constants only
@@ -105,8 +143,11 @@ export default function MainApp() {
 
   const { worker, isEngineReady, resetWorker, progress: engineProgress } = usePyodide();
 
-  const [tabs, setTabs] = useState([createInitialTab(location.state)]);
-  const [activeTabId, setActiveTabId] = useState(tabs[0].id);
+  const initialTabsStateRef = useRef(null);
+  if (initialTabsStateRef.current === null) initialTabsStateRef.current = getInitialTabsState(location.state);
+
+  const [tabs, setTabs] = useState(() => initialTabsStateRef.current.tabs);
+  const [activeTabId, setActiveTabId] = useState(() => initialTabsStateRef.current.activeTabId);
 
   const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? window.navigator.onLine : true);
   const [openPanelIds, setOpenPanelIds] = useState(() => new Set(["blockly", "python"]));
@@ -228,6 +269,68 @@ export default function MainApp() {
   const latestTabsRef = useRef(tabs);
   useEffect(() => { latestTabsRef.current = tabs; }, [tabs]);
 
+  const latestActiveTabIdRef = useRef(activeTabId);
+  useEffect(() => { latestActiveTabIdRef.current = activeTabId; }, [activeTabId]);
+
+  // Pulls the live Blockly JSON straight from the workspace instance when
+  // available, the same failsafe ActivityApp.jsx uses -- tab.blocklyJson is
+  // normally kept in sync by handleBlocklyChange's onChange callback, but
+  // this guards against any edit that fires after the last onChange
+  // (e.g. mid-drag) landing in the snapshot anyway.
+  const getLiveBlocklyJson = (tab) => {
+    const ws = workspaceRefs.current[tab.id];
+    try {
+      if (ws && typeof ws.getJson === "function") {
+        const json = ws.getJson();
+        if (json && Object.keys(json).length > 0) return json;
+      } else if (ws && typeof ws.getBlocksJson === "function") {
+        const json = ws.getBlocksJson();
+        if (json && Object.keys(json).length > 0) return json;
+      }
+    } catch (e) { }
+    return tab.blocklyJson;
+  };
+
+  const emergencySaveNow = () => {
+    try {
+      const user = getUser();
+      const key = emergencyTabsKey(user?.email);
+      if (!key) return;
+      const dirtyTabs = latestTabsRef.current.filter((t) => t.isDirty === true);
+      if (dirtyTabs.length === 0) { localStorage.removeItem(key); return; }
+      const snapshotTabs = dirtyTabs.map((t) => ({
+        id: t.id, title: t.title, viewMode: t.viewMode, blocklyJson: getLiveBlocklyJson(t),
+        pythonCode: t.pythonCode, isEditingCode: t.isEditingCode, syntaxErrors: [],
+        analysisResult: t.analysisResult, lineExecutions: {}, analysisTime: "0.0",
+        currentLoadedId: t.currentLoadedId, saveType: t.saveType,
+        description: t.description, category: t.category,
+        isDirty: true, ignoreDirtyUntil: 0,
+      }));
+      localStorage.setItem(key, JSON.stringify({ tabs: snapshotTabs, activeTabId: latestActiveTabIdRef.current, timestamp: Date.now() }));
+    } catch (e) { /* localStorage full/unavailable -- the leave-confirmation dialog is still the fallback */ }
+  };
+
+  // Continuous safety net: flush a snapshot shortly after any dirty change,
+  // not just at unload. Covers crashes/force-quits and any platform where
+  // beforeunload/pagehide don't fire, at negligible cost since this is a
+  // synchronous localStorage write, not a network or IndexedDB round trip.
+  const emergencySaveDebounceRef = useRef(null);
+  useEffect(() => {
+    if (emergencySaveDebounceRef.current) clearTimeout(emergencySaveDebounceRef.current);
+    emergencySaveDebounceRef.current = setTimeout(emergencySaveNow, 1000);
+    return () => clearTimeout(emergencySaveDebounceRef.current);
+  }, [tabs]);
+
+  // Let the person know their previous unsaved work came back, rather than
+  // silently repopulating tabs -- otherwise a recovered draft can look like
+  // it appeared from nowhere.
+  useEffect(() => {
+    if (initialTabsStateRef.current.recovered) {
+      showToast("Recovered your unsaved work from before the page refreshed/closed.", "success");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!navigator || !navigator.block) return;
     const unblock = navigator.block((tx) => {
@@ -240,9 +343,16 @@ export default function MainApp() {
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
+      emergencySaveNow();
       const hasUnsavedChanges = latestTabsRef.current.some((t) => t.isDirty === true);
       if (hasUnsavedChanges && !isNavigatingAwayRef.current) { e.preventDefault(); e.returnValue = "You have unsaved changes. Are you sure you want to leave?"; }
     };
+    // beforeunload doesn't fire reliably everywhere (mobile browsers
+    // backgrounding/closing a tab, iOS Safari) -- pagehide and a hidden
+    // visibilitychange are the reliable fallbacks for flushing the
+    // snapshot in those cases.
+    const handlePageHide = () => emergencySaveNow();
+    const handleVisibilityChange = () => { if (document.visibilityState === "hidden") emergencySaveNow(); };
     const handleGlobalClick = (e) => {
       if (isNavigatingAwayRef.current) return;
       const el = e.target.closest("a, [class*='wh-back-btn']");
@@ -263,7 +373,13 @@ export default function MainApp() {
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload); document.addEventListener("click", handleGlobalClick, { capture: true });
-    return () => { window.removeEventListener("beforeunload", handleBeforeUnload); document.removeEventListener("click", handleGlobalClick, { capture: true }); };
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload); document.removeEventListener("click", handleGlobalClick, { capture: true });
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   const confirmLeaveSite = () => {

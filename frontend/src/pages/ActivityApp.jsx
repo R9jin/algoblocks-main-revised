@@ -619,10 +619,55 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     } else pushToSyncQueue(`sync_${finalSubId}`, { url: `${API_BASE}/api/sync-submission`, method: "POST", payload: payload });
   };
 
+  // EMERGENCY SAVE: reliable, synchronous fallback for refresh/close.
+  // ROOT CAUSE (evaluator-reported bug, Part 3.4): triggerFinalSave() writes
+  // to IndexedDB (submissionsDB.setItem, async) and fires a fetch(). A
+  // `beforeunload` listener cannot delay navigation for that work to
+  // finish -- on an actual page refresh the browser tears down the JS
+  // context before the IndexedDB transaction (and often the fetch) has
+  // committed, so any edits made since the last successful 1.5s autosave
+  // were silently lost. localStorage.setItem is synchronous and completes
+  // in effectively zero time, so it reliably survives the brief window
+  // before unload. We use it purely as a same-tab safety net: write the
+  // in-memory workspace state there on every unload-type signal, then
+  // reconcile it back into IndexedDB/the server the next time this
+  // activity boots (see boot() below).
+  const emergencySaveKey = () => {
+    const uid = latestStateRef.current.userId;
+    return uid ? `algoblocks_emergency_${uid}_${moduleId}_${activityId}` : null;
+  };
+
+  const emergencySaveNow = () => {
+    try {
+      const key = emergencySaveKey();
+      if (!key) return;
+      const state = latestStateRef.current;
+      const json = latestBlocksJsonRef.current || state.json;
+      const isJsonEmpty = !json || Object.keys(json).length === 0 || (json.blocks && json.blocks.blocks && json.blocks.blocks.length === 0);
+      const hasValidPython = state.pythonCode && state.pythonCode !== "# Drag blocks to generate Python code" && state.pythonCode.trim() !== "";
+      // Nothing meaningful to protect yet -- don't overwrite a real
+      // snapshot from a previous visit with an empty one.
+      if (isJsonEmpty && !hasValidPython) return;
+      localStorage.setItem(key, JSON.stringify({ blocklyJson: json || {}, pythonCode: state.pythonCode, timestamp: Date.now() }));
+    } catch (e) { /* localStorage full/unavailable -- triggerFinalSave is still attempted below */ }
+  };
+
   useEffect(() => {
-    const handleBeforeUnload = () => triggerFinalSave();
+    const handleBeforeUnload = () => { emergencySaveNow(); triggerFinalSave(); };
+    // `pagehide` and `visibilitychange` cover cases beforeunload misses or
+    // fires unreliably for (mobile browsers backgrounding/closing the tab,
+    // iOS Safari's bfcache behavior) -- any of these can precede a refresh
+    // or close without a guaranteed beforeunload.
+    const handlePageHide = () => emergencySaveNow();
+    const handleVisibilityChange = () => { if (document.visibilityState === "hidden") emergencySaveNow(); };
     window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -642,6 +687,19 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const user = JSON.parse(storedUser); latestStateRef.current.userId = user.email;
 
         const submissionId = `${user.email}_${moduleId}_${activityId}`;
+
+        // Recover the synchronous emergency-save snapshot (see
+        // emergencySaveNow above) written on the previous unload, if any.
+        // This is what actually survives a refresh -- IndexedDB/the server
+        // may still be holding whatever was last durably synced, which can
+        // be older than what the user had on screen right before refreshing.
+        const emergencyKey = `algoblocks_emergency_${user.email}_${moduleId}_${activityId}`;
+        let emergencySnapshot = null;
+        try {
+          const raw = localStorage.getItem(emergencyKey);
+          if (raw) emergencySnapshot = JSON.parse(raw);
+        } catch (e) { }
+
         let localSubmission = null; try { localSubmission = await submissionsDB.getItem(submissionId); } catch (e) { }
         let cloudSubmission = null;
         if (navigator && navigator.onLine && !user.isGuest && API_BASE) {
@@ -669,6 +727,23 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
            finalSubmissionToLoad = localSubmission;
         } else if (cloudSubmission) {
            finalSubmissionToLoad = cloudSubmission;
+        }
+
+        // If the emergency snapshot is at least as new as whatever we just
+        // picked (it almost always will be, since it's written on every
+        // unload), it wins -- it's the last thing the user actually saw
+        // before refreshing/closing, and may be newer than the last
+        // successful IndexedDB/server sync.
+        let recoveredFromEmergencySave = false;
+        if (emergencySnapshot && emergencySnapshot.timestamp >= (finalSubmissionToLoad?.timestamp || 0)) {
+          finalSubmissionToLoad = {
+            ...(finalSubmissionToLoad || {}),
+            activityId, moduleId,
+            workspace: { blocklyJson: emergencySnapshot.blocklyJson },
+            pythonCode: emergencySnapshot.pythonCode,
+            timestamp: emergencySnapshot.timestamp,
+          };
+          recoveredFromEmergencySave = true;
         }
 
         const applyWorkspaceData = (json, pythonCode) => {
@@ -766,12 +841,22 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           try { const { consoleOutput: savedOut, passedTests: savedPassed } = JSON.parse(savedTests); if (savedOut) setConsoleOutput(savedOut); if (savedPassed !== undefined) setPassedTests(savedPassed); } catch (e) { }
         }
         if (!cancelled) isReadyRef.current = true;
+
+        // Now that we're fully loaded (and have time to let async work
+        // actually finish, unlike during unload), persist the recovered
+        // snapshot properly and clear it so a stale copy never gets
+        // replayed over newer data on a later visit.
+        if (recoveredFromEmergencySave && !cancelled) {
+          try { await triggerFinalSave(); } catch (e) { }
+          try { localStorage.removeItem(emergencyKey); } catch (e) { }
+        }
       } catch (e) { console.error("Activity bootstrap failed:", e); if (!cancelled) navigate("/learning-path", { replace: true }); }
     };
     boot();
     return () => { 
         isUnmountingRef.current = true; 
         cancelled = true; 
+        emergencySaveNow();
         triggerFinalSave(); 
         if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current); 
     };
