@@ -19,6 +19,7 @@ import BigOChart from "../components/BigOChart";
 import CodeSnippet from "../components/CodeSnippet";
 import LessonBlockPlayground from "../components/LessonBlockPlayground";
 import TourHelpButton from "../components/TourHelpButton";
+import UnlockIcon from "../components/UnlockIcon";
 import { BLOCK_EXAMPLES } from "../data/blockExamples";
 import curriculumIndex from "../data/curriculumIndex";
 import { LESSON_BLOCK_PLAYGROUNDS } from "../data/lessonBlockPlaygrounds";
@@ -26,6 +27,8 @@ import { assessmentsDB, curriculumCacheDB, progressDB, submissionsDB } from "../
 import { useExampleWorker } from "../hooks/useExampleWorker.js";
 import "../styles/LessonViewer.css";
 import "../styles/Skeleton.css";
+import "../styles/UnlockIcon.css";
+import { detectNewlyUnlocked } from "../utils/unlockAnimationTracker";
 import { syncDownFromServer } from "../utils/syncManager";
 
 // Mirrors the difficulty map in LearningPath.jsx (kept local here since it's
@@ -385,6 +388,7 @@ export default function LessonViewer() {
     localStorage.getItem("user") || sessionStorage.getItem("user") || "{}",
   );
   const isAdmin = storedUser.role === "admin" || storedUser.isAdmin === true;
+  const userEmail = storedUser.email || "";
 
   // BUG FIX: guests are blocked from the Learning Path listing itself, but
   // this page is reachable directly by URL (e.g. a bookmarked/shared link),
@@ -709,6 +713,61 @@ export default function LessonViewer() {
   const lockMap = buildLockMap();
   const isCurrentLessonLocked = lockMap[lessonId];
 
+  // Same gateKey -> locked snapshot approach as LearningPath.jsx, kept
+  // independent of the sidebar's own render logic so this animation layer
+  // can't change what's actually locked -- only whether an unlock plays a
+  // one-time animation. This sidebar has no "final course post-test" row,
+  // so it only needs lesson/optimization/quiz keys.
+  const buildGateState = () => {
+    const state = {};
+    for (const module of curriculumIndex) {
+      for (const l of module.lessons) {
+        state[`lesson:${l.lessonId}`] = lockMap[l.lessonId];
+      }
+
+      const optimizations = activitiesData[module.moduleId]?.optimizations || [];
+      const hasOptimizations = optimizations.length > 0;
+      const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
+      const modComplete = isModuleComplete(module.moduleId);
+      const postComplete = hasPostAssessment(module.moduleId);
+
+      if (hasOptimizations) {
+        state[`opt:${module.moduleId}`] = isAdmin
+          ? false
+          : lockMap[lastLessonId] || (userProgress[lastLessonId] || 0) < 1;
+      }
+
+      state[`quiz:${module.moduleId}`] = !(isAdmin || modComplete || postComplete);
+    }
+    return state;
+  };
+
+  const gateState = buildGateState();
+  const gateSignature = JSON.stringify(gateState);
+
+  const [animatingKeys, setAnimatingKeys] = useState(new Set());
+
+  useEffect(() => {
+    if (Object.keys(lessonDetails).length === 0) return undefined;
+
+    const fresh = detectNewlyUnlocked(userEmail, gateState);
+    if (fresh.length === 0) return undefined;
+
+    setAnimatingKeys((prev) => new Set([...prev, ...fresh]));
+    const timer = setTimeout(() => {
+      setAnimatingKeys((prev) => {
+        const next = new Set(prev);
+        fresh.forEach((k) => next.delete(k));
+        return next;
+      });
+    }, 2500);
+
+    return () => clearTimeout(timer);
+    // gateSignature is the real, content-derived dependency -- gateState's
+    // object identity is fresh every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gateSignature, userEmail]);
+
   const toggleModule = (mId) => {
     const newExpanded = new Set(expandedModules);
     if (newExpanded.has(mId)) newExpanded.delete(mId);
@@ -796,12 +855,13 @@ export default function LessonViewer() {
                       const isActive = lessonId === lessonItem.lessonId;
                       const isLocked = lockMap[lessonItem.lessonId];
                       const prog = userProgress[lessonItem.lessonId] || 0;
+                      const lessonJustUnlocked = animatingKeys.has(`lesson:${lessonItem.lessonId}`);
 
                       return (
                         <a
                           key={lessonItem.lessonId}
                           href={`/learning-path/${module.moduleId}/${lessonItem.lessonId}`}
-                          className={`lesson-item ${isActive ? "active" : ""}`}
+                          className={`lesson-item ${isActive ? "active" : ""} ${lessonJustUnlocked ? "row-just-unlocked" : ""}`}
                           style={{
                             opacity: isLocked ? 0.5 : 1,
                             pointerEvents: isLocked ? "none" : "auto",
@@ -815,47 +875,72 @@ export default function LessonViewer() {
                           <span className="lesson-number">{modNumber}.{lesNumber}</span>
                           <span className="lesson-title">{lessonItem.title}</span>
                           <span className="lesson-indicator">
-                            {isLocked ? <FiLock size={12} /> : prog >= 1 ? <FiCheckCircle size={12} color="#22c55e" /> : isActive ? "●" : "○"}
+                            <UnlockIcon
+                              locked={isLocked}
+                              justUnlocked={lessonJustUnlocked}
+                              size={12}
+                              resolvedIcon={prog >= 1 ? <FiCheckCircle size={12} color="#22c55e" /> : isActive ? "●" : "○"}
+                            />
                           </span>
                         </a>
                       );
                     })}
 
-                    {hasOptimizations && (
-                      <div
-                        onClick={() => {
-                          if (!optimizationsLocked) navigate(`/activity/${module.moduleId}/${optimizations[0].id}`);
-                        }}
-                        style={{
-                          display: "flex", alignItems: "center", gap: "10px", padding: "10px 15px", paddingLeft: "45px",
-                          cursor: optimizationsLocked ? "not-allowed" : "pointer", opacity: optimizationsLocked ? 0.5 : 1,
-                          color: "#d35400", fontSize: "0.85rem", fontWeight: "bold", backgroundColor: "rgba(243, 156, 18, 0.05)",
-                        }}
-                      >
-                        <span style={{ color: "#f39c12", fontSize: "1.1rem" }}>★</span>
-                        <span>Optimization Challenges</span>
-                        <span style={{ marginLeft: "auto" }}>
-                          {optimizationsLocked ? <FiLock size={12} /> : userProgress[`lesson-${modNumber}-optimizations`] ? <FiCheckCircle size={14} color="#22c55e" /> : <FiCircle size={14} color="#f39c12" />}
-                        </span>
-                      </div>
-                    )}
+                    {hasOptimizations && (() => {
+                      const optJustUnlocked = animatingKeys.has(`opt:${module.moduleId}`);
+                      return (
+                        <div
+                          onClick={() => {
+                            if (!optimizationsLocked) navigate(`/activity/${module.moduleId}/${optimizations[0].id}`);
+                          }}
+                          className={optJustUnlocked ? "row-just-unlocked" : ""}
+                          style={{
+                            display: "flex", alignItems: "center", gap: "10px", padding: "10px 15px", paddingLeft: "45px",
+                            cursor: optimizationsLocked ? "not-allowed" : "pointer", opacity: optimizationsLocked ? 0.5 : 1,
+                            color: "#d35400", fontSize: "0.85rem", fontWeight: "bold", backgroundColor: "rgba(243, 156, 18, 0.05)",
+                          }}
+                        >
+                          <span style={{ color: "#f39c12", fontSize: "1.1rem" }}>★</span>
+                          <span>Optimization Challenges</span>
+                          <span style={{ marginLeft: "auto" }}>
+                            <UnlockIcon
+                              locked={optimizationsLocked}
+                              justUnlocked={optJustUnlocked}
+                              size={14}
+                              resolvedIcon={userProgress[`lesson-${modNumber}-optimizations`] ? <FiCheckCircle size={14} color="#22c55e" /> : <FiCircle size={14} color="#f39c12" />}
+                            />
+                          </span>
+                        </div>
+                      );
+                    })()}
 
-                    <div
-                      onClick={() => {
-                        if (postAssessmentUnlocked) navigate(`/assessment/${module.moduleId}/post`);
-                      }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: "10px", padding: "10px 15px", paddingLeft: "45px",
-                        cursor: postAssessmentUnlocked ? "pointer" : "not-allowed", opacity: postAssessmentUnlocked ? 1 : 0.5,
-                        color: postComplete ? "#22c55e" : "#2b005c", fontSize: "0.85rem", fontWeight: "bold", backgroundColor: "rgba(0,0,0,0.02)",
-                      }}
-                    >
-                      <FiClipboard size={14} />
-                      <span>Post-Assessment Quiz</span>
-                      <span style={{ marginLeft: "auto" }}>
-                        {!postAssessmentUnlocked ? <FiLock size={14} /> : postComplete ? <FiCheckCircle size={14} color="#22c55e" /> : <FiCircle size={14} color="#7c5cff" />}
-                      </span>
-                    </div>
+                    {(() => {
+                      const quizJustUnlocked = animatingKeys.has(`quiz:${module.moduleId}`);
+                      return (
+                        <div
+                          onClick={() => {
+                            if (postAssessmentUnlocked) navigate(`/assessment/${module.moduleId}/post`);
+                          }}
+                          className={quizJustUnlocked ? "row-just-unlocked" : ""}
+                          style={{
+                            display: "flex", alignItems: "center", gap: "10px", padding: "10px 15px", paddingLeft: "45px",
+                            cursor: postAssessmentUnlocked ? "pointer" : "not-allowed", opacity: postAssessmentUnlocked ? 1 : 0.5,
+                            color: postComplete ? "#22c55e" : "#2b005c", fontSize: "0.85rem", fontWeight: "bold", backgroundColor: "rgba(0,0,0,0.02)",
+                          }}
+                        >
+                          <FiClipboard size={14} />
+                          <span>Post-Assessment Quiz</span>
+                          <span style={{ marginLeft: "auto" }}>
+                            <UnlockIcon
+                              locked={!postAssessmentUnlocked}
+                              justUnlocked={quizJustUnlocked}
+                              size={14}
+                              resolvedIcon={postComplete ? <FiCheckCircle size={14} color="#22c55e" /> : <FiCircle size={14} color="#7c5cff" />}
+                            />
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

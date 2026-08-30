@@ -446,6 +446,8 @@
 }
 
 .your-answer { color: #ef4444; }
+.your-answer.is-correct { color: #22c55e; }
+.your-answer.is-incorrect { color: #ef4444; }
 .correct-answer { color: #22c55e; }
 .explanation-text { color: #64748b; font-style: italic; margin-top: 0.2rem; }
 

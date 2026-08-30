@@ -8,6 +8,7 @@ import BlockGlossaryModal from "../components/BlockGlossaryModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import DockableWorkspace from "../components/DockableWorkspace.jsx";
+import RewardModal from "../components/RewardModal.jsx";
 import ComplexityPanelContent from "../components/panelContent/ComplexityPanelContent.jsx";
 import ConsolePanelContent from "../components/panelContent/ConsolePanelContent.jsx";
 import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
@@ -171,6 +172,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [analysisTime, setAnalysisTime] = useState("0.0");
   const [lineExecutions, setLineExecutions] = useState({});
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null });
+  // Celebratory result modal shown after an activity is evaluated (replaces
+  // the old plain-text ConfirmModal for these specific outcomes).
+  const [rewardConfig, setRewardConfig] = useState({ isOpen: false, result: null, confirmText: "Continue", cancelText: "Stay Here", secondaryText: null, onConfirmAction: null, onCancelAction: null, onSecondaryAction: null });
   const [isEditingCode, setIsEditingCode] = useState(false);
 
   const activityTour = {
@@ -448,6 +452,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const toggleTest = (index) => setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] }));
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
+  const closeReward = () => setRewardConfig((prev) => ({ ...prev, isOpen: false }));
 
   const fetchJsonWithCache = async (cacheKey, url) => {
     try {
@@ -592,6 +597,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       // it null otherwise so the admin dashboard can tell "never
       // attempted" apart from "attempted, no gain."
       rog: state.final_aes != null ? Math.max(0, state.final_aes - (state.initial_aes || 0)) : null,
+      code_unchanged: state.code_unchanged ?? false,
       passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
       functional_passed: state.functional_passed, functional_total: state.functional_total,
       complexity_passed: state.complexity_passed, complexity_total: state.complexity_total,
@@ -786,6 +792,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             latestStateRef.current.latest_actualTime = finalSubmissionToLoad.latest_actual_complexity ?? finalSubmissionToLoad.actual_complexity ?? null;
             latestStateRef.current.latest_actualSpace = finalSubmissionToLoad.latest_actual_space_complexity ?? finalSubmissionToLoad.actual_space_complexity ?? null;
             latestStateRef.current.rog = finalSubmissionToLoad.rog ?? 0;
+            latestStateRef.current.lastSubmittedCode = (finalSubmissionToLoad.pythonCode || "").trim();
             latestStateRef.current.functional_passed = finalSubmissionToLoad.functional_passed ?? 0;
             latestStateRef.current.functional_total = finalSubmissionToLoad.functional_total ?? 0;
             latestStateRef.current.complexity_passed = finalSubmissionToLoad.complexity_passed ?? 0;
@@ -919,6 +926,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       // rog=0 alongside a null final_aes, which the admin dashboard's ROG
       // average then counted as a real (phantom) zero-gain attempt.
       rog: latestStateRef.current.final_aes != null ? (latestStateRef.current.rog || 0) : null,
+      // Lets analytics see (and exclude, if needed) submissions where the
+      // code was byte-for-byte identical to the learner's previous
+      // submission for this activity -- see the ROG-freeze comment above
+      // triggerEvaluation's bestAes calculation.
+      code_unchanged: latestStateRef.current.code_unchanged ?? false,
       passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total,
       functional_passed: latestStateRef.current.functional_passed, functional_total: latestStateRef.current.functional_total,
       complexity_passed: latestStateRef.current.complexity_passed, complexity_total: latestStateRef.current.complexity_total,
@@ -1241,32 +1253,68 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         try { await completeFullTopic(topicIdResolved); } catch(e) {}
     }
 
-    let promptMsg = "";
-    if (aesScore === 100) {
-      promptMsg = `Perfect execution!\nYou earned an Algorithmic Efficiency Score (AES) of 100%.\n\nYou passed all functional tests and completely mastered both the target Time and Space complexity!`;
-    } else if (funcPassed < funcTotal) {
-      promptMsg = `Keep trying!\nYour logic is incomplete. You passed ${funcPassed}/${funcTotal} functional test cases.\nFocus on fixing your syntax and logic before worrying about complexity.`;
+    // Build the structured result data the RewardModal renders as icons,
+    // an animated score, and chips instead of a plain paragraph.
+    const isRetry = funcPassed < funcTotal;
+    let tier; let description; let scoreForDisplay;
+    if (isRetry) {
+      tier = "retry";
+      description = `Your logic is incomplete. Focus on fixing your syntax and logic before worrying about complexity.`;
+      scoreForDisplay = null; // AES isn't meaningful until functional tests pass
+    } else if (aesScore === 100) {
+      tier = "perfect";
+      description = "You passed all functional tests and completely mastered both the target Time and Space complexity!";
+      scoreForDisplay = aesScore;
     } else if (aesScore >= 75) {
-      promptMsg = `Great job!\nYou earned an AES of ${aesScore}%.\n\nYou passed all functional tests, but your algorithm is slightly suboptimal in Time or Space complexity.\nCan you optimize it further to reach 100%?`;
+      tier = "great";
+      description = "You passed all functional tests, but your algorithm is slightly suboptimal in Time or Space complexity. Can you optimize it further to reach 100%?";
+      scoreForDisplay = aesScore;
     } else {
-      promptMsg = `Good effort.\nYou earned an AES of ${aesScore}%.\n\nYour code works and passed all functional tests! However, it requires a lot more execution time or memory than the optimal solution.\nCan you make it faster or leaner?`;
+      tier = "good";
+      description = "Your code works and passed all functional tests! However, it requires a lot more execution time or memory than the optimal solution.";
+      scoreForDisplay = aesScore;
     }
 
-    if (currentRog > 0) {
-      promptMsg += `\n\nOptimization recognized: Your refactoring improved your score by +${currentRog} ROG points!`;
-    }
-
-    if (meetsThreshold) promptMsg += `\n\nLesson Unlocked! You've successfully passed ${completionData.passedCount}/${completionData.threshold} required activities to advance.`;
-    else promptMsg += `\n\nProgress: ${completionData.passedCount}/${completionData.threshold} required activities passed to advance.`;
+    const baseResult = {
+      tier,
+      aesScore: scoreForDisplay,
+      funcPassed,
+      funcTotal,
+      rogGain: currentRog > 0 ? currentRog : 0,
+      passedCount: completionData.passedCount,
+      threshold: completionData.threshold,
+      description,
+      milestone: null,
+      milestoneNote: null,
+    };
 
     if (!isLast && nextActivity) {
       if (meetsThreshold) {
-        setModalConfig({ isOpen: true, title: "Lesson Unlocked!", message: promptMsg + "\n\nYou have reached the minimum requirement. Choose whether to stay, continue to the next activity, or move on to the next lesson.", confirmText: "Next Lesson", cancelText: "Stay Here", secondaryText: "Next Activity", isDanger: false, onConfirmAction: () => { closeModal(); navigate(resolveNextLessonPath()); }, onSecondaryAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal });
+        setRewardConfig({
+          isOpen: true,
+          result: { ...baseResult, milestone: "lessonUnlocked" },
+          confirmText: "Next Lesson", cancelText: "Stay Here", secondaryText: "Next Activity",
+          onConfirmAction: () => { closeReward(); navigate(resolveNextLessonPath()); },
+          onSecondaryAction: () => { closeReward(); navigate(`/activity/${moduleId}/${nextActivity.id}`); },
+          onCancelAction: closeReward,
+        });
       } else {
-        setModalConfig({ isOpen: true, title: "Activity Evaluated", message: promptMsg + "\n\nReady for the next challenge?", confirmText: "Next Activity", cancelText: "Stay Here", isDanger: false, onConfirmAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal });
+        setRewardConfig({
+          isOpen: true,
+          result: baseResult,
+          confirmText: "Next Activity", cancelText: "Stay Here", secondaryText: null,
+          onConfirmAction: () => { closeReward(); navigate(`/activity/${moduleId}/${nextActivity.id}`); },
+          onCancelAction: closeReward,
+        });
       }
     } else {
-      setModalConfig({ isOpen: true, title: "Section Completed!", message: `${promptMsg}\n\nIncredible! You have finished all activities in this section.\nReturn to the learning path to explore the next topic.`, confirmText: "Finish", cancelText: "Stay Here", isDanger: false, onConfirmAction: async () => { closeModal(); navigate("/learning-path"); }, onCancelAction: closeModal });
+      setRewardConfig({
+        isOpen: true,
+        result: { ...baseResult, milestone: "sectionCompleted", milestoneNote: "You've finished every activity here — return to the learning path to explore the next topic." },
+        confirmText: "Finish", cancelText: "Stay Here", secondaryText: null,
+        onConfirmAction: async () => { closeReward(); navigate("/learning-path"); },
+        onCancelAction: closeReward,
+      });
     }
   };
 
@@ -1382,11 +1430,36 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     setCurrentAes(aes);
 
     const initialAes = latestStateRef.current.initial_aes ?? aes;
-    const bestAes = Math.max(latestStateRef.current.final_aes ?? aes, aes);
+
+    // DATA INTEGRITY FIX: resubmitting the exact same code (no edits at
+    // all since the last submission) was previously re-run through the
+    // same AES/ROG math as a genuine resubmission. In practice the math
+    // itself can't manufacture a *higher* bestAes from identical code
+    // (aes is deterministic for the same source), but nothing distinguished
+    // "resubmitted unchanged" from "resubmitted after real edits" in the
+    // stored record -- so a batch of no-op resubmits was indistinguishable
+    // from real refactoring passes when reviewing the data later, and any
+    // future nondeterminism in the analyzer (timing-sensitive complexity
+    // classification, engine version drift, etc.) would have gone straight
+    // into the ROG average unguarded. Compare against the code from the
+    // last submission and, when it's byte-for-byte the same, freeze
+    // initial/final AES and ROG at their existing values instead of
+    // recomputing them, and flag the submission so analytics can see (and
+    // exclude, if needed) unchanged-code resubmissions going forward.
+    const previousSubmittedCode = (latestStateRef.current.lastSubmittedCode || "").trim();
+    const currentSubmittedCode = (generatedPython || "").trim();
+    const isDuplicateCodeResubmission =
+      previousSubmittedCode.length > 0 && previousSubmittedCode === currentSubmittedCode;
+
+    const bestAes = isDuplicateCodeResubmission
+      ? (latestStateRef.current.final_aes ?? aes)
+      : Math.max(latestStateRef.current.final_aes ?? aes, aes);
 
     latestStateRef.current.initial_aes = initialAes;
     latestStateRef.current.final_aes = bestAes;
     latestStateRef.current.latest_aes = aes;
+    latestStateRef.current.code_unchanged = isDuplicateCodeResubmission;
+    latestStateRef.current.lastSubmittedCode = currentSubmittedCode;
     latestStateRef.current.latest_actualTime = analysisResult.total || "O(1)";
     latestStateRef.current.latest_actualSpace = analysisResult.space_total || "O(1)";
     if (latestStateRef.current.baseline_actualTime === null) {
@@ -1399,7 +1472,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     // fail) and Final is the highest AES recorded for this activity since.
     // No extra "did the Big-O class change" condition -- a resubmission
     // that only fixes correctness (same complexity class, higher TSR)
-    // still raised AES and is still a real refactoring gain.
+    // still raised AES and is still a real refactoring gain. (An
+    // unchanged-code resubmission is excluded above, before this line
+    // ever runs, by freezing bestAes at its prior value.)
     const calculatedRog = Math.max(0, bestAes - initialAes);
     latestStateRef.current.rog = calculatedRog;
     latestStateRef.current.functional_passed = functionalPassed;
@@ -1697,6 +1772,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       </Split>
 
       <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} cancelText={modalConfig.cancelText} secondaryText={modalConfig.secondaryText} isDanger={modalConfig.isDanger} onCancel={modalConfig.onCancelAction || closeModal} onSecondary={modalConfig.onSecondaryAction} onConfirm={modalConfig.onConfirmAction} />
+      <RewardModal isOpen={rewardConfig.isOpen} result={rewardConfig.result} confirmText={rewardConfig.confirmText} cancelText={rewardConfig.cancelText} secondaryText={rewardConfig.secondaryText} onCancel={rewardConfig.onCancelAction || closeReward} onSecondary={rewardConfig.onSecondaryAction} onConfirm={rewardConfig.onConfirmAction} />
       <BigOModal isOpen={isBigOModalOpen} onClose={() => setIsBigOModalOpen(false)} />
       <BlockGlossaryModal isOpen={isBlockGlossaryOpen} onClose={() => setIsBlockGlossaryOpen(false)} />
     </div>

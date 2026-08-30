@@ -160,10 +160,14 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
     complexity_passed = complexity_total = 0
     hidden_passed = hidden_total = 0
     passed_count = 0
+    unchanged_code_count = 0
 
     for sub in submissions:
         if not isinstance(sub, dict):
             continue
+
+        if sub.get("code_unchanged") is True:
+            unchanged_code_count += 1
 
         final_aes = sub.get("final_aes")
         if isinstance(final_aes, (int, float)):
@@ -217,6 +221,13 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
         # from (i.e. how many had rog > 0), for context next to a number
         # that no longer represents "every submission."
         "rog_refactored_count": len(rog_values),
+        # Rows whose most recent save was a byte-for-byte resubmission of
+        # the learner's prior code for that activity (see ActivityApp.jsx's
+        # bestAes freeze). These never move the "rog" value above -- the
+        # frontend already freezes ROG at its prior value when it detects
+        # this -- this count is purely for QA visibility into how often the
+        # pattern happens.
+        "unchanged_code_resubmissions": unchanged_code_count,
         "tsr": round(statistics.mean(tsr_values) * 100, 1) if tsr_values else None,
         "activities_attempted": len(submissions),
         "activities_passed": passed_count,
@@ -245,6 +256,7 @@ def _submission_details(submissions: List[Dict[str, Any]]) -> List[Dict[str, Any
             "status": sub.get("status", "draft"),
             "aes": sub.get("latest_aes", sub.get("final_aes", sub.get("score"))),
             "rog": safe_rog,
+            "codeUnchanged": sub.get("code_unchanged", False),
             "time": sub.get("latest_actual_complexity", sub.get("actual_complexity")),
             "space": sub.get("latest_actual_space_complexity", sub.get("actual_space_complexity")),
             "tests": {

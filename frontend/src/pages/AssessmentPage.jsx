@@ -591,28 +591,28 @@ export default function AssessmentPage() {
                             {q.question}
                           </span>
                         </div>
-                        {(!correct || !hasAnswer) && (
-                          <div className="review-answer-detail">
-                            {q.code && (
-                              <div className="review-code-snippet">
-                                <pre>{q.code}</pre>
-                              </div>
-                            )}
-                            {hasAnswer && (
-                              <span className="your-answer">
-                                Your answer: <em>{q.options?.[userAnswer] ?? "Not answered"}</em>
-                              </span>
-                            )}
+                        <div className="review-answer-detail">
+                          {q.code && (
+                            <div className="review-code-snippet">
+                              <pre>{q.code}</pre>
+                            </div>
+                          )}
+                          {hasAnswer && (
+                            <span className={`your-answer ${correct ? "is-correct" : "is-incorrect"}`}>
+                              Your answer: <em>{q.options?.[userAnswer] ?? "Not answered"}</em>
+                            </span>
+                          )}
+                          {(!correct || !hasAnswer) && (
                             <span className="correct-answer">
                               Correct: <em>{q.options?.[q.answer] ?? ""}</em>
                             </span>
-                            {q.explanation && (
-                              <span className="explanation-text" style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                                <FiInfo style={{ marginTop: "3px", flexShrink: 0, color: "#eab308" }} /> {q.explanation}
-                              </span>
-                            )}
-                          </div>
-                        )}
+                          )}
+                          {q.explanation && (
+                            <span className="explanation-text" style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                              <FiInfo style={{ marginTop: "3px", flexShrink: 0, color: "#eab308" }} /> {q.explanation}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

@@ -16,10 +16,13 @@ import {
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
+import UnlockIcon from "../components/UnlockIcon";
 import { useOnboarding } from "../context/OnboardingContext";
 import curriculumIndex from "../data/curriculumIndex";
 import { assessmentsDB, curriculumCacheDB, progressDB, submissionsDB } from "../db";
 import "../styles/LearningPath.css";
+import "../styles/UnlockIcon.css";
+import { detectNewlyUnlocked } from "../utils/unlockAnimationTracker";
 import { syncDownFromServer } from "../utils/syncManager";
 
 const moduleIcons = {
@@ -402,6 +405,79 @@ export default function LearningPath() {
   });
   const isGlobalPostTestUnlocked = isAdmin || isCurriculumComplete;
 
+  // Flat gateKey -> locked snapshot covering every unlockable thing on this
+  // page (lessons, per-module optimizations, per-module quizzes, and the
+  // final course post-test). Kept deliberately separate from the render
+  // logic above/below -- it re-derives the same booleans independently so
+  // this animation layer can never accidentally change what's actually
+  // locked, only whether an unlock gets a celebratory animation.
+  const buildGateState = () => {
+    const state = {};
+    if (isLoadingCurriculum) return state;
+
+    for (const module of curriculumIndex) {
+      for (const lesson of module.lessons) {
+        state[`lesson:${lesson.lessonId}`] = lockMap[lesson.lessonId];
+      }
+
+      const modActs = activitiesData[module.moduleId] || {};
+      const optimizations = modActs.optimizations || [];
+      const hasOptimizations = optimizations.length > 0;
+      const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
+      const moduleComplete = isModuleComplete(module.moduleId);
+      const postComplete = hasPostAssessment(module.moduleId);
+
+      let areLessonsCompleteForOpts = true;
+      for (const lesson of module.lessons) {
+        const lessonNum = lesson.lessonId.split("-")[2];
+        const acts = modActs[`lesson_${lessonNum}`] || [];
+        const cCount = acts.filter((a) => checkActivityDone(module.moduleId, a.id)).length;
+        if (cCount < getMinReq(module.moduleId, acts, false)) areLessonsCompleteForOpts = false;
+      }
+
+      if (hasOptimizations) {
+        state[`opt:${module.moduleId}`] = isAdmin ? false : (lockMap[lastLessonId] || !areLessonsCompleteForOpts);
+      }
+
+      const optMinReqForQuiz = hasOptimizations ? getMinReq(module.moduleId, optimizations, true) : 0;
+      const completedOptCountForQuiz = optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length;
+      const optsMeetMinForQuiz = !hasOptimizations || completedOptCountForQuiz >= optMinReqForQuiz;
+      state[`quiz:${module.moduleId}`] = isAdmin ? false : (!moduleComplete || !optsMeetMinForQuiz) && !postComplete;
+
+      state[`module:${module.moduleId}`] = isAdmin ? false : lockMap[module.lessons[0]?.lessonId];
+    }
+
+    state["global:posttest"] = !isGlobalPostTestUnlocked;
+    return state;
+  };
+
+  const gateState = buildGateState();
+  const gateSignature = JSON.stringify(gateState);
+
+  const [animatingKeys, setAnimatingKeys] = useState(new Set());
+
+  useEffect(() => {
+    if (isLoadingCurriculum) return undefined;
+
+    const fresh = detectNewlyUnlocked(userEmail, gateState);
+    if (fresh.length === 0) return undefined;
+
+    setAnimatingKeys((prev) => new Set([...prev, ...fresh]));
+    const timer = setTimeout(() => {
+      setAnimatingKeys((prev) => {
+        const next = new Set(prev);
+        fresh.forEach((k) => next.delete(k));
+        return next;
+      });
+    }, 2500);
+
+    return () => clearTimeout(timer);
+    // gateSignature is a stable, content-derived string -- it's the real
+    // dependency here, not the gateState object identity (which is fresh
+    // every render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gateSignature, isLoadingCurriculum, userEmail]);
+
   // BUG FIX: Guest sessions have nowhere to persist progress/assessments
   // (see clearLocalUserData()/isGuest handling above -- everything resets
   // to zero on next guest login), so letting guests into the curriculum
@@ -532,12 +608,20 @@ export default function LearningPath() {
             const optsMeetMinForQuiz = !hasOptimizations || completedOptCountForQuiz >= optMinReqForQuiz;
             const postAssessmentLocked = isAdmin ? false : (!moduleComplete || !optsMeetMinForQuiz) && !postComplete;
             const isModuleCompletelyLocked = isAdmin ? false : lockMap[module.lessons[0]?.lessonId];
+            const moduleJustUnlocked = animatingKeys.has(`module:${module.moduleId}`);
+            const quizJustUnlocked = animatingKeys.has(`quiz:${module.moduleId}`);
 
             return (
               <div key={module.moduleId}>
-                <div className={`module-card-v2 ${isModuleCompletelyLocked ? "locked" : ""}`} onClick={() => !isModuleCompletelyLocked && toggleModule(module.moduleId)}>
+                <div className={`module-card-v2 ${isModuleCompletelyLocked ? "locked" : ""} ${moduleJustUnlocked ? "card-just-unlocked" : ""}`} onClick={() => !isModuleCompletelyLocked && toggleModule(module.moduleId)}>
                   <div className="module-card-icon" style={{ backgroundColor: `${iconConfig?.color || "#7c5cff"}15` }}>
-                    {isModuleCompletelyLocked ? <FiLock size={32} color="#64748b" /> : <IconComponent size={32} color={iconConfig?.color || "#7c5cff"} />}
+                    <UnlockIcon
+                      locked={isModuleCompletelyLocked}
+                      justUnlocked={moduleJustUnlocked}
+                      size={32}
+                      lockedColor="#64748b"
+                      resolvedIcon={<IconComponent size={32} color={iconConfig?.color || "#7c5cff"} />}
+                    />
                   </div>
                   <div className="module-card-content">
                     <div className="module-card-header" style={{ alignItems: "flex-start" }}>
@@ -595,8 +679,10 @@ export default function LearningPath() {
                       const lessonDisplay = lesson.lessonId.replace("lesson-", "").replace(/-/g, ".");
                       const firstActivityId = activities[0]?.id;
 
+                      const lessonJustUnlocked = animatingKeys.has(`lesson:${lesson.lessonId}`);
+
                       return (
-                        <div key={lesson.lessonId} className={`dropdown-lesson-item ${isLocked ? "locked" : ""}`}>
+                        <div key={lesson.lessonId} className={`dropdown-lesson-item ${isLocked ? "locked" : ""} ${lessonJustUnlocked ? "row-just-unlocked" : ""}`}>
                           <div className="lesson-info">
                             <span className="lesson-number">{lessonDisplay}</span>
                             <div style={{ display: "flex", flexDirection: "column" }}>
@@ -631,7 +717,12 @@ export default function LearningPath() {
                             </button>
                           </div>
                           <span className="lesson-status-icon">
-                            {isLocked ? <FiLock color="#bdbdbd" /> : allDone ? <FiCheckCircle color="#22c55e" /> : <FiCircle color="#7c5cff" />}
+                            <UnlockIcon
+                              locked={isLocked}
+                              justUnlocked={lessonJustUnlocked}
+                              size={16}
+                              resolvedIcon={allDone ? <FiCheckCircle color="#22c55e" /> : <FiCircle color="#7c5cff" />}
+                            />
                           </span>
                         </div>
                       );
@@ -642,8 +733,10 @@ export default function LearningPath() {
                        const completedOptCount = optimizations.filter(o => checkActivityDone(module.moduleId, o.id)).length;
                        const allOptsDone = completedOptCount >= optMinReq;
 
+                       const optJustUnlocked = animatingKeys.has(`opt:${module.moduleId}`);
+
                        return (
-                        <div className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""}`} style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}>
+                        <div className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""} ${optJustUnlocked ? "row-just-unlocked" : ""}`} style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}>
                           <div className="lesson-info">
                             <span className="lesson-number" style={{ color: "#f39c12", fontSize: "1.2rem" }}>★</span>
                             <div style={{ display: "flex", flexDirection: "column" }}>
@@ -667,7 +760,12 @@ export default function LearningPath() {
                             </button>
                           </div>
                           <span className="lesson-status-icon">
-                            {optimizationsLocked ? <FiLock color="#bdbdbd" /> : allOptsDone ? <FiCheckCircle color="#22c55e" /> : <FiCircle color="#f39c12" />}
+                            <UnlockIcon
+                              locked={optimizationsLocked}
+                              justUnlocked={optJustUnlocked}
+                              size={16}
+                              resolvedIcon={allOptsDone ? <FiCheckCircle color="#22c55e" /> : <FiCircle color="#f39c12" />}
+                            />
                           </span>
                         </div>
                        );
@@ -681,7 +779,9 @@ export default function LearningPath() {
                         {postAssessmentLocked && <span className="assessment-gate-note">(Complete all lessons and optimizations first)</span>}
                       </div>
                       <div className="assessment-row-right">
-                        {postAssessmentLocked ? (
+                        {quizJustUnlocked ? (
+                          <UnlockIcon locked={false} justUnlocked size={16} resolvedIcon={null} />
+                        ) : postAssessmentLocked ? (
                           <FiLock color="#bdbdbd" size={16} />
                         ) : postComplete ? (
                           <>
@@ -715,9 +815,15 @@ export default function LearningPath() {
             );
           })}
 
-          <div className={`module-card-v2 ${!isGlobalPostTestUnlocked ? "locked" : ""}`} style={{ border: "2px solid #f59e0b", marginTop: "30px", background: "linear-gradient(145deg, rgba(245, 158, 11, 0.1) 0%, rgba(30, 41, 59, 0) 100%)" }}>
+          <div className={`module-card-v2 ${!isGlobalPostTestUnlocked ? "locked" : ""} ${animatingKeys.has("global:posttest") ? "card-just-unlocked" : ""}`} style={{ border: "2px solid #f59e0b", marginTop: "30px", background: "linear-gradient(145deg, rgba(245, 158, 11, 0.1) 0%, rgba(30, 41, 59, 0) 100%)" }}>
             <div className="module-card-icon" style={{ backgroundColor: "#f59e0b15" }}>
-              {isGlobalPostTestUnlocked ? <FiAward size={32} color="#f59e0b" /> : <FiLock size={32} color="#64748b" />}
+              <UnlockIcon
+                locked={!isGlobalPostTestUnlocked}
+                justUnlocked={animatingKeys.has("global:posttest")}
+                size={32}
+                lockedColor="#64748b"
+                resolvedIcon={<FiAward size={32} color="#f59e0b" />}
+              />
             </div>
             <div className="module-card-content" style={{ paddingRight: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
