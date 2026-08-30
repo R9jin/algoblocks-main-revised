@@ -672,6 +672,8 @@
 .public-homepage .glass-panel,
 .public-homepage .modern-list li {
   background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--home-border);
   box-shadow: 0 3px 12px rgba(31, 35, 40, 0.07);
 }

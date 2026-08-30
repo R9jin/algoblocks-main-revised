@@ -6,6 +6,24 @@
   line-height: 1.5;
   font-weight: 400;
   color-scheme: light;
+
+  /* --- Global glass/light theme tokens (matches the ActivityApp reward-modal
+     design language, tuned for a bright surface: soft off-white base, glass
+     surfaces, purple accent glow) --- */
+  --gb-bg-base: #F4F4F4;
+  --gb-bg-elevated: #FFFFFF;
+  --gb-glass-bg: rgba(60, 45, 118, 0.04);
+  --gb-glass-bg-strong: rgba(60, 45, 118, 0.07);
+  --gb-glass-border: rgba(60, 45, 118, 0.12);
+  --gb-accent: #6C5CE7;
+  --gb-accent-light: #7928CA;
+  --gb-text-heading: #1f2328;
+  --gb-text-secondary: #4b4b4b;
+  --gb-text-muted: #64748B;
+}
+
+html {
+  background-color: var(--gb-bg-base);
 }
 
 body {
@@ -15,8 +33,25 @@ body {
   width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
-  background-color: #f4f4f4;
+  color: var(--gb-text-secondary);
+  background:
+    radial-gradient(120% 90% at 12% -10%, rgba(167, 139, 250, 0.10) 0%, transparent 55%),
+    radial-gradient(100% 80% at 100% 0%, rgba(108, 92, 231, 0.08) 0%, transparent 50%),
+    var(--gb-bg-base);
+  background-attachment: fixed;
 }
+
+/* Thin, glassy scrollbars to match the polished light theme site-wide */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(121, 40, 202, 0.25);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(121, 40, 202, 0.4); background-clip: padding-box; }
+* { scrollbar-color: rgba(121, 40, 202, 0.3) transparent; }
 
 .app-container {
   display: flex;

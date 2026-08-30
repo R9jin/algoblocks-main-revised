@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { useOnboarding } from "../context/OnboardingContext";
 import "../styles/OnboardingTour.css";
@@ -10,6 +10,8 @@ const resolveTarget = (selector) => {
 
 const VIEWPORT_MARGIN = 16;
 const GAP = 14;
+const TARGET_RETRY_INTERVAL = 150;
+const TARGET_RETRY_TIMEOUT = 5000;
 
 export default function OnboardingTour() {
   const { tour, closeTour, markPageOpened, markPageCompleted, markPageDismissed, flushOnboardingSync } = useOnboarding();
@@ -24,7 +26,46 @@ export default function OnboardingTour() {
   const isLastStep = stepIndex === steps.length - 1;
   const isFirstStep = stepIndex === 0;
 
-  const currentTarget = useMemo(() => resolveTarget(activeStep?.target), [activeStep?.target, stepIndex]);
+  const [currentTarget, setCurrentTarget] = useState(null);
+
+  // Resolve this step's target element. A single querySelector at mount
+  // isn't enough — the element a step points at can still be rendering
+  // (e.g. a modal or panel that onEnter just triggered, a section that's
+  // still animating open) at the exact moment the step becomes active. If
+  // that first lookup missed, keep polling for a few seconds instead of
+  // giving up — a miss here is what used to strand the bubble in the
+  // top-left corner with no highlight, since no target ever meant no rect.
+  useEffect(() => {
+    setCurrentTarget(null);
+    const selector = activeStep?.target;
+    if (!selector) return undefined;
+
+    const tryResolve = () => {
+      const el = resolveTarget(selector);
+      if (el) {
+        setCurrentTarget(el);
+        return true;
+      }
+      return false;
+    };
+
+    if (tryResolve()) return undefined;
+
+    const interval = window.setInterval(() => {
+      if (tryResolve()) {
+        window.clearInterval(interval);
+      }
+    }, TARGET_RETRY_INTERVAL);
+
+    const timeout = window.setTimeout(() => {
+      window.clearInterval(interval);
+    }, TARGET_RETRY_TIMEOUT);
+
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
+    };
+  }, [activeStep?.target, stepIndex, tour?.id]);
 
   useEffect(() => {
     setStepIndex(0);

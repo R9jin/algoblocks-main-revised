@@ -5,6 +5,8 @@
   padding: 3rem 2rem 1.5rem;
   color: #1f2328;
   background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid rgba(58, 12, 106, 0.1);
   font-size: 0.9rem;
   line-height: 1.6;
