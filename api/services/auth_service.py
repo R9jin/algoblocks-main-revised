@@ -618,7 +618,7 @@ class AuthService:
             "latest_aes", "baseline_actual_complexity", "baseline_actual_space_complexity",
             "latest_actual_complexity", "latest_actual_space_complexity",
             "complexity_passed", "complexity_total", "hidden_passed", "hidden_total",
-            "code_unchanged"
+            "code_unchanged", "was_reset"
         ]
         
         safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
