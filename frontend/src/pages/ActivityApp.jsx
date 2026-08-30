@@ -360,6 +360,44 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         });
         
         latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
+
+        // AUTO-BASELINE FIX (optimization activities): ROG = AES_final - AES_baseline
+        // was only ever getting a baseline from the learner's own first *manual*
+        // Run Tests click. For optimization activities the starter workspace
+        // the platform preloads is already a complete, passing-but-
+        // inefficient solution -- so a learner who edits/optimizes the blocks
+        // *before* ever running the unmodified starter never has that starter's
+        // (low) efficiency recorded anywhere. Their very first real submission
+        // becomes both baseline and final, so bestAes - initialAes is always 0
+        // even when real optimization happened. This isn't the duplicate-code
+        // freeze misfiring -- it's that no baseline ever existed to freeze.
+        //
+        // Fix: this ANALYZE_RESULT handler already fires automatically ~800ms
+        // after the starter template loads (see the ANALYZE_CODE effect keyed
+        // on generatedPython), before the learner has touched anything. Use
+        // that first automatic analysis, for optimization-type activities with
+        // no baseline yet, to silently compute and lock in a baseline AES from
+        // the *starter's* complexity (assuming TSR=1 since the given starter is
+        // a working reference solution) -- so ROG becomes automatic instead of
+        // depending on the learner manually submitting the unedited code first.
+        if (
+          activityDataResolved?.type === "optimization" &&
+          latestStateRef.current.initial_aes === null &&
+          !latestStateRef.current.optBaselineCaptured
+        ) {
+          latestStateRef.current.optBaselineCaptured = true;
+          const baselineTimeWeight = getComplexityWeight(data.total, 6) || 6;
+          const baselineSpaceWeight = getComplexityWeight(data.space_total || "O(1)", 6) || 6;
+          const targetTimeWeight = getComplexityWeight(activityDataResolved?.targetTimeComplexity, 6) || 6;
+          const targetSpaceWeight = getComplexityWeight(activityDataResolved?.targetSpaceComplexity, 6) || 6;
+          let baselineTimeRatio = targetTimeWeight / baselineTimeWeight; if (baselineTimeRatio > 1.0) baselineTimeRatio = 1.0;
+          let baselineSpaceRatio = targetSpaceWeight / baselineSpaceWeight; if (baselineSpaceRatio > 1.0) baselineSpaceRatio = 1.0;
+          const baselineAes = Math.floor(((baselineTimeRatio + baselineSpaceRatio) / 2) * 100);
+          latestStateRef.current.initial_aes = baselineAes;
+          latestStateRef.current.baseline_actualTime = data.total;
+          latestStateRef.current.baseline_actualSpace = data.space_total || "O(1)";
+        }
+
         const initialCounts = {};
         (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
         setLineExecutions((prev) => ({ ...prev, ...initialCounts }));
@@ -705,6 +743,26 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     const boot = async () => {
       try {
+        // STATE-BLEED FIX: latestStateRef is a single ref reused across
+        // activity navigations (this effect re-runs on [moduleId, activityId]
+        // change, but the ref itself isn't recreated). The two branches below
+        // (existing submission vs. fresh template) each set the fields *they*
+        // need, but neither used to reset initial_aes/final_aes/rog/
+        // lastSubmittedCode/optBaselineCaptured first -- so navigating from a
+        // finished activity straight into a brand-new one could leave the new
+        // activity's baseline/ROG math starting from the *previous* activity's
+        // numbers instead of a clean slate. Reset per-activity fields up front
+        // so every path below starts from a known state.
+        latestStateRef.current.initial_aes = null;
+        latestStateRef.current.final_aes = null;
+        latestStateRef.current.latest_aes = null;
+        latestStateRef.current.rog = 0;
+        latestStateRef.current.lastSubmittedCode = "";
+        latestStateRef.current.code_unchanged = false;
+        latestStateRef.current.optBaselineCaptured = false;
+        latestStateRef.current.baseline_actualTime = null;
+        latestStateRef.current.baseline_actualSpace = null;
+
         const resolvedActivity = await resolveActivityFromModule();
         if (cancelled) return;
         setActivityDataResolved(resolvedActivity);
