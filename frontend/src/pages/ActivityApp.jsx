@@ -1156,7 +1156,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   // INSTANT PROGRESS FIX: Now accurately checks user.progress from localStorage to eliminate API DB sync delays
   const checkLessonCompletion = async (currentActivityId = null, currentScore = null) => {
     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (!storedUser || !lessonActivitiesResolved.length) return { passedCount: 0, threshold: 1, isCompleted: false };
+    if (!storedUser || !lessonActivitiesResolved.length) {
+      return { passedCount: 0, threshold: 1, isCompleted: false, kind: activityDataResolved?.type === "optimization" ? "optimization" : "lesson" };
+    }
     
     const user = JSON.parse(storedUser);
     const userProgress = user.progress || {};
@@ -1166,9 +1168,19 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     // which uses module-level difficulty from the moduleIcons config. Now both use
     // the same module-level difficulty mapping so displayed "Min. X" matches the
     // actual unlock gate.
-    const isOptimizationLesson = lessonActivitiesResolved.some(
-      (a) => (a.type || "").toLowerCase() === "optimization" || (a.id || "").includes("opt")
-    );
+    //
+    // MODAL FIX (wrong terminology for optimizations): This used to guess the
+    // activity kind by scanning ids/types for the substring "opt", which only
+    // happened to work because of a naming convention. That guess never made
+    // it back out of this function, so the reward modal always labeled its
+    // progress bar/milestone as if it were a lesson -- including for
+    // optimization challenges (e.g. "Lesson Progress 4/4" and "Lesson
+    // Unlocked!" after finishing an optimization set). `activityDataResolved`
+    // already knows the real kind (set in resolveActivityFromModule from
+    // which JSON key -- "lesson_N" vs "optimizations" -- the activity came
+    // from), so use that single source of truth and surface it in the
+    // returned shape for the caller to label correctly.
+    const isOptimizationLesson = activityDataResolved?.type === "optimization";
 
     let threshold;
     if (isOptimizationLesson) {
@@ -1198,15 +1210,30 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     let passedCount = 0;
     for (const act of lessonActivitiesResolved) {
-      if (currentActivityId === String(act.id)) {
-         if (currentScore >= 50) passedCount++;
-         continue;
-      }
-
       const lessonKey = `${moduleId}:${act.id}`;
-      // Instant read from dict
-      if (userProgress[lessonKey] >= 50) {
+      const isCurrent = currentActivityId === String(act.id);
+
+      // BUG FIX (progress regression on retry): this used to special-case
+      // the just-submitted activity by comparing only the raw current-attempt
+      // score against 50, skipping the persisted-progress check entirely.
+      // savePartialProgress() already writes the best-ever (max) score for
+      // this activity to localStorage *before* handleSuccess() -- and so
+      // this function -- runs. So if a learner had already passed this
+      // activity (e.g. AES 90) and then resubmits weaker code that still
+      // passes functional tests but scores lower (e.g. AES 30), the old
+      // code reported it as failed here even though the persisted progress
+      // correctly still shows it passed -- undercounting "Lesson Progress"
+      // / "Optimization Progress" and potentially reporting a completed
+      // lesson as incomplete. Reading the persisted best-ever score first
+      // (falling back to the raw current score only if that read is
+      // somehow missing) fixes this without weakening the "keep the best
+      // attempt" guarantee.
+      if (userProgress[lessonKey] >= 50 || (isCurrent && currentScore >= 50)) {
           passedCount++;
+      } else if (isCurrent) {
+          // Already have the definitive answer for the activity just
+          // submitted -- no need to fall through to the async
+          // submissionsDB lookup below.
       } else {
           // BUG FIX (progress desync): previously checked `sub.score >= 50`.
           // `score` is the latest-attempt AES, which may be lower than a prior
@@ -1226,7 +1253,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           } catch (e) { }
       }
     }
-    return { passedCount, threshold, isCompleted: passedCount >= threshold };
+    return {
+      passedCount,
+      threshold,
+      isCompleted: passedCount >= threshold,
+      kind: isOptimizationLesson ? "optimization" : "lesson",
+    };
   };
 
   // Resolves what the "Next Lesson" button in the completion modal should
@@ -1258,6 +1290,24 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     return { path: `/assessment/${module.moduleId}/post`, label: "Take Quiz" };
   };
 
+  // MODAL FIX (broken "next step" for optimizations): resolveNextStepAfterLesson()
+  // only knows how to walk `curriculumIndex`'s lesson list, keyed by
+  // `topicIdResolved`. For an optimization activity, `topicIdResolved` is
+  // `lesson-{mid}-optimizations`, which never matches a real lesson id -- so
+  // that lookup silently fell through to the generic "/learning-path" /
+  // "Next Lesson" fallback. That's wrong content for two reasons: the path
+  // doesn't lead anywhere useful, and "Next Lesson" makes no sense once the
+  // learner is already doing optimization challenges (optimizations always
+  // come after every lesson in the module is done). The real next step once
+  // enough optimizations are passed is always the module quiz, so route
+  // there directly without going through the lesson-chain lookup at all.
+  const resolveNextStepAfterActivity = (kind) => {
+    if (kind === "optimization") {
+      return { path: `/assessment/${moduleId}/post`, label: "Take Quiz" };
+    }
+    return resolveNextStepAfterLesson();
+  };
+
   const handleSuccess = async (aesScore, funcPassed, funcTotal, currentRog) => {
     const currentIndex = lessonActivitiesResolved.findIndex((a) => a.id === activityId);
     const isLast = currentIndex === lessonActivitiesResolved.length - 1;
@@ -1265,6 +1315,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     const completionData = await checkLessonCompletion(activityId, aesScore);
     const meetsThreshold = completionData.isCompleted;
+    // "optimization" for the module's optimization-challenge set, "lesson"
+    // for a regular lesson's practice activities. Everything the modal
+    // says about *what kind of thing* was just finished should key off
+    // this, not assume "lesson".
+    const kind = completionData.kind;
+    const isOptimization = kind === "optimization";
 
     if (meetsThreshold && topicIdResolved) {
         try { await completeFullTopic(topicIdResolved); } catch(e) {}
@@ -1300,17 +1356,36 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       rogGain: currentRog > 0 ? currentRog : 0,
       passedCount: completionData.passedCount,
       threshold: completionData.threshold,
+      // MODAL FIX: the progress bar used to always say "Lesson Progress",
+      // even while grinding through the module's optimization challenges.
+      progressLabel: isOptimization ? "Optimization Progress" : "Lesson Progress",
       description,
       milestone: null,
       milestoneNote: null,
     };
 
+    // EDGE CASE: a retry (failed functional tests this attempt) should
+    // never dress itself up as a milestone moment. `meetsThreshold`
+    // reflects the best score across *all* attempts on *all* activities in
+    // this set, so it can already be true from earlier, unrelated passes
+    // even while the attempt the learner just submitted flat-out failed.
+    // Showing "Lesson/Quiz Unlocked!" confetti next to a "Keep Trying!"
+    // headline would read as a broken/contradictory modal. This only ever
+    // hides the celebration banner -- routing/button choice below still
+    // follows `meetsThreshold` on its own, since the set can genuinely
+    // already be unlocked from a prior attempt regardless of how this one
+    // went.
+    const canCelebrateMilestone = meetsThreshold && !isRetry;
+
     if (!isLast && nextActivity) {
       if (meetsThreshold) {
-        const nextStep = resolveNextStepAfterLesson();
+        const nextStep = resolveNextStepAfterActivity(kind);
         setRewardConfig({
           isOpen: true,
-          result: { ...baseResult, milestone: "lessonUnlocked" },
+          result: {
+            ...baseResult,
+            milestone: canCelebrateMilestone ? (isOptimization ? "optimizationUnlocked" : "lessonUnlocked") : null,
+          },
           confirmText: nextStep.label, cancelText: "Stay Here", secondaryText: "Next Activity",
           onConfirmAction: () => { closeReward(); navigate(nextStep.path); },
           onSecondaryAction: () => { closeReward(); navigate(`/activity/${moduleId}/${nextActivity.id}`); },
@@ -1326,13 +1401,41 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         });
       }
     } else {
-      setRewardConfig({
-        isOpen: true,
-        result: { ...baseResult, milestone: "sectionCompleted", milestoneNote: "You've finished every activity here — return to the learning path to explore the next topic." },
-        confirmText: "Finish", cancelText: "Stay Here", secondaryText: null,
-        onConfirmAction: async () => { closeReward(); navigate("/learning-path"); },
-        onCancelAction: closeReward,
-      });
+      // EDGE CASE: this is the last activity in the set, but that doesn't
+      // mean the set was actually completed -- the learner may have burned
+      // through every activity in a lesson/optimization group without ever
+      // hitting the pass threshold. The old code showed "Section
+      // Completed!" with confetti and a "Finish" button unconditionally
+      // here, congratulating (and routing away from) a lesson the learner
+      // hadn't actually passed. Only offer "Finish" (and only celebrate)
+      // when the threshold was genuinely met; otherwise let them know
+      // they're out of fresh activities and should go back and improve a
+      // previous attempt rather than implying they're done.
+      if (meetsThreshold) {
+        setRewardConfig({
+          isOpen: true,
+          result: {
+            ...baseResult,
+            milestone: canCelebrateMilestone ? "sectionCompleted" : null,
+            milestoneNote: canCelebrateMilestone
+              ? (isOptimization
+                  ? "You've finished every optimization challenge here — return to the learning path to take the module quiz."
+                  : "You've finished every activity here — return to the learning path to explore the next topic.")
+              : null,
+          },
+          confirmText: "Finish", cancelText: "Stay Here", secondaryText: null,
+          onConfirmAction: async () => { closeReward(); navigate("/learning-path"); },
+          onCancelAction: closeReward,
+        });
+      } else {
+        setRewardConfig({
+          isOpen: true,
+          result: baseResult,
+          confirmText: "Back to Learning Path", cancelText: "Stay Here", secondaryText: null,
+          onConfirmAction: async () => { closeReward(); navigate("/learning-path"); },
+          onCancelAction: closeReward,
+        });
+      }
     }
   };
 

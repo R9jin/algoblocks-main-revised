@@ -30,8 +30,16 @@ const TIER_PRESETS = {
 
 // Milestone banner shown under the main result when the learner cleared the
 // lesson requirement or finished the last activity in the section.
+//
+// "lessonUnlocked" and "optimizationUnlocked" both mark the moment the
+// learner cleared this activity set's pass threshold mid-way through it --
+// they're kept as separate presets (rather than one generic label) because
+// what actually got unlocked is different: passing enough lesson activities
+// unlocks the next lesson, while passing enough optimization challenges
+// unlocks the module quiz.
 const MILESTONE_PRESETS = {
   lessonUnlocked: { Icon: FiUnlock, label: "Lesson Unlocked!", accent: "#34d399" },
+  optimizationUnlocked: { Icon: FiUnlock, label: "Quiz Unlocked!", accent: "#34d399" },
   sectionCompleted: { Icon: GiPodiumWinner, label: "Section Completed!", accent: "#f7b733" },
 };
 
@@ -117,7 +125,8 @@ function useCountUp(target, isOpen, duration = 900) {
  *   rogGain: number,
  *   passedCount: number,
  *   threshold: number,
- *   milestone: 'lessonUnlocked' | 'sectionCompleted' | null,
+ *   progressLabel: string, // e.g. "Lesson Progress" | "Optimization Progress"
+ *   milestone: 'lessonUnlocked' | 'optimizationUnlocked' | 'sectionCompleted' | null,
  *   description: string,
  * }
  */
@@ -193,7 +202,7 @@ const RewardModal = ({
         {result.threshold > 0 && (
           <div className="reward-progress">
             <div className="reward-progress-label">
-              <span><FiTarget /> Lesson Progress</span>
+              <span><FiTarget /> {result.progressLabel || "Lesson Progress"}</span>
               <span>{result.passedCount}/{result.threshold}</span>
             </div>
             <div className="reward-progress-track">
