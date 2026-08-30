@@ -841,7 +841,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           }
         };
 
-        if (finalSubmissionToLoad && finalSubmissionToLoad.activityId === activityId && !cancelled) {
+        if (finalSubmissionToLoad && finalSubmissionToLoad.activityId === activityId && !finalSubmissionToLoad.was_reset && !cancelled) {
           try {
             const json = finalSubmissionToLoad.workspace?.blocklyJson || finalSubmissionToLoad.blocklyJson || {};
             const pythonCode = finalSubmissionToLoad.pythonCode;
@@ -949,7 +949,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
   }, [moduleId, activityId]);
 
-  const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false) => {
+  const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false, isReset = false) => {
     if (!latestStateRef.current.userId) return;
     const finalScore = score !== null ? score : latestStateRef.current.score;
     const finalPassed = passed !== null ? passed : latestStateRef.current.passed;
@@ -995,6 +995,19 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       // submission for this activity -- see the ROG-freeze comment above
       // triggerEvaluation's bestAes calculation.
       code_unchanged: latestStateRef.current.code_unchanged ?? false,
+      // RESTART FIX: marks this record as a deliberate "restart" wipe rather
+      // than a real (even if empty) saved attempt. Restart used to persist a
+      // blank workspace/pythonCode submission and then reload the page --
+      // boot() would find that blank record, treat it as "an existing
+      // submission to resume," and load its *empty* workspace instead of
+      // re-fetching the activity's original template. For optimization
+      // activities that meant the pre-built, intentionally-inefficient
+      // starter blocks never came back after a restart -- just a blank
+      // canvas. Tagging the record lets boot() recognize a reset and fall
+      // through to the normal template-fetch path (which already knows to
+      // special-case `/data/optimizations/{id}.json` for opt activities)
+      // instead of "resuming" a blank slate.
+      was_reset: isReset,
       passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total,
       functional_passed: latestStateRef.current.functional_passed, functional_total: latestStateRef.current.functional_total,
       complexity_passed: latestStateRef.current.complexity_passed, complexity_total: latestStateRef.current.complexity_total,
@@ -1916,9 +1929,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                   confirmText: "Restart", cancelText: "Cancel", isDanger: true,
                   onConfirmAction: async () => {
                     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-                    if (storedUser) { const user = JSON.parse(storedUser); try { await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } catch(e){} }
+                    if (storedUser) {
+                      const user = JSON.parse(storedUser);
+                      try { await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } catch(e){}
+                      try { localStorage.removeItem(`algoblocks_emergency_${user.email}_${moduleId}_${activityId}`); } catch(e){}
+                    }
                     localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`);
-                    await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true);
+                    await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true, true);
                     window.location.reload();
                   }, onCancelAction: closeModal
                 })
