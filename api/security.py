@@ -56,7 +56,10 @@ async def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
         # to 7 days) previously kept working for every request, since only
         # login checked account status. Re-check status here so an admin's
         # "suspend" action takes effect immediately, not just on next login.
-        user = UserRepository.find_by_email(email)
+        # PERFORMANCE: this runs on every authenticated request, so use the
+        # lightweight lookup (no progress/assessments join) -- see
+        # find_auth_fields_by_email for why.
+        user = UserRepository.find_auth_fields_by_email(email)
         if not user or user.get("status", "active") != "active":
             logger.warning(f"Rejected request: {email} account is not active")
             raise HTTPException(
@@ -95,7 +98,9 @@ async def get_current_admin_user(email: str = Depends(get_current_user_email)) -
     """
     Dependency that checks if the currently authenticated user has admin privileges in PostgreSQL.
     """
-    user = UserRepository.find_by_email(email)
+    # PERFORMANCE: same lightweight lookup as get_current_user_email above --
+    # this only needs the role/is_admin flag, not progress/assessments.
+    user = UserRepository.find_auth_fields_by_email(email)
     
     # Using the fetched dictionary from the PG repository
     is_admin = False

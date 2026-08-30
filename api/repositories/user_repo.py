@@ -111,6 +111,33 @@ class UserRepository:
         return user_dict
 
     @staticmethod
+    def find_auth_fields_by_email(email: str):
+        # PERFORMANCE: get_current_user_email() (the auth dependency that
+        # runs on EVERY authenticated request, including /get-progress,
+        # /get-assessments and /get-all-submissions) only needs the account
+        # status + token_version to decide whether to reject the request --
+        # it never reads progress or assessments. It was calling the full
+        # find_by_email() anyway, which joins in the *entire* progress table
+        # and *entire* assessments table for this user (2 extra queries) on
+        # top of the users-table lookup, just to check two boolean-ish
+        # fields. The route handler then calls find_by_email() again for
+        # the data it actually wants, so a single Profile-page load (which
+        # fires /get-progress, /get-assessments, /get-all-submissions in
+        # parallel) was paying for that heavy join up to 3 extra times.
+        # This trims the auth check down to the one cheap query it needs.
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'SELECT id, name, email, status, role, is_admin, token_version '
+            'FROM users WHERE LOWER(email) = LOWER(%s)',
+            (email,)
+        )
+        user = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return dict(user) if user else None
+
+    @staticmethod
     def insert(user_data: dict):
         conn = get_db_connection()
         cursor = conn.cursor()

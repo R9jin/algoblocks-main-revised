@@ -24,7 +24,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
-import { assessmentsDB, progressDB, submissionsDB } from "../db";
+import { assessmentsDB, curriculumCacheDB, progressDB, submissionsDB } from "../db";
 import { isAdminUser } from "../utils/auth";
 import "../styles/ProfilePage.css";
 
@@ -188,12 +188,54 @@ export default function ProfilePage() {
           return;
         }
 
+        // PERFORMANCE FIX: these 7 module files used to only start fetching
+        // after every IndexedDB read/write and cloud-sync API call below had
+        // already finished -- a pure waterfall, even though this module JSON
+        // (static curriculum content) has zero dependency on any of that
+        // user-data work. Firing the requests off now and only `await`-ing
+        // the result down where `allActivities` is actually built lets it
+        // run concurrently with the IndexedDB/cloud-sync round trips instead
+        // of stacking on top of them.
+        //
+        // This also now goes through the same curriculumCacheDB IndexedDB
+        // cache that LearningPath.jsx / LessonViewer.jsx / ActivityApp.jsx
+        // already read from and warm for these exact URLs (keyed by the raw
+        // fetch URL, same convention as those pages). Profile was the only
+        // page still hitting the network for all 7 files on every single
+        // visit instead of reusing that shared cache -- for anyone who'd
+        // already opened the Learning Path or an activity this session,
+        // that's 7 redundant network round trips this page alone was
+        // paying for, and was the single biggest remaining contributor to
+        // a slow-loading Profile page.
+        const moduleResultsPromise = Promise.all(
+          Array.from({ length: 7 }, (_, i) => {
+            const url = `/data/activities/module_${i}.json`;
+            return curriculumCacheDB.getItem(url)
+              .then((cached) => {
+                if (cached) return [i, cached];
+                return fetch(url).then(async (res) => {
+                  if (!res.ok) return null;
+                  const data = await res.json();
+                  curriculumCacheDB.setItem(url, data).catch(() => {});
+                  return [i, data];
+                });
+              })
+              .catch(() => { console.warn(`Could not load module_${i}.json`); return null; });
+          })
+        );
+
         let initialProg = parsed.progress || {};
         let initialAssm = parsed.assessments || {};
 
         if (!isGuest) {
-          await progressDB.iterate((value, key) => { initialProg[key] = value.score !== undefined ? value.score : value; });
-          await assessmentsDB.iterate((value, key) => { initialAssm[key] = value.data || value; });
+          // PERFORMANCE FIX: these two reads don't depend on each other --
+          // awaiting them one after another paid for two sequential
+          // IndexedDB transactions where Promise.all lets them run
+          // concurrently.
+          await Promise.all([
+            progressDB.iterate((value, key) => { initialProg[key] = value.score !== undefined ? value.score : value; }),
+            assessmentsDB.iterate((value, key) => { initialAssm[key] = value.data || value; }),
+          ]);
         }
 
         if (navigator.onLine && parsed.email && !isGuest) {
@@ -225,36 +267,47 @@ export default function ProfilePage() {
             // firing them all at once with Promise.all lets the browser
             // run them concurrently instead -- this was the single
             // biggest contributor to a slow-rendering Profile page.
-            if (progRes.ok) {
-              const data = await progRes.json();
-              const entries = Object.entries(data.progress || data);
-              for (const [key, val] of entries) initialProg[key] = val;
-              await Promise.all(
-                entries.map(([key, val]) => progressDB.setItem(key, { score: val, isSynced: true }))
-              );
-            }
-
-            if (assmRes.ok) {
-              const data = await assmRes.json();
-              const entries = Object.entries(data.assessments || data);
-              for (const [key, val] of entries) initialAssm[key] = val;
-              await Promise.all(
-                entries.map(([key, val]) => assessmentsDB.setItem(key, { ...val, isSynced: true }))
-              );
-            }
-
-            if (subsRes.ok) {
-              const subData = await subsRes.json();
-              const validSubs = (subData.submissions || []).filter(
-                (sub) => sub && sub.moduleId && sub.activityId
-              );
-              await Promise.all(
-                validSubs.map((sub) => {
-                  const subId = sub.id || `${sub.userId}_${sub.moduleId}_${sub.activityId}`;
-                  return submissionsDB.setItem(subId, { ...sub, id: subId, isSynced: true });
-                })
-              );
-            }
+            // PERFORMANCE FIX: these three blocks (parse response -> write
+            // to IndexedDB) are fully independent of each other, but were
+            // previously run one after another -- so the assessments block
+            // couldn't even start its .json() parsing until every progress
+            // IndexedDB write had finished, and submissions had to wait on
+            // both. Kicking all three off together and awaiting them as a
+            // group lets progress/assessments/submissions processing
+            // overlap instead of stacking.
+            await Promise.all([
+              (async () => {
+                if (!progRes.ok) return;
+                const data = await progRes.json();
+                const entries = Object.entries(data.progress || data);
+                for (const [key, val] of entries) initialProg[key] = val;
+                await Promise.all(
+                  entries.map(([key, val]) => progressDB.setItem(key, { score: val, isSynced: true }))
+                );
+              })(),
+              (async () => {
+                if (!assmRes.ok) return;
+                const data = await assmRes.json();
+                const entries = Object.entries(data.assessments || data);
+                for (const [key, val] of entries) initialAssm[key] = val;
+                await Promise.all(
+                  entries.map(([key, val]) => assessmentsDB.setItem(key, { ...val, isSynced: true }))
+                );
+              })(),
+              (async () => {
+                if (!subsRes.ok) return;
+                const subData = await subsRes.json();
+                const validSubs = (subData.submissions || []).filter(
+                  (sub) => sub && sub.moduleId && sub.activityId
+                );
+                await Promise.all(
+                  validSubs.map((sub) => {
+                    const subId = sub.id || `${sub.userId}_${sub.moduleId}_${sub.activityId}`;
+                    return submissionsDB.setItem(subId, { ...sub, id: subId, isSynced: true });
+                  })
+                );
+              })(),
+            ]);
           } catch (e) { console.warn("Cloud sync warning:", e); }
         }
 
@@ -297,20 +350,14 @@ export default function ProfilePage() {
 
         setMilestones({ preTest: preTestData, postTest: postTestData });
 
-        // PERFORMANCE FIX: these 7 module files were being fetched one at a
-        // time in a loop -- each `await` inside the loop blocks the next
-        // request from even starting, so this paid for 7 sequential round
-        // trips where 7 parallel ones would do. Firing them all at once
-        // with Promise.all is the single biggest fix for slow profile-page
-        // loads.
+        // PERFORMANCE FIX: this used to fire all 7 module fetches here and
+        // await them at this point -- now they were already kicked off
+        // (cache-first, see moduleResultsPromise above) before any of the
+        // IndexedDB/cloud-sync work even started, so by the time we get
+        // here they've very likely already resolved and this `await`
+        // returns immediately instead of adding its own wait.
         const allActivities = {};
-        const moduleResults = await Promise.all(
-          Array.from({ length: 7 }, (_, i) =>
-            fetch(`/data/activities/module_${i}.json`)
-              .then(async (res) => (res.ok ? [i, await res.json()] : null))
-              .catch(() => { console.warn(`Could not load module_${i}.json`); return null; })
-          )
-        );
+        const moduleResults = await moduleResultsPromise;
         for (const result of moduleResults) {
           if (result) {
             const [i, json] = result;
