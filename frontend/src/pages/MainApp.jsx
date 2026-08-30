@@ -1115,7 +1115,20 @@ export default function MainApp() {
           {tabs.map((tab) => (
             <div key={tab.id} className={activeTabId === tab.id ? "d-block" : "d-none"} style={{ width: "100%", height: "100%" }}>
               <BlocklyWorkspace
-                initialJson={tab.blocklyJson}
+                // Read the live workspace (same getLiveBlocklyJson failsafe
+                // emergencySaveNow uses above), not the debounced
+                // tab.blocklyJson state. This panel remounts whenever
+                // DockableWorkspace moves it to a different region -- e.g.
+                // dragging its tab, or "Reset Workspace Layout" snapping it
+                // back to a different spot than wherever it's currently
+                // docked -- and tab.blocklyJson can lag up to 400ms behind
+                // the actual canvas (the onChange debounce in
+                // BlocklyWorkspace.jsx). Doing this fast enough -- a
+                // drag-and-drop or two in quick succession right before
+                // triggering the remount -- used to mean the new instance
+                // came up loaded with a stale snapshot, silently dropping
+                // whatever hadn't been committed to state yet.
+                initialJson={getLiveBlocklyJson(tab)}
                 ref={(el) => (workspaceRefs.current[tab.id] = el)}
                 onChange={(json, py) => handleBlocklyChange(tab.id, json, py)}
                 syntaxErrors={tab.syntaxErrors || []}

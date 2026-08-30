@@ -15,6 +15,7 @@
 // immune to that (and any other) page-specific CSS bleed-through.
 import { createPortal } from "react-dom";
 import { FiShield, FiFileText, FiX } from "react-icons/fi";
+import useMountTransition from "../hooks/useMountTransition";
 import "../styles/PolicyModal.css";
 
 const PRIVACY_SECTIONS = [
@@ -91,14 +92,15 @@ const TERMS_SECTIONS = [
 ];
 
 export default function PolicyModal({ isOpen, onClose, type = "privacy" }) {
-  if (!isOpen) return null;
+  const shouldRender = useMountTransition(isOpen, 220);
+  if (!shouldRender) return null;
 
   const isPrivacy = type === "privacy";
   const sections = isPrivacy ? PRIVACY_SECTIONS : TERMS_SECTIONS;
 
   return createPortal(
-    <div className="policy-modal-overlay" onClick={onClose}>
-      <div className="policy-modal" onClick={(e) => e.stopPropagation()}>
+    <div className={`policy-modal-overlay ${isOpen ? "" : "is-closing"}`} onClick={onClose}>
+      <div className={`policy-modal ${isOpen ? "" : "is-closing"}`} onClick={(e) => e.stopPropagation()}>
         <div className="policy-modal-header">
           <div className="policy-modal-title">
             {isPrivacy ? <FiShield size={19} /> : <FiFileText size={19} />}

@@ -1,5 +1,5 @@
 // frontend/src/App.jsx
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
 import SyncLimitNotice from "./components/SyncLimitNotice";
@@ -72,6 +72,34 @@ const AdminOnlyRoute = ({ children }) => (
 function App() {
   const location = useLocation();
 
+  // Whole-page navigation used to hard-cut from one route to the next --
+  // fine for a single click, but jarring next to how smoothly everything
+  // else (modals, the learning-path dropdown) now animates. This keeps
+  // rendering the outgoing page for one short fade-out beat before
+  // swapping in the new route's content, using react-router's own
+  // `location` prop on <Routes> rather than a separate animation library.
+  //
+  // Only the top-level section of the path is compared (not the full
+  // pathname) so this only fires between genuinely different pages --
+  // e.g. /learning-path -> /activity/... . Activity-to-activity or
+  // lesson-to-lesson navigation (same section, different :id) keeps its
+  // current instant feel; those happen on every "Next Activity" click and
+  // adding a fade there would make the core practice loop feel laggy
+  // rather than smoother.
+  const topLevelSection = (pathname) => pathname.split("/")[1] || "";
+  const [displayLocation, setDisplayLocation] = useState(location);
+  const [routeTransitionStage, setRouteTransitionStage] = useState("route-fade-in");
+
+  useEffect(() => {
+    if (topLevelSection(location.pathname) !== topLevelSection(displayLocation.pathname)) {
+      setRouteTransitionStage("route-fade-out");
+    } else if (location.pathname !== displayLocation.pathname) {
+      // Same section, different id (e.g. next activity/lesson) -- swap
+      // immediately, no fade.
+      setDisplayLocation(location);
+    }
+  }, [location, displayLocation]);
+
   const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
   const isValidUser = userStr && userStr !== "null" && userStr !== "undefined";
   const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
@@ -105,7 +133,16 @@ function App() {
       
       <RouteErrorBoundary>
       <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
-        <Routes>
+        <div
+          className={routeTransitionStage}
+          onAnimationEnd={() => {
+            if (routeTransitionStage === "route-fade-out") {
+              setDisplayLocation(location);
+              setRouteTransitionStage("route-fade-in");
+            }
+          }}
+        >
+        <Routes location={displayLocation}>
           {/* Public Auth Routes */}
           <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
           <Route path="/signin" element={<PublicRoute><SignIn /></PublicRoute>} />
@@ -165,6 +202,7 @@ function App() {
           {/* Catch-all route: prevents a completely blank screen if the user lands on an invalid 404 path */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </div>
       </Suspense>
       </RouteErrorBoundary>
     </OnboardingProvider>

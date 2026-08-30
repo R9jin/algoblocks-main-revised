@@ -1,4 +1,5 @@
 /*frontend\src\components\ScopeWarningModal.jsx*/
+import useMountTransition from "../hooks/useMountTransition";
 import "../styles/ConfirmModal.css";
 import "../styles/ScopeWarningModal.css";
 
@@ -19,11 +20,12 @@ const ScopeWarningModal = ({
   cancelText = "Cancel",
   hideCancel = false,
 }) => {
-  if (!isOpen) return null;
+  const shouldRender = useMountTransition(isOpen, 220);
+  if (!shouldRender) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="custom-modal-content scope-warning-modal">
+    <div className={`modal-overlay ${isOpen ? "" : "is-closing"}`}>
+      <div className={`custom-modal-content scope-warning-modal ${isOpen ? "" : "is-closing"}`}>
         <div className="custom-modal-header">
           <h3>{title}</h3>
         </div>

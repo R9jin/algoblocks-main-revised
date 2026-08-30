@@ -1,5 +1,6 @@
 // frontend/src/components/BigOModal.jsx
 import { useState } from "react";
+import useMountTransition from "../hooks/useMountTransition";
 import "../styles/BigOModal.css";
 import { formatComplexity } from "../utils/formatters";
 
@@ -89,16 +90,17 @@ const BIG_O_DATA = [
 
 export default function BigOModal({ isOpen, onClose }) {
   const [expandedRow, setExpandedRow] = useState(null);
+  const shouldRender = useMountTransition(isOpen, 220);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const toggleRow = (index) => {
     setExpandedRow(expandedRow === index ? null : index);
   };
 
   return (
-    <div className="big-o-modal-overlay" onClick={onClose}>
-      <div className="big-o-modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className={`big-o-modal-overlay ${isOpen ? "" : "is-closing"}`} onClick={onClose}>
+      <div className={`big-o-modal-content ${isOpen ? "" : "is-closing"}`} onClick={(e) => e.stopPropagation()}>
         <div className="big-o-modal-header">
           <h2>
             <img

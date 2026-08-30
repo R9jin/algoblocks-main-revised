@@ -597,6 +597,26 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
   const onChangeRef = useRef(onChange);
   const pendingLoadRef = useRef(null); 
   const scopeWarningResolveRef = useRef(null);
+  // Coordinates the always-on debounced addChangeListener (below, in the
+  // mount effect) with the three programmatic-mutation paths that also
+  // clear()/load() the workspace directly: executeLoad, the imperative
+  // clear() handle, and loadFromPython(). All three used to rely only on
+  // Blockly.Events.setGroup(true/false), which groups events for undo but
+  // does NOT stop them from being dispatched to addChangeListener -- so a
+  // clear()+load() would *also* trigger the generic 400ms-debounced
+  // listener on top of the caller's own explicit delivery. That
+  // second, later delivery recomputes fresh workspaceToCode() output and
+  // calls onChange with no preservePythonCode/isUnsynced info, silently
+  // overwriting whatever the real load path had deliberately delivered
+  // (e.g. a preserved, intentionally-unsynced Python string) a few hundred
+  // ms earlier -- and if the user triggered another load, reset, or edit
+  // in that window, this stale timeout would fire even later and clobber
+  // that newer state too. suppressAutoChangeRef mutes the generic listener
+  // while a programmatic mutation owns delivery; changeTimeoutRef lets
+  // that same code cancel any already-pending debounced delivery before it
+  // starts, and lets unmount cancel it too.
+  const suppressAutoChangeRef = useRef(false);
+  const changeTimeoutRef = useRef(null);
   const [scopeWarningState, setScopeWarningState] = useState({ isOpen: false, warnings: [] });
 
   // Shows the scope-warning modal and pauses until the user decides.
@@ -618,6 +638,19 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
 
   const executeLoad = (json, preservePythonCode) => {
     if (!workspace.current) return;
+
+    // Cancel any debounced delivery still pending from a real edit that
+    // happened just before this load (e.g. the user tweaked a block, then
+    // immediately hit Reset/loaded a template within the same 400ms
+    // window). Left alone, that old timeout would fire mid-flight or right
+    // after this load settles and call onChange with data computed a
+    // moment too late, undoing what's about to load. Suppress the generic
+    // listener for the duration too, since clear()/load() below still
+    // dispatch real block events to it -- see the comment on
+    // suppressAutoChangeRef above for why that's a problem on its own.
+    if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
+    suppressAutoChangeRef.current = true;
+
     try {
       Blockly.Events.setGroup(true); 
       workspace.current.clear();
@@ -644,6 +677,9 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     }
 
     setTimeout(() => {
+      // Only now -- once this load's own delivery below has run -- is it
+      // safe to let the generic listener react to future real edits again.
+      suppressAutoChangeRef.current = false;
       if (!workspace.current) return;
       const code = pythonGenerator.workspaceToCode(workspace.current);
       const currentJson = Blockly.serialization.workspaces.save(workspace.current);
@@ -660,8 +696,19 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
   useImperativeHandle(ref, () => ({
     clear: () => {
       if (!workspace.current) return;
+      // Same reasoning as executeLoad: cancel any already-pending debounced
+      // delivery and mute the generic listener for this synchronous clear,
+      // so a stale timeout can't fire afterwards and re-report a workspace
+      // that (from the caller's point of view) was just explicitly reset.
+      // Every current caller of clear() updates its own state right after
+      // calling this, so no replacement delivery is needed here.
+      if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
+      suppressAutoChangeRef.current = true;
       Blockly.Events.setGroup(true);
-      try { workspace.current.clear(); } finally { Blockly.Events.setGroup(false); }
+      try { workspace.current.clear(); } finally {
+        Blockly.Events.setGroup(false);
+        suppressAutoChangeRef.current = false;
+      }
     },
     // FIX: Added imperative methods to fetch raw JSON manually so failsafes work perfectly
     getJson: () => {
@@ -693,6 +740,18 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
           if (!proceed) return;
         }
 
+        // Cancel any pending debounced delivery from an edit just before
+        // the sync started, and mute the generic listener for the
+        // clear()+load() below -- both still dispatch real block events to
+        // it despite the setGroup wrapping, and without this, that listener
+        // fires its own recomputed delivery ~400ms after the explicit one
+        // below, silently re-delivering a freshly-regenerated Python string
+        // in place of the exact `pythonCode` the user just synced from
+        // (round-tripping through the block generator can reformat it), and
+        // dropping the isUnsynced=false this call already established.
+        if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
+        suppressAutoChangeRef.current = true;
+
         try { 
           Blockly.Events.setGroup(true);
           workspace.current.clear(); 
@@ -715,6 +774,9 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         // delivery has actually happened.
         await new Promise((resolve) => {
           setTimeout(() => {
+            // Only re-arm the generic listener once this sync's own
+            // delivery (below) has actually happened.
+            suppressAutoChangeRef.current = false;
             if (workspace.current && onChangeRef.current) {
               onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonCode);
             }
@@ -783,11 +845,16 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
 
       registerCustomPythonGenerators();
 
-      let changeTimeout = null;
       workspace.current.addChangeListener((event) => {
         if (event.isUiEvent) return;
-        if (changeTimeout) clearTimeout(changeTimeout);
-        changeTimeout = setTimeout(() => {
+        // Muted while executeLoad/clear()/loadFromPython own delivery of a
+        // programmatic mutation -- see suppressAutoChangeRef's definition
+        // above for why letting this fire on top of theirs is a bug, not a
+        // harmless extra notification.
+        if (suppressAutoChangeRef.current) return;
+        if (changeTimeoutRef.current) clearTimeout(changeTimeoutRef.current);
+        changeTimeoutRef.current = setTimeout(() => {
+          changeTimeoutRef.current = null;
           try { 
             if (onChangeRef.current) onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonGenerator.workspaceToCode(workspace.current)); 
           } catch (e) {}
@@ -811,6 +878,13 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     }
 
     return () => {
+      // Without this, a debounced delivery scheduled just before an unmount
+      // (e.g. the docking layout remounting this panel into a different
+      // region mid-edit -- see DockableWorkspace.jsx) would still fire
+      // ~400ms later against a disposed workspace. The try/catch inside the
+      // timeout swallows the resulting exception silently, but the intent
+      // was never for it to fire at all once this instance is gone.
+      if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
       try { [searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin].forEach(p => p?.dispose && p.dispose()); } catch (e) {}
       if (workspace.current) { workspace.current.dispose(); workspace.current = null; }
       if (blocklyDiv.current?.resizeObserver) blocklyDiv.current.resizeObserver.disconnect();

@@ -105,25 +105,32 @@ html {
   transform: rotate(180deg);
 }
 
+.module-lessons-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.module-lessons-collapse.is-expanded {
+  grid-template-rows: 1fr;
+}
+
+.module-lessons-collapse > .module-lessons-dropdown {
+  /* Required for the CSS grid collapse trick: a grid item's min-height
+     defaults to the size of its content, which would stop the 0fr row
+     from ever reaching zero. overflow: hidden here (not on the collapse
+     wrapper, which needs to keep round bottom corners visible) lets the
+     row track actually animate all the way from 0 to full height and
+     back, instead of the dropdown just popping open/shut at either end. */
+  min-height: 0;
+  overflow: hidden;
+}
+
 .module-lessons-dropdown {
   background: #faf9ff;
   border: 1px solid #ece8f8;
   border-top: none;
   border-radius: 0 0 16px 16px;
-  overflow: visible;
-  animation: slideDown 0.3s ease;
-  max-height: none;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* Footer button styled like a lesson row */

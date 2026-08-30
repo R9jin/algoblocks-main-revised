@@ -1536,7 +1536,35 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       icon: <FiGrid size={14} />,
       content: (
         <div className="workspace-view" style={{ width: "100%", height: "100%" }}>
-          <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxErrors={syntaxErrors || []} />
+          {/* initialJson: BlocklyWorkspace only used to load through the
+              imperative loadTemplate()/applyWorkspaceData() path (see the
+              submission/template-loading effect above), on the assumption
+              that this component never remounts. It does, though --
+              DockableWorkspace remounts any panel that moves to a
+              different region (dragging its tab elsewhere, or clicking
+              "Reset Workspace Layout" in the footer, which can snap
+              "Blocks" back to a different region than wherever the user
+              had it docked). A remount means a brand-new Blockly instance
+              with nothing to load it, since the imperative flow above only
+              ever runs once per ActivityApp mount -- the canvas would come
+              up completely empty, silently discarding every block, even
+              though getFailsafeWorkspaceJson() (same live-read failsafe
+              triggerFinalSave/saveSubmission already use, reading straight
+              off the about-to-be-unmounted instance before it's gone) still
+              has the real data. Passing it here as `initialJson` is a no-op
+              for the *first* mount (workspaceRef.current and
+              latestStateRef.current.json are both still empty at that
+              point; the imperative flow above owns that load, including
+              its preservePythonCode/isUnsynced handling) and only kicks in
+              for a genuine remount, restoring exactly what was on the
+              canvas a moment before -- including anything dragged in the
+              last few hundred ms that hadn't reached latestStateRef yet. */}
+          <BlocklyWorkspace
+            ref={workspaceRef}
+            initialJson={getFailsafeWorkspaceJson()}
+            onChange={handleWorkspaceChange}
+            syntaxErrors={syntaxErrors || []}
+          />
         </div>
       ),
     },

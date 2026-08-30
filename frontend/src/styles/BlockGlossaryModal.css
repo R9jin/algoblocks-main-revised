@@ -272,6 +272,25 @@
     100% { opacity: 1; transform: translateY(0); }
 }
 
+/* Exit animations, paired with useMountTransition in BlockGlossaryModal.jsx */
+.block-glossary-modal-overlay.is-closing {
+    animation: bg-fade-out 0.22s ease-in forwards;
+}
+
+.block-glossary-modal-content.is-closing {
+    animation: bg-smooth-slide-out 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes bg-fade-out {
+    0% { opacity: 1; backdrop-filter: blur(4px); }
+    100% { opacity: 0; backdrop-filter: blur(0px); }
+}
+
+@keyframes bg-smooth-slide-out {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(20px); }
+}
+
 /* =========================================================
    INTERACTIVE EXAMPLE RUNNER
 ========================================================= */

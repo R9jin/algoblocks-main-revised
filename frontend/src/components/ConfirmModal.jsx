@@ -1,4 +1,5 @@
 /*frontend\src\components\ConfirmModal.jsx*/
+import useMountTransition from '../hooks/useMountTransition';
 import '../styles/ConfirmModal.css';
 
 const ConfirmModal = ({ 
@@ -13,11 +14,12 @@ const ConfirmModal = ({
   cancelText = "Cancel",
   isDanger = false 
 }) => {
-  if (!isOpen) return null;
+  const shouldRender = useMountTransition(isOpen, 220);
+  if (!shouldRender) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="custom-modal-content">
+    <div className={`modal-overlay ${isOpen ? "" : "is-closing"}`}>
+      <div className={`custom-modal-content ${isOpen ? "" : "is-closing"}`}>
         <div className="custom-modal-header">
           <h3>{title}</h3>
         </div>

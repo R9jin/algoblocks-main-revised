@@ -293,9 +293,23 @@
   100% { transform: translate(var(--drift), 340px) rotate(var(--rotate)); opacity: 0; }
 }
 
+/* Exit animation to match .modal-overlay.is-closing (defined in
+   ConfirmModal.css) -- without this the celebratory pop-in had no reverse,
+   so the modal would vanish instantly the moment "Stay Here"/"Continue"
+   was clicked. */
+.reward-modal-content.is-closing {
+  animation: reward-modal-pop-out 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes reward-modal-pop-out {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0; }
+}
+
 /* ── ACCESSIBILITY ─────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .reward-modal-content,
+  .reward-modal-content.is-closing,
   .reward-badge-glow,
   .reward-badge-ring,
   .reward-chip,

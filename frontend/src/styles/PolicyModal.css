@@ -62,6 +62,7 @@
   justify-content: center;
   z-index: 2000;
   padding: 20px;
+  animation: policy-fade-in 0.22s ease-out forwards;
 }
 
 .policy-modal {
@@ -74,6 +75,36 @@
   flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+  animation: policy-pop-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes policy-fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes policy-pop-in {
+  0% { opacity: 0; transform: scale(0.96) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Exit animations, paired with useMountTransition in PolicyModal.jsx */
+.policy-modal-overlay.is-closing {
+  animation: policy-fade-out 0.22s ease-in forwards;
+}
+
+.policy-modal.is-closing {
+  animation: policy-pop-out 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes policy-fade-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes policy-pop-out {
+  0% { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.96) translateY(8px); }
 }
 
 .policy-modal-header {

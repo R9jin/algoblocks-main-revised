@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { BLOCK_GLOSSARY, CATEGORY_COLOURS, CATEGORY_ORDER } from "../data/blockGlossary";
 import { BLOCK_EXAMPLES } from "../data/blockExamples";
 import { useExampleWorker } from "../hooks/useExampleWorker.js";
+import useMountTransition from "../hooks/useMountTransition";
 import BlockExampleRunner from "./BlockExampleRunner.jsx";
 import "../styles/BlockGlossaryModal.css";
 // Importing BlocklyWorkspace guarantees every custom AlgoBlocks block type
@@ -75,8 +76,9 @@ export default function BlockGlossaryModal({ isOpen, onClose }) {
   // startup cost each time; it's still completely separate from the main
   // workspace's own worker/execution.
   const exampleWorker = useExampleWorker();
+  const shouldRender = useMountTransition(isOpen, 220);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const term = searchTerm.trim().toLowerCase();
   const isSearching = term.length > 0;
@@ -94,8 +96,8 @@ export default function BlockGlossaryModal({ isOpen, onClose }) {
   const toggleRow = (type) => setExpandedType(expandedType === type ? null : type);
 
   return (
-    <div className="block-glossary-modal-overlay" onClick={onClose}>
-      <div className="block-glossary-modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className={`block-glossary-modal-overlay ${isOpen ? "" : "is-closing"}`} onClick={onClose}>
+      <div className={`block-glossary-modal-content ${isOpen ? "" : "is-closing"}`} onClick={(e) => e.stopPropagation()}>
         <div className="block-glossary-modal-header">
           <h2>
             <img src="/assets/table-icon.png" alt="Reference" className="tab-icon inverted-header-icon" />

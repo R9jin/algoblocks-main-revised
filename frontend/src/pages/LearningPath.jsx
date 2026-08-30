@@ -663,7 +663,8 @@ export default function LearningPath() {
                   </div>
                 </div>
 
-                {isExpanded && !isModuleCompletelyLocked && (
+                {!isModuleCompletelyLocked && (
+                  <div className={`module-lessons-collapse ${isExpanded ? "is-expanded" : ""}`}>
                   <div className="module-lessons-dropdown">
                     {module.lessons.map((lesson) => {
                       const lessonNum = lesson.lessonId.split("-")[2];
@@ -809,6 +810,7 @@ export default function LearningPath() {
                         )}
                       </div>
                     </div>
+                  </div>
                   </div>
                 )}
               </div>

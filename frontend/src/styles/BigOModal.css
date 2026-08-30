@@ -214,6 +214,26 @@
         transform: translateY(0);
     }
 }
+
+/* Exit animations, paired with useMountTransition -- mirrors the entrance
+   above instead of the modal disappearing on the same frame it's closed. */
+.big-o-modal-overlay.is-closing {
+    animation: bigo-fade-out 0.22s ease-in forwards;
+}
+
+.big-o-modal-content.is-closing {
+    animation: bigo-smooth-slide-out 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes bigo-fade-out {
+    0% { opacity: 1; backdrop-filter: blur(4px); }
+    100% { opacity: 0; backdrop-filter: blur(0px); }
+}
+
+@keyframes bigo-smooth-slide-out {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(20px); }
+}
 /* =========================================================
    RESPONSIVE
 ========================================================= */

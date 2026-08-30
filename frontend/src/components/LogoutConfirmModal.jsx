@@ -1,12 +1,14 @@
 // frontend/src/components/LogoutConfirmModal.jsx
+import useMountTransition from "../hooks/useMountTransition";
 import "../styles/LogoutConfirmModal.css";
 
 export default function LogoutConfirmModal({ isOpen, onClose, onLogoutClick, isLoggingOut = false }) {
-  if (!isOpen) return null;
+  const shouldRender = useMountTransition(isOpen, 220);
+  if (!shouldRender) return null;
 
   return (
-    <div className="logout-modal-overlay">
-      <div className="logout-modal">
+    <div className={`logout-modal-overlay ${isOpen ? "" : "is-closing"}`}>
+      <div className={`logout-modal ${isOpen ? "" : "is-closing"}`}>
         <h2>Logout Confirmation</h2>
         <p>Are you sure you want to sign out of AlgoBlocks?</p>
         <div className="logout-modal-actions">

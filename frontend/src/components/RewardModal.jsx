@@ -15,6 +15,7 @@ import {
   GiTrophyCup,
   GiUpgrade,
 } from "react-icons/gi";
+import useMountTransition from "../hooks/useMountTransition";
 import "../styles/RewardModal.css";
 
 // Tier presets driving the badge icon, accent color, and how much
@@ -131,8 +132,12 @@ const RewardModal = ({
   cancelText = "Stay Here",
 }) => {
   const animatedScore = useCountUp(result?.aesScore, isOpen);
+  const shouldRender = useMountTransition(isOpen && !!result, 220);
 
-  if (!isOpen || !result) return null;
+  if (!shouldRender) return null;
+  // result can go stale/null a frame before shouldRender catches up during
+  // close -- bail rather than render with nothing to read from.
+  if (!result) return null;
 
   const tier = TIER_PRESETS[result.tier] || TIER_PRESETS.good;
   const TierIcon = tier.Icon;
@@ -148,8 +153,8 @@ const RewardModal = ({
     : 0;
 
   return (
-    <div className="modal-overlay reward-modal-overlay">
-      <div className="reward-modal-content" style={{ "--tier-accent": tier.accent, "--tier-accent-soft": tier.accentSoft }}>
+    <div className={`modal-overlay reward-modal-overlay ${isOpen ? "" : "is-closing"}`}>
+      <div className={`reward-modal-content ${isOpen ? "" : "is-closing"}`} style={{ "--tier-accent": tier.accent, "--tier-accent-soft": tier.accentSoft }}>
         {showConfetti && <ConfettiBurst intensity={confettiIntensity} />}
 
         <div className="reward-badge-wrap">

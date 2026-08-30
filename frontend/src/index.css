@@ -265,3 +265,33 @@ td {
 .network-icon {
   font-size: 1.8rem;
 }
+/* --- Top-level page fade transition (App.jsx) --- */
+/* Applied to the wrapper around <Routes> so navigating between different
+   sections of the app (e.g. Learning Path -> Activity) fades out/in
+   instead of hard-cutting. Deliberately not applied to same-section
+   navigation (activity-to-activity, lesson-to-lesson) -- see the comment
+   in App.jsx for why. */
+.route-fade-in {
+  animation: routeFadeIn 0.22s ease both;
+}
+
+.route-fade-out {
+  animation: routeFadeOut 0.15s ease both;
+}
+
+@keyframes routeFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes routeFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-fade-in,
+  .route-fade-out {
+    animation: none !important;
+  }
+}
