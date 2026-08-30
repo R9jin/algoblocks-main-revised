@@ -91,6 +91,32 @@
   margin: 24px 0;
 }
 
+/* Mirror LessonViewer's own 768px breakpoint (sidebar drops to a full-width
+   strip above the content, content padding tightens) so the loading
+   placeholder doesn't force a wide desktop layout -- and the horizontal
+   scroll that comes with it -- for the moment before the real content
+   swaps in. */
+@media (max-width: 768px) {
+  .lesson-skeleton-wrapper {
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+  }
+
+  .lesson-skeleton-sidebar {
+    width: 100%;
+    max-height: 280px;
+    border-right: none;
+    border-bottom: 1px solid #ece8f4;
+    padding: 16px;
+  }
+
+  .lesson-skeleton-content,
+  .lesson-content-skeleton {
+    padding: 20px;
+  }
+}
+
 /* Lighter-weight skeleton used for the "loading lesson content" transition
    between lessons, where the sidebar is already visible/real */
 .lesson-content-skeleton {

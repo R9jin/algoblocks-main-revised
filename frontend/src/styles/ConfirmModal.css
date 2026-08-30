@@ -119,3 +119,26 @@
   background: #c0392b;
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
 }
+
+@media (max-width: 480px) {
+  .custom-modal-content {
+    padding: 20px 20px;
+  }
+
+  .custom-modal-header h3 {
+    font-size: 1.15rem;
+  }
+
+  /* Two buttons at 10px 18px each plus a gap can pinch on the smallest
+     phones -- stack them full-width instead of letting them wrap awkwardly
+     mid-row. */
+  .custom-modal-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .btn-modal {
+    width: 100%;
+    text-align: center;
+  }
+}

@@ -24,6 +24,31 @@
 
 html {
   background-color: var(--gb-bg-base);
+  /* Explicit 100% (browser default 16px) so the mobile scale-downs below
+     have a known baseline to shrink from. Nearly every font-size in this
+     codebase is in rem, so scaling this one value cascades site-wide --
+     text, and most rem-based padding/gaps, shrink together instead of
+     needing a per-component override in every stylesheet. */
+  font-size: 100%;
+}
+
+/* --- Site-wide responsive type scale ---
+   Desktop keeps the 16px baseline. Tablet and phone widths step it down
+   so headings/body copy/buttons read as "phone-sized" instead of just
+   being a desktop layout squeezed into a narrow column. Components that
+   need their own additional phone-specific tightening still do that in
+   their own stylesheet's @media block; this just lowers the shared
+   starting point everything else scales from. */
+@media (max-width: 1024px) {
+  html { font-size: 93.75%; } /* ~15px */
+}
+
+@media (max-width: 768px) {
+  html { font-size: 87.5%; } /* ~14px */
+}
+
+@media (max-width: 480px) {
+  html { font-size: 81.25%; } /* ~13px */
 }
 
 body {
