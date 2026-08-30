@@ -275,6 +275,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [activityDataResolved, setActivityDataResolved] = useState(null);
   const [topicIdResolved, setTopicIdResolved] = useState(null);
   const [lessonActivitiesResolved, setLessonActivitiesResolved] = useState([]);
+  // Full activities JSON for the current module (lesson_1, lesson_2, ...,
+  // optimizations). Kept around so we can tell, once a learner finishes the
+  // module's last lesson, whether what comes next is an optimization
+  // challenge or straight to the module quiz -- see resolveNextStepAfterLesson.
+  const [moduleActivitiesJson, setModuleActivitiesJson] = useState(null);
 
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
@@ -503,6 +508,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const mid = String(moduleId).replace(/[^0-9]/g, "");
     if (!mid) throw new Error("Invalid moduleId");
     const activitiesJson = await fetchJsonWithCache(`activities:module_${mid}`, `/data/activities/module_${mid}.json`);
+    setModuleActivitiesJson(activitiesJson || {});
 
     let foundActivity = null; let foundLessonKey = null; let activitiesInLesson = [];
     for (const [lessonKey, list] of Object.entries(activitiesJson || {})) {
@@ -1223,22 +1229,33 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     return { passedCount, threshold, isCompleted: passedCount >= threshold };
   };
 
-  // "Next Lesson" in the completion modal is supposed to open the reading
-  // content for the lesson that comes right after this one -- not just drop
-  // the learner back on the generic /learning-path listing. topicIdResolved
-  // is already in the exact "lesson-{moduleNum}-{lessonNum}" form used as
-  // lessonId in curriculumIndex, so we can look the current lesson up there,
-  // grab whichever one is next in that module's lessons array, and route
-  // straight to it. If this was the last lesson in the module (no next
-  // lesson to open), fall back to the learning path listing.
-  const resolveNextLessonPath = () => {
-    if (!topicIdResolved) return "/learning-path";
+  // Resolves what the "Next Lesson" button in the completion modal should
+  // actually say and do. Most of the time that's exactly what it sounds
+  // like: open the reading content for the lesson right after this one.
+  // But if this lesson is the LAST lesson in the module (e.g. lesson 4 of
+  // 4), there is no next lesson -- what's actually next is the module's
+  // optimization challenges (if it has any) or, failing that, the module
+  // quiz. In that case the button should say so and route there directly
+  // instead of silently dumping the learner on the generic learning-path
+  // listing under a "Next Lesson" label that no longer describes anything.
+  const resolveNextStepAfterLesson = () => {
+    const fallback = { path: "/learning-path", label: "Next Lesson" };
+    if (!topicIdResolved) return fallback;
     const module = curriculumIndex.find((m) => Array.isArray(m.lessons) && m.lessons.some((l) => l.lessonId === topicIdResolved));
-    if (!module) return "/learning-path";
+    if (!module) return fallback;
     const lessonIndex = module.lessons.findIndex((l) => l.lessonId === topicIdResolved);
     const nextLesson = lessonIndex >= 0 ? module.lessons[lessonIndex + 1] : null;
-    if (!nextLesson) return "/learning-path";
-    return `/learning-path/${module.moduleId}/${nextLesson.lessonId}`;
+
+    if (nextLesson) {
+      return { path: `/learning-path/${module.moduleId}/${nextLesson.lessonId}`, label: "Next Lesson" };
+    }
+
+    // Last lesson in the module -- figure out what actually comes next.
+    const optimizations = moduleActivitiesJson?.optimizations;
+    if (Array.isArray(optimizations) && optimizations.length > 0) {
+      return { path: `/activity/${module.moduleId}/${optimizations[0].id}`, label: "Take Optimization Activity" };
+    }
+    return { path: `/assessment/${module.moduleId}/post`, label: "Take Quiz" };
   };
 
   const handleSuccess = async (aesScore, funcPassed, funcTotal, currentRog) => {
@@ -1290,11 +1307,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     if (!isLast && nextActivity) {
       if (meetsThreshold) {
+        const nextStep = resolveNextStepAfterLesson();
         setRewardConfig({
           isOpen: true,
           result: { ...baseResult, milestone: "lessonUnlocked" },
-          confirmText: "Next Lesson", cancelText: "Stay Here", secondaryText: "Next Activity",
-          onConfirmAction: () => { closeReward(); navigate(resolveNextLessonPath()); },
+          confirmText: nextStep.label, cancelText: "Stay Here", secondaryText: "Next Activity",
+          onConfirmAction: () => { closeReward(); navigate(nextStep.path); },
           onSecondaryAction: () => { closeReward(); navigate(`/activity/${moduleId}/${nextActivity.id}`); },
           onCancelAction: closeReward,
         });
