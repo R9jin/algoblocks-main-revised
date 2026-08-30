@@ -3,16 +3,38 @@
   "moduleId": "module-2",
   "title": "Simple Sorting",
   "description": "Bubble Sort and Selection Sort: how they rearrange data, why they're both O(n²), and where they still make sense.",
-  "difficulty": "Beginner",
+  "difficulty": "Intermediate",
   "estimatedTime": "28 min",
   "prerequisites": "Linear Search",
-  "tags": ["sorting", "bubble sort", "selection sort", "arrays", "quadratic complexity", "in-place algorithms"],
+  "tags": [
+    "sorting",
+    "bubble sort",
+    "selection sort",
+    "arrays",
+    "quadratic complexity",
+    "in-place algorithms"
+  ],
   "activities": [
-    { "id": "m2_l3_a1", "title": "Bubble Sort Ascending" },
-    { "id": "m2_l3_a2", "title": "Selection Sort Ascending" },
-    { "id": "m2_l3_a3", "title": "Bubble Sort Descending" },
-    { "id": "m2_l3_a4", "title": "Selection Sort Descending" },
-    { "id": "m2_l3_a5", "title": "Visual Sort Tracking" }
+    {
+      "id": "m2_l3_a1",
+      "title": "Bubble Sort Ascending"
+    },
+    {
+      "id": "m2_l3_a2",
+      "title": "Selection Sort Ascending"
+    },
+    {
+      "id": "m2_l3_a3",
+      "title": "Bubble Sort Descending"
+    },
+    {
+      "id": "m2_l3_a4",
+      "title": "Selection Sort Descending"
+    },
+    {
+      "id": "m2_l3_a5",
+      "title": "Visual Sort Tracking"
+    }
   ],
   "sections": [
     {
@@ -57,10 +79,26 @@
       "title": "Architectural Implementation in Python",
       "content": "The outer loop tracks the shrinking unsorted boundary; the inner loop does the scanning and comparing.\n\nBubble Sort's inner loop stops at `len(arr) - pass_index - 1` to skip already-sorted elements. Selection Sort's inner loop tracks an index (`min_idx`), not values, deferring the actual swap until the scan is done.\n\nFlipping `>` to `<` flips ascending to descending.",
       "codeSnippets": [
-        { "title": "Bubble Sort: Ascending Execution", "language": "python", "code": "def bubble_sort_asc(arr):\n    result = arr[:]\n    for pass_index in range(len(result)):\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] > result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n    return result" },
-        { "title": "Bubble Sort: Descending Execution", "language": "python", "code": "def bubble_sort_desc(arr):\n    result = arr[:]\n    for pass_index in range(len(result)):\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] < result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n    return result" },
-        { "title": "Selection Sort: Ascending Execution", "language": "python", "code": "def selection_sort_asc(arr):\n    result = arr[:]\n    for i in range(len(result)):\n        min_idx = i\n        for j in range(i + 1, len(result)):\n            if result[j] < result[min_idx]:\n                min_idx = j\n        result[i], result[min_idx] = result[min_idx], result[i]\n    return result" },
-        { "title": "Sort Execution Tracking: Single Pass Isolation", "language": "python", "code": "def single_pass(arr):\n    result = arr[:]\n    for i in range(len(result) - 1):\n        if result[i] > result[i + 1]:\n            result[i], result[i + 1] = result[i + 1], result[i]\n    return result" }
+        {
+          "title": "Bubble Sort: Ascending Execution",
+          "language": "python",
+          "code": "def bubble_sort_asc(arr):\n    result = arr[:]\n    for pass_index in range(len(result)):\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] > result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n    return result"
+        },
+        {
+          "title": "Bubble Sort: Descending Execution",
+          "language": "python",
+          "code": "def bubble_sort_desc(arr):\n    result = arr[:]\n    for pass_index in range(len(result)):\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] < result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n    return result"
+        },
+        {
+          "title": "Selection Sort: Ascending Execution",
+          "language": "python",
+          "code": "def selection_sort_asc(arr):\n    result = arr[:]\n    for i in range(len(result)):\n        min_idx = i\n        for j in range(i + 1, len(result)):\n            if result[j] < result[min_idx]:\n                min_idx = j\n        result[i], result[min_idx] = result[min_idx], result[i]\n    return result"
+        },
+        {
+          "title": "Sort Execution Tracking: Single Pass Isolation",
+          "language": "python",
+          "code": "def single_pass(arr):\n    result = arr[:]\n    for i in range(len(result) - 1):\n        if result[i] > result[i + 1]:\n            result[i], result[i + 1] = result[i + 1], result[i]\n    return result"
+        }
       ]
     },
     {
@@ -73,7 +111,11 @@
         "description": "The O(n²) curve shows how fast nested-loop sorting blows up as input grows.",
         "maxN": 32,
         "normalize": true,
-        "curves": ["O(n)", "O(n log n)", "O(n^2)"]
+        "curves": [
+          "O(n)",
+          "O(n log n)",
+          "O(n^2)"
+        ]
       }
     },
     {
@@ -87,8 +129,25 @@
       "type": "concept",
       "title": "Algorithm Evaluation Profile",
       "subsections": [
-        { "id": "advantages", "title": "Engineering Merits", "bullets": ["**In-Place:** O(1) auxiliary space.", "**Simple:** no recursion, no pivot selection.", "**Educational:** clean invariants, easy to trace.", "**Stable (Bubble Sort):** equal elements keep their original order."] },
-        { "id": "limitations", "title": "System Vulnerabilities", "bullets": ["**O(n²) scaling** falls apart past ~1,000 items.", "**Bubble Sort writes a lot** -- heavy swap overhead.", "**Not adaptive** -- doesn't notice data that's already mostly sorted."] }
+        {
+          "id": "advantages",
+          "title": "Engineering Merits",
+          "bullets": [
+            "**In-Place:** O(1) auxiliary space.",
+            "**Simple:** no recursion, no pivot selection.",
+            "**Educational:** clean invariants, easy to trace.",
+            "**Stable (Bubble Sort):** equal elements keep their original order."
+          ]
+        },
+        {
+          "id": "limitations",
+          "title": "System Vulnerabilities",
+          "bullets": [
+            "**O(n²) scaling** falls apart past ~1,000 items.",
+            "**Bubble Sort writes a lot** -- heavy swap overhead.",
+            "**Not adaptive** -- doesn't notice data that's already mostly sorted."
+          ]
+        }
       ]
     },
     {
@@ -102,10 +161,26 @@
       "type": "key_concept",
       "title": "Common Implementation Errors",
       "subsections": [
-        { "id": "one-pass", "title": "Vulnerability: Assuming Single Pass Resolution", "content": "One pass only locks in the extreme value at the boundary -- the rest of the array still needs more passes." },
-        { "id": "loop-boundaries", "title": "Vulnerability: Redundant Boundary Scanning", "content": "Skip the `- pass_index` shrink on the inner loop and you'll keep re-checking elements that are already sorted -- not wrong, just wasteful." },
-        { "id": "pointer-indirection", "title": "Vulnerability: Value Swapping vs. Pointer Indirection", "content": "Swapping during Selection Sort's scan itself turns it into a clumsy Bubble Sort. Track the index (`min_idx`), swap once, after the scan." },
-        { "id": "ignoring-complexity", "title": "Vulnerability: Disregarding Quadratic Reality", "content": "Looks instant at n=10. Extrapolating that to production data without checking the actual complexity is how you get a slow system." }
+        {
+          "id": "one-pass",
+          "title": "Vulnerability: Assuming Single Pass Resolution",
+          "content": "One pass only locks in the extreme value at the boundary -- the rest of the array still needs more passes."
+        },
+        {
+          "id": "loop-boundaries",
+          "title": "Vulnerability: Redundant Boundary Scanning",
+          "content": "Skip the `- pass_index` shrink on the inner loop and you'll keep re-checking elements that are already sorted -- not wrong, just wasteful."
+        },
+        {
+          "id": "pointer-indirection",
+          "title": "Vulnerability: Value Swapping vs. Pointer Indirection",
+          "content": "Swapping during Selection Sort's scan itself turns it into a clumsy Bubble Sort. Track the index (`min_idx`), swap once, after the scan."
+        },
+        {
+          "id": "ignoring-complexity",
+          "title": "Vulnerability: Disregarding Quadratic Reality",
+          "content": "Looks instant at n=10. Extrapolating that to production data without checking the actual complexity is how you get a slow system."
+        }
       ]
     },
     {
@@ -122,8 +197,17 @@
     }
   ],
   "references": [
-    { "title": "MIT OpenCourseWare - Introduction to Algorithms", "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/" },
-    { "title": "Programiz - Bubble Sort", "url": "https://www.programiz.com/dsa/bubble-sort" },
-    { "title": "GeeksforGeeks - Selection Sort", "url": "https://www.geeksforgeeks.org/selection-sort/" }
+    {
+      "title": "MIT OpenCourseWare - Introduction to Algorithms",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
+    },
+    {
+      "title": "Programiz - Bubble Sort",
+      "url": "https://www.programiz.com/dsa/bubble-sort"
+    },
+    {
+      "title": "GeeksforGeeks - Selection Sort",
+      "url": "https://www.geeksforgeeks.org/selection-sort/"
+    }
   ]
 }

@@ -3,16 +3,37 @@
   "moduleId": "module-2",
   "title": "Brute Force Strategy",
   "description": "How **brute force** solves problems by checking every possibility -- correct by construction, but expensive at scale.",
-  "difficulty": "Beginner",
+  "difficulty": "Intermediate",
   "estimatedTime": "24 min",
   "prerequisites": "Space Complexity",
-  "tags": ["brute force", "searching", "algorithm strategies", "exhaustive enumeration", "computational complexity"],
+  "tags": [
+    "brute force",
+    "searching",
+    "algorithm strategies",
+    "exhaustive enumeration",
+    "computational complexity"
+  ],
   "activities": [
-    { "id": "m2_l1_a1", "title": "Max Finder" },
-    { "id": "m2_l1_a2", "title": "Min Finder" },
-    { "id": "m2_l1_a3", "title": "Sum Search" },
-    { "id": "m2_l1_a4", "title": "Count Evens" },
-    { "id": "m2_l1_a5", "title": "First Negative Finder" }
+    {
+      "id": "m2_l1_a1",
+      "title": "Max Finder"
+    },
+    {
+      "id": "m2_l1_a2",
+      "title": "Min Finder"
+    },
+    {
+      "id": "m2_l1_a3",
+      "title": "Sum Search"
+    },
+    {
+      "id": "m2_l1_a4",
+      "title": "Count Evens"
+    },
+    {
+      "id": "m2_l1_a5",
+      "title": "First Negative Finder"
+    }
   ],
   "sections": [
     {
@@ -51,10 +72,26 @@
       "title": "Implementation Examples",
       "content": "Brute force leans on basic loops, tracking variables, and comparisons.\n\n**Extrema Tracking:** start a tracker at the first element, then compare each remaining element against it, updating when you find something bigger (or smaller). O(n).\n\n**Combinatorial Pairing:** an outer loop plus a nested inner loop checks every pair for a target sum. Since the inner loop runs fully for each outer step, that's O(n²).\n\n**Conditional Aggregation & Early Exit:** counting evens with a modulo check is a full O(n) pass; finding the *first* negative number can return the instant it's found, which helps average case while the worst case stays O(n).",
       "codeSnippets": [
-        { "title": "Find the maximum by checking every element", "language": "python", "code": "def find_max(arr):\n    if len(arr) == 0:\n        return 'Error'\n\n    max_value = arr[0]\n    for value in arr:\n        if value > max_value:\n            max_value = value\n\n    return max_value\n\nprint(find_max([32, 45, 28, 47, 39]))" },
-        { "title": "Find the minimum with one sequential pass", "language": "python", "code": "def find_min(arr):\n    if len(arr) == 0:\n        return 'Error'\n\n    min_value = arr[0]\n    for value in arr:\n        if value < min_value:\n            min_value = value\n\n    return min_value\n\nprint(find_min([3, 1, 9, 2]))" },
-        { "title": "Count even values through exhaustive checking", "language": "python", "code": "def count_evens(arr):\n    count = 0\n\n    for value in arr:\n        if value % 2 == 0:\n            count += 1\n\n    return count\n\nprint(count_evens([1, 2, 3, 4, 5, 6]))" },
-        { "title": "Check every pair for a target sum", "language": "python", "code": "def has_pair_sum(arr, target):\n    for i in range(len(arr)):\n        for j in range(i + 1, len(arr)):\n            if arr[i] + arr[j] == target:\n                return True\n\n    return False\n\nprint(has_pair_sum([2, 4, 7, 11], 13))" }
+        {
+          "title": "Find the maximum by checking every element",
+          "language": "python",
+          "code": "def find_max(arr):\n    if len(arr) == 0:\n        return 'Error'\n\n    max_value = arr[0]\n    for value in arr:\n        if value > max_value:\n            max_value = value\n\n    return max_value\n\nprint(find_max([32, 45, 28, 47, 39]))"
+        },
+        {
+          "title": "Find the minimum with one sequential pass",
+          "language": "python",
+          "code": "def find_min(arr):\n    if len(arr) == 0:\n        return 'Error'\n\n    min_value = arr[0]\n    for value in arr:\n        if value < min_value:\n            min_value = value\n\n    return min_value\n\nprint(find_min([3, 1, 9, 2]))"
+        },
+        {
+          "title": "Count even values through exhaustive checking",
+          "language": "python",
+          "code": "def count_evens(arr):\n    count = 0\n\n    for value in arr:\n        if value % 2 == 0:\n            count += 1\n\n    return count\n\nprint(count_evens([1, 2, 3, 4, 5, 6]))"
+        },
+        {
+          "title": "Check every pair for a target sum",
+          "language": "python",
+          "code": "def has_pair_sum(arr, target):\n    for i in range(len(arr)):\n        for j in range(i + 1, len(arr)):\n            if arr[i] + arr[j] == target:\n                return True\n\n    return False\n\nprint(has_pair_sum([2, 4, 7, 11], 13))"
+        }
       ]
     },
     {
@@ -67,7 +104,11 @@
         "description": "Brute force often starts linear, but combinations and nested checks push it toward quadratic or exponential.",
         "maxN": 20,
         "normalize": true,
-        "curves": ["O(n)", "O(n^2)", "O(2^n)"]
+        "curves": [
+          "O(n)",
+          "O(n^2)",
+          "O(2^n)"
+        ]
       }
     },
     {
@@ -93,8 +134,26 @@
       "type": "concept",
       "title": "Advantages and Limitations",
       "subsections": [
-        { "id": "advantages", "title": "Advantages", "bullets": ["**Easy to understand and implement**.", "A solid **correctness baseline**.", "**Reliable** on small search spaces.", "Great for **debugging and testing** faster solutions."] },
-        { "id": "limitations", "title": "Limitations", "bullets": ["Does **unnecessary work**.", "**Scales poorly** as candidates grow.", "Can burn **excessive time or memory**.", "Often **impractical** for large or real-time systems."] }
+        {
+          "id": "advantages",
+          "title": "Advantages",
+          "bullets": [
+            "**Easy to understand and implement**.",
+            "A solid **correctness baseline**.",
+            "**Reliable** on small search spaces.",
+            "Great for **debugging and testing** faster solutions."
+          ]
+        },
+        {
+          "id": "limitations",
+          "title": "Limitations",
+          "bullets": [
+            "Does **unnecessary work**.",
+            "**Scales poorly** as candidates grow.",
+            "Can burn **excessive time or memory**.",
+            "Often **impractical** for large or real-time systems."
+          ]
+        }
       ]
     },
     {
@@ -108,9 +167,21 @@
       "type": "key_concept",
       "title": "Common Beginner Misconceptions",
       "subsections": [
-        { "id": "always-bad", "title": "Misconception: Brute force is always bad", "content": "For under ~100 elements, a fancy balanced tree or hash map often costs more overhead than it saves. Brute force can genuinely be the *faster* choice at small scale -- the problem only shows up as the search space grows." },
-        { "id": "always-linear", "title": "Misconception: Brute force is always O(n)", "content": "Brute force describes a *method* (check everything), not a fixed complexity. Depending on what's enumerated, it can land at O(n²), O(n³), or even O(n!)." },
-        { "id": "random-guessing", "title": "Misconception: Brute force means random guessing", "content": "It's the opposite -- **strictly deterministic and systematic**, methodically covering every candidate with no repeats and no skips. Random guessing can miss things; brute force can't." }
+        {
+          "id": "always-bad",
+          "title": "Misconception: Brute force is always bad",
+          "content": "For under ~100 elements, a fancy balanced tree or hash map often costs more overhead than it saves. Brute force can genuinely be the *faster* choice at small scale -- the problem only shows up as the search space grows."
+        },
+        {
+          "id": "always-linear",
+          "title": "Misconception: Brute force is always O(n)",
+          "content": "Brute force describes a *method* (check everything), not a fixed complexity. Depending on what's enumerated, it can land at O(n²), O(n³), or even O(n!)."
+        },
+        {
+          "id": "random-guessing",
+          "title": "Misconception: Brute force means random guessing",
+          "content": "It's the opposite -- **strictly deterministic and systematic**, methodically covering every candidate with no repeats and no skips. Random guessing can miss things; brute force can't."
+        }
       ]
     },
     {
@@ -127,8 +198,17 @@
     }
   ],
   "references": [
-    { "title": "GeeksforGeeks - Brute Force Algorithm", "url": "https://www.geeksforgeeks.org/introduction-to-brute-force-algorithm/" },
-    { "title": "Programiz - Searching Algorithms", "url": "https://www.programiz.com/dsa/searching-algorithms" },
-    { "title": "MIT OpenCourseWare - Introduction to Algorithms", "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/" }
+    {
+      "title": "GeeksforGeeks - Brute Force Algorithm",
+      "url": "https://www.geeksforgeeks.org/introduction-to-brute-force-algorithm/"
+    },
+    {
+      "title": "Programiz - Searching Algorithms",
+      "url": "https://www.programiz.com/dsa/searching-algorithms"
+    },
+    {
+      "title": "MIT OpenCourseWare - Introduction to Algorithms",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
+    }
   ]
 }

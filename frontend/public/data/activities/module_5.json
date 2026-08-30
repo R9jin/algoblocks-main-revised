@@ -3,7 +3,7 @@
     {
       "id": "m5_l1_a1",
       "title": "State Initialization (Array Caching)",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "Dynamic Programming achieves optimality by preserving the results of computationally expensive evaluations.",
         "We will construct an initial state cache to warehouse sequential mathematical outputs.",
@@ -38,7 +38,7 @@
     {
       "id": "m5_l1_a2",
       "title": "Cache Evaluation (Lookup Logic)",
-      "difficulty": "Easy",
+      "difficulty": "Advanced",
       "task": [
         "Prior to executing a complex calculation, an algorithm must verify if the specific state parameters have been previously resolved and stored.",
         "",
@@ -72,7 +72,7 @@
     {
       "id": "m5_l1_a3",
       "title": "Top-Down Execution (Memoization)",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "Memoization integrates cache evaluation directly into the recursive hierarchy. When a base parameter is requested, the structure is scanned to avert redundant mathematical derivations.",
         "",
@@ -107,7 +107,7 @@
     {
       "id": "m5_l1_a4",
       "title": "Bottom-Up Execution (Tabulation)",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "Tabulation discards recursion entirely, relying on iterative logic to sequentially construct the mathematical states from the base foundation upward.",
         "",
@@ -147,7 +147,7 @@
     {
       "id": "m5_l1_a5",
       "title": "Execution Profiling (Call Stack Count)",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "To empirically demonstrate the mathematical impact of overlapping subproblems, we will configure a secondary variable to log the quantity of functional invocations.",
         "",
@@ -184,7 +184,7 @@
     {
       "id": "m5_l2_a1",
       "title": "Recurrence Evaluation: Naive Fibonacci",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "The Fibonacci sequence defines an element as the arithmetic sum of the two preceding derivations.",
         "Implementing this recursively yields an overlapping exponential architecture with an O(2ⁿ) execution bound.",
@@ -223,7 +223,7 @@
     {
       "id": "m5_l2_a2",
       "title": "Dictionary Caching: Memoized Fibonacci",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "Dictionaries (Hash Maps) afford highly optimized O(1) index evaluations, rendering them optimal data structures for recursion caches.",
         "",
@@ -258,7 +258,7 @@
     {
       "id": "m5_l2_a3",
       "title": "Iterative Alignment: Tabulated Fibonacci",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "Inverting the execution trajectory to sequentially evaluate from the foundation up completely circumvents the Call Stack, averting Overflow anomalies.",
         "",
@@ -300,7 +300,7 @@
     {
       "id": "m5_l2_a4",
       "title": "Memory Contraction: Space-Optimized Fibonacci",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "The Fibonacci sequence only necessitates the two immediate preceding indices to accurately compute the next integer.",
         "Consequently, allocating an entire O(n) array is algorithmically extravagant.",
@@ -342,7 +342,7 @@
     {
       "id": "m5_l2_a5",
       "title": "Sequence Matrix Accumulation",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "Dynamic Programming implementations often require the algorithm to supply the full mathematical trajectory rather than just the final computation.",
         "",
@@ -379,7 +379,7 @@
     {
       "id": "m5_l3_a1",
       "title": "2D Allocation (Knapsack Grid Init)",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "Constrained evaluation parameters necessitate multi-variable tracking.",
         "To manage discrete combinations in the Knapsack problem, the algorithm must provision a 2D Memory matrix.",
@@ -414,7 +414,7 @@
     {
       "id": "m5_l3_a2",
       "title": "Discrete Logic (Include/Exclude Choice)",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "The algorithmic determination of a 0/1 optimization sequence depends on evaluating the maximum differential between accepting or declining an element.",
         "",
@@ -448,7 +448,7 @@
     {
       "id": "m5_l3_a3",
       "title": "Recurrence Tabulation (Knapsack Matrix)",
-      "difficulty": "Hard",
+      "difficulty": "Advanced",
       "task": [
         "Integrating the discrete choice logic into a full iterative grid ensures all overlapping subproblems resolve systematically.",
         "",
@@ -484,7 +484,7 @@
     {
       "id": "m5_l3_a4",
       "title": "State Traceback Matrix",
-      "difficulty": "Hard",
+      "difficulty": "Advanced",
       "task": [
         "Extracting the maximum integer is trivial. Formulating exactly which elements combined to create that output requires algorithmically backtracking through the matrix logic.",
         "",
@@ -511,7 +511,7 @@
     {
       "id": "m5_l3_a5",
       "title": "Spatial Compression (1D Capacity Tracker)",
-      "difficulty": "Hard",
+      "difficulty": "Advanced",
       "task": [
         "A rigid 2D grid matrix provisions excessive space mapping historical rows. Reusing a single continuous dimension reduces the O(n * W) overhead significantly.",
         "",
@@ -549,7 +549,7 @@
     {
       "id": "m5_l4_a1",
       "title": "Dual-Axis Mapping (LCS Grid Init)",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "Determining the longest common subsequence necessitates comparing positional evaluations across two distinct structures.",
         "The algorithmic solution mandates initializing a matrix extending precisely one structural unit beyond the constraints of both datasets.",
@@ -585,7 +585,7 @@
     {
       "id": "m5_l4_a2",
       "title": "Subsequence Alignment Logic",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "In instances where characters align across independent streams, the recurrence sequence necessitates calculating the upper-left diagonal.",
         "",
@@ -619,7 +619,7 @@
     {
       "id": "m5_l4_a3",
       "title": "Tabulation Execution (Full LCS Table)",
-      "difficulty": "Hard",
+      "difficulty": "Advanced",
       "task": [
         "Applying the logic across a complete 2D matrix synthesizes the overlapping subproblem computations into an optimized polynomial sequence.",
         "",
@@ -660,7 +660,7 @@
     {
       "id": "m5_l4_a4",
       "title": "Backtracking Sequence Generation",
-      "difficulty": "Hard",
+      "difficulty": "Advanced",
       "task": [
         "Ascertaining the numerical length solves half the algorithmic requirement. Determining the exact structural strings requires traversing the matrix utilizing spatial backtracking.",
         "",
@@ -686,7 +686,7 @@
     {
       "id": "m5_l4_a5",
       "title": "Spatial Compression (1D LCS Tracker)",
-      "difficulty": "Hard",
+      "difficulty": "Advanced",
       "task": [
         "A rigid 2D grid matrix for the Longest Common Subsequence allocates O(n * m) space to map all historical derivations.",
         "Because calculating the current row strictly requires data from the immediate previous row, the memory footprint can be mathematically compressed into a 1D array.",
@@ -731,7 +731,7 @@
     {
       "id": "m5_opt_1",
       "title": "Optimization Challenge: Recursive to Tabulated Fibonacci",
-      "difficulty": "Medium",
+      "difficulty": "Advanced",
       "task": [
         "A recursive approach recalculates identical branches, resulting in an O(2ⁿ) time complexity. We can improve this to O(n) by using tabulation to store previous results.",
         "",
@@ -773,7 +773,7 @@
     {
       "id": "m5_opt_2",
       "title": "Optimization Challenge: Exponential Knapsack Compression",
-      "difficulty": "Hard",
+      "difficulty": "Advanced",
       "task": [
         "Testing every possible combination for the knapsack problem requires O(2ⁿ) time. Dynamic programming structures this into a 2D matrix, resolving it in O(n * capacity) time.",
         "",

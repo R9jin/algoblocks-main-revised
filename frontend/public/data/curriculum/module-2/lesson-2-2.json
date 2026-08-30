@@ -3,16 +3,37 @@
   "moduleId": "module-2",
   "title": "Linear Search",
   "description": "The most basic search there is: scan sequentially, compare each item, stop when you find it -- a predictable **O(n)**.",
-  "difficulty": "Beginner",
+  "difficulty": "Intermediate",
   "estimatedTime": "24 min",
   "prerequisites": "Brute Force Strategy",
-  "tags": ["linear search", "searching", "arrays", "sequential traversal", "pointers"],
+  "tags": [
+    "linear search",
+    "searching",
+    "arrays",
+    "sequential traversal",
+    "pointers"
+  ],
   "activities": [
-    { "id": "m2_l2_a1", "title": "Target Search" },
-    { "id": "m2_l2_a2", "title": "Count Occurrences" },
-    { "id": "m2_l2_a3", "title": "Last Occurrence" },
-    { "id": "m2_l2_a4", "title": "Search in Range" },
-    { "id": "m2_l2_a5", "title": "Multi-Target Search" }
+    {
+      "id": "m2_l2_a1",
+      "title": "Target Search"
+    },
+    {
+      "id": "m2_l2_a2",
+      "title": "Count Occurrences"
+    },
+    {
+      "id": "m2_l2_a3",
+      "title": "Last Occurrence"
+    },
+    {
+      "id": "m2_l2_a4",
+      "title": "Search in Range"
+    },
+    {
+      "id": "m2_l2_a5",
+      "title": "Multi-Target Search"
+    }
   ],
   "sections": [
     {
@@ -57,10 +78,26 @@
       "title": "Code Implementations and Execution Flow",
       "content": "A search function needs to return correctly on both success and failure -- exit early on a match, fall back to a not-found value once the loop completes.",
       "codeSnippets": [
-        { "title": "Standard Linear Identifier (Early Exit)", "language": "python", "code": "def linear_search(arr, target):\n    for i in range(len(arr)):\n        if arr[i] == target:\n            return i\n\n    return -1\n\nprint(linear_search([3, 8, 5, 11, 2], 11))\nprint(linear_search([3, 8, 5, 11, 2], 10))" },
-        { "title": "Count all matches instead of stopping early", "language": "python", "code": "def count_occurrences(arr, target):\n    count = 0\n\n    for value in arr:\n        if value == target:\n            count += 1\n\n    return count\n\nprint(count_occurrences([1, 2, 2, 3], 2))" },
-        { "title": "Reverse Traversal (Terminal Occurrence Extraction)", "language": "python", "code": "def last_occurrence(arr, target):\n    for i in range(len(arr) - 1, -1, -1):\n        if arr[i] == target:\n            return i\n    return -1\n\nprint(last_occurrence([1, 2, 2, 3, 2, 4], 2))" },
-        { "title": "Bounded Range Traversal with Sanitization", "language": "python", "code": "def search_in_range(arr, target, start, end):\n    start = max(0, start)\n    end = min(len(arr) - 1, end)\n    for i in range(start, end + 1):\n        if arr[i] == target:\n            return i\n    return -1" }
+        {
+          "title": "Standard Linear Identifier (Early Exit)",
+          "language": "python",
+          "code": "def linear_search(arr, target):\n    for i in range(len(arr)):\n        if arr[i] == target:\n            return i\n\n    return -1\n\nprint(linear_search([3, 8, 5, 11, 2], 11))\nprint(linear_search([3, 8, 5, 11, 2], 10))"
+        },
+        {
+          "title": "Count all matches instead of stopping early",
+          "language": "python",
+          "code": "def count_occurrences(arr, target):\n    count = 0\n\n    for value in arr:\n        if value == target:\n            count += 1\n\n    return count\n\nprint(count_occurrences([1, 2, 2, 3], 2))"
+        },
+        {
+          "title": "Reverse Traversal (Terminal Occurrence Extraction)",
+          "language": "python",
+          "code": "def last_occurrence(arr, target):\n    for i in range(len(arr) - 1, -1, -1):\n        if arr[i] == target:\n            return i\n    return -1\n\nprint(last_occurrence([1, 2, 2, 3, 2, 4], 2))"
+        },
+        {
+          "title": "Bounded Range Traversal with Sanitization",
+          "language": "python",
+          "code": "def search_in_range(arr, target, start, end):\n    start = max(0, start)\n    end = min(len(arr) - 1, end)\n    for i in range(start, end + 1):\n        if arr[i] == target:\n            return i\n    return -1"
+        }
       ]
     },
     {
@@ -73,7 +110,11 @@
         "description": "Linear Search scales proportionally with input size -- shown here against constant and logarithmic growth for contrast.",
         "maxN": 32,
         "normalize": true,
-        "curves": ["O(1)", "O(log n)", "O(n)"]
+        "curves": [
+          "O(1)",
+          "O(log n)",
+          "O(n)"
+        ]
       }
     },
     {
@@ -81,8 +122,16 @@
       "type": "concept",
       "title": "Best Case vs Worst Case",
       "subsections": [
-        { "id": "best-case", "title": "The Omega Bound (Ω): Best Case", "content": "**Ω(1)** -- the target is the very first element. Searching for 8 in [8, 3, 5, 1] takes one comparison." },
-        { "id": "worst-case", "title": "The Big-O Bound (O): Worst Case", "content": "Target at the end or missing entirely. Searching for 10 in [3, 8, 5, 11, 2] checks every element before returning -1 -- n comparisons for n elements." }
+        {
+          "id": "best-case",
+          "title": "The Omega Bound (Ω): Best Case",
+          "content": "**Ω(1)** -- the target is the very first element. Searching for 8 in [8, 3, 5, 1] takes one comparison."
+        },
+        {
+          "id": "worst-case",
+          "title": "The Big-O Bound (O): Worst Case",
+          "content": "Target at the end or missing entirely. Searching for 10 in [3, 8, 5, 11, 2] checks every element before returning -1 -- n comparisons for n elements."
+        }
       ]
     },
     {
@@ -96,8 +145,26 @@
       "type": "concept",
       "title": "Advantages and Limitations",
       "subsections": [
-        { "id": "advantages", "title": "Advantages", "bullets": ["**No sorting** required.", "**Beginner-friendly**, works on any list.", "**O(1) auxiliary space**, in-place.", "Great for **small datasets or one-off queries**."] },
-        { "id": "limitations", "title": "Limitations", "bullets": ["**Slow** on large datasets.", "**Repeated searches** get expensive fast.", "No use of **ordering or indexing**.", "**Optimized searches** win once data is structured."] }
+        {
+          "id": "advantages",
+          "title": "Advantages",
+          "bullets": [
+            "**No sorting** required.",
+            "**Beginner-friendly**, works on any list.",
+            "**O(1) auxiliary space**, in-place.",
+            "Great for **small datasets or one-off queries**."
+          ]
+        },
+        {
+          "id": "limitations",
+          "title": "Limitations",
+          "bullets": [
+            "**Slow** on large datasets.",
+            "**Repeated searches** get expensive fast.",
+            "No use of **ordering or indexing**.",
+            "**Optimized searches** win once data is structured."
+          ]
+        }
       ]
     },
     {
@@ -111,9 +178,21 @@
       "type": "key_concept",
       "title": "Common Beginner Mistakes",
       "subsections": [
-        { "id": "forgetting-stop", "title": "Mistake: Forgetting to stop after a match", "content": "Once you need the *first* match, return immediately -- continuing to scan wastes work and can return the wrong index." },
-        { "id": "wrong-return", "title": "Mistake: Returning the element instead of the index", "content": "A common slip: returning `arr[i]` instead of `i`. Check whether the task wants the index, the value, or a boolean." },
-        { "id": "missing-not-found", "title": "Mistake: Ignoring the not-found case", "content": "Always define what happens when nothing matches. `-1` is the standard sentinel, since real indices are never negative." }
+        {
+          "id": "forgetting-stop",
+          "title": "Mistake: Forgetting to stop after a match",
+          "content": "Once you need the *first* match, return immediately -- continuing to scan wastes work and can return the wrong index."
+        },
+        {
+          "id": "wrong-return",
+          "title": "Mistake: Returning the element instead of the index",
+          "content": "A common slip: returning `arr[i]` instead of `i`. Check whether the task wants the index, the value, or a boolean."
+        },
+        {
+          "id": "missing-not-found",
+          "title": "Mistake: Ignoring the not-found case",
+          "content": "Always define what happens when nothing matches. `-1` is the standard sentinel, since real indices are never negative."
+        }
       ]
     },
     {
@@ -130,8 +209,17 @@
     }
   ],
   "references": [
-    { "title": "Programiz - Linear Search", "url": "https://www.programiz.com/dsa/linear-search" },
-    { "title": "GeeksforGeeks - Linear Search", "url": "https://www.geeksforgeeks.org/linear-search/" },
-    { "title": "Stanford University - Data Structures and Algorithms", "url": "https://web.stanford.edu/class/cs106b/" }
+    {
+      "title": "Programiz - Linear Search",
+      "url": "https://www.programiz.com/dsa/linear-search"
+    },
+    {
+      "title": "GeeksforGeeks - Linear Search",
+      "url": "https://www.geeksforgeeks.org/linear-search/"
+    },
+    {
+      "title": "Stanford University - Data Structures and Algorithms",
+      "url": "https://web.stanford.edu/class/cs106b/"
+    }
   ]
 }

@@ -630,13 +630,13 @@
   padding: 2px 7px;
   border-radius: 4px;
 }
-.act-difficulty.easy { color: var(--green-success); background: rgba(16, 185, 129, 0.1); }
-.act-difficulty.medium { color: var(--orange-warn); background: rgba(245, 158, 11, 0.1); }
-.act-difficulty.hard, .act-difficulty.advanced { color: #EF4444; background: rgba(239, 68, 68, 0.1); }
+.act-difficulty.beginner { color: var(--green-success); background: rgba(16, 185, 129, 0.1); }
+.act-difficulty.intermediate { color: var(--orange-warn); background: rgba(245, 158, 11, 0.1); }
+.act-difficulty.advanced { color: #EF4444; background: rgba(239, 68, 68, 0.1); }
 
-.activity-row.diff-easy { border-left: 3px solid rgba(16, 185, 129, 0.45); }
-.activity-row.diff-medium { border-left: 3px solid rgba(245, 158, 11, 0.45); }
-.activity-row.diff-hard, .activity-row.diff-advanced { border-left: 3px solid rgba(239, 68, 68, 0.45); }
+.activity-row.diff-beginner { border-left: 3px solid rgba(16, 185, 129, 0.45); }
+.activity-row.diff-intermediate { border-left: 3px solid rgba(245, 158, 11, 0.45); }
+.activity-row.diff-advanced { border-left: 3px solid rgba(239, 68, 68, 0.45); }
 .activity-row.locked-row { border-left-color: var(--border-light) !important; }
 
 .act-right {

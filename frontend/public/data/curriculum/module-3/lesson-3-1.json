@@ -6,13 +6,35 @@
   "difficulty": "Intermediate",
   "estimatedTime": "30 min",
   "prerequisites": "Brute Force Strategy",
-  "tags": ["divide and conquer", "recursion", "algorithm strategies", "call stack", "state aggregation", "subproblem decomposition"],
+  "tags": [
+    "divide and conquer",
+    "recursion",
+    "algorithm strategies",
+    "call stack",
+    "state aggregation",
+    "subproblem decomposition"
+  ],
   "activities": [
-    { "id": "m3_l1_a1", "title": "Recursive Base Case Formulation" },
-    { "id": "m3_l1_a2", "title": "Subproblem Decomposition" },
-    { "id": "m3_l1_a3", "title": "Stack State Multiplication" },
-    { "id": "m3_l1_a4", "title": "Two-Branch Recursion" },
-    { "id": "m3_l1_a5", "title": "O(n) Call Stack Memory Trace" }
+    {
+      "id": "m3_l1_a1",
+      "title": "Recursive Base Case Formulation"
+    },
+    {
+      "id": "m3_l1_a2",
+      "title": "Subproblem Decomposition"
+    },
+    {
+      "id": "m3_l1_a3",
+      "title": "Stack State Multiplication"
+    },
+    {
+      "id": "m3_l1_a4",
+      "title": "Two-Branch Recursion"
+    },
+    {
+      "id": "m3_l1_a5",
+      "title": "O(n) Call Stack Memory Trace"
+    }
   ],
   "sections": [
     {
@@ -39,9 +61,21 @@
       "title": "The Three Phases of Divide and Conquer",
       "content": "Every Divide and Conquer algorithm follows the same three repeating phases:",
       "subsections": [
-        { "id": "step-1-divide", "title": "1. Divide (Decomposition)", "content": "Split the problem into smaller subproblems of the *same* structure, just smaller scale. For arrays, that's usually a midpoint index (`len(arr) // 2`) and a slice." },
-        { "id": "step-2-conquer", "title": "2. Conquer (Recursive Invocation)", "content": "Solve each subproblem by calling the same function again, until you hit a **Base Case** -- a problem so small it needs no further work (e.g. a one-element array is already sorted)." },
-        { "id": "step-3-combine", "title": "3. Combine (State Aggregation)", "content": "As the recursive calls unwind, merge their results back together -- adding, multiplying, or appending, until the whole answer is reassembled." }
+        {
+          "id": "step-1-divide",
+          "title": "1. Divide (Decomposition)",
+          "content": "Split the problem into smaller subproblems of the *same* structure, just smaller scale. For arrays, that's usually a midpoint index (`len(arr) // 2`) and a slice."
+        },
+        {
+          "id": "step-2-conquer",
+          "title": "2. Conquer (Recursive Invocation)",
+          "content": "Solve each subproblem by calling the same function again, until you hit a **Base Case** -- a problem so small it needs no further work (e.g. a one-element array is already sorted)."
+        },
+        {
+          "id": "step-3-combine",
+          "title": "3. Combine (State Aggregation)",
+          "content": "As the recursive calls unwind, merge their results back together -- adding, multiplying, or appending, until the whole answer is reassembled."
+        }
       ]
     },
     {
@@ -62,8 +96,16 @@
       "title": "Python Implementation of Recursive Decomposition",
       "content": "Every recursive function needs a clear base case, separate from the recursive case -- the base case is what stops the stack from growing forever.",
       "codeSnippets": [
-        { "title": "Stack State Multiplication (Factorial Aggregation)", "language": "python", "code": "def recursive_factorial(n):\n    # 1. Base Case: Intercept the absolute minimum threshold\n    if n <= 1:\n        return 1\n    \n    # 2. Conquer & Combine: The multiplication is deferred until the child frame returns\n    return n * recursive_factorial(n - 1)\n\nprint(recursive_factorial(5)) # Output: 120" },
-        { "title": "Divide & Conquer Array Summation via Bisection", "language": "python", "code": "def recursive_sum(arr):\n    # Base Case: Array is fully depleted\n    if len(arr) == 0:\n        return 0\n    \n    # Base Case: Array is isolated to an atomic unit\n    if len(arr) == 1:\n        return arr[0]\n        \n    # Divide: Geometrically bisect the array using floor division and slicing\n    mid = len(arr) // 2\n    left_half = arr[:mid]\n    right_half = arr[mid:]\n    \n    # Conquer & Combine: Sum both independent halves recursively\n    return recursive_sum(left_half) + recursive_sum(right_half)\n\nprint(recursive_sum([10, 20, 30, 40])) # Output: 100" }
+        {
+          "title": "Stack State Multiplication (Factorial Aggregation)",
+          "language": "python",
+          "code": "def recursive_factorial(n):\n    # 1. Base Case: Intercept the absolute minimum threshold\n    if n <= 1:\n        return 1\n    \n    # 2. Conquer & Combine: The multiplication is deferred until the child frame returns\n    return n * recursive_factorial(n - 1)\n\nprint(recursive_factorial(5)) # Output: 120"
+        },
+        {
+          "title": "Divide & Conquer Array Summation via Bisection",
+          "language": "python",
+          "code": "def recursive_sum(arr):\n    # Base Case: Array is fully depleted\n    if len(arr) == 0:\n        return 0\n    \n    # Base Case: Array is isolated to an atomic unit\n    if len(arr) == 1:\n        return arr[0]\n        \n    # Divide: Geometrically bisect the array using floor division and slicing\n    mid = len(arr) // 2\n    left_half = arr[:mid]\n    right_half = arr[mid:]\n    \n    # Conquer & Combine: Sum both independent halves recursively\n    return recursive_sum(left_half) + recursive_sum(right_half)\n\nprint(recursive_sum([10, 20, 30, 40])) # Output: 100"
+        }
       ]
     },
     {
@@ -76,7 +118,11 @@
         "description": "Dividing the problem space each step flattens the growth curve dramatically as data scales.",
         "maxN": 64,
         "normalize": true,
-        "curves": ["O(log n)", "O(n)", "O(n log n)"]
+        "curves": [
+          "O(log n)",
+          "O(n)",
+          "O(n log n)"
+        ]
       }
     },
     {
@@ -108,8 +154,26 @@
       "type": "concept",
       "title": "Architectural Considerations",
       "subsections": [
-        { "id": "advantages", "title": "Engineering Advantages", "bullets": ["**Major performance wins** on large datasets.", "Simplifies **tree/branching structures**.", "State tracking handled by the **Call Stack**.", "Naturally suited to **parallel processing** -- independent branches, independent cores."] },
-        { "id": "limitations", "title": "Scalability Limitations", "bullets": ["Uses real **stack memory** -- deep recursion risks limits.", "Missing base case = guaranteed **Stack Overflow**.", "Harder to **trace and debug** without visual tools.", "Overhead from frame creation makes it **slower than loops on tiny inputs**."] }
+        {
+          "id": "advantages",
+          "title": "Engineering Advantages",
+          "bullets": [
+            "**Major performance wins** on large datasets.",
+            "Simplifies **tree/branching structures**.",
+            "State tracking handled by the **Call Stack**.",
+            "Naturally suited to **parallel processing** -- independent branches, independent cores."
+          ]
+        },
+        {
+          "id": "limitations",
+          "title": "Scalability Limitations",
+          "bullets": [
+            "Uses real **stack memory** -- deep recursion risks limits.",
+            "Missing base case = guaranteed **Stack Overflow**.",
+            "Harder to **trace and debug** without visual tools.",
+            "Overhead from frame creation makes it **slower than loops on tiny inputs**."
+          ]
+        }
       ]
     },
     {
@@ -117,9 +181,21 @@
       "type": "key_concept",
       "title": "Common Implementation Vulnerabilities",
       "subsections": [
-        { "id": "magic-puzzle", "title": "Vulnerability: Treating Recursion as a Black Box", "content": "Recursion isn't magic -- it's a mechanical sequence of pushes and pops in real memory. If you can't trace the stack state, you can't debug the logic." },
-        { "id": "forgetting-base-case", "title": "Vulnerability: The Infinite Stack Trap", "content": "Missing a base case is the most common fatal error -- the stack grows unchecked until memory runs out and the program crashes." },
-        { "id": "confusing-dc-and-dp", "title": "Vulnerability: Conflating Divide & Conquer with Dynamic Programming", "content": "Divide and Conquer assumes subproblems are independent. Recompute the *same* subproblem repeatedly (like naive Fibonacci) and you get O(2^n) blowup -- that calls for caching (Dynamic Programming), not plain recursion." }
+        {
+          "id": "magic-puzzle",
+          "title": "Vulnerability: Treating Recursion as a Black Box",
+          "content": "Recursion isn't magic -- it's a mechanical sequence of pushes and pops in real memory. If you can't trace the stack state, you can't debug the logic."
+        },
+        {
+          "id": "forgetting-base-case",
+          "title": "Vulnerability: The Infinite Stack Trap",
+          "content": "Missing a base case is the most common fatal error -- the stack grows unchecked until memory runs out and the program crashes."
+        },
+        {
+          "id": "confusing-dc-and-dp",
+          "title": "Vulnerability: Conflating Divide & Conquer with Dynamic Programming",
+          "content": "Divide and Conquer assumes subproblems are independent. Recompute the *same* subproblem repeatedly (like naive Fibonacci) and you get O(2^n) blowup -- that calls for caching (Dynamic Programming), not plain recursion."
+        }
       ]
     },
     {
@@ -137,8 +213,17 @@
     }
   ],
   "references": [
-    { "title": "MIT OpenCourseWare - Introduction to Algorithms", "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/" },
-    { "title": "Programiz - Divide and Conquer Algorithm", "url": "https://www.programiz.com/dsa/divide-and-conquer" },
-    { "title": "GeeksforGeeks - Introduction to Divide and Conquer", "url": "https://www.geeksforgeeks.org/introduction-to-divide-and-conquer-algorithm/" }
+    {
+      "title": "MIT OpenCourseWare - Introduction to Algorithms",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
+    },
+    {
+      "title": "Programiz - Divide and Conquer Algorithm",
+      "url": "https://www.programiz.com/dsa/divide-and-conquer"
+    },
+    {
+      "title": "GeeksforGeeks - Introduction to Divide and Conquer",
+      "url": "https://www.geeksforgeeks.org/introduction-to-divide-and-conquer-algorithm/"
+    }
   ]
 }

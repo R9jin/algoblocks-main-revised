@@ -15,11 +15,26 @@
     "space complexity"
   ],
   "activities": [
-    { "id": "m1_l1_a1", "title": "Creating Your First List" },
-    { "id": "m1_l1_a2", "title": "Finding the List Length" },
-    { "id": "m1_l1_a3", "title": "Getting the First Item" },
-    { "id": "m1_l1_a4", "title": "Changing Items in a List" },
-    { "id": "m1_l1_a5", "title": "Adding Items to the End" }
+    {
+      "id": "m1_l1_a1",
+      "title": "Creating Your First List"
+    },
+    {
+      "id": "m1_l1_a2",
+      "title": "Finding the List Length"
+    },
+    {
+      "id": "m1_l1_a3",
+      "title": "Getting the First Item"
+    },
+    {
+      "id": "m1_l1_a4",
+      "title": "Changing Items in a List"
+    },
+    {
+      "id": "m1_l1_a5",
+      "title": "Adding Items to the End"
+    }
   ],
   "sections": [
     {
@@ -128,49 +143,113 @@
           "id": "o-1",
           "title": "O(1) Constant Time",
           "content": "**Description:** Same runtime no matter the input size -- as scalable as it gets.\n\n**Example:** Array index access, checking `len()`, pushing to a stack.\n\n**Loop:** None, or a loop with a fixed number of iterations.",
-          "chart": { "title": "O(1) Constant Time Growth", "description": "Flat, regardless of input size.", "maxN": 20, "normalize": true, "curves": ["O(1)"] }
+          "chart": {
+            "title": "O(1) Constant Time Growth",
+            "description": "Flat, regardless of input size.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(1)"
+            ]
+          }
         },
         {
           "id": "o-log-n",
           "title": "O(log n) Logarithmic Time",
           "content": "**Description:** Cuts the problem down by a fraction (usually half) each step -- doubling n only adds one extra step.\n\n**Example:** Binary Search, lookups in a balanced BST.\n\n**Loop:** Tracking variable is multiplied, divided, or bit-shifted each pass (`i *= 2`, `n //= 2`).",
-          "chart": { "title": "O(log n) Logarithmic Time Growth", "description": "Rises slowly -- highly efficient at scale.", "maxN": 20, "normalize": true, "curves": ["O(log n)"] }
+          "chart": {
+            "title": "O(log n) Logarithmic Time Growth",
+            "description": "Rises slowly -- highly efficient at scale.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(log n)"
+            ]
+          }
         },
         {
           "id": "o-n",
           "title": "O(n) Linear Time",
           "content": "**Description:** Work scales 1-to-1 with input size -- double the data, double the work.\n\n**Example:** Linear Search, summing an array, finding the max of an unsorted list.\n\n**Loop:** One straightforward loop from 0 to n.",
-          "chart": { "title": "O(n) Linear Time Growth", "description": "Climbs steadily, in direct proportion to input.", "maxN": 20, "normalize": true, "curves": ["O(n)"] }
+          "chart": {
+            "title": "O(n) Linear Time Growth",
+            "description": "Climbs steadily, in direct proportion to input.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n)"
+            ]
+          }
         },
         {
           "id": "o-n-log-n",
           "title": "O(n log n) Linearithmic Time",
           "content": "**Description:** Linear work combined with logarithmic splitting -- the best achievable worst-case for comparison-based sorting.\n\n**Example:** Merge Sort, Heap Sort, Timsort.\n\n**Loop:** An O(n) pass containing O(log n) work, or divide-and-conquer with linear merge cost per level.",
-          "chart": { "title": "O(n log n) Linearithmic Time Growth", "description": "Bends slightly above linear.", "maxN": 20, "normalize": true, "curves": ["O(n log n)"] }
+          "chart": {
+            "title": "O(n log n) Linearithmic Time Growth",
+            "description": "Bends slightly above linear.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n log n)"
+            ]
+          }
         },
         {
           "id": "o-n-squared",
           "title": "O(n²) Quadratic Time",
           "content": "**Description:** Work grows with the square of n. Typical of two nested loops. Inefficient at scale.\n\n**Example:** Bubble Sort, Selection Sort, Insertion Sort, naive n×n matrix traversal.\n\n**Loop:** A loop nested inside another loop, both scaling with n.",
-          "chart": { "title": "O(n²) Quadratic Time Growth", "description": "Steep: n=10 → 100 ops, n=100 → 10,000 ops.", "maxN": 20, "normalize": true, "curves": ["O(n^2)"] }
+          "chart": {
+            "title": "O(n²) Quadratic Time Growth",
+            "description": "Steep: n=10 → 100 ops, n=100 → 10,000 ops.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n^2)"
+            ]
+          }
         },
         {
           "id": "o-n-cubed",
           "title": "O(n³) Cubic Time",
           "content": "**Description:** Three nested loops. Slow, but shows up in some dense linear-algebra algorithms.\n\n**Example:** Naive matrix multiplication, dense graph algorithms.\n\n**Loop:** Three loops nested together, all scaling with n.",
-          "chart": { "title": "O(n³) Cubic Time Growth", "description": "Explosive growth from three nested loops.", "maxN": 20, "normalize": true, "curves": ["O(n^3)"] }
+          "chart": {
+            "title": "O(n³) Cubic Time Growth",
+            "description": "Explosive growth from three nested loops.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n^3)"
+            ]
+          }
         },
         {
           "id": "o-2-n",
           "title": "O(2^n) Exponential Time",
           "content": "**Description:** Work doubles with every added item. Freezes a computer past roughly n=40.\n\n**Example:** Naive recursive Fibonacci, generating all subsets, Towers of Hanoi.\n\n**Loop:** A function that recursively calls itself multiple times per branch.",
-          "chart": { "title": "O(2^n) Exponential Time Growth", "description": "Explodes almost instantly.", "maxN": 20, "normalize": true, "curves": ["O(2^n)"] }
+          "chart": {
+            "title": "O(2^n) Exponential Time Growth",
+            "description": "Explodes almost instantly.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(2^n)"
+            ]
+          }
         },
         {
           "id": "o-n-factorial",
           "title": "O(n!) Factorial Time",
           "content": "**Description:** The slowest common class -- generating every possible ordering of n items.\n\n**Example:** Brute-force Traveling Salesman, generating all permutations.\n\n**Loop:** Recursive backtracking that generates every arrangement.",
-          "chart": { "title": "O(n!) Factorial Time Growth", "description": "Usable only for tiny inputs.", "maxN": 20, "normalize": true, "curves": ["O(n!)"] }
+          "chart": {
+            "title": "O(n!) Factorial Time Growth",
+            "description": "Usable only for tiny inputs.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n!)"
+            ]
+          }
         }
       ]
     },
@@ -184,43 +263,99 @@
           "id": "o-sqrt-n",
           "title": "O(sqrt n) Square Root Time",
           "content": "**Description:** Scales with the square root of n -- sits between logarithmic and linear.\n\n**Example:** Primality testing by checking factors up to √n.\n\n**Loop:** Condition like `while i * i <= n`.",
-          "chart": { "title": "O(sqrt n) Square Root Growth", "description": "Between O(log n) and O(n).", "maxN": 20, "normalize": true, "curves": ["O(sqrt n)"] }
+          "chart": {
+            "title": "O(sqrt n) Square Root Growth",
+            "description": "Between O(log n) and O(n).",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(sqrt n)"
+            ]
+          }
         },
         {
           "id": "o-n-m",
           "title": "O(n * m) Multi-Variable Time",
           "content": "**Description:** Bound by two different input sizes instead of one.\n\n**Example:** Processing a rows × columns matrix, comparing two strings of different lengths.\n\n**Loop:** Outer loop of n, inner loop of m.",
-          "chart": { "title": "Multi-Variable Growth Representation", "description": "Looks quadratic when n ≈ m.", "maxN": 20, "normalize": true, "curves": ["O(n^2)"] }
+          "chart": {
+            "title": "Multi-Variable Growth Representation",
+            "description": "Looks quadratic when n ≈ m.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n^2)"
+            ]
+          }
         },
         {
           "id": "o-v-e",
           "title": "O(V + E) Graph Traversal Time",
           "content": "**Description:** The standard metric for graph algorithms -- scales with Vertices (V) plus Edges (E).\n\n**Example:** BFS and DFS over an adjacency list.\n\n**Loop:** A queue/stack loop over nodes (V), with a nested loop over each node's neighbors (E).",
-          "chart": { "title": "Graph Traversal Growth", "description": "Roughly linear in graph size.", "maxN": 20, "normalize": true, "curves": ["O(n)"] }
+          "chart": {
+            "title": "Graph Traversal Growth",
+            "description": "Roughly linear in graph size.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n)"
+            ]
+          }
         },
         {
           "id": "o-euclidean",
           "title": "O(log min(a, b)) Euclidean Modulo Time",
           "content": "**Description:** A fast logarithmic reduction from repeatedly applying modulo to two numbers.\n\n**Example:** Euclid's GCD algorithm.\n\n**Loop:** Recursion or a `while` loop swapping in the remainder each step.",
-          "chart": { "title": "Euclidean Reduction Growth", "description": "Scales against the smaller input.", "maxN": 20, "normalize": true, "curves": ["O(log n)"] }
+          "chart": {
+            "title": "Euclidean Reduction Growth",
+            "description": "Scales against the smaller input.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(log n)"
+            ]
+          }
         },
         {
           "id": "o-log-quadratic",
           "title": "O(n² log n) Log-Quadratic Time",
           "content": "**Description:** A quadratic pass combined with a logarithmic step, like sorting inside a nested loop.\n\n**Example:** Sorting every row of a matrix, some computational-geometry algorithms.\n\n**Loop:** Nested O(n²) loop with an O(log n) operation inside.",
-          "chart": { "title": "O(n² log n) Log-Quadratic Growth", "description": "Slightly worse than pure quadratic.", "maxN": 20, "normalize": true, "curves": ["O(n^2 log n)"] }
+          "chart": {
+            "title": "O(n² log n) Log-Quadratic Growth",
+            "description": "Slightly worse than pure quadratic.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n^2 log n)"
+            ]
+          }
         },
         {
           "id": "o-polynomial-d",
           "title": "O(n^d) Higher Polynomial Time",
           "content": "**Description:** Any polynomial with exponent d > 3 -- rarely usable in practice.\n\n**Example:** Brute-force combination generation, over-dimensioned DP tables.\n\n**Loop:** Four or more nested loops, all scaling with n.",
-          "chart": { "title": "Higher Polynomial Growth", "description": "Deep nested loops, rapid blow-up.", "maxN": 20, "normalize": true, "curves": ["O(n^4)"] }
+          "chart": {
+            "title": "Higher Polynomial Growth",
+            "description": "Deep nested loops, rapid blow-up.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n^4)"
+            ]
+          }
         },
         {
           "id": "o-n-n-factorial",
           "title": "O(n * n!) Extreme Factorial Time",
           "content": "**Description:** Factorial growth multiplied by an extra linear pass, e.g. copying data on every permutation.\n\n**Example:** Combinatorial generation with a full array copy at each step.\n\n**Loop:** A recursive factorial generator wrapped in an extra linear loop.",
-          "chart": { "title": "O(n * n!) Extreme Factorial Growth", "description": "The worst practical anti-pattern.", "maxN": 20, "normalize": true, "curves": ["O(n!)"] }
+          "chart": {
+            "title": "O(n * n!) Extreme Factorial Growth",
+            "description": "The worst practical anti-pattern.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n!)"
+            ]
+          }
         }
       ]
     },
@@ -292,8 +427,17 @@
     }
   ],
   "references": [
-    { "title": "GeeksforGeeks — Big-O Notation", "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/" },
-    { "title": "Programiz — Time Complexity", "url": "https://www.programiz.com/dsa/time-complexity" },
-    { "title": "MIT OpenCourseWare — Introduction to Algorithms", "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/" }
+    {
+      "title": "GeeksforGeeks — Big-O Notation",
+      "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/"
+    },
+    {
+      "title": "Programiz — Time Complexity",
+      "url": "https://www.programiz.com/dsa/time-complexity"
+    },
+    {
+      "title": "MIT OpenCourseWare — Introduction to Algorithms",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
+    }
   ]
 }

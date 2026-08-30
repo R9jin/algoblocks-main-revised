@@ -139,12 +139,15 @@ export default function ProfilePage() {
   // is hardest (one Hard activity in an otherwise-Easy lesson still makes
   // it a "Hard lesson" for this purpose), since that's the activity that
   // was actually gating completion.
-  const DIFFICULTY_RANK = { easy: 0, beginner: 0, medium: 1, intermediate: 1, hard: 2, advanced: 3 };
+  // Legacy "easy/medium/hard" aliases are kept here as a safety net in case
+  // any cached/offline data still uses the old vocabulary; current data uses
+  // beginner/intermediate/advanced everywhere.
+  const DIFFICULTY_RANK = { easy: 0, beginner: 0, medium: 1, intermediate: 1, hard: 2, advanced: 2 };
   const getLessonDifficulty = (acts) => {
-    let hardest = "easy";
+    let hardest = "beginner";
     let hardestRank = 0;
     for (const act of acts) {
-      const d = (act.difficulty || "easy").toLowerCase();
+      const d = (act.difficulty || "beginner").toLowerCase();
       const rank = DIFFICULTY_RANK[d] ?? 0;
       if (rank > hardestRank) { hardestRank = rank; hardest = d; }
     }
@@ -934,13 +937,13 @@ export default function ProfilePage() {
                                 {lesson.activities.map((act) => {
                                   const isActUnlocked = lesson.isUnlocked || act.isCompleted || act.hasSubmission;
                                   return (
-                                  <div key={act.id} className={`activity-row diff-${act.difficulty?.toLowerCase() || 'easy'} ${act.isCompleted ? 'completed-row' : ''} ${!isActUnlocked ? 'locked-row' : ''}`}>
+                                  <div key={act.id} className={`activity-row diff-${act.difficulty?.toLowerCase() || 'beginner'} ${act.isCompleted ? 'completed-row' : ''} ${!isActUnlocked ? 'locked-row' : ''}`}>
                                     <div className="activity-row-top">
                                       <div className="act-left">
                                         {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : isActUnlocked ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
                                         <div className="act-info">
                                           <span className="act-title">{act.title}</span>
-                                          <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'easy'}`}>{act.difficulty || 'Easy'}</span>
+                                          <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'beginner'}`}>{act.difficulty || 'Beginner'}</span>
                                         </div>
                                       </div>
                                       {!isActUnlocked && (
@@ -1040,13 +1043,13 @@ export default function ProfilePage() {
                               {mod.optimizations.activities.map((act) => {
                                 const isActUnlocked = mod.optimizations.isUnlocked || act.isCompleted || act.hasSubmission;
                                 return (
-                                  <div key={act.id} className={`activity-row diff-${act.difficulty?.toLowerCase() || 'medium'} ${act.isCompleted ? 'completed-row' : ''} ${!isActUnlocked ? 'locked-row' : ''}`}>
+                                  <div key={act.id} className={`activity-row diff-${act.difficulty?.toLowerCase() || 'advanced'} ${act.isCompleted ? 'completed-row' : ''} ${!isActUnlocked ? 'locked-row' : ''}`}>
                                     <div className="activity-row-top">
                                       <div className="act-left">
                                         {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : isActUnlocked ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
                                         <div className="act-info">
                                           <span className="act-title">{act.title}</span>
-                                          <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'medium'}`}>{act.difficulty || 'Medium'}</span>
+                                          <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'advanced'}`}>{act.difficulty || 'Advanced'}</span>
                                         </div>
                                       </div>
                                       {!isActUnlocked && (

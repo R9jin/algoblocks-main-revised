@@ -3,7 +3,7 @@
     {
       "id": "m3_l1_a1",
       "title": "Recursive Base Case Formulation",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Recursion requires a function to invoke itself. To prevent infinite execution and a subsequent memory overflow, the algorithm must implement a terminating condition known as the Base Case.",
         "",
@@ -47,7 +47,7 @@
     {
       "id": "m3_l1_a2",
       "title": "Recursive Mathematical Induction",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Mathematical induction translates seamlessly into recursive algorithms.",
         "The factorial of a number N is defined recursively as N multiplied by the factorial of N minus 1.",
@@ -92,7 +92,7 @@
     {
       "id": "m3_l1_a3",
       "title": "Recursive Call Stack Visualization",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Recursive functions execute in nested hierarchical layers. This depth can be structurally visualized by outputting sequentially nested data arrays.",
         "",
@@ -137,7 +137,7 @@
     {
       "id": "m3_l1_a4",
       "title": "Recursive Pointer Tracking",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "When evaluating a sequence recursively, passing a sliced sub-array allocates new memory for each function call, degrading performance.",
         "To evaluate a sequence optimally, the algorithm must pass the original memory reference and strictly manage evaluation boundaries utilizing index pointers.",
@@ -182,7 +182,7 @@
     {
       "id": "m3_l1_a5",
       "title": "Recursive State Accumulation",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "To aggregate an array recursively without irreversibly altering the original dataset, the algorithm must implement state tracking via an index pointer.",
         "Mutating the input parameter during recursion is considered an unsafe algorithmic side effect.",
@@ -229,7 +229,7 @@
     {
       "id": "m3_l2_a1",
       "title": "Binary Search: Midpoint Evaluation",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Sequential evaluation is highly inefficient for strictly sorted data. Binary Search optimizes this process by iteratively evaluating the structural midpoint to halve the search space.",
         "",
@@ -276,7 +276,7 @@
     {
       "id": "m3_l2_a2",
       "title": "Binary Search: Left Boundary Convergence",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "A standard implementation may identify any valid match within a sequence of duplicates. To isolate the first occurrence, the algorithm must record the match and force evaluation of the remaining left boundary.",
         "",
@@ -321,7 +321,7 @@
     {
       "id": "m3_l2_a3",
       "title": "Binary Search: Right Boundary Convergence",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "To isolate the final occurrence of a duplicate sequence, the algorithmic approach must be inverted to systematically force evaluation of the right boundary.",
         "",
@@ -366,7 +366,7 @@
     {
       "id": "m3_l2_a4",
       "title": "Binary Search: Insertion Point Location",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "If a target value is absent from a sorted dataset, the underlying logic of Binary Search can accurately compute its correct sequential insertion index.",
         "When the search space successfully collapses without a match, the lower bound pointer indicates the precise structural position.",
@@ -411,7 +411,7 @@
     {
       "id": "m3_l2_a5",
       "title": "Binary Search: Logarithmic Step Counting",
-      "difficulty": "Easy",
+      "difficulty": "Intermediate",
       "task": [
         "To empirically verify the exponential efficiency of spatial halving, we can deploy an internal state counter to track the exact number of iteration cycles required.",
         "",
@@ -458,7 +458,7 @@
     {
       "id": "m3_l3_a1",
       "title": "Divide Phase: Array Bisection",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "The preliminary phase of the Divide and Conquer strategy requires structurally dividing large datasets into constituent subproblems.",
         "Merge Sort relies on bisecting an array into two precise halves.",
@@ -503,7 +503,7 @@
     {
       "id": "m3_l3_a2",
       "title": "Conquer Phase: Pointer Synchronization",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "The Conquer phase requires synthesizing two sorted datasets efficiently. This necessitates pointer synchronization.",
         "By tracking the exact index in both arrays simultaneously, elements can be compared and assigned accurately.",
@@ -550,7 +550,7 @@
     {
       "id": "m3_l3_a3",
       "title": "Recursive Orchestration: Merge Sort",
-      "difficulty": "Hard",
+      "difficulty": "Intermediate",
       "task": [
         "Merge Sort recursively divides the array structure until the absolute base elements are isolated. The helper function is then invoked to merge the hierarchical branches sequentially.",
         "",
@@ -595,7 +595,7 @@
     {
       "id": "m3_l3_a4",
       "title": "Merge Sort: Descending Implementation",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Inverting the sequencing order of Merge Sort does not require structural modifications to the recursive framework.",
         "The algorithmic adjustment is localized entirely within the comparison operators of the merge phase.",
@@ -640,7 +640,7 @@
     {
       "id": "m3_l3_a5",
       "title": "Merge Sort: Lexicographical Evaluation",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Merge Sort maintains high consistency across data types. High-level comparative operators natively process string objects, allowing identical recursive architecture to produce lexicographical sequencing.",
         "",
@@ -685,7 +685,7 @@
     {
       "id": "m3_l4_a1",
       "title": "Quick Sort: Pivot Partitioning",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "The Quick Sort algorithm optimizes performance by selecting a pivot element and systematically dividing data based on value rather than pure bisection.",
         "",
@@ -730,7 +730,7 @@
     {
       "id": "m3_l4_a2",
       "title": "Recursive Orchestration: Quick Sort",
-      "difficulty": "Hard",
+      "difficulty": "Intermediate",
       "task": [
         "Applying recursive depth to the partitioning logic permits the left and right sub-arrays to be sequentially sorted prior to final string concatenation.",
         "",
@@ -774,7 +774,7 @@
     {
       "id": "m3_l4_a3",
       "title": "Quick Sort: Descending Partitioning",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Modifying Quick Sort for descending iteration requires an inversion of the primary conditional evaluation during array distribution.",
         "",
@@ -819,7 +819,7 @@
     {
       "id": "m3_l4_a4",
       "title": "Quick Sort: Lexicographical Partitioning",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Quick Sort maintains highly effective algorithmic efficiency when evaluating textual datasets, leveraging underlying ASCII interpretation.",
         "",
@@ -862,7 +862,7 @@
     {
       "id": "m3_l4_a5",
       "title": "Quickselect: Kth Element Isolation",
-      "difficulty": "Hard",
+      "difficulty": "Intermediate",
       "task": [
         "The recursive logic from Quick Sort can be optimized to isolate the Kth smallest element mathematically without exhaustively sorting the entire sequence.",
         "By discarding the irrelevant partition, this algorithm achieves an average time complexity of O(n).",
@@ -906,7 +906,7 @@
     {
       "id": "m3_opt_1",
       "title": "Optimization Challenge: Logarithmic Search",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "A linear search checks every item and takes O(n) time. For a sorted dataset, a binary search halves the search space at each step, improving the time to O(log n).",
         "",
@@ -952,7 +952,7 @@
     {
       "id": "m3_opt_2",
       "title": "Optimization Challenge: Gradient Convergence",
-      "difficulty": "Hard",
+      "difficulty": "Intermediate",
       "task": [
         "Finding a peak element by checking every item takes O(n) time. You can apply binary search principles to follow the ascending slope, finding the peak in O(log n) time.",
         "",
@@ -999,7 +999,7 @@
     {
       "id": "m3_opt_3",
       "title": "Optimization Challenge: Iterative Space Reduction",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Using recursion for a binary search consumes O(log n) auxiliary space due to the call stack. Converting this to an iterative approach reduces the space complexity to O(1).",
         "",

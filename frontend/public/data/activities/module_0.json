@@ -3,7 +3,7 @@
     {
       "id": "m0_l1_a1",
       "title": "Workspace Introduction",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "Welcome to the AlgoBlocks workspace. This initial module introduces the visual programming interface. We will begin by constructing a foundational function that returns a static text string.",
         "",
@@ -36,7 +36,7 @@
     {
       "id": "m0_l1_a2",
       "title": "String Outputs",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "String manipulation is a fundamental component of software development. This exercise demonstrates how to construct a function that returns a specific character sequence.",
         "",
@@ -69,7 +69,7 @@
     {
       "id": "m0_l1_a3",
       "title": "Parameter Handling",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "Functions utilize parameters to process dynamic inputs. This activity demonstrates parameter implementation through a basic addition operation.",
         "",
@@ -113,7 +113,7 @@
     {
       "id": "m0_l1_a4",
       "title": "String Concatenation",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "String concatenation allows multiple text segments and variables to be merged into a single sequential string.",
         "",
@@ -152,7 +152,7 @@
     {
       "id": "m0_l1_a5",
       "title": "Array Initialization",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "An array, or list, is a sequential data structure utilized to store multiple elements within a single memory reference.",
         "",
@@ -187,7 +187,7 @@
     {
       "id": "m0_l2_a1",
       "title": "Variable Assignment",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "Variables act as named memory references where data can be stored, retrieved, and modified during program execution.",
         "",
@@ -220,7 +220,7 @@
     {
       "id": "m0_l2_a2",
       "title": "Conditional Logic",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "Conditional statements allow functions to execute specific code paths based on logical Boolean evaluations.",
         "",
@@ -264,7 +264,7 @@
     {
       "id": "m0_l2_a3",
       "title": "Iteration Basics",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "Iteration, or looping, allows a sequence of instructions to be executed repeatedly without writing redundant code structures.",
         "",
@@ -298,7 +298,7 @@
     {
       "id": "m0_l2_a4",
       "title": "Defensive Programming: Safe Array Access",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "Attempting to read data from an empty array will crash your program. Professional developers use 'Defensive Programming' to check if data exists before trying to use it.",
         "",
@@ -333,7 +333,7 @@
     {
       "id": "m0_l2_a5",
       "title": "Array Appending",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "Dynamic arrays allow new elements to be inserted after initialization. Modifying the array by adding an item to the end is formally referred to as appending.",
         "",
@@ -374,7 +374,7 @@
     {
       "id": "m0_l3_a1",
       "title": "Constant Time Evaluation",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "The Complexity tab evaluates the execution efficiency of your function. Operations that execute in a fixed sequence, regardless of input size, are classified by the static analyzer as O(1) constant time.",
         "",
@@ -403,7 +403,7 @@
     {
       "id": "m0_l3_a2",
       "title": "Linear Time Evaluation",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "A loop that iterates 'n' times scales computationally in direct proportion to the input size. The static analyzer classifies this execution pattern as O(n) linear time.",
         "",
@@ -439,7 +439,7 @@
     {
       "id": "m0_l3_a3",
       "title": "Quadratic Time Evaluation",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "Nested iteration exponentially increases computational work. If an outer loop and an inner loop both iterate 'n' times, the time complexity degrades to O(n²).",
         "",
@@ -475,7 +475,7 @@
     {
       "id": "m0_l3_a4",
       "title": "Branch Evaluation",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "When analyzing conditional branches, asymptotic complexity is determined by evaluating the worst-case execution path among all potential conditions.",
         "",
@@ -510,7 +510,7 @@
     {
       "id": "m0_l3_a5",
       "title": "Mathematical Optimization",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "Iterating through a sequence to calculate a sum results in an O(n) linear time complexity. In computer science, mathematical formulas can often replace iterative loops to improve efficiency.",
         "We can compute the sum of a sequence in O(1) constant time by utilizing the arithmetic series formula.",
@@ -547,7 +547,7 @@
     {
       "id": "m0_l4_a1",
       "title": "Constant Memory Allocation",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "Executing instructions requires physical memory. The Space Complexity meter evaluates the supplementary memory overhead requested by your algorithm.",
         "",
@@ -572,7 +572,7 @@
     {
       "id": "m0_l4_a2",
       "title": "Static Data Structures",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "Initializing an array with a pre-defined, unchanging number of elements evaluates to an O(1) space complexity because the memory footprint remains static.",
         "",
@@ -596,7 +596,7 @@
     {
       "id": "m0_l4_a3",
       "title": "Linear Memory Scaling",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "Appending elements to a list relative to an input parameter 'n' causes the data structure to expand dynamically. This process scales the memory requirements linearly, yielding an O(n) space complexity.",
         "",
@@ -631,7 +631,7 @@
     {
       "id": "m0_l4_a4",
       "title": "String Memory Scaling",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "String objects require memory. Concatenating characters to a string repeatedly within a loop expands the string's length proportionally, which also results in an O(n) linear space complexity.",
         "",
@@ -666,7 +666,7 @@
     {
       "id": "m0_l4_a5",
       "title": "In-Place Variable Swapping",
-      "difficulty": "Easy",
+      "difficulty": "Beginner",
       "task": [
         "To efficiently exchange variable data without explicitly requesting secondary auxiliary memory, the workspace provides an in-place swap utility.",
         "Utilizing this native utility instructs the environment to manage the reference exchange cleanly in constant time.",

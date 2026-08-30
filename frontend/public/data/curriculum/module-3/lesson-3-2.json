@@ -3,7 +3,7 @@
   "moduleId": "module-3",
   "title": "Binary Search & Pointer Tracking",
   "description": "How **Binary Search** uses Divide and Conquer to halve a sorted search space every step -- and how to track the `low`, `high`, `mid` pointers that make it work.",
-  "difficulty": "Beginner",
+  "difficulty": "Intermediate",
   "estimatedTime": "28 min",
   "prerequisites": "Divide and Conquer Strategy",
   "tags": [

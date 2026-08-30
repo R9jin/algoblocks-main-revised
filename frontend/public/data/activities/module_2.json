@@ -3,7 +3,7 @@
     {
       "id": "m2_l1_a1",
       "title": "Brute Force: Maximum Value Search",
-      "difficulty": "Easy",
+      "difficulty": "Intermediate",
       "task": [
         "A brute force algorithmic strategy evaluates every candidate within a dataset to ensure the correct solution is identified.",
         "To find the maximum value, the algorithm must systematically check every element against a recorded state.",
@@ -51,7 +51,7 @@
     {
       "id": "m2_l1_a2",
       "title": "Brute Force: Minimum Value Search",
-      "difficulty": "Easy",
+      "difficulty": "Intermediate",
       "task": [
         "Finding the minimum value within an unsorted array requires the identical O(n) sequential traversal strategy, utilizing an inverted logical comparison.",
         "",
@@ -97,7 +97,7 @@
     {
       "id": "m2_l1_a3",
       "title": "Brute Force: Target Sum Search",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "A brute force target sum algorithm checks every possible combination of two elements to determine if they accumulate to a specific value.",
         "Because this requires an inner loop to evaluate subsequent elements for every outer loop iteration, the time complexity scales quadratically.",
@@ -134,7 +134,7 @@
     {
       "id": "m2_l1_a4",
       "title": "Brute Force: Conditional Counting",
-      "difficulty": "Easy",
+      "difficulty": "Intermediate",
       "task": [
         "Exhaustive search can be combined with conditional logic to aggregate specific data subsets, such as computing the total number of even integers within an array.",
         "",
@@ -180,7 +180,7 @@
     {
       "id": "m2_l1_a5",
       "title": "Brute Force: Early Exit Optimization",
-      "difficulty": "Easy",
+      "difficulty": "Intermediate",
       "task": [
         "When an algorithm only requires the first valid instance of a condition, executing the loop to completion is inefficient.",
         "Implementing an early exit optimizes the average-case time complexity, although the worst-case remains O(n).",
@@ -228,7 +228,7 @@
     {
       "id": "m2_l2_a1",
       "title": "Linear Search: Target Identification",
-      "difficulty": "Easy",
+      "difficulty": "Intermediate",
       "task": [
         "Linear Search relies on evaluating elements sequentially to locate a specific target within an unsorted dataset.",
         "",
@@ -273,7 +273,7 @@
     {
       "id": "m2_l2_a2",
       "title": "Linear Search: Frequency Counting",
-      "difficulty": "Easy",
+      "difficulty": "Intermediate",
       "task": [
         "Rather than terminating upon the first identification, a full linear traversal can be utilized to compute the frequency of a target value within the dataset.",
         "",
@@ -318,7 +318,7 @@
     {
       "id": "m2_l2_a3",
       "title": "Linear Search: Reverse Traversal",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "To locate the final occurrence of a specific target, traversing the array from index 0 to the end is mathematically inefficient.",
         "Implementing a reverse traversal ensures the first match encountered is the last occurrence in the sequence, allowing for an immediate early exit.",
@@ -364,7 +364,7 @@
     {
       "id": "m2_l2_a4",
       "title": "Linear Search: Bounded Range",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Search algorithms frequently operate within dynamic subsections of memory defined by `start` and `end` pointers.",
         "Accepting dynamic bounds without validation presents a critical stability risk. The bounds must be sanitized prior to execution.",
@@ -406,7 +406,7 @@
     {
       "id": "m2_l2_a5",
       "title": "Linear Search: Multi-Target Extraction",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "When an algorithm must identify multiple occurrences of a target and preserve their locations, it requires an out-of-place allocation strategy.",
         "",
@@ -453,7 +453,7 @@
     {
       "id": "m2_l3_a1",
       "title": "Bubble Sort: Ascending Execution",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Bubble Sort operates by systematically comparing adjacent elements and exchanging them if they violate the intended sequence order.",
         "This algorithm relies on nested iteration, resulting in an O(n²) time complexity.",
@@ -499,7 +499,7 @@
     {
       "id": "m2_l3_a2",
       "title": "Selection Sort: Ascending Execution",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Selection Sort divides the array into sorted and unsorted segments. It scans the unsorted segment to locate the minimum element and swaps it into the sorted boundary.",
         "This requires pointer indirection: tracking the structural index of the minimum value rather than the integer itself.",
@@ -542,7 +542,7 @@
     {
       "id": "m2_l3_a3",
       "title": "Bubble Sort: Descending Execution",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "To sequence elements in descending order, the algorithmic structure remains identical while the adjacent evaluation logic is inverted.",
         "",
@@ -586,7 +586,7 @@
     {
       "id": "m2_l3_a4",
       "title": "Selection Sort: Descending Execution",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Selection Sort can be inverted by searching the unsorted boundary for the maximum value rather than the minimum.",
         "",
@@ -631,7 +631,7 @@
     {
       "id": "m2_l3_a5",
       "title": "Sort Execution Tracking: Single Pass",
-      "difficulty": "Easy",
+      "difficulty": "Intermediate",
       "task": [
         "To isolate and understand the underlying mechanics of Bubble Sort, we can track the structural state of the array after executing a single complete traversal.",
         "A single pass of the adjacent comparison logic guarantees that the maximum element is pushed to the highest available index.",
@@ -679,7 +679,7 @@
     {
       "id": "m2_opt_1",
       "title": "Optimization Challenge: Two-Pointer Convergence",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Finding a target sum using nested loops takes O(n²) time. Since the array is already sorted, you can use converging pointers to find the answer in O(n) time.",
         "",
@@ -721,7 +721,7 @@
     {
       "id": "m2_opt_2",
       "title": "Optimization Challenge: Center Index Verification",
-      "difficulty": "Easy",
+      "difficulty": "Intermediate",
       "task": [
         "Counting every element to find a majority item takes O(n²) time. In a sorted array, an item that makes up more than half the data will always occupy the exact middle position.",
         "",
@@ -761,7 +761,7 @@
     {
       "id": "m2_opt_3",
       "title": "Optimization Challenge: Pre-Sorting for Adjacency",
-      "difficulty": "Medium",
+      "difficulty": "Intermediate",
       "task": [
         "Checking for duplicate values using nested loops requires O(n²) time. Sorting the array places identical values next to each other, allowing you to find duplicates with a single pass.",
         "",

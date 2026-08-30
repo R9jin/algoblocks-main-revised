@@ -3,16 +3,37 @@
   "moduleId": "module-3",
   "title": "Quick Sort & Pivot Partitioning",
   "description": "How **Quick Sort** picks a pivot and partitions data in-place -- and why the Call Stack can go badly unbalanced if that pivot is chosen poorly.",
-  "difficulty": "Beginner",
+  "difficulty": "Intermediate",
   "estimatedTime": "28 min",
   "prerequisites": "Merge Sort, The Call Stack",
-  "tags": ["quick sort", "sorting", "divide and conquer", "pointers", "call stack"],
+  "tags": [
+    "quick sort",
+    "sorting",
+    "divide and conquer",
+    "pointers",
+    "call stack"
+  ],
   "activities": [
-    { "id": "m3_l4_a1", "title": "Visualizing the Partition Pointers" },
-    { "id": "m3_l4_a2", "title": "Tracing the Left Branch Dive" },
-    { "id": "m3_l4_a3", "title": "Choosing the Worst Pivot" },
-    { "id": "m3_l4_a4", "title": "In-Place Swapping Execution" },
-    { "id": "m3_l4_a5", "title": "Full Quick Sort Stack Trace" }
+    {
+      "id": "m3_l4_a1",
+      "title": "Visualizing the Partition Pointers"
+    },
+    {
+      "id": "m3_l4_a2",
+      "title": "Tracing the Left Branch Dive"
+    },
+    {
+      "id": "m3_l4_a3",
+      "title": "Choosing the Worst Pivot"
+    },
+    {
+      "id": "m3_l4_a4",
+      "title": "In-Place Swapping Execution"
+    },
+    {
+      "id": "m3_l4_a5",
+      "title": "Full Quick Sort Stack Trace"
+    }
   ],
   "sections": [
     {
@@ -63,7 +84,11 @@
       "title": "Python Implementation",
       "content": "`partition` mutates the array in-place via swapping; `quick_sort` just manages which indices to recurse into next based on where the pivot landed.",
       "codeSnippets": [
-        { "title": "Quick Sort & Partitioning Logic", "language": "python", "code": "def partition(arr, low, high):\n    pivot = arr[high]  # Choosing last element as pivot\n    i = low - 1        # Pointer for the smaller element boundary\n\n    # The Scanner Loop\n    for j in range(low, high):\n        if arr[j] < pivot:\n            i = i + 1\n            # Swap current element into the smaller section\n            arr[i], arr[j] = arr[j], arr[i]\n\n    # Place the pivot precisely on the boundary\n    arr[i + 1], arr[high] = arr[high], arr[i + 1]\n    return i + 1       # Return the final locked index of the pivot\n\n\ndef quick_sort(arr, low, high):\n    # Base Case: If the array segment is 1 or 0 elements, do nothing.\n    if low < high:\n        # Conquer: Partition the array\n        pivot_index = partition(arr, low, high)\n\n        # Divide: Push Left branch to the Call Stack\n        quick_sort(arr, low, pivot_index - 1)\n        \n        # Divide: Push Right branch to the Call Stack (Executes after left is done)\n        quick_sort(arr, pivot_index + 1, high)\n\n# Execution\ndata = [8, 3, 5, 9, 2, 6]\nquick_sort(data, 0, len(data) - 1)\nprint(data)" }
+        {
+          "title": "Quick Sort & Partitioning Logic",
+          "language": "python",
+          "code": "def partition(arr, low, high):\n    pivot = arr[high]  # Choosing last element as pivot\n    i = low - 1        # Pointer for the smaller element boundary\n\n    # The Scanner Loop\n    for j in range(low, high):\n        if arr[j] < pivot:\n            i = i + 1\n            # Swap current element into the smaller section\n            arr[i], arr[j] = arr[j], arr[i]\n\n    # Place the pivot precisely on the boundary\n    arr[i + 1], arr[high] = arr[high], arr[i + 1]\n    return i + 1       # Return the final locked index of the pivot\n\n\ndef quick_sort(arr, low, high):\n    # Base Case: If the array segment is 1 or 0 elements, do nothing.\n    if low < high:\n        # Conquer: Partition the array\n        pivot_index = partition(arr, low, high)\n\n        # Divide: Push Left branch to the Call Stack\n        quick_sort(arr, low, pivot_index - 1)\n        \n        # Divide: Push Right branch to the Call Stack (Executes after left is done)\n        quick_sort(arr, pivot_index + 1, high)\n\n# Execution\ndata = [8, 3, 5, 9, 2, 6]\nquick_sort(data, 0, len(data) - 1)\nprint(data)"
+        }
       ]
     },
     {
@@ -76,7 +101,11 @@
         "description": "Quick Sort's curve can snap from efficient O(n log n) to O(n^2) if pivot selection fails.",
         "maxN": 64,
         "normalize": true,
-        "curves": ["O(log n)", "O(n log n)", "O(n^2)"]
+        "curves": [
+          "O(log n)",
+          "O(n log n)",
+          "O(n^2)"
+        ]
       }
     },
     {
@@ -96,9 +125,21 @@
       "type": "key_concept",
       "title": "Common Beginner Mistakes",
       "subsections": [
-        { "id": "magic-execution", "title": "Mistake: Assuming left and right recursion happens simultaneously", "content": "The Call Stack fully exhausts and sorts the entire left side before the right side is evaluated even once." },
-        { "id": "ignoring-pointers", "title": "Mistake: Hand-waving the Partition loop", "content": "You need to be able to physically trace `i` and `j` moving through an array on paper -- skip that and the algorithm feels like magic." },
-        { "id": "pivot-inclusion", "title": "Mistake: Including the pivot in the recursive calls", "content": "`quick_sort(arr, low, pivot_index - 1)` must exclude the pivot. Use `pivot_index` instead of `pivot_index - 1` and you risk re-sorting the pivot, potentially looping forever." }
+        {
+          "id": "magic-execution",
+          "title": "Mistake: Assuming left and right recursion happens simultaneously",
+          "content": "The Call Stack fully exhausts and sorts the entire left side before the right side is evaluated even once."
+        },
+        {
+          "id": "ignoring-pointers",
+          "title": "Mistake: Hand-waving the Partition loop",
+          "content": "You need to be able to physically trace `i` and `j` moving through an array on paper -- skip that and the algorithm feels like magic."
+        },
+        {
+          "id": "pivot-inclusion",
+          "title": "Mistake: Including the pivot in the recursive calls",
+          "content": "`quick_sort(arr, low, pivot_index - 1)` must exclude the pivot. Use `pivot_index` instead of `pivot_index - 1` and you risk re-sorting the pivot, potentially looping forever."
+        }
       ]
     },
     {
@@ -116,8 +157,17 @@
     }
   ],
   "references": [
-    { "title": "Programiz - Quick Sort", "url": "https://www.programiz.com/dsa/quick-sort" },
-    { "title": "GeeksforGeeks - Quick Sort", "url": "https://www.geeksforgeeks.org/quick-sort/" },
-    { "title": "VisuAlgo - Sorting Visualizations", "url": "https://visualgo.net/en/sorting" }
+    {
+      "title": "Programiz - Quick Sort",
+      "url": "https://www.programiz.com/dsa/quick-sort"
+    },
+    {
+      "title": "GeeksforGeeks - Quick Sort",
+      "url": "https://www.geeksforgeeks.org/quick-sort/"
+    },
+    {
+      "title": "VisuAlgo - Sorting Visualizations",
+      "url": "https://visualgo.net/en/sorting"
+    }
   ]
 }

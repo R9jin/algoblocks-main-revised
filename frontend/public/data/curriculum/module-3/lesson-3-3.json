@@ -3,16 +3,37 @@
   "moduleId": "module-3",
   "title": "Merge Sort & The Auxiliary Array",
   "description": "How Merge Sort splits an array recursively and stitches it back together sorted -- tracing the Call Stack's left-first execution and the pointer logic behind the merge.",
-  "difficulty": "Beginner",
+  "difficulty": "Intermediate",
   "estimatedTime": "28 min",
   "prerequisites": "Binary Search, The Call Stack",
-  "tags": ["merge sort", "sorting", "divide and conquer", "call stack", "pointers"],
+  "tags": [
+    "merge sort",
+    "sorting",
+    "divide and conquer",
+    "call stack",
+    "pointers"
+  ],
   "activities": [
-    { "id": "m3_l3_a1", "title": "Visualizing the Halving Tree" },
-    { "id": "m3_l3_a2", "title": "Tracing the Left Branch First" },
-    { "id": "m3_l3_a3", "title": "The Auxiliary Array Pointers" },
-    { "id": "m3_l3_a4", "title": "Merging Bottom-Up" },
-    { "id": "m3_l3_a5", "title": "Full Merge Stack Trace" }
+    {
+      "id": "m3_l3_a1",
+      "title": "Visualizing the Halving Tree"
+    },
+    {
+      "id": "m3_l3_a2",
+      "title": "Tracing the Left Branch First"
+    },
+    {
+      "id": "m3_l3_a3",
+      "title": "The Auxiliary Array Pointers"
+    },
+    {
+      "id": "m3_l3_a4",
+      "title": "Merging Bottom-Up"
+    },
+    {
+      "id": "m3_l3_a5",
+      "title": "Full Merge Stack Trace"
+    }
   ],
   "sections": [
     {
@@ -63,7 +84,11 @@
       "title": "Python Implementation",
       "content": "The base case is what keeps the Call Stack from growing forever; the merge step is where the auxiliary array gets built.",
       "codeSnippets": [
-        { "title": "Merge Sort & The Auxiliary Merge", "language": "python", "code": "def merge_sort(arr):\n    # Base Case: An array of 1 is physically sorted\n    if len(arr) <= 1:\n        return arr\n\n    # Divide\n    mid = len(arr) // 2\n\n    # Conquer: These push sequentially onto the Call Stack\n    left_sorted = merge_sort(arr[:mid])\n    right_sorted = merge_sort(arr[mid:])\n\n    # Combine\n    return merge(left_sorted, right_sorted)\n\n\ndef merge(left, right):\n    result = [] # The Auxiliary Array\n    i = 0\n    j = 0\n\n    # Pointer tracking to build the merged array\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]: # <= maintains stable sorting\n            result.append(left[i])\n            i += 1\n        else:\n            result.append(right[j])\n            j += 1\n\n    # Append any remaining blocks\n    result.extend(left[i:])\n    result.extend(right[j:])\n\n    return result\n\nprint(merge_sort([6, 2, 8, 1]))" }
+        {
+          "title": "Merge Sort & The Auxiliary Merge",
+          "language": "python",
+          "code": "def merge_sort(arr):\n    # Base Case: An array of 1 is physically sorted\n    if len(arr) <= 1:\n        return arr\n\n    # Divide\n    mid = len(arr) // 2\n\n    # Conquer: These push sequentially onto the Call Stack\n    left_sorted = merge_sort(arr[:mid])\n    right_sorted = merge_sort(arr[mid:])\n\n    # Combine\n    return merge(left_sorted, right_sorted)\n\n\ndef merge(left, right):\n    result = [] # The Auxiliary Array\n    i = 0\n    j = 0\n\n    # Pointer tracking to build the merged array\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]: # <= maintains stable sorting\n            result.append(left[i])\n            i += 1\n        else:\n            result.append(right[j])\n            j += 1\n\n    # Append any remaining blocks\n    result.extend(left[i:])\n    result.extend(right[j:])\n\n    return result\n\nprint(merge_sort([6, 2, 8, 1]))"
+        }
       ]
     },
     {
@@ -76,7 +101,11 @@
         "description": "Repeated halving followed by linear-work merges at each level.",
         "maxN": 32,
         "normalize": true,
-        "curves": ["O(log n)", "O(n)", "O(n log n)"]
+        "curves": [
+          "O(log n)",
+          "O(n)",
+          "O(n log n)"
+        ]
       }
     },
     {
@@ -102,8 +131,26 @@
       "type": "concept",
       "title": "Advantages and Limitations",
       "subsections": [
-        { "id": "advantages", "title": "Advantages", "bullets": ["Efficient on **massive datasets**.", "Guaranteed **O(n log n)**.", "**Stable** -- preserves duplicate order.", "A clean example of Divide and Conquer."] },
-        { "id": "limitations", "title": "Limitations", "bullets": ["Needs **O(n) extra memory**.", "Recursive flow can confuse beginners.", "Pointer tracking in the merge takes practice.", "Usually a bit slower than Quick Sort in practice due to allocation overhead."] }
+        {
+          "id": "advantages",
+          "title": "Advantages",
+          "bullets": [
+            "Efficient on **massive datasets**.",
+            "Guaranteed **O(n log n)**.",
+            "**Stable** -- preserves duplicate order.",
+            "A clean example of Divide and Conquer."
+          ]
+        },
+        {
+          "id": "limitations",
+          "title": "Limitations",
+          "bullets": [
+            "Needs **O(n) extra memory**.",
+            "Recursive flow can confuse beginners.",
+            "Pointer tracking in the merge takes practice.",
+            "Usually a bit slower than Quick Sort in practice due to allocation overhead."
+          ]
+        }
       ]
     },
     {
@@ -117,9 +164,21 @@
       "type": "key_concept",
       "title": "Common Beginner Mistakes",
       "subsections": [
-        { "id": "division-sorts", "title": "Mistake: Thinking Merge Sort sorts during division", "content": "Division just breaks the array apart -- it's blind to values. All actual sorting happens during the merge, where `i` and `j` compare values." },
-        { "id": "simultaneous-execution", "title": "Mistake: Assuming left and right split at the same time", "content": "The code reads top-down, but `left_sorted` must be fully resolved before `right_sorted` even starts -- that's the Call Stack." },
-        { "id": "ignoring-space", "title": "Mistake: Ignoring auxiliary memory", "content": "Merge Sort is NOT in-place like Bubble Sort -- it copies data into new memory during merging, which is the O(n) space cost." }
+        {
+          "id": "division-sorts",
+          "title": "Mistake: Thinking Merge Sort sorts during division",
+          "content": "Division just breaks the array apart -- it's blind to values. All actual sorting happens during the merge, where `i` and `j` compare values."
+        },
+        {
+          "id": "simultaneous-execution",
+          "title": "Mistake: Assuming left and right split at the same time",
+          "content": "The code reads top-down, but `left_sorted` must be fully resolved before `right_sorted` even starts -- that's the Call Stack."
+        },
+        {
+          "id": "ignoring-space",
+          "title": "Mistake: Ignoring auxiliary memory",
+          "content": "Merge Sort is NOT in-place like Bubble Sort -- it copies data into new memory during merging, which is the O(n) space cost."
+        }
       ]
     },
     {
@@ -137,8 +196,17 @@
     }
   ],
   "references": [
-    { "title": "Programiz - Merge Sort", "url": "https://www.programiz.com/dsa/merge-sort" },
-    { "title": "GeeksforGeeks - Merge Sort", "url": "https://www.geeksforgeeks.org/merge-sort/" },
-    { "title": "VisuAlgo - Sorting Visualizations", "url": "https://visualgo.net/en/sorting" }
+    {
+      "title": "Programiz - Merge Sort",
+      "url": "https://www.programiz.com/dsa/merge-sort"
+    },
+    {
+      "title": "GeeksforGeeks - Merge Sort",
+      "url": "https://www.geeksforgeeks.org/merge-sort/"
+    },
+    {
+      "title": "VisuAlgo - Sorting Visualizations",
+      "url": "https://visualgo.net/en/sorting"
+    }
   ]
 }

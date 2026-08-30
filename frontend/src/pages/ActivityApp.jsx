@@ -526,7 +526,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     return {
       id: foundActivity.id, title: foundActivity.title || foundLessonKey, task: foundActivity.task,
       type: foundActivity.type || (foundLessonKey === "optimizations" ? "optimization" : "activity"),
-      difficulty: foundActivity.difficulty || (foundLessonKey === "optimizations" ? "Advanced" : "Easy"),
+      difficulty: foundActivity.difficulty || (foundLessonKey === "optimizations" ? "Advanced" : "Beginner"),
       targetTimeComplexity: foundActivity.targetTime || foundActivity.targetTimeComplexity || "O(n)",
       targetSpaceComplexity: foundActivity.targetSpace || foundActivity.targetSpaceComplexity || "O(1)",
       testCasesList: (foundActivity.testCasesPool || []).map((tc) => ({ call: tc.call, expected: tc.expected, isHidden: !!tc.isHidden })),
@@ -1814,7 +1814,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           <div className="activity-panel-content">
             <div className="activity-task-header">
               <h2 className="activity-title-text">{activityDataResolved?.title || "Loading..."}</h2>
-              <span className={`difficulty-badge ${activityDataResolved?.difficulty?.toLowerCase() || "easy"}`}>{activityDataResolved?.difficulty || "Easy"}</span>
+              <span className={`difficulty-badge ${activityDataResolved?.difficulty?.toLowerCase() || "beginner"}`}>{activityDataResolved?.difficulty || "Beginner"}</span>
             </div>
             <div className="activity-card">
               {renderFormattedTask(activityDataResolved?.task || "Loading activity...")}

@@ -1,192 +1,192 @@
 {
-    "lessonId": "lesson-4-2",
-    "moduleId": "module-4",
-    "title": "Coin Change Problem",
-    "description": "Greedy coin selection: minimizing the number of coins for change -- and exactly why it works for real currencies but breaks on arbitrary denominations.",
-    "difficulty": "Beginner",
-    "estimatedTime": "26 min",
-    "prerequisites": "Greedy Algorithms",
-    "tags": [
-        "coin change",
-        "greedy algorithms",
-        "optimization"
-    ],
-    "activities": [
+  "lessonId": "lesson-4-2",
+  "moduleId": "module-4",
+  "title": "Coin Change Problem",
+  "description": "Greedy coin selection: minimizing the number of coins for change -- and exactly why it works for real currencies but breaks on arbitrary denominations.",
+  "difficulty": "Intermediate",
+  "estimatedTime": "26 min",
+  "prerequisites": "Greedy Algorithms",
+  "tags": [
+    "coin change",
+    "greedy algorithms",
+    "optimization"
+  ],
+  "activities": [
+    {
+      "id": "m4_l2_a1",
+      "title": "Philippine Cashier"
+    },
+    {
+      "id": "m4_l2_a2",
+      "title": "US Cashier"
+    },
+    {
+      "id": "m4_l2_a3",
+      "title": "Coin Breakdown Report"
+    },
+    {
+      "id": "m4_l2_a4",
+      "title": "Custom Coin System"
+    },
+    {
+      "id": "m4_l2_a5",
+      "title": "Exact Change Validator"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction",
+      "content": "Given coin denominations and a target amount (unlimited coins of each), find the **minimum number of coins** to make that exact amount.\n\nRather than trying every combination (exponential time), the greedy strategy repeatedly takes the **largest denomination that still fits** -- exactly how people naturally make change: to hit 36 cents, a quarter, then a dime, then a penny.\n\nEvery cashier system, vending machine, and ATM runs some version of this algorithm behind the scenes."
+    },
+    {
+      "id": "why-problem-matters",
+      "type": "concept",
+      "title": "Why This Problem Matters",
+      "content": "Returning 36 pennies technically works, but it's inconvenient for everyone -- systems need to minimize the coin/bill count.\n\n**Vending machines** need fast, exact change from limited coin supplies. **ATMs** dispense optimal bill denominations to reduce mechanical wear. **Banking software** computes optimal cash distributions for bulk orders.\n\nThe same reasoning shows up in inventory packing, disk-block allocation, and schedule filling -- anywhere you're minimizing the count of \"units\" used to hit a target.",
+      "bullets": [
+        "**Minimizes coin count**.",
+        "A clean demonstration of **greedy optimization**.",
+        "Runs constantly in real **financial systems**.",
+        "Teaches **local decision-making**."
+      ]
+    },
+    {
+      "id": "core-idea",
+      "type": "concept",
+      "title": "Core Idea of the Greedy Strategy",
+      "content": "One rule: **always take the largest coin that still fits.**\n\n1. Sort denominations descending.\n2. Start from the target amount.\n3. For each denomination, while the remaining amount ≥ that coin's value, take it and subtract.\n\nNo reconsidering -- once a coin is taken, it's final.\n\nUS coins `[25, 10, 5, 1]`, target 36: take 25 (11 left), take 10 (1 left), take 1 (0 left) → **3 coins**."
+    },
+    {
+      "id": "greedy-selection",
+      "type": "deep_dive",
+      "title": "Understanding Greedy Coin Selection",
+      "content": "**Philippine coins**, target 18 with `[10, 5, 1]`: 10 (8 left), 5 (3 left), three 1s → **5 coins**, optimal.\n\n**US coins**, target 41 with `[25, 10, 5, 1]`: 25, 10, 5, 1 → **4 coins**, optimal.\n\n**Large target**, 99 cents: three quarters (75¢) + two dimes (20¢) + four pennies → **9 coins**.\n\n**Why order matters:** process ascending instead, and you'd take pennies repeatedly -- 99 coins instead of 9. Sorting largest-to-smallest is what makes greedy work here."
+    },
+    {
+      "id": "why-greedy-works",
+      "type": "concept",
+      "title": "Why the Greedy Strategy Works Here",
+      "content": "Big denominations shrink the remaining amount fast, which minimizes total coin count -- but only on a **canonical coin system**, where greedy is *guaranteed* optimal for every target amount.\n\n**Canonical examples:** US `(1,5,10,25)`, Euro `(1,2,5,10,20,50)`, Philippine pesos `(1,5,10)`.\n\nRoughly: each coin is at least as large as the sum of all smaller ones. For US coins, a dime (10) ≥ two nickels (10) -- so a dime is never worse. Real currencies are **deliberately designed** this way so cashiers and machines can rely on simple, fast greedy logic instead of DP."
+    },
+    {
+      "id": "step-by-step-example",
+      "type": "deep_dive",
+      "title": "Step-by-Step Execution Visualization",
+      "content": "Making 36 cents with `[25, 10, 5, 1]`: take a quarter (11 left) → take a dime (1 left) → take a penny (0 left). **Result: `[25, 10, 1]`, 3 coins.**\n\n**Non-canonical** `[4, 3, 1]`, target 6: greedy takes 4 (2 left), then two 1s → `[4,1,1]`, 3 coins. **Optimal is `[3,3]`, 2 coins.** Greedy's early 4 blocked the better pairing -- proof that local choices can miss the global optimum, and that greedy only works reliably on canonical systems."
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Python Implementation",
+      "content": "**Basic:** sort descending, `while` loop takes coins until the remainder drops below that denomination. **Count-only:** same logic, but tracks a count instead of a list -- less memory. **Optimized (division):** skips the inner while loop entirely -- `num_coins = remaining // coin` computes the count directly, much faster on large amounts.",
+      "codeSnippets": [
         {
-            "id": "m4_l2_a1",
-            "title": "Philippine Cashier"
+          "title": "Greedy Coin Change (Basic)",
+          "language": "python",
+          "code": "coins = [25, 10, 5, 1]\namount = 36\nselected = []\n\n# Ensure coins are sorted largest to smallest\ncoins.sort(reverse=True)\n\nfor coin in coins:\n    while amount >= coin:\n        selected.append(coin)\n        amount -= coin\n\nprint(selected)"
         },
         {
-            "id": "m4_l2_a2",
-            "title": "US Cashier"
-        },
-        {
-            "id": "m4_l2_a3",
-            "title": "Coin Breakdown Report"
-        },
-        {
-            "id": "m4_l2_a4",
-            "title": "Custom Coin System"
-        },
-        {
-            "id": "m4_l2_a5",
-            "title": "Exact Change Validator"
+          "title": "Optimized Coin Change (Using Division)",
+          "language": "python",
+          "code": "coins = [25, 10, 5, 1]\namount = 99\ncoin_counts = {}\n\ncoins.sort(reverse=True)\n\nfor coin in coins:\n    if amount >= coin:\n        # Calculate exactly how many of this coin we need immediately\n        num_coins = amount // coin\n        coin_counts[coin] = num_coins\n        amount -= (num_coins * coin)\n\nprint(coin_counts)"
         }
-    ],
-    "sections": [
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "Let `n` = number of coin types, `A` = target amount.\n\n**Basic while-loop version:** O(n) to walk denominations, but the inner while loop can run up to O(A) times (e.g. making 1 million cents in 1-cent coins) -- worst case **O(n + A)**.\n\n**Optimized division version:** the `//` computation removes that inner loop entirely -- **O(n log n)** to sort, **O(n)** to process, independent of the amount.\n\n**Space:** **O(1)** for just counting; **O(A / min_coin)** if you store the actual list of coins used.",
+      "chart": {
+        "title": "Greedy Coin Change complexity",
+        "description": "Committing immediately to large denominations, rather than exploring every combination, keeps this scalable.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(amount)",
+          "O(2^n)"
+        ]
+      }
+    },
+    {
+      "id": "when-greedy-fails",
+      "type": "deep_dive",
+      "title": "When Greedy Coin Change Fails",
+      "content": "**`[1, 3, 4]`, target 6:** greedy → `[4,1,1]`, 3 coins. Optimal → `[3,3]`, 2 coins.\n\n**`[1, 6, 10]`, target 12:** greedy → `10+1+1`, 3 coins. Optimal → `6+6`, 2 coins.\n\nIn non-canonical systems, a bigger coin isn't always better -- greedy can't see that, since it never looks ahead or backtracks. When it fails, **Dynamic Programming** guarantees the optimal answer for any coin system, at the cost of O(n × amount) time and O(amount) space."
+    },
+    {
+      "id": "canonical-systems",
+      "type": "concept",
+      "title": "Why Some Currency Systems Work Well",
+      "content": "**Canonical coin systems** are deliberately designed so greedy always gives the optimal answer: US `[1,5,10,25]`, Euro `[1,2,5,10,20,50]`, Philippine pesos `[1,5,10]`, Japanese yen `[1,5,10,50,100,500]`.\n\nA sufficient condition: each coin ≥ the sum of all smaller coins (US: 5≥1, 10≥6, 25≥16). Building a cashier system for a real currency? The fast O(n) greedy algorithm is safe. Working with arbitrary or custom denominations? You need Dynamic Programming."
+    },
+    {
+      "id": "greedy-vs-dp",
+      "type": "concept",
+      "title": "Greedy vs Dynamic Programming",
+      "content": "Greedy: **canonical systems only**, O(n) time (with division optimization), O(1) space.\n\nDP: **any coin system**, O(n × amount) time, O(amount) space -- builds a table where `dp[i]` is the minimum coins for amount `i`.\n\nStandard cashier apps: greedy, fast and correct. Puzzles or custom currencies: DP, for the correctness guarantee."
+    },
+    {
+      "id": "applications",
+      "type": "real_world_connection",
+      "title": "Real-World Applications",
+      "content": "**POS terminals** calculate minimal change and display the coin breakdown to the cashier. **Vending machines** return exact change from limited hardware tubes in real time. **ATMs** dispense optimal bill combinations to minimize stack thickness. **Banking software** determines coin/bill distributions for armored-truck cash orders.\n\nSimilar reasoning shows up in bin-packing (inventory) and blockchain UTXO selection (choosing the largest transaction inputs to minimize byte size)."
+    },
+    {
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
         {
-            "id": "introduction",
-            "type": "introduction",
-            "title": "Introduction",
-            "content": "Given coin denominations and a target amount (unlimited coins of each), find the **minimum number of coins** to make that exact amount.\n\nRather than trying every combination (exponential time), the greedy strategy repeatedly takes the **largest denomination that still fits** -- exactly how people naturally make change: to hit 36 cents, a quarter, then a dime, then a penny.\n\nEvery cashier system, vending machine, and ATM runs some version of this algorithm behind the scenes."
+          "id": "always-optimal",
+          "title": "Mistake: Assuming greedy always produces optimal solutions",
+          "content": "`[1,3,4]` target 6 is the classic counterexample. Verify canonicity before trusting greedy."
         },
         {
-            "id": "why-problem-matters",
-            "type": "concept",
-            "title": "Why This Problem Matters",
-            "content": "Returning 36 pennies technically works, but it's inconvenient for everyone -- systems need to minimize the coin/bill count.\n\n**Vending machines** need fast, exact change from limited coin supplies. **ATMs** dispense optimal bill denominations to reduce mechanical wear. **Banking software** computes optimal cash distributions for bulk orders.\n\nThe same reasoning shows up in inventory packing, disk-block allocation, and schedule filling -- anywhere you're minimizing the count of \"units\" used to hit a target.",
-            "bullets": [
-                "**Minimizes coin count**.",
-                "A clean demonstration of **greedy optimization**.",
-                "Runs constantly in real **financial systems**.",
-                "Teaches **local decision-making**."
-            ]
+          "id": "ignore-order",
+          "title": "Mistake: Ignoring coin ordering",
+          "content": "Greedy depends entirely on **descending order**. Process ascending and you'll take far too many small coins. Always sort `reverse=True`."
         },
         {
-            "id": "core-idea",
-            "type": "concept",
-            "title": "Core Idea of the Greedy Strategy",
-            "content": "One rule: **always take the largest coin that still fits.**\n\n1. Sort denominations descending.\n2. Start from the target amount.\n3. For each denomination, while the remaining amount ≥ that coin's value, take it and subtract.\n\nNo reconsidering -- once a coin is taken, it's final.\n\nUS coins `[25, 10, 5, 1]`, target 36: take 25 (11 left), take 10 (1 left), take 1 (0 left) → **3 coins**."
-        },
-        {
-            "id": "greedy-selection",
-            "type": "deep_dive",
-            "title": "Understanding Greedy Coin Selection",
-            "content": "**Philippine coins**, target 18 with `[10, 5, 1]`: 10 (8 left), 5 (3 left), three 1s → **5 coins**, optimal.\n\n**US coins**, target 41 with `[25, 10, 5, 1]`: 25, 10, 5, 1 → **4 coins**, optimal.\n\n**Large target**, 99 cents: three quarters (75¢) + two dimes (20¢) + four pennies → **9 coins**.\n\n**Why order matters:** process ascending instead, and you'd take pennies repeatedly -- 99 coins instead of 9. Sorting largest-to-smallest is what makes greedy work here."
-        },
-        {
-            "id": "why-greedy-works",
-            "type": "concept",
-            "title": "Why the Greedy Strategy Works Here",
-            "content": "Big denominations shrink the remaining amount fast, which minimizes total coin count -- but only on a **canonical coin system**, where greedy is *guaranteed* optimal for every target amount.\n\n**Canonical examples:** US `(1,5,10,25)`, Euro `(1,2,5,10,20,50)`, Philippine pesos `(1,5,10)`.\n\nRoughly: each coin is at least as large as the sum of all smaller ones. For US coins, a dime (10) ≥ two nickels (10) -- so a dime is never worse. Real currencies are **deliberately designed** this way so cashiers and machines can rely on simple, fast greedy logic instead of DP."
-        },
-        {
-            "id": "step-by-step-example",
-            "type": "deep_dive",
-            "title": "Step-by-Step Execution Visualization",
-            "content": "Making 36 cents with `[25, 10, 5, 1]`: take a quarter (11 left) → take a dime (1 left) → take a penny (0 left). **Result: `[25, 10, 1]`, 3 coins.**\n\n**Non-canonical** `[4, 3, 1]`, target 6: greedy takes 4 (2 left), then two 1s → `[4,1,1]`, 3 coins. **Optimal is `[3,3]`, 2 coins.** Greedy's early 4 blocked the better pairing -- proof that local choices can miss the global optimum, and that greedy only works reliably on canonical systems."
-        },
-        {
-            "id": "implementation",
-            "type": "concept",
-            "title": "Python Implementation",
-            "content": "**Basic:** sort descending, `while` loop takes coins until the remainder drops below that denomination. **Count-only:** same logic, but tracks a count instead of a list -- less memory. **Optimized (division):** skips the inner while loop entirely -- `num_coins = remaining // coin` computes the count directly, much faster on large amounts.",
-            "codeSnippets": [
-                {
-                    "title": "Greedy Coin Change (Basic)",
-                    "language": "python",
-                    "code": "coins = [25, 10, 5, 1]\namount = 36\nselected = []\n\n# Ensure coins are sorted largest to smallest\ncoins.sort(reverse=True)\n\nfor coin in coins:\n    while amount >= coin:\n        selected.append(coin)\n        amount -= coin\n\nprint(selected)"
-                },
-                {
-                    "title": "Optimized Coin Change (Using Division)",
-                    "language": "python",
-                    "code": "coins = [25, 10, 5, 1]\namount = 99\ncoin_counts = {}\n\ncoins.sort(reverse=True)\n\nfor coin in coins:\n    if amount >= coin:\n        # Calculate exactly how many of this coin we need immediately\n        num_coins = amount // coin\n        coin_counts[coin] = num_coins\n        amount -= (num_coins * coin)\n\nprint(coin_counts)"
-                }
-            ]
-        },
-        {
-            "id": "complexity-analysis",
-            "type": "deep_dive",
-            "title": "Complexity Analysis",
-            "content": "Let `n` = number of coin types, `A` = target amount.\n\n**Basic while-loop version:** O(n) to walk denominations, but the inner while loop can run up to O(A) times (e.g. making 1 million cents in 1-cent coins) -- worst case **O(n + A)**.\n\n**Optimized division version:** the `//` computation removes that inner loop entirely -- **O(n log n)** to sort, **O(n)** to process, independent of the amount.\n\n**Space:** **O(1)** for just counting; **O(A / min_coin)** if you store the actual list of coins used.",
-            "chart": {
-                "title": "Greedy Coin Change complexity",
-                "description": "Committing immediately to large denominations, rather than exploring every combination, keeps this scalable.",
-                "maxN": 32,
-                "normalize": true,
-                "curves": [
-                    "O(n)",
-                    "O(amount)",
-                    "O(2^n)"
-                ]
-            }
-        },
-        {
-            "id": "when-greedy-fails",
-            "type": "deep_dive",
-            "title": "When Greedy Coin Change Fails",
-            "content": "**`[1, 3, 4]`, target 6:** greedy → `[4,1,1]`, 3 coins. Optimal → `[3,3]`, 2 coins.\n\n**`[1, 6, 10]`, target 12:** greedy → `10+1+1`, 3 coins. Optimal → `6+6`, 2 coins.\n\nIn non-canonical systems, a bigger coin isn't always better -- greedy can't see that, since it never looks ahead or backtracks. When it fails, **Dynamic Programming** guarantees the optimal answer for any coin system, at the cost of O(n × amount) time and O(amount) space."
-        },
-        {
-            "id": "canonical-systems",
-            "type": "concept",
-            "title": "Why Some Currency Systems Work Well",
-            "content": "**Canonical coin systems** are deliberately designed so greedy always gives the optimal answer: US `[1,5,10,25]`, Euro `[1,2,5,10,20,50]`, Philippine pesos `[1,5,10]`, Japanese yen `[1,5,10,50,100,500]`.\n\nA sufficient condition: each coin ≥ the sum of all smaller coins (US: 5≥1, 10≥6, 25≥16). Building a cashier system for a real currency? The fast O(n) greedy algorithm is safe. Working with arbitrary or custom denominations? You need Dynamic Programming."
-        },
-        {
-            "id": "greedy-vs-dp",
-            "type": "concept",
-            "title": "Greedy vs Dynamic Programming",
-            "content": "Greedy: **canonical systems only**, O(n) time (with division optimization), O(1) space.\n\nDP: **any coin system**, O(n × amount) time, O(amount) space -- builds a table where `dp[i]` is the minimum coins for amount `i`.\n\nStandard cashier apps: greedy, fast and correct. Puzzles or custom currencies: DP, for the correctness guarantee."
-        },
-        {
-            "id": "applications",
-            "type": "real_world_connection",
-            "title": "Real-World Applications",
-            "content": "**POS terminals** calculate minimal change and display the coin breakdown to the cashier. **Vending machines** return exact change from limited hardware tubes in real time. **ATMs** dispense optimal bill combinations to minimize stack thickness. **Banking software** determines coin/bill distributions for armored-truck cash orders.\n\nSimilar reasoning shows up in bin-packing (inventory) and blockchain UTXO selection (choosing the largest transaction inputs to minimize byte size)."
-        },
-        {
-            "id": "misconceptions",
-            "type": "key_concept",
-            "title": "Common Beginner Mistakes",
-            "subsections": [
-                {
-                    "id": "always-optimal",
-                    "title": "Mistake: Assuming greedy always produces optimal solutions",
-                    "content": "`[1,3,4]` target 6 is the classic counterexample. Verify canonicity before trusting greedy."
-                },
-                {
-                    "id": "ignore-order",
-                    "title": "Mistake: Ignoring coin ordering",
-                    "content": "Greedy depends entirely on **descending order**. Process ascending and you'll take far too many small coins. Always sort `reverse=True`."
-                },
-                {
-                    "id": "exhaustive-search",
-                    "title": "Mistake: Confusing greedy optimization with exhaustive search",
-                    "content": "Greedy commits immediately, with no lookahead -- fast, but that's also exactly why it can miss the optimal answer on tricky inputs."
-                }
-            ]
-        },
-        {
-            "id": "takeaways",
-            "type": "summary",
-            "title": "Key Takeaways",
-            "bullets": [
-                "The goal: **minimize the number of coins** used.",
-                "Greedy repeatedly takes the **largest denomination that fits**.",
-                "Local optimal choices **don't always** produce the global optimum.",
-                "US/Euro-style currencies are **designed for greedy correctness**.",
-                "Greedy is **fast and memory-light**.",
-                "**Dynamic Programming** is needed when greedy fails on arbitrary coins."
-            ]
+          "id": "exhaustive-search",
+          "title": "Mistake: Confusing greedy optimization with exhaustive search",
+          "content": "Greedy commits immediately, with no lookahead -- fast, but that's also exactly why it can miss the optimal answer on tricky inputs."
         }
-    ],
-    "references": [
-        {
-            "title": "Programiz - Greedy Algorithm",
-            "url": "https://www.programiz.com/dsa/greedy-algorithm"
-        },
-        {
-            "title": "Codecademy - Greedy Algorithms and Coin Change",
-            "url": "https://www.codecademy.com/article/greedy-algorithms"
-        },
-        {
-            "title": "Techie Delight — Coin Change Problem",
-            "url": "https://www.techiedelight.com/coin-change-problem-find-total-number-ways-get-denomination-coins/"
-        },
-        {
-            "title": "GeeksforGeeks - Coin Change Problem",
-            "url": "https://www.geeksforgeeks.org/coin-change-problem-in-cpp/"
-        }
-    ]
+      ]
+    },
+    {
+      "id": "takeaways",
+      "type": "summary",
+      "title": "Key Takeaways",
+      "bullets": [
+        "The goal: **minimize the number of coins** used.",
+        "Greedy repeatedly takes the **largest denomination that fits**.",
+        "Local optimal choices **don't always** produce the global optimum.",
+        "US/Euro-style currencies are **designed for greedy correctness**.",
+        "Greedy is **fast and memory-light**.",
+        "**Dynamic Programming** is needed when greedy fails on arbitrary coins."
+      ]
+    }
+  ],
+  "references": [
+    {
+      "title": "Programiz - Greedy Algorithm",
+      "url": "https://www.programiz.com/dsa/greedy-algorithm"
+    },
+    {
+      "title": "Codecademy - Greedy Algorithms and Coin Change",
+      "url": "https://www.codecademy.com/article/greedy-algorithms"
+    },
+    {
+      "title": "Techie Delight — Coin Change Problem",
+      "url": "https://www.techiedelight.com/coin-change-problem-find-total-number-ways-get-denomination-coins/"
+    },
+    {
+      "title": "GeeksforGeeks - Coin Change Problem",
+      "url": "https://www.geeksforgeeks.org/coin-change-problem-in-cpp/"
+    }
+  ]
 }
