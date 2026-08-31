@@ -907,6 +907,20 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           } catch (e) { console.error("Failed to load blocks"); }
         } else if (resolvedActivity.templateUrl) {
           try {
+            // NOTE: module_1.json..module_6.json's `templateUrl` field for
+            // every optimization activity now points at its real file
+            // (fixed -- it previously used a "m1-1.1.json" naming scheme
+            // that never matched any file actually in
+            // /data/optimizations/, which only ever held "m1_opt_1.json"
+            // style names; every optimization activity's id contains
+            // "opt", so this override below silently papered over the
+            // mismatch by always deriving the fetch URL from the id
+            // instead). The override is now redundant with the corrected
+            // templateUrl data, but it's kept as a safety net: if a future
+            // optimization activity is ever added with a `templateUrl`
+            // that drifts from `/data/optimizations/{id}.json` again,
+            // this still forces it back to the one filename convention
+            // that's guaranteed to exist.
             let fetchUrl = resolvedActivity.templateUrl;
             if (resolvedActivity.id && resolvedActivity.id.includes('opt')) {
               fetchUrl = `/data/optimizations/${resolvedActivity.id}.json`;

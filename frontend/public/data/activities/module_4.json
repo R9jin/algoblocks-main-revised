@@ -606,7 +606,7 @@
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m4-4.1.json",
+      "templateUrl": "/data/optimizations/m4_opt_1.json",
       "testCasesPool": [
         {
           "call": "greedy_sum_opt([1, 5, 2, 9, 3], 2)",
@@ -647,7 +647,7 @@
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m4-4.2.json",
+      "templateUrl": "/data/optimizations/m4_opt_2.json",
       "testCasesPool": [
         {
           "call": "fast_cashier(47, [25, 10, 5, 1])",
@@ -683,7 +683,7 @@
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m4-4.3.json",
+      "templateUrl": "/data/optimizations/m4_opt_3.json",
       "testCasesPool": [
         {
           "call": "schedule_opt([[0, 2], [1, 4], [3, 5]])",

@@ -694,7 +694,7 @@
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m2-2.1.json",
+      "templateUrl": "/data/optimizations/m2_opt_1.json",
       "testCasesPool": [
         {
           "call": "two_sum_sorted([2, 7, 11, 15], 9)",
@@ -734,7 +734,7 @@
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m2-2.2.json",
+      "templateUrl": "/data/optimizations/m2_opt_2.json",
       "testCasesPool": [
         {
           "call": "find_majority_sorted([1, 1, 1, 2, 3])",
@@ -775,7 +775,7 @@
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m2-2.3.json",
+      "templateUrl": "/data/optimizations/m2_opt_3.json",
       "testCasesPool": [
         {
           "call": "has_duplicates_opt([4, 1, 2, 1, 3])",

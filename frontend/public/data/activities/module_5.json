@@ -746,7 +746,7 @@
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
-      "templateUrl": "/data/optimizations/m5-5.1.json",
+      "templateUrl": "/data/optimizations/m5_opt_1.json",
       "testCasesPool": [
         {
           "call": "fib_optimized(5)",
@@ -787,7 +787,7 @@
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(n^2)",
-      "templateUrl": "/data/optimizations/m5-5.2.json",
+      "templateUrl": "/data/optimizations/m5_opt_2.json",
       "testCasesPool": [
         {
           "call": "knapsack_optimized([10, 20, 30], [60, 100, 120], 50)",
@@ -824,7 +824,7 @@
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(n)",
-      "templateUrl": "/data/optimizations/m5-5.3.json",
+      "templateUrl": "/data/optimizations/m5_opt_3.json",
       "testCasesPool": [
         {
           "call": "lcs_optimized('abcde', 'ace')",

@@ -717,7 +717,7 @@
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(n^2)",
-      "templateUrl": "/data/optimizations/m6-6.1.json",
+      "templateUrl": "/data/optimizations/m6_opt_1.json",
       "testCasesPool": [
         {
           "call": "unique_paths_opt(3, 3)",
@@ -759,7 +759,7 @@
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(n^2)",
-      "templateUrl": "/data/optimizations/m6-6.2.json",
+      "templateUrl": "/data/optimizations/m6_opt_2.json",
       "testCasesPool": [
         {
           "call": "subset_sum_opt([3, 34, 4, 12, 5, 2], 9)",
@@ -800,7 +800,7 @@
       ],
       "targetTime": "O(n!)",
       "targetSpace": "O(n)",
-      "templateUrl": "/data/optimizations/m6-6.3.json",
+      "templateUrl": "/data/optimizations/m6_opt_3.json",
       "testCasesPool": [
         {
           "call": "n_queens_opt(4)",
