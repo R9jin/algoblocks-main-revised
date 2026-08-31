@@ -18,7 +18,7 @@ import { useOnboarding, GENERIC_ACTIVITY_TOUR_PAGE_ID } from "../context/Onboard
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { getIntroActivityTour } from "../data/introActivityTours.js";
 import curriculumIndex from "../data/curriculumIndex.js";
-import { curriculumCacheDB, progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
+import { curriculumCacheDB, progressDB, submissionsDB, syncQueueDB } from "../db.js";
 import "../styles/ActivityApp.css";
 import { getComplexityWeight, sanitizePythonCode } from "../utils/asymptoticParser.jsx";
 import { extractErrorSummaryLine, translatePythonError } from "../utils/errorTranslator.js";
@@ -504,7 +504,20 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
           const json = await res.json();
-          try { await templatesDB.setItem(cacheKey, json); } catch (e) { }
+          // CACHE-STORE FIX: this used to write into templatesDB (the store
+          // for real, user-saved custom templates, keyPath "templateId").
+          // Since curriculum JSON has no templateId, the DB wrapper stamped
+          // the cache key on as a fake templateId -- so every activity/
+          // optimization template we cached here looked to syncManager.js
+          // like an unsynced user template. It would POST the raw
+          // curriculum JSON to /api/templates, get a 403 (correctly, since
+          // it's not a real template), and then DELETE this cache entry as
+          // cleanup -- wiping the opt-act template's offline fallback on
+          // every app boot (including the reload Restart triggers). Use
+          // curriculumCacheDB instead: it's the store already built for
+          // exactly this (static curriculum content, not per-user data,
+          // and explicitly excluded from clearLocalUserData/syncManager).
+          try { await curriculumCacheDB.setItem(cacheKey, json); } catch (e) { }
           return json;
         }
       }
@@ -517,14 +530,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const contentType = swRes.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
           const json = await swRes.json();
-          try { await templatesDB.setItem(cacheKey, json); } catch (e) { }
+          try { await curriculumCacheDB.setItem(cacheKey, json); } catch (e) { }
           return json;
         }
       }
     } catch (e) { }
 
     try {
-      const cached = await templatesDB.getItem(cacheKey);
+      const cached = await curriculumCacheDB.getItem(cacheKey);
       if (cached) return cached;
     } catch (e) { }
     // BUG FIX: LearningPath.jsx pre-fetches this exact same activities/lesson
