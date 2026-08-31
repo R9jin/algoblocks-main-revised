@@ -26,7 +26,7 @@
       "name": "Python3 implementation of above implementation",
       "source_file": "ground_truth_chunk_02.json",
       "expected": "O(2^n)",
-      "predicted": "O(log n)",
+      "predicted": "O(n)",
       "analyzer_status": "success"
     },
     {
@@ -170,7 +170,7 @@
       "name": "Python3 program to illustrate if a given array can represent",
       "source_file": "ground_truth_chunk_21.json",
       "expected": "O(2^n)",
-      "predicted": "O(log n)",
+      "predicted": "O(n)",
       "analyzer_status": "success"
     },
     {
