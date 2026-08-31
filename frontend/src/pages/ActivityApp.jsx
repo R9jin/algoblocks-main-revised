@@ -1928,6 +1928,19 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                   isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.",
                   confirmText: "Restart", cancelText: "Cancel", isDanger: true,
                   onConfirmAction: async () => {
+                    // RESTART RACE FIX: handleWorkspaceAutoSave's 1.5s debounce
+                    // timer can still be armed when Restart is clicked (e.g.
+                    // right after manually dragging a block out). If left
+                    // alone, that stale timer closure fires later -- during
+                    // or after this reset -- calling saveSubmission() with
+                    // isReset defaulted to false and the *old* pre-reset
+                    // workspace, overwriting the same submissionId and
+                    // stripping the was_reset flag we're about to set below.
+                    // On the next boot() that looks like a normal saved
+                    // attempt (not a reset), so it resumes the stale blocks
+                    // instead of re-fetching the original optimization
+                    // template. Cancel it first so nothing can fire after us.
+                    if (saveDraftTimeoutRef.current) { clearTimeout(saveDraftTimeoutRef.current); saveDraftTimeoutRef.current = null; }
                     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
                     if (storedUser) {
                       const user = JSON.parse(storedUser);
@@ -1935,6 +1948,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                       try { localStorage.removeItem(`algoblocks_emergency_${user.email}_${moduleId}_${activityId}`); } catch(e){}
                     }
                     localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`);
+                    // Reset in-memory state immediately too, so if a beforeunload/
+                    // pagehide fires during the reload navigation, emergencySaveNow()
+                    // can't resurrect the emergency-save key with the pre-reset
+                    // workspace (it reads latestBlocksJsonRef.current, which isn't
+                    // touched by saveSubmission above).
+                    latestBlocksJsonRef.current = {};
                     await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true, true);
                     window.location.reload();
                   }, onCancelAction: closeModal
