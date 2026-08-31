@@ -296,8 +296,19 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     if not is_quicksort and 'quick' in node.name.lower():
                         is_quicksort = True
                     
-                    is_binary_search = any(k in node.name.lower() for k in ['search', 'find', 'pivot', 'query', 'rmq', 'lca', 'floor', 'ceil', 'kth', 'select', 'median', 'bound'])
-                    is_tree_trav = self.analyzer.tree_traversal_calls >= 2 or any(k in node.name.lower() for k in ['order', 'tree', 'bst', 'node', 'path', 'height', 'depth', 'lca', 'sum', 'build', 'construct'])
+                    # Word-tokenize the function name instead of doing raw
+                    # substring checks against it (matches the approach
+                    # already used above for the memo/graph 'visit' check).
+                    # A plain `'path' in name` substring check false-positives
+                    # on any function whose name merely contains "path" as
+                    # part of a longer word -- e.g. "unique_paths_opt" (grid
+                    # DP, no tree/graph involved) matches 'path' inside
+                    # "paths" and got misclassified as tree traversal
+                    # (T(n)=2T(n/2)+O(1) -> O(n)) instead of the true
+                    # branching recursion (O(2^n)) its two self-calls are.
+                    name_tokens = set(re.findall(r'[A-Za-z][a-z0-9]*', node.name.lower()))
+                    is_binary_search = bool(name_tokens & {'search', 'find', 'pivot', 'query', 'rmq', 'lca', 'floor', 'ceil', 'kth', 'select', 'median', 'bound'})
+                    is_tree_trav = self.analyzer.tree_traversal_calls >= 2 or bool(name_tokens & {'order', 'tree', 'bst', 'node', 'path', 'height', 'depth', 'lca', 'sum', 'build', 'construct'})
                     
                     if is_binary_search:
                         if does_linear_work:
