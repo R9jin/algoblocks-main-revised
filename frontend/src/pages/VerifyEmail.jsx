@@ -4,6 +4,7 @@ import { FiCheckCircle, FiMail, FiXCircle } from "react-icons/fi";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getErrorMessage } from "../utils/apiError";
 import { SUPPORT_EMAIL } from "../utils/constants";
+import { clearLocalUserData } from "../db";
 import "../styles/Auth.css";
 
 export default function VerifyEmail() {
@@ -54,6 +55,21 @@ export default function VerifyEmail() {
           setErrorMessage(getErrorMessage(data, "This verification link is invalid or has expired."));
           return;
         }
+
+        // BUG FIX: verifying logs the user in immediately, landing straight
+        // on /dashboard -- but this never cleared the local IndexedDB cache
+        // (progressDB/assessmentsDB/submissionsDB in db.js) first. Those
+        // stores are keyed by fixed keys like "course-pre-test_pre_assessment"
+        // with no userId scoping at all, so if the browser/profile had any
+        // leftover records from an earlier session (a previous account, a
+        // guest run, an earlier test), a genuinely brand-new account would
+        // inherit that stale progress/assessment data on its very first
+        // login -- e.g. showing a pre/post-test as already completed for an
+        // account the backend confirms has zero progress. SignIn.jsx already
+        // clears this on regular login; do the same here so a fresh signup
+        // is guaranteed to actually start fresh.
+        await clearLocalUserData();
+        if (!isMountedRef.current) return;
 
         // Verifying logs the user in immediately (same pattern as
         // reset-password), so persist the session the same way SignIn does.

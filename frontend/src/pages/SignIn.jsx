@@ -72,14 +72,29 @@ export default function SignIn() {
   // guarded by isStillCurrentSession() instead of component-mount state.
   const syncUserCloudData = async (userEmail, token) => {
     try {
-      // BUG FIX: this already cleared projects/templates/syncQueue on every
-      // login (so a previous account's projects don't bleed into this one)
-      // but left progress/assessments/submissions untouched -- exactly the
-      // learning-path data that was leaking across accounts/guest sessions
-      // on a shared browser. clearLocalUserData() clears all of it; the
-      // freshly-authenticated user's own progress/assessments get pulled
-      // back in by syncDownFromServer() right after login.
-      await clearLocalUserData();
+      // NOTE: clearLocalUserData() used to be awaited right here, as the
+      // first thing this function did. That looked safe, but this function
+      // itself is invoked *without* being awaited, right after navigate()
+      // (see handleSubmit/handleGoogleSuccess below) -- so navigate() would
+      // fire, the destination page (e.g. AssessmentPage, LearningPath)
+      // would mount and its own effects would read IndexedDB
+      // (progressDB/assessmentsDB, keyed by fixed keys like
+      // "course-pre-test_pre_assessment" with NO userId scoping at all)
+      // *before* this async clear had actually finished running. On a
+      // browser/profile that still had another account's (or a previous
+      // test run's) assessment/progress records sitting in IndexedDB, the
+      // freshly-created account would briefly -- and sometimes
+      // persistently, since some pages only check once on mount -- see
+      // that stale data and render it as "already completed" (e.g. a
+      // brand new account showing a retest as already taken, even though
+      // the backend/admin view confirmed the account had zero progress).
+      // Wiping local storage by hand fixed it only because it removed the
+      // stale IndexedDB records outright, closing the race window by
+      // brute force. The real fix is to make sure clearLocalUserData()
+      // has *fully completed* before we ever navigate to a page that
+      // reads these stores -- so it's now awaited by the caller before
+      // navigate(), not raced against it in here. See handleSubmit and
+      // handleGoogleSuccess.
       if (!isStillCurrentSession(token)) return;
 
       const headers = {
@@ -189,6 +204,23 @@ export default function SignIn() {
       // already successfully authenticated. Storage has everything a
       // freshly-loaded /home or /dashboard needs, so navigate right away
       // and let cloud sync finish in the background.
+      //
+      // BUG FIX: clearLocalUserData() (wiping the local IndexedDB
+      // progress/assessments/submissions caches so a previous account's
+      // data can't leak into this one) used to run inside
+      // syncUserCloudData() below -- which is *not* awaited, so it was
+      // racing against navigate(). The destination page's own mount
+      // effects could read those IndexedDB stores before the clear had
+      // actually finished, briefly (or persistently) picking up stale
+      // data left over from a previous account/session on this browser --
+      // e.g. a brand new account showing a pre/post-test as already taken.
+      // clearLocalUserData() is itself purely local (no network calls), so
+      // awaiting it here doesn't reintroduce the slow-network freeze the
+      // above fix addressed -- only the actual cloud fetch stays
+      // backgrounded.
+      if (!isMountedRef.current) return;
+      await clearLocalUserData();
+      if (!isMountedRef.current) return;
       navigate(isAdminAccount ? "/dashboard" : "/home");
       syncUserCloudData(data.email, data.token);
 
@@ -289,6 +321,11 @@ export default function SignIn() {
 
       // Same regular-student-vs-admin destination fix as the email/password flow,
       // and same "don't block navigation on cloud sync" fix -- see handleSubmit.
+      // Same IndexedDB-clear-must-finish-before-navigate fix too -- see the
+      // comment above the equivalent call in handleSubmit.
+      if (!isMountedRef.current) return;
+      await clearLocalUserData();
+      if (!isMountedRef.current) return;
       navigate(isAdminAccount ? "/dashboard" : "/home");
       syncUserCloudData(data.email, data.token);
 
