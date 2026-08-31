@@ -815,7 +815,27 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const isLocalBlank = !localCode || localCode.trim() === "" || localCode === "# Drag blocks to generate Python code";
         const isCloudBlank = !cloudCode || cloudCode.trim() === "" || cloudCode === "# Drag blocks to generate Python code";
 
-        if (!isLocalBlank && isCloudBlank) {
+        // RESTART-VS-STALE-CLOUD FIX: Restart wipes the local record
+        // (fast, synchronous IndexedDB write) and *also* fires a cloud sync
+        // of that same was_reset=true wipe -- but that sync is a network
+        // round-trip inside saveSubmission that can still be in flight (or
+        // have failed and been handed to the retry queue) at the moment
+        // this boot() runs right after the reload. If so, the GET above
+        // still returns the OLD pre-restart cloud submission: not blank,
+        // no was_reset flag. The blank-vs-non-blank heuristic below used to
+        // treat that stale cloud copy as "the real data" (since local now
+        // looks blank and cloud doesn't) and load the learner's old code
+        // instead of re-fetching the original template -- silently
+        // reviving progress the learner had just asked to discard.
+        // A record explicitly marked was_reset always wins over one that
+        // isn't, regardless of which side looks blank, since restart's
+        // intent is to override any progress -- local, cloud, or stale.
+        if (localSubmission?.was_reset && !cloudSubmission?.was_reset) {
+            finalSubmissionToLoad = localSubmission;
+        } else if (cloudSubmission?.was_reset && !localSubmission?.was_reset) {
+            finalSubmissionToLoad = cloudSubmission;
+            try { await submissionsDB.setItem(submissionId, cloudSubmission); } catch (e) {}
+        } else if (!isLocalBlank && isCloudBlank) {
             finalSubmissionToLoad = localSubmission; 
         } else if (isLocalBlank && !isCloudBlank) {
             finalSubmissionToLoad = cloudSubmission;
