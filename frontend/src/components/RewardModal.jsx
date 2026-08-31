@@ -41,6 +41,10 @@ const MILESTONE_PRESETS = {
   lessonUnlocked: { Icon: FiUnlock, label: "Lesson Unlocked!", accent: "#34d399" },
   optimizationUnlocked: { Icon: FiUnlock, label: "Quiz Unlocked!", accent: "#34d399" },
   sectionCompleted: { Icon: GiPodiumWinner, label: "Section Completed!", accent: "#f7b733" },
+  // Shown once, on the comprehensive course post-test -- the biggest
+  // milestone in the app, so it reuses the trophy rather than the podium
+  // icon the per-module "sectionCompleted" preset uses.
+  courseCompleted: { Icon: GiTrophyCup, label: "Course Completed!", accent: "#f7b733" },
 };
 
 const CONFETTI_COLORS = ["#f7b733", "#a78bfa", "#60a5fa", "#34d399", "#f472b6", "#fb923c"];

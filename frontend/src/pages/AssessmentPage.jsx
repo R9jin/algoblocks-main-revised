@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { FiAlertTriangle, FiAward, FiBarChart2, FiBookOpen, FiCheck, FiCheckCircle, FiChevronLeft, FiChevronRight, FiClock, FiFileText, FiInfo, FiLock, FiSave, FiTarget, FiTrendingUp, FiX } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
+import RewardModal from "../components/RewardModal";
 import { assessmentsDB, curriculumCacheDB, progressDB, syncQueueDB } from "../db";
 import "../styles/AssessmentPage.css";
 
@@ -120,6 +121,10 @@ export default function AssessmentPage() {
   const [prevResult, setPrevResult] = useState(null);
   const [isLocked, setIsLocked] = useState(false);
   const [assessmentVersion, setAssessmentVersion] = useState(1);
+  // Shows the same celebratory RewardModal (confetti, animated score, badge)
+  // that activities use, but only right after a fresh post-test submission --
+  // not on every later visit to the already-locked results page.
+  const [showPostTestCelebration, setShowPostTestCelebration] = useState(false);
 
   const timerRef = useRef(null);
   const autoSaveRef = useRef(null);
@@ -352,6 +357,7 @@ export default function AssessmentPage() {
     const finalScore = Math.round((correct / questions.length) * 100);
     setScore(finalScore);
     setSubmitted(true);
+    if (isGlobalPostTest) setShowPostTestCelebration(true);
 
     // BUG FIX (Quiz answer review mismatch): Previously answers were stored keyed
     // by positional index ({0: optIdx, 1: optIdx, ...}). On reload the questions
@@ -494,6 +500,36 @@ export default function AssessmentPage() {
     const activeAttempts = prevResult?.attempts || (submitted ? 1 : 1);
     const { label, color, icon } = getScoreLabel(activeScore);
 
+    // Same tier language the activity RewardModal uses, so finishing the
+    // post-test feels like the same kind of payoff as finishing a lesson
+    // or optimization challenge -- not a plain results page.
+    let postTestRewardResult = null;
+    if (isGlobalPostTest) {
+      let tier; let description;
+      if (activeScore >= 90) {
+        tier = "perfect";
+        description = "You've mastered algorithmic foundations across the entire curriculum. Outstanding work!";
+      } else if (activeScore >= 75) {
+        tier = "great";
+        description = "You've shown strong command of the material across every module. Great job seeing it through!";
+      } else {
+        tier = "good";
+        description = "You made it through the full curriculum and put your knowledge to the test. That's worth celebrating!";
+      }
+      postTestRewardResult = {
+        tier,
+        aesScore: activeScore,
+        funcPassed: 0,
+        funcTotal: 0,
+        rogGain: 0,
+        passedCount: 0,
+        threshold: 0,
+        description,
+        milestone: "courseCompleted",
+        milestoneNote: "You've completed every module and the final exam. This post-test is now locked.",
+      };
+    }
+
     // BUG FIX (Quiz score mismatch / answers not viewable):
     // Build a lookup map: question ID → the option index the user chose.
     // Priority: answersByQuestionId (new format, stored at submit time keyed by q.id)
@@ -525,6 +561,18 @@ export default function AssessmentPage() {
     return (
       <div className="assessment-page">
         <DashboardHeader backTo="/learning-path" backText="Back to Learning Path" />
+
+        {isGlobalPostTest && (
+          <RewardModal
+            isOpen={showPostTestCelebration}
+            result={postTestRewardResult}
+            confirmText="View My Results"
+            cancelText="Close"
+            onConfirm={() => setShowPostTestCelebration(false)}
+            onCancel={() => setShowPostTestCelebration(false)}
+          />
+        )}
+
         <div className="assessment-results-wrapper">
           <div className="results-card">
             <div className="results-header">
