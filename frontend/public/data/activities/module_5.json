@@ -391,8 +391,8 @@
         "3. Ensure the matrix provisions space for `n + 1` rows and `capacity + 1` columns to handle base zero calculations.",
         "4. Populate the entire grid sequentially with zeros and return the structure."
       ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
         {
           "call": "init_knapsack(2, 2)",
@@ -461,8 +461,8 @@
         "5. If it cannot fit, unconditionally carry the optimal state down from the row directly above.",
         "6. Return the highest computed magnitude located at the terminal coordinates."
       ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
         {
           "call": "knapsack([10, 20, 30], [60, 100, 120], 50)",
@@ -524,7 +524,7 @@
         "5. Update the active cell to the maximum of its current stored state versus the state obtained by including the new item.",
         "6. Return the highest magnitude located at the array boundary."
       ],
-      "targetTime": "O(n * m)",
+      "targetTime": "O(n^2)",
       "targetSpace": "O(n)",
       "testCasesPool": [
         {
@@ -562,8 +562,8 @@
         "4. Assign zero to every internal element.",
         "5. Return the resulting dual-axis grid."
       ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
         {
           "call": "init_lcs('a', 'b')",
@@ -632,8 +632,8 @@
         "5. Otherwise, pull forward the maximum recorded state from either directly above or directly to the left.",
         "6. Return the aggregate maximum located at the matrix terminus."
       ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
         {
           "call": "lcs_length('abcde', 'ace')",
@@ -701,7 +701,7 @@
         "6. If mismatched, utilize standard continuous array maximum evaluations. Constantly overwrite your auxiliary diagonal tracker with the buffered array state.",
         "7. Retrieve the terminal boundary value."
       ],
-      "targetTime": "O(n * m)",
+      "targetTime": "O(n^2)",
       "targetSpace": "O(n)",
       "testCasesPool": [
         {
@@ -785,8 +785,8 @@
         "4. For each cell, determine the optimal value by comparing the state without the current item against the state including the item.",
         "5. Return the value computed in the final cell of the matrix."
       ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "templateUrl": "/data/optimizations/m5-5.2.json",
       "testCasesPool": [
         {
@@ -822,7 +822,7 @@
         "5. Update the 1D array based on character matches, utilizing the buffered diagonal value when necessary.",
         "6. Retrieve the terminal boundary value to achieve an O(n) space complexity."
       ],
-      "targetTime": "O(n * m)",
+      "targetTime": "O(n^2)",
       "targetSpace": "O(n)",
       "templateUrl": "/data/optimizations/m5-5.3.json",
       "testCasesPool": [

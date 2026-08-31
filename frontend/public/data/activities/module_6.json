@@ -757,8 +757,8 @@
         "5. Update the boolean state by evaluating if the sum was achievable without the item, or achievable by incorporating the item.",
         "6. Return the boolean state of the final target coordinate."
       ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "templateUrl": "/data/optimizations/m6-6.2.json",
       "testCasesPool": [
         {
