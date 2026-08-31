@@ -118,6 +118,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   
   const isReadyRef = useRef(false);
   const isUnmountingRef = useRef(false); 
+  const isResettingRef = useRef(false);
   const loadTimeRef = useRef(0); 
   
   const workspaceRef = useRef(null);
@@ -585,6 +586,43 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
   };
 
+  const loadInitialActivityTemplate = async (activityMeta) => {
+    const actId = activityMeta?.id || activityId;
+    let fetchUrl = activityMeta?.templateUrl;
+    if ((!fetchUrl || (actId && actId.includes("opt")) || activityMeta?.type === "optimization") && actId) {
+      fetchUrl = `/data/optimizations/${actId}.json`;
+    }
+
+    if (fetchUrl) {
+      try {
+        const rawTemplate = await fetchJsonWithCache(`template:${actId}`, fetchUrl);
+        let templateBlocks = rawTemplate;
+        let templatePython = "# Drag blocks to generate Python code";
+
+        if (rawTemplate.type === "algoblocks_project") {
+          templateBlocks = rawTemplate.blocklyJson;
+          templatePython = rawTemplate.pythonCode || templatePython;
+        } else if (rawTemplate.workspace && rawTemplate.workspace.blocklyJson) {
+          templateBlocks = rawTemplate.workspace.blocklyJson;
+          templatePython = rawTemplate.pythonCode || templatePython;
+        } else if (rawTemplate.blocklyJson) {
+          templateBlocks = rawTemplate.blocklyJson;
+          templatePython = rawTemplate.pythonCode || templatePython;
+        }
+
+        return { templateBlocks, templatePython, hasTemplate: true };
+      } catch (err) {
+        console.error("Template load error:", err);
+      }
+    }
+
+    return {
+      templateBlocks: {},
+      templatePython: "# Drag blocks to generate Python code",
+      hasTemplate: false,
+    };
+  };
+
   const getFailsafeWorkspaceJson = () => {
     let finalJson = latestStateRef.current.json;
     if (workspaceRef.current) {
@@ -619,7 +657,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     // Every other autosave path in this file (handleWorkspaceChange, the
     // analyzer-trigger effect) already guards on isReadyRef for the same
     // reason -- triggerFinalSave was the one path that didn't.
-    if (!isReadyRef.current) return;
+    if (!isReadyRef.current || isResettingRef.current) return;
 
     let currentJson = getFailsafeWorkspaceJson();
     const isJsonEmpty = !currentJson || Object.keys(currentJson).length === 0 || (currentJson.blocks && currentJson.blocks.blocks && currentJson.blocks.blocks.length === 0);
@@ -702,6 +740,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const emergencySaveNow = () => {
     try {
+      if (isResettingRef.current) return;
       const key = emergencySaveKey();
       if (!key) return;
       const state = latestStateRef.current;
@@ -830,6 +869,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         // A record explicitly marked was_reset always wins over one that
         // isn't, regardless of which side looks blank, since restart's
         // intent is to override any progress -- local, cloud, or stale.
+        const isResetState = Boolean(localSubmission?.was_reset || cloudSubmission?.was_reset);
+
         if (localSubmission?.was_reset && !cloudSubmission?.was_reset) {
             finalSubmissionToLoad = localSubmission;
         } else if (cloudSubmission?.was_reset && !localSubmission?.was_reset) {
@@ -854,7 +895,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         // before refreshing/closing, and may be newer than the last
         // successful IndexedDB/server sync.
         let recoveredFromEmergencySave = false;
-        if (emergencySnapshot && emergencySnapshot.timestamp >= (finalSubmissionToLoad?.timestamp || 0)) {
+        if (!isResetState && emergencySnapshot && emergencySnapshot.timestamp >= (finalSubmissionToLoad?.timestamp || 0)) {
           finalSubmissionToLoad = {
             ...(finalSubmissionToLoad || {}),
             activityId, moduleId,
@@ -874,7 +915,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           }
         };
 
-        if (finalSubmissionToLoad && finalSubmissionToLoad.activityId === activityId && !finalSubmissionToLoad.was_reset && !cancelled) {
+        if (!isResetState && finalSubmissionToLoad && finalSubmissionToLoad.activityId === activityId && !finalSubmissionToLoad.was_reset && !cancelled) {
           try {
             const json = finalSubmissionToLoad.workspace?.blocklyJson || finalSubmissionToLoad.blocklyJson || {};
             const pythonCode = finalSubmissionToLoad.pythonCode;
@@ -925,47 +966,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                 }
             }
           } catch (e) { console.error("Failed to load blocks"); }
-        } else if (resolvedActivity.templateUrl) {
+        } else {
           try {
-            // NOTE: module_1.json..module_6.json's `templateUrl` field for
-            // every optimization activity now points at its real file
-            // (fixed -- it previously used a "m1-1.1.json" naming scheme
-            // that never matched any file actually in
-            // /data/optimizations/, which only ever held "m1_opt_1.json"
-            // style names; every optimization activity's id contains
-            // "opt", so this override below silently papered over the
-            // mismatch by always deriving the fetch URL from the id
-            // instead). The override is now redundant with the corrected
-            // templateUrl data, but it's kept as a safety net: if a future
-            // optimization activity is ever added with a `templateUrl`
-            // that drifts from `/data/optimizations/{id}.json` again,
-            // this still forces it back to the one filename convention
-            // that's guaranteed to exist.
-            let fetchUrl = resolvedActivity.templateUrl;
-            if (resolvedActivity.id && resolvedActivity.id.includes('opt')) {
-              fetchUrl = `/data/optimizations/${resolvedActivity.id}.json`;
-            }
+            const { templateBlocks, templatePython } = await loadInitialActivityTemplate(resolvedActivity);
+            if (!cancelled) {
+              latestStateRef.current.json = templateBlocks;
+              latestStateRef.current.pythonCode = templatePython;
 
-            const rawTemplate = await fetchJsonWithCache(`template:${resolvedActivity.id}`, fetchUrl);
+              applyWorkspaceData(templateBlocks, templatePython);
 
-            let templateBlocks = rawTemplate;
-            let templatePython = "# Drag blocks to generate Python code";
-
-            if (rawTemplate.type === "algoblocks_project") {
-              templateBlocks = rawTemplate.blocklyJson;
-              templatePython = rawTemplate.pythonCode || templatePython;
-            } else if (rawTemplate.workspace && rawTemplate.workspace.blocklyJson) {
-              templateBlocks = rawTemplate.workspace.blocklyJson;
-              templatePython = rawTemplate.pythonCode || templatePython;
-            }
-
-            latestStateRef.current.json = templateBlocks;
-            latestStateRef.current.pythonCode = templatePython;
-
-            applyWorkspaceData(templateBlocks, templatePython);
-
-            if (templatePython && templatePython !== "# Drag blocks to generate Python code") {
-              setGeneratedPython(templatePython);
+              if (templatePython && templatePython !== "# Drag blocks to generate Python code") {
+                setGeneratedPython(templatePython);
+              }
             }
           } catch (err) { console.error("Template load error:", err); }
         }
@@ -1083,8 +1095,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   };
 
   const handleWorkspaceAutoSave = (json, pythonCode) => {
+    if (isResettingRef.current) return;
     if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
     saveDraftTimeoutRef.current = setTimeout(async () => {
+      if (isResettingRef.current) return;
       // Flush the synchronous localStorage snapshot in the same breath as
       // the IndexedDB/server draft save, so both stay in lockstep on every
       // settled edit -- not just at unload or on the 4s interval.
@@ -1096,7 +1110,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   };
 
   useEffect(() => {
-    if (!isReadyRef.current || isUnmountingRef.current) return;
+    if (!isReadyRef.current || isUnmountingRef.current || isResettingRef.current) return;
     if (isOnline && isEngineReady && workerRef.current && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
       const timeoutId = setTimeout(() => {
         workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython) });
@@ -1106,7 +1120,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   }, [generatedPython, isOnline, isEngineReady]);
 
   const handleWorkspaceChange = async (json, incomingPythonCode, isUnsynced = false) => {
-    if (isUnmountingRef.current || !isReadyRef.current) return;
+    if (isUnmountingRef.current || !isReadyRef.current || isResettingRef.current) return;
 
     const isIncomingBlocksEmpty = !json || Object.keys(json).length === 0 || (json.blocks && json.blocks.blocks && json.blocks.blocks.length === 0);
     const isIncomingCodeEmpty = !incomingPythonCode || incomingPythonCode.trim() === "" || incomingPythonCode === "# Drag blocks to generate Python code";
@@ -1972,38 +1986,170 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
               title="Restart Activity"
               onClick={() =>
                 setModalConfig({
-                  isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.",
-                  confirmText: "Restart", cancelText: "Cancel", isDanger: true,
+                  isOpen: true,
+                  title: "Restart Activity?",
+                  message: (activityDataResolved?.type === "optimization" || activityId.includes("opt"))
+                    ? "Are you sure you want to restart this optimization activity? All modifications will be reset and the initial unoptimized template will be reloaded."
+                    : "Are you sure you want to restart this activity? Your progress will be lost.",
+                  confirmText: "Restart",
+                  cancelText: "Cancel",
+                  isDanger: true,
                   onConfirmAction: async () => {
-                    // RESTART RACE FIX: handleWorkspaceAutoSave's 1.5s debounce
-                    // timer can still be armed when Restart is clicked (e.g.
-                    // right after manually dragging a block out). If left
-                    // alone, that stale timer closure fires later -- during
-                    // or after this reset -- calling saveSubmission() with
-                    // isReset defaulted to false and the *old* pre-reset
-                    // workspace, overwriting the same submissionId and
-                    // stripping the was_reset flag we're about to set below.
-                    // On the next boot() that looks like a normal saved
-                    // attempt (not a reset), so it resumes the stale blocks
-                    // instead of re-fetching the original optimization
-                    // template. Cancel it first so nothing can fire after us.
-                    if (saveDraftTimeoutRef.current) { clearTimeout(saveDraftTimeoutRef.current); saveDraftTimeoutRef.current = null; }
-                    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-                    if (storedUser) {
-                      const user = JSON.parse(storedUser);
-                      try { await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } catch(e){}
-                      try { localStorage.removeItem(`algoblocks_emergency_${user.email}_${moduleId}_${activityId}`); } catch(e){}
+                    closeModal();
+
+                    // 1. Cancel any pending autosave debounce
+                    if (saveDraftTimeoutRef.current) {
+                      clearTimeout(saveDraftTimeoutRef.current);
+                      saveDraftTimeoutRef.current = null;
                     }
-                    localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`);
-                    // Reset in-memory state immediately too, so if a beforeunload/
-                    // pagehide fires during the reload navigation, emergencySaveNow()
-                    // can't resurrect the emergency-save key with the pre-reset
-                    // workspace (it reads latestBlocksJsonRef.current, which isn't
-                    // touched by saveSubmission above).
-                    latestBlocksJsonRef.current = {};
-                    await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true, true);
-                    window.location.reload();
-                  }, onCancelAction: closeModal
+
+                    // 2. Set reset guard to prevent any beforeunload or autosave from saving old blocks
+                    isResettingRef.current = true;
+                    loadTimeRef.current = Date.now() + 5000;
+
+                    // 3. Clear localStorage emergency snapshot and test results
+                    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+                    const user = storedUser ? JSON.parse(storedUser) : null;
+                    const uid = user?.email || latestStateRef.current.userId;
+
+                    if (uid) {
+                      try { localStorage.removeItem(`algoblocks_emergency_${uid}_${moduleId}_${activityId}`); } catch(e){}
+                    }
+                    try { localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); } catch(e){}
+
+                    // 4. Fetch the fresh initial unoptimized template from /data/optimizations
+                    const { templateBlocks, templatePython } = await loadInitialActivityTemplate(activityDataResolved || { id: activityId, moduleId });
+
+                    // 5. Reset all in-memory latestStateRef tracking
+                    latestBlocksJsonRef.current = templateBlocks;
+                    latestStateRef.current.json = templateBlocks;
+                    latestStateRef.current.pythonCode = templatePython;
+                    latestStateRef.current.score = 0;
+                    latestStateRef.current.passed = 0;
+                    latestStateRef.current.testResults = [];
+                    latestStateRef.current.status = "draft";
+                    latestStateRef.current.initial_aes = null;
+                    latestStateRef.current.final_aes = null;
+                    latestStateRef.current.latest_aes = null;
+                    latestStateRef.current.rog = 0;
+                    latestStateRef.current.lastSubmittedCode = "";
+                    latestStateRef.current.code_unchanged = false;
+                    latestStateRef.current.optBaselineCaptured = false;
+                    latestStateRef.current.baseline_actualTime = null;
+                    latestStateRef.current.baseline_actualSpace = null;
+                    latestStateRef.current.latest_actualTime = null;
+                    latestStateRef.current.latest_actualSpace = null;
+                    latestStateRef.current.functional_passed = 0;
+                    latestStateRef.current.functional_total = 0;
+                    latestStateRef.current.complexity_passed = 0;
+                    latestStateRef.current.complexity_total = 0;
+                    latestStateRef.current.hidden_passed = 0;
+                    latestStateRef.current.hidden_total = 0;
+
+                    // 6. Reset UI states
+                    setCurrentAes(0);
+                    setCurrentRog(0);
+                    setPassedTests(0);
+                    setConsoleOutput("Ready to run...\n");
+                    setLineExecutions({});
+                    setSyntaxErrors([]);
+                    setGeneratedPython(templatePython);
+                    setIsEditingCode(false);
+                    setViewMode("workspace");
+                    focusDockPanel("blockly");
+
+                    // 7. Load into Blockly workspace
+                    if (workspaceRef.current) {
+                      if (typeof workspaceRef.current.clear === "function") {
+                        workspaceRef.current.clear();
+                      }
+                      if (typeof workspaceRef.current.loadTemplate === "function") {
+                        workspaceRef.current.loadTemplate(templateBlocks || {}, templatePython);
+                      }
+                    }
+
+                    // 8. Persist the reset state with was_reset: true to IndexedDB & Server
+                    if (uid) {
+                      const submissionId = `${uid}_${moduleId}_${activityId}`;
+                      const resetPayload = {
+                        id: submissionId,
+                        userId: uid,
+                        moduleId: moduleId,
+                        activityId: activityId,
+                        type: latestStateRef.current.type || (activityId.includes("opt") ? "optimization" : "activity"),
+                        status: "draft",
+                        score: 0,
+                        maxScore: 100,
+                        initial_aes: null,
+                        final_aes: null,
+                        latest_aes: null,
+                        baseline_actual_complexity: null,
+                        baseline_actual_space_complexity: null,
+                        latest_actual_complexity: null,
+                        latest_actual_space_complexity: null,
+                        rog: null,
+                        code_unchanged: false,
+                        was_reset: true,
+                        passedTestCases: 0,
+                        totalTestCases: totalTests,
+                        passed_tests: 0,
+                        total_tests: totalTests,
+                        functional_passed: 0,
+                        functional_total: 0,
+                        complexity_passed: 0,
+                        complexity_total: 0,
+                        hidden_passed: 0,
+                        hidden_total: 0,
+                        testCases: [],
+                        target_complexity: latestStateRef.current.targetTime || "O(n)",
+                        actual_complexity: "O(1)",
+                        target_space_complexity: latestStateRef.current.targetSpace || "O(1)",
+                        actual_space_complexity: "O(1)",
+                        workspace: { blocklyJson: templateBlocks || {} },
+                        pythonCode: templatePython || "",
+                        timestamp: Date.now(),
+                        submittedAt: new Date().toISOString(),
+                        isSynced: false,
+                      };
+
+                      try {
+                        await submissionsDB.setItem(submissionId, resetPayload);
+                        window.dispatchEvent(new Event("localDataSynced"));
+                      } catch(e) {}
+
+                      if (navigator && navigator.onLine && API_BASE && !user?.isGuest) {
+                        try {
+                          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+                          const res = await fetch(`${API_BASE}/api/sync-submission`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ ...resetPayload, isSynced: true }),
+                          });
+                          if (res.ok) {
+                            try { await submissionsDB.setItem(submissionId, { ...resetPayload, isSynced: true }); } catch(e) {}
+                          }
+                        } catch (err) {
+                          pushToSyncQueue(`sync_${submissionId}_${Date.now()}`, {
+                            url: `${API_BASE}/api/sync-submission`,
+                            method: "POST",
+                            payload: { ...resetPayload, isSynced: true },
+                          });
+                        }
+                      }
+                    }
+
+                    setTimeout(() => {
+                      isResettingRef.current = false;
+                    }, 500);
+
+                    showToast(
+                      (activityDataResolved?.type === "optimization" || activityId.includes("opt"))
+                        ? "Optimization activity restarted. Initial unoptimized template loaded."
+                        : "Activity restarted.",
+                      "success"
+                    );
+                  },
+                  onCancelAction: closeModal,
                 })
               }
             >
