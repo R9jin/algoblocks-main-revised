@@ -305,7 +305,7 @@ async function initPyodide() {
 }
 
 self.onmessage = async (e) => {
-  const { type, code, data } = e.data;
+  const { type, code, data, requestEpoch } = e.data;
 
   if (type === 'INPUT_RESPONSE') {
     if (inputResolve) { inputResolve(data); inputResolve = null; }
@@ -336,7 +336,7 @@ self.onmessage = async (e) => {
   const maxLen = CODE_LENGTH_LIMITS[type];
   if (maxLen && code && code.length > maxLen) {
     const errorMsg = `Code payload too large. Maximum allowed is ${maxLen} characters.`;
-    if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg } });
+    if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg }, requestEpoch });
     else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: errorMsg } });
     else self.postMessage({ type: 'ERROR', data: errorMsg });
     return;
@@ -456,7 +456,7 @@ except Exception as e:
 output
       `);
       const resultData = JSON.parse(resultJsonStr);
-      self.postMessage({ type: 'ANALYZE_RESULT', data: resultData });
+      self.postMessage({ type: 'ANALYZE_RESULT', data: resultData, requestEpoch });
     }
 
     else if (type === 'PYTHON_TO_BLOCKS') {
@@ -872,7 +872,7 @@ json.dumps(res)
     }
 
   } catch (err) {
-    if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: err.message } });
+    if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: err.message }, requestEpoch });
     // BUG FIX: this used to fall through to the generic { type: 'ERROR' }
     // reply below for every non-ANALYZE_CODE message type. convertPythonToBlocks()
     // (analyzerInstance.js) only ever listens for 'PYTHON_TO_BLOCKS_RESULT' --

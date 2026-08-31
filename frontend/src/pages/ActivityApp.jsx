@@ -139,6 +139,17 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const testResolveRef = useRef(null);
   const testRejectRef = useRef(null);
   const outputAccumulatorRef = useRef("");
+  // STALE-ANALYSIS GUARD: bumped every time we start a boot() or a Restart,
+  // and stamped onto every ANALYZE_CODE request we send to the worker. The
+  // ANALYZE_RESULT handler only trusts a response whose epoch matches the
+  // current value. Without this, an analyze request kicked off for the
+  // *previous* code (still in flight in the worker when the user restarts,
+  // or fires off a second rapid submit) can resolve *after* the reset has
+  // already cleared initial_aes/optBaselineCaptured -- and gets mistaken for
+  // the fresh template's automatic first analysis, locking in the wrong
+  // (old/optimized) code's complexity as the new baseline. See restart
+  // handler and the ANALYZE_CODE effect below.
+  const analysisEpochRef = useRef(0);
 
   const latestStateRef = useRef({
     userId: null, json: null, pythonCode: "# Drag blocks to generate Python code",
@@ -345,8 +356,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   }, []);
 
   workerMessageHandler.current = (event) => {
-    const { type, data, counts } = event.data;
+    const { type, data, counts, requestEpoch } = event.data;
     if (type === "ANALYZE_RESULT") {
+      // Drop responses to an ANALYZE_CODE request we no longer care about --
+      // e.g. one still in flight for the pre-restart code when the user hits
+      // Restart, or from an edit that was immediately superseded by another.
+      // Applying it now would stomp analysisResult/the auto-baseline capture
+      // below with data for code that isn't loaded anymore.
+      if (requestEpoch !== undefined && requestEpoch !== analysisEpochRef.current) return;
       if (data.status === "success") {
         setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
         setAnalysisResult({
@@ -814,6 +831,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         latestStateRef.current.optBaselineCaptured = false;
         latestStateRef.current.baseline_actualTime = null;
         latestStateRef.current.baseline_actualSpace = null;
+        analysisEpochRef.current += 1;
 
         const resolvedActivity = await resolveActivityFromModule();
         if (cancelled) return;
@@ -1113,7 +1131,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (!isReadyRef.current || isUnmountingRef.current || isResettingRef.current) return;
     if (isOnline && isEngineReady && workerRef.current && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
       const timeoutId = setTimeout(() => {
-        workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython) });
+        workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython), requestEpoch: analysisEpochRef.current });
       }, 800);
       return () => clearTimeout(timeoutId);
     }
@@ -2006,6 +2024,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                     // 2. Set reset guard to prevent any beforeunload or autosave from saving old blocks
                     isResettingRef.current = true;
                     loadTimeRef.current = Date.now() + 5000;
+                    // Invalidate any ANALYZE_CODE request still in flight for the
+                    // pre-restart code (see analysisEpochRef above) so its result
+                    // can't land after reset and get mistaken for the fresh
+                    // template's baseline analysis.
+                    analysisEpochRef.current += 1;
 
                     // 3. Clear localStorage emergency snapshot and test results
                     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -2067,6 +2090,22 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                         workspaceRef.current.loadTemplate(templateBlocks || {}, templatePython);
                       }
                     }
+
+                    // RESET-GUARD RELEASE FIX: this used to stay true until *after*
+                    // step 8's network sync-submission call resolved (plus a fixed
+                    // 500ms) -- but the ANALYZE_CODE effect, handleWorkspaceChange,
+                    // and emergencySaveNow all bail out early while this ref is true.
+                    // The in-memory/UI reset above is already fully applied and
+                    // synchronous, so the guard's job (stop stale autosave from
+                    // clobbering the reset) is done here; there's no need to keep
+                    // blocking the effect that fires the auto-baseline analysis of
+                    // the freshly-loaded template while we wait on a network round
+                    // trip. When that call is slow, the old code left the guard up
+                    // for however long the request took -- and because the
+                    // ANALYZE_CODE effect only re-runs when generatedPython changes
+                    // again, nothing ever retriggered it afterward, so the
+                    // fresh-template baseline analysis silently never ran at all.
+                    isResettingRef.current = false;
 
                     // 8. Persist the reset state with was_reset: true to IndexedDB & Server
                     if (uid) {
@@ -2137,10 +2176,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                         }
                       }
                     }
-
-                    setTimeout(() => {
-                      isResettingRef.current = false;
-                    }, 500);
 
                     showToast(
                       (activityDataResolved?.type === "optimization" || activityId.includes("opt"))
