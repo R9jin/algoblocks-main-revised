@@ -254,7 +254,18 @@ class SignatureRecorder:
             if local_s == "O(1)" and isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
                 func_id = getattr(getattr(node.value, 'func', None), 'id', '')
                 if func_id and func_id[0].isupper() and func_id not in ['print', 'range', 'len']:
-                    local_s = "O(n)"
+                    # A bare/scalar-arg constructor call (e.g. `PriorityQueue()`,
+                    # `Stack()`, `Node(5)`) allocates O(1) space at construction
+                    # time -- it only grows later if the code appends into it,
+                    # which is tracked separately. Blanket-flagging every
+                    # capitalized-name call as O(n) misclassified common
+                    # zero-arg library constructors. Only assume O(n) here when
+                    # a collection-typed argument is actually being
+                    # copied/wrapped in (e.g. `Stack(some_list)`), which is the
+                    # case that genuinely front-loads O(n) space.
+                    call_args = getattr(node.value, 'args', [])
+                    if any(self.analyzer.complexity_heuristics._is_linear_type(a) for a in call_args):
+                        local_s = "O(n)"
                     
             if isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp)) or \
                (isinstance(node, ast.Assign) and isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and isinstance(node.value.left, ast.List)):

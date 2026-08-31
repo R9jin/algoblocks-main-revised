@@ -897,7 +897,22 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 is_hash_map = isinstance(getattr(func_node, 'value', None), ast.Name) and self.analyzer.var_types.get(func_node.value.id) in ['set', 'dict']
                 t_ov = "O(n)" if getattr(self.analyzer, 'in_graph_context', False) and not is_hash_map else ("O(1)" if is_hash_map else "O(n)")
                 self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override="O(1)", custom_op="Membership Check")
-            elif func_node.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'keys', 'values', 'items']:
+            elif func_node.attr == 'get':
+                # `.get()` is only a dict-style hashed lookup (O(n) worst-case
+                # under hash collisions) when the receiver is a confirmed dict.
+                # Bare-name pattern matching used to apply that worst case to
+                # ANY `.get()` call -- including queue.Queue.get(), which is
+                # O(1) -- so a single `Queue.get()` inside a loop was inflating
+                # an otherwise-O(n) function to O(n^2). Unknown/non-dict
+                # receivers (Queue, custom classes, etc.) now get the O(1) the
+                # vast majority of non-dict `.get()`-style APIs actually are.
+                is_dict = isinstance(getattr(func_node, 'value', None), ast.Name) and self.analyzer.var_types.get(func_node.value.id) == 'dict'
+                if is_dict:
+                    b = self.analyzer.builtin_complexities['get']
+                    self.analyzer.signature_recorder.record_line(node, time_override=b['time'], space_override=b['space'], custom_op="Get")
+                else:
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Get (Non-Dict Receiver)")
+            elif func_node.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'keys', 'values', 'items']:
                 b = self.analyzer.builtin_complexities.get(func_node.attr, {'time': 'O(n)', 'space': 'O(1)'})
                 self.analyzer.signature_recorder.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=func_node.attr.capitalize())
             elif func_node.attr in self.analyzer.builtin_complexities:
@@ -1013,7 +1028,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 if len(node.value.generators) == 1:
                     gen = node.value.generators[0]
                     if isinstance(gen.iter, ast.Call) and getattr(gen.iter.func, 'id', '') == 'range':
-                        if len(gen.iter.args) == 1 and isinstance(gen.iter.args[0], ast.Constant):
+                        if len(gen.iter.args) == 1 and self.analyzer.complexity_heuristics._is_constant_expr(gen.iter.args[0]):
                             is_constant_size = True
                             
                 if is_nested or (len(active_loops) > 0 and isinstance(node.targets[0], ast.Subscript)):
@@ -1186,7 +1201,26 @@ class ASTNodeVisitor(ast.NodeVisitor):
 
         if isinstance(node.op, (ast.Add, ast.Mult)):
             if self.analyzer.complexity_heuristics._is_linear_type(node.left) or self.analyzer.complexity_heuristics._is_linear_type(node.right):
-                if getattr(self.analyzer, 'in_list_comp_depth', 0) > 0:
+                # `[literal] * k` (or `k * [literal]`) is only genuinely O(n)
+                # when k scales with input. visit_Assign already classifies
+                # this correctly using _is_constant_expr on the multiplier,
+                # but generic_visit() then re-visits this same BinOp node here,
+                # and this branch used to blindly call any List/Tuple/Set/Dict
+                # operand "linear" regardless of the multiplier -- silently
+                # overwriting a correct O(1) "Fixed Container Allocation"
+                # (e.g. `[0] * MAX_CHAR`) with O(n). Only treat it as
+                # Concatenation/Repetition when the non-container operand
+                # isn't a hardcoded constant.
+                is_const_mult_container = False
+                if isinstance(node.op, ast.Mult):
+                    if isinstance(node.left, (ast.List, ast.Tuple, ast.Set, ast.Dict)) and not isinstance(node.right, (ast.List, ast.Tuple, ast.Set, ast.Dict)):
+                        is_const_mult_container = self.analyzer.complexity_heuristics._is_constant_expr(node.right)
+                    elif isinstance(node.right, (ast.List, ast.Tuple, ast.Set, ast.Dict)) and not isinstance(node.left, (ast.List, ast.Tuple, ast.Set, ast.Dict)):
+                        is_const_mult_container = self.analyzer.complexity_heuristics._is_constant_expr(node.left)
+
+                if is_const_mult_container:
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Fixed Container Allocation")
+                elif getattr(self.analyzer, 'in_list_comp_depth', 0) > 0:
                     self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Row Allocation")
                 else:
                     self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Concatenation / Repetition")

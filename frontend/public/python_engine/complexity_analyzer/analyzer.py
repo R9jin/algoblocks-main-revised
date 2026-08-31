@@ -118,6 +118,15 @@ class ComplexityAnalyzer:
         self.complexity_synthesizer = ComplexitySynthesizer(self)
 
         self.reset_state()
+        # Module-level literal-int/float constants (`MAX_CHAR = 26`, `R = 5`,
+        # `N = 5`, etc.), populated once by analyze_source_code() before any
+        # visiting pass. `_is_constant_expr` checks this set directly instead
+        # of only guessing from naming convention -- naming alone can't
+        # distinguish a hardcoded constant from an identically-named input
+        # size (`R`/`C`/`M`/`N` are common for both), so short/ambiguous
+        # names used to be excluded outright even when they really were
+        # literal constants.
+        self.module_int_constants = set()
         self.builtin_complexities = {
             'sort': {'time': 'O(n log n)', 'space': 'O(1)', 'desc': 'Sorts the list in-place using the stable Timsort algorithm.'},
             'sorted': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Creates and returns a completely new sorted list.'},
@@ -566,6 +575,25 @@ def analyze_source_code(source_code):
                 pass 
         
         analyzer = ComplexityAnalyzer(source_code, trace_data)
+
+        # Scan for module-level literal-int/float constants (see comment on
+        # `module_int_constants` in __init__) so loop-bound / allocation-size
+        # constant detection can check actual assigned values instead of
+        # just guessing from the name. Exclude any name that's also used as
+        # a function parameter anywhere in the module -- a parameter lives in
+        # its own scope, so e.g. top-level driver code doing `n = 17` must
+        # not make a same-named parameter `def recaman(n):` look constant.
+        param_names = set()
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for a in list(node.args.args) + list(node.args.posonlyargs) + list(node.args.kwonlyargs):
+                    param_names.add(a.arg)
+        for stmt in getattr(tree, 'body', []):
+            if isinstance(stmt, ast.Assign) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, (int, float)) and not isinstance(stmt.value.value, bool):
+                for target in stmt.targets:
+                    if isinstance(target, ast.Name) and target.id not in param_names:
+                        analyzer.module_int_constants.add(target.id)
+
         analyzer.call_graph_mapper.bfs_first_pass(tree)
 
         # Phase 2a: establish every function's complexity signature by

@@ -190,3 +190,85 @@ if anything in the pipeline reads from the archives instead of the JSONs.
 `MIN_SPACE_ACCURACY` in `regression_check.py` / `tests/test_analyzer_regression.py`
 is still set to the old 0.50 floor and was intentionally left as-is — raise it
 once you're ready to lock in the corrected baseline.
+
+## Analyzer-side fixes (not a dataset change)
+
+Everything above corrected the *dataset*. The entries below are the first
+pass at the *analyzer* limitations the dataset audit surfaced but
+deliberately left unaddressed (the "known, separate analyzer limitation"
+notes throughout this file), plus a couple of others found the same way
+(re-run every ground-truth sample through the analyzer, diff against
+expected, inspect the mismatched source). All five are in
+`complexity_analyzer/` (both vendored copies -- `api/analyzer_diagnostics/`
+and `frontend/public/python_engine/` -- kept byte-identical as before) and
+are covered by inline comments at each change site:
+
+1. **`.get()` receiver-blind worst-case.** Any `.get()` call was treated as
+   a dict lookup (worst-case O(n) for hash collisions), including
+   `queue.Queue.get()` and other non-dict APIs. A single `Queue.get()`
+   inside an O(n) loop silently inflated the whole function to O(n^2).
+   Now gated on the receiver actually being a confirmed dict
+   (`ast_node_visitors.py`).
+2. **List-comprehension constant bound.** `[0 for i in range(k)]` only
+   recognized a literal int (`range(26)`) as a constant bound, not a
+   named module constant (`range(MAX_CHAR)`) -- the exact pattern this
+   file's space audit flagged and left unfixed. Now uses the same
+   `_is_constant_expr` check the plain-loop and `[x]*k` paths already used
+   (`ast_node_visitors.py`).
+3. **`visit_BinOp` overwriting `visit_Assign`'s correct answer.**
+   `frequency = [0] * MAX_CHAR` was correctly classified O(1) by
+   `visit_Assign`, but `generic_visit` then re-visits the same `BinOp`
+   node, and `visit_BinOp` unconditionally treated any `List * anything`
+   as O(n) "Concatenation / Repetition" -- silently overwriting the
+   correct classification. Now checks the multiplier for constant-ness
+   before overwriting (`ast_node_visitors.py`).
+4. **Constructor calls assumed O(n) space by capitalization alone.**
+   `x = SomeClass()` was flagged O(n) space purely because the callee
+   name starts with a capital letter, regardless of arguments --
+   misclassifying bare constructors like `PriorityQueue()`, `Stack()`.
+   Now only applies when a linear-typed argument is actually passed in
+   (`signature_recorder.py`).
+5. **Constant detection was name-only, not AST-verified.** `_is_constant_expr`
+   guessed constant-ness purely from naming convention (`MAX_CHAR`,
+   `ALPHABET`, all-caps) and explicitly excluded short names (`R`, `C`, `M`,
+   `N`, ...) since those are also the common convention for an actual input
+   dimension. Added an AST scan for real module-level literal-int/float
+   assignments (`analyzer.py`, populated once in `analyze_source_code`),
+   consulted for names *outside* that short-name blocklist (the blocklist
+   itself is kept -- overriding it for `R`/`C`/`M`/`N` regressed more cases
+   than it fixed, see commit history). Net effect on this dataset is
+   neutral since every short-name collision here is already covered by
+   the blocklist, but it now correctly resolves other/longer constant
+   names an AST scan can see but a naming heuristic can't.
+6. **`code_preprocessor.py` sync.** The two vendored copies had silently
+   diverged: `frontend/public/python_engine/` already had backtracking
+   placement-pattern detection (N-Queens/Sudoku-style `for ... range(n): if
+   <valid>: recurse` and bitmask/counter variants) that
+   `api/analyzer_diagnostics/` did not. This is what the O(2^n)/O(n!)
+   classes were actually missing -- it took O(2^n) from 33.3%→100.0% and
+   O(n!) from 50.0%→100.0% on this dataset. Copied forward into
+   `api/analyzer_diagnostics/` so both copies match again.
+
+## Result (analyzer fixes)
+
+| Metric | Before | After |
+|---|---|---|
+| Time accuracy | 199/266 (74.8%) | 204/266 (76.7%) |
+| Space accuracy | 235/266 (88.3%) | 242/266 (91.0%) |
+| O(1) time | 30.8% | 30.8% -- unaddressed, see below |
+| O(2^n) time | 33.3% | 100.0% |
+| O(n!) time | 50.0% | 100.0% |
+
+Regenerated via `python tests/generate_accuracy_report.py` and
+`pytest tests/test_analyzer_regression.py` (274 passed against the existing
+70%/80% floors).
+
+**Not fixed / still open:** O(1) time accuracy is unchanged. The remaining
+mismatches are a mix of (a) genuinely-quadratic-but-generously-labeled
+ground truth (Python string concatenation via `+=` in a loop really is
+O(n) per call, i.e. O(n^2) total across a loop -- several dataset entries
+label the enclosing function O(n) based on algorithmic intent, not literal
+per-line cost) and (b) a handful of O(n^2)/O(2^n)/O(n!)/O(V+E) cases not
+yet root-caused. Weakening the analyzer to match (a) would make it
+pedagogically wrong, so those were deliberately left alone rather than
+"fixed" to move the accuracy number.

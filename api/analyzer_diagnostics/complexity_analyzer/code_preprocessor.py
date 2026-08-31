@@ -80,6 +80,78 @@ def _detect_factorial_branching(func_node):
                     return base.id
         return None
 
+    def range_bound_is_plain_int(for_node):
+        """
+        True when the loop is `for X in range(N)` where N is a bare Name
+        (a parameter or local int), as opposed to `range(len(collection))`.
+        This is the shape used by placement/board-style backtracking (N-Queens,
+        Sudoku, permutation-by-index) where the "shrinking" isn't a literal
+        list mutation -- it's implicit in a used/visited tracker (a set,
+        boolean array, or bitmask) that's consulted and updated per branch,
+        not in the loop bound itself. `range(len(X))` is deliberately
+        excluded here since that shape is shared with ordinary O(n)-per-call
+        iteration over a fixed collection (already handled, or intentionally
+        left as O(2^n)/O(b^n) elsewhere in this engine's taxonomy) and
+        broadening to it would risk reclassifying genuine constant-branching
+        exponential recursion as factorial.
+        """
+        it = for_node.iter
+        if isinstance(it, ast.Call) and getattr(getattr(it, 'func', None), 'id', '') == 'range' and it.args:
+            last_arg = it.args[-1]
+            return isinstance(last_arg, ast.Name)
+        return False
+
+    def has_guarded_recursive_call(loop_node):
+        """
+        True when the loop body contains both (a) an `if` statement -- the
+        pruning/validity check that makes placement-style backtracking cut
+        off dead branches instead of branching unconditionally (N-Queens'
+        `is_safe` check, a Sudoku cell-validity check, an `if <invalid>:
+        continue` guard, etc) -- and (b) a call back to this same function
+        somewhere in the loop. Deliberately loose about *where* inside the
+        loop the recursive call sits (directly inside the `if`, or as a
+        sibling statement after an early `continue`/`return` guard -- both
+        are common, equivalent ways to write the same pruning), since the
+        distinguishing feature here is "this loop prunes branches" rather
+        than the exact textual nesting. A loop with a recursive call but no
+        `if` anywhere is left to the existing exponential/polynomial paths,
+        since unconditional branching is a different growth shape.
+        """
+        has_if = any(isinstance(n, ast.If) for n in ast.walk(loop_node))
+        has_recursive_call = any(
+            isinstance(n, ast.Call) and getattr(getattr(n, 'func', None), 'id', None) == func_name
+            for n in ast.walk(loop_node)
+        )
+        return has_if and has_recursive_call
+
+    def while_shrinks_and_recurses(while_node):
+        """
+        Bitmask/counter variant of the same placement-backtracking idiom,
+        e.g. `while available: position = available & -available;
+        available -= position; count += solve(...)`. Looks for a `while`
+        loop guarded by a bare Name (the remaining-choices tracker) whose
+        body both reassigns that same name to something smaller (any
+        augmented assignment on it, or a plain assignment referencing it on
+        the right-hand side) and recursively calls this function.
+        """
+        test = while_node.test
+        if not isinstance(test, ast.Name):
+            return False
+        tracker = test.id
+        shrinks = False
+        for n in ast.walk(while_node):
+            if isinstance(n, ast.AugAssign) and isinstance(n.target, ast.Name) and n.target.id == tracker:
+                shrinks = True
+            if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name) and n.targets[0].id == tracker:
+                rhs_names = {m.id for m in ast.walk(n.value) if isinstance(m, ast.Name)}
+                if tracker in rhs_names:
+                    shrinks = True
+        has_recursive_call = any(
+            isinstance(n, ast.Call) and getattr(getattr(n, 'func', None), 'id', None) == func_name
+            for n in ast.walk(while_node)
+        )
+        return shrinks and has_recursive_call
+
     def scan(node):
         for child in ast.iter_child_nodes(node):
             if isinstance(child, ast.For):
@@ -123,6 +195,21 @@ def _detect_factorial_branching(func_node):
                                 has_shrink_op = True
                     if has_recursive_call and has_shrink_op:
                         return True
+                elif range_bound_is_plain_int(child) and has_guarded_recursive_call(child):
+                    # Placement/board-backtracking idiom (N-Queens, Sudoku,
+                    # permutation-by-index): `for choice in range(n): if
+                    # <valid>: ... recurse(...)`. No literal list is
+                    # shrunk -- the pruning lives in the validity check and
+                    # a set/array/bitmask tracker -- but the branching
+                    # factor still shrinks with remaining valid choices per
+                    # level, which is the same O(n!)-class growth as the
+                    # list-shrinking idiom handled above.
+                    return True
+                if scan(child):
+                    return True
+            elif isinstance(child, ast.While):
+                if while_shrinks_and_recurses(child):
+                    return True
                 if scan(child):
                     return True
             else:

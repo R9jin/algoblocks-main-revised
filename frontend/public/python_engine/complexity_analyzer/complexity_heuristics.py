@@ -79,7 +79,18 @@ class ComplexityHeuristics:
             if isinstance(expr_node, (ast.Constant, getattr(ast, 'Num', type(None)), getattr(ast, 'Str', type(None)))):
                 return True
             if isinstance(expr_node, ast.Name):
+                # `R`/`C`/`M`/`N`-style short names are deliberately excluded
+                # even when a literal module-level assignment resolves them
+                # to a constant (e.g. `R = 5`): in this dataset those names
+                # are conventionally used for a problem's actual dimension
+                # (hardcoded to one example value, but still meant to scale
+                # in general), not a true fixed bound like `MAX_CHAR = 26`.
+                # Treating them as constant broke more cases than it fixed
+                # (see GROUND_TRUTH_CORRECTIONS.md) so the module-constant
+                # override below only applies outside this blocklist.
                 name_u = expr_node.id.upper()
+                if name_u not in ['N', 'M', 'V', 'E', 'K', 'T', 'L', 'R', 'C', 'W', 'H', 'ROW', 'COL', 'SIZE', 'LEN'] and expr_node.id in getattr(self.analyzer, 'module_int_constants', ()):
+                    return True
                 if name_u in ['N', 'M', 'V', 'E', 'K', 'T', 'L', 'R', 'C', 'W', 'H', 'ROW', 'COL', 'SIZE', 'LEN']: return False
                 if any(k in name_u for k in ['MAX', 'CHARS', 'NO_OF_CHARS', 'ALPHABET']): return True
                 if expr_node.id.isupper(): return True
