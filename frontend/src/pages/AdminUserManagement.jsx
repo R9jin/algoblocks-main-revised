@@ -89,6 +89,12 @@ const getAuthToken = () =>
 // work correctly.
 const isSuspendedStatus = (status) => (status || "").trim().toLowerCase() === "suspended";
 
+// Temporarily hides the "Generate Full Report" trigger/modal (Overall
+// Learning Impact report) while the underlying metrics are still being
+// iterated on -- same treatment as SHOW_FULL_REPORT_FEATURE in
+// EvaluationSuite.jsx. Flip back to `true` to restore it.
+const SHOW_FULL_REPORT_FEATURE = false;
+
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1653,23 +1659,26 @@ const AdminUserManagement = () => {
             respondents, post-test-completers-only or not) into one printable
             view, for pulling straight into a Chapter 4 Results write-up.
             Reuses the same `overview` payload already fetched for that
-            dashboard so the two never disagree with each other. */}
-        <div className="admin-full-report-trigger">
-          <button
-            className="admin-refresh-btn"
-            onClick={() => setShowFullReport(true)}
-            disabled={!overview}
-          >
-            <LuFileText size={18} /> Generate Full Report
-          </button>
-          <span className="admin-full-report-hint">
-            Rolls up the current Overall Learning Impact scope ({reportScopeLabel}{postTestOnly ? " · post-test completers only" : ""}) into a printable report.
-          </span>
-        </div>
+            dashboard so the two never disagree with each other.
+            Hidden for now via SHOW_FULL_REPORT_FEATURE -- see top of file. */}
+        {SHOW_FULL_REPORT_FEATURE && (
+          <div className="admin-full-report-trigger">
+            <button
+              className="admin-refresh-btn"
+              onClick={() => setShowFullReport(true)}
+              disabled={!overview}
+            >
+              <LuFileText size={18} /> Generate Full Report
+            </button>
+            <span className="admin-full-report-hint">
+              Rolls up the current Overall Learning Impact scope ({reportScopeLabel}{postTestOnly ? " · post-test completers only" : ""}) into a printable report.
+            </span>
+          </div>
+        )}
       </div>
 
       {/* FULL REPORT MODAL */}
-      {showFullReport && overview && (
+      {SHOW_FULL_REPORT_FEATURE && showFullReport && overview && (
         <div className="admin-modal-overlay report-overlay" onClick={(e) => {
           if (e.target.className.includes('report-overlay')) setShowFullReport(false);
         }}>

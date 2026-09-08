@@ -61,6 +61,12 @@ const BIGO_COLOR_MAP = {
 const BIGO_FALLBACK_COLORS = ["#7928CA", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#22D3EE"];
 const getBigOColor = (label, idx) => BIGO_COLOR_MAP[label] || BIGO_FALLBACK_COLORS[idx % BIGO_FALLBACK_COLORS.length];
 
+// Temporarily hides the "Generate Full Report" trigger/modal while the
+// analyzer + ground-truth dataset are still being iterated on. Flip back to
+// `true` to restore it -- everything it depends on (results, PDF export,
+// the modal itself) is untouched.
+const SHOW_FULL_REPORT_FEATURE = false;
+
 // The complete, fixed set of Big-O classes the analyzer is designed to
 // recognize -- nothing else. Shown to the user directly on the benchmark
 // page so a mismatch against, say, O(n^3) or O(n^2 log n) reads as "outside
@@ -1839,25 +1845,28 @@ export default function EvaluationSuite({ embedded = false } = {}) {
             table) into one printable view, same pattern as the "Generate
             Full Report" feature on the System User Management page. Reuses
             the same `results` payload already held for the dashboard above
-            so the report and the on-screen charts never disagree. */}
-        <div className="eval-full-report-trigger">
-          <button
-            className={`eval-btn-run ${!results ? "eval-run-disabled" : "eval-run-ready"}`}
-            onClick={() => setShowFullReport(true)}
-            disabled={!results}
-          >
-            <FiFileText size={18} /> Generate Full Report
-          </button>
-          <span className="eval-full-report-hint">
-            {results
-              ? `Rolls up the current benchmark run (${results.totalTested} algorithms, ${reportScopeLabel}) into a printable report.`
-              : "Run a benchmark above to enable the full report."}
-          </span>
-        </div>
+            so the report and the on-screen charts never disagree.
+            Hidden for now via SHOW_FULL_REPORT_FEATURE -- see top of file. */}
+        {SHOW_FULL_REPORT_FEATURE && (
+          <div className="eval-full-report-trigger">
+            <button
+              className={`eval-btn-run ${!results ? "eval-run-disabled" : "eval-run-ready"}`}
+              onClick={() => setShowFullReport(true)}
+              disabled={!results}
+            >
+              <FiFileText size={18} /> Generate Full Report
+            </button>
+            <span className="eval-full-report-hint">
+              {results
+                ? `Rolls up the current benchmark run (${results.totalTested} algorithms, ${reportScopeLabel}) into a printable report.`
+                : "Run a benchmark above to enable the full report."}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* FULL REPORT MODAL */}
-      {showFullReport && results && (
+      {SHOW_FULL_REPORT_FEATURE && showFullReport && results && (
         <div className="modal-overlay eval-report-overlay" onClick={(e) => {
           if (e.target.classList.contains('eval-report-overlay')) setShowFullReport(false);
         }}>
