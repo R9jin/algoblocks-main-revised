@@ -840,6 +840,27 @@ json.dumps(res)
         const lineTimeAcc = totalLinesTestedCount > 0 ? (lineTimePassedCount / totalLinesTestedCount) * 100 : 0;
         const lineSpaceAcc = totalLinesTestedCount > 0 ? (lineSpacePassedCount / totalLinesTestedCount) * 100 : 0;
 
+        // Statement-level (local time / local space) Validation Matrix.
+        // This is a separate unit of analysis from timeReportData/spaceReportData
+        // above (n = annotated source lines, not n = algorithms), so it gets its
+        // own classification_report-style aggregation rather than being folded
+        // into the algorithm-level one. Reuses each line's already-computed
+        // expLocalTime/predLocalTime/expLocalSpace/predLocalSpace and ltMatch/
+        // lsMatch flags -- these were being thrown away after per-item pass/fail
+        // tallying (the loop above) instead of being fed into a report.
+        const allGroundTruthLines = detailedResults.flatMap(
+          d => (d.lineValidationResults || []).filter(l => l.hasGroundTruth)
+        );
+
+        const lineTimeReportData = generateClassificationReport(allGroundTruthLines, "expLocalTime", "predLocalTime", timeBaseClasses);
+        const lineSpaceReportData = generateClassificationReport(allGroundTruthLines, "expLocalSpace", "predLocalSpace", spaceBaseClasses);
+
+        const totalLinesLocalTested = allGroundTruthLines.length;
+        const lineLocalTimePassedCount = allGroundTruthLines.filter(l => l.ltMatch).length;
+        const lineLocalSpacePassedCount = allGroundTruthLines.filter(l => l.lsMatch).length;
+        const lineLocalTimeAcc = totalLinesLocalTested > 0 ? (lineLocalTimePassedCount / totalLinesLocalTested) * 100 : 0;
+        const lineLocalSpaceAcc = totalLinesLocalTested > 0 ? (lineLocalSpacePassedCount / totalLinesLocalTested) * 100 : 0;
+
         self.postMessage({
           type: 'BENCHMARK_COMPLETE',
           payload: {
@@ -859,8 +880,16 @@ json.dumps(res)
             lineSpacePassed: lineSpacePassedCount,
             lineTimeAccuracyRate: parseFloat(lineTimeAcc.toFixed(2)),
             lineSpaceAccuracyRate: parseFloat(lineSpaceAcc.toFixed(2)),
+            totalLinesLocalTimeTested: totalLinesLocalTested,
+            totalLinesLocalSpaceTested: totalLinesLocalTested,
+            lineLocalTimePassed: lineLocalTimePassedCount,
+            lineLocalSpacePassed: lineLocalSpacePassedCount,
+            lineLocalTimeAccuracyRate: parseFloat(lineLocalTimeAcc.toFixed(2)),
+            lineLocalSpaceAccuracyRate: parseFloat(lineLocalSpaceAcc.toFixed(2)),
             timeReport: timeReportData,
             spaceReport: spaceReportData,
+            lineTimeReport: lineTimeReportData,
+            lineSpaceReport: lineSpaceReportData,
             efficiency: efficiencyMetrics,
             details: detailedResults
           }
