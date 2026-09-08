@@ -332,22 +332,34 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
   // NOTE: this used to support several dataset "modes" (textbook,
   // codeforces, tasty-CSV, both) inherited from earlier iterations of the
-  // evaluation pipeline. Only ground_truth_chunk_01..29.json actually ship
-  // with the repo -- the rest (algo_blocks_dataset.csv, ground_truth.json,
+  // evaluation pipeline. The rest (algo_blocks_dataset.csv, ground_truth.json,
   // curated_ground_truth.json, curated_part_*.json) reference files that no
   // longer exist, and every code path was defaulting to "both" on first
   // load, which tried (and failed) to fetch all of them -- hence the
   // "Failed to load Tasty dataset" popup. Simplified to the one dataset
-  // that's actually present: the 29 ground-truth chunks.
+  // that's actually present: the ground-truth chunks.
+  //
+  // Chunk count is NOT hardcoded: a static host has no directory listing, so
+  // we just keep fetching ground_truth_chunk_NN.json in order and stop once
+  // we hit a run of consecutive misses. This way new chunks (e.g. added to
+  // backfill an underrepresented complexity class) are picked up automatically
+  // without another magic number here.
+  const MAX_CONSECUTIVE_MISSES = 3;
   const fetchActiveGauntletData = async () => {
-    setStatusText("Fetching Ground Truth Chunks (01 to 29)...");
+    setStatusText("Fetching Ground Truth Chunks...");
     let stitchedArray = [];
-    for (let i = 1; i <= 29; i++) {
+    let consecutiveMisses = 0;
+    let i = 1;
+    while (consecutiveMisses < MAX_CONSECUTIVE_MISSES) {
       const paddedNum = i.toString().padStart(2, '0');
       const partJson = await safeFetchJson(`/data/evaluation/processed/ground_truth_chunk_${paddedNum}.json`);
       if (partJson) {
         stitchedArray = stitchedArray.concat(partJson);
+        consecutiveMisses = 0;
+      } else {
+        consecutiveMisses += 1;
       }
+      i += 1;
     }
     return stitchedArray;
   };
@@ -362,7 +374,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
     const gauntletPayload = await fetchActiveGauntletData();
     if (!gauntletPayload || gauntletPayload.length === 0) {
-      alert("Critical Failure: Could not load the ground-truth chunks. Ensure ground_truth_chunk_01..29.json exist inside /public/data/evaluation/processed/");
+      alert("Critical Failure: Could not load the ground-truth chunks. Ensure ground_truth_chunk_01.json (and onward) exist inside /public/data/evaluation/processed/");
       setIsLoading(false);
       setStatusText("Dataset assembly failed.");
       return;

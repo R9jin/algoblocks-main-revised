@@ -193,20 +193,20 @@ def calculate_metrics(injected_dataset=None):
     if injected_dataset and isinstance(injected_dataset, list):
         dataset = injected_dataset
     else:
+        # Discover every ground_truth_chunk_*.json that actually exists on disk
+        # instead of assuming a fixed chunk count -- new chunks (e.g. added to
+        # cover underrepresented complexity classes) must be picked up automatically.
+        import glob
         chunk_files = []
-        for i in range(1, 30): 
-            for fmt in [f"{i:02d}", f"{i}"]:
-                filename = f"ground_truth_chunk_{fmt}.json"
-                path_processed = os.path.join(dataset_dir, 'processed', filename)
-                path_root = os.path.join(dataset_dir, filename)
-                
-                if os.path.exists(path_processed):
-                    chunk_files.append(path_processed)
-                    break 
-                elif os.path.exists(path_root):
-                    chunk_files.append(path_root)
-                    break 
-                    
+        seen_filenames = set()
+        for search_dir in [os.path.join(dataset_dir, 'processed'), dataset_dir]:
+            pattern = os.path.join(search_dir, "ground_truth_chunk_*.json")
+            for path in sorted(glob.glob(pattern)):
+                filename = os.path.basename(path)
+                if filename not in seen_filenames:
+                    chunk_files.append(path)
+                    seen_filenames.add(filename)
+
         if chunk_files:
             for file_path in chunk_files:
                 with open(file_path, 'r', encoding='utf-8') as f:

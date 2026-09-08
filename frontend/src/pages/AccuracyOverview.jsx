@@ -160,18 +160,27 @@ export default function AccuracyOverview() {
     setIsChecking(true);
     setCheckFailed(false);
 
+    // Chunk count is not hardcoded -- keep fetching sequential chunk files
+    // until a run of consecutive misses, so newly added chunks are included
+    // without needing another magic number here (see EvaluationSuite.jsx).
     let stitched = [];
-    for (let i = 1; i <= 29; i++) {
+    let consecutiveMisses = 0;
+    for (let i = 1; consecutiveMisses < 3; i++) {
       const padded = i.toString().padStart(2, "0");
+      let found = false;
       try {
         const r = await fetch(`/data/evaluation/processed/ground_truth_chunk_${padded}.json`);
         if (r.ok) {
           const json = await r.json();
-          if (Array.isArray(json)) stitched = stitched.concat(json);
+          if (Array.isArray(json)) {
+            stitched = stitched.concat(json);
+            found = true;
+          }
         }
       } catch {
         // skip a missing/broken chunk rather than failing the whole check
       }
+      consecutiveMisses = found ? 0 : consecutiveMisses + 1;
     }
 
     if (stitched.length === 0) {
