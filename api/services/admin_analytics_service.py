@@ -237,6 +237,29 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def _group_by_module(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Buckets submissions by moduleId and runs the exact same
+    `_submission_metrics` aggregation used for the cohort-wide totals on
+    each bucket, so per-module numbers are always internally consistent
+    with the overall numbers (same TSR/AES/ROG definitions, same test
+    breakdown logic) -- just scoped to one module's activities instead of
+    every activity. Used to power a full per-module breakdown table (e.g.
+    for a thesis Chapter 4 report) without introducing a second, separately
+    maintained metrics calculation.
+    """
+    buckets: Dict[str, List[Dict[str, Any]]] = {}
+    for sub in submissions:
+        if not isinstance(sub, dict):
+            continue
+        module_id = sub.get("moduleId") or "unknown"
+        buckets.setdefault(module_id, []).append(sub)
+
+    return {
+        module_id: _submission_metrics(module_submissions)
+        for module_id, module_submissions in sorted(buckets.items())
+    }
+
+
 def _submission_details(submissions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     details = []
     for sub in submissions:
@@ -467,6 +490,7 @@ class AdminAnalyticsService:
             if row.get("data") and row.get("email") in target_emails
         ]
         cohort_submission_metrics = _submission_metrics(all_submissions)
+        by_module = _group_by_module(all_submissions)
 
         pre_scores: Dict[str, float] = {}
         post_scores: Dict[str, float] = {}
@@ -481,6 +505,32 @@ class AdminAnalyticsService:
                 pre_scores[email] = pre
             if post is not None:
                 post_scores[email] = post
+
+        # Per-respondent rollup -- the same numbers an admin would see by
+        # expanding that user's row individually (see get_user_metrics),
+        # but computed here in one pass over the data already pulled above
+        # instead of one extra query per user. Used to render a full
+        # per-user table at the bottom of the "Generate Full Report" view,
+        # scoped to whichever emails are currently selected/target_emails.
+        user_lookup = {u.get("email"): u for u in standard_users if u.get("email")}
+        submissions_by_email: Dict[str, List[Dict[str, Any]]] = {}
+        for row in submission_rows:
+            email = row.get("email")
+            if email in target_emails and row.get("data"):
+                submissions_by_email.setdefault(email, []).append(row["data"])
+
+        by_user = []
+        for email in sorted(target_emails):
+            user = user_lookup.get(email, {})
+            user_metrics = _submission_metrics(submissions_by_email.get(email, []))
+            by_user.append({
+                "email": email,
+                "name": user.get("name"),
+                "status": user.get("status", "active"),
+                "metrics": user_metrics,
+                "preTest": pre_scores.get(email),
+                "postTest": post_scores.get(email),
+            })
 
         paired_emails = sorted(set(pre_scores) & set(post_scores))
         pre_list = [pre_scores[e] for e in paired_emails]
@@ -519,6 +569,8 @@ class AdminAnalyticsService:
             "post_test_completers": len(post_test_completers) if post_test_completed_only else None,
             "paired_test_takers": n,
             "system_generated": cohort_submission_metrics,
+            "by_module": by_module,
+            "by_user": by_user,
             "assessment_based": {
                 "mean_pretest": mean_pre,
                 "mean_posttest": mean_post,

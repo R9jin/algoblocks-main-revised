@@ -1,5 +1,7 @@
 // frontend/src/pages/AdminUserManagement.jsx
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 import {
   LuActivity,
   LuAward,
@@ -8,6 +10,7 @@ import {
   LuCheck,
   LuChevronDown,
   LuChevronUp,
+  LuFileText,
   LuFilter,
   LuFlaskConical,
   LuInfo,
@@ -27,7 +30,16 @@ import {
 } from "react-icons/lu";
 import DashboardHeader from "../components/DashboardHeader";
 import { getErrorMessage } from "../utils/apiError";
+import curriculumIndex from "../data/curriculumIndex";
 import "../styles/AdminUserManagement.css";
+
+// moduleId ("module-3") -> display title ("Divide and Conquer"), used to
+// label the per-module breakdown rows in the full report instead of
+// showing raw ids the way the activity-history chips do.
+const MODULE_TITLES = curriculumIndex.reduce((acc, module) => {
+  acc[module.moduleId] = module.title;
+  return acc;
+}, {});
 
 const MetricTooltip = ({ title, meanFormula, baseFormula, formula, desc, children }) => (
   <span className="metric-tooltip-wrapper">
@@ -146,6 +158,12 @@ const AdminUserManagement = () => {
   // course post-test -- rather than mixing in respondents who are still
   // mid-curriculum or never took it. Combines (AND) with respondent selection.
   const [postTestOnly, setPostTestOnly] = useState(false);
+
+  // Full report view -- a printable rollup of the *currently applied*
+  // Overall Learning Impact scope (selectedRespondents / postTestOnly),
+  // reusing the same `overview` payload rather than re-querying, so the
+  // report always matches whatever's on screen above it.
+  const [showFullReport, setShowFullReport] = useState(false);
 
   // Pending forgot-password requests, for the Admin > User Management
   // review panel. Legacy manual-override path: normal forgot-password
@@ -659,6 +677,205 @@ const AdminUserManagement = () => {
         }
       }
     });
+  };
+
+  // Builds the Chapter-4-ready narrative paragraph beneath the report's
+  // assessment-based table -- phrased the way a Results/Discussion write-up
+  // states a paired t-test outcome, so it's usable close to verbatim rather
+  // than just restating the numbers already in the table above it.
+  const buildImpactNarrative = (ov) => {
+    if (!ov) return "";
+    const ab = ov.assessment_based || {};
+    const n = ov.paired_test_takers || 0;
+    if (n === 0) {
+      return "No respondents in the current scope have completed both the pre-test and post-test, so no paired learning-gain statistics are available yet.";
+    }
+
+    const sigPhrase = ab.significant_at_0_05
+      ? "a statistically significant"
+      : "no statistically significant";
+    const tStr = ab.t_value != null ? ab.t_value.toFixed(3) : "--";
+    const pStr = ab.p_value != null ? ab.p_value.toFixed(4) : "--";
+    const dStr = ab.cohens_d != null ? ab.cohens_d.toFixed(3) : "--";
+    const gStr = ab.hakes_g != null ? ab.hakes_g.toFixed(3) : "--";
+
+    return `Among the ${n} respondent${n === 1 ? "" : "s"} in the current scope with paired pre-test and post-test scores, mean scores rose from ${ab.mean_pretest}% (SD = ${ab.sd_pretest}) to ${ab.mean_posttest}% (SD = ${ab.sd_posttest}). A paired-samples t-test found ${sigPhrase} difference between the two administrations, t(${ab.degrees_of_freedom ?? n - 1}) = ${tStr}, p = ${pStr}. The effect size was ${(ab.cohens_d_interpretation || "").toLowerCase()} (Cohen's d = ${dStr}), and Hake's normalized learning gain was classified as ${(ab.hakes_g_interpretation || "").toLowerCase()} (g = ${gStr}).`;
+  };
+
+  const buildSystemNarrative = (ov) => {
+    if (!ov) return "";
+    const sg = ov.system_generated || {};
+    if (!sg.activities_attempted) {
+      return "No activity submissions were recorded for the current scope.";
+    }
+    const passRate = sg.activities_attempted
+      ? Math.round((sg.activities_passed / sg.activities_attempted) * 100)
+      : 0;
+    return `Across ${sg.activities_attempted} recorded activity submission${sg.activities_attempted === 1 ? "" : "s"} in the current scope, respondents achieved an average Task Success Rate of ${sg.tsr ?? "--"}% and an average Algorithmic Efficiency Score of ${sg.aes ?? "--"}%, passing ${sg.activities_passed} activities (${passRate}%). Among the ${sg.rog_refactored_count} submissions where a genuine refactor took place, the average Refactoring Optimization Gain was +${sg.rog ?? 0} AES points.`;
+  };
+
+  const reportScopeLabel = selectedRespondents.length > 0
+    ? `${selectedRespondents.length} selected respondent${selectedRespondents.length === 1 ? "" : "s"}`
+    : `All standard users${overview ? ` (n=${overview.total_standard_users})` : ""}`;
+
+  // Builds and downloads an actual .pdf file directly in the browser --
+  // no print dialog, no "print to PDF" step. jsPDF + autoTable draw the
+  // report's text and tables onto PDF pages ourselves, so pagination is
+  // fully under our control (autoTable repeats headers and breaks rows
+  // cleanly across pages on its own).
+  const handleDownloadPdf = (ov) => {
+    if (!ov) return;
+    const doc = new jsPDF({ unit: "pt", format: "letter" });
+    const marginX = 40;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const brandColor = [90, 19, 152];
+    let y = 54;
+
+    const ensureRoom = (needed) => {
+      if (y + needed > pageHeight - 40) {
+        doc.addPage();
+        y = 54;
+      }
+    };
+
+    const addHeading = (text) => {
+      ensureRoom(24);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(...brandColor);
+      doc.text(text, marginX, y);
+      y += 18;
+      doc.setTextColor(20, 20, 20);
+    };
+
+    const addParagraph = (text) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      const lines = doc.splitTextToSize(text, pageWidth - marginX * 2);
+      lines.forEach((line) => {
+        ensureRoom(14);
+        doc.text(line, marginX, y);
+        y += 13;
+      });
+      y += 8;
+    };
+
+    const addKeyValueTable = (rows) => {
+      autoTable(doc, {
+        startY: y,
+        margin: { left: marginX, right: marginX },
+        theme: "grid",
+        styles: { fontSize: 9, cellPadding: 5 },
+        headStyles: { fillColor: brandColor },
+        columnStyles: { 0: { fontStyle: "bold", cellWidth: 220 } },
+        body: rows,
+      });
+      y = doc.lastAutoTable.finalY + 20;
+    };
+
+    // Title block
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(30, 20, 50);
+    doc.text("AlgoBlocks \u2014 Learning Impact Report", marginX, y);
+    y += 22;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 110);
+    doc.text(`Generated ${new Date().toLocaleString()}`, marginX, y);
+    y += 13;
+    doc.text(
+      `Scope: ${reportScopeLabel}${postTestOnly ? ` \u00b7 Post-test completers only (${ov.post_test_completers ?? 0})` : ""}`,
+      marginX,
+      y
+    );
+    y += 24;
+    doc.setTextColor(20, 20, 20);
+
+    // 1. System-generated
+    addHeading("1. System-Generated Learning Performance");
+    addParagraph(buildSystemNarrative(ov));
+    const sg = ov.system_generated;
+    addKeyValueTable([
+      ["Respondents Included", String(ov.user_count)],
+      ["Activity Submissions", String(sg.activities_attempted)],
+      ["Activities Passed", String(sg.activities_passed)],
+      ["Avg Task Success Rate (TSR)", `${sg.tsr ?? "--"}%`],
+      ["Avg Algorithmic Efficiency Score (AES)", `${sg.aes ?? "--"}%`],
+      ["Avg Refactoring Optimization Gain (ROG)", `+${sg.rog ?? 0} (n'=${sg.rog_refactored_count})`],
+      ["Functional Tests Passed", `${sg.functional_tests.passed}/${sg.functional_tests.total}`],
+      ["Complexity Tests Passed", `${sg.complexity_tests.passed}/${sg.complexity_tests.total}`],
+      ["Hidden Tests Passed", `${sg.hidden_tests.passed}/${sg.hidden_tests.total}`],
+    ]);
+
+    // 2. Per-module breakdown
+    addHeading("2. Per-Module Breakdown");
+    const moduleEntries = Object.entries(ov.by_module || {});
+    if (moduleEntries.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        margin: { left: marginX, right: marginX },
+        theme: "grid",
+        styles: { fontSize: 9, cellPadding: 5 },
+        headStyles: { fillColor: brandColor },
+        head: [["Module", "Submissions", "Passed", "Avg TSR", "Avg AES", "Avg ROG"]],
+        body: moduleEntries.map(([moduleId, m]) => [
+          MODULE_TITLES[moduleId] || moduleId,
+          String(m.activities_attempted),
+          String(m.activities_passed),
+          `${m.tsr ?? "--"}%`,
+          `${m.aes ?? "--"}%`,
+          `+${m.rog ?? 0}`,
+        ]),
+      });
+      y = doc.lastAutoTable.finalY + 20;
+    } else {
+      addParagraph("No module-level submissions recorded for the current scope.");
+    }
+
+    // 3. Assessment-based measures
+    addHeading("3. Assessment-Based Learning Measures");
+    addParagraph(buildImpactNarrative(ov));
+    if (ov.paired_test_takers > 0) {
+      const ab = ov.assessment_based;
+      addKeyValueTable([
+        ["Paired Pre/Post Test Takers (n)", String(ov.paired_test_takers)],
+        ["Mean Pre-test / Post-test", `${ab.mean_pretest}% \u2192 ${ab.mean_posttest}%`],
+        ["SD Pre-test / Post-test", `${ab.sd_pretest} / ${ab.sd_posttest}`],
+        ["Paired t-test", `t(${ab.degrees_of_freedom}) = ${ab.t_value}, p = ${ab.p_value} (${ab.significant_at_0_05 ? "significant" : "not significant"} at \u03b1=.05)`],
+        ["Cohen's d", `${ab.cohens_d} \u00b7 ${ab.cohens_d_interpretation}`],
+        ["Hake's Normalized Gain (g)", `${ab.hakes_g} \u00b7 ${ab.hakes_g_interpretation}`],
+      ]);
+    }
+
+    // 4. Individual respondent breakdown
+    addHeading(`4. Individual Respondent Breakdown (${ov.by_user?.length ?? 0})`);
+    if (ov.by_user && ov.by_user.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        margin: { left: marginX, right: marginX },
+        theme: "grid",
+        styles: { fontSize: 8, cellPadding: 4 },
+        headStyles: { fillColor: brandColor },
+        head: [["Name", "Email", "Activities", "Passed", "Avg TSR", "Avg AES", "Avg ROG", "Pre-test", "Post-test"]],
+        body: ov.by_user.map((u) => [
+          u.name || "Unnamed Profile",
+          u.email,
+          String(u.metrics.activities_attempted),
+          String(u.metrics.activities_passed),
+          u.metrics.tsr != null ? `${u.metrics.tsr}%` : "--",
+          u.metrics.aes != null ? `${u.metrics.aes}%` : "--",
+          `+${u.metrics.rog ?? 0}`,
+          u.preTest != null ? `${u.preTest}%` : "--",
+          u.postTest != null ? `${u.postTest}%` : "--",
+        ]),
+      });
+    } else {
+      addParagraph("No respondents in the current scope.");
+    }
+
+    doc.save(`AlgoBlocks-Learning-Impact-Report-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
@@ -1430,7 +1647,166 @@ const AdminUserManagement = () => {
             </table>
           </div>
         )}
+
+        {/* FULL REPORT -- rolls up whatever scope is currently applied to
+            the Overall Learning Impact dashboard above (all users / selected
+            respondents, post-test-completers-only or not) into one printable
+            view, for pulling straight into a Chapter 4 Results write-up.
+            Reuses the same `overview` payload already fetched for that
+            dashboard so the two never disagree with each other. */}
+        <div className="admin-full-report-trigger">
+          <button
+            className="admin-refresh-btn"
+            onClick={() => setShowFullReport(true)}
+            disabled={!overview}
+          >
+            <LuFileText size={18} /> Generate Full Report
+          </button>
+          <span className="admin-full-report-hint">
+            Rolls up the current Overall Learning Impact scope ({reportScopeLabel}{postTestOnly ? " · post-test completers only" : ""}) into a printable report.
+          </span>
+        </div>
       </div>
+
+      {/* FULL REPORT MODAL */}
+      {showFullReport && overview && (
+        <div className="admin-modal-overlay report-overlay" onClick={(e) => {
+          if (e.target.className.includes('report-overlay')) setShowFullReport(false);
+        }}>
+          <div className="admin-modal-card full-report-card">
+            <div className="admin-modal-header no-print">
+              <div className="admin-modal-title">
+                <LuFileText size={22} />
+                <h3>Full Learning Impact Report</h3>
+              </div>
+              <div className="full-report-header-actions">
+                <button className="admin-refresh-btn small outline" onClick={() => handleDownloadPdf(overview)}>
+                  <LuFileText size={16} /> Download PDF
+                </button>
+                <button className="admin-modal-close" onClick={() => setShowFullReport(false)}>
+                  <LuX size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="admin-modal-body full-report-body" id="full-report-printable">
+              <div className="full-report-meta">
+                <h1>AlgoBlocks &mdash; Learning Impact Report</h1>
+                <p>Generated {new Date().toLocaleString()}</p>
+                <p>
+                  Scope: {reportScopeLabel}
+                  {postTestOnly && ` · Post-test completers only (${overview.post_test_completers ?? 0})`}
+                </p>
+              </div>
+
+              <section className="full-report-section">
+                <h2>1. System-Generated Learning Performance</h2>
+                <p>{buildSystemNarrative(overview)}</p>
+                <table className="full-report-table">
+                  <tbody>
+                    <tr><th>Respondents Included</th><td>{overview.user_count}</td></tr>
+                    <tr><th>Activity Submissions</th><td>{overview.system_generated.activities_attempted}</td></tr>
+                    <tr><th>Activities Passed</th><td>{overview.system_generated.activities_passed}</td></tr>
+                    <tr><th>Avg Task Success Rate (TSR)</th><td>{overview.system_generated.tsr ?? "--"}%</td></tr>
+                    <tr><th>Avg Algorithmic Efficiency Score (AES)</th><td>{overview.system_generated.aes ?? "--"}%</td></tr>
+                    <tr><th>Avg Refactoring Optimization Gain (ROG)</th><td>+{overview.system_generated.rog ?? 0} (n'={overview.system_generated.rog_refactored_count})</td></tr>
+                    <tr><th>Functional Tests Passed</th><td>{overview.system_generated.functional_tests.passed}/{overview.system_generated.functional_tests.total}</td></tr>
+                    <tr><th>Complexity Tests Passed</th><td>{overview.system_generated.complexity_tests.passed}/{overview.system_generated.complexity_tests.total}</td></tr>
+                    <tr><th>Hidden Tests Passed</th><td>{overview.system_generated.hidden_tests.passed}/{overview.system_generated.hidden_tests.total}</td></tr>
+                  </tbody>
+                </table>
+              </section>
+
+              <section className="full-report-section">
+                <h2>2. Per-Module Breakdown</h2>
+                {overview.by_module && Object.keys(overview.by_module).length > 0 ? (
+                  <table className="full-report-table wide">
+                    <thead>
+                      <tr>
+                        <th>Module</th>
+                        <th>Submissions</th>
+                        <th>Passed</th>
+                        <th>Avg TSR</th>
+                        <th>Avg AES</th>
+                        <th>Avg ROG</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(overview.by_module).map(([moduleId, m]) => (
+                        <tr key={moduleId}>
+                          <td>{MODULE_TITLES[moduleId] || moduleId}</td>
+                          <td>{m.activities_attempted}</td>
+                          <td>{m.activities_passed}</td>
+                          <td>{m.tsr ?? "--"}%</td>
+                          <td>{m.aes ?? "--"}%</td>
+                          <td>+{m.rog ?? 0}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="analytics-empty-note">No module-level submissions recorded for the current scope.</p>
+                )}
+              </section>
+
+              <section className="full-report-section">
+                <h2>3. Assessment-Based Learning Measures</h2>
+                <p>{buildImpactNarrative(overview)}</p>
+                {overview.paired_test_takers > 0 && (
+                  <table className="full-report-table">
+                    <tbody>
+                      <tr><th>Paired Pre/Post Test Takers (n)</th><td>{overview.paired_test_takers}</td></tr>
+                      <tr><th>Mean Pre-test / Post-test</th><td>{overview.assessment_based.mean_pretest}% &rarr; {overview.assessment_based.mean_posttest}%</td></tr>
+                      <tr><th>SD Pre-test / Post-test</th><td>{overview.assessment_based.sd_pretest} / {overview.assessment_based.sd_posttest}</td></tr>
+                      <tr><th>Paired t-test</th><td>t({overview.assessment_based.degrees_of_freedom}) = {overview.assessment_based.t_value}, p = {overview.assessment_based.p_value} ({overview.assessment_based.significant_at_0_05 ? "significant" : "not significant"} at &alpha;=.05)</td></tr>
+                      <tr><th>Cohen's d</th><td>{overview.assessment_based.cohens_d} &middot; {overview.assessment_based.cohens_d_interpretation}</td></tr>
+                      <tr><th>Hake's Normalized Gain (g)</th><td>{overview.assessment_based.hakes_g} &middot; {overview.assessment_based.hakes_g_interpretation}</td></tr>
+                    </tbody>
+                  </table>
+                )}
+              </section>
+
+              <section className="full-report-section">
+                <h2>4. Individual Respondent Breakdown ({overview.by_user?.length ?? 0})</h2>
+                {overview.by_user && overview.by_user.length > 0 ? (
+                  <table className="full-report-table wide user-report-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Activities</th>
+                        <th>Passed</th>
+                        <th>Avg TSR</th>
+                        <th>Avg AES</th>
+                        <th>Avg ROG</th>
+                        <th>Pre-test</th>
+                        <th>Post-test</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {overview.by_user.map((u) => (
+                        <tr key={u.email}>
+                          <td>{u.name || "Unnamed Profile"}</td>
+                          <td>{u.email}</td>
+                          <td>{u.metrics.activities_attempted}</td>
+                          <td>{u.metrics.activities_passed}</td>
+                          <td>{u.metrics.tsr ?? "--"}{u.metrics.tsr != null ? "%" : ""}</td>
+                          <td>{u.metrics.aes ?? "--"}{u.metrics.aes != null ? "%" : ""}</td>
+                          <td>+{u.metrics.rog ?? 0}</td>
+                          <td>{u.preTest != null ? `${u.preTest}%` : "--"}</td>
+                          <td>{u.postTest != null ? `${u.postTest}%` : "--"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="analytics-empty-note">No respondents in the current scope.</p>
+                )}
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CUSTOM ADMIN MODAL OVERLAY */}
       {modalConfig.isOpen && (

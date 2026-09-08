@@ -1,5 +1,7 @@
 // frontend/src/pages/EvaluationSuite.jsx
 import React, { useEffect, useMemo, useState } from "react";
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 import {
   FiActivity,
   FiArrowRight,
@@ -11,6 +13,7 @@ import {
   FiCornerDownRight,
   FiCpu, FiDatabase,
   FiDownload,
+  FiFileText,
   FiHelpCircle, FiLayers,
   FiList,
   FiPieChart,
@@ -18,6 +21,7 @@ import {
   FiRefreshCw,
   FiTrendingDown,
   FiTrendingUp,
+  FiX,
   FiXCircle, FiZap
 } from "react-icons/fi";
 import {
@@ -250,6 +254,13 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
   // Explainer Modal State & Interactive Sandbox State
   const [isMetricsHelpOpen, setIsMetricsHelpOpen] = useState(false);
+
+  // Full Benchmark Report Modal State -- mirrors the "Generate Full Report"
+  // pattern in AdminUserManagement.jsx: rolls up whatever the most recent
+  // benchmark run produced (results/processedTimeReport/processedSpaceReport)
+  // into one printable view + downloadable PDF, generated on demand rather
+  // than kept in sync live.
+  const [showFullReport, setShowFullReport] = useState(false);
 
   const [sandboxTP, setSandboxTP] = useState(80);
   const [sandboxFP, setSandboxFP] = useState(10);
@@ -618,8 +629,6 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     }));
   }, [results]);
 
-<<<<<<< Updated upstream
-=======
   const reportScopeLabel = datasetOption === "chunks" ? "Tasty Ground Truth Dataset" : datasetOption;
 
   const buildBenchmarkNarrative = () => {
@@ -812,7 +821,6 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     doc.save(`AlgoBlocks-Benchmark-Report-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
->>>>>>> Stashed changes
   return (
     <div className="eval-suite-container">
 
@@ -1804,9 +1812,29 @@ export default function EvaluationSuite({ embedded = false } = {}) {
             )}
           </div>
         )}
+
+        {/* FULL REPORT -- rolls up whatever the most recent benchmark run
+            produced (overall Time/Space accuracy, per-class validation
+            matrices, engine performance, and the full algorithm-by-algorithm
+            table) into one printable view, same pattern as the "Generate
+            Full Report" feature on the System User Management page. Reuses
+            the same `results` payload already held for the dashboard above
+            so the report and the on-screen charts never disagree. */}
+        <div className="eval-full-report-trigger">
+          <button
+            className={`eval-btn-run ${!results ? "eval-run-disabled" : "eval-run-ready"}`}
+            onClick={() => setShowFullReport(true)}
+            disabled={!results}
+          >
+            <FiFileText size={18} /> Generate Full Report
+          </button>
+          <span className="eval-full-report-hint">
+            {results
+              ? `Rolls up the current benchmark run (${results.totalTested} algorithms, ${reportScopeLabel}) into a printable report.`
+              : "Run a benchmark above to enable the full report."}
+          </span>
+        </div>
       </div>
-<<<<<<< Updated upstream
-=======
 
       {/* FULL REPORT MODAL */}
       {showFullReport && results && (
@@ -2109,7 +2137,6 @@ export default function EvaluationSuite({ embedded = false } = {}) {
           </div>
         </div>
       )}
->>>>>>> Stashed changes
     </div>
   );
 }
