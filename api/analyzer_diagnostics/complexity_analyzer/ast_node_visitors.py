@@ -414,6 +414,23 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     if is_rec_call or is_heavy_op:
                         self.analyzer._details[i]["global_time"] = resolved_rel
                         self.analyzer._details[i]["weight"] = self.analyzer.signature_recorder._get_weight(resolved_rel, False)
+                        # BUGFIX: the placeholder-substitution pass above (see
+                        # "current_call_cost") only ever writes raw recurrence
+                        # tokens like "T(n-1)" into local_time for the
+                        # recursive-call line itself, and nothing later ever
+                        # resolves that token to a real Big-O class -- unlike
+                        # global_time, which *is* resolved right here. Ground
+                        # truth annotates the call-site line's local_time as
+                        # the same resolved relation as its global_time (see
+                        # e.g. algo_n2_148 lines 24/27/30/33: local_time ==
+                        # global_time == "O(V+E)"), so do the same here. Only
+                        # for the actual recursive-call line (is_rec_call) --
+                        # not for is_heavy_op lines (loops, comprehensions,
+                        # etc.), whose local_time already reflects their own,
+                        # narrower local cost and must not be overwritten with
+                        # the whole function's resolved relation.
+                        if is_rec_call:
+                            self.analyzer._details[i]["local_time"] = resolved_rel
                     elif not getattr(self.analyzer, 'in_graph_context', False):
                         if self.analyzer._details[i]["global_time"] == "O(1)" and relation not in ["O(1)", "O(log n)"]:
                             if "2T(" in relation or "T(n-1) + T(n-2)" in relation or self.analyzer.recursive_calls_count >= 2:

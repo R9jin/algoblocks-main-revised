@@ -554,15 +554,15 @@
         "lineno": 34,
         "local_time": "O(1)",
         "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "local_space": "O(n)",
+        "global_space": "O(n)"
       },
       {
         "lineno": 39,
         "local_time": "O(1)",
         "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "local_space": "O(n)",
+        "global_space": "O(n)"
       },
       {
         "lineno": 42,
@@ -589,8 +589,8 @@
         "lineno": 49,
         "local_time": "O(1)",
         "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "local_space": "O(n)",
+        "global_space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -614,8 +614,8 @@
         "lineno": 11,
         "local_time": "O(1)",
         "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "local_space": "O(n)",
+        "global_space": "O(n)"
       },
       {
         "lineno": 15,
@@ -740,8 +740,8 @@
         "lineno": 44,
         "local_time": "O(1)",
         "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "local_space": "O(n)",
+        "global_space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -1388,10 +1388,10 @@
       },
       {
         "lineno": 6,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "local_space": "O(n)",
+        "global_space": "O(n)"
       },
       {
         "lineno": 9,
@@ -1402,10 +1402,10 @@
       },
       {
         "lineno": 10,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "local_space": "O(n)",
+        "global_space": "O(n)"
       },
       {
         "lineno": 11,

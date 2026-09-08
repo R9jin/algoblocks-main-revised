@@ -459,3 +459,137 @@ edge case rather than forced either way.
 `MIN_SPACE_ACCURACY` has already been raised from the 0.50 Round 1
 mentioned to 0.80 by the time of this pass).
 Regenerated via `python tests/generate_accuracy_report.py`.
+
+## Round 4 -- line-level (statement) matrices
+
+Every round above audited and corrected `expected_overall_time` /
+`expected_overall_space` -- the one-badge-per-algorithm labels. None of them
+touched `line_metrics`, the separate per-statement `local_time` /
+`global_time` / `local_space` / `global_space` annotations that feed the
+*Line-Level Validation Matrix* (statement-level precision/recall/F1, n=lines
+not n=algorithms). This round is the first pass at that matrix specifically,
+prompted by the benchmark report's Section 4/5 tables showing several
+classes at or near 0% precision/recall despite healthy overall accuracy.
+
+### Analyzer bug: recursive call lines' `local_time` never resolved
+
+`ast_node_visitors.py`'s `visit_FunctionDef` writes a raw placeholder token
+(`"T(n-1)"`, `"T(n/2)"`, `"T(n-2)"`) into a recursive call line's
+`local_time` *and* `global_time` on first visit. A later pass resolves
+`global_time` to the real Big-O class for that line (e.g. `O(V+E)`,
+`O(n^2)`) -- but only `global_time`; `local_time` was never touched again,
+so it kept the raw `"T(n-1)"`-style string forever. That string then flowed
+unchanged through `evaluation_metrics.py`'s `normalize_complexity()` (which
+only recognizes bare `T(n-1)`-style tokens, not ones already embedded in a
+resolved relation) straight into the benchmark as a bogus predicted class
+like `"O(t(n-1))"` -- polluting precision/recall for whatever the line's
+*real* expected class was (confirmed against ground truth, e.g.
+`algo_n2_148` lines 24/27/30/33, where `local_time` is annotated equal to
+`global_time`, both `O(V+E)`).
+
+Fixed in both vendored copies (`frontend/public/python_engine/` and
+`api/analyzer_diagnostics/`, kept byte-identical): the same resolution loop
+that already sets `global_time = resolved_rel` for a recursive-call line
+now also sets `local_time = resolved_rel` for that line specifically (not
+for `is_heavy_op` lines -- loops/comprehensions/etc. keep their own,
+narrower local cost).
+
+### Dataset bug: `line_metrics` never updated by Rounds 1-3
+
+Wrote a diagnostic (`max` complexity class across a given algorithm's
+annotated lines' `global_time` / `global_space`, compared against that
+algorithm's current, already-corrected `expected_overall_time` /
+`expected_overall_space`) and found:
+
+- **11 algorithms** where the annotated lines' `global_time` still reflected
+  the *pre-Round-3* time label (e.g. `algo_1_159`: overall corrected
+  O(n)->O(log n) in Round 3, but its while-loop body lines were still
+  annotated `local_time`/`global_time`: `O(n)`).
+- **92 algorithms** where the annotated lines' `global_space` still
+  reflected the *pre-Round-1* `O(1)` space label, even though the overall
+  label had been corrected to `O(n)` (or, for 3 entries, `O(n^2)`/`O(2^n)`)
+  back in Round 1/3.
+
+Both are the same mechanism: the overall-label corrections in Rounds 1-3
+were never propagated down to the per-line annotations of the same
+algorithms, so the line-level matrix kept scoring the analyzer's now-correct
+line-level predictions against stale, pre-correction expectations.
+
+**Fix applied:** for each stale algorithm, re-ran the (now local-time-fixed)
+analyzer and confirmed its *overall* prediction still matches the
+already-audited-correct `expected_overall_time`/`expected_overall_space`
+(true for all 11 time-stale entries and 89 of the 92 space-stale entries).
+For those, replaced the `local_time`/`global_time` (or `local_space`/
+`global_space`) fields on each of that algorithm's *existing* annotated
+lines with the analyzer's own per-line values for that lineno -- this isn't
+a new judgment call, it's completing the correction Rounds 1-3 already made
+at the overall level but never finished propagating.
+
+**Left unchanged (3 entries) -- pre-existing open disagreements, not
+touched:**
+
+- `algo_n2_205` -- documented live analyzer gap since Round 1 (dict keyed
+  across a nested `r x c` loop can hold `r*c` entries; analyzer still says
+  `O(n)`, ground truth correctly says `O(n^2)`). Re-deriving its line-level
+  annotations from the analyzer would just encode the same wrong answer at
+  the line level. Left open.
+- `algo_n2_275` -- Round 3 corrected this to `O(n)` overall space, but the
+  analyzer (even after this round's fixes) says `O(1)`: the driver's array
+  is `[[0 for i in range(2)] for i in range(5)]`, a literal `5x2` array with
+  no symbolic size anywhere in this snippet. Genuinely arguable either way
+  (same "algorithmic intent vs. literal code" ambiguity as other entries
+  left open in Round 3) -- not re-litigated here, line-level left as-is.
+
+**Also found, deliberately not "fixed": 8 algorithms** (`algo_n_010`,
+`algo_n2_042`, `algo_n_048`, `algo_n_055`, `algo_n_117`, `algo_n_172`,
+`algo_n_238`, plus overlap already covered above) where the diagnostic still
+flags a mismatch between max annotated `global_space` and the overall label,
+but the actual O(n)-space-causing line (typically a bare `s.add(x)` /
+`.append(x)` statement inside a loop) was **never part of the annotated
+line subset to begin with** -- ground truth annotation has always been a
+curated subset of lines, not every line. Since the line-level matrix only
+scores lines that carry ground truth, these don't distort the benchmark and
+weren't touched. Separately confirmed the analyzer *itself* has a real gap
+here too: a bare accumulating-call expression statement (`s.add(x)` on its
+own line) never gets recorded into `_details` at all (`visit_Call` bumps
+the aggregate `max_space_weight` used for the *overall* space badge, but no
+per-line `record_line()` call happens for that statement) -- so even if
+ground truth annotated that line, the analyzer couldn't currently produce a
+matching per-line prediction for it. Recorded here as a known follow-up, out
+of scope for this pass (fixing it means adding a new `record_line()` call
+site in `visit_Call`/`visit_Expr` for accumulating calls, which risks
+touching a lot of other line-level cases and needs its own audit pass).
+
+### Result (Round 4)
+
+Measured via `frontend/public/python_engine/evaluation_metrics.py`'s
+`calculate_metrics()` (the same harness that produced the benchmark
+report), not `generate_accuracy_report.py` (which uses a stricter exact-
+match rather than `check_match()`'s equivalence-aware comparison, so its
+numbers run a few points lower on both rounds -- that gap predates this
+round and isn't touched by it):
+
+| Metric | Before this round | After |
+|---|---|---|
+| Overall time accuracy | 225/266 (84.6%) -- unaffected, see below | 225/266 (84.6%) |
+| Overall space accuracy | 259/266 (97.4%) -- unaffected | 259/266 (97.4%) |
+| Local (statement) time accuracy | 4982/5116 (97.4%) | 4988/5116 (97.5%) |
+| Local (statement) space accuracy | 5108/5116 (99.8%) | 5108/5116 (99.8%) -- unaffected, only class distribution changed |
+| `O(n)` space (line-level) | P=5%, R=100%, F1=0.10, n=12 | P=79%, R=100%, F1=0.88, n=181 |
+| `O(log n)` time (line-level) | P=19%, R=64%, F1=0.29, n=11 | P=30%, R=73%, F1=0.42, n=15 |
+| `O(V+E)` time (line-level) | P=0%, R=0%, F1=0, n=13 | unchanged -- pre-existing grid-as-graph notation disagreement, see Round 3 |
+
+Overall time/space accuracy is unaffected by design -- this round only
+edits `line_metrics`, never `expected_overall_time`/`expected_overall_space`
+-- so `pytest tests/test_analyzer_regression.py`'s 70%/80% floors are
+unaffected and still clear comfortably. The `O(n)` space line-level jump
+(support 12 -> 181, F1 0.10 -> 0.88) is the big one: most of the 89 patched
+algorithms' O(n)-space lines simply had no matching expected class at all
+before this round, so they were invisible to the line-level matrix rather
+than being scored as correct or incorrect.
+
+Files updated (identical content, kept in sync):
+- `frontend/public/python_engine/complexity_analyzer/ast_node_visitors.py`
+- `api/analyzer_diagnostics/complexity_analyzer/ast_node_visitors.py`
+- `api/analyzer_diagnostics/ground_truth/ground_truth_chunk_*.json`
+- `frontend/public/data/evaluation/processed/ground_truth_chunk_*.json`

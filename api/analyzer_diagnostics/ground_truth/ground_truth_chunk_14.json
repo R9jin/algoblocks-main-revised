@@ -435,8 +435,8 @@
         "lineno": 17,
         "local_time": "O(1)",
         "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "local_space": "O(n)",
+        "global_space": "O(n)"
       },
       {
         "lineno": 20,
@@ -631,8 +631,8 @@
         "lineno": 58,
         "local_time": "O(1)",
         "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "local_space": "O(n)",
+        "global_space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n log n)",
@@ -1026,50 +1026,50 @@
       },
       {
         "lineno": 8,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
+        "local_time": "O(n)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 9,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 12,
         "local_time": "O(1)",
-        "global_time": "O(1)",
+        "global_time": "O(n^2)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 15,
         "local_time": "O(1)",
-        "global_time": "O(1)",
+        "global_time": "O(n^2)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 16,
         "local_time": "O(1)",
-        "global_time": "O(1)",
+        "global_time": "O(n^2)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 21,
         "local_time": "O(1)",
-        "global_time": "O(1)",
+        "global_time": "O(n^2)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
       {
         "lineno": 24,
         "local_time": "O(1)",
-        "global_time": "O(1)",
+        "global_time": "O(n)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       },
@@ -1082,8 +1082,8 @@
       },
       {
         "lineno": 31,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
+        "local_time": "O(n^2)",
+        "global_time": "O(n^2)",
         "local_space": "O(1)",
         "global_space": "O(1)"
       }
