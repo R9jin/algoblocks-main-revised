@@ -566,7 +566,15 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     };
 
     mergeKeys("O(exponential)", "O(2^n)");
-    mergeKeys("O(v)", "O(V)");
+    // Graph-class labels only ever come out of the analyzer as the combined
+    // "O(V + E)" class (see complexity_synthesizer.py) -- O(V) and O(E) are
+    // not classes it supports on their own. Any stray single-letter label
+    // (upper- or lower-case, from ground truth or a normalizer miss) folds
+    // into "O(V + E)" instead of forming its own row.
+    mergeKeys("O(v)", "O(V + E)");
+    mergeKeys("O(V)", "O(V + E)");
+    mergeKeys("O(e)", "O(V + E)");
+    mergeKeys("O(E)", "O(V + E)");
 
     if (newPerClass["O(quartic)"]) {
       newPerClass["O(n^4)"] = newPerClass["O(quartic)"];

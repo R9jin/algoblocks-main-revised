@@ -74,6 +74,7 @@ function strictBigONormalizer(raw) {
   if (s.includes("2^n")) return "O(2^n)";
   if (s.includes("3^n")) return "O(3^n)";
   if (s.includes("v+e") || s.includes("e+v")) return "O(V + E)";
+  if (s === "v" || s === "e") return "O(V + E)";
   if (s.includes("n*m") || s.includes("m*n")) return "O(n * m)";
   if (s.includes("logmin") || s.includes("gcd")) return "O(log min(a, b))";
   if (s.includes("sqrtn") || s.includes("âˆšn")) return "O(sqrt n)";

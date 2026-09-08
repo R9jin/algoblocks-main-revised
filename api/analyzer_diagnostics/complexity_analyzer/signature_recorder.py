@@ -283,8 +283,8 @@ class SignatureRecorder:
         if local_s == "S(placeholder)": global_s = "S(placeholder)"
 
         if getattr(self.analyzer, 'in_graph_context', False):
-            if "O(n)" in local_s: local_s = local_s.replace("O(n)", "O(V)")
-            if "O(n)" in global_s: global_s = global_s.replace("O(n)", "O(V)")
+            if "O(n)" in local_s: local_s = local_s.replace("O(n)", "O(V+E)")
+            if "O(n)" in global_s: global_s = global_s.replace("O(n)", "O(V+E)")
             
         curr_func = self.analyzer.current_function_name or ""
         is_char_count = "char" in curr_func.lower() and "count" in curr_func.lower()

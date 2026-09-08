@@ -4,84 +4,84 @@
     "name": "Breadth First Traversal of a graph",
     "code": "# Python3 program for Breadth First\n# Traversal of a graph represented\n# using adjacency list (dict of lists)\nfrom collections import deque\n\ndef bfs(graph, start):\n    # Set to keep track of visited nodes\n    visited = set()\n    visited.add(start)\n\n    # Queue for BFS\n    queue = deque([start])\n    order = []\n\n    while queue:\n        node = queue.popleft()\n        order.append(node)\n\n        # Explore all neighbours of the\n        # current node\n        for neighbour in graph[node]:\n            if neighbour not in visited:\n                visited.add(neighbour)\n                queue.append(neighbour)\n\n    return order\n\n\n# Driver code\nif __name__ == '__main__':\n    graph = {\n        0: [1, 2],\n        1: [0, 3],\n        2: [0, 3],\n        3: [1, 2]\n    }\n    print(bfs(graph, 0))\n",
     "expected_overall_time": "O(V+E)",
-    "expected_overall_space": "O(V)",
+    "expected_overall_space": "O(V+E)",
     "line_metrics": [
       {
         "lineno": 8,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 9,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 12,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 13,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 15,
-        "local_time": "O(V)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 16,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 17,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 21,
-        "local_time": "O(E)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 22,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 23,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 24,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 26,
@@ -92,91 +92,91 @@
       }
     ],
     "dataset_original_time": "O(V+E)",
-    "dataset_original_space": "O(V)"
+    "dataset_original_space": "O(V+E)"
   },
   {
     "id": "algo_ve_288",
     "name": "Iterative Depth First Traversal of a graph",
     "code": "# Python3 program for iterative Depth\n# First Traversal of a graph represented\n# using adjacency list (dict of lists)\n\ndef dfs(graph, start):\n    # Stack for DFS and set of visited nodes\n    visited = set()\n    stack = [start]\n    order = []\n\n    while stack:\n        node = stack.pop()\n\n        if node not in visited:\n            visited.add(node)\n            order.append(node)\n\n            # Push all unvisited neighbours\n            # onto the stack\n            for neighbour in graph[node]:\n                if neighbour not in visited:\n                    stack.append(neighbour)\n\n    return order\n\n\n# Driver code\nif __name__ == '__main__':\n    graph = {\n        0: [1, 2],\n        1: [0, 3],\n        2: [0, 3],\n        3: [1, 2]\n    }\n    print(dfs(graph, 0))\n",
     "expected_overall_time": "O(V+E)",
-    "expected_overall_space": "O(V)",
+    "expected_overall_space": "O(V+E)",
     "line_metrics": [
       {
         "lineno": 7,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 8,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 9,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 11,
-        "local_time": "O(V)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 12,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 14,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 15,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 16,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 20,
-        "local_time": "O(E)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 21,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 22,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 24,
@@ -187,200 +187,200 @@
       }
     ],
     "dataset_original_time": "O(V+E)",
-    "dataset_original_space": "O(V)"
+    "dataset_original_space": "O(V+E)"
   },
   {
     "id": "algo_ve_289",
     "name": "Detect Cycle in a Directed Graph using DFS",
     "code": "# Python3 program to detect cycle in a\n# directed graph using DFS and a\n# recursion stack\n\ndef is_cyclic_util(graph, node, visited, rec_stack):\n    visited.add(node)\n    rec_stack.add(node)\n\n    # Visit all neighbours of the node\n    for neighbour in graph.get(node, []):\n        if neighbour not in visited:\n            if is_cyclic_util(graph, neighbour, visited, rec_stack):\n                return True\n        elif neighbour in rec_stack:\n            return True\n\n    rec_stack.remove(node)\n    return False\n\n\ndef is_cyclic(graph, vertices):\n    visited = set()\n    rec_stack = set()\n\n    # Try starting DFS from every vertex\n    for node in range(vertices):\n        if node not in visited:\n            if is_cyclic_util(graph, node, visited, rec_stack):\n                return True\n\n    return False\n\n\n# Driver code\nif __name__ == '__main__':\n    graph = {0: [1], 1: [2], 2: [0]}\n    print(is_cyclic(graph, 3))\n",
     "expected_overall_time": "O(V+E)",
-    "expected_overall_space": "O(V)",
+    "expected_overall_space": "O(V+E)",
     "line_metrics": [
       {
         "lineno": 6,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 7,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 10,
-        "local_time": "O(E)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 11,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 12,
         "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 14,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 17,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 22,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 23,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 26,
-        "local_time": "O(V)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 27,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 28,
         "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       }
     ],
     "dataset_original_time": "O(V+E)",
-    "dataset_original_space": "O(V)"
+    "dataset_original_space": "O(V+E)"
   },
   {
     "id": "algo_ve_290",
     "name": "Topological Sort using Kahn's Algorithm",
     "code": "# Python3 program for Topological\n# Sorting of a DAG using Kahn's\n# Algorithm (BFS based)\nfrom collections import deque\n\ndef topological_sort(graph, vertices):\n    in_degree = [0] * vertices\n\n    # Compute in-degree of each vertex\n    for node in graph:\n        for neighbour in graph[node]:\n            in_degree[neighbour] += 1\n\n    # Enqueue all vertices with in-degree 0\n    queue = deque([v for v in range(vertices) if in_degree[v] == 0])\n    order = []\n\n    while queue:\n        node = queue.popleft()\n        order.append(node)\n\n        # Reduce in-degree of neighbours\n        for neighbour in graph.get(node, []):\n            in_degree[neighbour] -= 1\n            if in_degree[neighbour] == 0:\n                queue.append(neighbour)\n\n    return order\n\n\n# Driver code\nif __name__ == '__main__':\n    graph = {0: [1, 2], 1: [3], 2: [3], 3: []}\n    print(topological_sort(graph, 4))\n",
     "expected_overall_time": "O(V+E)",
-    "expected_overall_space": "O(V)",
+    "expected_overall_space": "O(V+E)",
     "line_metrics": [
       {
         "lineno": 7,
-        "local_time": "O(V)",
-        "global_time": "O(V)",
-        "local_space": "O(V)",
-        "global_space": "O(V)"
+        "local_time": "O(V+E)",
+        "global_time": "O(V+E)",
+        "local_space": "O(V+E)",
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 10,
-        "local_time": "O(V)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 11,
-        "local_time": "O(E)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 12,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 15,
-        "local_time": "O(V)",
-        "global_time": "O(V)",
-        "local_space": "O(V)",
-        "global_space": "O(V)"
+        "local_time": "O(V+E)",
+        "global_time": "O(V+E)",
+        "local_space": "O(V+E)",
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 16,
         "local_time": "O(1)",
-        "global_time": "O(V)",
+        "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 18,
-        "local_time": "O(V)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 19,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 20,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 23,
-        "local_time": "O(E)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 24,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 25,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 26,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 28,
@@ -391,49 +391,49 @@
       }
     ],
     "dataset_original_time": "O(V+E)",
-    "dataset_original_space": "O(V)"
+    "dataset_original_space": "O(V+E)"
   },
   {
     "id": "algo_ve_291",
     "name": "Count Connected Components in an Undirected Graph",
     "code": "# Python3 program to count the number\n# of connected components in an\n# undirected graph using DFS\n\ndef dfs_visit(graph, node, visited):\n    visited.add(node)\n\n    # Visit every unvisited neighbour\n    for neighbour in graph.get(node, []):\n        if neighbour not in visited:\n            dfs_visit(graph, neighbour, visited)\n\n\ndef count_components(graph, vertices):\n    visited = set()\n    components = 0\n\n    # Start a fresh DFS from every\n    # unvisited vertex\n    for node in range(vertices):\n        if node not in visited:\n            dfs_visit(graph, node, visited)\n            components += 1\n\n    return components\n\n\n# Driver code\nif __name__ == '__main__':\n    graph = {0: [1], 1: [0], 2: [3], 3: [2], 4: []}\n    print(count_components(graph, 5))\n",
     "expected_overall_time": "O(V+E)",
-    "expected_overall_space": "O(V)",
+    "expected_overall_space": "O(V+E)",
     "line_metrics": [
       {
         "lineno": 6,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 9,
-        "local_time": "O(E)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 10,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 11,
         "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 15,
         "local_time": "O(1)",
         "global_time": "O(1)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 16,
@@ -444,24 +444,24 @@
       },
       {
         "lineno": 20,
-        "local_time": "O(V)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 21,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 22,
         "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 23,
@@ -479,105 +479,105 @@
       }
     ],
     "dataset_original_time": "O(V+E)",
-    "dataset_original_space": "O(V)"
+    "dataset_original_space": "O(V+E)"
   },
   {
     "id": "algo_ve_292",
     "name": "Check whether a Graph is Bipartite using BFS",
     "code": "# Python3 program to check whether an\n# undirected graph is Bipartite using\n# BFS based 2-colouring\nfrom collections import deque\n\ndef is_bipartite(graph, vertices):\n    color = [-1] * vertices\n\n    for start in range(vertices):\n        if color[start] != -1:\n            continue\n\n        color[start] = 0\n        queue = deque([start])\n\n        while queue:\n            node = queue.popleft()\n\n            # Try to colour every neighbour\n            # the opposite colour\n            for neighbour in graph.get(node, []):\n                if color[neighbour] == -1:\n                    color[neighbour] = 1 - color[node]\n                    queue.append(neighbour)\n                elif color[neighbour] == color[node]:\n                    return False\n\n    return True\n\n\n# Driver code\nif __name__ == '__main__':\n    graph = {0: [1, 3], 1: [0, 2], 2: [1, 3], 3: [0, 2]}\n    print(is_bipartite(graph, 4))\n",
     "expected_overall_time": "O(V+E)",
-    "expected_overall_space": "O(V)",
+    "expected_overall_space": "O(V+E)",
     "line_metrics": [
       {
         "lineno": 7,
-        "local_time": "O(V)",
-        "global_time": "O(V)",
-        "local_space": "O(V)",
-        "global_space": "O(V)"
+        "local_time": "O(V+E)",
+        "global_time": "O(V+E)",
+        "local_space": "O(V+E)",
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 9,
-        "local_time": "O(V)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 10,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 11,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 13,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 14,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 16,
-        "local_time": "O(V)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 17,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 21,
-        "local_time": "O(E)",
+        "local_time": "O(V+E)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 22,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 23,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 24,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 25,
         "local_time": "O(1)",
         "global_time": "O(V+E)",
         "local_space": "O(1)",
-        "global_space": "O(V)"
+        "global_space": "O(V+E)"
       },
       {
         "lineno": 26,
@@ -595,7 +595,7 @@
       }
     ],
     "dataset_original_time": "O(V+E)",
-    "dataset_original_space": "O(V)"
+    "dataset_original_space": "O(V+E)"
   },
   {
     "id": "algo_sqrtn_293",

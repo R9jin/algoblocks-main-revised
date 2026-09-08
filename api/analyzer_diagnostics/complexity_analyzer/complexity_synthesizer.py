@@ -45,7 +45,7 @@ class ComplexitySynthesizer:
         if "2^n" in all_comps or "2ⁿ" in all_comps: return "O(2^n)"
         if "V+E" in all_comps or "o(v+e)" in all_comps: return "O(V+E)"
         if "n^2" in all_comps or "n²" in all_comps: return "O(n^2)"
-        if "n log n" in all_comps or re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: return "O(n log n)"
+        if "n log n" in all_comps or (re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) and not (getattr(self.analyzer, 'sqrt_bounded_sort_call', False) and not getattr(self.analyzer, 'has_unbounded_sort_call', False))) or 'heappush' in raw_code: return "O(n log n)"
         # NOTE: O(n) must be checked before O(sqrt n) / O(log n). A function
         # can contain a small logarithmic sub-expression (e.g. one helper
         # call, or one line's local annotation) alongside a separately

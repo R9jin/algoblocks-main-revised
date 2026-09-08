@@ -788,9 +788,35 @@ class ASTNodeVisitor(ast.NodeVisitor):
             is_local_accumulation = True
             
         active_loops = [d for d in self.analyzer.loop_stack if d != '1']
-        
+
+        only_sqrt_bounded = False
+        if is_accumulating and isinstance(getattr(node, 'func', None), ast.Attribute) and node.func.attr in ['append', 'extend', 'add', 'insert'] and isinstance(getattr(node.func, 'value', None), ast.Name):
+            target_id = node.func.value.id
+            # Track containers that are only ever populated inside a
+            # sqrt(n)-bounded loop (e.g. `divisors.append(i)` inside `for i
+            # in range(1, int(sqrt(n))+1)`) so later uses of that container
+            # (e.g. `sorted(divisors)`) can be sized off its true bound
+            # instead of defaulting to O(n). Reuses variable_complexities --
+            # the same "this scales as sqrt(n)" tag used for scalar bound
+            # variables like `limit = int(sqrt(n))` -- since referencing
+            # either one in a loop context implies sqrt(n) iterations.
+            only_sqrt_bounded = (
+                getattr(self.analyzer, 'sqrt_loop_depth', 0) > 0
+                and not getattr(self.analyzer, 'active_poly_dims', [])
+                and not getattr(self.analyzer, 'in_graph_context', False)
+            )
+            if only_sqrt_bounded:
+                if self.analyzer.variable_complexities.get(target_id) is None:
+                    self.analyzer.variable_complexities[target_id] = "sqrt"
+            elif len(active_loops) > 0:
+                # Populated under a loop that isn't purely sqrt-bounded (a
+                # genuine O(n)-or-larger dimension is active) -- this
+                # container's real size tracks that loop instead, so any
+                # earlier sqrt tag from a different code path no longer holds.
+                self.analyzer.variable_complexities.pop(target_id, None)
+
         if is_accumulating and len(active_loops) > 0 and is_local_accumulation:
-            if not getattr(self.analyzer, 'in_graph_context', False):
+            if not getattr(self.analyzer, 'in_graph_context', False) and not only_sqrt_bounded:
                 # An accumulating call (.append()/.extend()/.add()/.insert())
                 # nested inside 2+ active (non-constant) loops grows the
                 # target structure with each outer*inner iteration pair, not
@@ -804,6 +830,12 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
                 else:
                     self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 1)
+            elif only_sqrt_bounded:
+                # Same accumulation, but bounded by a sqrt(n) loop rather
+                # than a linear one -- record the space contribution at the
+                # O(sqrt n) tier (0.7, see _get_space_weight) instead of
+                # skipping it silently or letting it fall through to O(n).
+                self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 0.7)
 
         if getattr(getattr(node, 'func', None), 'attr', '') == 'append' or getattr(getattr(node, 'func', None), 'id', '') == 'append':
             self.analyzer.signature_recorder.add_logic_hint(node, "Logic Hint (Worst-Case Analysis): While `.append()` is typically O(1) amortized, the worst-case time complexity is O(n) when a background array resize is triggered.")
@@ -873,8 +905,38 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=f_id.capitalize())
                 else:
                     b = self.analyzer.builtin_complexities[f_id]
-                    s_ov = "O(V+E)" if getattr(self.analyzer, 'in_graph_context', False) else b['space']
-                    self.analyzer.signature_recorder.record_line(node, time_override=b['time'], space_override=s_ov, custom_op=f_id.capitalize())
+                    arg_is_sqrt_bounded = False
+                    if f_id in ('sorted', 'list', 'set', 'dict') and getattr(node, 'args', []):
+                        arg0 = node.args[0]
+                        if isinstance(arg0, ast.Name) and self.analyzer.variable_complexities.get(arg0.id) == "sqrt":
+                            arg_is_sqrt_bounded = True
+                    if arg_is_sqrt_bounded:
+                        # See the matching check in visit_Return: the
+                        # container being coerced/sorted here was only ever
+                        # populated inside a sqrt(n)-bounded loop, so its
+                        # size -- and the cost of sorting/copying it -- is
+                        # O(sqrt n), not the flat O(n)/O(n log n) this
+                        # builtin normally gets. This branch is the one that
+                        # actually wins for `return sorted(x)`-style calls,
+                        # since generic_visit() re-visits the nested Call
+                        # node after visit_Return records its own line.
+                        t_ov = "O(sqrt n)"
+                        s_ov = "O(sqrt n)" if getattr(self.analyzer, 'in_graph_context', False) is False else "O(V+E)"
+                        if f_id == 'sorted':
+                            # get_final_asymptotic_badge() has its own raw
+                            # source-text regex that forces O(n log n)
+                            # whenever "sorted(" appears anywhere in the
+                            # code, independent of the per-line annotations
+                            # above -- flag that this particular sort call
+                            # is already known to be sqrt(n)-bounded so that
+                            # check can stand down instead of clobbering it.
+                            self.analyzer.sqrt_bounded_sort_call = True
+                    else:
+                        t_ov = b['time']
+                        s_ov = "O(V+E)" if getattr(self.analyzer, 'in_graph_context', False) else b['space']
+                        if f_id == 'sorted':
+                            self.analyzer.has_unbounded_sort_call = True
+                    self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=f_id.capitalize())
             elif f_id == 'print':
                 is_linear = any(self.analyzer.complexity_heuristics._is_linear_type(arg) for arg in getattr(node, 'args', []))
                 for arg in getattr(node, 'args', []):
@@ -1285,8 +1347,24 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 custom_op = "Return Sliced Array"
             elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') in ['sorted', 'list', 'set', 'dict']:
                 func_id = node.value.func.id
-                t_ov = "O(n log n)" if func_id == 'sorted' else "O(n)"
-                s_ov = "O(n)"
+                arg_is_sqrt_bounded = False
+                if getattr(node.value, 'args', []):
+                    arg0 = node.value.args[0]
+                    if isinstance(arg0, ast.Name) and self.analyzer.variable_complexities.get(arg0.id) == "sqrt":
+                        arg_is_sqrt_bounded = True
+                if arg_is_sqrt_bounded:
+                    # The container being sorted/coerced was only ever
+                    # populated inside a sqrt(n)-bounded loop, so its size is
+                    # O(sqrt n), not O(n) -- e.g. `return sorted(divisors)`
+                    # where `divisors` only grows inside a trial-division
+                    # loop up to sqrt(n). Sorting it is technically
+                    # O(sqrt n log(sqrt n)), which the analyzer's predefined
+                    # class set approximates as O(sqrt n), consistent with
+                    # its documented scope.
+                    t_ov, s_ov = "O(sqrt n)", "O(sqrt n)"
+                else:
+                    t_ov = "O(n log n)" if func_id == 'sorted' else "O(n)"
+                    s_ov = "O(n)"
             elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') == 'sum':
                 t_ov, s_ov = "O(n)", "O(1)"
         self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=custom_op)

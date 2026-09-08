@@ -79,6 +79,15 @@ class ComplexityHeuristics:
             if isinstance(expr_node, (ast.Constant, getattr(ast, 'Num', type(None)), getattr(ast, 'Str', type(None)))):
                 return True
             if isinstance(expr_node, ast.Name):
+                # A variable already known to be derived from math.sqrt(...)
+                # (see variable_complexities in ast_node_visitors.py) scales
+                # with the input, no matter what it's named -- e.g.
+                # `limit = int(math.sqrt(n)) + 1` genuinely grows with n, but
+                # the name-based heuristic below would otherwise treat any
+                # `...limit...`-named variable as a fixed bound and misread
+                # `for i in range(3, limit, 2)` as a constant-time loop.
+                if getattr(self.analyzer, 'variable_complexities', {}).get(expr_node.id) == "sqrt":
+                    return False
                 # `R`/`C`/`M`/`N`-style short names are deliberately excluded
                 # even when a literal module-level assignment resolves them
                 # to a constant (e.g. `R = 5`): in this dataset those names
@@ -288,8 +297,38 @@ class ComplexityHeuristics:
         try:
             if not isinstance(node, ast.While): return False, None
             cond_vars = set()
+
+            # Collect only the names that are directly part of the test's own
+            # comparison arithmetic -- not names that merely appear as
+            # arguments to a function call within the test (e.g. the `n` in
+            # `i <= int(math.sqrt(n))` is a bound *derived from* n, not the
+            # loop's own control variable, which is `i`). Without this
+            # distinction, an unrelated nested loop later in the body that
+            # happens to floor-divide `n` (its own, separate shrink pattern)
+            # gets mistaken for evidence that *this* while loop is halving
+            # its control variable, misclassifying a sqrt(n)-bounded loop as
+            # O(log n).
+            def _collect_direct_names(expr):
+                todo = [expr]
+                while todo:
+                    curr = todo.pop()
+                    if isinstance(curr, ast.Name):
+                        cond_vars.add(curr.id)
+                        continue
+                    if isinstance(curr, ast.Call):
+                        # Skip descending into args/keywords: a variable used
+                        # only as an argument to a function call is feeding
+                        # that call's result, not being directly compared.
+                        continue
+                    for _, value in ast.iter_fields(curr):
+                        if isinstance(value, list):
+                            for item in value:
+                                if isinstance(item, ast.AST): todo.append(item)
+                        elif isinstance(value, ast.AST):
+                            todo.append(value)
+
+            _collect_direct_names(node.test)
             for child in safe_walk(node.test):
-                if isinstance(child, ast.Name): cond_vars.add(child.id)
                 if isinstance(child, ast.BinOp) and isinstance(child.op, (ast.LShift, ast.RShift)):
                     return True, None
                     
