@@ -272,3 +272,190 @@ per-line cost) and (b) a handful of O(n^2)/O(2^n)/O(n!)/O(V+E) cases not
 yet root-caused. Weakening the analyzer to match (a) would make it
 pedagogically wrong, so those were deliberately left alone rather than
 "fixed" to move the accuracy number.
+
+## Round 3 -- per-class F1 pass (low-precision/low-recall classes)
+
+Triggered by the 2026-09-08 benchmark report, whose per-class Precision/
+Recall/F1 matrix flagged several classes as red: `O(1)` time (R=31%),
+`O(log n)` time (P=25%), `O(n^2)` space (R=59%), `O(2^n)` space (R=0%),
+`O(n!)` space (R=0%), and the single-support `O(V+E)` row on both axes.
+Method: for every mismatch in these classes, the source was read by hand
+and classified as dataset-side or analyzer-side before touching anything,
+same as Rounds 1-2. Two real analyzer bugs and 17 dataset mislabels were
+found; a few cases were confirmed correct-as-is and deliberately left
+alone (noted below so they aren't rediscovered as "unfixed" next time).
+
+### Analyzer fixes (2, in `complexity_synthesizer.py` / `ast_node_visitors.py`,
+both vendored copies)
+
+1. **Asymptotic-dominance ordering bug in `get_final_asymptotic_badge`
+   (`complexity_synthesizer.py`).** The final time badge is chosen by
+   scanning a concatenated bag of every line's per-line time badge for
+   substrings, in priority order. `"log n"` and `"sqrt n"` were checked
+   *before* `"O(n)"` -- so a function with one small O(log n) sub-expression
+   (e.g. a single helper call, or one line's local annotation) anywhere in
+   its body would report the whole function as O(log n) even when it also,
+   separately, contains a genuinely-dominant O(n) or O(n^2) loop. This is
+   backwards: O(n) must outrank O(log n)/O(sqrt n) in Big-O terms, and the
+   space-badge counterpart (`get_final_space_badge`) already had the
+   correct order -- this was a one-function inconsistency, not a deliberate
+   design choice. Fixed by moving the `"O(n)"` check above `"sqrt n"`/`"log
+   n"`. This alone fixed 6 `O(n)` false negatives that were being stolen by
+   `O(log n)`, and cut `O(log n)` time false positives from 9 to 3.
+2. **Nested-loop accumulation undercounted for space
+   (`ast_node_visitors.py`, `visit_Call`).** An accumulating call
+   (`.append()`/`.extend()`/`.add()`/`.insert()`) inside a loop only bumped
+   `max_space_weight` to the O(n^2) tier when the appended value itself
+   looked like a "row" (a `Name` typed as `list`, a list comprehension, or
+   `[x] * k`) -- appending a plain scalar/subscript (`stk.append(a[k][i])`,
+   `output.append([i, j])` where `[i, j]` is a literal pair, not a
+   recognized "row") never triggered it, regardless of how many loops
+   surrounded the call. But a `.append()` nested inside *two* active
+   non-constant loops grows the target structure across the full
+   outer x inner iteration space (up to n*m entries) independent of what
+   shape each individual appended item is. Fixed by also triggering the
+   O(n^2) tier whenever 2+ active loops surround the accumulating call,
+   not just when the appended value passes the "is a row" shape check.
+   This fixed `algo_n2_084` and `algo_n2_089` (previously space false
+   negatives) without new false positives on this dataset; `O(n^2)` space
+   recall went 59% -> 89% combined with the dataset corrections below.
+
+Net effect of these two fixes alone (before any dataset edits): time
+204/266 (76.7%) -> 209/266 (78.6%); space 242/266 (91.0%) -> 245/266
+(92.1%). `pytest tests/test_analyzer_regression.py` still 274/274 passing
+against the existing 70%/80% floors.
+
+### Dataset corrections (17 entries, same audit standard as Round 1)
+
+**TIME `O(1)` -> corrected (8 of 9 mismatches).** All 8 snippets build or
+scan a structure sized by the input before doing anything else (`set(s)`,
+`Counter(s)`, `re.findall` + join, whole-array slice-and-concat, or a
+literal nested double loop) -- none of that is O(1) work, regardless of
+what the trailing comment said:
+
+| id | old | new | why |
+|---|---|---|---|
+| `algo_n_030` | O(1) | O(n) | `set(s.lower())` scans the whole string |
+| `algo_n_055` | O(1) | O(n) | `re.findall` + `join` over the whole sentence |
+| `algo_n_082` | O(1) | O(n) | `array[:] = array[-1:] + array[:-1]` copies the array |
+| `algo_n2_138` | O(1) | O(n^2) | literal `n x n` nested loop (`printSpiral`) |
+| `algo_n2_142` | O(1) | O(n^2) | `MAX x MAX` nested loop (`rowMajor`/`colMajor`); label had picked up the docstring's *space* claim ("using O(1) space") as if it described time |
+| `algo_n_256` | O(1) | O(n) | builds `set(str1)`, `set(str2)` over full strings |
+| `algo_n_257` | O(1) | O(n) | builds `Counter(str1)`, `Counter(str2)` over full strings |
+| `algo_n_280` | O(1) | O(n) | builds `Counter(first)`, `Counter(second)` over half-strings |
+
+**Left unchanged -- `algo_n_189`.** `isCornerPresent(str, corner)` costs
+O(len(corner)), not O(len(str)) -- genuinely O(1) *with respect to the
+primary string* if `corner` is read as a small/independent parameter
+rather than as a second copy of `n`. Same multi-parameter ambiguity class
+as the entries Round 1/2 left alone; not touched.
+
+**TIME `O(n)` -> `O(log n)` (3 entries).** All three are genuinely
+logarithmic in the numeric magnitude of their input (not in an array/
+string length), and the analyzer's answer was already right once the
+ordering bug above stopped an unrelated O(n) elsewhere from stealing the
+badge -- the *label*, not the analyzer, was wrong:
+
+| id | old | new | why |
+|---|---|---|---|
+| `algo_logn_014` | O(n) | O(log n) | binary-search-style rotation count, halves the search range each step |
+| `algo_1_159` | O(n) | O(log n) | `count += n & 1; n >>= 1` -- classic bit-count-via-shift, O(bits of n) |
+| `algo_n_223` | O(n) | O(log n) | two `while` loops each proportional to the digit count of the integer input |
+
+**Left unchanged / not root-caused -- `algo_n_102`, `algo_logn_145`.**
+`algo_n_102` does a flat `i = i+1` scan over every character of its input
+string despite the "positions in a series" framing -- literal cost reading
+says O(n), which is what the analyzer (correctly, by that standard)
+predicts; the O(log n) ground truth label reflects the problem's
+recursive-tree intuition, not this iterative implementation. `algo_logn_145`
+has one genuinely-log loop (integral-part conversion) and one genuinely-
+linear loop bounded by a *second*, independent parameter (`k_prec`,
+precision digits) that isn't "n" under any reading used elsewhere in this
+dataset -- which of the two loops counts as "the" input size is a real
+multi-parameter ambiguity, not a bug in either direction. Both left as-is
+rather than force a change without a principled rule.
+
+**SPACE `O(n^2)` -> `O(n)` (3 of 8 remaining mismatches; 2 more --
+`algo_n2_084`, `algo_n2_089` -- were fixed by the analyzer change above,
+not the dataset).**
+
+| id | old | new | why |
+|---|---|---|---|
+| `algo_n_045` / `algo_n_227` (identical code) | O(n^2) | O(n) | `res` only accumulates within one outer iteration before an early `break`; bounded by O(n), never reaches n^2 |
+| `algo_n2_275` | O(n^2) | O(n) | no structure sized by n^2 anywhere -- the only allocation is the driver's `n`-row, fixed-width-2 array |
+
+**Left unchanged -- `algo_n2_072`, `algo_n2_112`, `algo_n2_205`.**
+`algo_n2_072`'s only 2D allocation is `[[0 for i in range(3)] for j in
+range(3)]` -- a literal `3`, not `ROW`/`COL` -- so it's genuinely O(1) for
+*this* snippet; O(n^2) is the generalized-algorithm reading, same
+algorithmic-intent-vs-literal-code ambiguity as Round 2's open items, left
+alone rather than "fixed" by weakening the analyzer. `algo_n2_112`'s
+per-row temp arrays (`v`, `w`) are reset every outer iteration, so *peak*
+space is O(n), but it now matches ground truth anyway (the loop-count
+fix above makes the analyzer predict O(n^2) too, for the same "2+ nested
+loops around an accumulating call" reason) -- recorded here so it isn't
+mistaken for a deliberate space-model improvement. `algo_n2_205` was
+already documented as a live analyzer gap in Round 1 (dict keyed across a
+nested `r x c` loop can hold up to `r*c` entries) and remains one; no
+change.
+
+**SPACE `O(2^n)` -> `O(n)` (3 entries, all of the class's mismatches).**
+In every case the *time* label of O(2^n) is left as-is (matches the
+existing analyzer output and is out of scope for this pass), but the
+*space* label had clearly been copied from the time label rather than
+derived from the actual recursion: none of the three snippets keeps more
+than O(n) stack frames or auxiliary memory alive at once.
+
+| id | old | new | why |
+|---|---|---|---|
+| `algo_n2_012` | O(2^n) | O(n) | quickselect-style single-branch recursion; depth bounded by array size, never both branches |
+| `algo_2n_019` | O(2^n) | O(n) | grid DFS word search; call-stack depth bounded by the word length, not the search's branching factor |
+| `algo_n_206` | O(2^n) | O(n) | preorder-to-BST reconstruction; a shared `preIndex` counter gates recursion so only O(n) calls ever build a node |
+
+**Left unchanged -- `algo_2n_003`, `algo_n2_212` (`O(n!)` space, both
+mismatches in that class).** Both snippets recursively enumerate
+essentially all subsequences/palindromic-partitions of the input into a
+*shared* accumulator (`st.add(s)`, `v.append(temp)`) across the whole
+search tree -- unlike the O(2^n) cases above, the accumulated output here
+genuinely can grow combinatorially, so O(n!) space is the correct label.
+The analyzer currently predicts O(n) because its space model tracks
+per-call/per-loop growth but doesn't compose "a shared collector fed by a
+combinatorial/backtracking recursion" into a combinatorial total. This is
+a real, confirmed analyzer gap -- recognizing it robustly needs new
+pattern-detection (tracking accumulation across recursive branching, not
+just within a single call frame or loop nest) well beyond this pass's
+scope. Left open rather than patched superficially.
+
+**SPACE / TIME `O(V+E)` formatting (cosmetic, both vendored copies, all
+call sites in `analyzer.py` / `ast_node_visitors.py` / `signature_recorder.py`
+/ `complexity_synthesizer.py`).** The analyzer emitted `"O(V + E)"` (spaced)
+everywhere; the dataset has always used `"O(V+E)"` (no spaces, matching the
+`O(n^2)`/`O(n log n)`-style convention elsewhere). Normalized the analyzer's
+output to `"O(V+E)"` for consistency. This is purely cosmetic on the current
+266-item set -- the class's two live mismatches (`algo_n2_148`: memoized
+grid-DP labeled O(V+E) but analyzer says O(n^2); `algo_n2_104`: BFS-on-a-
+grid-as-graph labeled O(n^2) but analyzer says O(V+E)) are content
+disagreements, not formatting ones. Both are grid/matrix algorithms where
+V = O(n^2) cells and E = O(V) (bounded-degree grid), so `O(V+E)` and
+`O(n^2)` are the *same* asymptotic bound expressed in different notation --
+genuinely ambiguous which the "ground truth" convention should prefer, not
+a clear right/wrong in either direction. Left as an open, single-support
+edge case rather than forced either way.
+
+### Result (Round 3)
+
+| Metric | Before this round | After analyzer fixes only | After dataset corrections too |
+|---|---|---|---|
+| Time accuracy | 204/266 (76.7%) | 209/266 (78.6%) | 220/266 (82.7%) |
+| Space accuracy | 242/266 (91.0%) | 245/266 (92.1%) | 250/266 (94.0%) |
+| `O(1)` time F1 | 0.47 (R=31%) | -- | 0.89 (R=80%) |
+| `O(log n)` time F1 | 0.38 (P=25%) | -- | 0.83 (P=100%, R=71%) |
+| `O(n^2)` space F1 | 0.68 (R=59%) | -- | 0.85 (R=89%) |
+| `O(2^n)` space recall | 0% | -- | class removed (all 3 were mislabels; corrected to O(n)) |
+| `O(n!)` space recall | 0% | -- | 0% -- confirmed analyzer gap, intentionally left open (see above) |
+
+`pytest tests/test_analyzer_regression.py` -- 274/274 passing (existing
+70%/80% floors; current 82.7%/94.0% clears both comfortably --
+`MIN_SPACE_ACCURACY` has already been raised from the 0.50 Round 1
+mentioned to 0.80 by the time of this pass).
+Regenerated via `python tests/generate_accuracy_report.py`.

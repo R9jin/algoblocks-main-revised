@@ -253,8 +253,8 @@ class ASTNodeVisitor(ast.NodeVisitor):
 
         if is_memoized_or_graph and (self.analyzer.recursive_calls_count > 0 or self.analyzer.has_recursion_in_loop):
             if self.analyzer.in_graph_context or any(t in ('visit', 'visited', 'visiting', 'visitor') for t in re.findall(r'[A-Za-z][a-z0-9]*', node.name.lower())):
-                relation = "O(V + E)"
-                self.analyzer.custom_space[node.name] = "O(V + E)"
+                relation = "O(V+E)"
+                self.analyzer.custom_space[node.name] = "O(V+E)"
             elif is_2d_memo:
                 relation = "O(n^2)"
                 self.analyzer.custom_space[node.name] = "O(n^2)"
@@ -270,7 +270,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 relation = "T(n) = n * T(n-1)"
             elif self.analyzer.has_recursion_in_loop: 
                 if self.analyzer.in_graph_context:
-                    relation = "O(V + E)"
+                    relation = "O(V+E)"
                 else:
                     relation = "O(2^n)" 
             elif self.analyzer.recursive_calls_count == 1:
@@ -286,7 +286,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     relation = "T(n) = T(n-1) + O(1)"
             elif self.analyzer.recursive_calls_count >= 2:
                 if self.analyzer.in_graph_context:
-                    relation = "O(V + E)"
+                    relation = "O(V+E)"
                 else:
                     is_quicksort = False
                     for child in safe_walk(node):
@@ -335,11 +335,11 @@ class ASTNodeVisitor(ast.NodeVisitor):
             
             if node.name not in self.analyzer.custom_space:
                 if not is_indirect:
-                    if self.analyzer.max_graph_ve > 0 or self.analyzer.in_graph_context or relation == "O(V + E)": 
+                    if self.analyzer.max_graph_ve > 0 or self.analyzer.in_graph_context or relation == "O(V+E)": 
                         if self.analyzer.has_global_accumulation and 'adj' in "\n".join(self.analyzer.source_lines).lower():
-                            self.analyzer.custom_space[node.name] = "O(V + E)"
+                            self.analyzer.custom_space[node.name] = "O(V+E)"
                         else:
-                            self.analyzer.custom_space[node.name] = "O(V + E)"
+                            self.analyzer.custom_space[node.name] = "O(V+E)"
                     elif self.analyzer.recursive_calls_count > 0:
                         if "O(n^2)" in relation: 
                             self.analyzer.custom_space[node.name] = "O(n^2)"
@@ -684,7 +684,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             self.analyzer.function_gcd_vars = gcd_v
             
         if is_graph: 
-            self.analyzer.signature_recorder.record_line(node, time_override="O(V + E)", space_override="O(1)")
+            self.analyzer.signature_recorder.record_line(node, time_override="O(V+E)", space_override="O(1)")
             self.analyzer.graph_depth = getattr(self.analyzer, 'graph_depth', 0) + 1
             if hasattr(node, 'test'): self.visit(node.test)
             if has_log_call: self.analyzer.log_loop_depth += 1
@@ -774,7 +774,16 @@ class ASTNodeVisitor(ast.NodeVisitor):
         
         if is_accumulating and len(active_loops) > 0 and is_local_accumulation:
             if not getattr(self.analyzer, 'in_graph_context', False):
-                if is_appending_list:
+                # An accumulating call (.append()/.extend()/.add()/.insert())
+                # nested inside 2+ active (non-constant) loops grows the
+                # target structure with each outer*inner iteration pair, not
+                # just the inner one -- e.g. `for i in range(n): for j in
+                # range(m): out.append(...)` can add up to n*m entries, i.e.
+                # O(n^2) auxiliary space, even when each appended item is a
+                # plain scalar/subscript rather than a list-typed "row" (the
+                # only case this previously recognized as quadratic via
+                # `is_appending_list`). Loop *count* here, not just presence.
+                if is_appending_list or len(active_loops) >= 2:
                     self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
                 else:
                     self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 1)
@@ -833,13 +842,13 @@ class ASTNodeVisitor(ast.NodeVisitor):
                             is_single_arg = True
                     
                     t_ov = "O(1)" if (not has_args or is_single_arg or is_constant_init) else "O(n)"
-                    s_ov = "O(V + E)" if getattr(self.analyzer, 'in_graph_context', False) else ("O(1)" if (not has_args or is_single_arg or is_constant_init) else "O(n)")
+                    s_ov = "O(V+E)" if getattr(self.analyzer, 'in_graph_context', False) else ("O(1)" if (not has_args or is_single_arg or is_constant_init) else "O(n)")
                     self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=f"{f_id.capitalize()} Init")
                 elif f_id in ['min', 'max'] and len(getattr(node, 'args', [])) > 1:
                     self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op=f"{f_id.capitalize()} (Scalar Comparison)")
                 elif f_id in ['int', 'float', 'bool', 'type', 'abs', 'round', 'len', 'str']:
                     b = self.analyzer.builtin_complexities[f_id]
-                    s_ov = "O(V + E)" if getattr(self.analyzer, 'in_graph_context', False) else b['space']
+                    s_ov = "O(V+E)" if getattr(self.analyzer, 'in_graph_context', False) else b['space']
                     t_ov = "O(1)"
                     if f_id == 'str' and getattr(node, 'args', []):
                         if self.analyzer.complexity_heuristics._is_linear_type(node.args[0]):
@@ -847,7 +856,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=f_id.capitalize())
                 else:
                     b = self.analyzer.builtin_complexities[f_id]
-                    s_ov = "O(V + E)" if getattr(self.analyzer, 'in_graph_context', False) else b['space']
+                    s_ov = "O(V+E)" if getattr(self.analyzer, 'in_graph_context', False) else b['space']
                     self.analyzer.signature_recorder.record_line(node, time_override=b['time'], space_override=s_ov, custom_op=f_id.capitalize())
             elif f_id == 'print':
                 is_linear = any(self.analyzer.complexity_heuristics._is_linear_type(arg) for arg in getattr(node, 'args', []))
@@ -979,27 +988,27 @@ class ASTNodeVisitor(ast.NodeVisitor):
 
         if getattr(self.analyzer, 'in_graph_context', False):
             if isinstance(node.value, (ast.ListComp, ast.SetComp, ast.DictComp)): 
-                t_ov = "O(V + E)"; s_ov = "O(V + E)"
+                t_ov = "O(V+E)"; s_ov = "O(V+E)"
             elif isinstance(node.value, (ast.Tuple, ast.List, ast.Set)):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
-                    t_ov = "O(V + E)"; s_ov = "O(V + E)"
+                    t_ov = "O(V+E)"; s_ov = "O(V+E)"
                 elif len(node.value.elts) == 0:
-                    t_ov = "O(1)"; s_ov = "O(V + E)"
+                    t_ov = "O(1)"; s_ov = "O(V+E)"
             elif isinstance(node.value, ast.Dict):
                 if any(k is None for k in node.value.keys):
-                    t_ov = "O(V + E)"; s_ov = "O(V + E)"
+                    t_ov = "O(V+E)"; s_ov = "O(V+E)"
             elif isinstance(node.value, ast.Call):
                 func_name = getattr(node.value.func, 'id', getattr(node.value.func, 'attr', ''))
                 if func_name in ['set', 'list', 'dict', 'deque', 'tuple', 'set2']:
                     f_name = 'set' if func_name == 'set2' else func_name
                     t_ov = "O(1)"
-                    s_ov = "O(V + E)"
+                    s_ov = "O(V+E)"
                     custom_op = f"{f_name.capitalize()} Init"
             elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): 
                 custom_op = "List Repetition"
-                t_ov = "O(V + E)"; s_ov = "O(V + E)"
+                t_ov = "O(V+E)"; s_ov = "O(V+E)"
             elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice):
-                t_ov = "O(V + E)"; s_ov = "O(V + E)"
+                t_ov = "O(V+E)"; s_ov = "O(V+E)"
             
             if custom_op == "Update": t_ov = "O(1)"; s_ov = "O(1)"
         else:

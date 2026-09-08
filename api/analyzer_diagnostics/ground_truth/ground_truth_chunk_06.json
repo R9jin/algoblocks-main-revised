@@ -467,7 +467,7 @@
     "id": "algo_n_055",
     "name": "Function to reverse words of string",
     "code": "# Function to reverse words of string\nimport re\ndef rev_sentence(sentence):\n \n    # find all the words in sentence\n    words = re.findall('\\w+', sentence)\n \n    # Backward iterate over list of words and join using space\n    reverse_sentence = ' '.join(words[i] for i in range(len(words)-1, -1, -1))\n \n    # finally return the joined string\n    return reverse_sentence\n \nif __name__ == \"__main__\":\n    input = 'geeks quiz practice code'\n    print (rev_sentence(input))",
-    "expected_overall_time": "O(1)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {

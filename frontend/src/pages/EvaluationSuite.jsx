@@ -556,6 +556,13 @@ export default function EvaluationSuite({ embedded = false } = {}) {
   const processedTimeReport = results?.timeReport ? processReport(results.timeReport) : null;
   const processedSpaceReport = results?.spaceReport ? processReport(results.spaceReport) : null;
 
+  // Statement-level (local time / local space) matrices -- same shape as
+  // the two above, but computed per annotated source line rather than per
+  // whole algorithm, so they get their own cards/sections instead of being
+  // folded into the overall ones.
+  const processedLineTimeReport = results?.lineTimeReport ? processReport(results.lineTimeReport) : null;
+  const processedLineSpaceReport = results?.lineSpaceReport ? processReport(results.lineSpaceReport) : null;
+
   // --- Big-O distributions powering the hover-pie-charts on the accuracy cards ---
   const toDistribution = (perClass) => {
     if (!perClass) return [];
@@ -611,6 +618,201 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     }));
   }, [results]);
 
+<<<<<<< Updated upstream
+=======
+  const reportScopeLabel = datasetOption === "chunks" ? "Tasty Ground Truth Dataset" : datasetOption;
+
+  const buildBenchmarkNarrative = () => {
+    if (!results) return "";
+    const timePct = ((results.timePassed / results.totalTested) * 100).toFixed(1);
+    const spacePct = ((results.spacePassed / results.totalTested) * 100).toFixed(1);
+    return `The AST-based complexity analyzer was benchmarked against ${results.totalTested} algorithm${results.totalTested === 1 ? "" : "s"} from the ${reportScopeLabel}. Overall Time Complexity accuracy was ${timePct}% (${results.timePassed}/${results.totalTested} correct), and overall Space Complexity accuracy was ${spacePct}% (${results.spacePassed}/${results.totalTested} correct). At the statement level, ${results.totalLinesTested} individual source lines with ground-truth annotations were verified, isolated from the overall-block metric above.`;
+  };
+
+  // Builds and downloads an actual .pdf file directly in the browser -- no
+  // print dialog, no "print to PDF" step. jsPDF + autoTable draw the
+  // report's text and tables onto PDF pages ourselves (same approach as the
+  // "Generate Full Report" feature in AdminUserManagement.jsx), so
+  // pagination is fully under our control and the per-class/per-algorithm
+  // tables repeat their headers and break cleanly across pages on their own.
+  const handleDownloadBenchmarkPdf = () => {
+    if (!results) return;
+    const doc = new jsPDF({ unit: "pt", format: "letter" });
+    const marginX = 40;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const brandColor = [121, 40, 202]; // #7928CA, this page's accent color
+    let y = 54;
+
+    const ensureRoom = (needed) => {
+      if (y + needed > pageHeight - 40) {
+        doc.addPage();
+        y = 54;
+      }
+    };
+
+    const addHeading = (text) => {
+      ensureRoom(24);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(...brandColor);
+      doc.text(text, marginX, y);
+      y += 18;
+      doc.setTextColor(20, 20, 20);
+    };
+
+    const addParagraph = (text) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      const lines = doc.splitTextToSize(text, pageWidth - marginX * 2);
+      lines.forEach((line) => {
+        ensureRoom(14);
+        doc.text(line, marginX, y);
+        y += 13;
+      });
+      y += 8;
+    };
+
+    const addKeyValueTable = (rows) => {
+      autoTable(doc, {
+        startY: y,
+        margin: { left: marginX, right: marginX },
+        theme: "grid",
+        styles: { fontSize: 9, cellPadding: 5 },
+        headStyles: { fillColor: brandColor },
+        columnStyles: { 0: { fontStyle: "bold", cellWidth: 220 } },
+        body: rows,
+      });
+      y = doc.lastAutoTable.finalY + 20;
+    };
+
+    // `total` defaults to the algorithm-level denominator (results.totalTested);
+    // the line-level matrices pass their own statement-count denominator
+    // instead, since they're a different unit of analysis.
+    const addClassBreakdownTable = (title, report, passed, total = results.totalTested) => {
+      addHeading(title);
+      const body = Object.keys(report.perClass).map((cKey) => {
+        const row = report.perClass[cKey];
+        return [
+          cKey,
+          `${(row.precision <= 1 ? row.precision * 100 : row.precision).toFixed(1)}%`,
+          `${(row.recall <= 1 ? row.recall * 100 : row.recall).toFixed(1)}%`,
+          `${(row.f1Score <= 1 ? row.f1Score * 100 : row.f1Score).toFixed(1)}%`,
+          String(row.support),
+        ];
+      });
+      body.push([
+        "Overall Accuracy", "--", "--",
+        `${((passed / total) * 100).toFixed(1)}%`,
+        String(total),
+      ]);
+      body.push([
+        "Macro Avg",
+        `${(report.macroAvg.precision <= 1 ? report.macroAvg.precision * 100 : report.macroAvg.precision).toFixed(1)}%`,
+        `${(report.macroAvg.recall <= 1 ? report.macroAvg.recall * 100 : report.macroAvg.recall).toFixed(1)}%`,
+        `${(report.macroAvg.f1Score <= 1 ? report.macroAvg.f1Score * 100 : report.macroAvg.f1Score).toFixed(1)}%`,
+        String(total),
+      ]);
+      body.push([
+        "Weighted Avg",
+        `${(report.weightedAvg.precision <= 1 ? report.weightedAvg.precision * 100 : report.weightedAvg.precision).toFixed(1)}%`,
+        `${(report.weightedAvg.recall <= 1 ? report.weightedAvg.recall * 100 : report.weightedAvg.recall).toFixed(1)}%`,
+        `${(report.weightedAvg.f1Score <= 1 ? report.weightedAvg.f1Score * 100 : report.weightedAvg.f1Score).toFixed(1)}%`,
+        String(total),
+      ]);
+      autoTable(doc, {
+        startY: y,
+        margin: { left: marginX, right: marginX },
+        theme: "grid",
+        styles: { fontSize: 8, cellPadding: 4 },
+        headStyles: { fillColor: brandColor },
+        head: [["Complexity Class", "Precision", "Recall", "F1-Score", "Support"]],
+        body,
+      });
+      y = doc.lastAutoTable.finalY + 20;
+    };
+
+    // Title block
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(30, 20, 50);
+    doc.text("AlgoBlocks \u2014 Complexity Analyzer Benchmark Report", marginX, y);
+    y += 22;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 110);
+    doc.text(`Generated ${new Date().toLocaleString()}`, marginX, y);
+    y += 13;
+    doc.text(`Dataset: ${reportScopeLabel}`, marginX, y);
+    y += 24;
+    doc.setTextColor(20, 20, 20);
+
+    // 1. Benchmark summary
+    addHeading("1. Benchmark Summary");
+    addParagraph(buildBenchmarkNarrative());
+    addKeyValueTable([
+      ["Algorithms Tested", String(results.totalTested)],
+      ["Overall Time Accuracy", `${((results.timePassed / results.totalTested) * 100).toFixed(1)}% (${results.timePassed}/${results.totalTested})`],
+      ["Overall Space Accuracy", `${((results.spacePassed / results.totalTested) * 100).toFixed(1)}% (${results.spacePassed}/${results.totalTested})`],
+      ["Statements Verified (Line-Level)", String(results.totalLinesTested)],
+      ["Line Time Accuracy", results.totalLinesTested > 0 ? `${results.lineTimeAccuracyRate}% (${results.lineTimePassed}/${results.totalLinesTested})` : "--"],
+      ["Line Space Accuracy", results.totalLinesTested > 0 ? `${results.lineSpaceAccuracyRate}% (${results.lineSpacePassed}/${results.totalLinesTested})` : "--"],
+      ...(results.efficiency ? [
+        ["Total Execution Time", `${results.efficiency.totalExecutionSec}s`],
+        ["Throughput", `${results.efficiency.throughputAlgos} algos/s \u00b7 ${results.efficiency.throughputLines} lines/s`],
+        ["Mean / Median Processing Time", `${results.efficiency.meanTimeMs}ms / ${results.efficiency.medianTimeMs}ms`],
+        ["P95 / Max Processing Time", `${results.efficiency.p95TimeMs}ms / ${results.efficiency.maxTimeMs}ms`],
+        ["Peak AST Memory", `${results.efficiency.peakAstMemMB}MB (avg ${results.efficiency.meanAstMemKB}KB)`],
+      ] : []),
+    ]);
+
+    // 2 & 3. Per-class breakdowns (algorithm-level)
+    if (processedTimeReport) {
+      addClassBreakdownTable("2. Time Complexity Validation Matrix", processedTimeReport, results.timePassed);
+    }
+    if (processedSpaceReport) {
+      addClassBreakdownTable("3. Space Complexity Validation Matrix", processedSpaceReport, results.spacePassed);
+    }
+
+    // 4 & 5. Per-class breakdowns (line-level, local time/space only)
+    if (processedLineTimeReport) {
+      addClassBreakdownTable("4. Line-Level Time Complexity Validation Matrix (Local)", processedLineTimeReport, results.lineLocalTimePassed, results.totalLinesLocalTimeTested);
+    }
+    if (processedLineSpaceReport) {
+      addClassBreakdownTable("5. Line-Level Space Complexity Validation Matrix (Local)", processedLineSpaceReport, results.lineLocalSpacePassed, results.totalLinesLocalSpaceTested);
+    }
+
+    // 6. Full algorithm-by-algorithm results
+    addHeading(`6. Full Algorithm Results (${results.details.length})`);
+    autoTable(doc, {
+      startY: y,
+      margin: { left: marginX, right: marginX },
+      theme: "grid",
+      styles: { fontSize: 7, cellPadding: 3, overflow: "linebreak" },
+      headStyles: { fillColor: brandColor },
+      head: [["ID", "Algorithm", "Category", "Exp Time", "Act Time", "Exp Space", "Act Space", "Overall"]],
+      body: results.details.map((d) => [
+        d.id,
+        d.name,
+        d.category || "--",
+        d.expectedTime,
+        d.predictedTime,
+        d.expectedSpace,
+        d.predictedSpace,
+        d.isCompletelyCorrect ? "Pass" : "Mismatch",
+      ]),
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === 7) {
+          data.cell.styles.textColor = data.cell.raw === "Pass" ? [16, 185, 129] : [239, 68, 68];
+          data.cell.styles.fontStyle = "bold";
+        }
+      },
+    });
+
+    doc.save(`AlgoBlocks-Benchmark-Report-${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+>>>>>>> Stashed changes
   return (
     <div className="eval-suite-container">
 
@@ -1202,6 +1404,127 @@ export default function EvaluationSuite({ embedded = false } = {}) {
           </div>
         )}
 
+        {processedLineTimeReport && processedLineSpaceReport && (
+          <div className="eval-sklearn-container">
+            <div className="eval-sklearn-header">
+              <div className="eval-sklearn-header-left">
+                <strong className="eval-sklearn-title">
+                  <FiLayers style={{ display: "inline", color: "#7928CA", marginRight: "8px" }} /> Line-Level Classification Performance Report
+                </strong>
+                <span className="eval-sklearn-subtitle">Same Scikit-learn report, scored per individual annotated source line (local time / local space) instead of per whole algorithm. Lines without their own local ground truth are excluded from support.</span>
+              </div>
+            </div>
+
+            <div className="eval-sklearn-grid">
+              <div className="sklearn-table-box">
+                <div className="sklearn-table-title">
+                  <span>Line-Level Time Complexity Validation Matrix (Local)</span>
+                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Total Statements: {results.totalLinesLocalTimeTested}</span>
+                </div>
+                <table className="sklearn-table">
+                  <thead>
+                    <tr>
+                      <th>Complexity Class</th>
+                      <th title="Precision = TP / (TP + FP) | Accuracy of Predictions">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) | Detection Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.keys(processedLineTimeReport.perClass).map((cKey) => {
+                      const row = processedLineTimeReport.perClass[cKey];
+                      return (
+                        <tr key={`line_time_${cKey}`}>
+                          <td className="td-class-code">{cKey}</td>
+                          <td>{renderMetricCell(row.precision)}</td>
+                          <td>{renderMetricCell(row.recall)}</td>
+                          <td>{renderF1Badge(row.f1Score)}</td>
+                          <td className="td-support-count"><strong>{row.support}</strong> <small>lines</small></td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="tr-divider">
+                      <td>overall accuracy</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td><strong style={{ color: "#10B981", fontSize: "14px" }}>{results.lineLocalTimeAccuracyRate}%</strong> <small style={{ color: "#94A3B8" }}>({(results.lineLocalTimeAccuracyRate / 100).toFixed(2)})</small></td>
+                      <td className="td-support-count"><strong>{results.totalLinesLocalTimeTested}</strong> <small>lines</small></td>
+                    </tr>
+                    <tr>
+                      <td>macro avg</td>
+                      <td>{renderMetricCell(processedLineTimeReport.macroAvg.precision)}</td>
+                      <td>{renderMetricCell(processedLineTimeReport.macroAvg.recall)}</td>
+                      <td>{renderMetricCell(processedLineTimeReport.macroAvg.f1Score)}</td>
+                      <td className="td-support-count"><strong>{results.totalLinesLocalTimeTested}</strong> <small>lines</small></td>
+                    </tr>
+                    <tr className="tr-weighted">
+                      <td>weighted avg</td>
+                      <td>{renderMetricCell(processedLineTimeReport.weightedAvg.precision)}</td>
+                      <td>{renderMetricCell(processedLineTimeReport.weightedAvg.recall)}</td>
+                      <td>{renderMetricCell(processedLineTimeReport.weightedAvg.f1Score)}</td>
+                      <td className="td-support-count"><strong>{results.totalLinesLocalTimeTested}</strong> <small>lines</small></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="sklearn-table-box">
+                <div className="sklearn-table-title">
+                  <span>Line-Level Space Complexity Validation Matrix (Local)</span>
+                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Total Statements: {results.totalLinesLocalSpaceTested}</span>
+                </div>
+                <table className="sklearn-table">
+                  <thead>
+                    <tr>
+                      <th>Complexity Class</th>
+                      <th title="Precision = TP / (TP + FP) | Accuracy of Predictions">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) | Detection Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.keys(processedLineSpaceReport.perClass).map((cKey) => {
+                      const row = processedLineSpaceReport.perClass[cKey];
+                      return (
+                        <tr key={`line_space_${cKey}`}>
+                          <td className="td-class-code">{cKey}</td>
+                          <td>{renderMetricCell(row.precision)}</td>
+                          <td>{renderMetricCell(row.recall)}</td>
+                          <td>{renderF1Badge(row.f1Score)}</td>
+                          <td className="td-support-count"><strong>{row.support}</strong> <small>lines</small></td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="tr-divider">
+                      <td>overall accuracy</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td><strong style={{ color: "#0EA5E9", fontSize: "14px" }}>{results.lineLocalSpaceAccuracyRate}%</strong> <small style={{ color: "#94A3B8" }}>({(results.lineLocalSpaceAccuracyRate / 100).toFixed(2)})</small></td>
+                      <td className="td-support-count"><strong>{results.totalLinesLocalSpaceTested}</strong> <small>lines</small></td>
+                    </tr>
+                    <tr>
+                      <td>macro avg</td>
+                      <td>{renderMetricCell(processedLineSpaceReport.macroAvg.precision)}</td>
+                      <td>{renderMetricCell(processedLineSpaceReport.macroAvg.recall)}</td>
+                      <td>{renderMetricCell(processedLineSpaceReport.macroAvg.f1Score)}</td>
+                      <td className="td-support-count"><strong>{results.totalLinesLocalSpaceTested}</strong> <small>lines</small></td>
+                    </tr>
+                    <tr className="tr-weighted">
+                      <td>weighted avg</td>
+                      <td>{renderMetricCell(processedLineSpaceReport.weightedAvg.precision)}</td>
+                      <td>{renderMetricCell(processedLineSpaceReport.weightedAvg.recall)}</td>
+                      <td>{renderMetricCell(processedLineSpaceReport.weightedAvg.f1Score)}</td>
+                      <td className="td-support-count"><strong>{results.totalLinesLocalSpaceTested}</strong> <small>lines</small></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {results && (
           <div className="eval-table-container">
             <div className="eval-filter-navbar">
@@ -1482,6 +1805,311 @@ export default function EvaluationSuite({ embedded = false } = {}) {
           </div>
         )}
       </div>
+<<<<<<< Updated upstream
+=======
+
+      {/* FULL REPORT MODAL */}
+      {showFullReport && results && (
+        <div className="modal-overlay eval-report-overlay" onClick={(e) => {
+          if (e.target.classList.contains('eval-report-overlay')) setShowFullReport(false);
+        }}>
+          <div className="eval-report-card">
+            <div className="eval-report-header">
+              <div className="eval-report-title">
+                <FiFileText size={22} />
+                <h3>Full Benchmark Report</h3>
+              </div>
+              <div className="eval-report-header-actions">
+                <button className="eval-btn-inspect" onClick={handleDownloadBenchmarkPdf}>
+                  <FiFileText size={16} /> Download PDF
+                </button>
+                <button className="eval-report-close" onClick={() => setShowFullReport(false)}>
+                  <FiX size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="eval-report-body">
+              <div className="eval-report-meta">
+                <h1>AlgoBlocks &mdash; Complexity Analyzer Benchmark Report</h1>
+                <p>Generated {new Date().toLocaleString()}</p>
+                <p>Dataset: {reportScopeLabel}</p>
+              </div>
+
+              <section className="eval-report-section">
+                <h2>1. Benchmark Summary</h2>
+                <p>{buildBenchmarkNarrative()}</p>
+                <table className="eval-report-table">
+                  <tbody>
+                    <tr><th>Algorithms Tested</th><td>{results.totalTested}</td></tr>
+                    <tr><th>Overall Time Accuracy</th><td>{((results.timePassed / results.totalTested) * 100).toFixed(1)}% ({results.timePassed}/{results.totalTested})</td></tr>
+                    <tr><th>Overall Space Accuracy</th><td>{((results.spacePassed / results.totalTested) * 100).toFixed(1)}% ({results.spacePassed}/{results.totalTested})</td></tr>
+                    <tr><th>Statements Verified (Line-Level)</th><td>{results.totalLinesTested}</td></tr>
+                    <tr><th>Line Time Accuracy</th><td>{results.totalLinesTested > 0 ? `${results.lineTimeAccuracyRate}% (${results.lineTimePassed}/${results.totalLinesTested})` : "--"}</td></tr>
+                    <tr><th>Line Space Accuracy</th><td>{results.totalLinesTested > 0 ? `${results.lineSpaceAccuracyRate}% (${results.lineSpacePassed}/${results.totalLinesTested})` : "--"}</td></tr>
+                    {results.efficiency && (
+                      <>
+                        <tr><th>Total Execution Time</th><td>{results.efficiency.totalExecutionSec}s</td></tr>
+                        <tr><th>Throughput</th><td>{results.efficiency.throughputAlgos} algos/s &middot; {results.efficiency.throughputLines} lines/s</td></tr>
+                        <tr><th>Mean / Median Processing Time</th><td>{results.efficiency.meanTimeMs}ms / {results.efficiency.medianTimeMs}ms</td></tr>
+                        <tr><th>P95 / Max Processing Time</th><td>{results.efficiency.p95TimeMs}ms / {results.efficiency.maxTimeMs}ms</td></tr>
+                        <tr><th>Peak AST Memory</th><td>{results.efficiency.peakAstMemMB}MB (avg {results.efficiency.meanAstMemKB}KB)</td></tr>
+                      </>
+                    )}
+                  </tbody>
+                </table>
+              </section>
+
+              {processedTimeReport && (
+                <section className="eval-report-section">
+                  <h2>2. Time Complexity Validation Matrix</h2>
+                  <table className="eval-report-table wide">
+                    <thead>
+                      <tr>
+                        <th>Complexity Class</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1-Score</th>
+                        <th>Support</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.keys(processedTimeReport.perClass).map((cKey) => {
+                        const row = processedTimeReport.perClass[cKey];
+                        return (
+                          <tr key={`rep_time_${cKey}`}>
+                            <td>{cKey}</td>
+                            <td>{renderMetricCell(row.precision)}</td>
+                            <td>{renderMetricCell(row.recall)}</td>
+                            <td>{renderF1Badge(row.f1Score)}</td>
+                            <td>{row.support}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr>
+                        <td><strong>Overall Accuracy</strong></td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td><strong>{((results.timePassed / results.totalTested) * 100).toFixed(1)}%</strong></td>
+                        <td>{results.totalTested}</td>
+                      </tr>
+                      <tr>
+                        <td>Macro Avg</td>
+                        <td>{renderMetricCell(processedTimeReport.macroAvg.precision)}</td>
+                        <td>{renderMetricCell(processedTimeReport.macroAvg.recall)}</td>
+                        <td>{renderMetricCell(processedTimeReport.macroAvg.f1Score)}</td>
+                        <td>{results.totalTested}</td>
+                      </tr>
+                      <tr>
+                        <td>Weighted Avg</td>
+                        <td>{renderMetricCell(processedTimeReport.weightedAvg.precision)}</td>
+                        <td>{renderMetricCell(processedTimeReport.weightedAvg.recall)}</td>
+                        <td>{renderMetricCell(processedTimeReport.weightedAvg.f1Score)}</td>
+                        <td>{results.totalTested}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </section>
+              )}
+
+              {processedSpaceReport && (
+                <section className="eval-report-section">
+                  <h2>3. Space Complexity Validation Matrix</h2>
+                  <table className="eval-report-table wide">
+                    <thead>
+                      <tr>
+                        <th>Complexity Class</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1-Score</th>
+                        <th>Support</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.keys(processedSpaceReport.perClass).map((cKey) => {
+                        const row = processedSpaceReport.perClass[cKey];
+                        return (
+                          <tr key={`rep_space_${cKey}`}>
+                            <td>{cKey}</td>
+                            <td>{renderMetricCell(row.precision)}</td>
+                            <td>{renderMetricCell(row.recall)}</td>
+                            <td>{renderF1Badge(row.f1Score)}</td>
+                            <td>{row.support}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr>
+                        <td><strong>Overall Accuracy</strong></td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td><strong>{((results.spacePassed / results.totalTested) * 100).toFixed(1)}%</strong></td>
+                        <td>{results.totalTested}</td>
+                      </tr>
+                      <tr>
+                        <td>Macro Avg</td>
+                        <td>{renderMetricCell(processedSpaceReport.macroAvg.precision)}</td>
+                        <td>{renderMetricCell(processedSpaceReport.macroAvg.recall)}</td>
+                        <td>{renderMetricCell(processedSpaceReport.macroAvg.f1Score)}</td>
+                        <td>{results.totalTested}</td>
+                      </tr>
+                      <tr>
+                        <td>Weighted Avg</td>
+                        <td>{renderMetricCell(processedSpaceReport.weightedAvg.precision)}</td>
+                        <td>{renderMetricCell(processedSpaceReport.weightedAvg.recall)}</td>
+                        <td>{renderMetricCell(processedSpaceReport.weightedAvg.f1Score)}</td>
+                        <td>{results.totalTested}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </section>
+              )}
+
+              {processedLineTimeReport && (
+                <section className="eval-report-section">
+                  <h2>4. Line-Level Time Complexity Validation Matrix (Local)</h2>
+                  <table className="eval-report-table wide">
+                    <thead>
+                      <tr>
+                        <th>Complexity Class</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1-Score</th>
+                        <th>Support</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.keys(processedLineTimeReport.perClass).map((cKey) => {
+                        const row = processedLineTimeReport.perClass[cKey];
+                        return (
+                          <tr key={`rep_line_time_${cKey}`}>
+                            <td>{cKey}</td>
+                            <td>{renderMetricCell(row.precision)}</td>
+                            <td>{renderMetricCell(row.recall)}</td>
+                            <td>{renderF1Badge(row.f1Score)}</td>
+                            <td>{row.support}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr>
+                        <td><strong>Overall Accuracy</strong></td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td><strong>{results.lineLocalTimeAccuracyRate}%</strong></td>
+                        <td>{results.totalLinesLocalTimeTested}</td>
+                      </tr>
+                      <tr>
+                        <td>Macro Avg</td>
+                        <td>{renderMetricCell(processedLineTimeReport.macroAvg.precision)}</td>
+                        <td>{renderMetricCell(processedLineTimeReport.macroAvg.recall)}</td>
+                        <td>{renderMetricCell(processedLineTimeReport.macroAvg.f1Score)}</td>
+                        <td>{results.totalLinesLocalTimeTested}</td>
+                      </tr>
+                      <tr>
+                        <td>Weighted Avg</td>
+                        <td>{renderMetricCell(processedLineTimeReport.weightedAvg.precision)}</td>
+                        <td>{renderMetricCell(processedLineTimeReport.weightedAvg.recall)}</td>
+                        <td>{renderMetricCell(processedLineTimeReport.weightedAvg.f1Score)}</td>
+                        <td>{results.totalLinesLocalTimeTested}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </section>
+              )}
+
+              {processedLineSpaceReport && (
+                <section className="eval-report-section">
+                  <h2>5. Line-Level Space Complexity Validation Matrix (Local)</h2>
+                  <table className="eval-report-table wide">
+                    <thead>
+                      <tr>
+                        <th>Complexity Class</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1-Score</th>
+                        <th>Support</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.keys(processedLineSpaceReport.perClass).map((cKey) => {
+                        const row = processedLineSpaceReport.perClass[cKey];
+                        return (
+                          <tr key={`rep_line_space_${cKey}`}>
+                            <td>{cKey}</td>
+                            <td>{renderMetricCell(row.precision)}</td>
+                            <td>{renderMetricCell(row.recall)}</td>
+                            <td>{renderF1Badge(row.f1Score)}</td>
+                            <td>{row.support}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr>
+                        <td><strong>Overall Accuracy</strong></td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td><strong>{results.lineLocalSpaceAccuracyRate}%</strong></td>
+                        <td>{results.totalLinesLocalSpaceTested}</td>
+                      </tr>
+                      <tr>
+                        <td>Macro Avg</td>
+                        <td>{renderMetricCell(processedLineSpaceReport.macroAvg.precision)}</td>
+                        <td>{renderMetricCell(processedLineSpaceReport.macroAvg.recall)}</td>
+                        <td>{renderMetricCell(processedLineSpaceReport.macroAvg.f1Score)}</td>
+                        <td>{results.totalLinesLocalSpaceTested}</td>
+                      </tr>
+                      <tr>
+                        <td>Weighted Avg</td>
+                        <td>{renderMetricCell(processedLineSpaceReport.weightedAvg.precision)}</td>
+                        <td>{renderMetricCell(processedLineSpaceReport.weightedAvg.recall)}</td>
+                        <td>{renderMetricCell(processedLineSpaceReport.weightedAvg.f1Score)}</td>
+                        <td>{results.totalLinesLocalSpaceTested}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </section>
+              )}
+
+              <section className="eval-report-section">
+                <h2>6. Full Algorithm Results ({results.details.length})</h2>
+                <table className="eval-report-table wide algo-report-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Algorithm</th>
+                      <th>Category</th>
+                      <th>Exp Time</th>
+                      <th>Act Time</th>
+                      <th>Exp Space</th>
+                      <th>Act Space</th>
+                      <th>Overall</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.details.map((d) => (
+                      <tr key={`rep_row_${d.id}`}>
+                        <td>{d.id}</td>
+                        <td>{d.name}</td>
+                        <td>{d.category || "--"}</td>
+                        <td>{d.expectedTime}</td>
+                        <td>{d.predictedTime}</td>
+                        <td>{d.expectedSpace}</td>
+                        <td>{d.predictedSpace}</td>
+                        <td>
+                          {d.isCompletelyCorrect ? (
+                            <span className="eval-verdict verdict-pass"><FiCheckCircle size={13} /> Pass</span>
+                          ) : (
+                            <span className="eval-verdict verdict-fail"><FiXCircle size={13} /> Mismatch</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
+>>>>>>> Stashed changes
     </div>
   );
 }

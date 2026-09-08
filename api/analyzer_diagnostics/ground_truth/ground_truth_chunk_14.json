@@ -1014,7 +1014,7 @@
     "id": "algo_n2_138",
     "name": "Python3 program to print a n x n spiral matrix",
     "code": "# Python3 program to print a n x n spiral matrix\n# in clockwise direction using O(1) space\n \n# Prints spiral matrix of size n x n\n# containing numbers from 1 to n x n\ndef printSpiral(n) :\n     \n    for i in range(0, n) :\n        for j in range(0, n) :\n             \n            # Finds minimum of four inputs\n            x = min(min(i, j), min(n - 1 - i, n - 1 - j))\n             \n            # For upper right half\n            if (i <= j) :\n                print((n - 2 * x) * (n - 2 * x) -\n                      (i - x)- (j - x), end = \"\\t\")\n \n            # For lower left half\n            else :\n                print(((n - 2 * x - 2) *\n                       (n - 2 * x - 2) +\n                       (i - x) + (j - x)), end = \"\\t\")\n        print()\n         \n# Driver code\nn = 5\n \n# print a n x n spiral matrix\n# in O(1) space\nprintSpiral(n)\n \n# This code is contributed by Nikita Tiwari.",
-    "expected_overall_time": "O(1)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
       {

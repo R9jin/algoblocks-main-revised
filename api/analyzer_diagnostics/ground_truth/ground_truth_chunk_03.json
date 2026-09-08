@@ -1369,7 +1369,7 @@
     "id": "algo_n_030",
     "name": "import from string all ascii_lowercase and asc_lower",
     "code": "# import from string all ascii_lowercase and asc_lower\nfrom string import ascii_lowercase as asc_lower\n \n# function to check if all elements are present or not\ndef check(s):\n    return set(asc_lower) - set(s.lower()) == set([])\n     \n# driver code\nstring =\"The quick brown fox jumps over the lazy dog\"\nif(check(string)== True):\n    print(\"The string is a pangram\")\nelse:\n    print(\"The string isn't a pangram\")",
-    "expected_overall_time": "O(1)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {

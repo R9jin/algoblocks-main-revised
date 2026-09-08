@@ -33,7 +33,7 @@ class SignatureRecorder:
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: w = 100
         elif "n^2" in complexity_str or "n²" in complexity_str: w = 20
         elif "n log n" in complexity_str: w = 15
-        elif "V + E" in complexity_str or "V" in complexity_str: w = 12
+        elif "V+E" in complexity_str or "V" in complexity_str: w = 12
         # NOTE: "sqrt n" and "log n" both contain the plain substring "n", so
         # these two checks MUST come before the generic "n" check below --
         # otherwise every O(sqrt n)/O(log n) complexity silently falls into
@@ -49,7 +49,7 @@ class SignatureRecorder:
         if "n!" in complexity_str: s_w = 5
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: s_w = 4
         elif "n^2" in complexity_str or "n²" in complexity_str: s_w = 2
-        elif "V + E" in complexity_str or "V" in complexity_str: s_w = 3
+        elif "V+E" in complexity_str or "V" in complexity_str: s_w = 3
         # Same substring-ordering fix as _get_weight above: "sqrt n" and
         # "log n" both contain "n", so they must be checked first or they're
         # unreachable and get silently upgraded to the O(n) weight (1).
@@ -93,7 +93,7 @@ class SignatureRecorder:
         try:
             if fact > 0: return "O(n!)"
             if exp > 0: return "O(2^n)"
-            if graph > 0: return "O(V + E)"
+            if graph > 0: return "O(V+E)"
 
             n_count = len(poly_dims) if poly_dims else 0
             
@@ -122,7 +122,7 @@ class SignatureRecorder:
         if "T(" in complexity_str or "!" in complexity_str: return "#8e44ad"  
         if "^n" in complexity_str or "C(" in complexity_str: return "#9b59b6"  
         if "^2" in complexity_str or "^3" in complexity_str or "*" in complexity_str: return "#e74c3c"  
-        if "V + E" in complexity_str or "V" in complexity_str: return "#d35400"
+        if "V+E" in complexity_str or "V" in complexity_str: return "#d35400"
         if "log" in complexity_str: return "#2980b9"  
         if "sqrt" in complexity_str: return "#16a085"  
         if complexity_str != "O(1)": return "#e67e22"  
@@ -182,7 +182,7 @@ class SignatureRecorder:
         else:
             if not is_recurrence:
                 if "n log n" in time_override: node_dims.append('n'); node_log = 1
-                elif "O(V + E)" in time_override or "O(V)" in time_override: node_graph = 1
+                elif "O(V+E)" in time_override or "O(V)" in time_override: node_graph = 1
                 elif "O(log n)" in time_override: node_log = 1
                 elif "O(sqrt n)" in time_override: node_sqrt = 1
                 elif "O(n * m)" in time_override: node_dims.extend(['n', 'm'])

@@ -43,12 +43,22 @@ class ComplexitySynthesizer:
 
         if "n!" in all_comps: return "O(n!)"
         if "2^n" in all_comps or "2ⁿ" in all_comps: return "O(2^n)"
-        if "V + E" in all_comps or "o(v + e)" in all_comps: return "O(V + E)"
+        if "V+E" in all_comps or "o(v+e)" in all_comps: return "O(V+E)"
         if "n^2" in all_comps or "n²" in all_comps: return "O(n^2)"
         if "n log n" in all_comps or re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: return "O(n log n)"
+        # NOTE: O(n) must be checked before O(sqrt n) / O(log n). A function
+        # can contain a small logarithmic sub-expression (e.g. one helper
+        # call, or one line's local annotation) alongside a separately
+        # dominant O(n) loop; since `all_comps` is just a concatenated bag
+        # of every line's per-line badges, checking "log n"/"sqrt n" first
+        # would let that minor log/sqrt substring win over a genuinely
+        # bigger-O(n) (or O(n^2), already handled above) component elsewhere
+        # in the same function -- picking the wrong (smaller) overall class.
+        # Asymptotic dominance requires O(n) to outrank O(sqrt n)/O(log n),
+        # matching the ordering already used in get_final_space_badge below.
+        if "O(n)" in all_comps: return "O(n)"
         if "sqrt n" in all_comps: return "O(sqrt n)"
         if "log n" in all_comps: return "O(log n)"
-        if "O(n)" in all_comps: return "O(n)"
         
         return "O(1)"
 
@@ -59,7 +69,7 @@ class ComplexitySynthesizer:
             
         if self.analyzer.max_space_weight >= 5: all_spaces += " O(n!)"
         elif self.analyzer.max_space_weight >= 4: all_spaces += " O(2^n)"
-        elif self.analyzer.max_space_weight >= 3: all_spaces += " O(V + E)"
+        elif self.analyzer.max_space_weight >= 3: all_spaces += " O(V+E)"
         elif self.analyzer.max_space_weight >= 2: all_spaces += " O(n^2)"
         elif self.analyzer.max_space_weight >= 1: all_spaces += " O(n)"
         elif self.analyzer.max_space_weight >= 0.5: all_spaces += " O(1)"
@@ -67,7 +77,7 @@ class ComplexitySynthesizer:
         if "n!" in all_spaces: return "O(n!)"
         if "2^n" in all_spaces or "2ⁿ" in all_spaces: return "O(2^n)"
         if "n^2" in all_spaces or "n²" in all_spaces: return "O(n^2)"
-        if "V + E" in all_spaces or "O(V)" in all_spaces: return "O(V + E)"
+        if "V+E" in all_spaces or "O(V)" in all_spaces: return "O(V+E)"
         if "O(n)" in all_spaces: return "O(n)"
         if "sqrt n" in all_spaces: return "O(sqrt n)"
         if "log n" in all_spaces: return "O(log n)"

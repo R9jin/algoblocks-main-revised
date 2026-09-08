@@ -268,7 +268,7 @@
     "name": "A Python3 program to find all symmetric",
     "code": "# A Python3 program to find all symmetric\n# pairs in a given array of pairs.\n \n# Print all pairs that have\n# a symmetric counterpart\ndef findSymPairs(arr, row):\n   \n    # This loop for selection of one pair\n    for i in range(0, row):\n       \n        # This loop for searching of symmetric pair\n        for j in range(i + 1, row):\n           \n            # Condition of symmetric pair\n            if (arr[i][0] == arr[j][1] and arr[i][1] == arr[j][0]):\n                print(\"(\",arr[i][0],\",\",arr[i][1],\")\")\n                 \n# Driver Code\nif __name__ == '__main__':\n    arr = [[0 for i in range(2)]\n            for i in range(5)]\n    arr[0][0], arr[0][1] = 11, 20\n    arr[1][0], arr[1][1] = 30, 40\n    arr[2][0], arr[2][1] = 5, 10\n    arr[3][0], arr[3][1] = 40, 30\n    arr[4][0], arr[4][1] = 10, 5\n    findSymPairs(arr, 5)\n \n# This code is contributed by Arpit Jain",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(n^2)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 6,
@@ -742,7 +742,7 @@
     "id": "algo_n_280",
     "name": "Function to Check if both halves of",
     "code": "# Function to Check if both halves of\n# the string have same set of characters\nfrom collections import Counter\n \ndef checkTwoHalves(input):\n     \n    length = len(input)\n     \n    # Break input string in two parts\n    if (length % 2 != 0):\n        first = input[0:length // 2]\n        second = input[(length // 2) + 1:]\n    else:\n        first = input[0:length // 2]\n        second = input[length // 2:]\n \n    # Convert both halves into dictionary and compare\n    if Counter(first) == Counter(second):\n        print ('YES')\n    else:\n        print ('NO')\n \n# Driver program\nif __name__ == \"__main__\":\n    input = 'abbaab'\n    checkTwoHalves(input)",
-    "expected_overall_time": "O(1)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {

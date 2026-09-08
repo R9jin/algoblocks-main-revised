@@ -126,7 +126,7 @@
     "id": "algo_n2_142",
     "name": "Python3 program showing time difference",
     "code": "# Python3 program showing time difference\n# in row major and column major access\n \n# taking MAX 10000 so that time difference\n# can be shown\nfrom time import clock\nMAX = 1000\n \narr = [[0 for i in range(MAX)] for i in range(MAX)]\n \n \ndef rowMajor():\n    global arr\n \n    # accessing element row wise\n    for i in range(MAX):\n        for j in range(MAX):\n            arr[i][j] += 1\n \n \ndef colMajor():\n    global arr\n \n    # accessing element column wise\n    for i in range(MAX):\n        for j in range(MAX):\n            arr[j][i] += 1\n \n \n# Driver code\nif __name__ == '__main__':\n \n    # Time taken by row major order\n    t = clock()\n    rowMajor()\n    t = clock() - t\n    print(\"Row major access time :{:.2f} s\".format(t))\n \n    # Time taken by column major order\n    t = clock()\n    colMajor()\n    t = clock() - t\n    print(\"Column major access time :{:.2f} s\".format(t))\n \n# This code is contributed by mohit kumar 29",
-    "expected_overall_time": "O(1)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n^2)",
     "line_metrics": [
       {

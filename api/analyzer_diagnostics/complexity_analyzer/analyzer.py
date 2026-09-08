@@ -92,7 +92,7 @@ class ComplexityAnalyzer:
         "T(n-1) + O(n)": "O(n^2)", 
         "O(n log n)": "O(n log n)", 
         "O(n^2)": "O(n^2)", 
-        "O(V + E)": "O(V + E)", 
+        "O(V+E)": "O(V+E)", 
         "O(n * m)": "O(n^2)",
         "O(3^n)": "O(2^n)", 
         "O(2^n)": "O(2^n)", 
@@ -527,7 +527,7 @@ def fallback_analyzer(source_code):
     time_w = max(1, max_loop_depth)
     time_comp = "O(n)"
     
-    if 'dfs' in code_clean or 'bfs' in code_clean or 'adj' in code_clean: time_comp = "O(V + E)"
+    if 'dfs' in code_clean or 'bfs' in code_clean or 'adj' in code_clean: time_comp = "O(V+E)"
     elif re.search(r'\b(sorted|sort|qsort)\s*\(', code_clean):
         time_comp = "O(n log n)" if time_w <= 1 else "O(n^2)"
     elif time_w == 1:
@@ -547,7 +547,7 @@ def fallback_analyzer(source_code):
     if '[[' in code_clean or 'vector<vector' in code_clean or 'mat[' in code_clean:
         space_comp = "O(n^2)"
     if 'dfs' in code_clean or 'bfs' in code_clean or 'graph' in code_clean:
-        space_comp = "O(V + E)"
+        space_comp = "O(V+E)"
 
     return {
         "status": "success",
