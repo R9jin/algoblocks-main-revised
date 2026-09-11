@@ -38,9 +38,7 @@
   overflow-x: hidden;
   overflow-y: auto;
   color: var(--hub-text);
-  background:
-    radial-gradient(circle at 92% 3%, rgba(127, 87, 249, 0.11), transparent 28rem),
-    linear-gradient(180deg, var(--hub-surface-alt) 0%, var(--hub-surface) 34%, #faf9fd 100%);
+  background: transparent; /* global purple mesh from body shows through */
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   scrollbar-width: thin;
   scrollbar-color: var(--hub-border-hover) transparent;

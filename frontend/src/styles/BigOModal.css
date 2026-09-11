@@ -5,7 +5,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(15, 5, 36, 0.6);
+    /* Background + backdrop-filter handled by LiquidGlass.css */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -16,15 +16,14 @@
 }
 
 .big-o-modal-content {
-    background: #ffffff;
-    width: 90%;
-    max-width: 650px;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
+  /* Background, border, box-shadow → LiquidGlass.css (light glass). */
+  width: 90%;
+  max-width: 650px;
+  border-radius: 12px;
+  overflow: hidden;
 
-    /* Smooth upward slide and fade */
-    animation: bigo-smooth-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* Smooth upward slide and fade */
+  animation: bigo-smooth-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .big-o-modal-header {

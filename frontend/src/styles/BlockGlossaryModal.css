@@ -5,7 +5,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(15, 5, 36, 0.6);
+    /* Background + backdrop-filter handled by LiquidGlass.css */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -14,16 +14,15 @@
 }
 
 .block-glossary-modal-content {
-    background: #ffffff;
-    width: 92%;
-    max-width: 760px;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    max-height: 85vh;
-    animation: bg-smooth-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* Background, border, box-shadow → LiquidGlass.css (light glass). */
+  width: 92%;
+  max-width: 760px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  animation: bg-smooth-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .block-glossary-modal-header {

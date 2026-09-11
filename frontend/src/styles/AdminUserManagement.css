@@ -1,7 +1,7 @@
 /* frontend/src/styles/AdminUserManagement.css */
 
 .admin-page-wrapper {
-  background-color: #f8f8fb;
+  background-color: transparent; /* global purple mesh from body shows through */
   min-height: 100vh;
   width: 100%;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;

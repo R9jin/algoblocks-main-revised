@@ -20,7 +20,7 @@
 
 .profile-page-v2 {
   min-height: 100vh;
-  background-color: var(--app-bg);
+  background: transparent; /* global purple mesh from body shows through */
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: var(--text-main);
   padding-bottom: 60px;

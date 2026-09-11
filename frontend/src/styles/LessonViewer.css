@@ -4,7 +4,7 @@
 .lesson-viewer-wrapper {
   display: flex;
   min-height: 100vh;
-  background: #f8f8fb;
+  background: transparent; /* global purple mesh from body shows through */
 }
 
 .lesson-modules-sidebar {
