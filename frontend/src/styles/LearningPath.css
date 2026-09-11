@@ -400,35 +400,42 @@ html {
 }
 
 .btn-assessment.start {
-  background: #5A1398;
+  background: linear-gradient(135deg, #5A1398 0%, #7c5cff 100%);
   color: #fff;
+  box-shadow: 0 4px 16px rgba(90,19,152,0.30), inset 0 1px 0 rgba(255,255,255,0.22);
 }
 
 .btn-assessment.start:hover {
-  background: #6248d4;
+  background: linear-gradient(135deg, #6248d4 0%, #9b71ff 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(124, 92, 255, 0.3);
+  box-shadow: 0 6px 20px rgba(124, 92, 255, 0.38);
 }
 
 .btn-assessment.start.post {
-  background: #22c55e;
+  background: linear-gradient(135deg, #059669 0%, #22c55e 100%);
   color: #fff;
+  box-shadow: 0 4px 16px rgba(34,197,94,0.28), inset 0 1px 0 rgba(255,255,255,0.22);
 }
 
 .btn-assessment.start.post:hover {
-  background: #16a34a;
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  background: linear-gradient(135deg, #047857 0%, #16a34a 100%);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.38);
+  transform: translateY(-1px);
 }
 
 .btn-assessment.view-results {
-  background: transparent;
-  color: #5A1398;
-  border: 1.5px solid #c4b5fd;
+  background: rgba(124, 92, 255, 0.12);
+  color: #7c5cff;
+  border: 1.5px solid rgba(124, 92, 255, 0.50);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .btn-assessment.view-results:hover {
-  background: #ede9ff;
-  border-color: #5A1398;
+  background: rgba(124, 92, 255, 0.22);
+  border-color: rgba(124, 92, 255, 0.80);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(124, 92, 255, 0.25);
 }
 /* =========================================================
    RESPONSIVE

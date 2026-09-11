@@ -46,27 +46,44 @@
   position: fixed;
   z-index: 1000001;
   border-radius: 18px;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8), 0 0 0 9999px rgba(121, 40, 202, 0.08);
-  outline: 2px solid rgba(121, 40, 202, 0.75);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.85),
+    0 0 0 7px rgba(124, 92, 255, 0.30),
+    0 0 0 9999px rgba(10, 4, 28, 0.50);
+  outline: 2px solid rgba(124, 92, 255, 0.85);
   pointer-events: none;
-  transition: all 0.2s ease;
+  transition:
+    top    0.40s cubic-bezier(0.34, 1.56, 0.64, 1),
+    left   0.40s cubic-bezier(0.34, 1.56, 0.64, 1),
+    width  0.32s cubic-bezier(0.25, 0.8, 0.25, 1),
+    height 0.32s cubic-bezier(0.25, 0.8, 0.25, 1),
+    border-radius 0.22s ease;
+  will-change: top, left, width, height;
 }
 
 .onboarding-bubble {
   position: fixed;
   z-index: 1000002;
   width: min(360px, calc(100vw - 32px));
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(90, 19, 152, 0.12);
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1.5px solid rgba(255, 255, 255, 0.78);
   border-radius: 20px;
-  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.22);
+  box-shadow:
+    0 20px 48px rgba(10, 4, 28, 0.28),
+    inset 0 2px 0 rgba(255, 255, 255, 0.90);
   padding: 18px;
   color: #241b52;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: bubble-enter 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes bubble-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
 }
 
 .onboarding-bubble-scroll {
@@ -141,9 +158,21 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 14px;
-  background: #f1f5f9;
+  padding: 10px 16px;
+  background: rgba(241, 245, 249, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.55);
   color: #1f2937;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.onboarding-nav-btn:hover {
+  background: rgba(224, 231, 255, 0.95);
+  border-color: rgba(124, 92, 255, 0.40);
+  transform: translateY(-1px);
 }
 
 .onboarding-nav-btn.primary {
