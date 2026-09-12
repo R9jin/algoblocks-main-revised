@@ -973,3 +973,55 @@ button:not([class*="workspace"]) {
   border-radius: 20px !important;
   box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 16px 40px rgba(60, 30, 120, 0.15) !important;
 }
+
+/* FORCE ALL MODALS TO LIGHT GLASS FOR CONSISTENCY AND READABILITY */
+.custom-modal-content,
+.logout-modal,
+.scope-warning-modal,
+.confirm-modal,
+[class*="modal-content"] {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(240,230,255,0.65) 100%) !important;
+  backdrop-filter: blur(36px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(200%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.80) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 16px 40px rgba(60, 30, 120, 0.15) !important;
+  color: #1a1a2e !important;
+}
+
+/* Ensure all text inside modals is readable on the light background */
+.custom-modal-content p,
+.custom-modal-body p,
+.logout-modal p,
+.scope-warning-modal p,
+.confirm-modal p,
+[class*="modal-content"] p {
+  color: #4b3a7c !important;
+}
+
+.custom-modal-content h1, .custom-modal-content h2, .custom-modal-content h3,
+.logout-modal h1, .logout-modal h2, .logout-modal h3,
+.scope-warning-modal h1, .scope-warning-modal h2, .scope-warning-modal h3,
+.confirm-modal h1, .confirm-modal h2, .confirm-modal h3,
+[class*="modal-content"] h1, [class*="modal-content"] h2, [class*="modal-content"] h3 {
+  color: #1a1a2e !important;
+}
+
+/* Fix cancel buttons in modals for light theme */
+.custom-btn-cancel,
+.logout-btn-cancel,
+.scope-warning-cancel,
+.modal-btn-cancel {
+  background: rgba(255, 255, 255, 0.45) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.7) !important;
+  color: #1a1a2e !important;
+}
+
+.custom-btn-cancel:hover,
+.logout-btn-cancel:hover,
+.scope-warning-cancel:hover,
+.modal-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border-color: #9b71ff !important;
+  transform: translateY(-2px) !important;
+}
