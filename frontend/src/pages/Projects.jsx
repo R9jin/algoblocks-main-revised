@@ -283,29 +283,27 @@ export default function Projects() {
           </section>
 
           {/* Live Sync Status Bar */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', marginBottom: '16px', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem' }}>
+          <div className="sync-status-bar">
+            <div className="sync-info">
               {isActivelySyncing ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#60A5FA' }}>
-                  <FiRefreshCw className="spin-anim" /> Synchronizing cloud storage...
+                <span className="sync-syncing">
+                  <FiRefreshCw className="spin-anim" /> Synchronizing cloud storage…
                 </span>
               ) : (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10B981' }}>
+                <span className="sync-ok">
                   <FiCloud /> Storage up to date {syncState.lastSynced && `(${syncState.lastSynced.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})`}
                 </span>
               )}
-
               {syncState.pendingCount > 0 && (
-                <span style={{ background: '#F59E0B', color: '#000', padding: '2px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800' }}>
+                <span className="sync-pending-badge">
                   {syncState.pendingCount} Local Pending
                 </span>
               )}
             </div>
-
-            <button 
-              onClick={handleManualTrigger} 
+            <button
+              className="sync-force-btn"
+              onClick={handleManualTrigger}
               disabled={isActivelySyncing}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '6px 14px', borderRadius: '8px', cursor: isActivelySyncing ? 'wait' : 'pointer', fontSize: '0.82rem', fontWeight: '600' }}
             >
               <FiRefreshCw className={isActivelySyncing ? "spin-anim" : ""} /> Force Sync
             </button>

@@ -1,0 +1,975 @@
+/* frontend/src/styles/LiquidGlass.css
+   ============================================================
+   LIQUID GLASS MORPHISM v3 — high-visibility frosted glass
+   ============================================================
+   Key principle: LOW opacity (8-22%) + STRONG blur (32-44px)
+   + VISIBLE border (1.5-2px, 30-55% white) + bright specular
+   top-edge highlight. Previous version used 46-72% opacity
+   which looked like flat coloured boxes, not glass.
+   ============================================================ */
+
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  --lg-blur-sm:     20px;
+  --lg-blur:        32px;
+  --lg-blur-strong: 44px;
+  --lg-sat:         200%;
+
+  /* DARK GLASS — for modals over dark/workspace backgrounds.
+     Only ~12% opaque so blurred workspace shows through. */
+  --lg-dark-bg:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(255, 255, 255, 0.04) 60%,
+      rgba(255, 255, 255, 0.10) 100%
+    );
+  --lg-dark-border:  2px solid rgba(255, 255, 255, 0.32);
+  --lg-dark-shadow:
+    0 24px 64px rgba(0,   0,   0,   0.55),
+    0  8px 24px rgba(0,   0,   0,   0.30),
+    inset 0  2px 0   rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0   rgba(0,   0,   0,   0.25);
+
+  /* LIGHT GLASS — for cards/panels on light dashboard pages.
+     ~18% opaque with a bright white border. */
+  --lg-light-bg:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.38) 0%,
+      rgba(255, 255, 255, 0.10) 60%,
+      rgba(255, 255, 255, 0.20) 100%
+    );
+  --lg-light-border: 1.5px solid rgba(255, 255, 255, 0.55);
+  --lg-light-shadow:
+    0 12px 40px rgba(60,  30, 120, 0.16),
+    0  3px 10px rgba(60,  30, 120, 0.08),
+    inset 0  2px 0  rgba(255, 255, 255, 0.80),
+    inset 0 -1px 0  rgba(60,  30, 120, 0.08);
+
+  /* TINTED GLASS — for headers/nav on purple brand surfaces. */
+  --lg-tint-bg:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.04) 60%
+    ),
+    rgba(48, 34, 102, 0.50);
+  --lg-tint-border: 1px solid rgba(255, 255, 255, 0.30);
+  --lg-tint-shadow:
+    0  8px 28px rgba(14,  8, 40, 0.38),
+    inset 0  1px 0  rgba(255, 255, 255, 0.35);
+
+  /* OVERLAY — lighter so workspace still visible through glass */
+  --lg-overlay-bg: rgba(6, 3, 18, 0.38);
+
+  --lg-radius:    20px;
+  --lg-radius-sm: 14px;
+}
+
+/* ============================================================
+   AMBIENT GLOW BLOBS
+   These vivid drifting blobs give backdrop-filter something
+   colourful to blur — critical for the glass effect to show.
+   ============================================================ */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.65;
+  will-change: transform;
+  z-index: 0;
+}
+
+body::before {
+  top: -15%;
+  left: -12%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle at 30% 30%,
+    rgba(124, 92, 231, 0.50),
+    rgba(124, 92, 231, 0) 70%);
+  animation: lg-drift-1 26s ease-in-out infinite alternate;
+}
+
+body::after {
+  bottom: -18%;
+  right: -12%;
+  width: 55vw;
+  height: 55vw;
+  background: radial-gradient(circle at 70% 70%,
+    rgba(190, 60, 220, 0.42),
+    rgba(190, 60, 220, 0) 70%);
+  animation: lg-drift-2 32s ease-in-out infinite alternate;
+}
+
+@keyframes lg-drift-1 {
+  from { transform: translate(0, 0)     scale(1);    }
+  to   { transform: translate(5vw, 4vh) scale(1.10); }
+}
+@keyframes lg-drift-2 {
+  from { transform: translate(0, 0)      scale(1);    }
+  to   { transform: translate(-4vw,-5vh) scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before, body::after { animation: none; }
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+.liquid-glass {
+  background: var(--lg-light-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+  border: var(--lg-light-border) !important;
+  box-shadow: var(--lg-light-shadow) !important;
+  border-radius: var(--lg-radius) !important;
+}
+
+.liquid-glass-dark {
+  background: var(--lg-dark-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+  border: var(--lg-dark-border) !important;
+  box-shadow: var(--lg-dark-shadow) !important;
+  border-radius: var(--lg-radius) !important;
+}
+
+.liquid-glass-tint {
+  background: var(--lg-tint-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+  border: var(--lg-tint-border) !important;
+  box-shadow: var(--lg-tint-shadow) !important;
+}
+
+/* ============================================================
+   CARDS / PANELS / SIDEBARS / DROPDOWNS — light glass
+   ============================================================ */
+.card,
+[class*="card"]:not([class*="btn"]):not([class*="-icon"]):not([class*="blockly"]),
+[class*="panel"]:not([class*="btn"]):not([class*="resizer"]):not([class*="blockly"]):not([class*="toolbox"]),
+[class*="sidebar"]:not([class*="btn"]):not([class*="toggle"]),
+[class*="stat-box"],
+[class*="-box"]:not([class*="btn"]):not([class*="checkbox"]),
+[class*="dropdown"]:not([class*="btn"]):not([class*="toggle"]) {
+  background: var(--lg-light-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+  border: var(--lg-light-border) !important;
+  box-shadow: var(--lg-light-shadow) !important;
+}
+
+/* ============================================================
+   MODAL OVERLAYS — frosted dark scrim
+   ============================================================ */
+[class*="overlay"],
+.modal-overlay,
+.logout-modal-overlay,
+.reward-modal-overlay,
+.big-o-modal-overlay,
+.block-glossary-modal-overlay,
+.policy-modal-overlay {
+  background: var(--lg-overlay-bg) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(160%) !important;
+          backdrop-filter: blur(12px) saturate(160%) !important;
+}
+
+/* ============================================================
+   DARK-GLASS DIALOGS (workspace context: dark/purple BG)
+   ============================================================ */
+.custom-modal-content,
+.logout-modal,
+.scope-warning-modal {
+  background: var(--lg-dark-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+  border: var(--lg-dark-border) !important;
+  box-shadow: var(--lg-dark-shadow) !important;
+  border-radius: var(--lg-radius) !important;
+  color: #EBE4FF !important;
+}
+
+.custom-modal-content p,
+.custom-modal-body p    { color: #c5baff !important; }
+.logout-modal h2,
+.custom-modal-header h3 { color: #ffffff !important; }
+.logout-modal p         { color: #c5baff !important; }
+
+.logout-btn-cancel {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.28) !important;
+  color: #EBE4FF !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+          backdrop-filter: blur(8px) !important;
+}
+.logout-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.20) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+/* ============================================================
+   REWARD MODAL — tier-accent glass
+   ============================================================ */
+.reward-modal-content {
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(255, 255, 255, 0.04) 60%
+    ),
+    radial-gradient(120% 160% at 50% -10%,
+      var(--tier-accent-soft, rgba(167, 139, 250, 0.30)) 0%,
+      transparent 65%
+    ) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+  border: var(--lg-dark-border) !important;
+  box-shadow: var(--lg-dark-shadow) !important;
+  border-radius: var(--lg-radius) !important;
+}
+
+/* ============================================================
+   BIG-O REFERENCE MODAL — light glass
+   ============================================================ */
+.big-o-modal-content {
+  background: var(--lg-light-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+  border: var(--lg-light-border) !important;
+  box-shadow: var(--lg-light-shadow) !important;
+  border-radius: var(--lg-radius) !important;
+}
+.big-o-modal-header {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.03) 60%),
+    rgba(50, 34, 98, 0.65) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+          backdrop-filter: blur(20px) saturate(180%) !important;
+  border-bottom: 1.5px solid rgba(255,255,255,0.28) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.35) !important;
+}
+.big-o-row-trigger {
+  background: rgba(255, 255, 255, 0.30) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+          backdrop-filter: blur(8px) !important;
+}
+.big-o-row-trigger:hover { background: rgba(244, 240, 255, 0.60) !important; }
+.big-o-row-details {
+  background: rgba(255, 255, 255, 0.40) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+          backdrop-filter: blur(10px) !important;
+  border-top: 1.5px solid rgba(255, 255, 255, 0.40) !important;
+}
+
+/* ============================================================
+   BLOCK GLOSSARY MODAL — light glass
+   ============================================================ */
+.block-glossary-modal-content {
+  background: var(--lg-light-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+  border: var(--lg-light-border) !important;
+  box-shadow: var(--lg-light-shadow) !important;
+  border-radius: var(--lg-radius) !important;
+}
+.block-glossary-modal-header {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.03) 60%),
+    rgba(50, 34, 98, 0.65) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+          backdrop-filter: blur(20px) saturate(180%) !important;
+  border-bottom: 1.5px solid rgba(255,255,255,0.28) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.35) !important;
+}
+.block-glossary-row-trigger {
+  background: rgba(255, 255, 255, 0.30) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+          backdrop-filter: blur(8px) !important;
+}
+.block-glossary-row-trigger:hover { background: rgba(244, 240, 255, 0.60) !important; }
+.block-glossary-row-details {
+  background: rgba(255, 255, 255, 0.40) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+          backdrop-filter: blur(10px) !important;
+  border-top: 1.5px solid rgba(255, 255, 255, 0.40) !important;
+}
+
+/* ============================================================
+   POLICY MODAL — light glass
+   ============================================================ */
+.policy-modal {
+  background: var(--lg-light-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+  border: var(--lg-light-border) !important;
+  box-shadow: var(--lg-light-shadow) !important;
+  border-radius: var(--lg-radius) !important;
+}
+.policy-modal-header {
+  background: linear-gradient(145deg,
+    rgba(101, 65, 216, 0.55) 0%,
+    rgba(155, 47, 174, 0.50) 100%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+          backdrop-filter: blur(16px) saturate(180%) !important;
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.28) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.35) !important;
+}
+
+/* Close buttons inside modal headers */
+.big-o-close-btn,
+.block-glossary-close-btn,
+.policy-modal-close {
+  background: rgba(255, 255, 255, 0.18) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+          backdrop-filter: blur(10px) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.38) !important;
+  border-radius: 50% !important;
+}
+.big-o-close-btn:hover,
+.block-glossary-close-btn:hover,
+.policy-modal-close:hover { background: rgba(255, 255, 255, 0.32) !important; }
+
+/* ============================================================
+   ONBOARDING TOUR BUBBLE
+   ============================================================ */
+.onboarding-bubble {
+  background: var(--lg-light-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur-strong)) saturate(var(--lg-sat)) !important;
+  border: var(--lg-light-border) !important;
+  box-shadow: var(--lg-light-shadow) !important;
+  border-radius: var(--lg-radius) !important;
+}
+
+/* ============================================================
+   HEADERS / NAV BARS — tinted glass on brand chrome
+   ============================================================ */
+.app-header,
+header,
+nav,
+footer,
+[class*="-header"]:not([class*="btn"]):not([class*="card"]):not([class*="header-icon"]),
+[class*="-nav"]:not([class*="btn"]):not([class*="nav-links"]):not([class*="nav-dot"]),
+[class*="-footer"]:not([class*="btn"]) {
+  background: var(--lg-tint-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+  border-bottom: var(--lg-tint-border) !important;
+  box-shadow: var(--lg-tint-shadow) !important;
+}
+
+[class*="header-card"],
+[class*="card-header"] {
+  background: var(--lg-light-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+  border: var(--lg-light-border) !important;
+  box-shadow: var(--lg-light-shadow) !important;
+}
+
+/* Dashboard sticky header — light glass */
+.dashboard-header {
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, 0.45) 0%,
+      rgba(255, 255, 255, 0.18) 100%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+          backdrop-filter: blur(28px) saturate(200%) !important;
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.60) !important;
+  box-shadow:
+    0 4px 24px rgba(76, 29, 149, 0.10),
+    inset 0 2px 0 rgba(255, 255, 255, 0.85) !important;
+}
+
+/* ============================================================
+   TOOLTIPS / POPOVERS
+   ============================================================ */
+[class*="tooltip"]:not([class*="blockly"]),
+[class*="popover"]:not([class*="blockly"]) {
+  background: var(--lg-dark-bg) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+          backdrop-filter: blur(20px) saturate(180%) !important;
+  border: var(--lg-dark-border) !important;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.40),
+    inset 0 2px 0 rgba(255,255,255,0.40) !important;
+  border-radius: var(--lg-radius-sm) !important;
+  color: #EBE4FF !important;
+}
+
+/* ============================================================
+   TOASTS / NOTIFICATIONS
+   ============================================================ */
+[class*="toast"]:not([class*="blockly"]),
+[class*="notification"]:not([class*="blockly"]),
+[class*="snackbar"]:not([class*="blockly"]),
+[class*="alert-banner"]:not([class*="blockly"]) {
+  background: var(--lg-dark-bg) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+          backdrop-filter: blur(20px) saturate(180%) !important;
+  border: var(--lg-dark-border) !important;
+  box-shadow: var(--lg-dark-shadow) !important;
+  border-radius: var(--lg-radius-sm) !important;
+}
+
+/* ============================================================
+   TAB PILLS & NAV TABS
+   ============================================================ */
+[class*="tab-btn"],
+[class*="nav-tab"],
+[class*="tab-pill"],
+.block-glossary-tab {
+  background: rgba(255, 255, 255, 0.22) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+          backdrop-filter: blur(14px) saturate(160%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.60),
+    0 2px 8px rgba(31,25,60,0.08) !important;
+}
+
+[class*="tab-btn"].active,
+[class*="nav-tab"].active,
+[class*="tab-pill"].active,
+.block-glossary-tab.active {
+  background: rgba(255, 255, 255, 0.55) !important;
+  border-color: rgba(108, 92, 231, 0.50) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.90),
+    0 4px 16px rgba(108, 92, 231, 0.18) !important;
+}
+
+/* ============================================================
+   LEARNING-PATH MODULE CARDS
+   ============================================================ */
+.module-card-v2 {
+  background: var(--lg-light-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+          backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+  border: var(--lg-light-border) !important;
+  box-shadow: var(--lg-light-shadow) !important;
+  border-radius: var(--lg-radius) !important;
+}
+.module-card-v2:hover {
+  box-shadow:
+    0 16px 48px rgba(108, 92, 231, 0.20),
+    0 4px 12px rgba(31, 25, 60, 0.10),
+    inset 0 2px 0 rgba(255, 255, 255, 0.90) !important;
+  border-color: rgba(255, 255, 255, 0.70) !important;
+}
+
+/* ============================================================
+   ASSESSMENT META PILLS
+   ============================================================ */
+.meta-pill {
+  background: rgba(255, 255, 255, 0.35) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+          backdrop-filter: blur(12px) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.80),
+    0 1px 4px rgba(31,25,60,0.08) !important;
+}
+
+/* ============================================================
+   SCOPE / LOGIC WARNING ITEMS
+   ============================================================ */
+.scope-warning-item,
+.logic-warning-item {
+  background: rgba(255, 255, 255, 0.06) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+          backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+/* ============================================================
+   FORM FIELDS
+   ============================================================ */
+input:not([type="checkbox"]):not([type="radio"]):not(.blocklyHtmlInput),
+select,
+textarea:not(.blocklyHtmlInput) {
+  background: rgba(255, 255, 255, 0.22) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(160%) !important;
+          backdrop-filter: blur(12px) saturate(160%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+}
+
+.blocklyHtmlInput {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #ccc !important;
+}
+
+/* ============================================================
+   BUTTONS — specular highlight only, keep brand fill colours
+   ============================================================ */
+[class*="btn"]:not([class*="workspace"]),
+button:not([class*="workspace"]) {
+  border-color: rgba(255, 255, 255, 0.38);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.45),
+    0 2px 10px rgba(31, 25, 60, 0.10);
+}
+
+[class*="btn-secondary"],
+[class*="btn-outline"],
+[class*="btn-ghost"],
+[class*="nav-btn"] {
+  background: rgba(255, 255, 255, 0.16) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+          backdrop-filter: blur(14px) saturate(160%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.40) !important;
+}
+
+/* ============================================================
+   OFFLINE / SYNC-LIMIT BANNERS
+   ============================================================ */
+[class*="offline"],
+[class*="sync-limit"],
+[class*="notice-bar"],
+[class*="banner-bar"] {
+  -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+          backdrop-filter: blur(16px) saturate(160%) !important;
+}
+
+/* ============================================================
+   EXCLUSIONS — code/blocks workspace stays solid
+   ============================================================ */
+[class*="blockly"],
+[class*="monaco"],
+[class*="code-editor"],
+[class*="toolbox"],
+.workspace-main,
+.workspace-view,
+.blocklySvg,
+.blocklyToolboxDiv {
+  background: initial !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ============================================================
+   GLOBAL PAGE-CONTAINER BACKGROUND OVERRIDES
+   Strip every page's own flat background-color so the shared
+   purple mesh from body shows through, giving glass panels
+   the vivid backdrop they need to frost against.
+   ============================================================ */
+
+/* Light-page containers */
+.bento-dashboard-layout,
+.learning-path-page,
+.assessment-page,
+.profile-page-v2,
+.projects-page,
+.user-homepage,
+.landing-container.user-homepage,
+.admin-dashboard-page,
+.admin-user-management,
+.accuracy-overview-page,
+[class*="page"]:not([class*="blockly"]):not([class*="workspace"]) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* LessonViewer layout */
+.lesson-viewer-wrapper,
+.lesson-modules-sidebar {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* MainApp / ActivityApp full-screen workspace wrappers
+   — keep workspace area opaque; only the non-workspace
+     chrome should go transparent */
+.main-app-layout,
+.activity-layout,
+.activity-wrapper {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* ============================================================
+   FROSTED GLASS CORRECTION
+   The glass was too transparent (4-18% opacity) — you could
+   see straight through it rather than getting the blurry
+   milky "frosted" look. Sweet spot is 20-28% on dark surfaces
+   and 28-42% on light surfaces: enough tint to create the
+   milky frost, but still low enough to let blurred colour through.
+   ============================================================ */
+
+/* --- Recalibrated DARK GLASS (modals on dark/workspace BG) --- */
+:root {
+  --lg-dark-bg:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.28) 0%,   /* bright specular top-left */
+      rgba(255, 255, 255, 0.10) 40%,
+      rgba(200, 160, 255, 0.08) 100%  /* faint purple undertone */
+    ),
+    rgba(30, 14, 60, 0.52);           /* dark base — frosted, not transparent */
+
+  --lg-dark-border: 1.5px solid rgba(255, 255, 255, 0.38);
+
+  --lg-dark-shadow:
+    0 28px 72px rgba(0,   0,   0,   0.55),
+    0  8px 24px rgba(0,   0,   0,   0.28),
+    inset 0  2px 0  rgba(255, 255, 255, 0.60), /* bright top rim */
+    inset 0 -1px 0  rgba(0,   0,   0,   0.25);
+
+  /* --- Recalibrated LIGHT GLASS (cards/panels on light/purple BG) --- */
+  --lg-light-bg:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.62) 0%,   /* strong bright top-left */
+      rgba(255, 255, 255, 0.28) 50%,
+      rgba(220, 200, 255, 0.18) 100%  /* faint purple tint at bottom */
+    );
+
+  --lg-light-border: 1.5px solid rgba(255, 255, 255, 0.70);
+
+  --lg-light-shadow:
+    0 12px 40px rgba(80,  30, 160, 0.14),
+    0  3px 10px rgba(80,  30, 160, 0.07),
+    inset 0  2px 0  rgba(255, 255, 255, 0.90), /* very bright top edge */
+    inset 0 -1px 0  rgba(80,  30, 160, 0.06);
+
+  /* --- Recalibrated TINTED GLASS (headers/nav on purple brand) --- */
+  --lg-tint-bg:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.28) 0%,
+      rgba(255, 255, 255, 0.06) 60%
+    ),
+    rgba(48, 28, 100, 0.65);
+
+  --lg-tint-border: 1px solid rgba(255, 255, 255, 0.35);
+
+  --lg-tint-shadow:
+    0  8px 28px rgba(14, 6, 40, 0.40),
+    inset 0 2px 0  rgba(255, 255, 255, 0.40);
+
+  /* --- Overlay stays frosted but not black --- */
+  --lg-overlay-bg: rgba(10, 4, 28, 0.42);
+}
+
+/* --- Per-modal frosted glass reapplication ---
+   (Specificity boost to beat the per-file rules)         */
+
+.custom-modal-content {
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, 0.28) 0%,
+      rgba(255, 255, 255, 0.10) 40%,
+      rgba(200, 160, 255, 0.08) 100%
+    ),
+    rgba(30, 14, 60, 0.52) !important;
+  -webkit-backdrop-filter: blur(44px) saturate(220%) !important;
+          backdrop-filter: blur(44px) saturate(220%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.38) !important;
+  box-shadow:
+    0 28px 72px rgba(0, 0, 0, 0.50),
+    0  8px 24px rgba(0, 0, 0, 0.25),
+    inset 0 2px 0 rgba(255, 255, 255, 0.60),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.20) !important;
+  border-radius: 20px !important;
+  color: #EBE4FF !important;
+}
+
+.logout-modal {
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, 0.28) 0%,
+      rgba(255, 255, 255, 0.10) 40%,
+      rgba(200, 160, 255, 0.08) 100%
+    ),
+    rgba(30, 14, 60, 0.52) !important;
+  -webkit-backdrop-filter: blur(44px) saturate(220%) !important;
+          backdrop-filter: blur(44px) saturate(220%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.38) !important;
+  box-shadow:
+    0 28px 72px rgba(0, 0, 0, 0.50),
+    0  8px 24px rgba(0, 0, 0, 0.25),
+    inset 0 2px 0 rgba(255, 255, 255, 0.60),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.20) !important;
+  border-radius: 20px !important;
+  color: #EBE4FF !important;
+}
+
+.reward-modal-content {
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, 0.28) 0%,
+      rgba(255, 255, 255, 0.06) 50%
+    ),
+    radial-gradient(120% 160% at 50% -10%,
+      var(--tier-accent-soft, rgba(167, 139, 250, 0.38)) 0%,
+      transparent 65%
+    ),
+    rgba(22, 10, 50, 0.55) !important;
+  -webkit-backdrop-filter: blur(44px) saturate(220%) !important;
+          backdrop-filter: blur(44px) saturate(220%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.38) !important;
+  box-shadow:
+    0 28px 72px rgba(0, 0, 0, 0.50),
+    0  8px 24px rgba(0, 0, 0, 0.25),
+    inset 0 2px 0 rgba(255, 255, 255, 0.60),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.20) !important;
+  border-radius: 20px !important;
+}
+
+.big-o-modal-content,
+.block-glossary-modal-content,
+.policy-modal {
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, 0.62) 0%,
+      rgba(255, 255, 255, 0.28) 50%,
+      rgba(220, 200, 255, 0.18) 100%
+    ) !important;
+  -webkit-backdrop-filter: blur(44px) saturate(220%) !important;
+          backdrop-filter: blur(44px) saturate(220%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.70) !important;
+  box-shadow:
+    0 12px 40px rgba(80, 30, 160, 0.14),
+    0  3px 10px rgba(80, 30, 160, 0.07),
+    inset 0 2px 0 rgba(255, 255, 255, 0.90),
+    inset 0 -1px 0 rgba(80, 30, 160, 0.06) !important;
+  border-radius: 20px !important;
+}
+
+/* Onboarding bubble — crisp frosted white glass */
+.onboarding-bubble {
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, 0.62) 0%,
+      rgba(255, 255, 255, 0.28) 50%,
+      rgba(220, 200, 255, 0.18) 100%
+    ) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
+          backdrop-filter: blur(40px) saturate(200%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.70) !important;
+  box-shadow:
+    0 12px 40px rgba(80, 30, 160, 0.14),
+    inset 0 2px 0 rgba(255, 255, 255, 0.90) !important;
+  border-radius: 20px !important;
+}
+
+/* Lesson viewer sidebar — frosted glass panel */
+.lesson-modules-sidebar {
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.25) 100%
+    ) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+          backdrop-filter: blur(28px) saturate(180%) !important;
+  border-right: 1.5px solid rgba(255, 255, 255, 0.60) !important;
+}
+
+
+/* ================================================================
+   MODAL REINFORCEMENT — Fixes any modals that appear fully
+   transparent due to earlier LiquidGlass rules stripping
+   solid backgrounds. Light-context pages (Assessment, Learning
+   Path, Profile) need a clearly visible frosted glass body.
+   ================================================================ */
+
+/* Assessment page modals — light frosted glass */
+.assessment-page [class*="modal"],
+.assessment-page [class*="Modal"],
+.learning-path-page [class*="modal"],
+.learning-path-page [class*="Modal"],
+.profile-page-v2 [class*="modal"],
+.profile-page-v2 [class*="Modal"] {
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, 0.80) 0%,
+      rgba(240, 230, 255, 0.65) 100%
+    ) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(200%) !important;
+          backdrop-filter: blur(36px) saturate(200%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.78) !important;
+  box-shadow:
+    0 28px 64px rgba(0, 0, 0, 0.18),
+    0  8px 24px rgba(0, 0, 0, 0.09),
+    inset 0 2px 0 rgba(255, 255, 255, 0.92) !important;
+  border-radius: 20px !important;
+  color: #1a1a2e !important;
+}
+
+/* Generic overlay reinforcement — make sure the dim layer shows */
+[class*="modal-overlay"],
+[class*="ModalOverlay"],
+.overlay-backdrop {
+  background: rgba(10, 4, 28, 0.50) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
+          backdrop-filter: blur(12px) saturate(150%) !important;
+}
+
+/* BigO / Block Glossary / Policy modals — light frosted white */
+.big-o-modal-content,
+.block-glossary-modal-content,
+.policy-modal-content {
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, 0.82) 0%,
+      rgba(240, 232, 255, 0.68) 100%
+    ) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(200%) !important;
+          backdrop-filter: blur(36px) saturate(200%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.80) !important;
+  box-shadow:
+    0 28px 64px rgba(0, 0, 0, 0.20),
+    inset 0 2px 0 rgba(255, 255, 255, 0.95) !important;
+  border-radius: 20px !important;
+  color: #1a1a2e !important;
+}
+
+/* Reward modal — keep its special tier-accent tint but ensure opacity */
+.reward-modal-content {
+  -webkit-backdrop-filter: blur(44px) saturate(220%) !important;
+          backdrop-filter: blur(44px) saturate(220%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.50) !important;
+  box-shadow:
+    0 28px 64px rgba(0, 0, 0, 0.30),
+    inset 0 2px 0 rgba(255, 255, 255, 0.60) !important;
+}
+
+/* ================================================================
+   DROPDOWN MENU REINFORCEMENT
+   LiquidGlass made dropdowns too transparent, hurting readability.
+   This forces them to be solid, bright frosted glass.
+   ================================================================ */
+[class*="dropdown"]:not([class*="btn"]):not([class*="toggle"]),
+.user-dropdown,
+.profile-dropdown {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(240,230,255,0.85) 100%) !important;
+  backdrop-filter: blur(32px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.90) !important;
+  box-shadow: 
+    0 16px 40px rgba(60, 30, 120, 0.18), 
+    0 4px 12px rgba(0,0,0,0.08), 
+    inset 0 2px 0 rgba(255,255,255,0.95) !important;
+  border-radius: 14px !important;
+  color: #1a1a2e !important;
+}
+
+.user-dd-item, .dropdown-item {
+  color: #1a1a2e !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+.user-dd-item:hover, .dropdown-item:hover {
+  background-color: rgba(124, 92, 255, 0.15) !important;
+  color: #5A1398 !important;
+  border-radius: 8px !important;
+}
+
+.user-dd-divider, .dropdown-divider {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  margin: 6px 0 !important;
+}
+
+.user-dropdown-head {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #1a1a2e !important;
+}
+.user-dropdown-head .user-name { color: #1a1a2e !important; font-weight: 700 !important; }
+.user-dropdown-head .user-email { color: #4b3a7c !important; }
+
+/* ================================================================
+   ADMIN PAGES & MODALS - LIQUID GLASS REINFORCEMENT
+   Applies the frosted glass styling to all panels and cards
+   within the admin ecosystem (Dashboard, User Management,
+   Evaluation Suite, Regression Checks).
+   ================================================================ */
+.eval-suite-container, .admin-page-wrapper {
+  background: transparent !important;
+}
+
+.user-management-panel,
+.admin-metric-card,
+.analytics-card,
+.admin-activity-panel,
+.admin-search-bar,
+.respondent-picker-card,
+.full-report-card,
+.admin-activity-table-wrap,
+.eval-page-toolbar,
+.eval-metric-panel,
+.eval-result-card,
+.eval-dataset-card,
+.ast-modal-content,
+.eval-modal-content,
+.respondent-picker-list,
+.arc-panel,
+.admin-analytics-dashboard,
+.admin-checkbox-toggle {
+  background-color: rgba(255, 255, 255, 0.58) !important;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.80) 0%, rgba(235,220,255,0.40) 100%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 4px 16px rgba(60,30,120,0.06) !important;
+  border-radius: 16px !important;
+  transition: all 0.25s ease !important;
+}
+
+/* Hover effects for interactive cards */
+.admin-metric-card:hover, .analytics-card:hover, .eval-result-card:hover {
+  border-color: rgba(124, 92, 255, 0.45) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.92), 0 16px 40px rgba(80,30,160,0.12) !important;
+  transform: translateY(-3px) !important;
+}
+
+/* Modals overlays for admin pages */
+.eval-suite-container .modal-overlay,
+.admin-page-wrapper .modal-overlay {
+  background-color: rgba(10, 4, 28, 0.55) !important;
+  backdrop-filter: blur(10px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(160%) !important;
+}
+
+/* Table headers inside liquid glass */
+.admin-activity-table th, .full-report-table th, .eval-dataset-table th {
+  background: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(10px) !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.7) !important;
+  color: #1a1a2e !important;
+}
+
+/* Buttons and specific text overrides to maintain contrast */
+.admin-header-left h1, .eval-page-title, .analytics-card h3, .admin-metric-card h3 {
+  color: #1a1a2e !important;
+}
+.analytics-card-value, .admin-metric-value, .eval-metric-value {
+  color: #1a1a2e !important;
+}
+
+/* Fix nested transparencies multiplying unnecessarily */
+.eval-suite-container .admin-analytics-dashboard,
+.admin-page-container .admin-analytics-dashboard {
+  background-color: rgba(255, 255, 255, 0.35) !important; /* Lighter inner panels */
+}
+
+/* Scope warning modal explicitly */
+.scope-warning-modal-content {
+  background-color: rgba(255, 255, 255, 0.82) !important;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(240,230,255,0.65) 100%) !important;
+  backdrop-filter: blur(36px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(200%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.80) !important;
+  border-radius: 20px !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 16px 40px rgba(60, 30, 120, 0.15) !important;
+}

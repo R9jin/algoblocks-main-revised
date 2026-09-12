@@ -7,15 +7,24 @@
 }
 
 .reward-modal-content {
+  /* Dark frosted glass with tier-accent tint — definitive */
+  background-color: rgba(18, 6, 44, 0.80);
+  background-image:
+    linear-gradient(145deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 60%),
+    radial-gradient(120% 160% at 50% -10%, var(--tier-accent-soft, rgba(167,139,250,0.32)) 0%, transparent 65%);
+  backdrop-filter: blur(44px) saturate(220%);
+  -webkit-backdrop-filter: blur(44px) saturate(220%);
+  border: 1.5px solid rgba(255, 255, 255, 0.30);
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.60),
+    0  8px 24px rgba(0, 0, 0, 0.28),
+    inset 0 2px 0 rgba(255, 255, 255, 0.50);
   position: relative;
   overflow: hidden;
   width: 100%;
   max-width: 440px;
-  background: radial-gradient(120% 140% at 50% -10%, var(--tier-accent-soft, rgba(167, 139, 250, 0.18)) 0%, #1C1236 55%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 32px 28px 24px;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.02);
   color: #EBE4FF;
   display: flex;
   flex-direction: column;
@@ -23,6 +32,7 @@
   text-align: center;
   animation: reward-modal-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
 
 @keyframes reward-modal-pop {
   0% { transform: scale(0.85) translateY(10px); opacity: 0; }

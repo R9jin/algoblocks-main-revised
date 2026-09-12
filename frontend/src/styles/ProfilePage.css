@@ -20,7 +20,7 @@
 
 .profile-page-v2 {
   min-height: 100vh;
-  background-color: var(--app-bg);
+  background: transparent; /* global purple mesh from body shows through */
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: var(--text-main);
   padding-bottom: 60px;
@@ -553,21 +553,25 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: var(--app-bg);
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border-light);
-  transition: border-color 0.15s ease, background 0.15s ease;
+  background: rgba(255, 255, 255, 0.48);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.62);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 2px 8px rgba(60,30,120,0.07);
+  transition: border-color 0.18s ease, background 0.18s ease;
 }
 
 .activity-row.completed-row {
-  border-color: rgba(16, 185, 129, 0.25);
-  background: rgba(16, 185, 129, 0.04);
+  border-color: rgba(16, 185, 129, 0.50);
+  background: rgba(16, 185, 129, 0.10);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 2px 8px rgba(16,185,129,0.12);
 }
 
 .activity-row.locked-row {
-  background: #F8F9FB;
-  opacity: 0.65;
+  background: rgba(248, 249, 251, 0.35);
+  opacity: 0.60;
 }
 
 .activity-row.empty-row {
@@ -658,21 +662,28 @@
 }
 
 .act-metrics-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 18px;
-  justify-content: flex-start;
-  align-items: flex-start;
-  padding: 10px 12px 2px calc(1rem + 12px); /* align under the title, past the icon */
-  margin-top: 2px;
-  border-top: 1px dashed var(--border-light);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  padding: 10px;
+  margin-top: 6px;
+  background: rgba(255, 255, 255, 0.40);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.80);
 }
 
 .metric-cluster {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding-bottom: 8px;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.50);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
 }
 
 .cluster-label {
@@ -707,21 +718,23 @@
 .metric-badge {
   display: inline-flex;
   align-items: center;
-  font-size: 0.68rem;
+  gap: 4px;
+  font-size: 0.72rem;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-family: "Fira Code", monospace;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-family: "Fira Code", "JetBrains Mono", monospace;
   white-space: nowrap;
   line-height: 1.5;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
 }
 
-.aes-badge.perfect { background: rgba(16, 185, 129, 0.1); color: var(--green-success); border: 1px solid rgba(16, 185, 129, 0.3);}
-.aes-badge.good { background: var(--purple-alpha); color: var(--purple-main); border: 1px solid rgba(121, 40, 202, 0.3);}
-.aes-badge.empty { background: transparent; color: var(--text-muted); border: 1px dashed var(--border-light); opacity: 0.6;}
+.aes-badge.perfect { background: rgba(16, 185, 129, 0.14); color: var(--green-success);  border: 1.5px solid rgba(16, 185, 129, 0.42); box-shadow: 0 2px 8px rgba(16,185,129,0.12), inset 0 1px 0 rgba(255,255,255,0.65); }
+.aes-badge.good    { background: rgba(121, 40, 202, 0.12); color: var(--purple-main);    border: 1.5px solid rgba(121, 40, 202, 0.35); box-shadow: 0 2px 8px rgba(121,40,202,0.10), inset 0 1px 0 rgba(255,255,255,0.65); }
+.aes-badge.empty   { background: rgba(255,255,255,0.35);  color: var(--text-muted);     border: 1.5px dashed var(--border-light); opacity: 0.7; }
 
-.rog-badge.active { background: rgba(245, 158, 11, 0.1); color: var(--orange-warn); border: 1px solid rgba(245, 158, 11, 0.3);}
-.rog-badge.empty { background: transparent; color: var(--text-muted); border: 1px dashed var(--border-light); opacity: 0.5; }
+.rog-badge.active { background: rgba(245, 158, 11, 0.12); color: var(--orange-warn); border: 1.5px solid rgba(245, 158, 11, 0.38); box-shadow: 0 2px 8px rgba(245,158,11,0.10), inset 0 1px 0 rgba(255,255,255,0.65); }
+.rog-badge.empty  { background: rgba(255,255,255,0.30); color: var(--text-muted); border: 1.5px dashed var(--border-light); opacity: 0.55; }
 
 .tests-badge {
   background: rgba(59, 130, 246, 0.1);
@@ -740,6 +753,18 @@
   color: var(--blue-info);
   border: 1px solid rgba(14, 165, 233, 0.25);
 }
+
+/* Per-cluster accent colours and tints */
+.score-cluster      .cluster-label { color: #7c5cff; }
+.tests-cluster      .cluster-label { color: #3b82f6; }
+.complexity-cluster .cluster-label { color: #06b6d4; }
+.trend-cluster      .cluster-label { color: #22c55e; }
+
+.score-cluster      { border-color: rgba(124, 92, 255, 0.38) !important; background: rgba(124, 92, 255, 0.06) !important; }
+.tests-cluster      { border-color: rgba(59,  130, 246, 0.38) !important; background: rgba(59,  130, 246, 0.06) !important; }
+.complexity-cluster { border-color: rgba(6,   182, 212, 0.38) !important; background: rgba(6,   182, 212, 0.06) !important; }
+.trend-cluster      { border-color: rgba(34,  197,  94, 0.38) !important; background: rgba(34,  197,  94, 0.06) !important; }
+
 
 /* Loading State */
 .loading-spinner {
@@ -1066,4 +1091,251 @@
 .btn-take-quiz:hover {
   background: #7c3aed;
   color: #ffffff;
+}
+/* ================================================================
+   ACTIVITY METRICS CARDS — full redesign (AMC system)
+   Replaces the old .act-metrics-group / .metric-cluster layout.
+   Every text colour is near-black (#1a1a2e) for legibility.
+   ================================================================ */
+
+/* -- Outer grid wrapper ----------------------------------------- */
+.amc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+/* -- Base panel card -------------------------------------------- */
+.amc-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1.5px solid rgba(255, 255, 255, 0.80);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.90),
+    0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.amc-panel-label {
+  font-size: 0.58rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(26, 26, 46, 0.48);
+  line-height: 1;
+}
+
+/* -- SCORE panel ------------------------------------------------ */
+.amc-score-panel {
+  border-color: rgba(124, 92, 255, 0.40);
+  background: rgba(124, 92, 255, 0.07);
+}
+.amc-score-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Conic-gradient donut ring — uses CSS custom props set inline */
+.aes-donut {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--aes-clr, #d1d5db) var(--aes-pct, 0%),
+    rgba(0, 0, 0, 0.08) 0
+  );
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.aes-donut::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.10);
+}
+.aes-donut-text {
+  position: relative;
+  z-index: 1;
+  font-size: 0.70rem;
+  font-weight: 900;
+  color: #1a1a2e;
+  font-family: 'Fira Code', 'JetBrains Mono', monospace;
+  line-height: 1;
+  text-align: center;
+}
+
+/* ROG pill beside the donut */
+.rog-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 9px;
+  border-radius: 10px;
+  min-width: 42px;
+}
+.rog-active { background: rgba(245, 158, 11, 0.12); border: 1.5px solid rgba(245, 158, 11, 0.40); }
+.rog-empty  { background: rgba(0, 0, 0, 0.04);      border: 1.5px dashed rgba(0, 0, 0, 0.14); opacity: 0.70; }
+
+.rog-icon  { font-size: 1.05rem; color: #1a1a2e; line-height: 1; }
+.rog-value {
+  font-size: 0.74rem;
+  font-weight: 900;
+  color: #1a1a2e;
+  font-family: 'Fira Code', monospace;
+  line-height: 1;
+}
+.rog-sub {
+  font-size: 0.50rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(26, 26, 46, 0.42);
+  line-height: 1;
+}
+
+/* -- TESTS panel ------------------------------------------------ */
+.amc-tests-panel  {
+  border-color: rgba(59, 130, 246, 0.38);
+  background: rgba(59, 130, 246, 0.06);
+}
+.amc-tests-body   { display: flex; flex-direction: column; gap: 7px; }
+
+/* Mini progress-bar row */
+.tmr { display: flex; align-items: center; gap: 6px; }
+
+.tmr-label {
+  font-size: 0.60rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  width: 50px;
+  flex-shrink: 0;
+}
+.tmr-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.09);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.tmr-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.55s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.tmr-frac {
+  font-size: 0.60rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  font-family: 'Fira Code', monospace;
+  width: 26px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* -- COMPLEXITY panel ------------------------------------------- */
+.amc-complexity-panel {
+  border-color: rgba(6, 182, 212, 0.38);
+  background: rgba(6, 182, 212, 0.06);
+}
+.amc-complexity-body { display: flex; flex-direction: column; gap: 7px; }
+
+.bigo-chip {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.80);
+  border: 1.5px solid rgba(0, 0, 0, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.90);
+}
+.bigo-type {
+  font-size: 0.55rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(26, 26, 46, 0.42);
+  flex-shrink: 0;
+}
+.bigo-val {
+  font-size: 1.05rem;
+  font-weight: 900;
+  font-family: 'Fira Code', 'JetBrains Mono', monospace;
+  line-height: 1;
+}
+.bigo-time  .bigo-val { color: #0e7490; }
+.bigo-space .bigo-val { color: #7c5cff; }
+
+/* -- IMPROVEMENT panel ------------------------------------------ */
+.amc-improvement-panel {
+  border-color: rgba(34, 197, 94, 0.38);
+  background: rgba(34, 197, 94, 0.06);
+}
+.amc-improvement-body { display: flex; flex-direction: column; gap: 8px; }
+
+.impr-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.impr-type {
+  font-size: 0.55rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: rgba(26, 26, 46, 0.40);
+  width: 36px;
+  flex-shrink: 0;
+}
+.impr-from {
+  font-size: 0.70rem;
+  font-weight: 700;
+  color: #64748b;
+  font-family: 'Fira Code', monospace;
+  text-decoration: line-through;
+  text-decoration-color: rgba(100, 116, 139, 0.50);
+  opacity: 0.80;
+}
+.impr-arr {
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #22c55e;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.impr-to {
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: #1a1a2e;
+  font-family: 'Fira Code', monospace;
+}
+
+/* -- Mobile stacking -------------------------------------------- */
+@media (max-width: 640px) {
+  .amc-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 400px) {
+  .amc-grid {
+    grid-template-columns: 1fr;
+  }
 }

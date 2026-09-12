@@ -1,31 +1,41 @@
-/*frontend\src\styles\BigOModal.css*/
 .big-o-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(15, 5, 36, 0.6);
+    background-color: rgba(10, 4, 28, 0.55);
+    backdrop-filter: blur(10px) saturate(160%);
+    -webkit-backdrop-filter: blur(10px) saturate(160%);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 9999;
-
-    /* Overlay fade animation */
     animation: bigo-fade-in 0.3s ease-out forwards;
 }
 
 .big-o-modal-content {
-    background: #ffffff;
-    width: 90%;
-    max-width: 650px;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
-
-    /* Smooth upward slide and fade */
-    animation: bigo-smooth-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* Light frosted glass — visible on any background */
+  background-color: rgba(255, 255, 255, 0.82);
+  background-image: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(240, 230, 255, 0.70) 100%
+  );
+  backdrop-filter: blur(36px) saturate(200%);
+  -webkit-backdrop-filter: blur(36px) saturate(200%);
+  border: 1.5px solid rgba(255, 255, 255, 0.80);
+  box-shadow:
+    0 28px 64px rgba(0, 0, 0, 0.20),
+    0  8px 24px rgba(0, 0, 0, 0.10),
+    inset 0 2px 0 rgba(255, 255, 255, 0.95);
+  width: 90%;
+  max-width: 650px;
+  border-radius: 20px;
+  overflow: hidden;
+  animation: bigo-smooth-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
 
 .big-o-modal-header {
     background: #3A2A6B;

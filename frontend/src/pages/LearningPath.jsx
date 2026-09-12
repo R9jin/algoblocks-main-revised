@@ -9,10 +9,18 @@ import {
   FiDatabase,
   FiEye,
   FiFilter,
+  FiGitBranch,
+  FiGrid,
+  FiLayers,
+  FiLayout,
   FiLock,
   FiRefreshCw,
+  FiRotateCcw,
+  FiSearch,
   FiShare2,
-  FiUsers
+  FiTrendingUp,
+  FiUsers,
+  FiZap
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
@@ -26,53 +34,13 @@ import { detectNewlyUnlocked } from "../utils/unlockAnimationTracker";
 import { syncDownFromServer } from "../utils/syncManager";
 
 const moduleIcons = {
-  "module-0": {
-    icon: FiUsers,
-    color: "#7c5cff",
-    difficulty: "Beginner",
-    description: "Learn the fundamentals of AlgoBlocks.",
-  },
-  "module-1": {
-    icon: FiUsers,
-    color: "#6366f1",
-    difficulty: "Beginner",
-    description: "Understand Big-O notation and complexity analysis.",
-  },
-  "module-2": {
-    icon: FiDatabase,
-    color: "#22c55e",
-    difficulty: "Intermediate",
-    prereq: "Module 1",
-    description: "Master brute force and exhaustive search strategies.",
-  },
-  "module-3": {
-    icon: FiFilter,
-    color: "#f97316",
-    difficulty: "Intermediate",
-    prereq: "Module 1",
-    description: "Learn divide and conquer algorithm design.",
-  },
-  "module-4": {
-    icon: FiFilter,
-    color: "#a855f7",
-    difficulty: "Intermediate",
-    prereq: "Module 1",
-    description: "Explore greedy algorithm strategies.",
-  },
-  "module-5": {
-    icon: FiShare2,
-    color: "#3b82f6",
-    difficulty: "Advanced",
-    prereq: "Module 3",
-    description: "Master dynamic programming techniques.",
-  },
-  "module-6": {
-    icon: FiRefreshCw,
-    color: "#ec4899",
-    difficulty: "Advanced",
-    prereq: "Module 3",
-    description: "Solve problems using backtracking.",
-  },
+  'module-0': { icon: FiLayout,     color: '#7c5cff', difficulty: 'Beginner',     description: 'Learn the fundamentals of AlgoBlocks and the workspace environment.' },
+  'module-1': { icon: FiTrendingUp, color: '#06b6d4', difficulty: 'Beginner',     description: 'Understand Big-O notation and computational complexity analysis.' },
+  'module-2': { icon: FiSearch,     color: '#f97316', difficulty: 'Intermediate', prereq: 'Module 1', description: 'Master brute force and exhaustive search strategies.' },
+  'module-3': { icon: FiGitBranch,  color: '#22c55e', difficulty: 'Intermediate', prereq: 'Module 1', description: 'Learn divide and conquer algorithm design.' },
+  'module-4': { icon: FiZap,        color: '#eab308', difficulty: 'Intermediate', prereq: 'Module 1', description: 'Explore greedy algorithm strategies.' },
+  'module-5': { icon: FiGrid,       color: '#3b82f6', difficulty: 'Advanced',     prereq: 'Module 3', description: 'Master dynamic programming techniques.' },
+  'module-6': { icon: FiRotateCcw,  color: '#ec4899', difficulty: 'Advanced',     prereq: 'Module 3', description: 'Solve problems using backtracking.' },
 };
 
 export default function LearningPath() {
@@ -540,7 +508,7 @@ export default function LearningPath() {
 
         <div className="modules-container">
           {/* GLOBAL PRE-TEST BANNER */}
-          <div className="module-card-v2" style={{ border: "2px solid #7c5cff", marginBottom: "30px", background: "linear-gradient(145deg, rgba(124, 92, 255, 0.1) 0%, rgba(30, 41, 59, 0) 100%)" }}>
+          <div className="module-card-v2" style={{ border: "2px solid rgba(124,92,255,0.70)", marginBottom: "30px", background: "rgba(255,255,255,0.55)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderRadius: "18px", boxShadow: "inset 0 2px 0 rgba(255,255,255,0.85), 0 8px 32px rgba(80,30,160,0.14)" }}>
             <div className="module-card-icon" style={{ backgroundColor: "#7c5cff15" }}>
               <FiAward size={32} color="#7c5cff" />
             </div>
@@ -548,7 +516,7 @@ export default function LearningPath() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
                 <div style={{ flex: 1 }}>
                   <h3 className="module-card-title" style={{ margin: "0 0 8px 0" }}>Comprehensive Course Pre-Test</h3>
-                  <p className="module-card-description" style={{ margin: 0, color: "#94a3b8" }}>
+                  <p className="module-card-description" style={{ margin: 0, color: "#4b3a7c" }}>
                     A diagnostic assessment evaluating your baseline knowledge across all modules. This must be completed to unlock the curriculum.
                   </p>
                 </div>

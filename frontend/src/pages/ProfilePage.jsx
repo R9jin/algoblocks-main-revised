@@ -28,6 +28,110 @@ import { assessmentsDB, curriculumCacheDB, progressDB, submissionsDB } from "../
 import { isAdminUser } from "../utils/auth";
 import "../styles/ProfilePage.css";
 
+/** ActivityMetrics — graphical widget card for per-activity stats shown in the profile. */
+function ActivityMetrics({ act }) {
+  const aes     = act.aes  || 0;
+  const rog     = act.rog  || 0;
+  const aesPct  = Math.min(Math.max(aes, 0), 100);
+  const aesClr  = aes >= 100 ? '#10b981' : aes > 0 ? '#7c5cff' : '#d1d5db';
+  const tb      = act.testBreakdown;
+
+  return (
+    <div className="amc-grid">
+
+      {/* ── SCORE ──────────────────────────── */}
+      <div className="amc-panel amc-score-panel">
+        <span className="amc-panel-label">⚡ Score</span>
+        <div className="amc-score-body">
+          {/* Conic-gradient donut ring */}
+          <div className="aes-donut" style={{ '--aes-pct': `${aesPct}%`, '--aes-clr': aesClr }}>
+            <span className="aes-donut-text">
+              {aes > 0 ? `${aes}%` : '--'}
+            </span>
+          </div>
+          <div className={`rog-pill ${rog > 0 ? 'rog-active' : 'rog-empty'}`}>
+            <span className="rog-icon">{rog > 0 ? '↑' : '∼'}</span>
+            <span className="rog-value">{rog > 0 ? `+${rog}` : '--'}</span>
+            <span className="rog-sub">ROG</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── TESTS ──────────────────────────── */}
+      {tb && (
+        <div className="amc-panel amc-tests-panel">
+          <span className="amc-panel-label">✓ Tests</span>
+          <div className="amc-tests-body">
+            {[
+              { key: 'Func',    passed: tb.functional.passed, total: tb.functional.total },
+              { key: 'Complex', passed: tb.complexity.passed,  total: tb.complexity.total  },
+              { key: 'Hidden',  passed: tb.hidden.passed,      total: tb.hidden.total      },
+            ].map(({ key, passed, total }) => {
+              const pct  = total > 0 ? Math.round((passed / total) * 100) : 0;
+              const done = total > 0 && passed === total;
+              return (
+                <div key={key} className="tmr">
+                  <span className="tmr-label">{key}</span>
+                  <div className="tmr-track">
+                    <div
+                      className="tmr-fill"
+                      style={{ width: `${pct}%`, background: done ? '#10b981' : pct > 0 ? '#7c5cff' : 'transparent' }}
+                    />
+                  </div>
+                  <span className="tmr-frac">{passed}/{total}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── COMPLEXITY ─────────────────────── */}
+      {(act.actualTime || act.actualSpace) && (
+        <div className="amc-panel amc-complexity-panel">
+          <span className="amc-panel-label">⊕ Complexity</span>
+          <div className="amc-complexity-body">
+            {act.actualTime && (
+              <div className="bigo-chip bigo-time">
+                <span className="bigo-type">Time</span>
+                <span className="bigo-val">{act.actualTime}</span>
+              </div>
+            )}
+            {act.actualSpace && (
+              <div className="bigo-chip bigo-space">
+                <span className="bigo-type">Space</span>
+                <span className="bigo-val">{act.actualSpace}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── IMPROVEMENT ────────────────────── */}
+      {act.baselineTime && act.latestTime && (
+        <div className="amc-panel amc-improvement-panel">
+          <span className="amc-panel-label">↗ Improvement</span>
+          <div className="amc-improvement-body">
+            <div className="impr-row">
+              <span className="impr-type">Time</span>
+              <span className="impr-from">{act.baselineTime}</span>
+              <span className="impr-arr">→</span>
+              <span className="impr-to">{act.latestTime}</span>
+            </div>
+            <div className="impr-row">
+              <span className="impr-type">Space</span>
+              <span className="impr-from">{act.baselineSpace || '—'}</span>
+              <span className="impr-arr">→</span>
+              <span className="impr-to">{act.latestSpace || '—'}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const [user, setUser] = useState({ name: "User", email: "", progress: {}, assessments: {} });
   const [metrics, setMetrics] = useState({
@@ -950,67 +1054,7 @@ export default function ProfilePage() {
                                         <span className="locked-text"><FiLock /> Locked</span>
                                       )}
                                     </div>
-                                    {isActUnlocked && (
-                                      <div className="act-metrics-group">
-                                        <div className="metric-cluster score-cluster">
-                                          <span className="cluster-label"><FiZap /> Score</span>
-                                          <div className="cluster-values">
-                                            <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
-                                              AES {act.aes > 0 ? `${act.aes}%` : '--'}
-                                            </span>
-                                            <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
-                                              <FiTrendingUp className="badge-icon" /> {act.rog > 0 ? `+${act.rog}` : '--'}
-                                            </span>
-                                          </div>
-                                        </div>
-                                        {act.testBreakdown && (
-                                          <div className="metric-cluster tests-cluster">
-                                            <span className="cluster-label"><FiCheckSquare /> Tests</span>
-                                            <div className="cluster-values">
-                                              <span className="metric-badge tests-badge">
-                                                Func {act.testBreakdown.functional.passed}/{act.testBreakdown.functional.total}
-                                              </span>
-                                              <span className="metric-badge tests-badge">
-                                                Complexity {act.testBreakdown.complexity.passed}/{act.testBreakdown.complexity.total}
-                                              </span>
-                                              <span className="metric-badge tests-badge">
-                                                Hidden {act.testBreakdown.hidden.passed}/{act.testBreakdown.hidden.total}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        )}
-                                        {(act.actualTime || act.actualSpace) && (
-                                          <div className="metric-cluster complexity-cluster">
-                                            <span className="cluster-label"><FiCpu /> Complexity</span>
-                                            <div className="cluster-values">
-                                              {act.actualTime && (
-                                                <span className="metric-badge complexity-badge">
-                                                  <FiClock className="badge-icon" /> {act.actualTime}
-                                                </span>
-                                              )}
-                                              {act.actualSpace && (
-                                                <span className="metric-badge complexity-badge">
-                                                  <FiDatabase className="badge-icon" /> {act.actualSpace}
-                                                </span>
-                                              )}
-                                            </div>
-                                          </div>
-                                        )}
-                                        {act.baselineTime && act.latestTime && (
-                                          <div className="metric-cluster trend-cluster">
-                                            <span className="cluster-label"><FiTrendingUp /> Improvement</span>
-                                            <div className="cluster-values">
-                                              <span className="metric-badge trend-badge">
-                                                Time {act.baselineTime} &rarr; {act.latestTime}
-                                              </span>
-                                              <span className="metric-badge trend-badge">
-                                                Space {act.baselineSpace || "--"} &rarr; {act.latestSpace || "--"}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
+                                    {isActUnlocked && <ActivityMetrics act={act} />}
                                   </div>
                                   );
                                 })}
@@ -1056,67 +1100,7 @@ export default function ProfilePage() {
                                         <span className="locked-text"><FiLock /> Locked</span>
                                       )}
                                     </div>
-                                    {isActUnlocked && (
-                                      <div className="act-metrics-group">
-                                        <div className="metric-cluster score-cluster">
-                                          <span className="cluster-label"><FiZap /> Score</span>
-                                          <div className="cluster-values">
-                                            <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
-                                              AES {act.aes > 0 ? `${act.aes}%` : '--'}
-                                            </span>
-                                            <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
-                                              <FiTrendingUp className="badge-icon" /> {act.rog > 0 ? `+${act.rog}` : '--'}
-                                            </span>
-                                          </div>
-                                        </div>
-                                        {act.testBreakdown && (
-                                          <div className="metric-cluster tests-cluster">
-                                            <span className="cluster-label"><FiCheckSquare /> Tests</span>
-                                            <div className="cluster-values">
-                                              <span className="metric-badge tests-badge">
-                                                Func {act.testBreakdown.functional.passed}/{act.testBreakdown.functional.total}
-                                              </span>
-                                              <span className="metric-badge tests-badge">
-                                                Complexity {act.testBreakdown.complexity.passed}/{act.testBreakdown.complexity.total}
-                                              </span>
-                                              <span className="metric-badge tests-badge">
-                                                Hidden {act.testBreakdown.hidden.passed}/{act.testBreakdown.hidden.total}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        )}
-                                        {(act.actualTime || act.actualSpace) && (
-                                          <div className="metric-cluster complexity-cluster">
-                                            <span className="cluster-label"><FiCpu /> Complexity</span>
-                                            <div className="cluster-values">
-                                              {act.actualTime && (
-                                                <span className="metric-badge complexity-badge">
-                                                  <FiClock className="badge-icon" /> {act.actualTime}
-                                                </span>
-                                              )}
-                                              {act.actualSpace && (
-                                                <span className="metric-badge complexity-badge">
-                                                  <FiDatabase className="badge-icon" /> {act.actualSpace}
-                                                </span>
-                                              )}
-                                            </div>
-                                          </div>
-                                        )}
-                                        {act.baselineTime && act.latestTime && (
-                                          <div className="metric-cluster trend-cluster">
-                                            <span className="cluster-label"><FiTrendingUp /> Improvement</span>
-                                            <div className="cluster-values">
-                                              <span className="metric-badge trend-badge">
-                                                Time {act.baselineTime} &rarr; {act.latestTime}
-                                              </span>
-                                              <span className="metric-badge trend-badge">
-                                                Space {act.baselineSpace || "--"} &rarr; {act.latestSpace || "--"}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
+                                    {isActUnlocked && <ActivityMetrics act={act} />}
                                   </div>
                                 );
                               })}

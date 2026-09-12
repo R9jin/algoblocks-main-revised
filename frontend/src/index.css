@@ -23,7 +23,7 @@
 }
 
 html {
-  background-color: var(--gb-bg-base);
+  background-color: #F0EBF9;
   /* Explicit 100% (browser default 16px) so the mobile scale-downs below
      have a known baseline to shrink from. Nearly every font-size in this
      codebase is in rem, so scaling this one value cascades site-wide --
@@ -59,10 +59,20 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   color: var(--gb-text-secondary);
-  background:
-    radial-gradient(120% 90% at 12% -10%, rgba(167, 139, 250, 0.10) 0%, transparent 55%),
-    radial-gradient(100% 80% at 100% 0%, rgba(108, 92, 231, 0.08) 0%, transparent 50%),
-    var(--gb-bg-base);
+
+  /* ============================================================
+     GLOBAL PURPLE MESH BACKGROUND — shared across ALL pages.
+     Matches the dashboard bento grid. Every page's own flat
+     background-color is overridden below so this mesh always
+     shows through the frosted-glass panels / modals.
+     ============================================================ */
+  background-color: #F0EBF9;
+  background-image:
+    radial-gradient(ellipse 900px 700px at 5%  -5%,  rgba(167, 99, 255, 0.45), transparent 60%),
+    radial-gradient(ellipse 700px 600px at 97%  8%,  rgba(108, 75, 231, 0.35), transparent 55%),
+    radial-gradient(ellipse 800px 600px at 50% 108%, rgba(80,  18, 148, 0.22), transparent 60%),
+    radial-gradient(ellipse 500px 400px at 85%  60%, rgba(200, 80, 240, 0.18), transparent 55%),
+    linear-gradient(175deg, #F6F2FD 0%, #EAE2F8 55%, #E0D4F7 100%);
   background-attachment: fixed;
 }
 

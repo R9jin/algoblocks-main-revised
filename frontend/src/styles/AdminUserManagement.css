@@ -1,7 +1,7 @@
-/* frontend/src/styles/AdminUserManagement.css */
+﻿/* frontend/src/styles/AdminUserManagement.css */
 
 .admin-page-wrapper {
-  background-color: #f8f8fb;
+  background-color: transparent; /* global purple mesh from body shows through */
   min-height: 100vh;
   width: 100%;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -84,7 +84,7 @@
   display: flex;
   gap: 16px;
   margin-bottom: 32px;
-  background: #ffffff;
+  background: transparent;
   padding: 20px;
   border-radius: 14px;
   border: 1px solid #ece8f8;
@@ -122,7 +122,7 @@
 
 .admin-search-input:focus {
   border-color: #5A1398;
-  background: #ffffff;
+  background: transparent;
   box-shadow: 0 0 0 3px rgba(90, 19, 152, 0.1);
 }
 
@@ -154,7 +154,7 @@
 .admin-filter-select:focus,
 .admin-filter-select:hover {
   border-color: #5A1398;
-  background: #ffffff;
+  background: transparent;
 }
 
 /* --- MESSAGES --- */
@@ -189,7 +189,7 @@
 
 /* --- TABLE --- */
 .admin-table-container {
-  background: #ffffff;
+  background: transparent;
   border-radius: 14px;
   border: 1px solid #ece8f8;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02);
@@ -363,7 +363,7 @@
 }
 
 .admin-modal-card {
-  background: #ffffff;
+  background: transparent;
   border-radius: 16px;
   width: 90%;
   max-width: 460px;
@@ -455,7 +455,7 @@
 
 .admin-modal-prompt-input:focus {
   border-color: #5A1398;
-  background: #ffffff;
+  background: transparent;
   box-shadow: 0 0 0 3px rgba(90, 19, 152, 0.1);
 }
 
@@ -471,7 +471,7 @@
 .admin-btn-cancel {
   padding: 12px 20px;
   border: 1px solid #e2deff;
-  background: #ffffff;
+  background: transparent;
   color: #5b5675;
   border-radius: 10px;
   font-weight: 600;
@@ -510,7 +510,7 @@
    ANALYTICS DASHBOARD (cohort-wide TSR/AES/ROG + assessment stats)
 ========================================================= */
 .admin-analytics-dashboard {
-  background: #ffffff;
+  background: transparent;
   border-radius: 14px;
   border: 1px solid #ece8f8;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02);
@@ -836,7 +836,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: #ffffff;
+  background: transparent;
   border: 1px solid #ece8f8;
   border-radius: 10px;
   padding: 12px 14px;
@@ -910,7 +910,7 @@
 }
 
 .admin-activity-dropdown-toggle.open {
-  background: #ffffff;
+  background: transparent;
   border-color: #5A1398;
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
@@ -973,7 +973,7 @@
 .admin-activity-dropdown-body {
   margin-top: 10px;
   padding: 16px;
-  background: #ffffff;
+  background: transparent;
   border: 1px solid #e5def8;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
@@ -1032,7 +1032,7 @@
 
 .admin-activity-module-select:focus {
   border-color: #5A1398;
-  background: #ffffff;
+  background: transparent;
   box-shadow: 0 0 0 3px rgba(90, 19, 152, 0.1);
 }
 
@@ -1047,7 +1047,7 @@
   overflow-x: auto;
   border: 1px solid #ece8f8;
   border-radius: 10px;
-  background: #ffffff;
+  background: transparent;
 }
 
 .admin-activity-table-wrap::-webkit-scrollbar {
@@ -1189,7 +1189,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  background: #ffffff;
+  background: transparent;
   border: 1px solid #d8cbff;
   border-radius: 8px;
   color: #5A1398;
@@ -1212,7 +1212,7 @@
 }
 
 .admin-refresh-btn.small.outline {
-  background: #ffffff;
+  background: transparent;
   color: #5A1398;
   border: 1px solid #d8cbff;
   box-shadow: none;
@@ -1464,3 +1464,134 @@
   table-layout: fixed;
 }
 
+
+/* =========================================================
+   FORCED LIQUID GLASS OVERRIDES (Added automatically)
+   ========================================================= */
+body .admin-page-wrapper, 
+body .eval-suite-container,
+body .acc-overview-page {
+  background: transparent !important;
+}
+
+
+.admin-metric-card, .analytics-card, .admin-activity-panel, .user-management-panel, 
+.respondent-picker-card, .full-report-card, .eval-metric-panel, .eval-result-card, 
+.eval-dataset-card, .ast-modal-content, .eval-modal-content, .arc-panel,
+.admin-analytics-dashboard, .eval-page-toolbar, .metric-hover-popover, .metric-tooltip-popup {
+  background-color: rgba(255, 255, 255, 0.55) !important;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.80) 0%, rgba(235,220,255,0.40) 100%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 4px 16px rgba(60,30,120,0.06) !important;
+}
+
+/* Make table heads and headers frosted */
+th, .admin-activity-table th, .full-report-table th, .eval-dataset-table th, 
+.eval-result-card-header, .eval-dataset-header, .eval-modal-header, .ast-modal-header {
+  background-color: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Any inner white elements (like code blocks, stats, tabs) must become transparent or frosted */
+[style*="background: #FFF"], [style*="background-color: #FFF"],
+[style*="background: #fff"], [style*="background-color: #fff"],
+.admin-search-bar, .admin-checkbox-toggle, .respondent-picker-list, 
+.eval-tab-button, .ast-node-card, .eval-log-viewer {
+  background-color: rgba(255, 255, 255, 0.35) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Ensure text contrast */
+h1, h2, h3, h4, .analytics-card-value, .admin-metric-value, .eval-metric-value {
+  color: #1a1a2e !important;
+}
+
+
+
+/* Make the User Table at the bottom a bit lighter/frosty */
+.admin-activity-table-wrap {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.40) 0%, rgba(235,220,255,0.15) 100%) !important;
+  backdrop-filter: blur(12px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(160%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.40) !important;
+  border-radius: 12px !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.60), 0 4px 16px rgba(60,30,120,0.03) !important;
+}
+
+/* RECOVERED PANELS AND CARDS THAT WERE MADE TRANSPARENT */
+.admin-table-container, 
+.admin-modal-card, 
+.admin-activity-dropdown-body, 
+.metric-card-info, 
+.metric-interactive-box, 
+.sandbox-live-commentary, 
+.eval-filter-navbar, 
+.line-checks-dropdown-box, 
+.eval-code-preview, 
+.eval-explanation-box, 
+.eval-report-card {
+  background-color: rgba(255, 255, 255, 0.58) !important;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.80) 0%, rgba(235,220,255,0.40) 100%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 4px 16px rgba(60,30,120,0.06) !important;
+  border-radius: 12px !important;
+}
+
+/* Inputs and small pills that need slight frosting */
+.admin-search-input, 
+.admin-filter-select, 
+.admin-modal-prompt-input, 
+.admin-activity-module-select, 
+.line-count-pill,
+.eval-btn-cancel,
+.admin-btn-cancel {
+  background-color: rgba(255, 255, 255, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Fix inner headers inside dropdown line tables */
+.dropdown-line-table th {
+  background-color: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Make the main section containers frosted glass so they aren't completely transparent */
+.eval-sklearn-container {
+  background-color: rgba(255, 255, 255, 0.48) !important;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(235,220,255,0.25) 100%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.75) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.95), 0 8px 32px rgba(60,30,120,0.06) !important;
+  border-radius: 18px !important;
+}
+
+/* Tone down the solid-white look of inner cards so they look properly inset on the frosted panels */
+.eval-metric-panel,
+.eval-stat-card,
+.analytics-card {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.80), 0 2px 8px rgba(0,0,0,0.03) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Fix for Select Benchmark Dataset box and other remaining loose boxes */
+.eval-dataset-selector-box,
+.admin-message-box,
+.admin-metrics-panel {
+  background-color: rgba(255, 255, 255, 0.58) !important;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.80) 0%, rgba(235,220,255,0.40) 100%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 4px 16px rgba(60,30,120,0.06) !important;
+  border-radius: 12px !important;
+}

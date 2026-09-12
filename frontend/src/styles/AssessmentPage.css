@@ -2,7 +2,7 @@
 
 .assessment-page {
   min-height: 100vh;
-  background: #f5f3ff;
+  background: transparent; /* global purple mesh from body shows through */
   font-family: 'Segoe UI', sans-serif;
 }
 

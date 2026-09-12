@@ -1,4 +1,4 @@
-/* frontend/src/styles/AnalyzerRegressionCheck.css
+﻿/* frontend/src/styles/AnalyzerRegressionCheck.css
  *
  * Only the rules specific to this panel. Card grid, loading state, and
  * message-box styles are inherited from AdminUserManagement.css, same
@@ -344,4 +344,66 @@
   font-size: 13px;
   color: #0F172A;
   white-space: pre;
+}
+
+/* =========================================================
+   FORCED LIQUID GLASS OVERRIDES (Added automatically)
+   ========================================================= */
+body .admin-page-wrapper, 
+body .eval-suite-container,
+body .acc-overview-page {
+  background: transparent !important;
+}
+
+
+.admin-metric-card, .analytics-card, .admin-activity-panel, .user-management-panel, 
+.respondent-picker-card, .full-report-card, .eval-metric-panel, .eval-result-card, 
+.eval-dataset-card, .ast-modal-content, .eval-modal-content, .arc-panel,
+.admin-analytics-dashboard, .eval-page-toolbar, .metric-hover-popover, .metric-tooltip-popup {
+  background-color: rgba(255, 255, 255, 0.55) !important;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.80) 0%, rgba(235,220,255,0.40) 100%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 4px 16px rgba(60,30,120,0.06) !important;
+}
+
+/* Make table heads and headers frosted */
+th, .admin-activity-table th, .full-report-table th, .eval-dataset-table th, 
+.eval-result-card-header, .eval-dataset-header, .eval-modal-header, .ast-modal-header {
+  background-color: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Any inner white elements (like code blocks, stats, tabs) must become transparent or frosted */
+[style*="background: #FFF"], [style*="background-color: #FFF"],
+[style*="background: #fff"], [style*="background-color: #fff"],
+.admin-search-bar, .admin-checkbox-toggle, .respondent-picker-list, 
+.eval-tab-button, .ast-node-card, .eval-log-viewer {
+  background-color: rgba(255, 255, 255, 0.35) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Ensure text contrast */
+h1, h2, h3, h4, .analytics-card-value, .admin-metric-value, .eval-metric-value {
+  color: #1a1a2e !important;
+}
+
+
+/* Analyzer Regression Check specific cards */
+.arc-explainer, 
+.arc-overall-row, 
+.arc-code-block {
+  background-color: rgba(255, 255, 255, 0.58) !important;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.80) 0%, rgba(235,220,255,0.40) 100%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 4px 16px rgba(60,30,120,0.06) !important;
+  border-radius: 12px !important;
+}
+
+.arc-code-pre,
+.arc-code-block-header {
+  background-color: transparent !important;
 }
