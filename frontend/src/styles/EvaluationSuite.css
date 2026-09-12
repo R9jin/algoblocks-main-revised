@@ -1,8 +1,8 @@
-/* frontend/src/styles/EvaluationSuite.css */
+﻿/* frontend/src/styles/EvaluationSuite.css */
 
 .eval-suite-container {
   overflow-y: auto;
-  background-color: #F8FAFC;
+  background-color: transparent;
   min-height: 100vh;
   color: #0F172A;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -11,7 +11,7 @@
 /* Self-contained overlay backdrop for this page's modals (Inspect AST /
    Understand Metric Percentages). This page is lazy-loaded as its own
    route chunk, so it can NOT rely on the .modal-overlay rule defined in
-   MainApp.css / ConfirmModal.css being present — whether that CSS has
+   MainApp.css / ConfirmModal.css being present â€” whether that CSS has
    loaded depends on which other pages happened to load first in the
    session. Defining it here guarantees position:fixed centering works
    every time, regardless of navigation history. */
@@ -48,7 +48,7 @@
 
 /* --- PAGE TOOLBAR (title + Execute Benchmark control) --- */
 .eval-page-toolbar {
-  background-color: #FFFFFF;
+  background-color: transparent;
   border: 1px solid #E2E8F0;
   border-radius: 14px;
   padding: 20px 24px;
@@ -137,7 +137,7 @@
 
 /* --- DATASET GAUNTLET SELECTOR --- */
 .eval-dataset-selector-box {
-  background-color: #FFFFFF;
+  background-color: transparent;
   border: 1px solid #CBD5E1;
   padding: 18px 24px;
   border-radius: 14px;
@@ -263,7 +263,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   color: var(--badge-color);
-  background-color: #F8FAFC;
+  background-color: transparent;
   border: 1px solid #E2E8F0;
   background-color: color-mix(in srgb, var(--badge-color) 12%, white);
   border-color: color-mix(in srgb, var(--badge-color) 35%, white);
@@ -271,7 +271,7 @@
 
 /* --- STATUS BANNER --- */
 .eval-status-banner {
-  background-color: #FFFFFF;
+  background-color: transparent;
   border: 1px solid #E2E8F0;
   padding: 16px 22px;
   border-radius: 12px;
@@ -284,7 +284,7 @@
 }
 
 .line-stats-banner {
-  background-color: #F8FAFC;
+  background-color: transparent;
   border-left: 4px solid #5A1398;
 }
 
@@ -361,7 +361,7 @@
 }
 
 .eval-stat-card {
-  background-color: #FFFFFF;
+  background-color: transparent;
   padding: 20px 18px;
   border-radius: 14px;
   border: 1px solid #E2E8F0;
@@ -403,7 +403,7 @@
 }
 
 .eval-metric-panel {
-  background: #FFFFFF;
+  background: transparent;
   border-radius: 16px;
   padding: 20px 22px 18px;
   border: 1px solid #E2E8F0;
@@ -584,7 +584,7 @@
   bottom: calc(100% + 10px);
   transform: translateX(-50%) translateY(6px);
   width: 300px;
-  background-color: #FFFFFF;
+  background-color: transparent;
   border: 1px solid #E2E8F0;
   border-radius: 12px;
   box-shadow: 0 20px 30px -8px rgba(15, 23, 42, 0.22), 0 4px 10px -4px rgba(15, 23, 42, 0.12);
@@ -687,7 +687,7 @@
 
 /* --- SCIKIT-LEARN AUTHENTIC CLASSIFICATION MATRIX CARD --- */
 .eval-sklearn-container {
-  background-color: #FFFFFF;
+  background-color: transparent;
   border-radius: 14px;
   border: 1px solid #E2E8F0;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
@@ -724,7 +724,7 @@
 }
 
 .eval-btn-metrics-help {
-  background-color: #F8FAFC;
+  background-color: transparent;
   color: #5A1398;
   border: 1px solid #E9D5FF;
   padding: 9px 16px;
@@ -779,7 +779,7 @@
 }
 
 .sklearn-table th {
-  background-color: #F8FAFC;
+  background-color: transparent;
   color: #64748B;
   font-weight: 700;
   padding: 10px 16px;
@@ -811,7 +811,7 @@
 }
 
 .sklearn-table tr:hover td {
-  background-color: #F8FAFC;
+  background-color: transparent;
 }
 
 /* Dual Metric Layout Formatter Styles */
@@ -848,7 +848,7 @@
 .tr-divider td {
   border-top: 2px solid #CBD5E1;
   font-weight: 700;
-  background-color: #F8FAFC;
+  background-color: transparent;
 }
 
 .tr-weighted td {
@@ -941,7 +941,7 @@
 }
 
 .metric-card-info {
-  background-color: #F8FAFC;
+  background-color: transparent;
   border: 1px solid #E2E8F0;
   padding: 16px 20px;
   border-radius: 12px;
@@ -986,7 +986,7 @@
 }
 
 .metric-interactive-box {
-  background-color: #FFFFFF;
+  background-color: transparent;
   border: 2px dashed #CBD5E1;
   padding: 22px;
   border-radius: 14px;
@@ -1071,7 +1071,7 @@
 }
 
 .sandbox-live-commentary {
-  background-color: #F8FAFC;
+  background-color: transparent;
   border: 1px solid #E2E8F0;
   padding: 12px 16px;
   border-radius: 8px;
@@ -1090,7 +1090,7 @@
 
 /* --- TABLE CONTAINER & NAVBAR --- */
 .eval-table-container {
-  background-color: #FFFFFF;
+  background-color: transparent;
   border-radius: 14px;
   border: 1px solid #E2E8F0;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
@@ -1099,7 +1099,7 @@
 
 .eval-filter-navbar {
   padding: 16px 24px;
-  background-color: #F8FAFC;
+  background-color: transparent;
   border-bottom: 1px solid #E2E8F0;
   display: flex;
   gap: 12px;
@@ -1131,7 +1131,7 @@
 }
 
 .filter-all-idle {
-  background-color: #FFFFFF;
+  background-color: transparent;
   color: #475569;
   border-color: #CBD5E1;
 }
@@ -1212,7 +1212,7 @@
 }
 
 .eval-table tr:hover td {
-  background-color: #F8FAFC;
+  background-color: transparent;
 }
 
 .cell-algo-name {
@@ -1279,7 +1279,7 @@
 }
 
 .eval-btn-inspect {
-  background-color: #FFFFFF;
+  background-color: transparent;
   color: #475569;
   border: 1px solid #CBD5E1;
   padding: 7px 14px;
@@ -1301,7 +1301,7 @@
 }
 
 .eval-btn-dropdown {
-  background-color: #F8FAFC;
+  background-color: transparent;
   color: #334155;
   border: 1px solid #CBD5E1;
   padding: 7px 14px;
@@ -1368,7 +1368,7 @@
   padding: 0 8px;
   border-radius: 8px;
   border: 1px solid #E2E8F0;
-  background: #FFFFFF;
+  background: transparent;
   color: #334155;
   font-size: 13px;
   font-weight: 600;
@@ -1415,13 +1415,13 @@
 
 /* --- REVEALING LINE CHECKING DROPDOWN MATRIX --- */
 .tr-expanded-parent td {
-  background-color: #F8FAFC !important;
+  background-color: transparent;
   border-bottom: none !important;
 }
 
 .tr-dropdown-content td {
   padding: 0 !important;
-  background-color: #F8FAFC;
+  background-color: transparent;
   border-bottom: 2px solid #CBD5E1 !important;
 }
 
@@ -1430,7 +1430,7 @@
 }
 
 .line-checks-dropdown-box {
-  background-color: #FFFFFF;
+  background-color: transparent;
   border: 1px solid #CBD5E1;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
@@ -1474,7 +1474,7 @@
 }
 
 .line-count-pill {
-  background-color: #FFFFFF;
+  background-color: transparent;
   color: #475569;
   border: 1px solid #CBD5E1;
   padding: 4px 10px;
@@ -1530,7 +1530,7 @@
 }
 
 .dropdown-line-table th {
-  background-color: #F8FAFC;
+  background-color: transparent;
   color: #64748B;
   font-size: 11px;
   font-weight: 700;
@@ -1559,7 +1559,7 @@
 .line-td-code code {
   font-family: Consolas, 'Courier New', monospace;
   color: #0F172A;
-  background-color: #F8FAFC;
+  background-color: transparent;
   padding: 2px 6px;
   border-radius: 4px;
   border: 1px solid #E2E8F0;
@@ -1584,7 +1584,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  background-color: #F8FAFC;
+  background-color: transparent;
   padding: 3px 7px;
   border-radius: 6px;
   border: 1px solid #E2E8F0;
@@ -1640,7 +1640,7 @@
 
 /* SUMMARY BAR AT BOTTOM OF DROPDOWN BAR */
 .dropdown-box-footer {
-  background-color: #F8FAFC;
+  background-color: transparent;
   border-top: 1px solid #CBD5E1;
   padding: 14px 20px;
   display: flex;
@@ -1684,7 +1684,7 @@
   font-size: 13px;
   padding: 2px 8px;
   border-radius: 6px;
-  background-color: #FFFFFF;
+  background-color: transparent;
   border: 1px solid #E2E8F0;
 }
 
@@ -1693,7 +1693,7 @@
   max-width: 680px;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
-  background-color: #FFFFFF;
+  background-color: transparent;
   color: #0F172A;
   border: 1px solid #CBD5E1;
   padding: 28px;
@@ -1743,7 +1743,7 @@
 }
 
 .eval-code-preview {
-  background-color: #F8FAFC;
+  background-color: transparent;
   padding: 16px;
   border-radius: 10px;
   font-size: 13px;
@@ -1757,7 +1757,7 @@
 }
 
 .eval-explanation-box {
-  background-color: #F8FAFC;
+  background-color: transparent;
   padding: 14px 16px;
   border-radius: 10px;
   font-size: 13px;
@@ -1822,7 +1822,7 @@
 }
 
 .eval-report-card {
-  background: #FFFFFF;
+  background: transparent;
   border-radius: 14px;
   width: min(920px, 94vw);
   max-height: 90vh;
@@ -1992,4 +1992,142 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+/* =========================================================
+   FORCED LIQUID GLASS OVERRIDES (Added automatically)
+   ========================================================= */
+body .admin-page-wrapper, 
+body .eval-suite-container,
+body .acc-overview-page {
+  background: transparent !important;
+}
+
+
+.admin-metric-card, .analytics-card, .admin-activity-panel, .user-management-panel, 
+.respondent-picker-card, .full-report-card, .eval-metric-panel, .eval-result-card, 
+.eval-dataset-card, .ast-modal-content, .eval-modal-content, .arc-panel,
+.admin-analytics-dashboard, .eval-page-toolbar, .metric-hover-popover, .metric-tooltip-popup {
+  background-color: rgba(255, 255, 255, 0.55) !important;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.80) 0%, rgba(235,220,255,0.40) 100%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 4px 16px rgba(60,30,120,0.06) !important;
+}
+
+/* Make table heads and headers frosted */
+th, .admin-activity-table th, .full-report-table th, .eval-dataset-table th, 
+.eval-result-card-header, .eval-dataset-header, .eval-modal-header, .ast-modal-header {
+  background-color: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Any inner white elements (like code blocks, stats, tabs) must become transparent or frosted */
+[style*="background: #FFF"], [style*="background-color: #FFF"],
+[style*="background: #fff"], [style*="background-color: #fff"],
+.admin-search-bar, .admin-checkbox-toggle, .respondent-picker-list, 
+.eval-tab-button, .ast-node-card, .eval-log-viewer {
+  background-color: rgba(255, 255, 255, 0.35) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Ensure text contrast */
+h1, h2, h3, h4, .analytics-card-value, .admin-metric-value, .eval-metric-value {
+  color: #1a1a2e !important;
+}
+
+
+
+/* Increase opacity of the Evaluation Suite tables so they are distinguishable from the background */
+.sklearn-table-box, 
+.eval-table-container, 
+.eval-report-table {
+  background-color: rgba(255, 255, 255, 0.65) !important;
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.70) 0%, rgba(235, 220, 255, 0.45) 100%) !important;
+  backdrop-filter: blur(24px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.95), 0 4px 16px rgba(60,30,120,0.06) !important;
+  border-radius: 12px !important;
+}
+
+/* Make table rows have a slight hover effect to help with readability */
+.eval-table tr:hover td, .sklearn-table tr:hover td, .eval-report-table tbody tr:hover td {
+  background-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* RECOVERED PANELS AND CARDS THAT WERE MADE TRANSPARENT */
+.admin-table-container, 
+.admin-modal-card, 
+.admin-activity-dropdown-body, 
+.metric-card-info, 
+.metric-interactive-box, 
+.sandbox-live-commentary, 
+.eval-filter-navbar, 
+.line-checks-dropdown-box, 
+.eval-code-preview, 
+.eval-explanation-box, 
+.eval-report-card {
+  background-color: rgba(255, 255, 255, 0.58) !important;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.80) 0%, rgba(235,220,255,0.40) 100%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 4px 16px rgba(60,30,120,0.06) !important;
+  border-radius: 12px !important;
+}
+
+/* Inputs and small pills that need slight frosting */
+.admin-search-input, 
+.admin-filter-select, 
+.admin-modal-prompt-input, 
+.admin-activity-module-select, 
+.line-count-pill,
+.eval-btn-cancel,
+.admin-btn-cancel {
+  background-color: rgba(255, 255, 255, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Fix inner headers inside dropdown line tables */
+.dropdown-line-table th {
+  background-color: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Make the main section containers frosted glass so they aren't completely transparent */
+.eval-sklearn-container {
+  background-color: rgba(255, 255, 255, 0.48) !important;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(235,220,255,0.25) 100%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.75) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.95), 0 8px 32px rgba(60,30,120,0.06) !important;
+  border-radius: 18px !important;
+}
+
+/* Tone down the solid-white look of inner cards so they look properly inset on the frosted panels */
+.eval-metric-panel,
+.eval-stat-card,
+.analytics-card {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.80), 0 2px 8px rgba(0,0,0,0.03) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Fix for Select Benchmark Dataset box and other remaining loose boxes */
+.eval-dataset-selector-box,
+.admin-message-box,
+.admin-metrics-panel {
+  background-color: rgba(255, 255, 255, 0.58) !important;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.80) 0%, rgba(235,220,255,0.40) 100%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 4px 16px rgba(60,30,120,0.06) !important;
+  border-radius: 12px !important;
 }

@@ -1,11 +1,13 @@
-/* frontend\src\styles\BlockGlossaryModal.css */
+/* frontend/src/styles/BlockGlossaryModal.css */
 .block-glossary-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    /* Background + backdrop-filter handled by LiquidGlass.css */
+    background-color: rgba(10, 4, 28, 0.55);
+    backdrop-filter: blur(10px) saturate(160%);
+    -webkit-backdrop-filter: blur(10px) saturate(160%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -14,10 +16,15 @@
 }
 
 .block-glossary-modal-content {
-  /* Background, border, box-shadow → LiquidGlass.css (light glass). */
+  background-color: rgba(255, 255, 255, 0.82);
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.92) 0%, rgba(240,230,255,0.70) 100%);
+  backdrop-filter: blur(36px) saturate(200%);
+  -webkit-backdrop-filter: blur(36px) saturate(200%);
+  border: 1.5px solid rgba(255, 255, 255, 0.80);
+  box-shadow: 0 28px 64px rgba(0,0,0,0.20), 0 8px 24px rgba(0,0,0,0.10), inset 0 2px 0 rgba(255,255,255,0.95);
   width: 92%;
   max-width: 760px;
-  border-radius: 12px;
+  border-radius: 20px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -26,7 +33,7 @@
 }
 
 .block-glossary-modal-header {
-    background: #3A2A6B;
+    background: linear-gradient(135deg, #3A2A6B 0%, #5a1398 100%);
     color: white;
     padding: 16px 24px;
     display: flex;
@@ -56,7 +63,6 @@
 .block-glossary-close-btn:hover {
     color: white;
 }
-
 .block-glossary-search-row {
     padding: 14px 20px 0;
     flex-shrink: 0;
