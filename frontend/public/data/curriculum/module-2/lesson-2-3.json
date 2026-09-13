@@ -71,7 +71,161 @@
       "id": "walkthrough",
       "type": "deep_dive",
       "title": "Execution Trace: The Single Pass Invariant",
-      "content": "**Bubble Sort**, one pass on `[5, 2, 8, 1]` (ascending):\n1. Compare 5, 2 → swap → `[2, 5, 8, 1]`.\n2. Compare 5, 8 → no swap → `[2, 5, 8, 1]`.\n3. Compare 8, 1 → swap → `[2, 5, 1, 8]`.\n**Result:** the max (8) is now locked in the last slot. The unsorted region shrinks to the first three elements.\n\n**Selection Sort**, same array:\n1. Assume index 0 (`5`) is the min.\n2. Scan `[2, 8, 1]` -- the true min is `1` at index 3.\n3. Swap index 0 and index 3.\n**Result:** `[1, 2, 8, 5]` -- one swap, `1` locked in, sorted boundary advances by one."
+      "content": "Both algorithms below run **one pass** over the same starting array, `[5, 2, 8, 1]` (ascending). Step through each to see exactly which comparisons trigger a swap, and which value ends up locked into place by the end of the pass.",
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Bubble Sort -- one pass",
+          "description": "Adjacent elements are compared and swapped as the scan moves left to right; the largest value \"bubbles\" to the end.",
+          "steps": [
+            {
+              "array": [
+                5,
+                2,
+                8,
+                1
+              ],
+              "roles": {},
+              "caption": "Starting array: [5, 2, 8, 1]."
+            },
+            {
+              "array": [
+                2,
+                5,
+                8,
+                1
+              ],
+              "roles": {
+                "0": "swap",
+                "1": "swap"
+              },
+              "caption": "Compare 5 and 2 -> swap -> [2, 5, 8, 1]."
+            },
+            {
+              "array": [
+                2,
+                5,
+                8,
+                1
+              ],
+              "roles": {
+                "1": "compare",
+                "2": "compare"
+              },
+              "caption": "Compare 5 and 8 -> no swap -> [2, 5, 8, 1]."
+            },
+            {
+              "array": [
+                2,
+                5,
+                1,
+                8
+              ],
+              "roles": {
+                "2": "swap",
+                "3": "sorted"
+              },
+              "caption": "Compare 8 and 1 -> swap -> [2, 5, 1, 8]. The largest value (8) is now locked into the last slot."
+            }
+          ]
+        },
+        {
+          "kind": "array",
+          "title": "Selection Sort -- one pass",
+          "description": "The whole unsorted region is scanned first to find the true minimum, then a single swap places it at the front.",
+          "steps": [
+            {
+              "array": [
+                5,
+                2,
+                8,
+                1
+              ],
+              "roles": {
+                "0": "candidate"
+              },
+              "pointers": [
+                {
+                  "label": "min",
+                  "index": 0
+                }
+              ],
+              "caption": "Assume index 0 (5) is the minimum, for now."
+            },
+            {
+              "array": [
+                5,
+                2,
+                8,
+                1
+              ],
+              "roles": {
+                "0": "eliminated",
+                "1": "candidate"
+              },
+              "pointers": [
+                {
+                  "label": "min",
+                  "index": 1
+                }
+              ],
+              "caption": "Scan index 1 (2) -- smaller than 5, so 2 becomes the new minimum candidate."
+            },
+            {
+              "array": [
+                5,
+                2,
+                8,
+                1
+              ],
+              "roles": {
+                "0": "eliminated",
+                "1": "candidate",
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "min",
+                  "index": 1
+                }
+              ],
+              "caption": "Scan index 2 (8) -- not smaller than 2, minimum candidate stays the same."
+            },
+            {
+              "array": [
+                5,
+                2,
+                8,
+                1
+              ],
+              "roles": {
+                "0": "eliminated",
+                "1": "eliminated",
+                "3": "candidate"
+              },
+              "pointers": [
+                {
+                  "label": "min",
+                  "index": 3
+                }
+              ],
+              "caption": "Scan index 3 (1) -- smaller than 2, so 1 becomes the new minimum candidate."
+            },
+            {
+              "array": [
+                1,
+                2,
+                8,
+                5
+              ],
+              "roles": {
+                "0": "sorted"
+              },
+              "caption": "Swap index 0 and index 3 -> [1, 2, 8, 5]. One swap, 1 is now locked in, and the sorted boundary advances by one."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "implementation",

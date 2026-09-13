@@ -156,6 +156,58 @@
           "title": "Variable Scoping: Local vs. Global",
           "content": "A variable defined outside any function can get silently overwritten by a deeper recursive call if you're not careful. Using local function parameters instead keeps each recursion level's data isolated from every other level -- a habit worth building now, before it causes a confusing bug later."
         }
+      ],
+      "traces": [
+        {
+          "kind": "callstack",
+          "title": "Basic Call Stack",
+          "description": "Functions calling functions.",
+          "steps": [
+            {
+              "stack": [
+                "main()"
+              ],
+              "cache": {},
+              "caption": "Main starts."
+            },
+            {
+              "stack": [
+                "main()",
+                "doMath()"
+              ],
+              "cache": {},
+              "caption": "Main calls doMath."
+            },
+            {
+              "stack": [
+                "main()",
+                "doMath()",
+                "add()"
+              ],
+              "cache": {},
+              "caption": "doMath calls add."
+            },
+            {
+              "stack": [
+                "main()",
+                "doMath()"
+              ],
+              "cache": {},
+              "store": {
+                "key": "add",
+                "value": "res"
+              },
+              "caption": "add finishes."
+            },
+            {
+              "stack": [
+                "main()"
+              ],
+              "cache": {},
+              "caption": "doMath finishes."
+            }
+          ]
+        }
       ]
     },
     {

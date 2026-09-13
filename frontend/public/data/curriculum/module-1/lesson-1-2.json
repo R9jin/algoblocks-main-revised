@@ -195,6 +195,66 @@
           "language": "python",
           "code": "def total_sales(amounts):\n    total = 0\n    for amount in amounts:\n        total += amount\n    return total\n\nprint(total_sales([120, 75, 210, 90]))"
         }
+      ],
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Linear Time Execution",
+          "description": "O(n)",
+          "steps": [
+            {
+              "array": [
+                1,
+                2,
+                3
+              ],
+              "roles": {
+                "0": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i=0",
+                  "index": 0
+                }
+              ],
+              "caption": "Step 1"
+            },
+            {
+              "array": [
+                1,
+                2,
+                3
+              ],
+              "roles": {
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i=1",
+                  "index": 1
+                }
+              ],
+              "caption": "Step 2"
+            },
+            {
+              "array": [
+                1,
+                2,
+                3
+              ],
+              "roles": {
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i=2",
+                  "index": 2
+                }
+              ],
+              "caption": "Step 3 - Work scales directly with size."
+            }
+          ]
+        }
       ]
     },
     {

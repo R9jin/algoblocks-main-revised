@@ -69,7 +69,53 @@
       "id": "redundant-recursion",
       "type": "deep_dive",
       "title": "Visualizing Redundant Recursion",
-      "content": "Let us trace through `fib(5)` to see exactly where redundancy occurs in the recursion tree:\n* `fib(5)` calls `fib(4)` and `fib(3)`.\n* `fib(4)` calls `fib(3)` and `fib(2)`.\n* `fib(3)` calls `fib(2)` and `fib(1)`.\n* `fib(2)` calls `fib(1)` and `fib(0)`.\n\n**Call Count Analysis for fib(5):**\n* `fib(0)` computed 3 times.\n* `fib(1)` computed 5 times.\n* `fib(2)` computed 3 times.\n* `fib(3)` computed 2 times.\n* `fib(4)` computed 1 time.\n* `fib(5)` computed 1 time.\n\nTotal calls: **15**. \n\nEach call to `fib(3)` spawns the entire subtree of `fib(3)` again, even though the mathematical answer never changes. Dynamic Programming eliminates these duplicates by storing previously computed answers. Once `fib(3)` is computed, any future request for `fib(3)` simply looks up the cached answer."
+      "content": "Let us trace through `fib(5)` to see exactly where redundancy occurs in the recursion tree:\n* `fib(5)` calls `fib(4)` and `fib(3)`.\n* `fib(4)` calls `fib(3)` and `fib(2)`.\n* `fib(3)` calls `fib(2)` and `fib(1)`.\n* `fib(2)` calls `fib(1)` and `fib(0)`.\n\n**Call Count Analysis for fib(5):**\n* `fib(0)` computed 3 times.\n* `fib(1)` computed 5 times.\n* `fib(2)` computed 3 times.\n* `fib(3)` computed 2 times.\n* `fib(4)` computed 1 time.\n* `fib(5)` computed 1 time.\n\nTotal calls: **15**. \n\nEach call to `fib(3)` spawns the entire subtree of `fib(3)` again, even though the mathematical answer never changes. Dynamic Programming eliminates these duplicates by storing previously computed answers. Once `fib(3)` is computed, any future request for `fib(3)` simply looks up the cached answer.",
+      "traces": [
+        {
+          "kind": "recursionTree",
+          "title": "Redundant Fib(4)",
+          "description": "Without DP, subproblems repeat.",
+          "nodes": [
+            {
+              "id": "1",
+              "parentId": null,
+              "label": "Fib(4)",
+              "revealAt": 1
+            },
+            {
+              "id": "2",
+              "parentId": "1",
+              "label": "Fib(3)",
+              "revealAt": 2
+            },
+            {
+              "id": "3",
+              "parentId": "1",
+              "label": "Fib(2) [Repeats!]",
+              "revealAt": 3
+            },
+            {
+              "id": "4",
+              "parentId": "2",
+              "label": "Fib(2)",
+              "revealAt": 4
+            },
+            {
+              "id": "5",
+              "parentId": "2",
+              "label": "Fib(1)",
+              "revealAt": 5
+            }
+          ],
+          "stepCaptions": [
+            "Fib(4) calls Fib(3) and Fib(2)",
+            "Left side: Fib(3) explores...",
+            "Right side: Fib(2) is calculated again from scratch!",
+            "Fib(3) internally needed Fib(2)",
+            "Fib(3) internally needed Fib(1)"
+          ]
+        }
+      ]
     },
     {
       "id": "why-recursive-slow",

@@ -93,7 +93,46 @@
       "id": "recursive-tree",
       "type": "deep_dive",
       "title": "Recursive Search Tree",
-      "content": "The N-Queens Problem forms a recursive branching tree. The root of the tree is row 0 with no queens placed. From the root, there are N branches for placing a queen in each column of row 0.\n\nFrom each branch at row 0, there are branches for row 1. However, many branches are pruned immediately because the queen placement is unsafe. Only safe placements lead to deeper levels.\n\nFor example, for 4-Queens:\n* From (0,0) there are safe placements at row 1 columns 2 and 3.\n* From (0,1) there are safe placements at row 1 column 3 only.\n* The tree is much smaller than the full 4 to the 4 equals 256 possible placements because pruning eliminates invalid branches early.\n\nEach branch represents another possible queen placement path. Invalid branches are pruned immediately. The algorithm goes depth-first, exploring one branch completely before backtracking and trying another branch. This systematic search ensures that all valid solutions are found."
+      "content": "The N-Queens Problem forms a recursive branching tree. The root of the tree is row 0 with no queens placed. From the root, there are N branches for placing a queen in each column of row 0.\n\nFrom each branch at row 0, there are branches for row 1. However, many branches are pruned immediately because the queen placement is unsafe. Only safe placements lead to deeper levels.\n\nFor example, for 4-Queens:\n* From (0,0) there are safe placements at row 1 columns 2 and 3.\n* From (0,1) there are safe placements at row 1 column 3 only.\n* The tree is much smaller than the full 4 to the 4 equals 256 possible placements because pruning eliminates invalid branches early.\n\nEach branch represents another possible queen placement path. Invalid branches are pruned immediately. The algorithm goes depth-first, exploring one branch completely before backtracking and trying another branch. This systematic search ensures that all valid solutions are found.",
+      "traces": [
+        {
+          "kind": "recursionTree",
+          "title": "N-Queens Pruning",
+          "description": "Placing queens row by row.",
+          "nodes": [
+            {
+              "id": "r1",
+              "parentId": null,
+              "label": "Row 1: Q(0,0)",
+              "revealAt": 1
+            },
+            {
+              "id": "r2_fail",
+              "parentId": "r1",
+              "label": "Row 2: Q(1,0) [Attack]",
+              "revealAt": 2
+            },
+            {
+              "id": "r2_fail2",
+              "parentId": "r1",
+              "label": "Row 2: Q(1,1) [Attack]",
+              "revealAt": 3
+            },
+            {
+              "id": "r2_ok",
+              "parentId": "r1",
+              "label": "Row 2: Q(1,2) [Safe]",
+              "revealAt": 4
+            }
+          ],
+          "stepCaptions": [
+            "Place first queen top-left.",
+            "Row 2, Col 0: Attacked vertically. PRUNED.",
+            "Row 2, Col 1: Attacked diagonally. PRUNED.",
+            "Row 2, Col 2: Safe! Proceed to Row 3."
+          ]
+        }
+      ]
     },
     {
       "id": "why-pruning-important",

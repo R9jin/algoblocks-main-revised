@@ -151,7 +151,35 @@
             "curves": [
               "O(1)"
             ]
-          }
+          },
+          "traces": [
+            {
+              "kind": "array",
+              "title": "O(1) - Accessing the first item",
+              "description": "It takes exactly one step to retrieve the first element, no matter how long the array is.",
+              "steps": [
+                {
+                  "array": [
+                    42,
+                    7,
+                    19,
+                    88,
+                    3
+                  ],
+                  "roles": {
+                    "0": "found"
+                  },
+                  "pointers": [
+                    {
+                      "label": "arr[0]",
+                      "index": 0
+                    }
+                  ],
+                  "caption": "Accessing index 0 instantly yields 42. Work done: 1 step."
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "o-log-n",
@@ -165,7 +193,90 @@
             "curves": [
               "O(log n)"
             ]
-          }
+          },
+          "traces": [
+            {
+              "kind": "array",
+              "title": "O(log n) - Binary Search",
+              "description": "By splitting the search space in half each step, we can search 8 items in just 3 checks.",
+              "steps": [
+                {
+                  "array": [
+                    2,
+                    5,
+                    8,
+                    12,
+                    16,
+                    23,
+                    38,
+                    56
+                  ],
+                  "roles": {
+                    "3": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "mid",
+                      "index": 3
+                    }
+                  ],
+                  "caption": "Looking for 23. Check the middle (12). 23 is greater."
+                },
+                {
+                  "array": [
+                    2,
+                    5,
+                    8,
+                    12,
+                    16,
+                    23,
+                    38,
+                    56
+                  ],
+                  "roles": {
+                    "0": "eliminated",
+                    "1": "eliminated",
+                    "2": "eliminated",
+                    "3": "eliminated",
+                    "5": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "mid",
+                      "index": 5
+                    }
+                  ],
+                  "caption": "Rule out the left half. Check the middle of the right half (23)."
+                },
+                {
+                  "array": [
+                    2,
+                    5,
+                    8,
+                    12,
+                    16,
+                    23,
+                    38,
+                    56
+                  ],
+                  "roles": {
+                    "0": "eliminated",
+                    "1": "eliminated",
+                    "2": "eliminated",
+                    "3": "eliminated",
+                    "5": "found"
+                  },
+                  "pointers": [
+                    {
+                      "label": "match",
+                      "index": 5
+                    }
+                  ],
+                  "caption": "Found 23 in just 2 steps!"
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "o-n",
@@ -179,7 +290,111 @@
             "curves": [
               "O(n)"
             ]
-          }
+          },
+          "traces": [
+            {
+              "kind": "array",
+              "title": "O(n) - Linear Scan",
+              "description": "Checking every item one by one. If we have 5 items, it might take 5 steps.",
+              "steps": [
+                {
+                  "array": [
+                    14,
+                    22,
+                    9,
+                    31,
+                    8
+                  ],
+                  "roles": {
+                    "0": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 0
+                    }
+                  ],
+                  "caption": "Check index 0."
+                },
+                {
+                  "array": [
+                    14,
+                    22,
+                    9,
+                    31,
+                    8
+                  ],
+                  "roles": {
+                    "1": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 1
+                    }
+                  ],
+                  "caption": "Check index 1."
+                },
+                {
+                  "array": [
+                    14,
+                    22,
+                    9,
+                    31,
+                    8
+                  ],
+                  "roles": {
+                    "2": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 2
+                    }
+                  ],
+                  "caption": "Check index 2."
+                },
+                {
+                  "array": [
+                    14,
+                    22,
+                    9,
+                    31,
+                    8
+                  ],
+                  "roles": {
+                    "3": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 3
+                    }
+                  ],
+                  "caption": "Check index 3."
+                },
+                {
+                  "array": [
+                    14,
+                    22,
+                    9,
+                    31,
+                    8
+                  ],
+                  "roles": {
+                    "4": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 4
+                    }
+                  ],
+                  "caption": "Check index 4. The work scales exactly with the size."
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "o-n-log-n",
@@ -207,7 +422,154 @@
             "curves": [
               "O(n^2)"
             ]
-          }
+          },
+          "traces": [
+            {
+              "kind": "array",
+              "title": "O(n²) - Comparing all pairs",
+              "description": "For 4 items, we need many checks (nested loops) to compare everything.",
+              "steps": [
+                {
+                  "array": [
+                    4,
+                    1,
+                    3,
+                    2
+                  ],
+                  "roles": {
+                    "0": "compare",
+                    "1": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 0
+                    },
+                    {
+                      "label": "j",
+                      "index": 1
+                    }
+                  ],
+                  "caption": "i=0, j=1"
+                },
+                {
+                  "array": [
+                    4,
+                    1,
+                    3,
+                    2
+                  ],
+                  "roles": {
+                    "0": "compare",
+                    "2": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 0
+                    },
+                    {
+                      "label": "j",
+                      "index": 2
+                    }
+                  ],
+                  "caption": "i=0, j=2"
+                },
+                {
+                  "array": [
+                    4,
+                    1,
+                    3,
+                    2
+                  ],
+                  "roles": {
+                    "0": "compare",
+                    "3": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 0
+                    },
+                    {
+                      "label": "j",
+                      "index": 3
+                    }
+                  ],
+                  "caption": "i=0, j=3"
+                },
+                {
+                  "array": [
+                    4,
+                    1,
+                    3,
+                    2
+                  ],
+                  "roles": {
+                    "1": "compare",
+                    "2": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 1
+                    },
+                    {
+                      "label": "j",
+                      "index": 2
+                    }
+                  ],
+                  "caption": "i=1, j=2"
+                },
+                {
+                  "array": [
+                    4,
+                    1,
+                    3,
+                    2
+                  ],
+                  "roles": {
+                    "1": "compare",
+                    "3": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 1
+                    },
+                    {
+                      "label": "j",
+                      "index": 3
+                    }
+                  ],
+                  "caption": "i=1, j=3"
+                },
+                {
+                  "array": [
+                    4,
+                    1,
+                    3,
+                    2
+                  ],
+                  "roles": {
+                    "2": "compare",
+                    "3": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 2
+                    },
+                    {
+                      "label": "j",
+                      "index": 3
+                    }
+                  ],
+                  "caption": "i=2, j=3. Notice how the work explodes."
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "o-n-cubed",
@@ -235,7 +597,53 @@
             "curves": [
               "O(2^n)"
             ]
-          }
+          },
+          "traces": [
+            {
+              "kind": "recursionTree",
+              "title": "O(2^n) - Branching recursion",
+              "description": "Each step splits into two branches.",
+              "nodes": [
+                {
+                  "id": "n1",
+                  "parentId": null,
+                  "label": "Fib(3)",
+                  "revealAt": 1
+                },
+                {
+                  "id": "n2",
+                  "parentId": "n1",
+                  "label": "Fib(2)",
+                  "revealAt": 2
+                },
+                {
+                  "id": "n4",
+                  "parentId": "n2",
+                  "label": "Fib(1)",
+                  "revealAt": 3
+                },
+                {
+                  "id": "n5",
+                  "parentId": "n2",
+                  "label": "Fib(0)",
+                  "revealAt": 4
+                },
+                {
+                  "id": "n3",
+                  "parentId": "n1",
+                  "label": "Fib(1)",
+                  "revealAt": 5
+                }
+              ],
+              "stepCaptions": [
+                "Initial Call",
+                "Left branch starts",
+                "Base case reached",
+                "Another base case",
+                "Right branch starts"
+              ]
+            }
+          ]
         },
         {
           "id": "o-n-factorial",

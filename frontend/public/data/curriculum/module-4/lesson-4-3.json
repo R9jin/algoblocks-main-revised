@@ -80,7 +80,70 @@
       "id": "step-by-step-example",
       "type": "deep_dive",
       "title": "Step-by-Step Execution Example",
-      "content": "Activities: A1 (1,4), A2 (3,5), A3 (0,6), A4 (5,7), A5 (8,9).\n\n**Sorted by finish:** same order already. `last_finish = -1`, `selected = []`.\n\n* A1 (1,4): 1 ≥ -1? Yes → select. `last_finish = 4`.\n* A2 (3,5): 3 ≥ 4? No → skip.\n* A3 (0,6): 0 ≥ 4? No → skip.\n* A4 (5,7): 5 ≥ 4? Yes → select. `last_finish = 7`.\n* A5 (8,9): 8 ≥ 7? Yes → select. `last_finish = 9`.\n\n**Result: A1, A4, A5 -- 3 activities.** Picking by earliest *start* instead would have grabbed A3 first and ended with just 1."
+      "content": "Activities: A1 (1,4), A2 (3,5), A3 (0,6), A4 (5,7), A5 (8,9).\n\n**Sorted by finish:** same order already. `last_finish = -1`, `selected = []`.\n\n* A1 (1,4): 1 ≥ -1? Yes → select. `last_finish = 4`.\n* A2 (3,5): 3 ≥ 4? No → skip.\n* A3 (0,6): 0 ≥ 4? No → skip.\n* A4 (5,7): 5 ≥ 4? Yes → select. `last_finish = 7`.\n* A5 (8,9): 8 ≥ 7? Yes → select. `last_finish = 9`.\n\n**Result: A1, A4, A5 -- 3 activities.** Picking by earliest *start* instead would have grabbed A3 first and ended with just 1.",
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Activity Selection",
+          "description": "Sort by end time, pick earliest.",
+          "steps": [
+            {
+              "array": [
+                "A(1-3)",
+                "B(2-5)",
+                "C(4-6)"
+              ],
+              "roles": {
+                "0": "found"
+              },
+              "pointers": [
+                {
+                  "label": "Pick A",
+                  "index": 0
+                }
+              ],
+              "caption": "A finishes at 3. Pick it."
+            },
+            {
+              "array": [
+                "A(1-3)",
+                "B(2-5)",
+                "C(4-6)"
+              ],
+              "roles": {
+                "0": "found",
+                "1": "eliminated"
+              },
+              "pointers": [
+                {
+                  "label": "Conflict",
+                  "index": 1
+                }
+              ],
+              "caption": "B starts at 2, conflicts with A. Skip."
+            },
+            {
+              "array": [
+                "A(1-3)",
+                "B(2-5)",
+                "C(4-6)"
+              ],
+              "roles": {
+                "0": "found",
+                "1": "eliminated",
+                "2": "found"
+              },
+              "pointers": [
+                {
+                  "label": "Pick C",
+                  "index": 2
+                }
+              ],
+              "caption": "C starts at 4. Valid! Pick it."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "implementation",

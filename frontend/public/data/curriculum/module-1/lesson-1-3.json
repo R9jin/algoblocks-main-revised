@@ -283,6 +283,54 @@
           "language": "python",
           "code": "def countdown(n):\n    if n == 0:\n        return\n\n    print(n)\n    countdown(n - 1)\n\ncountdown(5)"
         }
+      ],
+      "traces": [
+        {
+          "kind": "callstack",
+          "title": "Recursion Depth = Space",
+          "description": "Each recursive call adds to memory.",
+          "steps": [
+            {
+              "stack": [
+                "count(3)"
+              ],
+              "cache": {},
+              "caption": "Depth 1"
+            },
+            {
+              "stack": [
+                "count(3)",
+                "count(2)"
+              ],
+              "cache": {},
+              "caption": "Depth 2"
+            },
+            {
+              "stack": [
+                "count(3)",
+                "count(2)",
+                "count(1)"
+              ],
+              "cache": {},
+              "caption": "Depth 3 (Max Space used: O(n))"
+            },
+            {
+              "stack": [
+                "count(3)",
+                "count(2)"
+              ],
+              "cache": {},
+              "caption": "Returning..."
+            },
+            {
+              "stack": [
+                "count(3)"
+              ],
+              "cache": {},
+              "caption": "Returning..."
+            }
+          ]
+        }
       ]
     },
     {

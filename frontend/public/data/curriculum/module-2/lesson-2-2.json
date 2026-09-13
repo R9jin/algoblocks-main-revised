@@ -64,7 +64,194 @@
       "id": "step-by-step",
       "type": "deep_dive",
       "title": "Searching Through an Array",
-      "content": "Searching for 11 in [3, 8, 5, 11, 2]: compare 3, 8, 5 -- no match. Compare 11 -- match! Return index 3, no need to check the rest.\n\nSearching for 10 (not present): every element gets checked, no match, return -1.\n\nWorst case is always the same shape: target at the end, or missing entirely -- every element gets examined."
+      "content": "Step through both cases below at your own pace -- a **hit**, where the scan can stop early, and a **miss**, where every element has to be checked. Worst case is always one of these two shapes: target at the end, or missing entirely.",
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Searching for 11 (found)",
+          "description": "The scan stops the moment a match is found -- everything after index 3 is never touched.",
+          "steps": [
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "0": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                }
+              ],
+              "caption": "Compare index 0 (3) with 11 -- no match, keep going."
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 1
+                }
+              ],
+              "caption": "Compare index 1 (8) with 11 -- no match, keep going."
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 2
+                }
+              ],
+              "caption": "Compare index 2 (5) with 11 -- no match, keep going."
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "3": "found"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 3
+                }
+              ],
+              "caption": "Compare index 3 (11) with 11 -- match! Return index 3 immediately."
+            }
+          ]
+        },
+        {
+          "kind": "array",
+          "title": "Searching for 10 (not present)",
+          "description": "No match exists, so the scan can't stop early -- every element is examined before giving up.",
+          "steps": [
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "0": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                }
+              ],
+              "caption": "Compare index 0 (3) with 10 -- no match."
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 1
+                }
+              ],
+              "caption": "Compare index 1 (8) with 10 -- no match."
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 2
+                }
+              ],
+              "caption": "Compare index 2 (5) with 10 -- no match."
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "3": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 3
+                }
+              ],
+              "caption": "Compare index 3 (11) with 10 -- no match."
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "4": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 4
+                }
+              ],
+              "caption": "Compare index 4 (2) with 10 -- no match. End of array reached, return -1."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "advanced-traversals",

@@ -70,7 +70,67 @@
       "id": "step-by-step-trace",
       "type": "deep_dive",
       "title": "Tracing the Split and Merge",
-      "content": "Tracing `[6, 2, 8, 1]`:\n\n**Left dive:**\n* Frame 1: `[6,2,8,1]` splits to `[6,2]`/`[8,1]`, calls left.\n* Frame 2: `[6,2]` splits to `[6]`/`[2]`, calls left.\n* Frame 3: `[6]` -- base case, returns `[6]`, pops.\n* Frame 2 resumes, calls right → `[2]` returns, pops.\n* Frame 2 merges `[6]`+`[2]` → `[2,6]`, pops.\n\n**Right dive:** Frame 1 resumes, calls right on `[8,1]` -- same process, returns `[1,8]`.\n\n**Final combine:** Frame 1 merges `[2,6]` + `[1,8]` → `[1,2,6,8]`. Stack empty."
+      "content": "Tracing `[6, 2, 8, 1]`:\n\n**Left dive:**\n* Frame 1: `[6,2,8,1]` splits to `[6,2]`/`[8,1]`, calls left.\n* Frame 2: `[6,2]` splits to `[6]`/`[2]`, calls left.\n* Frame 3: `[6]` -- base case, returns `[6]`, pops.\n* Frame 2 resumes, calls right → `[2]` returns, pops.\n* Frame 2 merges `[6]`+`[2]` → `[2,6]`, pops.\n\n**Right dive:** Frame 1 resumes, calls right on `[8,1]` -- same process, returns `[1,8]`.\n\n**Final combine:** Frame 1 merges `[2,6]` + `[1,8]` → `[1,2,6,8]`. Stack empty.",
+      "traces": [
+        {
+          "kind": "recursionTree",
+          "title": "Merge Sort Split Phase",
+          "description": "The array is repeatedly halved until single elements remain.",
+          "nodes": [
+            {
+              "id": "n1",
+              "parentId": null,
+              "label": "[38, 27, 43, 3]",
+              "revealAt": 1
+            },
+            {
+              "id": "n2",
+              "parentId": "n1",
+              "label": "[38, 27]",
+              "revealAt": 2
+            },
+            {
+              "id": "n4",
+              "parentId": "n2",
+              "label": "[38]",
+              "revealAt": 3
+            },
+            {
+              "id": "n5",
+              "parentId": "n2",
+              "label": "[27]",
+              "revealAt": 4
+            },
+            {
+              "id": "n3",
+              "parentId": "n1",
+              "label": "[43, 3]",
+              "revealAt": 5
+            },
+            {
+              "id": "n6",
+              "parentId": "n3",
+              "label": "[43]",
+              "revealAt": 6
+            },
+            {
+              "id": "n7",
+              "parentId": "n3",
+              "label": "[3]",
+              "revealAt": 7
+            }
+          ],
+          "stepCaptions": [
+            "Start with the full array [38, 27, 43, 3].",
+            "Split into left half [38, 27].",
+            "Split again. Left half is [38] (base case!).",
+            "Right half of that split is [27] (base case!). They are merged to [27, 38].",
+            "Now process the original right half [43, 3].",
+            "Split into left half [43] (base case!).",
+            "Right half is [3] (base case!). They merge into [3, 43]. Finally, [27, 38] and [3, 43] merge."
+          ]
+        }
+      ]
     },
     {
       "id": "the-merge-phase",

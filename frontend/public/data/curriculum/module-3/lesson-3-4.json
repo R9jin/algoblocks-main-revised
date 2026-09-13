@@ -70,7 +70,310 @@
       "id": "step-by-step-example",
       "type": "deep_dive",
       "title": "Step-by-Step Pointer Trace",
-      "content": "Tracing `[8, 3, 5, 9, 2, 6]`, `low=0`, `high=5`:\n\n* Pivot = `6` (last element). `i = -1`, `j` starts at 0.\n* j=0 (8): 8<6? No.\n* j=1 (3): 3<6? Yes → i=0, swap arr[0],arr[1] → `[3, 8, 5, 9, 2, 6]`.\n* j=2 (5): 5<6? Yes → i=1, swap arr[1],arr[2] → `[3, 5, 8, 9, 2, 6]`.\n* j=3 (9): 9<6? No.\n* j=4 (2): 2<6? Yes → i=2, swap arr[2],arr[4] → `[3, 5, 2, 9, 8, 6]`.\n* Final swap: pivot into `i+1` (index 3) → swap arr[3],arr[5] → **`[3, 5, 2, 6, 8, 9]`**.\n\nPivot `6` is locked in. Next: `quick_sort([3, 5, 2])` pushes onto the stack."
+      "content": "Tracing `[8, 3, 5, 9, 2, 6]`, `low=0`, `high=5`:\n\n* Pivot = `6` (last element). `i = -1`, `j` starts at 0.\n* j=0 (8): 8<6? No.\n* j=1 (3): 3<6? Yes → i=0, swap arr[0],arr[1] → `[3, 8, 5, 9, 2, 6]`.\n* j=2 (5): 5<6? Yes → i=1, swap arr[1],arr[2] → `[3, 5, 8, 9, 2, 6]`.\n* j=3 (9): 9<6? No.\n* j=4 (2): 2<6? Yes → i=2, swap arr[2],arr[4] → `[3, 5, 2, 9, 8, 6]`.\n* Final swap: pivot into `i+1` (index 3) → swap arr[3],arr[5] → **`[3, 5, 2, 6, 8, 9]`**.\n\nPivot `6` is locked in. Next: `quick_sort([3, 5, 2])` pushes onto the stack.",
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Partitioning [10, 80, 30, 90, 40, 50, 70]",
+          "description": "Using 70 as the pivot, we partition elements smaller than 70 to the left.",
+          "steps": [
+            {
+              "array": [
+                10,
+                80,
+                30,
+                90,
+                40,
+                50,
+                70
+              ],
+              "roles": {
+                "6": "sorted"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": -1
+                },
+                {
+                  "label": "j",
+                  "index": 0
+                },
+                {
+                  "label": "pivot",
+                  "index": 6
+                }
+              ],
+              "caption": "Pivot is 70. i starts at -1. j starts at 0."
+            },
+            {
+              "array": [
+                10,
+                80,
+                30,
+                90,
+                40,
+                50,
+                70
+              ],
+              "roles": {
+                "0": "compare",
+                "6": "sorted"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                },
+                {
+                  "label": "j",
+                  "index": 0
+                },
+                {
+                  "label": "pivot",
+                  "index": 6
+                }
+              ],
+              "caption": "j=0 (10) < 70. i increments to 0. Swap arr[0] and arr[0] (no change)."
+            },
+            {
+              "array": [
+                10,
+                80,
+                30,
+                90,
+                40,
+                50,
+                70
+              ],
+              "roles": {
+                "1": "compare",
+                "6": "sorted"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                },
+                {
+                  "label": "j",
+                  "index": 1
+                },
+                {
+                  "label": "pivot",
+                  "index": 6
+                }
+              ],
+              "caption": "j=1 (80) > 70. Do nothing, just move j."
+            },
+            {
+              "array": [
+                10,
+                80,
+                30,
+                90,
+                40,
+                50,
+                70
+              ],
+              "roles": {
+                "1": "swap",
+                "2": "compare",
+                "6": "sorted"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 1
+                },
+                {
+                  "label": "j",
+                  "index": 2
+                },
+                {
+                  "label": "pivot",
+                  "index": 6
+                }
+              ],
+              "caption": "j=2 (30) < 70. i increments to 1. Swap arr[1] (80) and arr[2] (30)."
+            },
+            {
+              "array": [
+                10,
+                30,
+                80,
+                90,
+                40,
+                50,
+                70
+              ],
+              "roles": {
+                "1": "swap",
+                "2": "swap",
+                "6": "sorted"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 1
+                },
+                {
+                  "label": "j",
+                  "index": 2
+                },
+                {
+                  "label": "pivot",
+                  "index": 6
+                }
+              ],
+              "caption": "Array after swap."
+            },
+            {
+              "array": [
+                10,
+                30,
+                80,
+                90,
+                40,
+                50,
+                70
+              ],
+              "roles": {
+                "3": "compare",
+                "6": "sorted"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 1
+                },
+                {
+                  "label": "j",
+                  "index": 3
+                },
+                {
+                  "label": "pivot",
+                  "index": 6
+                }
+              ],
+              "caption": "j=3 (90) > 70. Do nothing, move j."
+            },
+            {
+              "array": [
+                10,
+                30,
+                80,
+                90,
+                40,
+                50,
+                70
+              ],
+              "roles": {
+                "2": "swap",
+                "4": "compare",
+                "6": "sorted"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 2
+                },
+                {
+                  "label": "j",
+                  "index": 4
+                },
+                {
+                  "label": "pivot",
+                  "index": 6
+                }
+              ],
+              "caption": "j=4 (40) < 70. i increments to 2. Swap arr[2] (80) and arr[4] (40)."
+            },
+            {
+              "array": [
+                10,
+                30,
+                40,
+                90,
+                80,
+                50,
+                70
+              ],
+              "roles": {
+                "3": "swap",
+                "5": "compare",
+                "6": "sorted"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 3
+                },
+                {
+                  "label": "j",
+                  "index": 5
+                },
+                {
+                  "label": "pivot",
+                  "index": 6
+                }
+              ],
+              "caption": "j=5 (50) < 70. i increments to 3. Swap arr[3] (90) and arr[5] (50)."
+            },
+            {
+              "array": [
+                10,
+                30,
+                40,
+                50,
+                80,
+                90,
+                70
+              ],
+              "roles": {
+                "4": "swap",
+                "6": "swap"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 3
+                },
+                {
+                  "label": "j",
+                  "index": 6
+                },
+                {
+                  "label": "pivot",
+                  "index": 4
+                }
+              ],
+              "caption": "Loop ends. Swap pivot (70) with arr[i+1] (80). 70 is now in its final sorted position!"
+            },
+            {
+              "array": [
+                10,
+                30,
+                40,
+                50,
+                70,
+                90,
+                80
+              ],
+              "roles": {
+                "4": "sorted"
+              },
+              "pointers": [
+                {
+                  "label": "pivot_final",
+                  "index": 4
+                }
+              ],
+              "caption": "Partition complete. All elements left of 70 are smaller; all to the right are larger."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "choosing-a-pivot",

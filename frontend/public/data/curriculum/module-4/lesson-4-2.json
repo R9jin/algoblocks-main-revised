@@ -74,7 +74,52 @@
       "id": "step-by-step-example",
       "type": "deep_dive",
       "title": "Step-by-Step Execution Visualization",
-      "content": "Making 36 cents with `[25, 10, 5, 1]`: take a quarter (11 left) → take a dime (1 left) → take a penny (0 left). **Result: `[25, 10, 1]`, 3 coins.**\n\n**Non-canonical** `[4, 3, 1]`, target 6: greedy takes 4 (2 left), then two 1s → `[4,1,1]`, 3 coins. **Optimal is `[3,3]`, 2 coins.** Greedy's early 4 blocked the better pairing -- proof that local choices can miss the global optimum, and that greedy only works reliably on canonical systems."
+      "content": "Making 36 cents with `[25, 10, 5, 1]`: take a quarter (11 left) → take a dime (1 left) → take a penny (0 left). **Result: `[25, 10, 1]`, 3 coins.**\n\n**Non-canonical** `[4, 3, 1]`, target 6: greedy takes 4 (2 left), then two 1s → `[4,1,1]`, 3 coins. **Optimal is `[3,3]`, 2 coins.** Greedy's early 4 blocked the better pairing -- proof that local choices can miss the global optimum, and that greedy only works reliably on canonical systems.",
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Coin Selection",
+          "description": "Greedily taking largest coin.",
+          "steps": [
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "0": "found"
+              },
+              "pointers": [
+                {
+                  "label": "Take 25",
+                  "index": 0
+                }
+              ],
+              "caption": "Target 30. Take 25."
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "2": "found"
+              },
+              "pointers": [
+                {
+                  "label": "Take 5",
+                  "index": 2
+                }
+              ],
+              "caption": "Remaining 5. Take 5."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "implementation",

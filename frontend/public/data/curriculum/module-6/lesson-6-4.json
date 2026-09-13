@@ -93,7 +93,176 @@
       "id": "recursive-search-tree",
       "type": "deep_dive",
       "title": "Recursive Search Tree",
-      "content": "Maze exploration forms a recursive branching tree. The root of the tree is the starting position. Each node in the tree represents a cell that the algorithm has visited. Each branch represents moving to a neighboring cell.\n\nFrom the start cell (0,0), there are up to 4 branches for moving up, down, left, or right. However, up and left are usually invalid because they go outside the maze. So only down and right might be valid. Each of those branches leads to new cells, which have their own branches.\n\nThe tree continues to grow until it reaches the destination or hits a dead end. When a dead end is reached, that branch stops and the algorithm backtracks to try other branches.\n\nInvalid branches are pruned immediately. For example, if moving right leads to a wall, that branch is not explored at all. This pruning dramatically reduces the size of the search tree. Without pruning, the number of nodes would be enormous."
+      "content": "Maze exploration forms a recursive branching tree. The root of the tree is the starting position. Each node in the tree represents a cell that the algorithm has visited. Each branch represents moving to a neighboring cell.\n\nFrom the start cell (0,0), there are up to 4 branches for moving up, down, left, or right. However, up and left are usually invalid because they go outside the maze. So only down and right might be valid. Each of those branches leads to new cells, which have their own branches.\n\nThe tree continues to grow until it reaches the destination or hits a dead end. When a dead end is reached, that branch stops and the algorithm backtracks to try other branches.\n\nInvalid branches are pruned immediately. For example, if moving right leads to a wall, that branch is not explored at all. This pruning dramatically reduces the size of the search tree. Without pruning, the number of nodes would be enormous.",
+      "traces": [
+        {
+          "kind": "matrix",
+          "title": "Backtracking Maze Search",
+          "description": "DFS pathfinding through a grid. (X is wall, _ is empty, E is end)",
+          "steps": [
+            {
+              "matrix": [
+                [
+                  "S",
+                  "_",
+                  "X"
+                ],
+                [
+                  "X",
+                  "_",
+                  "_"
+                ],
+                [
+                  "X",
+                  "X",
+                  "E"
+                ]
+              ],
+              "roles": {
+                "0,0": "candidate"
+              },
+              "pointers": [
+                {
+                  "label": "Start",
+                  "row": 0,
+                  "col": 0
+                }
+              ],
+              "caption": "Start at top-left. Only valid move is right."
+            },
+            {
+              "matrix": [
+                [
+                  "S",
+                  "_",
+                  "X"
+                ],
+                [
+                  "X",
+                  "_",
+                  "_"
+                ],
+                [
+                  "X",
+                  "X",
+                  "E"
+                ]
+              ],
+              "roles": {
+                "0,0": "sorted",
+                "0,1": "candidate"
+              },
+              "pointers": [
+                {
+                  "label": "Move R",
+                  "row": 0,
+                  "col": 1
+                }
+              ],
+              "caption": "Moved right to (0,1). Only valid move is down."
+            },
+            {
+              "matrix": [
+                [
+                  "S",
+                  "_",
+                  "X"
+                ],
+                [
+                  "X",
+                  "_",
+                  "_"
+                ],
+                [
+                  "X",
+                  "X",
+                  "E"
+                ]
+              ],
+              "roles": {
+                "0,0": "sorted",
+                "0,1": "sorted",
+                "1,1": "candidate"
+              },
+              "pointers": [
+                {
+                  "label": "Move D",
+                  "row": 1,
+                  "col": 1
+                }
+              ],
+              "caption": "Moved down to (1,1). Can go right or down."
+            },
+            {
+              "matrix": [
+                [
+                  "S",
+                  "_",
+                  "X"
+                ],
+                [
+                  "X",
+                  "_",
+                  "_"
+                ],
+                [
+                  "X",
+                  "X",
+                  "E"
+                ]
+              ],
+              "roles": {
+                "0,0": "sorted",
+                "0,1": "sorted",
+                "1,1": "sorted",
+                "1,2": "candidate"
+              },
+              "pointers": [
+                {
+                  "label": "Move R",
+                  "row": 1,
+                  "col": 2
+                }
+              ],
+              "caption": "Moved right to (1,2). Try to go down."
+            },
+            {
+              "matrix": [
+                [
+                  "S",
+                  "_",
+                  "X"
+                ],
+                [
+                  "X",
+                  "_",
+                  "_"
+                ],
+                [
+                  "X",
+                  "X",
+                  "E"
+                ]
+              ],
+              "roles": {
+                "0,0": "sorted",
+                "0,1": "sorted",
+                "1,1": "sorted",
+                "1,2": "sorted",
+                "2,2": "found"
+              },
+              "pointers": [
+                {
+                  "label": "Match!",
+                  "row": 2,
+                  "col": 2
+                }
+              ],
+              "caption": "Moved down to (2,2). Reached the end!"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "path-marking",

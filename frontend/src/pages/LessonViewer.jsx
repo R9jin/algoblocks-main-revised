@@ -18,6 +18,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import BigOChart from "../components/BigOChart";
 import CodeSnippet from "../components/CodeSnippet";
 import LessonBlockPlayground from "../components/LessonBlockPlayground";
+import LessonTracePanel from "../components/tracePlayer/LessonTracePanel";
 import TourHelpButton from "../components/TourHelpButton";
 import UnlockIcon from "../components/UnlockIcon";
 import { BLOCK_EXAMPLES } from "../data/blockExamples";
@@ -266,6 +267,22 @@ function renderImages(images) {
           <img src={image.src} alt={image.alt || ""} loading="lazy" />
           {image.caption && <figcaption>{formatText(image.caption)}</figcaption>}
         </figure>
+      ))}
+    </div>
+  );
+}
+
+// Renders one or more interactive step-through traces attached to a
+// section or subsection via a `traces` array (see data/curriculum/*.json
+// and components/tracePlayer/). This is what replaces a numbered-list
+// walkthrough ("1. Compare 5, 2 -> swap...") with a scrubbable,
+// playable visualization of the same steps.
+function renderTraces(traces) {
+  if (!traces?.length) return null;
+  return (
+    <div className="lesson-trace-panels">
+      {traces.map((trace, index) => (
+        <LessonTracePanel key={trace.id || index} trace={trace} />
       ))}
     </div>
   );
@@ -1009,6 +1026,7 @@ export default function LessonViewer() {
                     {renderParagraphs(section.content)}
                     {renderBullets(section.bullets)}
                     {renderChart(section.chart)}
+                    {renderTraces(section.traces)}
                     {renderImages(section.images)}
                     {renderCodeSnippets(section.codeSnippets)}
                     {renderBlockPlaygrounds(lessonId, section.id, exampleWorker, openPlaygroundId, setOpenPlaygroundId)}
@@ -1018,6 +1036,7 @@ export default function LessonViewer() {
                         {renderParagraphs(subsection.content, "lesson-subsection-content")}
                         {renderBullets(subsection.bullets)}
                         {renderChart(subsection.chart)}
+                        {renderTraces(subsection.traces)}
                         {renderImages(subsection.images)}
                         {renderCodeSnippets(subsection.codeSnippets)}
                         {renderBlockPlaygrounds(lessonId, subsection.id, exampleWorker, openPlaygroundId, setOpenPlaygroundId)}

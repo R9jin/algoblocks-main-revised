@@ -109,13 +109,144 @@
           "O(n^2)",
           "O(2^n)"
         ]
-      }
+      },
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Exhaustive Pair Checking",
+          "description": "Finding if any two numbers sum to 13 in [2, 4, 7, 11]. Every pair is checked.",
+          "steps": [
+            {
+              "array": [
+                2,
+                4,
+                7,
+                11
+              ],
+              "roles": {
+                "0": "compare",
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                },
+                {
+                  "label": "j",
+                  "index": 1
+                }
+              ],
+              "caption": "2 + 4 = 6. Not 13."
+            },
+            {
+              "array": [
+                2,
+                4,
+                7,
+                11
+              ],
+              "roles": {
+                "0": "compare",
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                },
+                {
+                  "label": "j",
+                  "index": 2
+                }
+              ],
+              "caption": "2 + 7 = 9. Not 13."
+            },
+            {
+              "array": [
+                2,
+                4,
+                7,
+                11
+              ],
+              "roles": {
+                "0": "compare",
+                "3": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                },
+                {
+                  "label": "j",
+                  "index": 3
+                }
+              ],
+              "caption": "2 + 11 = 13. Match found!"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "backtracking-smart-brute-force",
       "type": "deep_dive",
       "title": "Backtracking: Smart Brute Force",
-      "content": "Generating every full candidate up front (like all N-Queens boards) can blow up memory fast. **Backtracking** fixes this: build a candidate incrementally, and the moment a partial choice fails, abandon that branch immediately instead of finishing it.\n\nThat \"choose, explore, prune, unchoose\" loop skips huge chunks of the search space before ever computing them -- exhaustive correctness, without the memory blowup."
+      "content": "Generating every full candidate up front (like all N-Queens boards) can blow up memory fast. **Backtracking** fixes this: build a candidate incrementally, and the moment a partial choice fails, abandon that branch immediately instead of finishing it.\n\nThat \"choose, explore, prune, unchoose\" loop skips huge chunks of the search space before ever computing them -- exhaustive correctness, without the memory blowup.",
+      "traces": [
+        {
+          "kind": "recursionTree",
+          "title": "Backtracking Pruning",
+          "description": "Instead of building every complete combination, backtracking abandons a branch as soon as it becomes invalid.",
+          "nodes": [
+            {
+              "id": "root",
+              "parentId": null,
+              "label": "Start",
+              "revealAt": 1
+            },
+            {
+              "id": "a",
+              "parentId": "root",
+              "label": "Try Path A",
+              "revealAt": 2
+            },
+            {
+              "id": "a1",
+              "parentId": "a",
+              "label": "A-1",
+              "revealAt": 3
+            },
+            {
+              "id": "a2",
+              "parentId": "a",
+              "label": "A-2",
+              "revealAt": 4
+            },
+            {
+              "id": "b",
+              "parentId": "root",
+              "label": "Try Path B (Invalid)",
+              "revealAt": 5
+            },
+            {
+              "id": "c",
+              "parentId": "root",
+              "label": "Try Path C",
+              "revealAt": 6
+            }
+          ],
+          "stepCaptions": [
+            "Begin search.",
+            "Explore Path A.",
+            "Explore A-1 (complete).",
+            "Explore A-2 (complete).",
+            "Explore Path B. It violates a constraint immediately! PRUNED. We do not explore B-1, B-2, etc.",
+            "Skip straight to Path C."
+          ]
+        }
+      ]
     },
     {
       "id": "complexity-analysis",

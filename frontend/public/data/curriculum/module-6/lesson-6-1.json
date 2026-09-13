@@ -105,7 +105,53 @@
       "id": "recursive-tree",
       "type": "deep_dive",
       "title": "Recursive Exploration Tree",
-      "content": "Backtracking problems naturally form recursive branching trees. The root of the tree represents the initial state with no decisions made. Each node represents a partial solution. Each edge represents a choice made.\n\nFor example, generating all subsets of a set with 3 elements creates a tree:\n1. **Level 0 (Root):** Start with an empty set.\n2. **Level 1:** You decide to include or exclude element 1, creating two branches.\n3. **Level 2:** You decide on element 2, creating four branches.\n4. **Level 3:** You decide on element 3, creating eight leaf nodes.\n\nEach branch represents another possible exploration path. Invalid branches are pruned immediately while valid branches continue recursively. The tree is explored in depth-first order. The algorithm goes all the way down one branch, then backtracks and tries another branch.\n\nThis recursive branching structure is common to all backtracking problems. The total number of nodes is exponential in the number of decisions, but pruning can cut away large parts of the tree, making the search feasible."
+      "content": "Backtracking problems naturally form recursive branching trees. The root of the tree represents the initial state with no decisions made. Each node represents a partial solution. Each edge represents a choice made.\n\nFor example, generating all subsets of a set with 3 elements creates a tree:\n1. **Level 0 (Root):** Start with an empty set.\n2. **Level 1:** You decide to include or exclude element 1, creating two branches.\n3. **Level 2:** You decide on element 2, creating four branches.\n4. **Level 3:** You decide on element 3, creating eight leaf nodes.\n\nEach branch represents another possible exploration path. Invalid branches are pruned immediately while valid branches continue recursively. The tree is explored in depth-first order. The algorithm goes all the way down one branch, then backtracks and tries another branch.\n\nThis recursive branching structure is common to all backtracking problems. The total number of nodes is exponential in the number of decisions, but pruning can cut away large parts of the tree, making the search feasible.",
+      "traces": [
+        {
+          "kind": "recursionTree",
+          "title": "Backtracking Search",
+          "description": "Explore, hit wall, backtrack.",
+          "nodes": [
+            {
+              "id": "root",
+              "parentId": null,
+              "label": "Start",
+              "revealAt": 1
+            },
+            {
+              "id": "left",
+              "parentId": "root",
+              "label": "Go Left",
+              "revealAt": 2
+            },
+            {
+              "id": "dead",
+              "parentId": "left",
+              "label": "Dead End",
+              "revealAt": 3
+            },
+            {
+              "id": "right",
+              "parentId": "root",
+              "label": "Go Right",
+              "revealAt": 4
+            },
+            {
+              "id": "win",
+              "parentId": "right",
+              "label": "Target Found",
+              "revealAt": 5
+            }
+          ],
+          "stepCaptions": [
+            "Start search",
+            "Try left path",
+            "Hit a dead end. Undo and return to Start.",
+            "Try right path",
+            "Target reached!"
+          ]
+        }
+      ]
     },
     {
       "id": "general-pseudocode",

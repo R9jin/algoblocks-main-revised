@@ -168,6 +168,116 @@
             "**Off-By-One Errors:** running one iteration too many or too few, usually from a small mistake at a boundary -- like looping through indices 0 to 5 when the last valid index is actually 4."
           ]
         }
+      ],
+      "traces": [
+        {
+          "kind": "code",
+          "title": "Loop Execution",
+          "description": "Repeating actions.",
+          "codeLines": [
+            "count = 3",
+            "while count > 0:",
+            "  PRINT Hello",
+            "  count = count - 1",
+            "END"
+          ],
+          "steps": [
+            {
+              "activeLine": 0,
+              "variables": {
+                "count": 3
+              },
+              "caption": "Initialize loop counter to 3."
+            },
+            {
+              "activeLine": 1,
+              "variables": {
+                "count": 3
+              },
+              "caption": "Check condition: 3 > 0? Yes. Enter loop."
+            },
+            {
+              "activeLine": 2,
+              "variables": {
+                "count": 3,
+                "output": "Hello"
+              },
+              "caption": "Execute loop body."
+            },
+            {
+              "activeLine": 3,
+              "variables": {
+                "count": 2,
+                "output": "Hello"
+              },
+              "caption": "Decrement counter."
+            },
+            {
+              "activeLine": 1,
+              "variables": {
+                "count": 2,
+                "output": "Hello"
+              },
+              "caption": "Check condition: 2 > 0? Yes."
+            },
+            {
+              "activeLine": 2,
+              "variables": {
+                "count": 2,
+                "output": "Hello, Hello"
+              },
+              "caption": "Execute loop body again."
+            },
+            {
+              "activeLine": 3,
+              "variables": {
+                "count": 1,
+                "output": "Hello, Hello"
+              },
+              "caption": "Decrement counter."
+            },
+            {
+              "activeLine": 1,
+              "variables": {
+                "count": 1,
+                "output": "Hello, Hello"
+              },
+              "caption": "Check condition: 1 > 0? Yes."
+            },
+            {
+              "activeLine": 2,
+              "variables": {
+                "count": 1,
+                "output": "Hello, Hello, Hello"
+              },
+              "caption": "Execute loop body last time."
+            },
+            {
+              "activeLine": 3,
+              "variables": {
+                "count": 0,
+                "output": "Hello, Hello, Hello"
+              },
+              "caption": "Decrement counter to 0."
+            },
+            {
+              "activeLine": 1,
+              "variables": {
+                "count": 0,
+                "output": "Hello, Hello, Hello"
+              },
+              "caption": "Check condition: 0 > 0? No! Exit loop."
+            },
+            {
+              "activeLine": 4,
+              "variables": {
+                "count": 0,
+                "output": "Hello, Hello, Hello"
+              },
+              "caption": "Loop finishes."
+            }
+          ]
+        }
       ]
     },
     {

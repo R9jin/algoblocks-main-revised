@@ -79,7 +79,158 @@
       "id": "coin-example",
       "type": "deep_dive",
       "title": "Coin Change Example",
-      "content": "The classic example of greedy succeeding and failing on the same problem shape.\n\n**Canonical system** `[10, 5, 1]`, target 18: take 10 (8 left), take 5 (3 left), take 1 three times → `[10,5,1,1,1]`, 5 coins -- optimal.\n\n**Non-canonical** `[1, 3, 4]`, target 6: greedy takes 4 first (2 left), then two 1s → 3 coins. But `3 + 3` = 2 coins -- better. Greedy's early choice of 4 blocked it.\n\nGreedy is safe for canonical systems (US and Euro coins qualify). For arbitrary denominations, use Dynamic Programming instead."
+      "content": "The classic example of greedy succeeding and failing on the same problem shape.\n\n**Canonical system** `[10, 5, 1]`, target 18: take 10 (8 left), take 5 (3 left), take 1 three times → `[10,5,1,1,1]`, 5 coins -- optimal.\n\n**Non-canonical** `[1, 3, 4]`, target 6: greedy takes 4 first (2 left), then two 1s → 3 coins. But `3 + 3` = 2 coins -- better. Greedy's early choice of 4 blocked it.\n\nGreedy is safe for canonical systems (US and Euro coins qualify). For arbitrary denominations, use Dynamic Programming instead.",
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Greedy Coin Change (Amount = 41)",
+          "description": "We want to make 41 using [25, 10, 5, 1]. A greedy approach takes the largest possible coin each time.",
+          "steps": [
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "0": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "consider",
+                  "index": 0
+                }
+              ],
+              "caption": "Amount = 41. Largest coin is 25. 25 <= 41, so we take it."
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "0": "found"
+              },
+              "pointers": [
+                {
+                  "label": "took 1x",
+                  "index": 0
+                }
+              ],
+              "caption": "Amount is now 16 (41 - 25 = 16). Can we take another 25? No (25 > 16)."
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "consider",
+                  "index": 1
+                }
+              ],
+              "caption": "Move to the next largest coin, 10. 10 <= 16, so we take it."
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "1": "found"
+              },
+              "pointers": [
+                {
+                  "label": "took 1x",
+                  "index": 1
+                }
+              ],
+              "caption": "Amount is now 6 (16 - 10 = 6). Can we take another 10? No."
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "consider",
+                  "index": 2
+                }
+              ],
+              "caption": "Move to the next largest coin, 5. 5 <= 6, so we take it."
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "2": "found"
+              },
+              "pointers": [
+                {
+                  "label": "took 1x",
+                  "index": 2
+                }
+              ],
+              "caption": "Amount is now 1 (6 - 5 = 1). Cannot take another 5."
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "3": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "consider",
+                  "index": 3
+                }
+              ],
+              "caption": "Move to the next largest coin, 1. 1 <= 1, so we take it."
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "0": "found",
+                "1": "found",
+                "2": "found",
+                "3": "found"
+              },
+              "pointers": [],
+              "caption": "Amount is 0. Total coins used: 1x25, 1x10, 1x5, 1x1 = 4 coins."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "why-greedy-fast",

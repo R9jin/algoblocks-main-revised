@@ -161,6 +161,49 @@
           "title": "Visualizing Flow",
           "content": "One useful way to think about it: the vertical stack of blocks *is* the execution order, drawn out in space. Loops and conditionals will soon wrap groups of blocks in containers that can repeat or skip, but whatever's inside those containers still runs top to bottom, exactly like this."
         }
+      ],
+      "traces": [
+        {
+          "kind": "code",
+          "title": "Sequential Execution",
+          "description": "Code runs from top to bottom, one step at a time.",
+          "codeLines": [
+            "START",
+            "x = 5",
+            "PRINT x",
+            "END"
+          ],
+          "steps": [
+            {
+              "activeLine": 0,
+              "variables": {},
+              "caption": "Starting the program."
+            },
+            {
+              "activeLine": 1,
+              "variables": {
+                "x": 5
+              },
+              "caption": "Creating a variable x and setting it to 5."
+            },
+            {
+              "activeLine": 2,
+              "variables": {
+                "x": 5,
+                "output": "5"
+              },
+              "caption": "Outputting the value to the console."
+            },
+            {
+              "activeLine": 3,
+              "variables": {
+                "x": 5,
+                "output": "5"
+              },
+              "caption": "Program finishes."
+            }
+          ]
+        }
       ]
     },
     {

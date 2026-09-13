@@ -81,6 +81,54 @@
           "title": "Visualizing Quadratic Growth",
           "content": "Picture a group chat where every person messages every other person exactly once: 5 people means 5 x 4 = 20 messages; add a 6th person and it jumps to 30. That's the shape of quadratic growth -- small additions to the input cause disproportionately large jumps in work. Build a nested loop yourself in the workspace (**Task 2's** \"Loops Inside Loops\" activity) and watch the Complexity Graph draw that exact same compounding curve."
         }
+      ],
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Fast vs Slow",
+          "description": "O(1) vs O(n) visually.",
+          "steps": [
+            {
+              "array": [
+                10,
+                20,
+                30,
+                40
+              ],
+              "roles": {
+                "0": "found"
+              },
+              "pointers": [
+                {
+                  "label": "O(1)",
+                  "index": 0
+                }
+              ],
+              "caption": "O(1) accesses immediately."
+            },
+            {
+              "array": [
+                10,
+                20,
+                30,
+                40
+              ],
+              "roles": {
+                "0": "compare",
+                "1": "compare",
+                "2": "compare",
+                "3": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "O(n)",
+                  "index": 3
+                }
+              ],
+              "caption": "O(n) scans all."
+            }
+          ]
+        }
       ]
     },
     {

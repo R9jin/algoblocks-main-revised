@@ -82,7 +82,56 @@
       "id": "visual-call-stack",
       "type": "deep_dive",
       "title": "Call Stack Memory Allocation: Push and Pop",
-      "content": "Recursion physically uses RAM through the **Call Stack** -- a Last-In-First-Out structure tracking every active function call.\n\nEach recursive call suspends its parent and pushes a new **Stack Frame** (local variables, arguments, return address) on top. When a call hits its base case, its frame **pops** off, and the result flows back down to wake up the frame below it.\n\nSkip the base case, and frames pile up forever -- eventually exhausting memory and crashing with a **Stack Overflow Error**."
+      "content": "Recursion physically uses RAM through the **Call Stack** -- a Last-In-First-Out structure tracking every active function call.\n\nEach recursive call suspends its parent and pushes a new **Stack Frame** (local variables, arguments, return address) on top. When a call hits its base case, its frame **pops** off, and the result flows back down to wake up the frame below it.\n\nSkip the base case, and frames pile up forever -- eventually exhausting memory and crashing with a **Stack Overflow Error**.",
+      "traces": [
+        {
+          "kind": "callstack",
+          "title": "Divide and Conquer Call Stack",
+          "description": "Splitting problems pushes them to the stack.",
+          "steps": [
+            {
+              "stack": [
+                "solve(0, 4)"
+              ],
+              "cache": {},
+              "caption": "Initial problem."
+            },
+            {
+              "stack": [
+                "solve(0, 4)",
+                "solve(0, 2)"
+              ],
+              "cache": {},
+              "caption": "Solve left half."
+            },
+            {
+              "stack": [
+                "solve(0, 4)",
+                "solve(0, 2)",
+                "solve(0, 1)"
+              ],
+              "cache": {},
+              "caption": "Solve left half of left half."
+            },
+            {
+              "stack": [
+                "solve(0, 4)",
+                "solve(0, 2)"
+              ],
+              "cache": {},
+              "caption": "Base case resolved."
+            },
+            {
+              "stack": [
+                "solve(0, 4)",
+                "solve(2, 4)"
+              ],
+              "cache": {},
+              "caption": "Solve right half."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "stack-trace-example",
