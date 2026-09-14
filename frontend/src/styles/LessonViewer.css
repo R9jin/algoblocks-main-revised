@@ -295,10 +295,19 @@
 }
 
 .lesson-content-wrapper {
-  padding: 40px;
-  max-width: 1000px;
+  padding: 40px 56px;
+  max-width: 1400px;
   width: 100%;
   margin: 0 auto;
+}
+
+/* On very wide/ultrawide desktop screens, let the lesson breathe a bit more
+   instead of leaving a fixed-width column stranded in the middle. */
+@media (min-width: 1600px) {
+  .lesson-content-wrapper {
+    max-width: 1600px;
+    padding: 48px 72px;
+  }
 }
 
 .lesson-header {

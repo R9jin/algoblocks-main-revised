@@ -163,7 +163,19 @@
                   "col": 1
                 }
               ],
-              "caption": "Comparing A and A. Match! Add 1 to diagonal (0,0) -> 1."
+              "caption": "Comparing A and A. Match! Add 1 to diagonal (0,0) -> 1.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 3,
+                "bigO": "O(n × m)",
+                "formula": "1 of 3 cells filled so far",
+                "note": "Every cell in the n×m matrix is computed exactly once, using only cells already filled.",
+                "line": 6,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 6
             },
             {
               "matrix": [
@@ -203,7 +215,19 @@
                   "col": 2
                 }
               ],
-              "caption": "Comparing A and D. Mismatch. Max of top(0,2) and left(1,1) -> 1."
+              "caption": "Comparing A and D. Mismatch. Max of top(0,2) and left(1,1) -> 1.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 3,
+                "bigO": "O(n × m)",
+                "formula": "2 of 3 cells filled so far",
+                "note": "Every cell in the n×m matrix is computed exactly once, using only cells already filled.",
+                "line": 8,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 8
             },
             {
               "matrix": [
@@ -242,8 +266,32 @@
                   "col": 3
                 }
               ],
-              "caption": "Fast forward... Comparing C and C. Match! Diagonal (2,2) + 1 = 1 + 1 -> 2. Max length is 2!"
+              "caption": "Fast forward... Comparing C and C. Match! Diagonal (2,2) + 1 = 1 + 1 -> 2. Max length is 2!",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 3,
+                "bigO": "O(n × m)",
+                "formula": "3 of 3 cells filled so far",
+                "note": "Every cell in the n×m matrix is computed exactly once, using only cells already filled.",
+                "line": 6,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 6
             }
+          ],
+          "codeLines": [
+            "def lcs_length(a, b):",
+            "    n, m = len(a), len(b)",
+            "    dp = [[0] * (m + 1) for _ in range(n + 1)]",
+            "    for i in range(1, n + 1):",
+            "        for j in range(1, m + 1):",
+            "            if a[i - 1] == b[j - 1]:",
+            "                dp[i][j] = dp[i - 1][j - 1] + 1",
+            "            else:",
+            "                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])",
+            "    return dp[n][m]"
           ]
         }
       ]

@@ -104,7 +104,19 @@
                   "index": 0
                 }
               ],
-              "caption": "O(1) accesses immediately."
+              "caption": "O(1) accesses immediately.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 2,
+                "bigO": "O(1) vs O(n)",
+                "formula": "1 of 2 operations performed so far",
+                "note": "Same task, two approaches -- watch how far apart their operation counts drift as the step count rises.",
+                "line": 1,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 1
             },
             {
               "array": [
@@ -125,8 +137,28 @@
                   "index": 3
                 }
               ],
-              "caption": "O(n) scans all."
+              "caption": "O(n) scans all.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 2,
+                "bigO": "O(1) vs O(n)",
+                "formula": "2 of 2 operations performed so far",
+                "note": "Same task, two approaches -- watch how far apart their operation counts drift as the step count rises.",
+                "line": 4,
+                "lineOps": 4,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             }
+          ],
+          "codeLines": [
+            "def get_first(arr):",
+            "    return arr[0]",
+            "",
+            "def scan_all(arr):",
+            "    for x in arr:",
+            "        check(x)"
           ]
         }
       ]

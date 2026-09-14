@@ -5,6 +5,10 @@
 // describe *what* happens at each step (an array state, a call stack, a
 // recursion tree) and this picks the matching interactive visualization
 // instead of the section falling back to a wall of numbered sentences.
+//
+// `trace.codeLines`, when present, is forwarded to StepTracePlayer so the
+// pseudocode pane + complexity ledger appear next to the visualization for
+// *any* trace kind, not just "code" ones.
 import ArrayTraceFrame from "./ArrayTraceFrame";
 import CallStackTraceFrame from "./CallStackTraceFrame";
 import RecursionTreeTraceFrame from "./RecursionTreeTraceFrame";
@@ -35,10 +39,13 @@ export default function LessonTracePanel({ trace }) {
       <PanelChrome trace={trace}>
         <StepTracePlayer
           steps={trace.steps}
+          codeLines={trace.codeLines}
           caption={(step) => step.caption}
-          renderFrame={(step) => (
-            <CodeTraceFrame codeLines={trace.codeLines || step.codeLines} activeLine={step.activeLine} variables={step.variables} />
-          )}
+          renderFrame={(step) =>
+            Object.keys(step.variables || {}).length ? (
+              <CodeTraceFrame variables={step.variables} />
+            ) : null
+          }
         />
       </PanelChrome>
     );
@@ -49,6 +56,7 @@ export default function LessonTracePanel({ trace }) {
       <PanelChrome trace={trace}>
         <StepTracePlayer
           steps={trace.steps}
+          codeLines={trace.codeLines}
           caption={(step) => step.caption}
           renderFrame={(step) => (
             <MatrixTraceFrame matrix={step.matrix} roles={step.roles} pointers={step.pointers} />
@@ -63,6 +71,7 @@ export default function LessonTracePanel({ trace }) {
       <PanelChrome trace={trace}>
         <StepTracePlayer
           steps={trace.steps}
+          codeLines={trace.codeLines}
           caption={(step) => step.caption}
           renderFrame={(step) => (
             <ArrayTraceFrame array={step.array} roles={step.roles} pointers={step.pointers} />
@@ -77,6 +86,7 @@ export default function LessonTracePanel({ trace }) {
       <PanelChrome trace={trace}>
         <StepTracePlayer
           steps={trace.steps}
+          codeLines={trace.codeLines}
           caption={(step) => step.caption}
           renderFrame={(step) => (
             <CallStackTraceFrame
@@ -92,11 +102,16 @@ export default function LessonTracePanel({ trace }) {
   }
 
   if (trace.kind === "recursionTree" && trace.nodes?.length && trace.stepCaptions?.length) {
-    const steps = trace.stepCaptions.map((c) => ({ caption: c }));
+    const steps = trace.stepCaptions.map((c, i) => ({
+      caption: c,
+      complexity: trace.stepComplexity?.[i],
+      activeLine: trace.stepComplexity?.[i]?.line,
+    }));
     return (
       <PanelChrome trace={trace}>
         <StepTracePlayer
           steps={steps}
+          codeLines={trace.codeLines}
           caption={(step) => step.caption}
           renderFrame={(step, index) => (
             <RecursionTreeTraceFrame nodes={trace.nodes} currentStep={index + 1} />

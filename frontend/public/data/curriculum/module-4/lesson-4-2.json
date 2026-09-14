@@ -97,7 +97,19 @@
                   "index": 0
                 }
               ],
-              "caption": "Target 30. Take 25."
+              "caption": "Target 30. Take 25.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 2,
+                "bigO": "O(n)",
+                "formula": "1 of 2 coins chosen so far",
+                "note": "Each step is one greedy choice -- no backtracking, no revisiting.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
             },
             {
               "array": [
@@ -115,8 +127,27 @@
                   "index": 2
                 }
               ],
-              "caption": "Remaining 5. Take 5."
+              "caption": "Remaining 5. Take 5.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 2,
+                "bigO": "O(n)",
+                "formula": "2 of 2 coins chosen so far",
+                "note": "Each step is one greedy choice -- no backtracking, no revisiting.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
             }
+          ],
+          "codeLines": [
+            "def make_change(coins, amount):",
+            "    for coin in coins:",
+            "        if amount >= coin:",
+            "            amount -= coin",
+            "    return amount"
           ]
         }
       ]

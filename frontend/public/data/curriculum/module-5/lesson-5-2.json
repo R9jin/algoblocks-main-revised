@@ -89,30 +89,93 @@
               "revealAt": 2
             },
             {
-              "id": "3",
-              "parentId": "1",
-              "label": "Fib(2) [Repeats!]",
-              "revealAt": 3
-            },
-            {
               "id": "4",
               "parentId": "2",
               "label": "Fib(2)",
-              "revealAt": 4
+              "revealAt": 3
             },
             {
               "id": "5",
               "parentId": "2",
               "label": "Fib(1)",
+              "revealAt": 4
+            },
+            {
+              "id": "3",
+              "parentId": "1",
+              "label": "Fib(2) [Repeats!]",
               "revealAt": 5
             }
           ],
           "stepCaptions": [
-            "Fib(4) calls Fib(3) and Fib(2)",
-            "Left side: Fib(3) explores...",
-            "Right side: Fib(2) is calculated again from scratch!",
-            "Fib(3) internally needed Fib(2)",
-            "Fib(3) internally needed Fib(1)"
+            "Fib(4) calls Fib(3) and Fib(2).",
+            "Left side: Fib(3) explores first.",
+            "Fib(3) internally needs Fib(2) -- computed here for the first time.",
+            "Fib(3) also needs Fib(1) -- a base case.",
+            "Right side: Fib(4)'s second call now needs Fib(2) again -- recomputed completely from scratch!"
+          ],
+          "stepComplexity": [
+            {
+              "opsSoFar": 1,
+              "opsTotal": 5,
+              "bigO": "O(2ⁿ)",
+              "formula": "1 of 5 calls made so far",
+              "note": "This is exactly the wasted work memoization is designed to eliminate.",
+              "line": 3,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 2,
+              "opsTotal": 5,
+              "bigO": "O(2ⁿ)",
+              "formula": "2 of 5 calls made so far",
+              "note": "This is exactly the wasted work memoization is designed to eliminate.",
+              "line": 3,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 3,
+              "opsTotal": 5,
+              "bigO": "O(2ⁿ)",
+              "formula": "3 of 5 calls made so far",
+              "note": "This is exactly the wasted work memoization is designed to eliminate.",
+              "line": 3,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 4,
+              "opsTotal": 5,
+              "bigO": "O(2ⁿ)",
+              "formula": "4 of 5 calls made so far",
+              "note": "This is exactly the wasted work memoization is designed to eliminate.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 5,
+              "opsTotal": 5,
+              "bigO": "O(2ⁿ)",
+              "formula": "5 of 5 calls made so far",
+              "note": "This is exactly the wasted work memoization is designed to eliminate.",
+              "line": 3,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            }
+          ],
+          "codeLines": [
+            "def fib(n):",
+            "    if n <= 1:",
+            "        return n",
+            "    return fib(n - 1) + fib(n - 2)"
           ]
         }
       ]

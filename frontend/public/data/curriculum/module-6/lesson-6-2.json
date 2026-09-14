@@ -137,6 +137,74 @@
             "Choose 2. Permutation is [1, 2]. Base case reached! Backtrack.",
             "Back at root. Choose 2. Permutation is [2]. Available: 1",
             "Choose 1. Permutation is [2, 1]. Base case reached! Backtrack."
+          ],
+          "stepComplexity": [
+            {
+              "opsSoFar": 1,
+              "opsTotal": 5,
+              "bigO": "O(n!)",
+              "formula": "1 of 5 states explored so far",
+              "note": "Every arrangement is distinct -- n! grows even faster than 2ⁿ for larger n.",
+              "line": 0,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 2,
+              "opsTotal": 5,
+              "bigO": "O(n!)",
+              "formula": "2 of 5 states explored so far",
+              "note": "Every arrangement is distinct -- n! grows even faster than 2ⁿ for larger n.",
+              "line": 5,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 3,
+              "opsTotal": 5,
+              "bigO": "O(n!)",
+              "formula": "3 of 5 states explored so far",
+              "note": "Every arrangement is distinct -- n! grows even faster than 2ⁿ for larger n.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 4,
+              "opsTotal": 5,
+              "bigO": "O(n!)",
+              "formula": "4 of 5 states explored so far",
+              "note": "Every arrangement is distinct -- n! grows even faster than 2ⁿ for larger n.",
+              "line": 5,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 5,
+              "opsTotal": 5,
+              "bigO": "O(n!)",
+              "formula": "5 of 5 states explored so far",
+              "note": "Every arrangement is distinct -- n! grows even faster than 2ⁿ for larger n.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            }
+          ],
+          "codeLines": [
+            "def permute(path, remaining):",
+            "    if not remaining:",
+            "        return [path]",
+            "    result = []",
+            "    for i in range(len(remaining)):",
+            "        next_path = path + [remaining[i]]",
+            "        rest = remaining[:i] + remaining[i + 1:]",
+            "        result += permute(next_path, rest)",
+            "    return result"
           ]
         }
       ]

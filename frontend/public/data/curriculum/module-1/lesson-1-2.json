@@ -217,7 +217,19 @@
                   "index": 0
                 }
               ],
-              "caption": "Step 1"
+              "caption": "Step 1",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 3,
+                "bigO": "O(n)",
+                "formula": "1 of 3 steps so far",
+                "note": "Work scales directly with input size -- one unit of work per element.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
             },
             {
               "array": [
@@ -234,7 +246,19 @@
                   "index": 1
                 }
               ],
-              "caption": "Step 2"
+              "caption": "Step 2",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 3,
+                "bigO": "O(n)",
+                "formula": "2 of 3 steps so far",
+                "note": "Work scales directly with input size -- one unit of work per element.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
             },
             {
               "array": [
@@ -251,8 +275,25 @@
                   "index": 2
                 }
               ],
-              "caption": "Step 3 - Work scales directly with size."
+              "caption": "Step 3 - Work scales directly with size.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 3,
+                "bigO": "O(n)",
+                "formula": "3 of 3 steps so far",
+                "note": "Work scales directly with input size -- one unit of work per element.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
             }
+          ],
+          "codeLines": [
+            "def process(arr):",
+            "    for i in range(len(arr)):",
+            "        do_work(arr[i])"
           ]
         }
       ]

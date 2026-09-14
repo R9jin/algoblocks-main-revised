@@ -1,28 +1,35 @@
 // frontend/src/components/tracePlayer/StepTracePlayer.jsx
 //
 // Shared "engine" behind every interactive lesson trace (array scans, call
-// stacks, recursion trees, ...). It owns only the step index + play/pause
-// state and the transport controls; the actual visualization for a given
-// step is supplied by the caller via `renderFrame`, so this file has no
-// idea what an array cell or a recursion node looks like.
+// stacks, recursion trees, code walkthroughs, ...). It owns only the step
+// index + play/pause state and the transport controls; the actual
+// visualization for a given step is supplied by the caller via
+// `renderFrame`, so this file has no idea what an array cell or a
+// recursion node looks like.
 //
-// This replaces the old pattern of a lesson section rendering a numbered
-// list ("1. Call fib(5)... 2. Call fib(4)...") as static text -- the same
-// step data now drives a scrubbable, playable visualization instead.
+// Layout: the stage (code pane + whatever renderFrame draws) and the
+// complexity ledger sit side by side at all times -- responsive, not a
+// tab you switch to. Both read off the same `index` state, so stepping
+// Next/Prev advances the algorithm's visualization, the active code
+// line, and the complexity table's growing rows all in lockstep.
 import { useEffect, useRef, useState } from "react";
 import { FiChevronLeft, FiChevronRight, FiPause, FiPlay, FiRotateCcw } from "react-icons/fi";
+import CodePane from "./CodePane";
+import ComplexityLedger from "./ComplexityLedger";
 import "./StepTracePlayer.css";
 
 export default function StepTracePlayer({
   steps,
   renderFrame,
   caption,
+  codeLines = [],
   intervalMs = 1400,
 }) {
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const timerRef = useRef(null);
   const total = steps?.length || 0;
+  const hasComplexity = steps?.some((s) => s?.complexity);
 
   useEffect(() => {
     if (!playing || total === 0) return undefined;
@@ -54,10 +61,22 @@ export default function StepTracePlayer({
 
   const step = steps[index];
   const captionText = typeof caption === "function" ? caption(step, index) : step?.caption;
+  const activeLine = step?.activeLine ?? step?.complexity?.line ?? -1;
 
   return (
     <div className="trace-player">
-      <div className="trace-player-stage">{renderFrame(step, index, steps)}</div>
+      <div className={`trace-player-workspace${hasComplexity ? " with-ledger" : ""}`}>
+        <div className="trace-player-main">
+          <CodePane codeLines={codeLines} activeLine={activeLine} />
+          <div className="trace-player-stage">{renderFrame(step, index, steps)}</div>
+        </div>
+
+        {hasComplexity && (
+          <div className="trace-player-side">
+            <ComplexityLedger codeLines={codeLines} steps={steps} index={index} />
+          </div>
+        )}
+      </div>
 
       {captionText && (
         <div className="trace-player-caption" aria-live="polite">

@@ -177,6 +177,179 @@
             "This Fib(2) needs Fib(1) again -- a base case.",
             "This Fib(2) needs Fib(0) again -- a base case. This Fib(2) resolves to 1.",
             "This Fib(3) needs Fib(1) one more time -- the fifth Fib(1) call overall. Fib(3) = 1 + 1 = 2, and Fib(5) = 3 + 2 = 5."
+          ],
+          "stepComplexity": [
+            {
+              "opsSoFar": 1,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "1 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 0,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 2,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "2 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 3,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 3,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "3 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 3,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 4,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "4 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 3,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 5,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "5 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 6,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "6 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 7,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "7 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 8,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "8 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 3,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 9,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "9 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 10,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "10 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 11,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "11 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 3,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 12,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "12 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 3,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 13,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "13 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 14,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "14 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 15,
+              "opsTotal": 15,
+              "bigO": "O(2\u207f)",
+              "formula": "15 of 15 calls made so far",
+              "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            }
+          ],
+          "codeLines": [
+            "def fib(n):",
+            "    if n <= 1:",
+            "        return n",
+            "    return fib(n - 1) + fib(n - 2)"
           ]
         }
       ]
@@ -203,7 +376,7 @@
       "id": "memoization",
       "type": "concept",
       "title": "Memoization (Top-Down)",
-      "content": "**Memoization** is a top-down Dynamic Programming approach that uses recursion combined with caching. It is often the most intuitive way to implement DP because it starts from the original problem and recursively breaks it down.\n\nThe Memoization Pattern:\n1.  **Check the cache:** Before solving a subproblem, the algorithm checks whether the answer already exists inside memory (usually a dictionary or array).\n2.  **Return if found:** If the answer already exists, the stored value is reused immediately without further recursion.\n3.  **Compute if missing:** If it is a base case, compute the result directly. Otherwise, combine results from recursive calls on smaller subproblems.\n4.  **Store and Return:** Store the result in the cache and return it.\n\nMemoization is intuitive because it follows natural recursive thinking. It employs **lazy evaluation**—if some subproblems are not needed, they are never computed. However, it incurs recursion overhead and carries the risk of stack overflow errors for excessively deep recursion limits."
+      "content": "**Memoization** is a top-down Dynamic Programming approach that uses recursion combined with caching. It is often the most intuitive way to implement DP because it starts from the original problem and recursively breaks it down.\n\nThe Memoization Pattern:\n1.  **Check the cache:** Before solving a subproblem, the algorithm checks whether the answer already exists inside memory (usually a dictionary or array).\n2.  **Return if found:** If the answer already exists, the stored value is reused immediately without further recursion.\n3.  **Compute if missing:** If it is a base case, compute the result directly. Otherwise, combine results from recursive calls on smaller subproblems.\n4.  **Store and Return:** Store the result in the cache and return it.\n\nMemoization is intuitive because it follows natural recursive thinking. It employs **lazy evaluation**\u2014if some subproblems are not needed, they are never computed. However, it incurs recursion overhead and carries the risk of stack overflow errors for excessively deep recursion limits."
     },
     {
       "id": "memoization-workflow",
@@ -221,7 +394,22 @@
                 "fib(5)"
               ],
               "cache": {},
-              "caption": "Call fib(5). Check cache for 5 -- not found. Needs fib(4) + fib(3)."
+              "caption": "Call fib(5). Check cache for 5 -- not found. Needs fib(4) + fib(3).",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 10,
+                "bigO": "O(n)",
+                "formula": "1 of 10 unique subproblems solved so far",
+                "note": "Once a result is cached, every later request for it is a lookup, not a recomputation.",
+                "line": [
+                  1,
+                  3
+                ],
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 1
             },
             {
               "stack": [
@@ -229,7 +417,22 @@
                 "fib(4)"
               ],
               "cache": {},
-              "caption": "Call fib(4). Check cache for 4 -- not found. Needs fib(3) + fib(2)."
+              "caption": "Call fib(4). Check cache for 4 -- not found. Needs fib(3) + fib(2).",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 10,
+                "bigO": "O(n)",
+                "formula": "2 of 10 unique subproblems solved so far",
+                "note": "Once a result is cached, every later request for it is a lookup, not a recomputation.",
+                "line": [
+                  1,
+                  3
+                ],
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 1
             },
             {
               "stack": [
@@ -238,7 +441,22 @@
                 "fib(3)"
               ],
               "cache": {},
-              "caption": "Call fib(3). Check cache for 3 -- not found. Needs fib(2) + fib(1)."
+              "caption": "Call fib(3). Check cache for 3 -- not found. Needs fib(2) + fib(1).",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 10,
+                "bigO": "O(n)",
+                "formula": "3 of 10 unique subproblems solved so far",
+                "note": "Once a result is cached, every later request for it is a lookup, not a recomputation.",
+                "line": [
+                  1,
+                  3
+                ],
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 1
             },
             {
               "stack": [
@@ -248,7 +466,22 @@
                 "fib(2)"
               ],
               "cache": {},
-              "caption": "Call fib(2). Check cache for 2 -- not found. Needs fib(1) + fib(0)."
+              "caption": "Call fib(2). Check cache for 2 -- not found. Needs fib(1) + fib(0).",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 10,
+                "bigO": "O(n)",
+                "formula": "4 of 10 unique subproblems solved so far",
+                "note": "Once a result is cached, every later request for it is a lookup, not a recomputation.",
+                "line": [
+                  1,
+                  3
+                ],
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 1
             },
             {
               "stack": [
@@ -264,7 +497,25 @@
                 "key": 1,
                 "value": 1
               },
-              "caption": "Call fib(1). Base case, returns 1. Store memo[1] = 1."
+              "caption": "Call fib(1). Base case, returns 1. Store memo[1] = 1.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 10,
+                "bigO": "O(n)",
+                "formula": "5 of 10 unique subproblems solved so far",
+                "note": "Once a result is cached, every later request for it is a lookup, not a recomputation.",
+                "line": [
+                  1,
+                  3,
+                  4,
+                  7,
+                  8
+                ],
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 7
             },
             {
               "stack": [
@@ -281,7 +532,25 @@
                 "key": 0,
                 "value": 0
               },
-              "caption": "Call fib(0). Base case, returns 0. Store memo[0] = 0."
+              "caption": "Call fib(0). Base case, returns 0. Store memo[0] = 0.",
+              "complexity": {
+                "opsSoFar": 6,
+                "opsTotal": 10,
+                "bigO": "O(n)",
+                "formula": "6 of 10 unique subproblems solved so far",
+                "note": "Once a result is cached, every later request for it is a lookup, not a recomputation.",
+                "line": [
+                  1,
+                  3,
+                  4,
+                  7,
+                  8
+                ],
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 7
             },
             {
               "stack": [
@@ -298,7 +567,23 @@
                 "key": 2,
                 "value": 1
               },
-              "caption": "Back to fib(2): fib(2) = 1 + 0 = 1. Store memo[2] = 1."
+              "caption": "Back to fib(2): fib(2) = 1 + 0 = 1. Store memo[2] = 1.",
+              "complexity": {
+                "opsSoFar": 7,
+                "opsTotal": 10,
+                "bigO": "O(n)",
+                "formula": "7 of 10 unique subproblems solved so far",
+                "note": "Once a result is cached, every later request for it is a lookup, not a recomputation.",
+                "line": [
+                  6,
+                  7,
+                  8
+                ],
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 7
             },
             {
               "stack": [
@@ -319,7 +604,25 @@
                 "key": 3,
                 "value": 2
               },
-              "caption": "Back to fib(3): needs fib(1) again. Cache hit -- returns 1. fib(3) = 1 + 1 = 2. Store memo[3] = 2."
+              "caption": "Back to fib(3): needs fib(1) again. Cache hit -- returns 1. fib(3) = 1 + 1 = 2. Store memo[3] = 2.",
+              "complexity": {
+                "opsSoFar": 8,
+                "opsTotal": 10,
+                "bigO": "O(n)",
+                "formula": "8 of 10 unique subproblems solved so far",
+                "note": "Once a result is cached, every later request for it is a lookup, not a recomputation.",
+                "line": [
+                  1,
+                  2,
+                  6,
+                  7,
+                  8
+                ],
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 7
             },
             {
               "stack": [
@@ -340,7 +643,25 @@
                 "key": 4,
                 "value": 3
               },
-              "caption": "Back to fib(4): needs fib(2) again. Cache hit -- returns 1. fib(4) = 2 + 1 = 3. Store memo[4] = 3."
+              "caption": "Back to fib(4): needs fib(2) again. Cache hit -- returns 1. fib(4) = 2 + 1 = 3. Store memo[4] = 3.",
+              "complexity": {
+                "opsSoFar": 9,
+                "opsTotal": 10,
+                "bigO": "O(n)",
+                "formula": "9 of 10 unique subproblems solved so far",
+                "note": "Once a result is cached, every later request for it is a lookup, not a recomputation.",
+                "line": [
+                  1,
+                  2,
+                  6,
+                  7,
+                  8
+                ],
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 7
             },
             {
               "stack": [],
@@ -360,8 +681,37 @@
                 "key": 5,
                 "value": 5
               },
-              "caption": "Back to fib(5): needs fib(3) again. Cache hit -- returns 2. fib(5) = 3 + 2 = 5. Store memo[5] = 5."
+              "caption": "Back to fib(5): needs fib(3) again. Cache hit -- returns 2. fib(5) = 3 + 2 = 5. Store memo[5] = 5.",
+              "complexity": {
+                "opsSoFar": 10,
+                "opsTotal": 10,
+                "bigO": "O(n)",
+                "formula": "10 of 10 unique subproblems solved so far",
+                "note": "Once a result is cached, every later request for it is a lookup, not a recomputation.",
+                "line": [
+                  1,
+                  2,
+                  6,
+                  7,
+                  8
+                ],
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 7
             }
+          ],
+          "codeLines": [
+            "def fib(n, memo={}):",
+            "    if n in memo:",
+            "        return memo[n]",
+            "    if n <= 1:",
+            "        result = n",
+            "    else:",
+            "        result = fib(n - 1, memo) + fib(n - 2, memo)",
+            "    memo[n] = result",
+            "    return memo[n]"
           ]
         }
       ]
@@ -388,7 +738,7 @@
       "id": "why-dp-powerful",
       "type": "concept",
       "title": "Why Dynamic Programming Is Powerful",
-      "content": "Dynamic Programming can dramatically reduce computational complexity, frequently transforming exponential runtime into linear or polynomial runtime.\n\nComplexity Reductions via DP:\n* **Fibonacci:** Reduces `O(2^n)` to `O(n)`.\n* **Edit Distance:** Reduces `O(3^n)` to `O(m * n)`.\n* **Knapsack:** Reduces `O(2^n)` to `O(n * W)`.\n* **Matrix Chain Multiplication:** Reduces `O(2^n)` to `O(n^3)`.\n\nTo understand this scale, for `n=100`:\n* `O(2^n)` is ~`1.27 × 10^30` operations (**impossible**).\n* `O(n^3)` is `1,000,000` operations (**milliseconds**).\n* `O(n^2)` is `10,000` operations (**instant**).\n* `O(n)` is `100` operations (**instant**).\n\nThis transforms impractical algorithms into scalable real-world solutions used in modern tech.",
+      "content": "Dynamic Programming can dramatically reduce computational complexity, frequently transforming exponential runtime into linear or polynomial runtime.\n\nComplexity Reductions via DP:\n* **Fibonacci:** Reduces `O(2^n)` to `O(n)`.\n* **Edit Distance:** Reduces `O(3^n)` to `O(m * n)`.\n* **Knapsack:** Reduces `O(2^n)` to `O(n * W)`.\n* **Matrix Chain Multiplication:** Reduces `O(2^n)` to `O(n^3)`.\n\nTo understand this scale, for `n=100`:\n* `O(2^n)` is ~`1.27 \u00d7 10^30` operations (**impossible**).\n* `O(n^3)` is `1,000,000` operations (**milliseconds**).\n* `O(n^2)` is `10,000` operations (**instant**).\n* `O(n)` is `100` operations (**instant**).\n\nThis transforms impractical algorithms into scalable real-world solutions used in modern tech.",
       "chart": {
         "title": "Dynamic Programming optimization",
         "description": "Dynamic Programming reduces repeated recursive computation by reusing previously solved subproblems.",
@@ -494,7 +844,7 @@
       "url": "https://www.geeksforgeeks.org/dynamic-programming/"
     },
     {
-      "title": "TutorialsPoint — Dynamic Programming",
+      "title": "TutorialsPoint \u2014 Dynamic Programming",
       "url": "https://www.tutorialspoint.com/data_structures_algorithms/dynamic_programming.htm"
     },
     {

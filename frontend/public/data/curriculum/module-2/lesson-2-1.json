@@ -137,7 +137,19 @@
                   "index": 1
                 }
               ],
-              "caption": "2 + 4 = 6. Not 13."
+              "caption": "2 + 4 = 6. Not 13.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 3,
+                "bigO": "O(n²)",
+                "formula": "1 of 3 pair checks so far",
+                "note": "Brute force checks every possible pair -- n × n combinations.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             },
             {
               "array": [
@@ -160,7 +172,19 @@
                   "index": 2
                 }
               ],
-              "caption": "2 + 7 = 9. Not 13."
+              "caption": "2 + 7 = 9. Not 13.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 3,
+                "bigO": "O(n²)",
+                "formula": "2 of 3 pair checks so far",
+                "note": "Brute force checks every possible pair -- n × n combinations.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             },
             {
               "array": [
@@ -183,8 +207,29 @@
                   "index": 3
                 }
               ],
-              "caption": "2 + 11 = 13. Match found!"
+              "caption": "2 + 11 = 13. Match found!",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 3,
+                "bigO": "O(n²)",
+                "formula": "3 of 3 pair checks so far",
+                "note": "Brute force checks every possible pair -- n × n combinations.",
+                "line": 5,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 5
             }
+          ],
+          "codeLines": [
+            "def has_pair_sum(arr, target):",
+            "    n = len(arr)",
+            "    for i in range(n):",
+            "        for j in range(i + 1, n):",
+            "            if arr[i] + arr[j] == target:",
+            "                return True",
+            "    return False"
           ]
         }
       ]
@@ -244,6 +289,85 @@
             "Explore A-2 (complete).",
             "Explore Path B. It violates a constraint immediately! PRUNED. We do not explore B-1, B-2, etc.",
             "Skip straight to Path C."
+          ],
+          "stepComplexity": [
+            {
+              "opsSoFar": 1,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "1 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 0,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 2,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "2 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 6,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 3,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "3 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 1,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 4,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "4 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 1,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 5,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "5 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 4,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 6,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "6 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 6,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            }
+          ],
+          "codeLines": [
+            "def backtrack(path, choices):",
+            "    if is_goal(path):",
+            "        return path",
+            "    for choice in choices:",
+            "        if not is_valid(path, choice):",
+            "            continue",
+            "        path.append(choice)",
+            "        backtrack(path, remaining(choices, choice))",
+            "        path.pop()"
           ]
         }
       ]

@@ -86,7 +86,19 @@
                 1
               ],
               "roles": {},
-              "caption": "Starting array: [5, 2, 8, 1]."
+              "caption": "Starting array: [5, 2, 8, 1].",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 4,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "1 of 4 comparisons this pass so far",
+                "note": "One pass is O(n); repeating this for every element is what makes the full sort O(n²).",
+                "line": 1,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 1
             },
             {
               "array": [
@@ -99,7 +111,19 @@
                 "0": "swap",
                 "1": "swap"
               },
-              "caption": "Compare 5 and 2 -> swap -> [2, 5, 8, 1]."
+              "caption": "Compare 5 and 2 -> swap -> [2, 5, 8, 1].",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 4,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "2 of 4 comparisons this pass so far",
+                "note": "One pass is O(n); repeating this for every element is what makes the full sort O(n²).",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             },
             {
               "array": [
@@ -112,7 +136,19 @@
                 "1": "compare",
                 "2": "compare"
               },
-              "caption": "Compare 5 and 8 -> no swap -> [2, 5, 8, 1]."
+              "caption": "Compare 5 and 8 -> no swap -> [2, 5, 8, 1].",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 4,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "3 of 4 comparisons this pass so far",
+                "note": "One pass is O(n); repeating this for every element is what makes the full sort O(n²).",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
             },
             {
               "array": [
@@ -125,8 +161,27 @@
                 "2": "swap",
                 "3": "sorted"
               },
-              "caption": "Compare 8 and 1 -> swap -> [2, 5, 1, 8]. The largest value (8) is now locked into the last slot."
+              "caption": "Compare 8 and 1 -> swap -> [2, 5, 1, 8]. The largest value (8) is now locked into the last slot.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 4,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "4 of 4 comparisons this pass so far",
+                "note": "One pass is O(n); repeating this for every element is what makes the full sort O(n²).",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             }
+          ],
+          "codeLines": [
+            "def bubble_pass(arr):",
+            "    n = len(arr)",
+            "    for j in range(n - 1):",
+            "        if arr[j] > arr[j + 1]:",
+            "            arr[j], arr[j + 1] = arr[j + 1], arr[j]"
           ]
         },
         {
@@ -150,7 +205,19 @@
                   "index": 0
                 }
               ],
-              "caption": "Assume index 0 (5) is the minimum, for now."
+              "caption": "Assume index 0 (5) is the minimum, for now.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 5,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "1 of 5 comparisons this pass so far",
+                "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
             },
             {
               "array": [
@@ -169,7 +236,19 @@
                   "index": 1
                 }
               ],
-              "caption": "Scan index 1 (2) -- smaller than 5, so 2 becomes the new minimum candidate."
+              "caption": "Scan index 1 (2) -- smaller than 5, so 2 becomes the new minimum candidate.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 5,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "2 of 5 comparisons this pass so far",
+                "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
+                "line": 5,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 5
             },
             {
               "array": [
@@ -189,7 +268,19 @@
                   "index": 1
                 }
               ],
-              "caption": "Scan index 2 (8) -- not smaller than 2, minimum candidate stays the same."
+              "caption": "Scan index 2 (8) -- not smaller than 2, minimum candidate stays the same.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 5,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "3 of 5 comparisons this pass so far",
+                "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             },
             {
               "array": [
@@ -209,7 +300,19 @@
                   "index": 3
                 }
               ],
-              "caption": "Scan index 3 (1) -- smaller than 2, so 1 becomes the new minimum candidate."
+              "caption": "Scan index 3 (1) -- smaller than 2, so 1 becomes the new minimum candidate.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 5,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "4 of 5 comparisons this pass so far",
+                "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
+                "line": 5,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 5
             },
             {
               "array": [
@@ -221,8 +324,29 @@
               "roles": {
                 "0": "sorted"
               },
-              "caption": "Swap index 0 and index 3 -> [1, 2, 8, 5]. One swap, 1 is now locked in, and the sorted boundary advances by one."
+              "caption": "Swap index 0 and index 3 -> [1, 2, 8, 5]. One swap, 1 is now locked in, and the sorted boundary advances by one.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 5,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "5 of 5 comparisons this pass so far",
+                "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
+                "line": 6,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 6
             }
+          ],
+          "codeLines": [
+            "def selection_pass(arr):",
+            "    n = len(arr)",
+            "    min_idx = 0",
+            "    for i in range(1, n):",
+            "        if arr[i] < arr[min_idx]:",
+            "            min_idx = i",
+            "    arr[0], arr[min_idx] = arr[min_idx], arr[0]"
           ]
         }
       ]

@@ -149,6 +149,75 @@
             "Hit a dead end. Undo and return to Start.",
             "Try right path",
             "Target reached!"
+          ],
+          "stepComplexity": [
+            {
+              "opsSoFar": 1,
+              "opsTotal": 5,
+              "bigO": "O(2ⁿ)",
+              "formula": "1 of 5 states explored so far",
+              "note": "Generating all subsets means the search tree has 2ⁿ leaves in the worst case.",
+              "line": 0,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 2,
+              "opsTotal": 5,
+              "bigO": "O(2ⁿ)",
+              "formula": "2 of 5 states explored so far",
+              "note": "Generating all subsets means the search tree has 2ⁿ leaves in the worst case.",
+              "line": 4,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 3,
+              "opsTotal": 5,
+              "bigO": "O(2ⁿ)",
+              "formula": "3 of 5 states explored so far",
+              "note": "Generating all subsets means the search tree has 2ⁿ leaves in the worst case.",
+              "line": 8,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 4,
+              "opsTotal": 5,
+              "bigO": "O(2ⁿ)",
+              "formula": "4 of 5 states explored so far",
+              "note": "Generating all subsets means the search tree has 2ⁿ leaves in the worst case.",
+              "line": 4,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 5,
+              "opsTotal": 5,
+              "bigO": "O(2ⁿ)",
+              "formula": "5 of 5 states explored so far",
+              "note": "Generating all subsets means the search tree has 2ⁿ leaves in the worst case.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            }
+          ],
+          "codeLines": [
+            "def backtrack(path, choices):",
+            "    if is_goal(path):",
+            "        return path",
+            "    for choice in choices:",
+            "        path.append(choice)",
+            "        result = backtrack(path, remaining(choices, choice))",
+            "        if result:",
+            "            return result",
+            "        path.pop()",
+            "    return None"
           ]
         }
       ]

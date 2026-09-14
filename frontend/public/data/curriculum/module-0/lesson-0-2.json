@@ -187,14 +187,28 @@
               "variables": {
                 "count": 3
               },
-              "caption": "Initialize loop counter to 3."
+              "caption": "Initialize loop counter to 3.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "1 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
             },
             {
               "activeLine": 1,
               "variables": {
                 "count": 3
               },
-              "caption": "Check condition: 3 > 0? Yes. Enter loop."
+              "caption": "Check condition: 3 > 0? Yes. Enter loop.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "2 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
             },
             {
               "activeLine": 2,
@@ -202,7 +216,14 @@
                 "count": 3,
                 "output": "Hello"
               },
-              "caption": "Execute loop body."
+              "caption": "Execute loop body.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "3 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
             },
             {
               "activeLine": 3,
@@ -210,7 +231,14 @@
                 "count": 2,
                 "output": "Hello"
               },
-              "caption": "Decrement counter."
+              "caption": "Decrement counter.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "4 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
             },
             {
               "activeLine": 1,
@@ -218,7 +246,14 @@
                 "count": 2,
                 "output": "Hello"
               },
-              "caption": "Check condition: 2 > 0? Yes."
+              "caption": "Check condition: 2 > 0? Yes.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "5 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
             },
             {
               "activeLine": 2,
@@ -226,7 +261,14 @@
                 "count": 2,
                 "output": "Hello, Hello"
               },
-              "caption": "Execute loop body again."
+              "caption": "Execute loop body again.",
+              "complexity": {
+                "opsSoFar": 6,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "6 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
             },
             {
               "activeLine": 3,
@@ -234,7 +276,14 @@
                 "count": 1,
                 "output": "Hello, Hello"
               },
-              "caption": "Decrement counter."
+              "caption": "Decrement counter.",
+              "complexity": {
+                "opsSoFar": 7,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "7 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
             },
             {
               "activeLine": 1,
@@ -242,7 +291,14 @@
                 "count": 1,
                 "output": "Hello, Hello"
               },
-              "caption": "Check condition: 1 > 0? Yes."
+              "caption": "Check condition: 1 > 0? Yes.",
+              "complexity": {
+                "opsSoFar": 8,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "8 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
             },
             {
               "activeLine": 2,
@@ -250,7 +306,14 @@
                 "count": 1,
                 "output": "Hello, Hello, Hello"
               },
-              "caption": "Execute loop body last time."
+              "caption": "Execute loop body last time.",
+              "complexity": {
+                "opsSoFar": 9,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "9 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
             },
             {
               "activeLine": 3,
@@ -258,7 +321,14 @@
                 "count": 0,
                 "output": "Hello, Hello, Hello"
               },
-              "caption": "Decrement counter to 0."
+              "caption": "Decrement counter to 0.",
+              "complexity": {
+                "opsSoFar": 10,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "10 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
             },
             {
               "activeLine": 1,
@@ -266,7 +336,14 @@
                 "count": 0,
                 "output": "Hello, Hello, Hello"
               },
-              "caption": "Check condition: 0 > 0? No! Exit loop."
+              "caption": "Check condition: 0 > 0? No! Exit loop.",
+              "complexity": {
+                "opsSoFar": 11,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "11 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
             },
             {
               "activeLine": 4,
@@ -274,7 +351,14 @@
                 "count": 0,
                 "output": "Hello, Hello, Hello"
               },
-              "caption": "Loop finishes."
+              "caption": "Loop finishes.",
+              "complexity": {
+                "opsSoFar": 12,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "12 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
             }
           ]
         }

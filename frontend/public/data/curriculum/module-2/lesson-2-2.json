@@ -58,7 +58,7 @@
       "id": "core-idea",
       "type": "concept",
       "title": "Core Idea of Linear Search",
-      "content": "Compare each element to the target, in order, starting at index 0. Match found → return the index immediately. Reach the end with no match → return a not-found value (typically -1).\n\nUnlike Binary Search, nothing gets eliminated -- elements are simply checked one by one. That guarantees finding the target if it exists, but worst case means checking everything."
+      "content": "Compare each element to the target, in order, starting at index 0. Match found \u2192 return the index immediately. Reach the end with no match \u2192 return a not-found value (typically -1).\n\nUnlike Binary Search, nothing gets eliminated -- elements are simply checked one by one. That guarantees finding the target if it exists, but worst case means checking everything."
     },
     {
       "id": "step-by-step",
@@ -88,7 +88,19 @@
                   "index": 0
                 }
               ],
-              "caption": "Compare index 0 (3) with 11 -- no match, keep going."
+              "caption": "Compare index 0 (3) with 11 -- no match, keep going.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "1 of 4 comparisons so far",
+                "note": "Best/average case -- the scan can stop the moment a match is found.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (best/average case)"
+              },
+              "activeLine": 2
             },
             {
               "array": [
@@ -107,7 +119,19 @@
                   "index": 1
                 }
               ],
-              "caption": "Compare index 1 (8) with 11 -- no match, keep going."
+              "caption": "Compare index 1 (8) with 11 -- no match, keep going.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "2 of 4 comparisons so far",
+                "note": "Best/average case -- the scan can stop the moment a match is found.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (best/average case)"
+              },
+              "activeLine": 2
             },
             {
               "array": [
@@ -126,7 +150,19 @@
                   "index": 2
                 }
               ],
-              "caption": "Compare index 2 (5) with 11 -- no match, keep going."
+              "caption": "Compare index 2 (5) with 11 -- no match, keep going.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "3 of 4 comparisons so far",
+                "note": "Best/average case -- the scan can stop the moment a match is found.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (best/average case)"
+              },
+              "activeLine": 2
             },
             {
               "array": [
@@ -145,8 +181,27 @@
                   "index": 3
                 }
               ],
-              "caption": "Compare index 3 (11) with 11 -- match! Return index 3 immediately."
+              "caption": "Compare index 3 (11) with 11 -- match! Return index 3 immediately.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "4 of 4 comparisons so far",
+                "note": "Best/average case -- the scan can stop the moment a match is found.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (best/average case)"
+              },
+              "activeLine": 3
             }
+          ],
+          "codeLines": [
+            "function linearSearch(arr, target):",
+            "  for i in range(len(arr)):",
+            "    if arr[i] == target:",
+            "      return i",
+            "  return -1"
           ]
         },
         {
@@ -171,7 +226,19 @@
                   "index": 0
                 }
               ],
-              "caption": "Compare index 0 (3) with 10 -- no match."
+              "caption": "Compare index 0 (3) with 10 -- no match.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "1 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
             },
             {
               "array": [
@@ -190,7 +257,19 @@
                   "index": 1
                 }
               ],
-              "caption": "Compare index 1 (8) with 10 -- no match."
+              "caption": "Compare index 1 (8) with 10 -- no match.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "2 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
             },
             {
               "array": [
@@ -209,7 +288,19 @@
                   "index": 2
                 }
               ],
-              "caption": "Compare index 2 (5) with 10 -- no match."
+              "caption": "Compare index 2 (5) with 10 -- no match.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "3 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
             },
             {
               "array": [
@@ -228,7 +319,19 @@
                   "index": 3
                 }
               ],
-              "caption": "Compare index 3 (11) with 10 -- no match."
+              "caption": "Compare index 3 (11) with 10 -- no match.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "4 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
             },
             {
               "array": [
@@ -247,8 +350,27 @@
                   "index": 4
                 }
               ],
-              "caption": "Compare index 4 (2) with 10 -- no match. End of array reached, return -1."
+              "caption": "Compare index 4 (2) with 10 -- no match. End of array reached, return -1.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "5 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             }
+          ],
+          "codeLines": [
+            "function linearSearch(arr, target):",
+            "  for i in range(len(arr)):",
+            "    if arr[i] == target:",
+            "      return i",
+            "  return -1"
           ]
         }
       ]
@@ -311,8 +433,8 @@
       "subsections": [
         {
           "id": "best-case",
-          "title": "The Omega Bound (Ω): Best Case",
-          "content": "**Ω(1)** -- the target is the very first element. Searching for 8 in [8, 3, 5, 1] takes one comparison."
+          "title": "The Omega Bound (\u03a9): Best Case",
+          "content": "**\u03a9(1)** -- the target is the very first element. Searching for 8 in [8, 3, 5, 1] takes one comparison."
         },
         {
           "id": "worst-case",

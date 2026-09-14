@@ -85,7 +85,19 @@
                   "index": 0
                 }
               ],
-              "caption": "Greedy picks highest value: A (Value=6, Weight=4). Remaining capacity = 5 - 4 = 1."
+              "caption": "Greedy picks highest value: A (Value=6, Weight=4). Remaining capacity = 5 - 4 = 1.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 3,
+                "bigO": "O(n) greedy attempt",
+                "formula": "1 of 3 items considered so far",
+                "note": "Greedy only takes one pass -- fast, but as the surrounding lesson shows, not always correct for Knapsack.",
+                "line": 5,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 5
             },
             {
               "array": [
@@ -104,7 +116,19 @@
                   "index": 0
                 }
               ],
-              "caption": "Capacity=1 left. B (W=3) and C (W=2) do not fit. Total Value = 6."
+              "caption": "Capacity=1 left. B (W=3) and C (W=2) do not fit. Total Value = 6.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 3,
+                "bigO": "O(n) greedy attempt",
+                "formula": "2 of 3 items considered so far",
+                "note": "Greedy only takes one pass -- fast, but as the surrounding lesson shows, not always correct for Knapsack.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             },
             {
               "array": [
@@ -127,8 +151,30 @@
                   "index": 2
                 }
               ],
-              "caption": "Optimal actually skips A to take B and C! Weight=3+2=5. Value=5+4=9. 9 > 6!"
+              "caption": "Optimal actually skips A to take B and C! Weight=3+2=5. Value=5+4=9. 9 > 6!",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 3,
+                "bigO": "O(n) greedy attempt",
+                "formula": "3 of 3 items considered so far",
+                "note": "Greedy only takes one pass -- fast, but as the surrounding lesson shows, not always correct for Knapsack.",
+                "line": 7,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 7
             }
+          ],
+          "codeLines": [
+            "def greedy_knapsack(items, capacity):",
+            "    items.sort(key=lambda x: x.value, reverse=True)",
+            "    total_value = 0",
+            "    for item in items:",
+            "        if item.weight <= capacity:",
+            "            capacity -= item.weight",
+            "            total_value += item.value",
+            "    return total_value"
           ]
         }
       ]

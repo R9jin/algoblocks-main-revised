@@ -94,7 +94,19 @@
                 "solve(0, 4)"
               ],
               "cache": {},
-              "caption": "Initial problem."
+              "caption": "Initial problem.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 5,
+                "bigO": "O(log n) depth",
+                "formula": "1 of 5 stack frames deep so far",
+                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "line": 0,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 0
             },
             {
               "stack": [
@@ -102,7 +114,19 @@
                 "solve(0, 2)"
               ],
               "cache": {},
-              "caption": "Solve left half."
+              "caption": "Solve left half.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 5,
+                "bigO": "O(log n) depth",
+                "formula": "2 of 5 stack frames deep so far",
+                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             },
             {
               "stack": [
@@ -111,7 +135,19 @@
                 "solve(0, 1)"
               ],
               "cache": {},
-              "caption": "Solve left half of left half."
+              "caption": "Solve left half of left half.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 5,
+                "bigO": "O(log n) depth",
+                "formula": "3 of 5 stack frames deep so far",
+                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             },
             {
               "stack": [
@@ -119,7 +155,19 @@
                 "solve(0, 2)"
               ],
               "cache": {},
-              "caption": "Base case resolved."
+              "caption": "Base case resolved.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 5,
+                "bigO": "O(log n) depth",
+                "formula": "4 of 5 stack frames deep so far",
+                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
             },
             {
               "stack": [
@@ -127,8 +175,29 @@
                 "solve(2, 4)"
               ],
               "cache": {},
-              "caption": "Solve right half."
+              "caption": "Solve right half.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 5,
+                "bigO": "O(log n) depth",
+                "formula": "5 of 5 stack frames deep so far",
+                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "line": 5,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 5
             }
+          ],
+          "codeLines": [
+            "def solve(lo, hi):",
+            "    if lo == hi:",
+            "        return base_case(lo)",
+            "    mid = (lo + hi) // 2",
+            "    left = solve(lo, mid)",
+            "    right = solve(mid + 1, hi)",
+            "    return combine(left, right)"
           ]
         }
       ]

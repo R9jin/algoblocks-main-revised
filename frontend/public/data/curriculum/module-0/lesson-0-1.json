@@ -177,14 +177,28 @@
             {
               "activeLine": 0,
               "variables": {},
-              "caption": "Starting the program."
+              "caption": "Starting the program.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "1 of 4 instructions executed so far",
+                "note": "Every block runs exactly once, in order -- n blocks means n steps, no more."
+              }
             },
             {
               "activeLine": 1,
               "variables": {
                 "x": 5
               },
-              "caption": "Creating a variable x and setting it to 5."
+              "caption": "Creating a variable x and setting it to 5.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "2 of 4 instructions executed so far",
+                "note": "Every block runs exactly once, in order -- n blocks means n steps, no more."
+              }
             },
             {
               "activeLine": 2,
@@ -192,7 +206,14 @@
                 "x": 5,
                 "output": "5"
               },
-              "caption": "Outputting the value to the console."
+              "caption": "Outputting the value to the console.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "3 of 4 instructions executed so far",
+                "note": "Every block runs exactly once, in order -- n blocks means n steps, no more."
+              }
             },
             {
               "activeLine": 3,
@@ -200,7 +221,14 @@
                 "x": 5,
                 "output": "5"
               },
-              "caption": "Program finishes."
+              "caption": "Program finishes.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "4 of 4 instructions executed so far",
+                "note": "Every block runs exactly once, in order -- n blocks means n steps, no more."
+              }
             }
           ]
         }

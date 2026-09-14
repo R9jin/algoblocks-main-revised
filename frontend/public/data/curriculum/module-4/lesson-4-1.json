@@ -102,7 +102,19 @@
                   "index": 0
                 }
               ],
-              "caption": "Amount = 41. Largest coin is 25. 25 <= 41, so we take it."
+              "caption": "Amount = 41. Largest coin is 25. 25 <= 41, so we take it.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "1 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
             },
             {
               "array": [
@@ -120,7 +132,19 @@
                   "index": 0
                 }
               ],
-              "caption": "Amount is now 16 (41 - 25 = 16). Can we take another 25? No (25 > 16)."
+              "caption": "Amount is now 16 (41 - 25 = 16). Can we take another 25? No (25 > 16).",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "2 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             },
             {
               "array": [
@@ -138,7 +162,19 @@
                   "index": 1
                 }
               ],
-              "caption": "Move to the next largest coin, 10. 10 <= 16, so we take it."
+              "caption": "Move to the next largest coin, 10. 10 <= 16, so we take it.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "3 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
             },
             {
               "array": [
@@ -156,7 +192,19 @@
                   "index": 1
                 }
               ],
-              "caption": "Amount is now 6 (16 - 10 = 6). Can we take another 10? No."
+              "caption": "Amount is now 6 (16 - 10 = 6). Can we take another 10? No.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "4 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             },
             {
               "array": [
@@ -174,7 +222,19 @@
                   "index": 2
                 }
               ],
-              "caption": "Move to the next largest coin, 5. 5 <= 6, so we take it."
+              "caption": "Move to the next largest coin, 5. 5 <= 6, so we take it.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "5 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
             },
             {
               "array": [
@@ -192,7 +252,19 @@
                   "index": 2
                 }
               ],
-              "caption": "Amount is now 1 (6 - 5 = 1). Cannot take another 5."
+              "caption": "Amount is now 1 (6 - 5 = 1). Cannot take another 5.",
+              "complexity": {
+                "opsSoFar": 6,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "6 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             },
             {
               "array": [
@@ -210,7 +282,19 @@
                   "index": 3
                 }
               ],
-              "caption": "Move to the next largest coin, 1. 1 <= 1, so we take it."
+              "caption": "Move to the next largest coin, 1. 1 <= 1, so we take it.",
+              "complexity": {
+                "opsSoFar": 7,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "7 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
             },
             {
               "array": [
@@ -226,8 +310,29 @@
                 "3": "found"
               },
               "pointers": [],
-              "caption": "Amount is 0. Total coins used: 1x25, 1x10, 1x5, 1x1 = 4 coins."
+              "caption": "Amount is 0. Total coins used: 1x25, 1x10, 1x5, 1x1 = 4 coins.",
+              "complexity": {
+                "opsSoFar": 8,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "8 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 6,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 6
             }
+          ],
+          "codeLines": [
+            "def make_change(coins, amount):",
+            "    result = []",
+            "    for coin in coins:",
+            "        while amount >= coin:",
+            "            amount -= coin",
+            "            result.append(coin)",
+            "    return result"
           ]
         }
       ]

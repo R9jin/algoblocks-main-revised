@@ -104,7 +104,19 @@
                   "index": 6
                 }
               ],
-              "caption": "Pivot is 70. i starts at -1. j starts at 0."
+              "caption": "Pivot is 70. i starts at -1. j starts at 0.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 10,
+                "bigO": "O(n) this partition",
+                "formula": "1 of 10 elements scanned so far",
+                "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
             },
             {
               "array": [
@@ -134,7 +146,19 @@
                   "index": 6
                 }
               ],
-              "caption": "j=0 (10) < 70. i increments to 0. Swap arr[0] and arr[0] (no change)."
+              "caption": "j=0 (10) < 70. i increments to 0. Swap arr[0] and arr[0] (no change).",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 10,
+                "bigO": "O(n) this partition",
+                "formula": "2 of 10 elements scanned so far",
+                "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
+                "line": 6,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 6
             },
             {
               "array": [
@@ -164,7 +188,19 @@
                   "index": 6
                 }
               ],
-              "caption": "j=1 (80) > 70. Do nothing, just move j."
+              "caption": "j=1 (80) > 70. Do nothing, just move j.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 10,
+                "bigO": "O(n) this partition",
+                "formula": "3 of 10 elements scanned so far",
+                "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             },
             {
               "array": [
@@ -195,7 +231,19 @@
                   "index": 6
                 }
               ],
-              "caption": "j=2 (30) < 70. i increments to 1. Swap arr[1] (80) and arr[2] (30)."
+              "caption": "j=2 (30) < 70. i increments to 1. Swap arr[1] (80) and arr[2] (30).",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 10,
+                "bigO": "O(n) this partition",
+                "formula": "4 of 10 elements scanned so far",
+                "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
+                "line": 6,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 6
             },
             {
               "array": [
@@ -226,7 +274,19 @@
                   "index": 6
                 }
               ],
-              "caption": "Array after swap."
+              "caption": "Array after swap.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 10,
+                "bigO": "O(n) this partition",
+                "formula": "5 of 10 elements scanned so far",
+                "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
+                "line": 6,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 6
             },
             {
               "array": [
@@ -256,7 +316,19 @@
                   "index": 6
                 }
               ],
-              "caption": "j=3 (90) > 70. Do nothing, move j."
+              "caption": "j=3 (90) > 70. Do nothing, move j.",
+              "complexity": {
+                "opsSoFar": 6,
+                "opsTotal": 10,
+                "bigO": "O(n) this partition",
+                "formula": "6 of 10 elements scanned so far",
+                "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
             },
             {
               "array": [
@@ -287,7 +359,19 @@
                   "index": 6
                 }
               ],
-              "caption": "j=4 (40) < 70. i increments to 2. Swap arr[2] (80) and arr[4] (40)."
+              "caption": "j=4 (40) < 70. i increments to 2. Swap arr[2] (80) and arr[4] (40).",
+              "complexity": {
+                "opsSoFar": 7,
+                "opsTotal": 10,
+                "bigO": "O(n) this partition",
+                "formula": "7 of 10 elements scanned so far",
+                "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
+                "line": 6,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 6
             },
             {
               "array": [
@@ -318,7 +402,19 @@
                   "index": 6
                 }
               ],
-              "caption": "j=5 (50) < 70. i increments to 3. Swap arr[3] (90) and arr[5] (50)."
+              "caption": "j=5 (50) < 70. i increments to 3. Swap arr[3] (90) and arr[5] (50).",
+              "complexity": {
+                "opsSoFar": 8,
+                "opsTotal": 10,
+                "bigO": "O(n) this partition",
+                "formula": "8 of 10 elements scanned so far",
+                "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
+                "line": 6,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 6
             },
             {
               "array": [
@@ -348,7 +444,19 @@
                   "index": 4
                 }
               ],
-              "caption": "Loop ends. Swap pivot (70) with arr[i+1] (80). 70 is now in its final sorted position!"
+              "caption": "Loop ends. Swap pivot (70) with arr[i+1] (80). 70 is now in its final sorted position!",
+              "complexity": {
+                "opsSoFar": 9,
+                "opsTotal": 10,
+                "bigO": "O(n) this partition",
+                "formula": "9 of 10 elements scanned so far",
+                "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
+                "line": 7,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 7
             },
             {
               "array": [
@@ -369,8 +477,31 @@
                   "index": 4
                 }
               ],
-              "caption": "Partition complete. All elements left of 70 are smaller; all to the right are larger."
+              "caption": "Partition complete. All elements left of 70 are smaller; all to the right are larger.",
+              "complexity": {
+                "opsSoFar": 10,
+                "opsTotal": 10,
+                "bigO": "O(n) this partition",
+                "formula": "10 of 10 elements scanned so far",
+                "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
+                "line": 8,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 8
             }
+          ],
+          "codeLines": [
+            "def partition(arr, low, high):",
+            "    pivot = arr[high]",
+            "    i = low - 1",
+            "    for j in range(low, high):",
+            "        if arr[j] < pivot:",
+            "            i += 1",
+            "            arr[i], arr[j] = arr[j], arr[i]",
+            "    arr[i + 1], arr[high] = arr[high], arr[i + 1]",
+            "    return i + 1"
           ]
         }
       ]
