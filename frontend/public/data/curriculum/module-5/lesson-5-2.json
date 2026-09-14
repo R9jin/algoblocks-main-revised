@@ -46,11 +46,11 @@
       "type": "concept",
       "title": "Why Fibonacci Is Important in Dynamic Programming",
       "content": "The Fibonacci problem is the **\"Hello World\" of Dynamic Programming**. It perfectly illustrates core DP concepts without the complexity of 2D tables or complex state definitions.\n\nA recursive Fibonacci algorithm repeatedly solves identical smaller values again and again. You can see exactly the same `F(3)` being computed multiple times in the recursion tree. This repetition is highly visible, measurable, and easy to understand.\n\nKey learning outcomes include:\n1.  **Seeing overlapping subproblems** in the recursion tree.\n2.  **Learning memoization** by adding a simple cache.\n3.  **Learning tabulation** by building from the bottom up.\n4.  **Noticing space optimization** by realizing only the last two values actually matter.\n\nUnderstanding Fibonacci optimization builds the foundation for all DP problems. The exact same pattern applies to climbing stairs, coin change, and knapsack algorithms.",
-      "bullets": [
-        "Demonstrates **overlapping subproblems** clearly.",
-        "Introduces **memoization** and **tabulation** directly.",
-        "Shows how DP cleanly eliminates **redundant computation**.",
-        "Teaches step-by-step **optimization reasoning**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-5-2-why-fibonacci-important.svg",
+          "alt": "Why Fibonacci Is Important in Dynamic Programming: Demonstrates overlapping subproblems clearly.; Introduces memoization and tabulation directly.; Shows how DP cleanly eliminates redundant computation.; Teaches step-by-step optimization reasoning.."
+        }
       ]
     },
     {
@@ -304,13 +304,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Fibonacci perfectly demonstrates **overlapping subproblems**.",
-        "Naive recursion repeatedly recomputes identical values (`O(2^n)`).",
-        "**Memoization** stores computed results in a cache for reuse (Top-Down).",
-        "**Tabulation** builds answers iteratively in an array (Bottom-Up).",
-        "Dynamic Programming reduces Fibonacci to **linear time (`O(n)`)**.",
-        "**Space optimization** can reduce memory complexity to absolute `O(1)`."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-5-2-takeaways.svg",
+          "alt": "Key Takeaways: Fibonacci perfectly demonstrates overlapping subproblems.; Naive recursion repeatedly recomputes identical values (O(2^n)).; Memoization stores computed results in a cache for reuse (Top-Down).; Tabulation builds answers iteratively in an array (Bottom-Up).; Dynamic Programming reduces Fibonacci to linear time (O(n)).; Space optimization can reduce memory complexity to absolute O(1).."
+        }
       ]
     }
   ],

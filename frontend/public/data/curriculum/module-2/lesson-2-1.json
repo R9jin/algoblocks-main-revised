@@ -47,11 +47,11 @@
       "type": "concept",
       "title": "The Engineering Value of Brute Force",
       "content": "A brute-force implementation gives you a **trusted baseline** -- correct output on small inputs that you can check faster algorithms against.\n\nIt also makes the whole search space visible: checking every combination lets you spot redundant work and memory issues directly. And on small, bounded inputs (a 4-element config array, a tiny state machine), brute force is genuinely the right tool -- no risk, no overhead.",
-      "bullets": [
-        "A **correct baseline** for testing faster algorithms.",
-        "Covers the **full search space** -- no missed edge cases.",
-        "Reliable on **small, bounded datasets**.",
-        "**Minimal setup** -- no preprocessing required."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-1-why-brute-force-matters.svg",
+          "alt": "The Engineering Value of Brute Force: A correct baseline for testing faster algorithms.; Covers the full search space -- no missed edge cases.; Reliable on small, bounded datasets.; Minimal setup -- no preprocessing required.."
+        }
       ]
     },
     {
@@ -388,26 +388,10 @@
       "id": "advantages-limitations",
       "type": "concept",
       "title": "Advantages and Limitations",
-      "subsections": [
+      "images": [
         {
-          "id": "advantages",
-          "title": "Advantages",
-          "bullets": [
-            "**Easy to understand and implement**.",
-            "A solid **correctness baseline**.",
-            "**Reliable** on small search spaces.",
-            "Great for **debugging and testing** faster solutions."
-          ]
-        },
-        {
-          "id": "limitations",
-          "title": "Limitations",
-          "bullets": [
-            "Does **unnecessary work**.",
-            "**Scales poorly** as candidates grow.",
-            "Can burn **excessive time or memory**.",
-            "Often **impractical** for large or real-time systems."
-          ]
+          "src": "/assets/lesson-visuals/auto/lesson-2-1-advantages-limitations-comparison.svg",
+          "alt": "Comparison: Advantages - Easy to understand and implement.; A solid correctness baseline.; Reliable on small search spaces.; Great for debugging and testing faster solutions.. Limitations - Does unnecessary work.; Scales poorly as candidates grow.; Can burn excessive time or memory.; Often impractical for large or real-time systems.."
         }
       ]
     },
@@ -443,12 +427,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Brute force solves problems by **systematically checking every candidate**.",
-        "Simple, and **usually guarantees correctness**.",
-        "A great **baseline before optimizing**.",
-        "Cost depends on **how many candidates get tested**.",
-        "Large search spaces can make it **impractical** -- watch for quadratic or exponential blowup."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-1-takeaways.svg",
+          "alt": "Key Takeaways: Brute force solves problems by systematically checking every candidate.; Simple, and usually guarantees correctness.; A great baseline before optimizing.; Cost depends on how many candidates get tested.; Large search spaces can make it impractical -- watch for quadratic or exponential blowup.."
+        }
       ]
     }
   ],

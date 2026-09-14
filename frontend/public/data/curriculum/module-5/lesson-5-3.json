@@ -46,11 +46,11 @@
       "type": "concept",
       "title": "Why the Knapsack Problem Matters",
       "content": "Many real-world systems involve strictly limited resources combined with optimization goals. You want to maximize a benefit without breaking a hard limit.\n\nApplications include:\n1.  **Investment Planning:** Choosing which stocks to buy with a fixed capital limit to maximize expected portfolio return.\n2.  **Logistics/Cargo:** Selecting which shipping containers to put on an airplane without exceeding takeoff weight limits.\n3.  **Budget Optimization:** Choosing which corporate projects to fund given a fixed annual budget to maximize overall profit.\n4.  **Server Allocation:** Assigning processing tasks to servers with capped CPU/memory capacity to maximize throughput.\n\nThe challenge is maximizing benefit while respecting limitations. Understanding the Knapsack algorithmic structure helps you design automated decision-making engines for all of these domains.",
-      "bullets": [
-        "Demonstrates complex **constrained optimization**.",
-        "Teaches multi-variable **decision-making under limitations**.",
-        "Introduces the foundational **2D Dynamic Programming matrix**.",
-        "Appears natively in **budgeting and logistics systems**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-5-3-why-knapsack-matters.svg",
+          "alt": "Why the Knapsack Problem Matters: Demonstrates complex constrained optimization.; Teaches multi-variable decision-making under limitations.; Introduces the foundational 2D Dynamic Programming matrix.; Appears natively in budgeting and logistics systems.."
+        }
       ]
     },
     {
@@ -289,13 +289,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "0/1 Knapsack focuses on optimal discrete selection under a **hard constraint**.",
-        "Items must be taken entirely (1) or left entirely (0).",
-        "**Greedy selection fails** because discrete sizes trap wasted capacity.",
-        "Dynamic Programming uses a **2D matrix** to test all sub-capacities.",
-        "The recurrence chooses `max(exclude_item, include_item)`.",
-        "The algorithm runs in **`O(n * W)` time**, saving it from `O(2^n)` exponential death."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-5-3-takeaways.svg",
+          "alt": "Key Takeaways: 0/1 Knapsack focuses on optimal discrete selection under a hard constraint.; Items must be taken entirely (1) or left entirely (0).; Greedy selection fails because discrete sizes trap wasted capacity.; Dynamic Programming uses a 2D matrix to test all sub-capacities.; The recurrence chooses max(exclude_item, include_item).; The algorithm runs in O(n * W) time, saving it from O(2^n) exponential death.."
+        }
       ]
     }
   ],

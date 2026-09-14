@@ -45,10 +45,11 @@
       "type": "concept",
       "title": "Why Greedy Algorithms Matter",
       "content": "Real systems -- flight gate scheduling, CPU task queues, GPS routing -- can't afford to test every possibility. Scheduling 100 tasks has 100! possible orderings (~9×10¹⁵⁷) -- far more than atoms in the universe. Exhaustive search is a non-starter; greedy is the practical alternative.\n\n**GPS navigation** (Dijkstra's algorithm) greedily expands the nearest unvisited node. **Data compression** (Huffman coding) greedily merges the least-frequent characters. **Scheduling** (earliest-deadline-first) greedily picks the nearest deadline first.",
-      "bullets": [
-        "**Fast** decisions, no exhaustive search.",
-        "Typically **lower memory** usage.",
-        "Powers many real-world **optimization systems**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-4-1-why-greedy-matters.svg",
+          "alt": "Why Greedy Algorithms Matter: Fast decisions, no exhaustive search.; Typically lower memory usage.; Powers many real-world optimization systems.."
+        }
       ]
     },
     {
@@ -416,13 +417,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Greedy makes **locally optimal** decisions.",
-        "It **never revisits** earlier choices.",
-        "Works reliably only when a problem has the **Greedy Choice Property**.",
-        "**Fast and memory-efficient** -- usually O(n) or O(n log n).",
-        "Does **not always guarantee** the optimal solution.",
-        "Knowing when greedy works is the real skill."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-4-1-takeaways.svg",
+          "alt": "Key Takeaways: Greedy makes locally optimal decisions.; It never revisits earlier choices.; Works reliably only when a problem has the Greedy Choice Property.; Fast and memory-efficient -- usually O(n) or O(n log n).; Does not always guarantee the optimal solution.; Knowing when greedy works is the real skill.."
+        }
       ]
     }
   ],

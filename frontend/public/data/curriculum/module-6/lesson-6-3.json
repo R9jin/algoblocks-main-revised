@@ -46,11 +46,11 @@
       "type": "concept",
       "title": "Why the N-Queens Problem Matters",
       "content": "The N-Queens Problem models many real-world constraint-solving situations. Examples include:\n\n* Scheduling systems where tasks cannot overlap.\n* Resource allocation where resources cannot be shared.\n* Puzzle solving like Sudoku.\n* AI search systems, and optimization under restrictions.\n\nIn scheduling, you have limited time slots and tasks that cannot run at the same time. This is similar to placing queens that cannot share rows or columns. In resource allocation, you have limited resources and requests that cannot use the same resource simultaneously.\n\n**The problem demonstrates how recursive search can systematically explore possibilities while rejecting invalid states early.** This early rejection is called pruning. Without pruning, the search would be impossibly large. Understanding this problem helps you solve many other constraint satisfaction problems.",
-      "bullets": [
-        "Demonstrates recursive backtracking clearly.",
-        "Introduces constraint satisfaction problems.",
-        "Shows the importance of pruning.",
-        "Appears in AI and optimization systems."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-6-3-why-nqueens-matters.svg",
+          "alt": "Why the N-Queens Problem Matters: Demonstrates recursive backtracking clearly.; Introduces constraint satisfaction problems.; Shows the importance of pruning.; Appears in AI and optimization systems.."
+        }
       ]
     },
     {
@@ -294,13 +294,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "The N-Queens Problem places queens safely on a chessboard.",
-        "Queens cannot share rows, columns, or diagonals.",
-        "Backtracking explores placements recursively.",
-        "Rollback restores previous board states.",
-        "Pruning eliminates invalid placements early.",
-        "N-Queens demonstrates recursive constraint solving clearly."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-6-3-takeaways.svg",
+          "alt": "Key Takeaways: The N-Queens Problem places queens safely on a chessboard.; Queens cannot share rows, columns, or diagonals.; Backtracking explores placements recursively.; Rollback restores previous board states.; Pruning eliminates invalid placements early.; N-Queens demonstrates recursive constraint solving clearly.."
+        }
       ]
     }
   ],

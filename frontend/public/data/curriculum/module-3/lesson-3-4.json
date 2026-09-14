@@ -47,11 +47,11 @@
       "type": "concept",
       "title": "Why Quick Sort Matters",
       "content": "One of the most practically useful sorts in computer science, for two reasons: **in-place efficiency** (no O(n) auxiliary array, great for embedded systems or huge datasets) and **cache performance** (sequential memory access during partitioning aligns well with how CPU caches work).\n\nWorst case is technically O(n²), but a well-implemented version with randomized pivots gets a reliable **O(n log n)** average -- often outperforming other O(n log n) sorts in the real world.",
-      "bullets": [
-        "Runs **in-place**, minimal extra memory.",
-        "**Cache-friendly** sequential access.",
-        "Built on **pointer manipulation and swapping**.",
-        "The default sort under the hood in many languages."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-4-why-quicksort-matters.svg",
+          "alt": "Why Quick Sort Matters: Runs in-place, minimal extra memory.; Cache-friendly sequential access.; Built on pointer manipulation and swapping.; The default sort under the hood in many languages.."
+        }
       ]
     },
     {
@@ -580,13 +580,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Quick Sort picks a **Pivot** and partitions around it.",
-        "**Partitioning** uses a boundary pointer and a scanner pointer to swap in-place.",
-        "The **Call Stack** fully resolves the left branch before touching the right.",
-        "Average time: **O(n log n)**, with strong cache efficiency.",
-        "Poor pivot choices (e.g. last element on sorted data) cause **O(n²)** worst case.",
-        "**Unstable**, unlike Merge Sort -- but needs no extra array memory."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-4-takeaways.svg",
+          "alt": "Key Takeaways: Quick Sort picks a Pivot and partitions around it.; Partitioning uses a boundary pointer and a scanner pointer to swap in-place.; The Call Stack fully resolves the left branch before touching the right.; Average time: O(n log n), with strong cache efficiency.; Poor pivot choices (e.g. last element on sorted data) cause O(n²) worst case.; Unstable, unlike Merge Sort -- but needs no extra array memory.."
+        }
       ]
     }
   ],

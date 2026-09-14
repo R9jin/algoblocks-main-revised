@@ -47,36 +47,36 @@
       "type": "concept",
       "title": "Why Binary Search Matters",
       "content": "Search is everywhere -- every query, contact lookup, or product filter is a search under the hood.\n\nAt a billion records, linear search (up to 1 billion comparisons) stalls the processor. Binary Search, eliminating half the space per comparison, needs only ~30 -- the difference between a 30-second load and an instant response.",
-      "bullets": [
-        "**Cuts comparisons** from billions to dozens.",
-        "**Scales** to massive real-world datasets.",
-        "A clean demonstration of **Divide and Conquer**.",
-        "Introduces **logarithmic growth** as a concept."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-2-why-binary-search-matters.svg",
+          "alt": "Why Binary Search Matters: Cuts comparisons from billions to dozens.; Scales to massive real-world datasets.; A clean demonstration of Divide and Conquer.; Introduces logarithmic growth as a concept.."
+        }
       ]
     },
     {
       "id": "sorted-data-requirement",
       "type": "deep_dive",
       "title": "The Absolute Requirement: Sorted Data",
-      "content": "Binary Search **only works on sorted data** -- that's what makes the halving safe.\n\nIn `[2, 4, 6, 8, 10, 12]`, if the target is 10 and the middle is 8, the target must be to the right -- guaranteed, since everything left of 8 is \u2264 8.\n\nOn unsorted data like `[10, 2, 8, 6, 12, 4]`, that guarantee vanishes -- the algorithm can discard the wrong half entirely and miss the target.\n\nIf your data is unsorted, sort it first (O(n log n)). One-off search? Plain linear search is faster. Searching many times? Sorting once pays off fast."
+      "content": "Binary Search **only works on sorted data** -- that's what makes the halving safe.\n\nIn `[2, 4, 6, 8, 10, 12]`, if the target is 10 and the middle is 8, the target must be to the right -- guaranteed, since everything left of 8 is ≤ 8.\n\nOn unsorted data like `[10, 2, 8, 6, 12, 4]`, that guarantee vanishes -- the algorithm can discard the wrong half entirely and miss the target.\n\nIf your data is unsorted, sort it first (O(n log n)). One-off search? Plain linear search is faster. Searching many times? Sorting once pays off fast."
     },
     {
       "id": "core-idea",
       "type": "concept",
       "title": "The Core Idea of Binary Search",
-      "content": "You don't need to read every element -- just narrow down where the target could be.\n\nLoop:\n1. Find the middle element.\n2. Compare it to the target.\n3. Discard the half that can't contain it (target < middle \u2192 discard right; target > middle \u2192 discard left).\n4. Repeat on what's left.\n\nStop when found, or when the search space hits zero (return -1). Max steps for n elements: roughly log\u2082(n) + 1."
+      "content": "You don't need to read every element -- just narrow down where the target could be.\n\nLoop:\n1. Find the middle element.\n2. Compare it to the target.\n3. Discard the half that can't contain it (target < middle → discard right; target > middle → discard left).\n4. Repeat on what's left.\n\nStop when found, or when the search space hits zero (return -1). Max steps for n elements: roughly log₂(n) + 1."
     },
     {
       "id": "search-pointers",
       "type": "deep_dive",
       "title": "Understanding the Search Pointers",
-      "content": "Three pointers drive the search: **low** (start of the range), **high** (end of the range), **mid** (current middle, recalculated each step).\n\n`low` starts at 0, `high` starts at `len - 1`. The loop runs while `low <= high` -- one element left means `low == high`; `low > high` means the search space is empty and the target isn't there.\n\nUpdating the pointers:\n1. Target > mid \u2192 `low = mid + 1` (search right half).\n2. Target < mid \u2192 `high = mid - 1` (search left half).\n3. Get this math wrong (forgetting the +1/-1) and you'll trap the program in an infinite loop."
+      "content": "Three pointers drive the search: **low** (start of the range), **high** (end of the range), **mid** (current middle, recalculated each step).\n\n`low` starts at 0, `high` starts at `len - 1`. The loop runs while `low <= high` -- one element left means `low == high`; `low > high` means the search space is empty and the target isn't there.\n\nUpdating the pointers:\n1. Target > mid → `low = mid + 1` (search right half).\n2. Target < mid → `high = mid - 1` (search left half).\n3. Get this math wrong (forgetting the +1/-1) and you'll trap the program in an infinite loop."
     },
     {
       "id": "step-by-step-example",
       "type": "deep_dive",
       "title": "Step-by-Step Pointer Execution",
-      "content": "Searching for `11` in `[1, 3, 5, 7, 9, 11, 15]`:\n\n**Step 1:** low=0, high=6 \u2192 mid=3 (value 7). 11 > 7, discard left. `low = 4`. Remaining: `[9, 11, 15]`.\n\n**Step 2:** low=4, high=6 \u2192 mid=5 (value 11). Match! Return index 5. Just 2 comparisons.\n\n**Not-found example:** searching for `10` -- pointers eventually cross (`low` becomes 5, `high` becomes 4). Since `low > high`, the loop ends and returns -1.\n\nFrom 7 elements, 2 comparisons. At 1 million elements, still only ~20.",
+      "content": "Searching for `11` in `[1, 3, 5, 7, 9, 11, 15]`:\n\n**Step 1:** low=0, high=6 → mid=3 (value 7). 11 > 7, discard left. `low = 4`. Remaining: `[9, 11, 15]`.\n\n**Step 2:** low=4, high=6 → mid=5 (value 11). Match! Return index 5. Just 2 comparisons.\n\n**Not-found example:** searching for `10` -- pointers eventually cross (`low` becomes 5, `high` becomes 4). Since `low > high`, the loop ends and returns -1.\n\nFrom 7 elements, 2 comparisons. At 1 million elements, still only ~20.",
       "traces": [
         {
           "kind": "array",
@@ -551,7 +551,7 @@
       "id": "recursive-binary-search",
       "type": "concept",
       "title": "Recursive Binary Search & The Call Stack",
-      "content": "Binary Search also works recursively -- instead of a `while` loop updating variables, the function calls itself with new `low`/`high` boundaries each time.\n\n**Tracing a search for `9`** in `[1, 3, 5, 7, 9, 11, 15]`:\n\n* **Push:** `search(low=0, high=6)` \u2192 mid=3 (7). 9 > 7 \u2192 calls `search(4, 6)`.\n* **Push:** `search(low=4, high=6)` \u2192 mid=5 (11). 9 < 11 \u2192 calls `search(4, 4)`.\n* **Push:** `search(low=4, high=4)` \u2192 mid=4 (9). Match! Returns `4`.\n* **Pop, pop, pop:** `4` flows back up through each frame to the caller.\n\nRecursive versions use **O(log n) stack memory**; the iterative version stays at O(1).",
+      "content": "Binary Search also works recursively -- instead of a `while` loop updating variables, the function calls itself with new `low`/`high` boundaries each time.\n\n**Tracing a search for `9`** in `[1, 3, 5, 7, 9, 11, 15]`:\n\n* **Push:** `search(low=0, high=6)` → mid=3 (7). 9 > 7 → calls `search(4, 6)`.\n* **Push:** `search(low=4, high=6)` → mid=5 (11). 9 < 11 → calls `search(4, 4)`.\n* **Push:** `search(low=4, high=4)` → mid=4 (9). Match! Returns `4`.\n* **Pop, pop, pop:** `4` flows back up through each frame to the caller.\n\nRecursive versions use **O(log n) stack memory**; the iterative version stays at O(1).",
       "codeSnippets": [
         {
           "title": "Recursive Binary Search",
@@ -564,7 +564,7 @@
       "id": "complexity-analysis",
       "type": "deep_dive",
       "title": "Complexity Analysis",
-      "content": "**Time:** Best case **O(1)** (target is the very first middle checked). Average/worst case **O(log n)** -- max divisions to shrink to 1 element is log\u2082(n).\n\n**Space:** Iterative -- **O(1)**, just three integers (`low`, `high`, `mid`) regardless of array size. Recursive -- **O(log n)**, one stack frame per call (~30 frames for 1 billion elements -- safe, but heavier than iterative).",
+      "content": "**Time:** Best case **O(1)** (target is the very first middle checked). Average/worst case **O(log n)** -- max divisions to shrink to 1 element is log₂(n).\n\n**Space:** Iterative -- **O(1)**, just three integers (`low`, `high`, `mid`) regardless of array size. Recursive -- **O(log n)**, one stack frame per call (~30 frames for 1 billion elements -- safe, but heavier than iterative).",
       "chart": {
         "title": "Execution Complexity",
         "description": "Logarithmic performance flattens out entirely as data scales toward infinity.",
@@ -594,25 +594,10 @@
       "id": "advantages-limitations",
       "type": "concept",
       "title": "Advantages and Limitations",
-      "subsections": [
+      "images": [
         {
-          "id": "advantages",
-          "title": "Advantages",
-          "bullets": [
-            "**Blazing fast** on massive datasets.",
-            "Pure **logarithmic** reduction.",
-            "**O(1) memory** when written iteratively.",
-            "The foundation of database indexing."
-          ]
-        },
-        {
-          "id": "limitations",
-          "title": "Limitations",
-          "bullets": [
-            "Requires maintaining **sorted data**.",
-            "Fails on structures without random access (linked lists).",
-            "Off-by-one pointer errors cause **infinite loops**."
-          ]
+          "src": "/assets/lesson-visuals/auto/lesson-3-2-advantages-limitations-comparison.svg",
+          "alt": "Comparison: Advantages - Blazing fast on massive datasets.; Pure logarithmic reduction.; O(1) memory when written iteratively.; The foundation of database indexing.. Limitations - Requires maintaining sorted data.; Fails on structures without random access (linked lists).; Off-by-one pointer errors cause infinite loops.."
         }
       ]
     },
@@ -648,13 +633,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Binary Search only works on **sorted data**.",
-        "It **halves the search space** every step.",
-        "Tracked with **`low`, `high`, `mid`** pointers.",
-        "Update with **`mid + 1` / `mid - 1`** to avoid infinite loops.",
-        "Achieves **O(log n)** time.",
-        "Iterative (O(1) memory) or recursive (O(log n) via the **Call Stack**)."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-2-takeaways.svg",
+          "alt": "Key Takeaways: Binary Search only works on sorted data.; It halves the search space every step.; Tracked with low, high, mid pointers.; Update with mid + 1 / mid - 1 to avoid infinite loops.; Achieves O(log n) time.; Iterative (O(1) memory) or recursive (O(log n) via the Call Stack).."
+        }
       ]
     }
   ],

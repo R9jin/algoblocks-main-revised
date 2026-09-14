@@ -45,11 +45,11 @@
       "type": "concept",
       "title": "Why This Problem Matters",
       "content": "Returning 36 pennies technically works, but it's inconvenient for everyone -- systems need to minimize the coin/bill count.\n\n**Vending machines** need fast, exact change from limited coin supplies. **ATMs** dispense optimal bill denominations to reduce mechanical wear. **Banking software** computes optimal cash distributions for bulk orders.\n\nThe same reasoning shows up in inventory packing, disk-block allocation, and schedule filling -- anywhere you're minimizing the count of \"units\" used to hit a target.",
-      "bullets": [
-        "**Minimizes coin count**.",
-        "A clean demonstration of **greedy optimization**.",
-        "Runs constantly in real **financial systems**.",
-        "Teaches **local decision-making**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-4-2-why-problem-matters.svg",
+          "alt": "Why This Problem Matters: Minimizes coin count.; A clean demonstration of greedy optimization.; Runs constantly in real financial systems.; Teaches local decision-making.."
+        }
       ]
     },
     {
@@ -237,13 +237,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "The goal: **minimize the number of coins** used.",
-        "Greedy repeatedly takes the **largest denomination that fits**.",
-        "Local optimal choices **don't always** produce the global optimum.",
-        "US/Euro-style currencies are **designed for greedy correctness**.",
-        "Greedy is **fast and memory-light**.",
-        "**Dynamic Programming** is needed when greedy fails on arbitrary coins."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-4-2-takeaways.svg",
+          "alt": "Key Takeaways: The goal: minimize the number of coins used.; Greedy repeatedly takes the largest denomination that fits.; Local optimal choices don't always produce the global optimum.; US/Euro-style currencies are designed for greedy correctness.; Greedy is fast and memory-light.; Dynamic Programming is needed when greedy fails on arbitrary coins.."
+        }
       ]
     }
   ],

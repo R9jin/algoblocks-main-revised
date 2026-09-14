@@ -47,11 +47,11 @@
       "type": "concept",
       "title": "Why Merge Sort Matters",
       "content": "Search engines, databases, and analytics platforms all lean on fast, reliable sorting -- and simple O(n²) sorts just don't scale.\n\n25,000x is the real gap at n=1 million (500 billion vs 20 million comparisons). And unlike Quick Sort, Merge Sort has no pathological worst case -- it's always O(n log n).\n\nIt's also **stable**: equal elements keep their original order, which matters a lot for multi-key sorts (e.g. sort by last name, then first name).",
-      "bullets": [
-        "Scales efficiently to massive datasets.",
-        "Strict **Divide and Conquer** recursion.",
-        "Guaranteed **O(n log n)**, no worst-case surprises.",
-        "**Stable** sort."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-3-why-merge-sort-matters.svg",
+          "alt": "Why Merge Sort Matters: Scales efficiently to massive datasets.; Strict Divide and Conquer recursion.; Guaranteed O(n log n), no worst-case surprises.; Stable sort.."
+        }
       ]
     },
     {
@@ -278,26 +278,10 @@
       "id": "advantages-limitations",
       "type": "concept",
       "title": "Advantages and Limitations",
-      "subsections": [
+      "images": [
         {
-          "id": "advantages",
-          "title": "Advantages",
-          "bullets": [
-            "Efficient on **massive datasets**.",
-            "Guaranteed **O(n log n)**.",
-            "**Stable** -- preserves duplicate order.",
-            "A clean example of Divide and Conquer."
-          ]
-        },
-        {
-          "id": "limitations",
-          "title": "Limitations",
-          "bullets": [
-            "Needs **O(n) extra memory**.",
-            "Recursive flow can confuse beginners.",
-            "Pointer tracking in the merge takes practice.",
-            "Usually a bit slower than Quick Sort in practice due to allocation overhead."
-          ]
+          "src": "/assets/lesson-visuals/auto/lesson-3-3-advantages-limitations-comparison.svg",
+          "alt": "Comparison: Advantages - Efficient on massive datasets.; Guaranteed O(n log n).; Stable -- preserves duplicate order.; A clean example of Divide and Conquer.. Limitations - Needs O(n) extra memory.; Recursive flow can confuse beginners.; Pointer tracking in the merge takes practice.; Usually a bit slower than Quick Sort in practice due to allocation overhead.."
         }
       ]
     },
@@ -333,13 +317,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Merge Sort splits down to **base cases of size 1**.",
-        "The Call Stack drills down the **left branch first**.",
-        "All sorting happens in the bottom-up **Merge Phase**.",
-        "Merging uses pointers to build a temporary **Auxiliary Array**.",
-        "**O(n log n)** time, **O(n)** space.",
-        "It's a **Stable Sort**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-3-takeaways.svg",
+          "alt": "Key Takeaways: Merge Sort splits down to base cases of size 1.; The Call Stack drills down the left branch first.; All sorting happens in the bottom-up Merge Phase.; Merging uses pointers to build a temporary Auxiliary Array.; O(n log n) time, O(n) space.; It's a Stable Sort.."
+        }
       ]
     }
   ],

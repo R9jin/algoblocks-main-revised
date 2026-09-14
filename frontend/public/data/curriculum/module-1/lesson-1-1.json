@@ -41,7 +41,7 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction to Algorithm Complexity",
-      "content": "You've already seen the Complexity Analyzer stamp your blocks with an O(n) or O(n\u00b2) rating. This lesson is where you learn to read that rating like the analyzer does -- and eventually, to predict it yourself before you even open the tab.\n\nBig-O measures how an algorithm's workload grows as its input size `n` grows -- not how fast it happens to run on your machine today, but how it'll hold up once the data gets big. Two algorithms can look identical on a 10-item test case and behave completely differently once that input hits a million.\n\nWhy does that matter? Three reasons: **Performance** -- slow algorithms waste real time and resources. **Scalability** -- going from 1,000 to 1,000,000 items slows an O(n\u00b2) algorithm down by roughly 1,000x, while an O(n log n) one only slows down by about 20x. **Portability** -- Big-O lets you compare two algorithms on their own merits, without caring what hardware or language either one happens to run on."
+      "content": "You've already seen the Complexity Analyzer stamp your blocks with an O(n) or O(n²) rating. This lesson is where you learn to read that rating like the analyzer does -- and eventually, to predict it yourself before you even open the tab.\n\nBig-O measures how an algorithm's workload grows as its input size `n` grows -- not how fast it happens to run on your machine today, but how it'll hold up once the data gets big. Two algorithms can look identical on a 10-item test case and behave completely differently once that input hits a million.\n\nWhy does that matter? Three reasons: **Performance** -- slow algorithms waste real time and resources. **Scalability** -- going from 1,000 to 1,000,000 items slows an O(n²) algorithm down by roughly 1,000x, while an O(n log n) one only slows down by about 20x. **Portability** -- Big-O lets you compare two algorithms on their own merits, without caring what hardware or language either one happens to run on."
     },
     {
       "id": "cost-models",
@@ -85,13 +85,13 @@
       "subsections": [
         {
           "id": "omega-bound",
-          "title": "Big-Omega (\u03a9): The Best-Case Scenario",
-          "content": "The minimum work required, under the most favorable input. In a Linear Search, if the target is the very first item, that's **\u03a9(1)**. Useful in theory, but risky to design around -- you can't count on lucky data."
+          "title": "Big-Omega (Ω): The Best-Case Scenario",
+          "content": "The minimum work required, under the most favorable input. In a Linear Search, if the target is the very first item, that's **Ω(1)**. Useful in theory, but risky to design around -- you can't count on lucky data."
         },
         {
           "id": "theta-bound",
-          "title": "Big-Theta (\u0398): The Average-Case Scenario",
-          "content": "The expected performance across typical, randomly-distributed inputs. A Linear Search usually finds its target somewhere near the middle, giving an average of `n/2` steps -- which simplifies to **\u0398(n)**."
+          "title": "Big-Theta (Θ): The Average-Case Scenario",
+          "content": "The expected performance across typical, randomly-distributed inputs. A Linear Search usually finds its target somewhere near the middle, giving an average of `n/2` steps -- which simplifies to **Θ(n)**."
         },
         {
           "id": "o-bound",
@@ -109,7 +109,7 @@
         {
           "id": "general-properties",
           "title": "1. General Properties (Simplification Rules)",
-          "content": "Drop constants and low-order terms. `3n + 2` becomes O(n); `n\u00b2 + n` becomes O(n\u00b2) -- once n is large, the n\u00b2 term makes the rest irrelevant."
+          "content": "Drop constants and low-order terms. `3n + 2` becomes O(n); `n² + n` becomes O(n²) -- once n is large, the n² term makes the rest irrelevant."
         },
         {
           "id": "transitive",
@@ -124,12 +124,12 @@
         {
           "id": "symmetric",
           "title": "4. Symmetric Properties",
-          "content": "If f(n) is \u0398(g(n)), then g(n) is \u0398(f(n)) -- tight bounds go both ways."
+          "content": "If f(n) is Θ(g(n)), then g(n) is Θ(f(n)) -- tight bounds go both ways."
         },
         {
           "id": "transpose-symmetric",
           "title": "5. Transpose Symmetric Properties",
-          "content": "If f(n) is O(g(n)), then g(n) is \u03a9(f(n)) -- upper and lower bounds mirror each other."
+          "content": "If f(n) is O(g(n)), then g(n) is Ω(f(n)) -- upper and lower bounds mirror each other."
         }
       ]
     },
@@ -546,11 +546,11 @@
         },
         {
           "id": "o-n-squared",
-          "title": "O(n\u00b2) Quadratic Time",
-          "content": "**Description:** Work grows with the square of n. Typical of two nested loops. Inefficient at scale.\n\n**Example:** Bubble Sort, Selection Sort, Insertion Sort, naive n\u00d7n matrix traversal.\n\n**Loop:** A loop nested inside another loop, both scaling with n.",
+          "title": "O(n²) Quadratic Time",
+          "content": "**Description:** Work grows with the square of n. Typical of two nested loops. Inefficient at scale.\n\n**Example:** Bubble Sort, Selection Sort, Insertion Sort, naive n×n matrix traversal.\n\n**Loop:** A loop nested inside another loop, both scaling with n.",
           "chart": {
-            "title": "O(n\u00b2) Quadratic Time Growth",
-            "description": "Steep: n=10 \u2192 100 ops, n=100 \u2192 10,000 ops.",
+            "title": "O(n²) Quadratic Time Growth",
+            "description": "Steep: n=10 → 100 ops, n=100 → 10,000 ops.",
             "maxN": 20,
             "normalize": true,
             "curves": [
@@ -560,7 +560,7 @@
           "traces": [
             {
               "kind": "array",
-              "title": "O(n\u00b2) - Comparing all pairs",
+              "title": "O(n²) - Comparing all pairs",
               "description": "For 4 items, we need many checks (nested loops) to compare everything.",
               "steps": [
                 {
@@ -588,9 +588,9 @@
                   "complexity": {
                     "opsSoFar": 1,
                     "opsTotal": 6,
-                    "bigO": "O(n\u00b2)",
+                    "bigO": "O(n²)",
                     "formula": "1 of 6 pair comparisons so far",
-                    "note": "Every element is compared against every other element -- n \u00d7 n comparisons total.",
+                    "note": "Every element is compared against every other element -- n × n comparisons total.",
                     "line": 4,
                     "lineOps": 1,
                     "localBigO": "O(1)",
@@ -623,9 +623,9 @@
                   "complexity": {
                     "opsSoFar": 2,
                     "opsTotal": 6,
-                    "bigO": "O(n\u00b2)",
+                    "bigO": "O(n²)",
                     "formula": "2 of 6 pair comparisons so far",
-                    "note": "Every element is compared against every other element -- n \u00d7 n comparisons total.",
+                    "note": "Every element is compared against every other element -- n × n comparisons total.",
                     "line": 4,
                     "lineOps": 1,
                     "localBigO": "O(1)",
@@ -658,9 +658,9 @@
                   "complexity": {
                     "opsSoFar": 3,
                     "opsTotal": 6,
-                    "bigO": "O(n\u00b2)",
+                    "bigO": "O(n²)",
                     "formula": "3 of 6 pair comparisons so far",
-                    "note": "Every element is compared against every other element -- n \u00d7 n comparisons total.",
+                    "note": "Every element is compared against every other element -- n × n comparisons total.",
                     "line": 4,
                     "lineOps": 1,
                     "localBigO": "O(1)",
@@ -693,9 +693,9 @@
                   "complexity": {
                     "opsSoFar": 4,
                     "opsTotal": 6,
-                    "bigO": "O(n\u00b2)",
+                    "bigO": "O(n²)",
                     "formula": "4 of 6 pair comparisons so far",
-                    "note": "Every element is compared against every other element -- n \u00d7 n comparisons total.",
+                    "note": "Every element is compared against every other element -- n × n comparisons total.",
                     "line": 4,
                     "lineOps": 1,
                     "localBigO": "O(1)",
@@ -728,9 +728,9 @@
                   "complexity": {
                     "opsSoFar": 5,
                     "opsTotal": 6,
-                    "bigO": "O(n\u00b2)",
+                    "bigO": "O(n²)",
                     "formula": "5 of 6 pair comparisons so far",
-                    "note": "Every element is compared against every other element -- n \u00d7 n comparisons total.",
+                    "note": "Every element is compared against every other element -- n × n comparisons total.",
                     "line": 4,
                     "lineOps": 1,
                     "localBigO": "O(1)",
@@ -763,9 +763,9 @@
                   "complexity": {
                     "opsSoFar": 6,
                     "opsTotal": 6,
-                    "bigO": "O(n\u00b2)",
+                    "bigO": "O(n²)",
                     "formula": "6 of 6 pair comparisons so far",
-                    "note": "Every element is compared against every other element -- n \u00d7 n comparisons total.",
+                    "note": "Every element is compared against every other element -- n × n comparisons total.",
                     "line": 4,
                     "lineOps": 1,
                     "localBigO": "O(1)",
@@ -786,10 +786,10 @@
         },
         {
           "id": "o-n-cubed",
-          "title": "O(n\u00b3) Cubic Time",
+          "title": "O(n³) Cubic Time",
           "content": "**Description:** Three nested loops. Slow, but shows up in some dense linear-algebra algorithms.\n\n**Example:** Naive matrix multiplication, dense graph algorithms.\n\n**Loop:** Three loops nested together, all scaling with n.",
           "chart": {
-            "title": "O(n\u00b3) Cubic Time Growth",
+            "title": "O(n³) Cubic Time Growth",
             "description": "Explosive growth from three nested loops.",
             "maxN": 20,
             "normalize": true,
@@ -859,7 +859,7 @@
                 {
                   "opsSoFar": 1,
                   "opsTotal": 5,
-                  "bigO": "O(2\u207f)",
+                  "bigO": "O(2ⁿ)",
                   "formula": "1 of 5 recursive calls so far",
                   "note": "Each level of recursion doubles the number of calls below it.",
                   "line": 0,
@@ -870,7 +870,7 @@
                 {
                   "opsSoFar": 2,
                   "opsTotal": 5,
-                  "bigO": "O(2\u207f)",
+                  "bigO": "O(2ⁿ)",
                   "formula": "2 of 5 recursive calls so far",
                   "note": "Each level of recursion doubles the number of calls below it.",
                   "line": 3,
@@ -881,7 +881,7 @@
                 {
                   "opsSoFar": 3,
                   "opsTotal": 5,
-                  "bigO": "O(2\u207f)",
+                  "bigO": "O(2ⁿ)",
                   "formula": "3 of 5 recursive calls so far",
                   "note": "Each level of recursion doubles the number of calls below it.",
                   "line": 2,
@@ -892,7 +892,7 @@
                 {
                   "opsSoFar": 4,
                   "opsTotal": 5,
-                  "bigO": "O(2\u207f)",
+                  "bigO": "O(2ⁿ)",
                   "formula": "4 of 5 recursive calls so far",
                   "note": "Each level of recursion doubles the number of calls below it.",
                   "line": 2,
@@ -903,7 +903,7 @@
                 {
                   "opsSoFar": 5,
                   "opsTotal": 5,
-                  "bigO": "O(2\u207f)",
+                  "bigO": "O(2ⁿ)",
                   "formula": "5 of 5 recursive calls so far",
                   "note": "Each level of recursion doubles the number of calls below it.",
                   "line": 3,
@@ -946,7 +946,7 @@
         {
           "id": "o-sqrt-n",
           "title": "O(sqrt n) Square Root Time",
-          "content": "**Description:** Scales with the square root of n -- sits between logarithmic and linear.\n\n**Example:** Primality testing by checking factors up to \u221an.\n\n**Loop:** Condition like `while i * i <= n`.",
+          "content": "**Description:** Scales with the square root of n -- sits between logarithmic and linear.\n\n**Example:** Primality testing by checking factors up to √n.\n\n**Loop:** Condition like `while i * i <= n`.",
           "chart": {
             "title": "O(sqrt n) Square Root Growth",
             "description": "Between O(log n) and O(n).",
@@ -960,10 +960,10 @@
         {
           "id": "o-n-m",
           "title": "O(n * m) Multi-Variable Time",
-          "content": "**Description:** Bound by two different input sizes instead of one.\n\n**Example:** Processing a rows \u00d7 columns matrix, comparing two strings of different lengths.\n\n**Loop:** Outer loop of n, inner loop of m.",
+          "content": "**Description:** Bound by two different input sizes instead of one.\n\n**Example:** Processing a rows × columns matrix, comparing two strings of different lengths.\n\n**Loop:** Outer loop of n, inner loop of m.",
           "chart": {
             "title": "Multi-Variable Growth Representation",
-            "description": "Looks quadratic when n \u2248 m.",
+            "description": "Looks quadratic when n ≈ m.",
             "maxN": 20,
             "normalize": true,
             "curves": [
@@ -1001,10 +1001,10 @@
         },
         {
           "id": "o-log-quadratic",
-          "title": "O(n\u00b2 log n) Log-Quadratic Time",
-          "content": "**Description:** A quadratic pass combined with a logarithmic step, like sorting inside a nested loop.\n\n**Example:** Sorting every row of a matrix, some computational-geometry algorithms.\n\n**Loop:** Nested O(n\u00b2) loop with an O(log n) operation inside.",
+          "title": "O(n² log n) Log-Quadratic Time",
+          "content": "**Description:** A quadratic pass combined with a logarithmic step, like sorting inside a nested loop.\n\n**Example:** Sorting every row of a matrix, some computational-geometry algorithms.\n\n**Loop:** Nested O(n²) loop with an O(log n) operation inside.",
           "chart": {
-            "title": "O(n\u00b2 log n) Log-Quadratic Growth",
+            "title": "O(n² log n) Log-Quadratic Growth",
             "description": "Slightly worse than pure quadratic.",
             "maxN": 20,
             "normalize": true,
@@ -1057,7 +1057,7 @@
         {
           "id": "types-of-space",
           "title": "Types of Space",
-          "content": "**Fixed part:** independent of n -- loop counters, primitive pointers. O(1). **Variable part:** scales with n -- new arrays, hash maps, or the call stack in recursion. Usually O(n) or O(n\u00b2)."
+          "content": "**Fixed part:** independent of n -- loop counters, primitive pointers. O(1). **Variable part:** scales with n -- new arrays, hash maps, or the call stack in recursion. Usually O(n) or O(n²)."
         },
         {
           "id": "in-place-memory",
@@ -1075,17 +1075,17 @@
         {
           "id": "pitfall-constants",
           "title": "Misconception: Constants Never Matter",
-          "content": "Big-O ignores constants asymptotically, but on small inputs a well-tuned O(n\u00b2) can beat a sloppy O(n log n). For small, fixed-size or embedded workloads, constant-factor overhead still matters."
+          "content": "Big-O ignores constants asymptotically, but on small inputs a well-tuned O(n²) can beat a sloppy O(n log n). For small, fixed-size or embedded workloads, constant-factor overhead still matters."
         },
         {
           "id": "pitfall-average",
           "title": "Misconception: Average Case is the 'Typical' Case",
-          "content": "\u0398 assumes uniformly random input, but real data rarely is. Partially-sorted or clustered inputs can push actual performance closer to best- or worst-case."
+          "content": "Θ assumes uniformly random input, but real data rarely is. Partially-sorted or clustered inputs can push actual performance closer to best- or worst-case."
         },
         {
           "id": "pitfall-addition",
           "title": "Misconception: O(f(n) + g(n)) Simply Drops the Smaller Term",
-          "content": "Mathematically true (O(n\u00b2 + n) \u2192 O(n\u00b2)), but if the dropped term is something expensive in the real world (disk I/O, network calls), ignoring it can hide a real bottleneck."
+          "content": "Mathematically true (O(n² + n) → O(n²)), but if the dropped term is something expensive in the real world (disk I/O, network calls), ignoring it can hide a real bottleneck."
         }
       ]
     },
@@ -1099,12 +1099,11 @@
           "id": "sum-key-takeaways",
           "title": "Key Takeaways",
           "content": "Keep these in mind:",
-          "bullets": [
-            "The analyzer always evaluates Worst-Case (Big-O) -- a guaranteed performance ceiling.",
-            "Drop constants and non-dominant terms to find the true growth trend.",
-            "One loop \u2248 O(n). Nested loops \u2248 O(n\u00b2). Multiply/divide loops \u2248 O(log n).",
-            "Special structures (grids, graphs, modulo math) produce classes like O(V + E) or O(n * m).",
-            "Don't forget space -- new lists or deep recursion can crash a system just as easily as slow time can."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-1-sum-key-takeaways.svg",
+              "alt": "Key Takeaways: The analyzer always evaluates Worst-Case (Big-O) -- a guaranteed performance ceiling.; Drop constants and non-dominant terms to find the true growth trend.; One loop ≈ O(n). Nested loops ≈ O(n²). Multiply/divide loops ≈ O(log n).; Special structures (grids, graphs, modulo math) produce classes like O(V + E) or O(n * m).; Don't forget space -- new lists or deep recursion can crash a system just as easily as slow time can.."
+            }
           ]
         }
       ]
@@ -1112,15 +1111,15 @@
   ],
   "references": [
     {
-      "title": "GeeksforGeeks \u2014 Big-O Notation",
+      "title": "GeeksforGeeks — Big-O Notation",
       "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/"
     },
     {
-      "title": "Programiz \u2014 Time Complexity",
+      "title": "Programiz — Time Complexity",
       "url": "https://www.programiz.com/dsa/time-complexity"
     },
     {
-      "title": "MIT OpenCourseWare \u2014 Introduction to Algorithms",
+      "title": "MIT OpenCourseWare — Introduction to Algorithms",
       "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
     }
   ]

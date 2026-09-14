@@ -46,11 +46,11 @@
       "type": "concept",
       "title": "Why Permutations and Combinations Matter",
       "content": "Many real-world systems require generating possible arrangements or selections. Examples include:\n* Password generation where you need to try all possible combinations of characters.\n* Seating arrangements for events.\n* Scheduling systems that assign time slots.\n* Recommendation engines that select items to suggest.\n* Route planning that considers different orders of visiting locations.\n* Puzzle-solving systems like Sudoku or Rubik's cube.\n\n**The challenge is that possibilities grow explosively as input size increases.** For 10 items, there are 3.6 million permutations. For 20 items, there are about 2.4 times 10 to the 18 permutations, which is impossible to generate exhaustively.\n\nBacktracking solves this by systematically exploring states while tracking decisions and pruning unnecessary exploration. It does not blindly generate everything. It builds solutions incrementally and backtracks when a path becomes invalid.",
-      "bullets": [
-        "Generates possible arrangements systematically.",
-        "Demonstrates recursive state exploration.",
-        "Introduces rollback and state tracking.",
-        "Appears in AI, cryptography, and optimization systems."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-6-2-why-perm-comb-matter.svg",
+          "alt": "Why Permutations and Combinations Matter: Generates possible arrangements systematically.; Demonstrates recursive state exploration.; Introduces rollback and state tracking.; Appears in AI, cryptography, and optimization systems.."
+        }
       ]
     },
     {
@@ -333,13 +333,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Permutations generate arrangements where order matters.",
-        "Combinations generate selections where order does not matter.",
-        "Backtracking systematically explores recursive possibilities.",
-        "State tracking is essential for valid recursive exploration.",
-        "Rollback restores previous states after recursion.",
-        "Permutation generation commonly grows factorially."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-6-2-takeaways.svg",
+          "alt": "Key Takeaways: Permutations generate arrangements where order matters.; Combinations generate selections where order does not matter.; Backtracking systematically explores recursive possibilities.; State tracking is essential for valid recursive exploration.; Rollback restores previous states after recursion.; Permutation generation commonly grows factorially.."
+        }
       ]
     }
   ],

@@ -45,11 +45,11 @@
       "type": "concept",
       "title": "Why This Problem Matters",
       "content": "Classrooms, runways, meeting rooms, CPU cores -- none of them can run two overlapping tasks at once. Bad scheduling means idle resources; good scheduling maximizes what actually gets used.\n\nA lecture hall wants the most classes scheduled without overlap. A runway wants max takeoff/landing slots. A single-core CPU wants max completed jobs. Activity Selection models exactly this, with a solution that's both fast and simple.",
-      "bullets": [
-        "**Maximizes** resource utilization.",
-        "A clean case of **greedy scheduling**.",
-        "Shows up across **many real systems**.",
-        "Introduces **interval compatibility checking**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-4-3-why-problem-matters.svg",
+          "alt": "Why This Problem Matters: Maximizes resource utilization.; A clean case of greedy scheduling.; Shows up across many real systems.; Introduces interval compatibility checking.."
+        }
       ]
     },
     {
@@ -265,12 +265,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "The goal: **maximize compatible, non-overlapping activities**.",
-        "Greedy picks the **earliest-finishing** activity first.",
-        "Early finishing **preserves future flexibility**.",
-        "**Sorting by finish time** is essential.",
-        "Achieves **O(n log n)** overall."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-4-3-takeaways.svg",
+          "alt": "Key Takeaways: The goal: maximize compatible, non-overlapping activities.; Greedy picks the earliest-finishing activity first.; Early finishing preserves future flexibility.; Sorting by finish time is essential.; Achieves O(n log n) overall.."
+        }
       ]
     }
   ],

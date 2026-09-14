@@ -572,6 +572,24 @@
   border: 1px solid #e5e0f5;
 }
 
+/* Generated diagram SVGs (checklists, comparisons, etc.) are drawn at a
+   fixed 640px-wide design size with text sized to match the surrounding
+   article copy. Unlike real screenshots, they shouldn't stretch to fill
+   a much wider content column -- that inflates their text far past the
+   size of the prose around it. Show them at their natural size instead,
+   just capped so they never overflow a narrow column. */
+.lesson-image-panel--diagram {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.lesson-image-panel--diagram img {
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
 .lesson-image-panel figcaption {
   margin-top: 10px;
   padding: 0 4px;

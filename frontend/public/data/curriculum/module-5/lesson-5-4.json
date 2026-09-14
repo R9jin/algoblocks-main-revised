@@ -46,11 +46,11 @@
       "type": "concept",
       "title": "Why LCS Matters",
       "content": "Modern software constantly relies on comparing sequences automatically.\n\nUse cases include:\n1.  **Version Control:** Comparing source code changes.\n2.  **Plagiarism:** Detecting document similarities structurally.\n3.  **Bioinformatics:** Identifying shared DNA or genome mutation sequences.\n4.  **Spell Checking:** Finding words in a dictionary closest to the user's typo.\n\nIf you attempted to solve this using a brute-force approach, you would have to generate *every possible subsequence* and check it against the other string. \n* For a string of length `n`, there are `2^n` possible subsequences.\n* For `n = 20`, that is ~1 million subsequences.\n* For `n = 100`, that is `~1.27 × 10^30` subsequences, making brute-force computation mathematically impossible.\n\nDynamic Programming solves this elegantly in polynomial time by building a 2D matrix matching prefixes.",
-      "bullets": [
-        "**Efficiently compares** exceptionally large text sequences.",
-        "Demonstrates classic **Dynamic Programming prefix optimization**.",
-        "Powers **bioinformatics** and **version control text diffing**.",
-        "Avoids devastating **exponential brute-force calculation**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-5-4-why-lcs-matters.svg",
+          "alt": "Why LCS Matters: Efficiently compares exceptionally large text sequences.; Demonstrates classic Dynamic Programming prefix optimization.; Powers bioinformatics and version control text diffing.; Avoids devastating exponential brute-force calculation.."
+        }
       ]
     },
     {
@@ -382,13 +382,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "LCS finds the longest **ordered string of characters** shared between two texts.",
-        "Subsequences preserve relative order but **permit gap skips**.",
-        "A 2D DP matrix prevents **exponential brute-force failure**.",
-        "Matching characters extend the **upper-left diagonal** value `(+ 1)`.",
-        "Mismatches carry forward the **max of the top or left** value.",
-        "LCS drives the core logic for **Git diffs and DNA alignment**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-5-4-takeaways.svg",
+          "alt": "Key Takeaways: LCS finds the longest ordered string of characters shared between two texts.; Subsequences preserve relative order but permit gap skips.; A 2D DP matrix prevents exponential brute-force failure.; Matching characters extend the upper-left diagonal value (+ 1).; Mismatches carry forward the max of the top or left value.; LCS drives the core logic for Git diffs and DNA alignment.."
+        }
       ]
     }
   ],

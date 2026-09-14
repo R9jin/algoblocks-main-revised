@@ -46,11 +46,11 @@
       "type": "concept",
       "title": "Why Maze Solving Matters",
       "content": "Many real-world systems involve pathfinding and route exploration. Examples include:\n\n* Robotics navigation where a robot must find a path through a room with obstacles.\n* GPS systems that find routes through road networks.\n* AI movement in video games where characters navigate around walls.\n* Warehouse automation where robots move between shelves.\n* Network routing where data packets find paths through networks.\n\nMaze solving models how intelligent systems systematically explore possible movement paths while avoiding obstacles. A self-driving car must navigate through city streets, avoiding buildings, other cars, and pedestrians. This is a complex maze-solving problem.\n\nSearch-and-rescue systems use pathfinding to find trapped people in buildings. Video game characters use pathfinding to move from one point to another without walking through walls.\n\nUnderstanding maze solving helps you build intelligent navigation systems.",
-      "bullets": [
-        "Demonstrates recursive pathfinding.",
-        "Introduces visited-state tracking.",
-        "Shows rollback and dead-end recovery.",
-        "Appears in robotics and AI systems."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-6-4-why-maze-solving-matters.svg",
+          "alt": "Why Maze Solving Matters: Demonstrates recursive pathfinding.; Introduces visited-state tracking.; Shows rollback and dead-end recovery.; Appears in robotics and AI systems.."
+        }
       ]
     },
     {
@@ -525,31 +525,29 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Maze solving systematically explores movement paths.",
-        "Backtracking recursively explores and undoes paths.",
-        "Visited tracking prevents infinite loops.",
-        "Rollback restores previous exploration states.",
-        "Pruning eliminates invalid paths early.",
-        "Maze solving demonstrates recursive pathfinding clearly."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-6-4-takeaways.svg",
+          "alt": "Key Takeaways: Maze solving systematically explores movement paths.; Backtracking recursively explores and undoes paths.; Visited tracking prevents infinite loops.; Rollback restores previous exploration states.; Pruning eliminates invalid paths early.; Maze solving demonstrates recursive pathfinding clearly.."
+        }
       ]
     }
   ],
   "references": [
     {
-      "title": "Programiz \u2013 Backtracking Algorithm",
+      "title": "Programiz – Backtracking Algorithm",
       "url": "https://www.programiz.com/dsa/backtracking-algorithm"
     },
     {
-      "title": "GeeksforGeeks \u2013 Rat in a Maze",
+      "title": "GeeksforGeeks – Rat in a Maze",
       "url": "https://www.geeksforgeeks.org/rat-in-a-maze-backtracking-2/"
     },
     {
-      "title": "TutorialsPoint \u2014 Rat in a Maze Problem",
+      "title": "TutorialsPoint — Rat in a Maze Problem",
       "url": "https://www.tutorialspoint.com/data_structures_algorithms/rat_in_maze_problem.htm"
     },
     {
-      "title": "Hello Algo \u2013 Backtracking",
+      "title": "Hello Algo – Backtracking",
       "url": "https://www.hello-algo.com/en/chapter_backtracking/"
     }
   ]

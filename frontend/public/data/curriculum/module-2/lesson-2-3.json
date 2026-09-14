@@ -48,11 +48,11 @@
       "type": "concept",
       "title": "The Strategic Value of Organized Data",
       "content": "Searching 1,000,000 unsorted records for a string: up to 1,000,000 checks. Sorted (alphabetized) first: ~20 checks with a logarithmic search.\n\nEvery sorting algorithm boils down to the same three moves:",
-      "bullets": [
-        "**Compare:** check two elements against each other.",
-        "**Validate:** decide if the current order is wrong.",
-        "**Swap:** exchange out-of-order elements in place.",
-        "**Repeat:** keep passing over the data until nothing's out of order."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-3-why-sorting-matters.svg",
+          "alt": "The Strategic Value of Organized Data: Compare: check two elements against each other.; Validate: decide if the current order is wrong.; Swap: exchange out-of-order elements in place.; Repeat: keep passing over the data until nothing's out of order.."
+        }
       ]
     },
     {
@@ -406,25 +406,10 @@
       "id": "advantages-limitations",
       "type": "concept",
       "title": "Algorithm Evaluation Profile",
-      "subsections": [
+      "images": [
         {
-          "id": "advantages",
-          "title": "Engineering Merits",
-          "bullets": [
-            "**In-Place:** O(1) auxiliary space.",
-            "**Simple:** no recursion, no pivot selection.",
-            "**Educational:** clean invariants, easy to trace.",
-            "**Stable (Bubble Sort):** equal elements keep their original order."
-          ]
-        },
-        {
-          "id": "limitations",
-          "title": "System Vulnerabilities",
-          "bullets": [
-            "**O(n²) scaling** falls apart past ~1,000 items.",
-            "**Bubble Sort writes a lot** -- heavy swap overhead.",
-            "**Not adaptive** -- doesn't notice data that's already mostly sorted."
-          ]
+          "src": "/assets/lesson-visuals/auto/lesson-2-3-advantages-limitations-comparison.svg",
+          "alt": "Comparison: Engineering Merits - In-Place: O(1) auxiliary space.; Simple: no recursion, no pivot selection.; Educational: clean invariants, easy to trace.; Stable (Bubble Sort): equal elements keep their original order.. System Vulnerabilities - O(n²) scaling falls apart past ~1,000 items.; Bubble Sort writes a lot -- heavy swap overhead.; Not adaptive -- doesn't notice data that's already mostly sorted.."
         }
       ]
     },
@@ -465,12 +450,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Engineering Takeaways",
-      "bullets": [
-        "**Bubble Sort** swaps adjacent out-of-order pairs continuously.",
-        "**Selection Sort** finds the extremum first, swaps once per pass.",
-        "The **Single Pass Invariant**: one pass locks the extreme value into its final spot.",
-        "Both are **O(n²)** worst-case and average-case time.",
-        "Both are **O(1)** auxiliary space -- safe, in-place mutation."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-3-takeaways.svg",
+          "alt": "Key Engineering Takeaways: Bubble Sort swaps adjacent out-of-order pairs continuously.; Selection Sort finds the extremum first, swaps once per pass.; The Single Pass Invariant: one pass locks the extreme value into its final spot.; Both are O(n²) worst-case and average-case time.; Both are O(1) auxiliary space -- safe, in-place mutation.."
+        }
       ]
     }
   ],

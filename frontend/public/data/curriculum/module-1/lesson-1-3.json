@@ -54,10 +54,11 @@
           "id": "intro-questions",
           "title": "Answering Important Questions",
           "content": "Space complexity answers questions like:",
-          "bullets": [
-            "Will this run on a phone with **limited memory**?",
-            "Will this recursive function **stack overflow**?",
-            "Is extra memory worth it to make this **faster**?"
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-3-intro-questions.svg",
+              "alt": "Answering Important Questions: Will this run on a phone with limited memory?; Will this recursive function stack overflow?; Is extra memory worth it to make this faster?."
+            }
           ]
         }
       ]
@@ -72,10 +73,11 @@
           "id": "why-consequences",
           "title": "Consequences of Poor Management",
           "content": "Poor memory habits cause real failures:",
-          "bullets": [
-            "Loading millions of records at once can **crash the system**.",
-            "Uncompressed images eat gigabytes fast.",
-            "Deep, unoptimized recursion causes **stack overflow**."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-3-why-consequences.svg",
+              "alt": "Consequences of Poor Management: Loading millions of records at once can crash the system.; Uncompressed images eat gigabytes fast.; Deep, unoptimized recursion causes stack overflow.."
+            }
           ]
         },
         {
@@ -84,11 +86,11 @@
           "content": "Streaming services process video in **small chunks**, not whole files. APIs paginate -- 100 records at a time, not a million."
         }
       ],
-      "bullets": [
-        "**Design systems** that stay stable with large datasets.",
-        "**Optimize memory** in constrained environments.",
-        "**Avoid unnecessary copying** of large structures.",
-        "**Spot hidden costs** from recursion or helper structures."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-1-3-why-space-matters.svg",
+          "alt": "Why Space Complexity Matters: Design systems that stay stable with large datasets.; Optimize memory in constrained environments.; Avoid unnecessary copying of large structures.; Spot hidden costs from recursion or helper structures.."
+        }
       ]
     },
     {
@@ -101,21 +103,22 @@
           "id": "space-what-it-includes",
           "title": "What it Includes",
           "content": "Counts toward space:",
-          "bullets": [
-            "**Local variables**",
-            "**Temporary storage**",
-            "**Recursion stack memory**",
-            "**Helper structures** like new arrays or dicts"
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-3-space-what-it-includes.svg",
+              "alt": "What it Includes: Local variables; Temporary storage; Recursion stack memory; Helper structures like new arrays or dicts."
+            }
           ]
         },
         {
           "id": "space-notation",
           "title": "Using Big-O Notation",
           "content": "Same Big-O classes as time:",
-          "bullets": [
-            "**O(1)** -- a few tracking variables.",
-            "**O(n)** -- e.g. copying the input array.",
-            "**O(n²)** -- e.g. an n×n matrix."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-3-space-notation.svg",
+              "alt": "Using Big-O Notation: O(1) -- a few tracking variables.; O(n) -- e.g. copying the input array.; O(n²) -- e.g. an n×n matrix.."
+            }
           ]
         }
       ],
@@ -170,10 +173,11 @@
           "id": "constant-operations",
           "title": "Common O(1) Operations",
           "content": "Also O(1) space:",
-          "bullets": [
-            "Summing with an accumulator.",
-            "Checking if a number is prime.",
-            "Swapping two variables with one temp variable."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-3-constant-operations.svg",
+              "alt": "Common O(1) Operations: Summing with an accumulator.; Checking if a number is prime.; Swapping two variables with one temp variable.."
+            }
           ]
         },
         {
@@ -210,10 +214,11 @@
           "id": "linear-operations",
           "title": "Common O(n) Operations",
           "content": "Also O(n) space:",
-          "bullets": [
-            "Storing all messages to display later.",
-            "Building a `Set` of unique elements.",
-            "A results list with one output per input."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-3-linear-operations.svg",
+              "alt": "Common O(n) Operations: Storing all messages to display later.; Building a Set of unique elements.; A results list with one output per input.."
+            }
           ]
         },
         {
@@ -240,10 +245,11 @@
           "id": "quadratic-scale",
           "title": "The Exponential Cost of Grids",
           "content": "An n×n matrix has n² cells:",
-          "bullets": [
-            "n = 1,000 → 1M cells (~8 MB).",
-            "n = 10,000 → 100M cells (~800 MB).",
-            "n = 100,000 → 10 billion cells (**~80 GB** -- too much for most systems)."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-3-quadratic-scale.svg",
+              "alt": "The Exponential Cost of Grids: n = 1,000 → 1M cells (~8 MB).; n = 10,000 → 100M cells (~800 MB).; n = 100,000 → 10 billion cells (~80 GB -- too much for most systems).."
+            }
           ]
         },
         {
@@ -444,10 +450,11 @@
           "id": "in-place-examples",
           "title": "Common Examples",
           "content": "In-place operations:",
-          "bullets": [
-            "Swapping two elements.",
-            "Reversing an array from the edges inward.",
-            "Bubble, selection, and insertion sort."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-3-in-place-examples.svg",
+              "alt": "Common Examples: Swapping two elements.; Reversing an array from the edges inward.; Bubble, selection, and insertion sort.."
+            }
           ]
         },
         {
@@ -531,12 +538,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "**Space complexity** measures memory growth relative to input size.",
-        "**Auxiliary space** is the extra memory beyond the input itself.",
-        "**Recursive algorithms** carry hidden stack memory cost.",
-        "**In-place algorithms** save memory but mutate the original data.",
-        "**Time-Space Tradeoffs** mean faster often costs more memory, and vice versa."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-1-3-takeaways.svg",
+          "alt": "Key Takeaways: Space complexity measures memory growth relative to input size.; Auxiliary space is the extra memory beyond the input itself.; Recursive algorithms carry hidden stack memory cost.; In-place algorithms save memory but mutate the original data.; Time-Space Tradeoffs mean faster often costs more memory, and vice versa.."
+        }
       ]
     }
   ],

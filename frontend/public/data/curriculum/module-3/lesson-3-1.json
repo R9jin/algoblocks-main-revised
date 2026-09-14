@@ -48,11 +48,11 @@
       "type": "concept",
       "title": "Why Divide and Conquer Matters",
       "content": "At millions or billions of items, brute-force loops just can't keep up. Divide and Conquer is what makes modern high-performance computing possible.\n\nEvery database query against a billion-row table uses Divide and Conquer (B-Trees, binary search) to skip straight to the target instead of scanning everything. Every OS-level file sort relies on it too.\n\nMastering it means thinking in nested, self-similar sub-tasks instead of flat sequences of steps.",
-      "bullets": [
-        "**Cuts execution time** from linear down toward logarithmic or linearithmic.",
-        "Maps recursive functions directly onto **clean mathematical definitions**.",
-        "Powers the world's **fastest sorting and searching algorithms**.",
-        "Makes datasets **too large for a straight scan** tractable."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-1-why-divide-and-conquer-matters.svg",
+          "alt": "Why Divide and Conquer Matters: Cuts execution time from linear down toward logarithmic or linearithmic.; Maps recursive functions directly onto clean mathematical definitions.; Powers the world's fastest sorting and searching algorithms.; Makes datasets too large for a straight scan tractable.."
+        }
       ]
     },
     {
@@ -249,10 +249,11 @@
       "title": "Architectural Trade-offs: Recursion vs. Iteration",
       "content": "Any recursive algorithm can, in theory, be rewritten iteratively with a loop. So why use recursion?",
       "subsections": [],
-      "bullets": [
-        "**Automatic state management:** the Call Stack tracks state for you -- no manual counters or boundaries.",
-        "**Tree-shaped data:** file systems, DOM trees, BSTs map naturally to recursive calls, awkwardly to flat loops.",
-        "**Readability:** recursive code often mirrors the mathematical definition of the problem directly."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-1-recursion-vs-iteration.svg",
+          "alt": "Architectural Trade-offs: Recursion vs. Iteration: Automatic state management: the Call Stack tracks state for you -- no manual counters or boundaries.; Tree-shaped data: file systems, DOM trees, BSTs map naturally to recursive calls, awkwardly to flat loops.; Readability: recursive code often mirrors the mathematical definition of the problem directly.."
+        }
       ]
     },
     {
@@ -271,26 +272,10 @@
       "id": "advantages-limitations",
       "type": "concept",
       "title": "Architectural Considerations",
-      "subsections": [
+      "images": [
         {
-          "id": "advantages",
-          "title": "Engineering Advantages",
-          "bullets": [
-            "**Major performance wins** on large datasets.",
-            "Simplifies **tree/branching structures**.",
-            "State tracking handled by the **Call Stack**.",
-            "Naturally suited to **parallel processing** -- independent branches, independent cores."
-          ]
-        },
-        {
-          "id": "limitations",
-          "title": "Scalability Limitations",
-          "bullets": [
-            "Uses real **stack memory** -- deep recursion risks limits.",
-            "Missing base case = guaranteed **Stack Overflow**.",
-            "Harder to **trace and debug** without visual tools.",
-            "Overhead from frame creation makes it **slower than loops on tiny inputs**."
-          ]
+          "src": "/assets/lesson-visuals/auto/lesson-3-1-advantages-limitations-comparison.svg",
+          "alt": "Comparison: Engineering Advantages - Major performance wins on large datasets.; Simplifies tree/branching structures.; State tracking handled by the Call Stack.; Naturally suited to parallel processing -- independent branches, independent cores.. Scalability Limitations - Uses real stack memory -- deep recursion risks limits.; Missing base case = guaranteed Stack Overflow.; Harder to trace and debug without visual tools.; Overhead from frame creation makes it slower than loops on tiny inputs.."
         }
       ]
     },
@@ -320,13 +305,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Engineering Takeaways",
-      "bullets": [
-        "Divide and Conquer replaces linear scans with **recursive subproblem decomposition**.",
-        "Every algorithm follows the same three phases: **Divide, Conquer, Combine**.",
-        "The **Call Stack** physically tracks every suspended call.",
-        "No base case = guaranteed **Stack Overflow**.",
-        "Tracing stack frames by hand is the fastest way to actually understand recursion.",
-        "Halving the problem each step turns linear time into **logarithmic** time."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-1-takeaways.svg",
+          "alt": "Key Engineering Takeaways: Divide and Conquer replaces linear scans with recursive subproblem decomposition.; Every algorithm follows the same three phases: Divide, Conquer, Combine.; The Call Stack physically tracks every suspended call.; No base case = guaranteed Stack Overflow.; Tracing stack frames by hand is the fastest way to actually understand recursion.; Halving the problem each step turns linear time into logarithmic time.."
+        }
       ]
     }
   ],

@@ -69,11 +69,11 @@
           "id": "tc-common",
           "title": "Standard Time Complexities",
           "content": "Four classes you'll see constantly, in order from fastest to slowest:",
-          "bullets": [
-            "**O(1) Constant:** the same fixed amount of work regardless of input size -- e.g. a formula, or looking something up by its exact index.",
-            "**O(n) Linear:** work scales one-to-one with the input -- e.g. one loop through a dataset, checking every item once.",
-            "**O(n²) Quadratic:** work scales with the *square* of the input -- e.g. a loop nested inside another loop, where every outer step re-runs the whole inner loop.",
-            "**O(log n) Logarithmic:** the amount of data left to search shrinks at every step -- e.g. Binary Search, which you'll meet properly in Module 3."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-3-tc-common.svg",
+              "alt": "Standard Time Complexities: O(1) Constant: the same fixed amount of work regardless of input size -- e.g. a formula, or looking something up by its exact index.; O(n) Linear: work scales one-to-one with the input -- e.g. one loop through a dataset, checking every item once.; O(n²) Quadratic: work scales with the *square* of the input -- e.g. a loop nested inside another loop, where every outer step re-runs the whole inner loop.; O(log n) Logarithmic: the amount of data left to search shrinks at every step -- e.g. Binary Search, which you'll meet properly in Module 3.."
+            }
           ]
         },
         {
@@ -204,12 +204,11 @@
           "id": "sum-workflow",
           "title": "Analytical Workflow",
           "content": "A simple loop to follow whenever you're checking your own work:",
-          "bullets": [
-            "1. Build your logic on the canvas.",
-            "2. Open the Complexity tab to see the Big-O verdict.",
-            "3. Check the growth curve on the Complexity Graph.",
-            "4. If it's steep (e.g. O(n²)), isolate and refactor the nested logic causing it.",
-            "5. Check the Big O Reference table for a faster alternative."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-3-sum-workflow.svg",
+              "alt": "Analytical Workflow: 1. Build your logic on the canvas.; 2. Open the Complexity tab to see the Big-O verdict.; 3. Check the growth curve on the Complexity Graph.; 4. If it's steep (e.g. O(n²)), isolate and refactor the nested logic causing it.; 5. Check the Big O Reference table for a faster alternative.."
+            }
           ]
         }
       ]

@@ -1,0 +1,35 @@
+<svg viewBox="0 0 640 315" width="640" height="315" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="315" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<line x1="320.0" y1="46" x2="320.0" y2="301" stroke="#E5E0F5" stroke-width="1.5"/>
+<text x="24" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#065F46">Advantages</text>
+<circle cx="35" cy="66.5" r="11" fill="#10B981"/>
+<path d="M 30 66.5 L 33.5 70.5 L 40.5 62.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">Efficient</tspan><tspan dx="4" font-weight="400" fill="#33534A">on</tspan><tspan dx="4" font-weight="700" fill="#065F46">massive</tspan><tspan dx="4" font-weight="700" fill="#065F46">datasets.</tspan></text>
+<circle cx="35" cy="114.5" r="11" fill="#10B981"/>
+<path d="M 30 114.5 L 33.5 118.5 L 40.5 110.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">Guaranteed</tspan><tspan dx="4" font-weight="700" fill="#065F46">O(n</tspan><tspan dx="4" font-weight="700" fill="#065F46">log</tspan><tspan dx="4" font-weight="700" fill="#065F46">n).</tspan></text>
+<circle cx="35" cy="162.5" r="11" fill="#10B981"/>
+<path d="M 30 162.5 L 33.5 166.5 L 40.5 158.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">Stable</tspan><tspan dx="4" font-weight="400" fill="#33534A">--</tspan><tspan dx="4" font-weight="400" fill="#33534A">preserves</tspan><tspan dx="4" font-weight="400" fill="#33534A">duplicate</tspan><tspan dx="4" font-weight="400" fill="#33534A">order.</tspan></text>
+<circle cx="35" cy="210.5" r="11" fill="#10B981"/>
+<path d="M 30 210.5 L 33.5 214.5 L 40.5 206.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="217" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">A</tspan><tspan dx="4" font-weight="400" fill="#33534A">clean</tspan><tspan dx="4" font-weight="400" fill="#33534A">example</tspan><tspan dx="4" font-weight="400" fill="#33534A">of</tspan><tspan dx="4" font-weight="400" fill="#33534A">Divide</tspan><tspan dx="4" font-weight="400" fill="#33534A">and</tspan></text>
+<text x="52" y="236" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">Conquer.</tspan></text>
+<text x="332.0" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#7A1E1E">Limitations</text>
+<circle cx="343.0" cy="66.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 62.5 L 347.0 70.5 M 347.0 62.5 L 339.0 70.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">Needs</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">O(n)</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">extra</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">memory.</tspan></text>
+<circle cx="343.0" cy="114.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 110.5 L 347.0 118.5 M 347.0 110.5 L 339.0 118.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">Recursive</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">flow</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">can</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">confuse</tspan></text>
+<text x="360.0" y="140" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">beginners.</tspan></text>
+<circle cx="343.0" cy="176.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 172.5 L 347.0 180.5 M 347.0 172.5 L 339.0 180.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="183" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">Pointer</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">tracking</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">in</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">the</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">merge</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">takes</tspan></text>
+<text x="360.0" y="202" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">practice.</tspan></text>
+<circle cx="343.0" cy="238.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 234.5 L 347.0 242.5 M 347.0 234.5 L 339.0 242.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="245" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">Usually</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">a</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">bit</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">slower</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">than</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">Quick</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">Sort</tspan></text>
+<text x="360.0" y="264" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">in</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">practice</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">due</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">to</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">allocation</tspan></text>
+<text x="360.0" y="283" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">overhead.</tspan></text>
+</svg>

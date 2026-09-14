@@ -44,10 +44,11 @@
           "id": "intro-visualizer",
           "title": "Real-Time State Inspection",
           "content": "The Output Console only ever shows you the *final* result. The Memory Visualizer shows you everything that happened on the way there:",
-          "bullets": [
-            "The exact moment a variable is allocated.",
-            "Every value mutation, one step at a time.",
-            "Memory being freed the instant a function returns."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-4-intro-visualizer.svg",
+              "alt": "Real-Time State Inspection: The exact moment a variable is allocated.; Every value mutation, one step at a time.; Memory being freed the instant a function returns.."
+            }
           ]
         },
         {
@@ -77,11 +78,11 @@
           "id": "var-swapping",
           "title": "The Auxiliary Variable Concept",
           "content": "Swapping `a` and `b` the safe way:",
-          "bullets": [
-            "Start: a = 5, b = 10.",
-            "Save a's value into a temp variable.",
-            "Copy b's value into a.",
-            "Copy the temp value into b."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-4-var-swapping.svg",
+              "alt": "The Auxiliary Variable Concept: Start: a = 5, b = 10.; Save a's value into a temp variable.; Copy b's value into a.; Copy the temp value into b.."
+            }
           ]
         },
         {
@@ -106,10 +107,11 @@
           "id": "arr-visualizing",
           "title": "Visualizing Array Operations",
           "content": "The visualizer highlights each kind of change distinctly, so it's easy to tell them apart at a glance:",
-          "bullets": [
-            "Changed elements flash.",
-            "New elements highlight.",
-            "Removed elements fade out, with the remaining indices shifting automatically to fill the gap."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-4-arr-visualizing.svg",
+              "alt": "Visualizing Array Operations: Changed elements flash.; New elements highlight.; Removed elements fade out, with the remaining indices shifting automatically to fill the gap.."
+            }
           ]
         },
         {
@@ -309,10 +311,11 @@
           "id": "rw-professional-tools",
           "title": "Professional Tools",
           "content": "This isn't just a training-wheels feature -- real software engineers rely on the same underlying idea every day:",
-          "bullets": [
-            "Browser DevTools track JavaScript variables live.",
-            "IDE debuggers (VS Code, PyCharm) have watch panels for exactly this.",
-            "Memory profilers catch leaks in production servers before they cause outages."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-4-rw-professional-tools.svg",
+              "alt": "Professional Tools: Browser DevTools track JavaScript variables live.; IDE debuggers (VS Code, PyCharm) have watch panels for exactly this.; Memory profilers catch leaks in production servers before they cause outages.."
+            }
           ]
         },
         {
@@ -332,12 +335,11 @@
           "id": "sum-workflow",
           "title": "The Visualizer Workflow",
           "content": "A simple routine worth building into your habits:",
-          "bullets": [
-            "1. Open the visualizer panel.",
-            "2. Step through your code.",
-            "3. Watch variables change to confirm your logic is doing what you think it's doing.",
-            "4. Check arrays after each operation for off-by-one errors.",
-            "5. Watch the Call Stack when using functions, to catch a Stack Overflow before it happens."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-4-sum-workflow.svg",
+              "alt": "The Visualizer Workflow: 1. Open the visualizer panel.; 2. Step through your code.; 3. Watch variables change to confirm your logic is doing what you think it's doing.; 4. Check arrays after each operation for off-by-one errors.; 5. Watch the Call Stack when using functions, to catch a Stack Overflow before it happens.."
+            }
           ]
         }
       ]

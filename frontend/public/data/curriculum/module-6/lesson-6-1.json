@@ -46,11 +46,11 @@
       "type": "concept",
       "title": "Why Backtracking Matters",
       "content": "Many computational problems involve exploring multiple possible decisions. Examples include:\n\n* **Maze solving** where you need to find a path from start to end.\n* **Sudoku solving** where you need to fill numbers without breaking rules.\n* **Permutation generation** and **password cracking**.\n* **The N-Queens placement problem** where you need to place queens on a chessboard so they do not attack each other.\n\nThese problems often contain enormous search spaces. For an 8x8 chessboard, the number of ways to place 8 queens is about 4.4 billion. Trying every possibility blindly would take too long. **Backtracking prunes invalid paths early, reducing the search dramatically.**\n\nBacktracking provides a systematic way to explore possibilities while rejecting impossible paths early. This early rejection is called pruning. Without pruning, the algorithm would waste time exploring dead ends. Understanding backtracking helps you solve many constraint-based problems efficiently.",
-      "bullets": [
-        "Systematically explores decision paths.",
-        "Supports recursive constraint solving.",
-        "Prunes impossible paths early.",
-        "Widely used in intelligent search systems."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-6-1-why-backtracking-matters.svg",
+          "alt": "Why Backtracking Matters: Systematically explores decision paths.; Supports recursive constraint solving.; Prunes impossible paths early.; Widely used in intelligent search systems.."
+        }
       ]
     },
     {
@@ -325,13 +325,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Backtracking systematically explores possible solutions.",
-        "The algorithm tries choices and undoes them when necessary.",
-        "Rollback restores previous recursive states.",
-        "Pruning eliminates impossible branches early.",
-        "Recursion naturally supports backtracking exploration.",
-        "Backtracking is widely used in puzzles, pathfinding, and constraint-solving systems."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-6-1-takeaways.svg",
+          "alt": "Key Takeaways: Backtracking systematically explores possible solutions.; The algorithm tries choices and undoes them when necessary.; Rollback restores previous recursive states.; Pruning eliminates impossible branches early.; Recursion naturally supports backtracking exploration.; Backtracking is widely used in puzzles, pathfinding, and constraint-solving systems.."
+        }
       ]
     }
   ],
