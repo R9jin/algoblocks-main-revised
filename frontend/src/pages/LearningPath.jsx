@@ -465,7 +465,6 @@ export default function LearningPath() {
               alignItems: "flex-start",
               gap: "16px",
               border: "2px solid #7c5cff",
-              background: "linear-gradient(145deg, rgba(124, 92, 255, 0.1) 0%, rgba(30, 41, 59, 0) 100%)",
               margin: "40px auto",
               maxWidth: "560px",
               padding: "32px",
@@ -508,7 +507,7 @@ export default function LearningPath() {
 
         <div className="modules-container">
           {/* GLOBAL PRE-TEST BANNER */}
-          <div className="module-card-v2" style={{ border: "2px solid rgba(124,92,255,0.70)", marginBottom: "30px", background: "rgba(255,255,255,0.55)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderRadius: "18px", boxShadow: "inset 0 2px 0 rgba(255,255,255,0.85), 0 8px 32px rgba(80,30,160,0.14)" }}>
+          <div className="module-card-v2" style={{ border: "2px solid rgba(124,92,255,0.70)", marginBottom: "30px", borderRadius: "18px", boxShadow: "inset 0 2px 0 rgba(255,255,255,0.85), 0 8px 32px rgba(80,30,160,0.14)" }}>
             <div className="module-card-icon" style={{ backgroundColor: "#7c5cff15" }}>
               <FiAward size={32} color="#7c5cff" />
             </div>
@@ -785,7 +784,7 @@ export default function LearningPath() {
             );
           })}
 
-          <div className={`module-card-v2 ${!isGlobalPostTestUnlocked ? "locked" : ""} ${animatingKeys.has("global:posttest") ? "card-just-unlocked" : ""}`} style={{ border: "2px solid #f59e0b", marginTop: "30px", background: "linear-gradient(145deg, rgba(245, 158, 11, 0.1) 0%, rgba(30, 41, 59, 0) 100%)" }}>
+          <div className={`module-card-v2 ${!isGlobalPostTestUnlocked ? "locked" : ""} ${animatingKeys.has("global:posttest") ? "card-just-unlocked" : ""}`} style={{ border: "2px solid #f59e0b", marginTop: "30px" }}>
             <div className="module-card-icon" style={{ backgroundColor: "#f59e0b15" }}>
               <UnlockIcon
                 locked={!isGlobalPostTestUnlocked}
