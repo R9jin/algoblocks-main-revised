@@ -160,6 +160,7 @@ function generateClassificationReport(details, expKey, predKey, standardClasses)
   let macroP = 0, macroR = 0, macroF1 = 0;
   let weightedP = 0, weightedR = 0, weightedF1 = 0;
   let totalSupport = 0;
+  let scoredClassCount = 0;
 
   sortedClasses.forEach(c => {
     let tp = 0, fp = 0, fn = 0;
@@ -173,8 +174,24 @@ function generateClassificationReport(details, expKey, predKey, standardClasses)
     });
 
     const support = tp + fn;
+
+    // `standardClasses` is a fixed baseline seeded into every report so a
+    // class the analyzer is capable of returning still shows up even if
+    // this run never happened to predict it. But timeBaseClasses/
+    // spaceBaseClasses are shared across the overall AND line-level
+    // matrices, and a handful of those classes (e.g. "O(2^n)"/"O(log n)"
+    // as SPACE complexities) never actually occur as a true label in this
+    // dataset for this particular scope. With support == 0 there's no
+    // real instance to score: precision/recall/F1 all collapse to 0 by
+    // definition, producing a row that looks like a broken/failing class
+    // rather than "not applicable here". Skip those entirely instead of
+    // reporting a phantom all-zero row, and leave them out of the macro
+    // average too so they don't drag it down against classes that were
+    // actually tested.
+    if (support === 0) return;
+
     const precision = (tp + fp) > 0 ? (tp / (tp + fp)) : 0;
-    const recall = support > 0 ? (tp / support) : 0;
+    const recall = tp / support;
     const f1 = (precision + recall) > 0 ? (2 * precision * recall / (precision + recall)) : 0;
 
     report[c] = {
@@ -184,6 +201,7 @@ function generateClassificationReport(details, expKey, predKey, standardClasses)
       support: support
     };
 
+    scoredClassCount++;
     macroP += precision;
     macroR += recall;
     macroF1 += f1;
@@ -194,7 +212,7 @@ function generateClassificationReport(details, expKey, predKey, standardClasses)
     totalSupport += support;
   });
 
-  const numClasses = sortedClasses.length > 0 ? sortedClasses.length : 1;
+  const numClasses = scoredClassCount > 0 ? scoredClassCount : 1;
   const macroAvg = {
     precision: (macroP / numClasses).toFixed(2),
     recall: (macroR / numClasses).toFixed(2),
