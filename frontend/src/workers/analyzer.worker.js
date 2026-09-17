@@ -136,7 +136,8 @@ function sortBigOClasses(classes) {
     "O(n^2)",
     "O(n^2 log n)",
     "O(2^n)",
-    "O(3^n)"
+    "O(3^n)",
+    "O(n!)"
   ];
   return classes.sort((a, b) => {
     const idxA = order.indexOf(a);
@@ -177,18 +178,29 @@ function generateClassificationReport(details, expKey, predKey, standardClasses)
 
     // `standardClasses` is a fixed baseline seeded into every report so a
     // class the analyzer is capable of returning still shows up even if
-    // this run never happened to predict it. But timeBaseClasses/
-    // spaceBaseClasses are shared across the overall AND line-level
-    // matrices, and a handful of those classes (e.g. "O(2^n)"/"O(log n)"
-    // as SPACE complexities) never actually occur as a true label in this
-    // dataset for this particular scope. With support == 0 there's no
-    // real instance to score: precision/recall/F1 all collapse to 0 by
-    // definition, producing a row that looks like a broken/failing class
-    // rather than "not applicable here". Skip those entirely instead of
-    // reporting a phantom all-zero row, and leave them out of the macro
-    // average too so they don't drag it down against classes that were
-    // actually tested.
-    if (support === 0) return;
+    // this run never happened to predict it. Some of those classes (e.g.
+    // "O(2^n)"/"O(log n)" as SPACE complexities) never occur as a true
+    // label in this dataset for this particular scope, so support == 0.
+    //
+    // Those rows are still EMITTED -- every matrix (time/space, overall/
+    // line-level) must expose the analyzer's full taxonomy so the space
+    // matrices line up row-for-row with the time ones, and so a reader can
+    // see which classes the dataset simply never exercised. They are
+    // flagged with `isEmptyClass` so the UI/PDF can grey them out, and
+    // they are deliberately EXCLUDED from the macro and weighted averages
+    // (scoredClassCount / totalSupport below), since a class with no true
+    // instances has no defined precision/recall and would otherwise drag
+    // the averages down against classes that were actually tested.
+    if (support === 0) {
+      report[c] = {
+        precision: "0.00",
+        recall: "0.00",
+        f1Score: "0.00",
+        support: 0,
+        isEmptyClass: true
+      };
+      return;
+    }
 
     const precision = (tp + fp) > 0 ? (tp / (tp + fp)) : 0;
     const recall = tp / support;
@@ -850,8 +862,16 @@ json.dumps(res)
         const spaceAcc = (spacePassedCount / totalCases) * 100;
         const perfectAcc = (bothPassedCount / totalCases) * 100;
 
-        const timeBaseClasses = ["O(1)", "O(log n)", "O(sqrt n)", "O(n)", "O(n log n)", "O(n^2)", "O(2^n)", "O(V + E)"];
-        const spaceBaseClasses = ["O(1)", "O(log n)", "O(n)", "O(n^2)", "O(2^n)", "O(V + E)"];
+        // One shared baseline for BOTH time and space, overall and
+        // line-level: the complete set of Big-O classes the analyzer is
+        // designed to recognize. Seeding every matrix with the same nine
+        // classes is what guarantees all four validation matrices have the
+        // same rows in the same order -- classes with no samples come back
+        // as zero-support rows (see generateClassificationReport) instead
+        // of disappearing from the space matrices.
+        const SUPPORTED_CLASSES = ["O(1)", "O(log n)", "O(sqrt n)", "O(n)", "O(n log n)", "O(n^2)", "O(2^n)", "O(n!)", "O(V + E)"];
+        const timeBaseClasses = SUPPORTED_CLASSES;
+        const spaceBaseClasses = SUPPORTED_CLASSES;
 
         const timeReportData = generateClassificationReport(detailedResults, "expectedTime", "predictedTime", timeBaseClasses);
         const spaceReportData = generateClassificationReport(detailedResults, "expectedSpace", "predictedSpace", spaceBaseClasses);

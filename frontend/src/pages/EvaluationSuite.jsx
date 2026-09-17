@@ -599,6 +599,23 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     return <span className="comp-act comp-neutral">{safePred}</span>;
   };
 
+  // Caption printed under any matrix that contains support-0 rows, so a
+  // 0.00% precision/recall/F1 is read as "this dataset has no ground-truth
+  // instances of that class" rather than "the analyzer failed this class".
+  const renderEmptyClassNote = (report, unitLabel) => {
+    if (!report?.perClass) return null;
+    const emptyClasses = Object.keys(report.perClass).filter((cKey) => !report.perClass[cKey].support);
+    if (emptyClasses.length === 0) return null;
+    return (
+      <p className="sklearn-empty-note">
+        <strong>Note:</strong> {emptyClasses.join(", ")} {emptyClasses.length === 1 ? "has" : "have"} a support of 0 -- the
+        dataset contains no ground-truth {unitLabel} for {emptyClasses.length === 1 ? "this class" : "these classes"}, so the
+        0% precision, recall and F1-score indicate an absence of test cases rather than a misclassification by the analyzer.
+        {emptyClasses.length === 1 ? " This class is" : " These classes are"} excluded from the macro and weighted averages.
+      </p>
+    );
+  };
+
   const processReport = (report) => {
     if (!report || !report.perClass) return report;
     const newPerClass = { ...report.perClass };
@@ -636,7 +653,29 @@ export default function EvaluationSuite({ embedded = false } = {}) {
       delete newPerClass["O(quartic)"];
     }
 
-    return { ...report, perClass: newPerClass };
+    // Every matrix (time / space, overall / line-level) renders the SAME
+    // fixed set of rows in the SAME order -- the analyzer's full supported
+    // taxonomy. A class the dataset never exercises still gets a row with
+    // 0.0 / 0.0 / 0.0 and support 0, so the space matrices line up
+    // row-for-row against the time matrices instead of silently collapsing
+    // to whichever classes happened to appear. Classes outside the
+    // taxonomy (e.g. a stray O(n^4)) are kept and appended after the
+    // canonical nine so nothing is lost.
+    const orderedPerClass = {};
+    SUPPORTED_BIGO_CLASSES.forEach((cKey) => {
+      orderedPerClass[cKey] = newPerClass[cKey] || {
+        precision: 0,
+        recall: 0,
+        f1Score: 0,
+        support: 0,
+        isEmptyClass: true,
+      };
+    });
+    Object.keys(newPerClass).forEach((cKey) => {
+      if (!orderedPerClass[cKey]) orderedPerClass[cKey] = newPerClass[cKey];
+    });
+
+    return { ...report, perClass: orderedPerClass };
   };
 
   const processedTimeReport = results?.timeReport ? processReport(results.timeReport) : null;
@@ -775,8 +814,14 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     // instead, since they're a different unit of analysis.
     const addClassBreakdownTable = (title, report, passed, total = results.totalTested) => {
       addHeading(title);
-      const body = Object.keys(report.perClass).map((cKey) => {
+      // Rows for classes with no ground-truth samples are still emitted (so
+      // all four matrices have the same rows in the same order); they're
+      // just rendered in grey so a 0.0% reads as "not exercised by this
+      // dataset" instead of a failure.
+      const emptyRowIndexes = new Set();
+      const body = Object.keys(report.perClass).map((cKey, idx) => {
         const row = report.perClass[cKey];
+        if (!row.support) emptyRowIndexes.add(idx);
         return [
           cKey,
           `${(row.precision <= 1 ? row.precision * 100 : row.precision).toFixed(1)}%`,
@@ -812,8 +857,32 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         headStyles: { fillColor: brandColor },
         head: [["Complexity Class", "Precision", "Recall", "F1-Score", "Support"]],
         body,
+        didParseCell: (data) => {
+          if (data.section === "body" && emptyRowIndexes.has(data.row.index)) {
+            data.cell.styles.textColor = [150, 150, 165];
+            data.cell.styles.fontStyle = "italic";
+          }
+        },
       });
-      y = doc.lastAutoTable.finalY + 20;
+      y = doc.lastAutoTable.finalY + 8;
+
+      // Footnote so a 0.00% row is never read as a failed class.
+      if (emptyRowIndexes.size > 0) {
+        ensureRoom(26);
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(7.5);
+        doc.setTextColor(110, 110, 130);
+        const note = doc.splitTextToSize(
+          "Note: Rows shown in grey have a support of 0 -- the dataset contains no ground-truth instances of that complexity class for this metric, so their 0.00% precision, recall and F1-score indicate an absence of test cases rather than a misclassification by the analyzer. These classes are excluded from the Macro Avg and Weighted Avg above.",
+          pageWidth - marginX * 2
+        );
+        doc.text(note, marginX, y);
+        y += note.length * 10;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(20, 20, 20);
+      }
+      y += 14;
     };
 
     // Title block
@@ -1415,7 +1484,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                     {Object.keys(processedTimeReport.perClass).map((cKey) => {
                       const row = processedTimeReport.perClass[cKey];
                       return (
-                        <tr key={`time_${cKey}`}>
+                        <tr key={`time_${cKey}`} className={row.support === 0 ? "tr-empty-class" : undefined}>
                           <td className="td-class-code">{cKey}</td>
                           <td>{renderMetricCell(row.precision)}</td>
                           <td>{renderMetricCell(row.recall)}</td>
@@ -1447,6 +1516,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                     </tr>
                   </tbody>
                 </table>
+                {renderEmptyClassNote(processedTimeReport, "algorithms")}
               </div>
 
               <div className="sklearn-table-box">
@@ -1468,7 +1538,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                     {Object.keys(processedSpaceReport.perClass).map((cKey) => {
                       const row = processedSpaceReport.perClass[cKey];
                       return (
-                        <tr key={`space_${cKey}`}>
+                        <tr key={`space_${cKey}`} className={row.support === 0 ? "tr-empty-class" : undefined}>
                           <td className="td-class-code">{cKey}</td>
                           <td>{renderMetricCell(row.precision)}</td>
                           <td>{renderMetricCell(row.recall)}</td>
@@ -1500,6 +1570,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                     </tr>
                   </tbody>
                 </table>
+                {renderEmptyClassNote(processedSpaceReport, "algorithms")}
               </div>
             </div>
           </div>
@@ -1536,7 +1607,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                     {Object.keys(processedLineTimeReport.perClass).map((cKey) => {
                       const row = processedLineTimeReport.perClass[cKey];
                       return (
-                        <tr key={`line_time_${cKey}`}>
+                        <tr key={`line_time_${cKey}`} className={row.support === 0 ? "tr-empty-class" : undefined}>
                           <td className="td-class-code">{cKey}</td>
                           <td>{renderMetricCell(row.precision)}</td>
                           <td>{renderMetricCell(row.recall)}</td>
@@ -1568,6 +1639,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                     </tr>
                   </tbody>
                 </table>
+                {renderEmptyClassNote(processedLineTimeReport, "annotated lines")}
               </div>
 
               <div className="sklearn-table-box">
@@ -1589,7 +1661,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                     {Object.keys(processedLineSpaceReport.perClass).map((cKey) => {
                       const row = processedLineSpaceReport.perClass[cKey];
                       return (
-                        <tr key={`line_space_${cKey}`}>
+                        <tr key={`line_space_${cKey}`} className={row.support === 0 ? "tr-empty-class" : undefined}>
                           <td className="td-class-code">{cKey}</td>
                           <td>{renderMetricCell(row.precision)}</td>
                           <td>{renderMetricCell(row.recall)}</td>
@@ -1621,6 +1693,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                     </tr>
                   </tbody>
                 </table>
+                {renderEmptyClassNote(processedLineSpaceReport, "annotated lines")}
               </div>
             </div>
           </div>
@@ -2001,7 +2074,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                       {Object.keys(processedTimeReport.perClass).map((cKey) => {
                         const row = processedTimeReport.perClass[cKey];
                         return (
-                          <tr key={`rep_time_${cKey}`}>
+                          <tr key={`rep_time_${cKey}`} className={row.support === 0 ? "tr-empty-class" : undefined}>
                             <td>{cKey}</td>
                             <td>{renderMetricCell(row.precision)}</td>
                             <td>{renderMetricCell(row.recall)}</td>
@@ -2033,6 +2106,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                       </tr>
                     </tbody>
                   </table>
+                  {renderEmptyClassNote(processedTimeReport, "algorithms")}
                 </section>
               )}
 
@@ -2053,7 +2127,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                       {Object.keys(processedSpaceReport.perClass).map((cKey) => {
                         const row = processedSpaceReport.perClass[cKey];
                         return (
-                          <tr key={`rep_space_${cKey}`}>
+                          <tr key={`rep_space_${cKey}`} className={row.support === 0 ? "tr-empty-class" : undefined}>
                             <td>{cKey}</td>
                             <td>{renderMetricCell(row.precision)}</td>
                             <td>{renderMetricCell(row.recall)}</td>
@@ -2085,6 +2159,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                       </tr>
                     </tbody>
                   </table>
+                  {renderEmptyClassNote(processedSpaceReport, "algorithms")}
                 </section>
               )}
 
@@ -2105,7 +2180,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                       {Object.keys(processedLineTimeReport.perClass).map((cKey) => {
                         const row = processedLineTimeReport.perClass[cKey];
                         return (
-                          <tr key={`rep_line_time_${cKey}`}>
+                          <tr key={`rep_line_time_${cKey}`} className={row.support === 0 ? "tr-empty-class" : undefined}>
                             <td>{cKey}</td>
                             <td>{renderMetricCell(row.precision)}</td>
                             <td>{renderMetricCell(row.recall)}</td>
@@ -2137,6 +2212,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                       </tr>
                     </tbody>
                   </table>
+                  {renderEmptyClassNote(processedLineTimeReport, "annotated lines")}
                 </section>
               )}
 
@@ -2157,7 +2233,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                       {Object.keys(processedLineSpaceReport.perClass).map((cKey) => {
                         const row = processedLineSpaceReport.perClass[cKey];
                         return (
-                          <tr key={`rep_line_space_${cKey}`}>
+                          <tr key={`rep_line_space_${cKey}`} className={row.support === 0 ? "tr-empty-class" : undefined}>
                             <td>{cKey}</td>
                             <td>{renderMetricCell(row.precision)}</td>
                             <td>{renderMetricCell(row.recall)}</td>
@@ -2189,6 +2265,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                       </tr>
                     </tbody>
                   </table>
+                  {renderEmptyClassNote(processedLineSpaceReport, "annotated lines")}
                 </section>
               )}
 

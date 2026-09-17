@@ -867,6 +867,29 @@
   color: #0F172A;
 }
 
+/* Supported Big-O classes the dataset never exercises: still listed so every
+   matrix has identical rows, but visually de-emphasised so a 0.0 score reads
+   as "no samples" rather than "the analyzer failed this class". */
+.tr-empty-class td {
+  opacity: 0.55;
+  font-style: italic;
+  background-color: #FAFAFC;
+}
+
+/* Caption under a matrix that contains support-0 rows. */
+.sklearn-empty-note {
+  margin: 8px 2px 0;
+  font-size: 11px;
+  line-height: 1.5;
+  font-style: italic;
+  color: #64748B;
+}
+
+.sklearn-empty-note strong {
+  font-style: normal;
+  color: #475569;
+}
+
 /* Quality feedback tints on F1 score cell */
 .f1-excellent {
   background-color: #ECFDF5;
