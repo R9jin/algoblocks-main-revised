@@ -1,4 +1,4 @@
-﻿/* frontend/src/styles/EvaluationSuite.css */
+/* frontend/src/styles/EvaluationSuite.css */
 
 .eval-suite-container {
   overflow-y: auto;
@@ -447,35 +447,42 @@
 .eval-metric-ring-visual {
   position: relative;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .eval-metric-ring-svg {
-  transform: rotate(-90deg);
+  display: block;
+  overflow: visible;
 }
 
 .eval-metric-ring-track {
   fill: none;
-  stroke: #EEF2F7;
+  stroke: rgba(148, 163, 184, 0.25);
 }
 
 .eval-metric-ring-progress {
   fill: none;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
 }
 
 .eval-metric-ring-center {
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
 }
 
 .eval-metric-ring-percent {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 800;
   color: #0F172A;
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 .eval-metric-panel-stats {
@@ -528,6 +535,7 @@
   margin-left: auto;
   font-weight: 800;
   color: #0F172A;
+  font-variant-numeric: tabular-nums;
 }
 
 .eval-metric-num-pass { color: #0F9F6E; }
@@ -535,16 +543,18 @@
 
 .eval-metric-panel-bar {
   height: 6px;
-  border-radius: 4px;
-  background: #EEF2F7;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.22);
   margin-top: 16px;
   overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .eval-metric-panel-bar-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: 999px;
   transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 @media (max-width: 720px) {

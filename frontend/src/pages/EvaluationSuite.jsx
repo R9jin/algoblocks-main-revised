@@ -176,7 +176,33 @@ function EvalMetricPanel({ title, icon, tint, accuracy, errorRate, passed, misma
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.max(0, Math.min(100, accuracy ?? 0));
-  const offset = circumference * (1 - clamped / 100);
+  const isFull = clamped >= 100;
+  const isZero = clamped <= 0;
+
+  // With stroke-linecap: round, the round cap extends by strokeWidth / 2 (~5px, ~5.85 deg).
+  // Offset the SVG rotation so the tip of the rounded start cap begins precisely at 12 o'clock.
+  const capAngleDeg = ((strokeWidth / 2) / circumference) * 360;
+  const svgRotation = -90 + capAngleDeg;
+
+  // Calculate tip-to-tip visual arc length:
+  // For clamped <= 80%: 1:1 true visual ratio.
+  // For clamped in (80, 100): smoothly transition so that high accuracy rates
+  // (e.g., 98.2%, 98.6%, 99.5%) maintain a distinct, visible ~22-25px (~26-29 deg) visual opening,
+  // preventing the round end-caps from touching or overlapping before achieving true 100%.
+  let visualLength;
+  const minTipGap = 21; // px visible opening between rounded caps
+  if (clamped <= 80) {
+    visualLength = (clamped / 100) * circumference;
+  } else {
+    const t = (clamped - 80) / 20;
+    const maxVisual = circumference - minTipGap;
+    const visualAt80 = 0.80 * circumference;
+    visualLength = visualAt80 + t * (maxVisual - visualAt80);
+  }
+
+  // With stroke-linecap: round, the visible stroke spans strokeLength + strokeWidth.
+  const strokeLength = isFull ? circumference : Math.max(0, visualLength - strokeWidth);
+  const offset = isFull ? 0 : circumference - strokeLength;
   const c = size / 2;
   const total = (passed ?? 0) + (mismatches ?? 0);
   const passPct = total > 0 ? (passed / total) * 100 : 0;
@@ -188,18 +214,41 @@ function EvalMetricPanel({ title, icon, tint, accuracy, errorRate, passed, misma
           {icon}
         </span>
         <span>{title}</span>
-        {hoverable && <FiPieChart className="stat-hover-hint-icon" size={11} />}
+        {hoverable && <FiPieChart className="stat-hover-hint-icon" size={12} />}
       </div>
 
       <div className="eval-metric-panel-body">
         <div className="eval-metric-ring-visual" style={{ width: size, height: size }}>
-          <svg viewBox={`0 0 ${size} ${size}`} className="eval-metric-ring-svg" style={{ width: size, height: size }}>
-            <circle cx={c} cy={c} r={radius} className="eval-metric-ring-track" strokeWidth={strokeWidth} />
+          <svg
+            viewBox={`0 0 ${size} ${size}`}
+            className="eval-metric-ring-svg"
+            style={{
+              width: size,
+              height: size,
+              transform: `rotate(${svgRotation}deg)`
+            }}
+          >
             <circle
-              cx={c} cy={c} r={radius}
+              cx={c}
+              cy={c}
+              r={radius}
+              className="eval-metric-ring-track"
+              strokeWidth={strokeWidth}
+            />
+            <circle
+              cx={c}
+              cy={c}
+              r={radius}
               className="eval-metric-ring-progress"
               strokeWidth={strokeWidth}
-              style={{ stroke: tint, strokeDasharray: circumference, strokeDashoffset: offset }}
+              strokeLinecap={isFull ? "butt" : "round"}
+              style={{
+                stroke: tint,
+                strokeDasharray: circumference,
+                strokeDashoffset: offset,
+                opacity: isZero ? 0 : 1,
+                filter: `drop-shadow(0 2px 5px ${tint}40)`
+              }}
             />
           </svg>
           <div className="eval-metric-ring-center">

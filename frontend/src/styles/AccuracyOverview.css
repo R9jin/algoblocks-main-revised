@@ -1,4 +1,4 @@
-﻿/* frontend/src/styles/AccuracyOverview.css — redesigned to match system glassmorphism */
+/* frontend/src/styles/AccuracyOverview.css — redesigned to match system glassmorphism */
 
 .acc-overview-page {
   min-height: 100vh;
@@ -113,13 +113,13 @@
 
 .acc-metric-panel-body { display: flex; align-items: center; gap: 20px; }
 
-.acc-ring-visual { position: relative; flex-shrink: 0; }
-.acc-ring-svg { transform: rotate(-90deg); }
-.acc-ring-track { fill: none; stroke: rgba(124, 92, 255, 0.15); }
-.acc-ring-progress { fill: none; stroke-linecap: round; transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+.acc-ring-visual { position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.acc-ring-svg { display: block; overflow: visible; }
+.acc-ring-track { fill: none; stroke: rgba(124, 92, 255, 0.22); }
+.acc-ring-progress { fill: none; transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease; }
 
-.acc-ring-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-.acc-ring-percent { font-weight: 900; color: #1a1a2e; }
+.acc-ring-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.acc-ring-percent { font-weight: 900; color: #1a1a2e; letter-spacing: -0.02em; }
 
 .acc-metric-stats { flex: 1; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
 

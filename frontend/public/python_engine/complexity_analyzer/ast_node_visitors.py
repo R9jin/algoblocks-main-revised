@@ -343,6 +343,29 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     elif self.analyzer.recursive_calls_count > 0:
                         if "O(n^2)" in relation: 
                             self.analyzer.custom_space[node.name] = "O(n^2)"
+                        # A factorial-branching recursion (e.g. permutation
+                        # generation, or backtracking that accumulates a
+                        # growing partial-solution structure across sibling
+                        # calls, per _detect_factorial_branching / max_fact)
+                        # genuinely retains O(n!) worth of state, not the flat
+                        # O(n) every other recursive shape gets here.
+                        #
+                        # NOTE: a plain "O(2^n) TIME" relation (has_recursion_
+                        # in_loop, e.g. tree/DFS-style branching that doesn't
+                        # accumulate) does NOT get the same treatment here.
+                        # For that shape only one root-to-leaf path is ever
+                        # live on the call stack at once, so its *space* stays
+                        # O(n) (the recursion depth) even though the *time*
+                        # (total call count across the whole branching tree)
+                        # is exponential -- e.g. a matrix/word-search DFS that
+                        # recurses into up to 8 neighbours per call still only
+                        # holds one path's worth of frames at a time. Treating
+                        # every O(2^n)-time recursion as O(2^n)-space conflates
+                        # "many calls happen in total" with "many calls are
+                        # alive simultaneously", and mislabels that whole
+                        # (much more common) tree-recursion class.
+                        elif "n * T(n-1)" in relation or self.analyzer.max_fact > 0:
+                            self.analyzer.custom_space[node.name] = "O(n!)"
                         elif "T(n/2)" in relation or relation == "O(log n)":
                             if self.analyzer.max_space_weight >= 1:
                                 self.analyzer.custom_space[node.name] = "O(n)"

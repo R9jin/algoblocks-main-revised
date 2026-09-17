@@ -73,18 +73,53 @@ function AccuracyRing({ percent, tint, size = 128, strokeWidth = 12 }) {
   const clamped = Math.max(0, Math.min(100, percent ?? 0));
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - clamped / 100);
+  const isFull = clamped >= 100;
+  const isZero = clamped <= 0;
+
+  // Offset rotation so the tip of the rounded start cap begins precisely at 12 o'clock
+  const capAngleDeg = ((strokeWidth / 2) / circumference) * 360;
+  const svgRotation = -90 + capAngleDeg;
+
+  // Calculate tip-to-tip visual arc length with guaranteed opening for high percentages
+  let visualLength;
+  const minTipGap = Math.max(18, size * 0.18);
+  if (clamped <= 80) {
+    visualLength = (clamped / 100) * circumference;
+  } else {
+    const t = (clamped - 80) / 20;
+    const maxVisual = circumference - minTipGap;
+    const visualAt80 = 0.80 * circumference;
+    visualLength = visualAt80 + t * (maxVisual - visualAt80);
+  }
+
+  const strokeLength = isFull ? circumference : Math.max(0, visualLength - strokeWidth);
+  const offset = isFull ? 0 : circumference - strokeLength;
   const c = size / 2;
 
   return (
     <div className="acc-ring-visual" style={{ width: size, height: size }}>
-      <svg viewBox={`0 0 ${size} ${size}`} className="acc-ring-svg" style={{ width: size, height: size }}>
+      <svg
+        viewBox={`0 0 ${size} ${size}`}
+        className="acc-ring-svg"
+        style={{
+          width: size,
+          height: size,
+          transform: `rotate(${svgRotation}deg)`
+        }}
+      >
         <circle cx={c} cy={c} r={radius} className="acc-ring-track" strokeWidth={strokeWidth} />
         <circle
           cx={c} cy={c} r={radius}
           className="acc-ring-progress"
           strokeWidth={strokeWidth}
-          style={{ stroke: tint, strokeDasharray: circumference, strokeDashoffset: offset }}
+          strokeLinecap={isFull ? "butt" : "round"}
+          style={{
+            stroke: tint,
+            strokeDasharray: circumference,
+            strokeDashoffset: offset,
+            opacity: isZero ? 0 : 1,
+            filter: `drop-shadow(0 2px 5px ${tint}40)`
+          }}
         />
       </svg>
       <div className="acc-ring-center">
