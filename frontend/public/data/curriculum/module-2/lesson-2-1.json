@@ -47,11 +47,11 @@
       "type": "concept",
       "title": "The Engineering Value of Brute Force",
       "content": "A brute-force implementation gives you a **trusted baseline** -- correct output on small inputs that you can check faster algorithms against.\n\nIt also makes the whole search space visible: checking every combination lets you spot redundant work and memory issues directly. And on small, bounded inputs (a 4-element config array, a tiny state machine), brute force is genuinely the right tool -- no risk, no overhead.",
-      "bullets": [
-        "A **correct baseline** for testing faster algorithms.",
-        "Covers the **full search space** -- no missed edge cases.",
-        "Reliable on **small, bounded datasets**.",
-        "**Minimal setup** -- no preprocessing required."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-1-why-brute-force-matters.svg",
+          "alt": "The Engineering Value of Brute Force: A correct baseline for testing faster algorithms.; Covers the full search space -- no missed edge cases.; Reliable on small, bounded datasets.; Minimal setup -- no preprocessing required.."
+        }
       ]
     },
     {
@@ -109,13 +109,268 @@
           "O(n^2)",
           "O(2^n)"
         ]
-      }
+      },
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Exhaustive Pair Checking",
+          "description": "Finding if any two numbers sum to 13 in [2, 4, 7, 11]. Every pair is checked.",
+          "steps": [
+            {
+              "array": [
+                2,
+                4,
+                7,
+                11
+              ],
+              "roles": {
+                "0": "compare",
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                },
+                {
+                  "label": "j",
+                  "index": 1
+                }
+              ],
+              "caption": "2 + 4 = 6. Not 13.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 3,
+                "bigO": "O(n²)",
+                "formula": "1 of 3 pair checks so far",
+                "note": "Brute force checks every possible pair -- n × n combinations.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            },
+            {
+              "array": [
+                2,
+                4,
+                7,
+                11
+              ],
+              "roles": {
+                "0": "compare",
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                },
+                {
+                  "label": "j",
+                  "index": 2
+                }
+              ],
+              "caption": "2 + 7 = 9. Not 13.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 3,
+                "bigO": "O(n²)",
+                "formula": "2 of 3 pair checks so far",
+                "note": "Brute force checks every possible pair -- n × n combinations.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            },
+            {
+              "array": [
+                2,
+                4,
+                7,
+                11
+              ],
+              "roles": {
+                "0": "compare",
+                "3": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                },
+                {
+                  "label": "j",
+                  "index": 3
+                }
+              ],
+              "caption": "2 + 11 = 13. Match found!",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 3,
+                "bigO": "O(n²)",
+                "formula": "3 of 3 pair checks so far",
+                "note": "Brute force checks every possible pair -- n × n combinations.",
+                "line": 5,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 5
+            }
+          ],
+          "codeLines": [
+            "def has_pair_sum(arr, target):",
+            "    n = len(arr)",
+            "    for i in range(n):",
+            "        for j in range(i + 1, n):",
+            "            if arr[i] + arr[j] == target:",
+            "                return True",
+            "    return False"
+          ]
+        }
+      ]
     },
     {
       "id": "backtracking-smart-brute-force",
       "type": "deep_dive",
       "title": "Backtracking: Smart Brute Force",
-      "content": "Generating every full candidate up front (like all N-Queens boards) can blow up memory fast. **Backtracking** fixes this: build a candidate incrementally, and the moment a partial choice fails, abandon that branch immediately instead of finishing it.\n\nThat \"choose, explore, prune, unchoose\" loop skips huge chunks of the search space before ever computing them -- exhaustive correctness, without the memory blowup."
+      "content": "Generating every full candidate up front (like all N-Queens boards) can blow up memory fast. **Backtracking** fixes this: build a candidate incrementally, and the moment a partial choice fails, abandon that branch immediately instead of finishing it.\n\nThat \"choose, explore, prune, unchoose\" loop skips huge chunks of the search space before ever computing them -- exhaustive correctness, without the memory blowup.",
+      "traces": [
+        {
+          "kind": "recursionTree",
+          "title": "Backtracking Pruning",
+          "description": "Instead of building every complete combination, backtracking abandons a branch as soon as it becomes invalid.",
+          "nodes": [
+            {
+              "id": "root",
+              "parentId": null,
+              "label": "Start",
+              "revealAt": 1
+            },
+            {
+              "id": "a",
+              "parentId": "root",
+              "label": "Try Path A",
+              "revealAt": 2
+            },
+            {
+              "id": "a1",
+              "parentId": "a",
+              "label": "A-1",
+              "revealAt": 3
+            },
+            {
+              "id": "a2",
+              "parentId": "a",
+              "label": "A-2",
+              "revealAt": 4
+            },
+            {
+              "id": "b",
+              "parentId": "root",
+              "label": "Try Path B (Invalid)",
+              "revealAt": 5
+            },
+            {
+              "id": "c",
+              "parentId": "root",
+              "label": "Try Path C",
+              "revealAt": 6
+            }
+          ],
+          "stepCaptions": [
+            "Begin search.",
+            "Explore Path A.",
+            "Explore A-1 (complete).",
+            "Explore A-2 (complete).",
+            "Explore Path B. It violates a constraint immediately! PRUNED. We do not explore B-1, B-2, etc.",
+            "Skip straight to Path C."
+          ],
+          "stepComplexity": [
+            {
+              "opsSoFar": 1,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "1 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 0,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 2,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "2 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 6,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 3,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "3 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 1,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 4,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "4 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 1,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 5,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "5 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 4,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 6,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "6 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 6,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            }
+          ],
+          "codeLines": [
+            "def backtrack(path, choices):",
+            "    if is_goal(path):",
+            "        return path",
+            "    for choice in choices:",
+            "        if not is_valid(path, choice):",
+            "            continue",
+            "        path.append(choice)",
+            "        backtrack(path, remaining(choices, choice))",
+            "        path.pop()"
+          ]
+        }
+      ]
     },
     {
       "id": "complexity-analysis",
@@ -133,26 +388,10 @@
       "id": "advantages-limitations",
       "type": "concept",
       "title": "Advantages and Limitations",
-      "subsections": [
+      "images": [
         {
-          "id": "advantages",
-          "title": "Advantages",
-          "bullets": [
-            "**Easy to understand and implement**.",
-            "A solid **correctness baseline**.",
-            "**Reliable** on small search spaces.",
-            "Great for **debugging and testing** faster solutions."
-          ]
-        },
-        {
-          "id": "limitations",
-          "title": "Limitations",
-          "bullets": [
-            "Does **unnecessary work**.",
-            "**Scales poorly** as candidates grow.",
-            "Can burn **excessive time or memory**.",
-            "Often **impractical** for large or real-time systems."
-          ]
+          "src": "/assets/lesson-visuals/auto/lesson-2-1-advantages-limitations-comparison.svg",
+          "alt": "Comparison: Advantages - Easy to understand and implement.; A solid correctness baseline.; Reliable on small search spaces.; Great for debugging and testing faster solutions.. Limitations - Does unnecessary work.; Scales poorly as candidates grow.; Can burn excessive time or memory.; Often impractical for large or real-time systems.."
         }
       ]
     },
@@ -188,12 +427,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Brute force solves problems by **systematically checking every candidate**.",
-        "Simple, and **usually guarantees correctness**.",
-        "A great **baseline before optimizing**.",
-        "Cost depends on **how many candidates get tested**.",
-        "Large search spaces can make it **impractical** -- watch for quadratic or exponential blowup."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-1-takeaways.svg",
+          "alt": "Key Takeaways: Brute force solves problems by systematically checking every candidate.; Simple, and usually guarantees correctness.; A great baseline before optimizing.; Cost depends on how many candidates get tested.; Large search spaces can make it impractical -- watch for quadratic or exponential blowup.."
+        }
       ]
     }
   ],

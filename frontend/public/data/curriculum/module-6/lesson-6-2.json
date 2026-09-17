@@ -46,11 +46,11 @@
       "type": "concept",
       "title": "Why Permutations and Combinations Matter",
       "content": "Many real-world systems require generating possible arrangements or selections. Examples include:\n* Password generation where you need to try all possible combinations of characters.\n* Seating arrangements for events.\n* Scheduling systems that assign time slots.\n* Recommendation engines that select items to suggest.\n* Route planning that considers different orders of visiting locations.\n* Puzzle-solving systems like Sudoku or Rubik's cube.\n\n**The challenge is that possibilities grow explosively as input size increases.** For 10 items, there are 3.6 million permutations. For 20 items, there are about 2.4 times 10 to the 18 permutations, which is impossible to generate exhaustively.\n\nBacktracking solves this by systematically exploring states while tracking decisions and pruning unnecessary exploration. It does not blindly generate everything. It builds solutions incrementally and backtracks when a path becomes invalid.",
-      "bullets": [
-        "Generates possible arrangements systematically.",
-        "Demonstrates recursive state exploration.",
-        "Introduces rollback and state tracking.",
-        "Appears in AI, cryptography, and optimization systems."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-6-2-why-perm-comb-matter.svg",
+          "alt": "Why Permutations and Combinations Matter: Generates possible arrangements systematically.; Demonstrates recursive state exploration.; Introduces rollback and state tracking.; Appears in AI, cryptography, and optimization systems.."
+        }
       ]
     },
     {
@@ -93,7 +93,121 @@
       "id": "recursive-tree",
       "type": "deep_dive",
       "title": "Recursive Exploration Tree",
-      "content": "Permutation generation forms a recursive branching tree. The root node represents an empty path with no elements chosen.\n\n* **Level 1:** From the root, there are 3 branches for choosing the first element: 1, 2, and 3.\n* **Level 2:** From the branch where first element is 1, there are 2 branches for choosing the second element: 2 and 3. This gives nodes like [1,2], [1,3], [2,1], [2,3], [3,1], [3,2].\n* **Level 3:** From the branch where path is [1,2], there is 1 branch for choosing the third element: 3. This forms a leaf node with the full permutation [1,2,3]. Level 3 has leaf nodes with all 6 permutations.\n\nEach recursive level represents another decision position. The algorithm systematically explores every valid branch using depth-first search. It goes all the way down to a leaf, saves the permutation, backtracks one level, tries another branch, and continues until all branches are exhausted."
+      "content": "Permutation generation forms a recursive branching tree. The root node represents an empty path with no elements chosen.\n\n* **Level 1:** From the root, there are 3 branches for choosing the first element: 1, 2, and 3.\n* **Level 2:** From the branch where first element is 1, there are 2 branches for choosing the second element: 2 and 3. This gives nodes like [1,2], [1,3], [2,1], [2,3], [3,1], [3,2].\n* **Level 3:** From the branch where path is [1,2], there is 1 branch for choosing the third element: 3. This forms a leaf node with the full permutation [1,2,3]. Level 3 has leaf nodes with all 6 permutations.\n\nEach recursive level represents another decision position. The algorithm systematically explores every valid branch using depth-first search. It goes all the way down to a leaf, saves the permutation, backtracks one level, tries another branch, and continues until all branches are exhausted.",
+      "traces": [
+        {
+          "kind": "recursionTree",
+          "title": "Permutations of {1, 2}",
+          "description": "A recursive tree building permutations step-by-step.",
+          "nodes": [
+            {
+              "id": "root",
+              "parentId": null,
+              "label": "[]",
+              "revealAt": 1
+            },
+            {
+              "id": "1",
+              "parentId": "root",
+              "label": "[1]",
+              "revealAt": 2
+            },
+            {
+              "id": "12",
+              "parentId": "1",
+              "label": "[1, 2]",
+              "revealAt": 3
+            },
+            {
+              "id": "2",
+              "parentId": "root",
+              "label": "[2]",
+              "revealAt": 4
+            },
+            {
+              "id": "21",
+              "parentId": "2",
+              "label": "[2, 1]",
+              "revealAt": 5
+            }
+          ],
+          "stepCaptions": [
+            "Start with an empty permutation []. Available: 1, 2",
+            "Choose 1. Permutation is [1]. Available: 2",
+            "Choose 2. Permutation is [1, 2]. Base case reached! Backtrack.",
+            "Back at root. Choose 2. Permutation is [2]. Available: 1",
+            "Choose 1. Permutation is [2, 1]. Base case reached! Backtrack."
+          ],
+          "stepComplexity": [
+            {
+              "opsSoFar": 1,
+              "opsTotal": 5,
+              "bigO": "O(n!)",
+              "formula": "1 of 5 states explored so far",
+              "note": "Every arrangement is distinct -- n! grows even faster than 2ⁿ for larger n.",
+              "line": 0,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 2,
+              "opsTotal": 5,
+              "bigO": "O(n!)",
+              "formula": "2 of 5 states explored so far",
+              "note": "Every arrangement is distinct -- n! grows even faster than 2ⁿ for larger n.",
+              "line": 5,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 3,
+              "opsTotal": 5,
+              "bigO": "O(n!)",
+              "formula": "3 of 5 states explored so far",
+              "note": "Every arrangement is distinct -- n! grows even faster than 2ⁿ for larger n.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 4,
+              "opsTotal": 5,
+              "bigO": "O(n!)",
+              "formula": "4 of 5 states explored so far",
+              "note": "Every arrangement is distinct -- n! grows even faster than 2ⁿ for larger n.",
+              "line": 5,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 5,
+              "opsTotal": 5,
+              "bigO": "O(n!)",
+              "formula": "5 of 5 states explored so far",
+              "note": "Every arrangement is distinct -- n! grows even faster than 2ⁿ for larger n.",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            }
+          ],
+          "codeLines": [
+            "def permute(path, remaining):",
+            "    if not remaining:",
+            "        return [path]",
+            "    result = []",
+            "    for i in range(len(remaining)):",
+            "        next_path = path + [remaining[i]]",
+            "        rest = remaining[:i] + remaining[i + 1:]",
+            "        result += permute(next_path, rest)",
+            "    return result"
+          ]
+        }
+      ]
     },
     {
       "id": "permutation-pseudocode",
@@ -219,13 +333,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Permutations generate arrangements where order matters.",
-        "Combinations generate selections where order does not matter.",
-        "Backtracking systematically explores recursive possibilities.",
-        "State tracking is essential for valid recursive exploration.",
-        "Rollback restores previous states after recursion.",
-        "Permutation generation commonly grows factorially."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-6-2-takeaways.svg",
+          "alt": "Key Takeaways: Permutations generate arrangements where order matters.; Combinations generate selections where order does not matter.; Backtracking systematically explores recursive possibilities.; State tracking is essential for valid recursive exploration.; Rollback restores previous states after recursion.; Permutation generation commonly grows factorially.."
+        }
       ]
     }
   ],

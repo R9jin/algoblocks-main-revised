@@ -346,7 +346,11 @@
 }
 
 .mastery-card.expanded {
-  background: #FFFFFF;
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -468,7 +472,11 @@
 }
 
 .lesson-block {
-  background: #FFFFFF;
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 16px 18px;
@@ -1093,7 +1101,7 @@
   color: #ffffff;
 }
 /* ================================================================
-   ACTIVITY METRICS CARDS — full redesign (AMC system)
+   ACTIVITY METRICS CARDS ï¿½ full redesign (AMC system)
    Replaces the old .act-metrics-group / .metric-cluster layout.
    Every text colour is near-black (#1a1a2e) for legibility.
    ================================================================ */
@@ -1148,7 +1156,7 @@
   flex-wrap: wrap;
 }
 
-/* Conic-gradient donut ring — uses CSS custom props set inline */
+/* Conic-gradient donut ring ï¿½ uses CSS custom props set inline */
 .aes-donut {
   position: relative;
   width: 58px;
@@ -1166,7 +1174,11 @@
   content: '';
   position: absolute;
   inset: 8px;
-  background: white;
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 50%;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.10);
 }

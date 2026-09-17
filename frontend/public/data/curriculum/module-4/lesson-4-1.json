@@ -45,10 +45,11 @@
       "type": "concept",
       "title": "Why Greedy Algorithms Matter",
       "content": "Real systems -- flight gate scheduling, CPU task queues, GPS routing -- can't afford to test every possibility. Scheduling 100 tasks has 100! possible orderings (~9×10¹⁵⁷) -- far more than atoms in the universe. Exhaustive search is a non-starter; greedy is the practical alternative.\n\n**GPS navigation** (Dijkstra's algorithm) greedily expands the nearest unvisited node. **Data compression** (Huffman coding) greedily merges the least-frequent characters. **Scheduling** (earliest-deadline-first) greedily picks the nearest deadline first.",
-      "bullets": [
-        "**Fast** decisions, no exhaustive search.",
-        "Typically **lower memory** usage.",
-        "Powers many real-world **optimization systems**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-4-1-why-greedy-matters.svg",
+          "alt": "Why Greedy Algorithms Matter: Fast decisions, no exhaustive search.; Typically lower memory usage.; Powers many real-world optimization systems.."
+        }
       ]
     },
     {
@@ -79,7 +80,263 @@
       "id": "coin-example",
       "type": "deep_dive",
       "title": "Coin Change Example",
-      "content": "The classic example of greedy succeeding and failing on the same problem shape.\n\n**Canonical system** `[10, 5, 1]`, target 18: take 10 (8 left), take 5 (3 left), take 1 three times → `[10,5,1,1,1]`, 5 coins -- optimal.\n\n**Non-canonical** `[1, 3, 4]`, target 6: greedy takes 4 first (2 left), then two 1s → 3 coins. But `3 + 3` = 2 coins -- better. Greedy's early choice of 4 blocked it.\n\nGreedy is safe for canonical systems (US and Euro coins qualify). For arbitrary denominations, use Dynamic Programming instead."
+      "content": "The classic example of greedy succeeding and failing on the same problem shape.\n\n**Canonical system** `[10, 5, 1]`, target 18: take 10 (8 left), take 5 (3 left), take 1 three times → `[10,5,1,1,1]`, 5 coins -- optimal.\n\n**Non-canonical** `[1, 3, 4]`, target 6: greedy takes 4 first (2 left), then two 1s → 3 coins. But `3 + 3` = 2 coins -- better. Greedy's early choice of 4 blocked it.\n\nGreedy is safe for canonical systems (US and Euro coins qualify). For arbitrary denominations, use Dynamic Programming instead.",
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Greedy Coin Change (Amount = 41)",
+          "description": "We want to make 41 using [25, 10, 5, 1]. A greedy approach takes the largest possible coin each time.",
+          "steps": [
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "0": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "consider",
+                  "index": 0
+                }
+              ],
+              "caption": "Amount = 41. Largest coin is 25. 25 <= 41, so we take it.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "1 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "0": "found"
+              },
+              "pointers": [
+                {
+                  "label": "took 1x",
+                  "index": 0
+                }
+              ],
+              "caption": "Amount is now 16 (41 - 25 = 16). Can we take another 25? No (25 > 16).",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "2 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "consider",
+                  "index": 1
+                }
+              ],
+              "caption": "Move to the next largest coin, 10. 10 <= 16, so we take it.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "3 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "1": "found"
+              },
+              "pointers": [
+                {
+                  "label": "took 1x",
+                  "index": 1
+                }
+              ],
+              "caption": "Amount is now 6 (16 - 10 = 6). Can we take another 10? No.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "4 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "consider",
+                  "index": 2
+                }
+              ],
+              "caption": "Move to the next largest coin, 5. 5 <= 6, so we take it.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "5 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "2": "found"
+              },
+              "pointers": [
+                {
+                  "label": "took 1x",
+                  "index": 2
+                }
+              ],
+              "caption": "Amount is now 1 (6 - 5 = 1). Cannot take another 5.",
+              "complexity": {
+                "opsSoFar": 6,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "6 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "3": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "consider",
+                  "index": 3
+                }
+              ],
+              "caption": "Move to the next largest coin, 1. 1 <= 1, so we take it.",
+              "complexity": {
+                "opsSoFar": 7,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "7 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "0": "found",
+                "1": "found",
+                "2": "found",
+                "3": "found"
+              },
+              "pointers": [],
+              "caption": "Amount is 0. Total coins used: 1x25, 1x10, 1x5, 1x1 = 4 coins.",
+              "complexity": {
+                "opsSoFar": 8,
+                "opsTotal": 8,
+                "bigO": "O(n)",
+                "formula": "8 of 8 coins chosen so far",
+                "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
+                "line": 6,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 6
+            }
+          ],
+          "codeLines": [
+            "def make_change(coins, amount):",
+            "    result = []",
+            "    for coin in coins:",
+            "        while amount >= coin:",
+            "            amount -= coin",
+            "            result.append(coin)",
+            "    return result"
+          ]
+        }
+      ]
     },
     {
       "id": "why-greedy-fast",
@@ -160,13 +417,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Greedy makes **locally optimal** decisions.",
-        "It **never revisits** earlier choices.",
-        "Works reliably only when a problem has the **Greedy Choice Property**.",
-        "**Fast and memory-efficient** -- usually O(n) or O(n log n).",
-        "Does **not always guarantee** the optimal solution.",
-        "Knowing when greedy works is the real skill."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-4-1-takeaways.svg",
+          "alt": "Key Takeaways: Greedy makes locally optimal decisions.; It never revisits earlier choices.; Works reliably only when a problem has the Greedy Choice Property.; Fast and memory-efficient -- usually O(n) or O(n log n).; Does not always guarantee the optimal solution.; Knowing when greedy works is the real skill.."
+        }
       ]
     }
   ],

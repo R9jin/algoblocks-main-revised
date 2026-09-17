@@ -18,6 +18,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import BigOChart from "../components/BigOChart";
 import CodeSnippet from "../components/CodeSnippet";
 import LessonBlockPlayground from "../components/LessonBlockPlayground";
+import LessonTracePanel from "../components/tracePlayer/LessonTracePanel";
 import TourHelpButton from "../components/TourHelpButton";
 import UnlockIcon from "../components/UnlockIcon";
 import { BLOCK_EXAMPLES } from "../data/blockExamples";
@@ -251,21 +252,47 @@ function renderChart(chart) {
   );
 }
 
-// Renders one or more real product screenshots attached to a section or
-// subsection via an `images` array (each entry: { src, alt, caption }).
-// `src` is expected to point at /assets/*.png, matching the same public
-// asset paths already used elsewhere in the app (e.g. the sidebar icons).
+// Renders one or more images attached to a section or subsection via an
+// `images` array (each entry: { src, alt, caption }). Two kinds show up
+// here: real product screenshots (`/assets/*.png`), which should fill the
+// column so their UI text stays legible, and generated diagram SVGs
+// (checklists, comparisons, etc.), which are drawn at a fixed design size
+// and should be shown at that size rather than stretched to the column
+// width -- otherwise their text renders far larger than the surrounding
+// prose. We tell the two apart by extension and size each accordingly.
 // Silently renders nothing if the section has no images, so this is safe
 // to call unconditionally alongside renderChart/renderCodeSnippets.
 function renderImages(images) {
   if (!images?.length) return null;
   return (
     <div className="lesson-image-gallery">
-      {images.map((image, index) => (
-        <figure className="lesson-image-panel" key={image.src || index}>
-          <img src={image.src} alt={image.alt || ""} loading="lazy" />
-          {image.caption && <figcaption>{formatText(image.caption)}</figcaption>}
-        </figure>
+      {images.map((image, index) => {
+        const isDiagram = image.src?.toLowerCase().endsWith(".svg");
+        return (
+          <figure
+            className={`lesson-image-panel${isDiagram ? " lesson-image-panel--diagram" : ""}`}
+            key={image.src || index}
+          >
+            <img src={image.src} alt={image.alt || ""} loading="lazy" />
+            {image.caption && <figcaption>{formatText(image.caption)}</figcaption>}
+          </figure>
+        );
+      })}
+    </div>
+  );
+}
+
+// Renders one or more interactive step-through traces attached to a
+// section or subsection via a `traces` array (see data/curriculum/*.json
+// and components/tracePlayer/). This is what replaces a numbered-list
+// walkthrough ("1. Compare 5, 2 -> swap...") with a scrubbable,
+// playable visualization of the same steps.
+function renderTraces(traces) {
+  if (!traces?.length) return null;
+  return (
+    <div className="lesson-trace-panels">
+      {traces.map((trace, index) => (
+        <LessonTracePanel key={trace.id || index} trace={trace} />
       ))}
     </div>
   );
@@ -1009,6 +1036,7 @@ export default function LessonViewer() {
                     {renderParagraphs(section.content)}
                     {renderBullets(section.bullets)}
                     {renderChart(section.chart)}
+                    {renderTraces(section.traces)}
                     {renderImages(section.images)}
                     {renderCodeSnippets(section.codeSnippets)}
                     {renderBlockPlaygrounds(lessonId, section.id, exampleWorker, openPlaygroundId, setOpenPlaygroundId)}
@@ -1018,6 +1046,7 @@ export default function LessonViewer() {
                         {renderParagraphs(subsection.content, "lesson-subsection-content")}
                         {renderBullets(subsection.bullets)}
                         {renderChart(subsection.chart)}
+                        {renderTraces(subsection.traces)}
                         {renderImages(subsection.images)}
                         {renderCodeSnippets(subsection.codeSnippets)}
                         {renderBlockPlaygrounds(lessonId, subsection.id, exampleWorker, openPlaygroundId, setOpenPlaygroundId)}

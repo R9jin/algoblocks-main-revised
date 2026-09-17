@@ -47,11 +47,11 @@
       "type": "concept",
       "title": "Why Merge Sort Matters",
       "content": "Search engines, databases, and analytics platforms all lean on fast, reliable sorting -- and simple O(n²) sorts just don't scale.\n\n25,000x is the real gap at n=1 million (500 billion vs 20 million comparisons). And unlike Quick Sort, Merge Sort has no pathological worst case -- it's always O(n log n).\n\nIt's also **stable**: equal elements keep their original order, which matters a lot for multi-key sorts (e.g. sort by last name, then first name).",
-      "bullets": [
-        "Scales efficiently to massive datasets.",
-        "Strict **Divide and Conquer** recursion.",
-        "Guaranteed **O(n log n)**, no worst-case surprises.",
-        "**Stable** sort."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-3-why-merge-sort-matters.svg",
+          "alt": "Why Merge Sort Matters: Scales efficiently to massive datasets.; Strict Divide and Conquer recursion.; Guaranteed O(n log n), no worst-case surprises.; Stable sort.."
+        }
       ]
     },
     {
@@ -70,7 +70,155 @@
       "id": "step-by-step-trace",
       "type": "deep_dive",
       "title": "Tracing the Split and Merge",
-      "content": "Tracing `[6, 2, 8, 1]`:\n\n**Left dive:**\n* Frame 1: `[6,2,8,1]` splits to `[6,2]`/`[8,1]`, calls left.\n* Frame 2: `[6,2]` splits to `[6]`/`[2]`, calls left.\n* Frame 3: `[6]` -- base case, returns `[6]`, pops.\n* Frame 2 resumes, calls right → `[2]` returns, pops.\n* Frame 2 merges `[6]`+`[2]` → `[2,6]`, pops.\n\n**Right dive:** Frame 1 resumes, calls right on `[8,1]` -- same process, returns `[1,8]`.\n\n**Final combine:** Frame 1 merges `[2,6]` + `[1,8]` → `[1,2,6,8]`. Stack empty."
+      "content": "Tracing `[6, 2, 8, 1]`:\n\n**Left dive:**\n* Frame 1: `[6,2,8,1]` splits to `[6,2]`/`[8,1]`, calls left.\n* Frame 2: `[6,2]` splits to `[6]`/`[2]`, calls left.\n* Frame 3: `[6]` -- base case, returns `[6]`, pops.\n* Frame 2 resumes, calls right → `[2]` returns, pops.\n* Frame 2 merges `[6]`+`[2]` → `[2,6]`, pops.\n\n**Right dive:** Frame 1 resumes, calls right on `[8,1]` -- same process, returns `[1,8]`.\n\n**Final combine:** Frame 1 merges `[2,6]` + `[1,8]` → `[1,2,6,8]`. Stack empty.",
+      "traces": [
+        {
+          "kind": "recursionTree",
+          "title": "Merge Sort Split Phase",
+          "description": "The array is repeatedly halved until single elements remain.",
+          "nodes": [
+            {
+              "id": "n1",
+              "parentId": null,
+              "label": "[38, 27, 43, 3]",
+              "revealAt": 1
+            },
+            {
+              "id": "n2",
+              "parentId": "n1",
+              "label": "[38, 27]",
+              "revealAt": 2
+            },
+            {
+              "id": "n4",
+              "parentId": "n2",
+              "label": "[38]",
+              "revealAt": 3
+            },
+            {
+              "id": "n5",
+              "parentId": "n2",
+              "label": "[27]",
+              "revealAt": 4
+            },
+            {
+              "id": "n3",
+              "parentId": "n1",
+              "label": "[43, 3]",
+              "revealAt": 5
+            },
+            {
+              "id": "n6",
+              "parentId": "n3",
+              "label": "[43]",
+              "revealAt": 6
+            },
+            {
+              "id": "n7",
+              "parentId": "n3",
+              "label": "[3]",
+              "revealAt": 7
+            }
+          ],
+          "stepCaptions": [
+            "Start with the full array [38, 27, 43, 3].",
+            "Split into left half [38, 27].",
+            "Split again. Left half is [38] (base case!).",
+            "Right half of that split is [27] (base case!). They are merged to [27, 38].",
+            "Now process the original right half [43, 3].",
+            "Split into left half [43] (base case!).",
+            "Right half is [3] (base case!). They merge into [3, 43]. Finally, [27, 38] and [3, 43] merge."
+          ],
+          "stepComplexity": [
+            {
+              "opsSoFar": 1,
+              "opsTotal": 7,
+              "bigO": "O(log n) depth",
+              "formula": "1 of 7 calls made so far",
+              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "line": 0,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 2,
+              "opsTotal": 7,
+              "bigO": "O(log n) depth",
+              "formula": "2 of 7 calls made so far",
+              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "line": 4,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 3,
+              "opsTotal": 7,
+              "bigO": "O(log n) depth",
+              "formula": "3 of 7 calls made so far",
+              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 4,
+              "opsTotal": 7,
+              "bigO": "O(log n) depth",
+              "formula": "4 of 7 calls made so far",
+              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "line": 6,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 5,
+              "opsTotal": 7,
+              "bigO": "O(log n) depth",
+              "formula": "5 of 7 calls made so far",
+              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "line": 5,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 6,
+              "opsTotal": 7,
+              "bigO": "O(log n) depth",
+              "formula": "6 of 7 calls made so far",
+              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "line": 2,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 7,
+              "opsTotal": 7,
+              "bigO": "O(log n) depth",
+              "formula": "7 of 7 calls made so far",
+              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "line": 6,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            }
+          ],
+          "codeLines": [
+            "def merge_sort(arr):",
+            "    if len(arr) <= 1:",
+            "        return arr",
+            "    mid = len(arr) // 2",
+            "    left = merge_sort(arr[:mid])",
+            "    right = merge_sort(arr[mid:])",
+            "    return merge(left, right)"
+          ]
+        }
+      ]
     },
     {
       "id": "the-merge-phase",
@@ -130,26 +278,10 @@
       "id": "advantages-limitations",
       "type": "concept",
       "title": "Advantages and Limitations",
-      "subsections": [
+      "images": [
         {
-          "id": "advantages",
-          "title": "Advantages",
-          "bullets": [
-            "Efficient on **massive datasets**.",
-            "Guaranteed **O(n log n)**.",
-            "**Stable** -- preserves duplicate order.",
-            "A clean example of Divide and Conquer."
-          ]
-        },
-        {
-          "id": "limitations",
-          "title": "Limitations",
-          "bullets": [
-            "Needs **O(n) extra memory**.",
-            "Recursive flow can confuse beginners.",
-            "Pointer tracking in the merge takes practice.",
-            "Usually a bit slower than Quick Sort in practice due to allocation overhead."
-          ]
+          "src": "/assets/lesson-visuals/auto/lesson-3-3-advantages-limitations-comparison.svg",
+          "alt": "Comparison: Advantages - Efficient on massive datasets.; Guaranteed O(n log n).; Stable -- preserves duplicate order.; A clean example of Divide and Conquer.. Limitations - Needs O(n) extra memory.; Recursive flow can confuse beginners.; Pointer tracking in the merge takes practice.; Usually a bit slower than Quick Sort in practice due to allocation overhead.."
         }
       ]
     },
@@ -185,13 +317,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Merge Sort splits down to **base cases of size 1**.",
-        "The Call Stack drills down the **left branch first**.",
-        "All sorting happens in the bottom-up **Merge Phase**.",
-        "Merging uses pointers to build a temporary **Auxiliary Array**.",
-        "**O(n log n)** time, **O(n)** space.",
-        "It's a **Stable Sort**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-3-takeaways.svg",
+          "alt": "Key Takeaways: Merge Sort splits down to base cases of size 1.; The Call Stack drills down the left branch first.; All sorting happens in the bottom-up Merge Phase.; Merging uses pointers to build a temporary Auxiliary Array.; O(n log n) time, O(n) space.; It's a Stable Sort.."
+        }
       ]
     }
   ],

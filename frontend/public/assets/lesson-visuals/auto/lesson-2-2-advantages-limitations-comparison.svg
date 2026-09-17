@@ -1,0 +1,34 @@
+<svg viewBox="0 0 640 282" width="640" height="282" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="282" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<line x1="320.0" y1="46" x2="320.0" y2="268" stroke="#E5E0F5" stroke-width="1.5"/>
+<text x="24" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#065F46">Advantages</text>
+<circle cx="35" cy="66.5" r="11" fill="#10B981"/>
+<path d="M 30 66.5 L 33.5 70.5 L 40.5 62.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">No</tspan><tspan dx="4" font-weight="700" fill="#065F46">sorting</tspan><tspan dx="4" font-weight="400" fill="#33534A">required.</tspan></text>
+<circle cx="35" cy="114.5" r="11" fill="#10B981"/>
+<path d="M 30 114.5 L 33.5 118.5 L 40.5 110.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">Beginner-friendly,</tspan><tspan dx="4" font-weight="400" fill="#33534A">works</tspan><tspan dx="4" font-weight="400" fill="#33534A">on</tspan><tspan dx="4" font-weight="400" fill="#33534A">any</tspan></text>
+<text x="52" y="140" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">list.</tspan></text>
+<circle cx="35" cy="176.5" r="11" fill="#10B981"/>
+<path d="M 30 176.5 L 33.5 180.5 L 40.5 172.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="183" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">O(1)</tspan><tspan dx="4" font-weight="700" fill="#065F46">auxiliary</tspan><tspan dx="4" font-weight="700" fill="#065F46">space,</tspan><tspan dx="4" font-weight="400" fill="#33534A">in-place.</tspan></text>
+<circle cx="35" cy="224.5" r="11" fill="#10B981"/>
+<path d="M 30 224.5 L 33.5 228.5 L 40.5 220.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="231" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">Great</tspan><tspan dx="4" font-weight="400" fill="#33534A">for</tspan><tspan dx="4" font-weight="700" fill="#065F46">small</tspan><tspan dx="4" font-weight="700" fill="#065F46">datasets</tspan><tspan dx="4" font-weight="700" fill="#065F46">or</tspan><tspan dx="4" font-weight="700" fill="#065F46">one-off</tspan></text>
+<text x="52" y="250" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">queries.</tspan></text>
+<text x="332.0" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#7A1E1E">Limitations</text>
+<circle cx="343.0" cy="66.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 62.5 L 347.0 70.5 M 347.0 62.5 L 339.0 70.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#7A1E1E">Slow</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">on</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">large</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">datasets.</tspan></text>
+<circle cx="343.0" cy="114.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 110.5 L 347.0 118.5 M 347.0 110.5 L 339.0 118.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#7A1E1E">Repeated</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">searches</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">get</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">expensive</tspan></text>
+<text x="360.0" y="140" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">fast.</tspan></text>
+<circle cx="343.0" cy="176.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 172.5 L 347.0 180.5 M 347.0 172.5 L 339.0 180.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="183" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">No</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">use</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">of</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">ordering</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">or</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">indexing.</tspan></text>
+<circle cx="343.0" cy="224.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 220.5 L 347.0 228.5 M 347.0 220.5 L 339.0 228.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="231" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#7A1E1E">Optimized</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">searches</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">win</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">once</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">data</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">is</tspan></text>
+<text x="360.0" y="250" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">structured.</tspan></text>
+</svg>

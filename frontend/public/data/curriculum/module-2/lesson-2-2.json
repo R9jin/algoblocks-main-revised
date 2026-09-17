@@ -47,11 +47,11 @@
       "type": "concept",
       "title": "Why Linear Search Matters",
       "content": "Real systems constantly deal with unsorted data -- attendance lists, error logs, small contact lists.\n\nWhen data has no order, there's **no safe way to skip elements** -- you have to check each one.\n\nSorting costs O(n log n). If you only need one search, paying that cost just to unlock a faster search isn't worth it -- a direct O(n) linear search wins.",
-      "bullets": [
-        "Works on **unsorted arrays** with no preprocessing.",
-        "**Simple** to implement and debug.",
-        "Runs in **O(1) auxiliary space**.",
-        "Ideal for **small datasets or one-time queries**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-2-why-linear-search-matters.svg",
+          "alt": "Why Linear Search Matters: Works on unsorted arrays with no preprocessing.; Simple to implement and debug.; Runs in O(1) auxiliary space.; Ideal for small datasets or one-time queries.."
+        }
       ]
     },
     {
@@ -64,7 +64,316 @@
       "id": "step-by-step",
       "type": "deep_dive",
       "title": "Searching Through an Array",
-      "content": "Searching for 11 in [3, 8, 5, 11, 2]: compare 3, 8, 5 -- no match. Compare 11 -- match! Return index 3, no need to check the rest.\n\nSearching for 10 (not present): every element gets checked, no match, return -1.\n\nWorst case is always the same shape: target at the end, or missing entirely -- every element gets examined."
+      "content": "Step through both cases below at your own pace -- a **hit**, where the scan can stop early, and a **miss**, where every element has to be checked. Worst case is always one of these two shapes: target at the end, or missing entirely.",
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Searching for 11 (found)",
+          "description": "The scan stops the moment a match is found -- everything after index 3 is never touched.",
+          "steps": [
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "0": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                }
+              ],
+              "caption": "Compare index 0 (3) with 11 -- no match, keep going.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "1 of 4 comparisons so far",
+                "note": "Best/average case -- the scan can stop the moment a match is found.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (best/average case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 1
+                }
+              ],
+              "caption": "Compare index 1 (8) with 11 -- no match, keep going.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "2 of 4 comparisons so far",
+                "note": "Best/average case -- the scan can stop the moment a match is found.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (best/average case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 2
+                }
+              ],
+              "caption": "Compare index 2 (5) with 11 -- no match, keep going.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "3 of 4 comparisons so far",
+                "note": "Best/average case -- the scan can stop the moment a match is found.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (best/average case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "3": "found"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 3
+                }
+              ],
+              "caption": "Compare index 3 (11) with 11 -- match! Return index 3 immediately.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "4 of 4 comparisons so far",
+                "note": "Best/average case -- the scan can stop the moment a match is found.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (best/average case)"
+              },
+              "activeLine": 3
+            }
+          ],
+          "codeLines": [
+            "function linearSearch(arr, target):",
+            "  for i in range(len(arr)):",
+            "    if arr[i] == target:",
+            "      return i",
+            "  return -1"
+          ]
+        },
+        {
+          "kind": "array",
+          "title": "Searching for 10 (not present)",
+          "description": "No match exists, so the scan can't stop early -- every element is examined before giving up.",
+          "steps": [
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "0": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                }
+              ],
+              "caption": "Compare index 0 (3) with 10 -- no match.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "1 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 1
+                }
+              ],
+              "caption": "Compare index 1 (8) with 10 -- no match.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "2 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 2
+                }
+              ],
+              "caption": "Compare index 2 (5) with 10 -- no match.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "3 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "3": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 3
+                }
+              ],
+              "caption": "Compare index 3 (11) with 10 -- no match.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "4 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "4": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 4
+                }
+              ],
+              "caption": "Compare index 4 (2) with 10 -- no match. End of array reached, return -1.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "5 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            }
+          ],
+          "codeLines": [
+            "function linearSearch(arr, target):",
+            "  for i in range(len(arr)):",
+            "    if arr[i] == target:",
+            "      return i",
+            "  return -1"
+          ]
+        }
+      ]
     },
     {
       "id": "advanced-traversals",
@@ -144,26 +453,10 @@
       "id": "advantages-limitations",
       "type": "concept",
       "title": "Advantages and Limitations",
-      "subsections": [
+      "images": [
         {
-          "id": "advantages",
-          "title": "Advantages",
-          "bullets": [
-            "**No sorting** required.",
-            "**Beginner-friendly**, works on any list.",
-            "**O(1) auxiliary space**, in-place.",
-            "Great for **small datasets or one-off queries**."
-          ]
-        },
-        {
-          "id": "limitations",
-          "title": "Limitations",
-          "bullets": [
-            "**Slow** on large datasets.",
-            "**Repeated searches** get expensive fast.",
-            "No use of **ordering or indexing**.",
-            "**Optimized searches** win once data is structured."
-          ]
+          "src": "/assets/lesson-visuals/auto/lesson-2-2-advantages-limitations-comparison.svg",
+          "alt": "Comparison: Advantages - No sorting required.; Beginner-friendly, works on any list.; O(1) auxiliary space, in-place.; Great for small datasets or one-off queries.. Limitations - Slow on large datasets.; Repeated searches get expensive fast.; No use of ordering or indexing.; Optimized searches win once data is structured.."
         }
       ]
     },
@@ -199,12 +492,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Linear Search checks elements **sequentially**, with zero preprocessing.",
-        "**Reverse Traversal** and **Boundary Clamping** handle specialized queries.",
-        "Best case: **O(1)** (target first).",
-        "Worst case: **O(n)** (target last or missing).",
-        "Simple and reliable, but **not ideal for repeated searches** on large data."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-2-takeaways.svg",
+          "alt": "Key Takeaways: Linear Search checks elements sequentially, with zero preprocessing.; Reverse Traversal and Boundary Clamping handle specialized queries.; Best case: O(1) (target first).; Worst case: O(n) (target last or missing).; Simple and reliable, but not ideal for repeated searches on large data.."
+        }
       ]
     }
   ],

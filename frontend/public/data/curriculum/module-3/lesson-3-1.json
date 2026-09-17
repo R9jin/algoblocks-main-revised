@@ -48,11 +48,11 @@
       "type": "concept",
       "title": "Why Divide and Conquer Matters",
       "content": "At millions or billions of items, brute-force loops just can't keep up. Divide and Conquer is what makes modern high-performance computing possible.\n\nEvery database query against a billion-row table uses Divide and Conquer (B-Trees, binary search) to skip straight to the target instead of scanning everything. Every OS-level file sort relies on it too.\n\nMastering it means thinking in nested, self-similar sub-tasks instead of flat sequences of steps.",
-      "bullets": [
-        "**Cuts execution time** from linear down toward logarithmic or linearithmic.",
-        "Maps recursive functions directly onto **clean mathematical definitions**.",
-        "Powers the world's **fastest sorting and searching algorithms**.",
-        "Makes datasets **too large for a straight scan** tractable."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-1-why-divide-and-conquer-matters.svg",
+          "alt": "Why Divide and Conquer Matters: Cuts execution time from linear down toward logarithmic or linearithmic.; Maps recursive functions directly onto clean mathematical definitions.; Powers the world's fastest sorting and searching algorithms.; Makes datasets too large for a straight scan tractable.."
+        }
       ]
     },
     {
@@ -82,7 +82,125 @@
       "id": "visual-call-stack",
       "type": "deep_dive",
       "title": "Call Stack Memory Allocation: Push and Pop",
-      "content": "Recursion physically uses RAM through the **Call Stack** -- a Last-In-First-Out structure tracking every active function call.\n\nEach recursive call suspends its parent and pushes a new **Stack Frame** (local variables, arguments, return address) on top. When a call hits its base case, its frame **pops** off, and the result flows back down to wake up the frame below it.\n\nSkip the base case, and frames pile up forever -- eventually exhausting memory and crashing with a **Stack Overflow Error**."
+      "content": "Recursion physically uses RAM through the **Call Stack** -- a Last-In-First-Out structure tracking every active function call.\n\nEach recursive call suspends its parent and pushes a new **Stack Frame** (local variables, arguments, return address) on top. When a call hits its base case, its frame **pops** off, and the result flows back down to wake up the frame below it.\n\nSkip the base case, and frames pile up forever -- eventually exhausting memory and crashing with a **Stack Overflow Error**.",
+      "traces": [
+        {
+          "kind": "callstack",
+          "title": "Divide and Conquer Call Stack",
+          "description": "Splitting problems pushes them to the stack.",
+          "steps": [
+            {
+              "stack": [
+                "solve(0, 4)"
+              ],
+              "cache": {},
+              "caption": "Initial problem.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 5,
+                "bigO": "O(log n) depth",
+                "formula": "1 of 5 stack frames deep so far",
+                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "line": 0,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 0
+            },
+            {
+              "stack": [
+                "solve(0, 4)",
+                "solve(0, 2)"
+              ],
+              "cache": {},
+              "caption": "Solve left half.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 5,
+                "bigO": "O(log n) depth",
+                "formula": "2 of 5 stack frames deep so far",
+                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            },
+            {
+              "stack": [
+                "solve(0, 4)",
+                "solve(0, 2)",
+                "solve(0, 1)"
+              ],
+              "cache": {},
+              "caption": "Solve left half of left half.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 5,
+                "bigO": "O(log n) depth",
+                "formula": "3 of 5 stack frames deep so far",
+                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            },
+            {
+              "stack": [
+                "solve(0, 4)",
+                "solve(0, 2)"
+              ],
+              "cache": {},
+              "caption": "Base case resolved.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 5,
+                "bigO": "O(log n) depth",
+                "formula": "4 of 5 stack frames deep so far",
+                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "stack": [
+                "solve(0, 4)",
+                "solve(2, 4)"
+              ],
+              "cache": {},
+              "caption": "Solve right half.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 5,
+                "bigO": "O(log n) depth",
+                "formula": "5 of 5 stack frames deep so far",
+                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "line": 5,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 5
+            }
+          ],
+          "codeLines": [
+            "def solve(lo, hi):",
+            "    if lo == hi:",
+            "        return base_case(lo)",
+            "    mid = (lo + hi) // 2",
+            "    left = solve(lo, mid)",
+            "    right = solve(mid + 1, hi)",
+            "    return combine(left, right)"
+          ]
+        }
+      ]
     },
     {
       "id": "stack-trace-example",
@@ -131,10 +249,11 @@
       "title": "Architectural Trade-offs: Recursion vs. Iteration",
       "content": "Any recursive algorithm can, in theory, be rewritten iteratively with a loop. So why use recursion?",
       "subsections": [],
-      "bullets": [
-        "**Automatic state management:** the Call Stack tracks state for you -- no manual counters or boundaries.",
-        "**Tree-shaped data:** file systems, DOM trees, BSTs map naturally to recursive calls, awkwardly to flat loops.",
-        "**Readability:** recursive code often mirrors the mathematical definition of the problem directly."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-1-recursion-vs-iteration.svg",
+          "alt": "Architectural Trade-offs: Recursion vs. Iteration: Automatic state management: the Call Stack tracks state for you -- no manual counters or boundaries.; Tree-shaped data: file systems, DOM trees, BSTs map naturally to recursive calls, awkwardly to flat loops.; Readability: recursive code often mirrors the mathematical definition of the problem directly.."
+        }
       ]
     },
     {
@@ -153,26 +272,10 @@
       "id": "advantages-limitations",
       "type": "concept",
       "title": "Architectural Considerations",
-      "subsections": [
+      "images": [
         {
-          "id": "advantages",
-          "title": "Engineering Advantages",
-          "bullets": [
-            "**Major performance wins** on large datasets.",
-            "Simplifies **tree/branching structures**.",
-            "State tracking handled by the **Call Stack**.",
-            "Naturally suited to **parallel processing** -- independent branches, independent cores."
-          ]
-        },
-        {
-          "id": "limitations",
-          "title": "Scalability Limitations",
-          "bullets": [
-            "Uses real **stack memory** -- deep recursion risks limits.",
-            "Missing base case = guaranteed **Stack Overflow**.",
-            "Harder to **trace and debug** without visual tools.",
-            "Overhead from frame creation makes it **slower than loops on tiny inputs**."
-          ]
+          "src": "/assets/lesson-visuals/auto/lesson-3-1-advantages-limitations-comparison.svg",
+          "alt": "Comparison: Engineering Advantages - Major performance wins on large datasets.; Simplifies tree/branching structures.; State tracking handled by the Call Stack.; Naturally suited to parallel processing -- independent branches, independent cores.. Scalability Limitations - Uses real stack memory -- deep recursion risks limits.; Missing base case = guaranteed Stack Overflow.; Harder to trace and debug without visual tools.; Overhead from frame creation makes it slower than loops on tiny inputs.."
         }
       ]
     },
@@ -202,13 +305,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Engineering Takeaways",
-      "bullets": [
-        "Divide and Conquer replaces linear scans with **recursive subproblem decomposition**.",
-        "Every algorithm follows the same three phases: **Divide, Conquer, Combine**.",
-        "The **Call Stack** physically tracks every suspended call.",
-        "No base case = guaranteed **Stack Overflow**.",
-        "Tracing stack frames by hand is the fastest way to actually understand recursion.",
-        "Halving the problem each step turns linear time into **logarithmic** time."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-3-1-takeaways.svg",
+          "alt": "Key Engineering Takeaways: Divide and Conquer replaces linear scans with recursive subproblem decomposition.; Every algorithm follows the same three phases: Divide, Conquer, Combine.; The Call Stack physically tracks every suspended call.; No base case = guaranteed Stack Overflow.; Tracing stack frames by hand is the fastest way to actually understand recursion.; Halving the problem each step turns linear time into logarithmic time.."
+        }
       ]
     }
   ],

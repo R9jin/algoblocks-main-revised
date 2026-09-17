@@ -105,8 +105,9 @@
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #C994FF;
-  font-size: 1.1rem;
+  color: #E5C8FF;
+  font-size: 1.2rem;
+  opacity: 1;
   pointer-events: none;
   transition: color 0.3s ease;
 }
@@ -141,8 +142,8 @@
   box-shadow: 0 0 0 4px rgba(181, 112, 250, 0.15);
 }
 
-.form-group input:focus + .auth-input-icon,
-.form-group input:not(:placeholder-shown) + .auth-input-icon {
+.auth-input-wrap:focus-within .auth-input-icon,
+.auth-input-wrap:has(input:not(:placeholder-shown)) .auth-input-icon {
   color: #E058FB;
 }
 
@@ -445,7 +446,13 @@
 }
 
 .auth-input-icon {
-  color: #7651df;
+  /* Was #7651df at 1.1rem, which washed out against the light card
+     background -- especially the mail/lock glyphs, which are mostly
+     thin strokes with little fill area. Darker + a hair bigger so it
+     actually reads at a glance instead of disappearing into the border. */
+  color: #4b2fae;
+  font-size: 1.2rem;
+  opacity: 1;
 }
 
 .form-group input:hover:not(:disabled) {
@@ -459,8 +466,15 @@
   box-shadow: 0 0 0 3px rgba(127, 87, 249, 0.2);
 }
 
-.form-group input:focus + .auth-input-icon,
-.form-group input:not(:placeholder-shown) + .auth-input-icon {
+/* These used to be `input:focus + .auth-input-icon` / `input:not(:placeholder-shown)
+   + .auth-input-icon`, which never matched: the icon is rendered BEFORE the
+   input in the JSX (it has to be, to sit on the left), and `+` only selects a
+   sibling that comes AFTER the reference element. So the icon's color never
+   actually changed on focus or once the field had text -- it just sat at its
+   (too pale) default forever. :focus-within / :has() don't care about DOM
+   order, so they work regardless of which sibling comes first. */
+.auth-input-wrap:focus-within .auth-input-icon,
+.auth-input-wrap:has(input:not(:placeholder-shown)) .auth-input-icon {
   color: var(--auth-purple-dark);
 }
 

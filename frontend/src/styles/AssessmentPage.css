@@ -67,7 +67,11 @@
 }
 
 .meta-pill {
-  background: #fff;
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border: 1px solid #e2deff;
   color: #5b5675;
   font-size: 0.85rem;
@@ -109,7 +113,11 @@
 
 /* ── QUESTION NAVIGATOR ──────────────────────────────────── */
 .question-navigator {
-  background: #fff;
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border: 1px solid #e2deff;
   border-radius: 14px;
   padding: 1.25rem;
@@ -175,7 +183,11 @@
 .question-main { flex: 1; }
 
 .question-card {
-  background: #fff;
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border: 1px solid #e2deff;
   border-radius: 16px;
   padding: 2rem;
@@ -273,7 +285,11 @@
   padding: 0.65rem 1.25rem;
   border-radius: 10px;
   border: 2px solid #e2deff;
-  background: #fff;
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   color: #5b5675;
   font-size: 0.9rem;
   font-weight: 600;
@@ -314,7 +330,11 @@
 }
 
 .results-card {
-  background: #fff;
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border: 1px solid #e2deff;
   border-radius: 20px;
   padding: 2.5rem;

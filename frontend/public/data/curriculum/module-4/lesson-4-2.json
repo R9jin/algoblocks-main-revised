@@ -45,11 +45,11 @@
       "type": "concept",
       "title": "Why This Problem Matters",
       "content": "Returning 36 pennies technically works, but it's inconvenient for everyone -- systems need to minimize the coin/bill count.\n\n**Vending machines** need fast, exact change from limited coin supplies. **ATMs** dispense optimal bill denominations to reduce mechanical wear. **Banking software** computes optimal cash distributions for bulk orders.\n\nThe same reasoning shows up in inventory packing, disk-block allocation, and schedule filling -- anywhere you're minimizing the count of \"units\" used to hit a target.",
-      "bullets": [
-        "**Minimizes coin count**.",
-        "A clean demonstration of **greedy optimization**.",
-        "Runs constantly in real **financial systems**.",
-        "Teaches **local decision-making**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-4-2-why-problem-matters.svg",
+          "alt": "Why This Problem Matters: Minimizes coin count.; A clean demonstration of greedy optimization.; Runs constantly in real financial systems.; Teaches local decision-making.."
+        }
       ]
     },
     {
@@ -74,7 +74,83 @@
       "id": "step-by-step-example",
       "type": "deep_dive",
       "title": "Step-by-Step Execution Visualization",
-      "content": "Making 36 cents with `[25, 10, 5, 1]`: take a quarter (11 left) → take a dime (1 left) → take a penny (0 left). **Result: `[25, 10, 1]`, 3 coins.**\n\n**Non-canonical** `[4, 3, 1]`, target 6: greedy takes 4 (2 left), then two 1s → `[4,1,1]`, 3 coins. **Optimal is `[3,3]`, 2 coins.** Greedy's early 4 blocked the better pairing -- proof that local choices can miss the global optimum, and that greedy only works reliably on canonical systems."
+      "content": "Making 36 cents with `[25, 10, 5, 1]`: take a quarter (11 left) → take a dime (1 left) → take a penny (0 left). **Result: `[25, 10, 1]`, 3 coins.**\n\n**Non-canonical** `[4, 3, 1]`, target 6: greedy takes 4 (2 left), then two 1s → `[4,1,1]`, 3 coins. **Optimal is `[3,3]`, 2 coins.** Greedy's early 4 blocked the better pairing -- proof that local choices can miss the global optimum, and that greedy only works reliably on canonical systems.",
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Coin Selection",
+          "description": "Greedily taking largest coin.",
+          "steps": [
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "0": "found"
+              },
+              "pointers": [
+                {
+                  "label": "Take 25",
+                  "index": 0
+                }
+              ],
+              "caption": "Target 30. Take 25.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 2,
+                "bigO": "O(n)",
+                "formula": "1 of 2 coins chosen so far",
+                "note": "Each step is one greedy choice -- no backtracking, no revisiting.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
+            },
+            {
+              "array": [
+                25,
+                10,
+                5,
+                1
+              ],
+              "roles": {
+                "2": "found"
+              },
+              "pointers": [
+                {
+                  "label": "Take 5",
+                  "index": 2
+                }
+              ],
+              "caption": "Remaining 5. Take 5.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 2,
+                "bigO": "O(n)",
+                "formula": "2 of 2 coins chosen so far",
+                "note": "Each step is one greedy choice -- no backtracking, no revisiting.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
+            }
+          ],
+          "codeLines": [
+            "def make_change(coins, amount):",
+            "    for coin in coins:",
+            "        if amount >= coin:",
+            "            amount -= coin",
+            "    return amount"
+          ]
+        }
+      ]
     },
     {
       "id": "implementation",
@@ -161,13 +237,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "The goal: **minimize the number of coins** used.",
-        "Greedy repeatedly takes the **largest denomination that fits**.",
-        "Local optimal choices **don't always** produce the global optimum.",
-        "US/Euro-style currencies are **designed for greedy correctness**.",
-        "Greedy is **fast and memory-light**.",
-        "**Dynamic Programming** is needed when greedy fails on arbitrary coins."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-4-2-takeaways.svg",
+          "alt": "Key Takeaways: The goal: minimize the number of coins used.; Greedy repeatedly takes the largest denomination that fits.; Local optimal choices don't always produce the global optimum.; US/Euro-style currencies are designed for greedy correctness.; Greedy is fast and memory-light.; Dynamic Programming is needed when greedy fails on arbitrary coins.."
+        }
       ]
     }
   ],

@@ -46,11 +46,11 @@
       "type": "concept",
       "title": "Why the Knapsack Problem Matters",
       "content": "Many real-world systems involve strictly limited resources combined with optimization goals. You want to maximize a benefit without breaking a hard limit.\n\nApplications include:\n1.  **Investment Planning:** Choosing which stocks to buy with a fixed capital limit to maximize expected portfolio return.\n2.  **Logistics/Cargo:** Selecting which shipping containers to put on an airplane without exceeding takeoff weight limits.\n3.  **Budget Optimization:** Choosing which corporate projects to fund given a fixed annual budget to maximize overall profit.\n4.  **Server Allocation:** Assigning processing tasks to servers with capped CPU/memory capacity to maximize throughput.\n\nThe challenge is maximizing benefit while respecting limitations. Understanding the Knapsack algorithmic structure helps you design automated decision-making engines for all of these domains.",
-      "bullets": [
-        "Demonstrates complex **constrained optimization**.",
-        "Teaches multi-variable **decision-making under limitations**.",
-        "Introduces the foundational **2D Dynamic Programming matrix**.",
-        "Appears natively in **budgeting and logistics systems**."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-5-3-why-knapsack-matters.svg",
+          "alt": "Why the Knapsack Problem Matters: Demonstrates complex constrained optimization.; Teaches multi-variable decision-making under limitations.; Introduces the foundational 2D Dynamic Programming matrix.; Appears natively in budgeting and logistics systems.."
+        }
       ]
     },
     {
@@ -63,7 +63,121 @@
       "id": "why-greedy-fails",
       "type": "deep_dive",
       "title": "Why Greedy Selection Fails",
-      "content": "A common beginner instinct is to use a Greedy algorithm. You might try picking the highest value item first, or the item with the best value-to-weight ratio. **Greedy fails completely for 0/1 Knapsack.**\n\n* **Greedy by Highest Value:** If you pick `Item C` (Value=30, Weight=4), your remaining capacity is 0. Your final value is **30**. You missed the optimal `A+B` combo of **35**.\n* **Greedy by Ratio:** \n    * `Item C` ratio = 30/4 = 7.5\n    * `Item B` ratio = 20/3 = 6.66\n    * `Item A` ratio = 15/1 = 15\n    * Greedy by ratio picks `A` first (Weight=1, Cap=3 remaining). Next best ratio is `C` (doesn't fit). Next is `B` (Weight=3, Cap=0 remaining). In this specific instance ratio works, but it breaks easily on other datasets (e.g., if sizes prevent packing combinations cleanly).\n\nBecause items are discrete (0 or 1), greedy decisions trap the algorithm into wasting remaining capacity. DP solves this by safely tracking *all* possible optimal capacity utilization states."
+      "content": "A common beginner instinct is to use a Greedy algorithm. You might try picking the highest value item first, or the item with the best value-to-weight ratio. **Greedy fails completely for 0/1 Knapsack.**\n\n* **Greedy by Highest Value:** If you pick `Item C` (Value=30, Weight=4), your remaining capacity is 0. Your final value is **30**. You missed the optimal `A+B` combo of **35**.\n* **Greedy by Ratio:** \n    * `Item C` ratio = 30/4 = 7.5\n    * `Item B` ratio = 20/3 = 6.66\n    * `Item A` ratio = 15/1 = 15\n    * Greedy by ratio picks `A` first (Weight=1, Cap=3 remaining). Next best ratio is `C` (doesn't fit). Next is `B` (Weight=3, Cap=0 remaining). In this specific instance ratio works, but it breaks easily on other datasets (e.g., if sizes prevent packing combinations cleanly).\n\nBecause items are discrete (0 or 1), greedy decisions trap the algorithm into wasting remaining capacity. DP solves this by safely tracking *all* possible optimal capacity utilization states.",
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Greedy Fails (Capacity=5)",
+          "description": "Items: A(Value=6, W=4), B(Value=5, W=3), C(Value=4, W=2). Greedy by value picks A first.",
+          "steps": [
+            {
+              "array": [
+                6,
+                5,
+                4
+              ],
+              "roles": {
+                "0": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "W=4",
+                  "index": 0
+                }
+              ],
+              "caption": "Greedy picks highest value: A (Value=6, Weight=4). Remaining capacity = 5 - 4 = 1.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 3,
+                "bigO": "O(n) greedy attempt",
+                "formula": "1 of 3 items considered so far",
+                "note": "Greedy only takes one pass -- fast, but as the surrounding lesson shows, not always correct for Knapsack.",
+                "line": 5,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 5
+            },
+            {
+              "array": [
+                6,
+                5,
+                4
+              ],
+              "roles": {
+                "0": "found",
+                "1": "eliminated",
+                "2": "eliminated"
+              },
+              "pointers": [
+                {
+                  "label": "W=4",
+                  "index": 0
+                }
+              ],
+              "caption": "Capacity=1 left. B (W=3) and C (W=2) do not fit. Total Value = 6.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 3,
+                "bigO": "O(n) greedy attempt",
+                "formula": "2 of 3 items considered so far",
+                "note": "Greedy only takes one pass -- fast, but as the surrounding lesson shows, not always correct for Knapsack.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            },
+            {
+              "array": [
+                6,
+                5,
+                4
+              ],
+              "roles": {
+                "0": "eliminated",
+                "1": "found",
+                "2": "found"
+              },
+              "pointers": [
+                {
+                  "label": "W=3",
+                  "index": 1
+                },
+                {
+                  "label": "W=2",
+                  "index": 2
+                }
+              ],
+              "caption": "Optimal actually skips A to take B and C! Weight=3+2=5. Value=5+4=9. 9 > 6!",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 3,
+                "bigO": "O(n) greedy attempt",
+                "formula": "3 of 3 items considered so far",
+                "note": "Greedy only takes one pass -- fast, but as the surrounding lesson shows, not always correct for Knapsack.",
+                "line": 7,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 7
+            }
+          ],
+          "codeLines": [
+            "def greedy_knapsack(items, capacity):",
+            "    items.sort(key=lambda x: x.value, reverse=True)",
+            "    total_value = 0",
+            "    for item in items:",
+            "        if item.weight <= capacity:",
+            "            capacity -= item.weight",
+            "            total_value += item.value",
+            "    return total_value"
+          ]
+        }
+      ]
     },
     {
       "id": "core-dp-idea",
@@ -175,13 +289,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "0/1 Knapsack focuses on optimal discrete selection under a **hard constraint**.",
-        "Items must be taken entirely (1) or left entirely (0).",
-        "**Greedy selection fails** because discrete sizes trap wasted capacity.",
-        "Dynamic Programming uses a **2D matrix** to test all sub-capacities.",
-        "The recurrence chooses `max(exclude_item, include_item)`.",
-        "The algorithm runs in **`O(n * W)` time**, saving it from `O(2^n)` exponential death."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-5-3-takeaways.svg",
+          "alt": "Key Takeaways: 0/1 Knapsack focuses on optimal discrete selection under a hard constraint.; Items must be taken entirely (1) or left entirely (0).; Greedy selection fails because discrete sizes trap wasted capacity.; Dynamic Programming uses a 2D matrix to test all sub-capacities.; The recurrence chooses max(exclude_item, include_item).; The algorithm runs in O(n * W) time, saving it from O(2^n) exponential death.."
+        }
       ]
     }
   ],

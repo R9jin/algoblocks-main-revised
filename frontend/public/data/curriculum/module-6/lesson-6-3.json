@@ -46,11 +46,11 @@
       "type": "concept",
       "title": "Why the N-Queens Problem Matters",
       "content": "The N-Queens Problem models many real-world constraint-solving situations. Examples include:\n\n* Scheduling systems where tasks cannot overlap.\n* Resource allocation where resources cannot be shared.\n* Puzzle solving like Sudoku.\n* AI search systems, and optimization under restrictions.\n\nIn scheduling, you have limited time slots and tasks that cannot run at the same time. This is similar to placing queens that cannot share rows or columns. In resource allocation, you have limited resources and requests that cannot use the same resource simultaneously.\n\n**The problem demonstrates how recursive search can systematically explore possibilities while rejecting invalid states early.** This early rejection is called pruning. Without pruning, the search would be impossibly large. Understanding this problem helps you solve many other constraint satisfaction problems.",
-      "bullets": [
-        "Demonstrates recursive backtracking clearly.",
-        "Introduces constraint satisfaction problems.",
-        "Shows the importance of pruning.",
-        "Appears in AI and optimization systems."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-6-3-why-nqueens-matters.svg",
+          "alt": "Why the N-Queens Problem Matters: Demonstrates recursive backtracking clearly.; Introduces constraint satisfaction problems.; Shows the importance of pruning.; Appears in AI and optimization systems.."
+        }
       ]
     },
     {
@@ -93,7 +93,103 @@
       "id": "recursive-tree",
       "type": "deep_dive",
       "title": "Recursive Search Tree",
-      "content": "The N-Queens Problem forms a recursive branching tree. The root of the tree is row 0 with no queens placed. From the root, there are N branches for placing a queen in each column of row 0.\n\nFrom each branch at row 0, there are branches for row 1. However, many branches are pruned immediately because the queen placement is unsafe. Only safe placements lead to deeper levels.\n\nFor example, for 4-Queens:\n* From (0,0) there are safe placements at row 1 columns 2 and 3.\n* From (0,1) there are safe placements at row 1 column 3 only.\n* The tree is much smaller than the full 4 to the 4 equals 256 possible placements because pruning eliminates invalid branches early.\n\nEach branch represents another possible queen placement path. Invalid branches are pruned immediately. The algorithm goes depth-first, exploring one branch completely before backtracking and trying another branch. This systematic search ensures that all valid solutions are found."
+      "content": "The N-Queens Problem forms a recursive branching tree. The root of the tree is row 0 with no queens placed. From the root, there are N branches for placing a queen in each column of row 0.\n\nFrom each branch at row 0, there are branches for row 1. However, many branches are pruned immediately because the queen placement is unsafe. Only safe placements lead to deeper levels.\n\nFor example, for 4-Queens:\n* From (0,0) there are safe placements at row 1 columns 2 and 3.\n* From (0,1) there are safe placements at row 1 column 3 only.\n* The tree is much smaller than the full 4 to the 4 equals 256 possible placements because pruning eliminates invalid branches early.\n\nEach branch represents another possible queen placement path. Invalid branches are pruned immediately. The algorithm goes depth-first, exploring one branch completely before backtracking and trying another branch. This systematic search ensures that all valid solutions are found.",
+      "traces": [
+        {
+          "kind": "recursionTree",
+          "title": "N-Queens Pruning",
+          "description": "Placing queens row by row.",
+          "nodes": [
+            {
+              "id": "r1",
+              "parentId": null,
+              "label": "Row 1: Q(0,0)",
+              "revealAt": 1
+            },
+            {
+              "id": "r2_fail",
+              "parentId": "r1",
+              "label": "Row 2: Q(1,0) [Attack]",
+              "revealAt": 2
+            },
+            {
+              "id": "r2_fail2",
+              "parentId": "r1",
+              "label": "Row 2: Q(1,1) [Attack]",
+              "revealAt": 3
+            },
+            {
+              "id": "r2_ok",
+              "parentId": "r1",
+              "label": "Row 2: Q(1,2) [Safe]",
+              "revealAt": 4
+            }
+          ],
+          "stepCaptions": [
+            "Place first queen top-left.",
+            "Row 2, Col 0: Attacked vertically. PRUNED.",
+            "Row 2, Col 1: Attacked diagonally. PRUNED.",
+            "Row 2, Col 2: Safe! Proceed to Row 3."
+          ],
+          "stepComplexity": [
+            {
+              "opsSoFar": 1,
+              "opsTotal": 4,
+              "bigO": "O(N!) pruned",
+              "formula": "1 of 4 placements tried so far",
+              "note": "Safety checks prune huge branches immediately -- most of the raw N! search space is never actually visited.",
+              "line": 5,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 2,
+              "opsTotal": 4,
+              "bigO": "O(N!) pruned",
+              "formula": "2 of 4 placements tried so far",
+              "note": "Safety checks prune huge branches immediately -- most of the raw N! search space is never actually visited.",
+              "line": 4,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 3,
+              "opsTotal": 4,
+              "bigO": "O(N!) pruned",
+              "formula": "3 of 4 placements tried so far",
+              "note": "Safety checks prune huge branches immediately -- most of the raw N! search space is never actually visited.",
+              "line": 4,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 4,
+              "opsTotal": 4,
+              "bigO": "O(N!) pruned",
+              "formula": "4 of 4 placements tried so far",
+              "note": "Safety checks prune huge branches immediately -- most of the raw N! search space is never actually visited.",
+              "line": 5,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            }
+          ],
+          "codeLines": [
+            "def solve_queens(row, cols):",
+            "    if row == N:",
+            "        return True",
+            "    for col in range(N):",
+            "        if is_safe(row, col, cols):",
+            "            cols[row] = col",
+            "            if solve_queens(row + 1, cols):",
+            "                return True",
+            "    return False"
+          ]
+        }
+      ]
     },
     {
       "id": "why-pruning-important",
@@ -198,13 +294,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "The N-Queens Problem places queens safely on a chessboard.",
-        "Queens cannot share rows, columns, or diagonals.",
-        "Backtracking explores placements recursively.",
-        "Rollback restores previous board states.",
-        "Pruning eliminates invalid placements early.",
-        "N-Queens demonstrates recursive constraint solving clearly."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-6-3-takeaways.svg",
+          "alt": "Key Takeaways: The N-Queens Problem places queens safely on a chessboard.; Queens cannot share rows, columns, or diagonals.; Backtracking explores placements recursively.; Rollback restores previous board states.; Pruning eliminates invalid placements early.; N-Queens demonstrates recursive constraint solving clearly.."
+        }
       ]
     }
   ],

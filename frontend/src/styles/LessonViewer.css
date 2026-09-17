@@ -9,7 +9,7 @@
 
 .lesson-modules-sidebar {
   width: 340px;
-  background: white;
+  background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(12px);
   border-right: 1px solid #ece8f8;
   overflow-y: auto;
   overflow-x: hidden;
@@ -229,7 +229,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #f8f8fb;
+  background: transparent; /* match global theme */
   position: relative;
 }
 
@@ -295,10 +295,19 @@
 }
 
 .lesson-content-wrapper {
-  padding: 40px;
-  max-width: 1000px;
+  padding: 40px 56px;
+  max-width: 1400px;
   width: 100%;
   margin: 0 auto;
+}
+
+/* On very wide/ultrawide desktop screens, let the lesson breathe a bit more
+   instead of leaving a fixed-width column stranded in the middle. */
+@media (min-width: 1600px) {
+  .lesson-content-wrapper {
+    max-width: 1600px;
+    padding: 48px 72px;
+  }
 }
 
 .lesson-header {
@@ -561,6 +570,24 @@
   height: auto;
   border-radius: 6px;
   border: 1px solid #e5e0f5;
+}
+
+/* Generated diagram SVGs (checklists, comparisons, etc.) are drawn at a
+   fixed 640px-wide design size with text sized to match the surrounding
+   article copy. Unlike real screenshots, they shouldn't stretch to fill
+   a much wider content column -- that inflates their text far past the
+   size of the prose around it. Show them at their natural size instead,
+   just capped so they never overflow a narrow column. */
+.lesson-image-panel--diagram {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.lesson-image-panel--diagram img {
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .lesson-image-panel figcaption {

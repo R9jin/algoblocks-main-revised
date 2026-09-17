@@ -1,0 +1,11 @@
+<svg viewBox="0 0 640 202" width="640" height="202" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="202" rx="16" fill="#FFFBF2" stroke="#FCE3B3" stroke-width="1.5"/>
+<rect x="0" y="0" width="8" height="202" rx="4" fill="#F59E0B"/>
+<text x="30" y="30" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#7A4A02">Consequences of Poor Management</text>
+<polygon points="36.0,57.0 38.5,63.1 45.0,63.6 40.0,67.8 41.6,74.2 36.0,70.7 30.4,74.2 32.0,67.8 27.0,63.6 33.5,63.1" fill="#F59E0B"/>
+<text x="58" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A4A2E">Loading</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">millions</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">of</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">records</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">at</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">once</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">can</tspan><tspan dx="4" font-weight="700" fill="#7A4A02">crash</tspan><tspan dx="4" font-weight="700" fill="#7A4A02">the</tspan><tspan dx="4" font-weight="700" fill="#7A4A02">system.</tspan></text>
+<polygon points="36.0,105.0 38.5,111.1 45.0,111.6 40.0,115.8 41.6,122.2 36.0,118.7 30.4,122.2 32.0,115.8 27.0,111.6 33.5,111.1" fill="#F59E0B"/>
+<text x="58" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A4A2E">Uncompressed</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">images</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">eat</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">gigabytes</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">fast.</tspan></text>
+<polygon points="36.0,153.0 38.5,159.1 45.0,159.6 40.0,163.8 41.6,170.2 36.0,166.7 30.4,170.2 32.0,163.8 27.0,159.6 33.5,159.1" fill="#F59E0B"/>
+<text x="58" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A4A2E">Deep,</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">unoptimized</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">recursion</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">causes</tspan><tspan dx="4" font-weight="700" fill="#7A4A02">stack</tspan><tspan dx="4" font-weight="700" fill="#7A4A02">overflow.</tspan></text>
+</svg>

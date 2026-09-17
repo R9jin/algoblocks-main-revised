@@ -51,12 +51,12 @@
           "id": "intro-the-five-pillars",
           "title": "The Five Pillars of Programming",
           "content": "Master these five and you already have most of what you need for this entire course:",
-          "bullets": [
-            "**Variables:** your program's memory.",
-            "**Loops:** repetition.",
-            "**Conditionals:** decisions.",
-            "**Arrays:** organized collections of data.",
-            "**Math Operations:** calculations."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/five-pillars.svg",
+              "alt": "Five pillars labeled Variables, Loops, Conditionals, Arrays, and Math operations, holding up a roof labeled Programming fundamentals.",
+              "caption": "Master these five and you already have most of what you need for this entire course."
+            }
           ]
         }
       ]
@@ -76,20 +76,24 @@
           "id": "var-data-types",
           "title": "Common Data Types",
           "content": "A variable can hold different kinds of values:",
-          "bullets": [
-            "**Numbers:** for math and loop counters.",
-            "**Strings:** for text.",
-            "**Booleans:** for True or False."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/common-data-types.svg",
+              "alt": "Three data type cards: Numbers for math and counters, Strings for text values, Booleans for true or false.",
+              "caption": "A variable can hold different kinds of values."
+            }
           ]
         },
         {
           "id": "var-operations",
           "title": "Variable Operations",
           "content": "Three actions cover almost everything you'll do with a variable:",
-          "bullets": [
-            "**Create:** define a new variable and give it a name.",
-            "**Set:** give it a starting value.",
-            "**Change:** update it based on whatever it currently holds (e.g. increment by 1)."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/variable-operations.svg",
+              "alt": "Three sequential steps: 1) Create - name a variable, 2) Set - give it a value, 3) Change - update its value.",
+              "caption": "Three actions cover almost everything you'll do with a variable."
+            }
           ]
         },
         {
@@ -126,10 +130,11 @@
           "id": "loops-types",
           "title": "Types of Loops",
           "content": "Three loop shapes, each suited to a different situation:",
-          "bullets": [
-            "**Repeat (Counted):** runs a fixed number of times -- reach for this when you already know the count.",
-            "**While (Conditional):** runs until a condition turns False -- use this when the count depends on something that changes as you go.",
-            "**For-Each (Iterative):** automatically visits every item in an array, one at a time."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-2-loops-types.svg",
+              "alt": "Types of Loops: Repeat (Counted): runs a fixed number of times -- reach for this when you already know the count.; While (Conditional): runs until a condition turns False -- use this when the count depends on something that changes as you go.; For-Each (Iterative): automatically visits every item in an array, one at a time.."
+            }
           ]
         },
         {
@@ -163,9 +168,205 @@
           "id": "loops-pitfalls",
           "title": "Common Pitfalls to Avoid",
           "content": "Two mistakes to watch for as you write your own loops:",
-          "bullets": [
-            "**Infinite Loops:** a While condition that never becomes False. Always double-check that something *inside* the loop actually changes the value the condition depends on.",
-            "**Off-By-One Errors:** running one iteration too many or too few, usually from a small mistake at a boundary -- like looping through indices 0 to 5 when the last valid index is actually 4."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-2-loops-pitfalls.svg",
+              "alt": "Common Pitfalls to Avoid: Infinite Loops: a While condition that never becomes False. Always double-check that something *inside* the loop actually changes the value the condition depends on.; Off-By-One Errors: running one iteration too many or too few, usually from a small mistake at a boundary -- like looping through indices 0 to 5 when the last valid index is actually 4.."
+            }
+          ]
+        }
+      ],
+      "traces": [
+        {
+          "kind": "code",
+          "title": "Loop Execution",
+          "description": "Repeating actions.",
+          "codeLines": [
+            "count = 3",
+            "while count > 0:",
+            "  PRINT Hello",
+            "  count = count - 1",
+            "END"
+          ],
+          "steps": [
+            {
+              "activeLine": 0,
+              "variables": {
+                "count": 3
+              },
+              "caption": "Initialize loop counter to 3.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "1 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
+            },
+            {
+              "activeLine": 1,
+              "variables": {
+                "count": 3
+              },
+              "caption": "Check condition: 3 > 0? Yes. Enter loop.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "2 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
+            },
+            {
+              "activeLine": 2,
+              "variables": {
+                "count": 3,
+                "output": "Hello"
+              },
+              "caption": "Execute loop body.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "3 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
+            },
+            {
+              "activeLine": 3,
+              "variables": {
+                "count": 2,
+                "output": "Hello"
+              },
+              "caption": "Decrement counter.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "4 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
+            },
+            {
+              "activeLine": 1,
+              "variables": {
+                "count": 2,
+                "output": "Hello"
+              },
+              "caption": "Check condition: 2 > 0? Yes.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "5 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
+            },
+            {
+              "activeLine": 2,
+              "variables": {
+                "count": 2,
+                "output": "Hello, Hello"
+              },
+              "caption": "Execute loop body again.",
+              "complexity": {
+                "opsSoFar": 6,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "6 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
+            },
+            {
+              "activeLine": 3,
+              "variables": {
+                "count": 1,
+                "output": "Hello, Hello"
+              },
+              "caption": "Decrement counter.",
+              "complexity": {
+                "opsSoFar": 7,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "7 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
+            },
+            {
+              "activeLine": 1,
+              "variables": {
+                "count": 1,
+                "output": "Hello, Hello"
+              },
+              "caption": "Check condition: 1 > 0? Yes.",
+              "complexity": {
+                "opsSoFar": 8,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "8 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
+            },
+            {
+              "activeLine": 2,
+              "variables": {
+                "count": 1,
+                "output": "Hello, Hello, Hello"
+              },
+              "caption": "Execute loop body last time.",
+              "complexity": {
+                "opsSoFar": 9,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "9 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
+            },
+            {
+              "activeLine": 3,
+              "variables": {
+                "count": 0,
+                "output": "Hello, Hello, Hello"
+              },
+              "caption": "Decrement counter to 0.",
+              "complexity": {
+                "opsSoFar": 10,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "10 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
+            },
+            {
+              "activeLine": 1,
+              "variables": {
+                "count": 0,
+                "output": "Hello, Hello, Hello"
+              },
+              "caption": "Check condition: 0 > 0? No! Exit loop.",
+              "complexity": {
+                "opsSoFar": 11,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "11 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
+            },
+            {
+              "activeLine": 4,
+              "variables": {
+                "count": 0,
+                "output": "Hello, Hello, Hello"
+              },
+              "caption": "Loop finishes.",
+              "complexity": {
+                "opsSoFar": 12,
+                "opsTotal": 12,
+                "bigO": "O(n)",
+                "formula": "12 of 12 loop iterations so far",
+                "note": "The loop body runs once per item -- double the items, double the iterations."
+              }
+            }
           ]
         }
       ]
@@ -180,9 +381,11 @@
           "id": "cond-toolbox",
           "title": "The Logic Toolbox",
           "content": "Every decision your program makes eventually boils down to a True/False question, built from:",
-          "bullets": [
-            "**Comparisons:** equality, greater-than, less-than.",
-            "**Boolean Operators:** AND, OR, NOT, for combining multiple conditions into one."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-2-cond-toolbox.svg",
+              "alt": "The Logic Toolbox: Comparisons: equality, greater-than, less-than.; Boolean Operators: AND, OR, NOT, for combining multiple conditions into one.."
+            }
           ]
         },
         {
@@ -206,10 +409,11 @@
           "id": "cond-structures",
           "title": "Structural Variants",
           "content": "Conditionals come in three shapes, depending on how many paths you need:",
-          "bullets": [
-            "**If:** runs only when its condition is true; otherwise, nothing happens.",
-            "**If / Else:** exactly one of two paths always runs.",
-            "**If / Else-If / Else:** checks several conditions in order, top to bottom, running the first one that matches."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-2-cond-structures.svg",
+              "alt": "Structural Variants: If: runs only when its condition is true; otherwise, nothing happens.; If / Else: exactly one of two paths always runs.; If / Else-If / Else: checks several conditions in order, top to bottom, running the first one that matches.."
+            }
           ]
         },
         {
@@ -229,10 +433,11 @@
           "id": "arr-zero-index",
           "title": "Zero-Based Indexing",
           "content": "One quirk worth memorizing early: indexing starts at 0, not 1.",
-          "bullets": [
-            "First item → index 0.",
-            "Second item → index 1.",
-            "Last item → length − 1."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-2-arr-zero-index.svg",
+              "alt": "Zero-Based Indexing: First item → index 0.; Second item → index 1.; Last item → length − 1.."
+            }
           ]
         },
         {
@@ -244,10 +449,11 @@
           "id": "arr-operations",
           "title": "Array Operations",
           "content": "The core moves you'll reach for again and again, all found in the Lists drawer:",
-          "bullets": [
-            "**Get / Set at Index:** read or overwrite the value at a specific position.",
-            "**Append / Insert:** add a new item at the end, or at a specific index.",
-            "**Length:** count how many items are currently in the array."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-2-arr-operations.svg",
+              "alt": "Array Operations: Get / Set at Index: read or overwrite the value at a specific position.; Append / Insert: add a new item at the end, or at a specific index.; Length: count how many items are currently in the array.."
+            }
           ]
         },
         {
@@ -285,19 +491,22 @@
           "id": "other-categories",
           "title": "Other Toolbox Categories",
           "content": "You'll pick these up naturally as lessons introduce them:",
-          "bullets": [
-            "**Input / Output:** print to console, or prompt for input.",
-            "**Text / Strings:** concatenate, measure length, change case.",
-            "**Functions:** bundle a group of instructions into one reusable custom block."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-2-other-categories.svg",
+              "alt": "Other Toolbox Categories: Input / Output: print to console, or prompt for input.; Text / Strings: concatenate, measure length, change case.; Functions: bundle a group of instructions into one reusable custom block.."
+            }
           ]
         },
         {
           "id": "power-of-experimentation",
           "title": "The Power of Experimentation",
           "content": "The fastest way to actually learn what a new block does isn't reading about it -- it's trying it:",
-          "bullets": [
-            "**Direct Manipulation:** drop the block on the canvas, feed it some test values, hit Run, and read the output.",
-            "**Python Observation:** watch the live Python panel to see exactly what that block translates to."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-2-power-of-experimentation.svg",
+              "alt": "The Power of Experimentation: Direct Manipulation: drop the block on the canvas, feed it some test values, hit Run, and read the output.; Python Observation: watch the live Python panel to see exactly what that block translates to.."
+            }
           ]
         }
       ]
@@ -312,12 +521,11 @@
           "id": "sum-combining",
           "title": "Combining Components",
           "content": "Step by step:",
-          "bullets": [
-            "1. **(Arrays)** Build a list of student scores.",
-            "2. **(Variables)** Create a \"highest\" variable, set to 0.",
-            "3. **(Loops)** For-Each over the scores.",
-            "4. **(Conditionals)** If the current score beats \"highest\"...",
-            "5. **(Variables)** ...update \"highest\" to the current score."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-2-sum-combining.svg",
+              "alt": "Combining Components: 1. (Arrays) Build a list of student scores.; 2. (Variables) Create a \"highest\" variable, set to 0.; 3. (Loops) For-Each over the scores.; 4. (Conditionals) If the current score beats \"highest\"...; 5. (Variables) ...update \"highest\" to the current score.."
+            }
           ]
         },
         {

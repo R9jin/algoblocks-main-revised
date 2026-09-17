@@ -44,13 +44,11 @@
           "id": "intro-shapes",
           "title": "Characteristic Shapes",
           "content": "Each class has a recognizable shape once you know to look for it -- learn to spot it directly in a loop's structure, not just in an abstract formula:",
-          "bullets": [
-            "O(1) is flat.",
-            "O(log n) rises slowly.",
-            "O(n) climbs steadily.",
-            "O(n log n) curves moderately.",
-            "O(n²) shoots up steeply.",
-            "O(2^n) explodes."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-2-intro-shapes.svg",
+              "alt": "Characteristic Shapes: O(1) is flat.; O(log n) rises slowly.; O(n) climbs steadily.; O(n log n) curves moderately.; O(n²) shoots up steeply.; O(2^n) explodes.."
+            }
           ]
         }
       ]
@@ -70,11 +68,11 @@
           "id": "why-engineering",
           "title": "Engineering Value",
           "content": "This is why engineers analyze complexity before scaling up, not after:",
-          "bullets": [
-            "Predict scalability before input sizes get large.",
-            "Compare solutions independent of machine speed.",
-            "Cut infrastructure costs by avoiding unnecessary work.",
-            "Keep the product responsive by picking the right algorithm."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-2-why-engineering.svg",
+              "alt": "Engineering Value: Predict scalability before input sizes get large.; Compare solutions independent of machine speed.; Cut infrastructure costs by avoiding unnecessary work.; Keep the product responsive by picking the right algorithm.."
+            }
           ]
         }
       ]
@@ -121,11 +119,11 @@
           "id": "constant-examples",
           "title": "Common Examples",
           "content": "Common O(1) operations:",
-          "bullets": [
-            "Array indexing (`arr[i]`).",
-            "Stack push/pop.",
-            "Hash table lookup, on average.",
-            "Basic arithmetic and assignment."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-2-constant-examples.svg",
+              "alt": "Common Examples: Array indexing (arr[i]).; Stack push/pop.; Hash table lookup, on average.; Basic arithmetic and assignment.."
+            }
           ]
         },
         {
@@ -195,6 +193,107 @@
           "language": "python",
           "code": "def total_sales(amounts):\n    total = 0\n    for amount in amounts:\n        total += amount\n    return total\n\nprint(total_sales([120, 75, 210, 90]))"
         }
+      ],
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Linear Time Execution",
+          "description": "O(n)",
+          "steps": [
+            {
+              "array": [
+                1,
+                2,
+                3
+              ],
+              "roles": {
+                "0": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i=0",
+                  "index": 0
+                }
+              ],
+              "caption": "Step 1",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 3,
+                "bigO": "O(n)",
+                "formula": "1 of 3 steps so far",
+                "note": "Work scales directly with input size -- one unit of work per element.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                1,
+                2,
+                3
+              ],
+              "roles": {
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i=1",
+                  "index": 1
+                }
+              ],
+              "caption": "Step 2",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 3,
+                "bigO": "O(n)",
+                "formula": "2 of 3 steps so far",
+                "note": "Work scales directly with input size -- one unit of work per element.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                1,
+                2,
+                3
+              ],
+              "roles": {
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i=2",
+                  "index": 2
+                }
+              ],
+              "caption": "Step 3 - Work scales directly with size.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 3,
+                "bigO": "O(n)",
+                "formula": "3 of 3 steps so far",
+                "note": "Work scales directly with input size -- one unit of work per element.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            }
+          ],
+          "codeLines": [
+            "def process(arr):",
+            "    for i in range(len(arr)):",
+            "        do_work(arr[i])"
+          ]
+        }
       ]
     },
     {
@@ -207,10 +306,11 @@
           "id": "linearithmic-algorithms",
           "title": "Common Algorithms",
           "content": "The go-to for scalable sorting:",
-          "bullets": [
-            "Merge Sort.",
-            "Heap Sort.",
-            "Timsort (Python's built-in sort)."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-2-linearithmic-algorithms.svg",
+              "alt": "Common Algorithms: Merge Sort.; Heap Sort.; Timsort (Python's built-in sort).."
+            }
           ]
         },
         {
@@ -282,11 +382,11 @@
           "id": "exponential-optimization",
           "title": "Optimization Strategies",
           "content": "Exponential algorithms almost always need one of these:",
-          "bullets": [
-            "**Memoization:** caches results -- drops naive Fibonacci from O(2^n) to O(n).",
-            "**Dynamic programming:** solves each subproblem once.",
-            "**Pruning:** cuts branches that can't lead anywhere useful.",
-            "**Iteration:** the iterative Fibonacci is O(n) time, O(1) space -- proof that exponential is rarely the only option."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-2-exponential-optimization.svg",
+              "alt": "Optimization Strategies: Memoization: caches results -- drops naive Fibonacci from O(2^n) to O(n).; Dynamic programming: solves each subproblem once.; Pruning: cuts branches that can't lead anywhere useful.; Iteration: the iterative Fibonacci is O(n) time, O(1) space -- proof that exponential is rarely the only option.."
+            }
           ]
         }
       ],
@@ -331,13 +431,11 @@
           "id": "comparison-tiers",
           "title": "Efficiency Tiers",
           "content": "Quick reference:",
-          "bullets": [
-            "O(1) -- constant, excellent scalability.",
-            "O(log n) -- grows very slowly, excellent for large sorted data.",
-            "O(n) -- grows steadily, fine when every item must be touched.",
-            "O(n log n) -- grows moderately, the standard for efficient sorting.",
-            "O(n²) -- grows fast, poor at scale (n=10,000 → 100M ops vs ~132,000 for O(n log n)).",
-            "O(2^n) -- explodes, impractical past n≈30."
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-2-comparison-tiers.svg",
+              "alt": "Efficiency Tiers: O(1) -- constant, excellent scalability.; O(log n) -- grows very slowly, excellent for large sorted data.; O(n) -- grows steadily, fine when every item must be touched.; O(n log n) -- grows moderately, the standard for efficient sorting.; O(n²) -- grows fast, poor at scale (n=10,000 → 100M ops vs ~132,000 for O(n log n)).; O(2^n) -- explodes, impractical past n≈30.."
+            }
           ]
         }
       ]
@@ -373,12 +471,11 @@
       "id": "takeaways",
       "type": "summary",
       "title": "Key Takeaways",
-      "bullets": [
-        "Complexity classes describe how work grows, not how many lines you wrote.",
-        "Efficient algorithms scale better for large inputs.",
-        "O(log n) and O(n log n) are workhorses in production systems.",
-        "O(n²) and O(2^n) get expensive fast.",
-        "Complexity analysis is how you choose a practical implementation."
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-1-2-takeaways.svg",
+          "alt": "Key Takeaways: Complexity classes describe how work grows, not how many lines you wrote.; Efficient algorithms scale better for large inputs.; O(log n) and O(n log n) are workhorses in production systems.; O(n²) and O(2^n) get expensive fast.; Complexity analysis is how you choose a practical implementation.."
+        }
       ]
     }
   ],
