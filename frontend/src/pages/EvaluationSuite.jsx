@@ -896,6 +896,24 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     doc.save(`AlgoBlocks-Benchmark-Report-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
+  // Ctrl+S / Cmd+S shortcut -- intercepts the browser's "Save Page" dialog
+  // while on the benchmark/dataset-testing screen and instead downloads the
+  // benchmark PDF report directly, same output as clicking "Download PDF".
+  // Only fires once a benchmark run has actually produced `results`; if the
+  // suite hasn't been run yet, the shortcut is a no-op (nothing to export).
+  useEffect(() => {
+    const handleSaveShortcut = (e) => {
+      const isSaveCombo = (e.key === "s" || e.key === "S") && (e.ctrlKey || e.metaKey);
+      if (!isSaveCombo) return;
+      e.preventDefault();
+      if (results) {
+        handleDownloadBenchmarkPdf();
+      }
+    };
+    window.addEventListener("keydown", handleSaveShortcut);
+    return () => window.removeEventListener("keydown", handleSaveShortcut);
+  }, [results]);
+
   return (
     <div className="eval-suite-container">
 

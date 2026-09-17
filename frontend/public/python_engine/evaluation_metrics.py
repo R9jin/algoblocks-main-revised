@@ -440,8 +440,24 @@ def calculate_metrics(injected_dataset=None):
 
     try:
         from sklearn.metrics import classification_report
-        time_report_raw = classification_report(y_true_time, y_pred_time, output_dict=True, zero_division=0)
-        space_report_raw = classification_report(y_true_space, y_pred_space, output_dict=True, zero_division=0)
+
+        # By default classification_report scores every label that shows up
+        # in EITHER y_true or y_pred. If the analyzer ever predicts a class
+        # that never actually occurs in this dataset's ground truth (e.g.
+        # predicting O(2^n) space when no algorithm's true space complexity
+        # is O(2^n)), that class gets its own row with support=0 and
+        # precision/recall/F1 forced to 0 by zero_division=0 -- a row that
+        # looks broken ("0 across the board") but is really just noise from
+        # a label with nothing to actually score. Restricting `labels` to
+        # only the classes that appear in y_true keeps every row tied to at
+        # least one real ground-truth instance, and keeps macro avg from
+        # being dragged down by these phantom all-zero rows.
+        time_report_raw = classification_report(
+            y_true_time, y_pred_time, labels=sorted(set(y_true_time)), output_dict=True, zero_division=0
+        )
+        space_report_raw = classification_report(
+            y_true_space, y_pred_space, labels=sorted(set(y_true_space)), output_dict=True, zero_division=0
+        )
 
         def format_report_dict(raw):
             classes = {k: v for k, v in raw.items() if k not in ('accuracy', 'macro avg', 'weighted avg')}
@@ -460,10 +476,14 @@ def calculate_metrics(injected_dataset=None):
         # since the two are different units of analysis (n=lines vs
         # n=algorithms) with their own class distributions.
         if y_true_line_ltime:
-            line_time_report_raw = classification_report(y_true_line_ltime, y_pred_line_ltime, output_dict=True, zero_division=0)
+            line_time_report_raw = classification_report(
+                y_true_line_ltime, y_pred_line_ltime, labels=sorted(set(y_true_line_ltime)), output_dict=True, zero_division=0
+            )
             line_time_report_dict = format_report_dict(line_time_report_raw)
         if y_true_line_lspace:
-            line_space_report_raw = classification_report(y_true_line_lspace, y_pred_line_lspace, output_dict=True, zero_division=0)
+            line_space_report_raw = classification_report(
+                y_true_line_lspace, y_pred_line_lspace, labels=sorted(set(y_true_line_lspace)), output_dict=True, zero_division=0
+            )
             line_space_report_dict = format_report_dict(line_space_report_raw)
     except Exception:
         pass
