@@ -65,7 +65,7 @@ export default function ComplexityPanelContent({
   let maxWeight = 0;
   let bottleneckIndices = [];
   lines.forEach((line, index) => {
-    const weight = getComplexityWeight(activeComplexityTab === "local" ? line.local_time || "O(1)" : line.global_time || "O(1)", defaultWeight);
+    const weight = getComplexityWeight(line.time || "O(1)", defaultWeight);
     if (weight > maxWeight) {
       maxWeight = weight;
       bottleneckIndices = [index];
@@ -80,8 +80,7 @@ export default function ComplexityPanelContent({
       <div className="complexity-tabs">
         <div className="tab-btn-group">
           <button onClick={() => { onComplexityTabChange("overall"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "overall" ? "active" : ""}`}>Overall</button>
-          <button onClick={() => { onComplexityTabChange("local"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "local" ? "active" : ""}`}>Local</button>
-          <button onClick={() => { onComplexityTabChange("global"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "global" ? "active" : ""}`}>Global</button>
+          <button onClick={() => { onComplexityTabChange("complexity"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "complexity" ? "active" : ""}`}>Complexity</button>
           <button onClick={() => { onComplexityTabChange("memory"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "memory" ? "active" : ""}`}>Memory Map</button>
           <button onClick={() => { onComplexityTabChange("callgraph"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "callgraph" ? "active" : ""}`}>Call Graph</button>
         </div>
@@ -175,16 +174,16 @@ export default function ComplexityPanelContent({
               <tr>
                 <th>Line of Code</th>
                 <th>Operation</th>
-                <th className="right-align">{activeComplexityTab === "local" ? "Local Time" : "Global Time"}</th>
-                <th className="right-align">{activeComplexityTab === "local" ? "Local Space" : "Global Space"}</th>
+                <th className="right-align">Time</th>
+                <th className="right-align">Space</th>
               </tr>
             </thead>
             <tbody>
               {lines.map((line, i) => {
-                const timeComplexity = activeComplexityTab === "local" ? line.local_time || "O(1)" : line.global_time || "O(1)";
-                const spaceComplexity = activeComplexityTab === "local" ? line.local_space || "O(1)" : line.global_space || "O(1)";
-                let timeExp = line.time_explanation ?? line.local_explanation ?? "Not available.";
-                let spaceExp = line.space_explanation ?? line.global_explanation ?? "Not available.";
+                const timeComplexity = line.time || "O(1)";
+                const spaceComplexity = line.space || "O(1)";
+                let timeExp = line.time_explanation ?? "Not available.";
+                let spaceExp = line.space_explanation ?? "Not available.";
 
                 const isBottleneck = actualBottleneckIndices.includes(i);
                 const timeColor = getComplexityColor(timeComplexity);
@@ -218,14 +217,14 @@ export default function ComplexityPanelContent({
                               <div className="explanation-icon-wrapper" style={{ color: timeColor }}><FiInfo size={20} /></div>
                               <div className="explanation-text-content">
                                 <strong className="explanation-header" style={{ color: timeColor }}>Time Complexity</strong>
-                                <div className="explanation-body">{formatExplanation(timeExp, isBottleneck, activeComplexityTab === "local")}</div>
+                                <div className="explanation-body">{formatExplanation(timeExp)}</div>
                               </div>
                             </div>
                             <div className="explanation-section space-section">
                               <div className="explanation-icon-wrapper" style={{ color: spaceColor }}><FiInfo size={20} /></div>
                               <div className="explanation-text-content">
                                 <strong className="explanation-header" style={{ color: spaceColor }}>Space Complexity</strong>
-                                <div className="explanation-body">{formatExplanation(spaceExp, isBottleneck, activeComplexityTab === "local")}</div>
+                                <div className="explanation-body">{formatExplanation(spaceExp)}</div>
                               </div>
                             </div>
                             <div className="explanation-graph-wrapper">

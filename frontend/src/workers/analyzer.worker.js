@@ -692,31 +692,21 @@ json.dumps(res)
             const lineNo = pLine.lineno || pLine.line || 0;
             const matchedExp = expectedLines.find(e => (e.lineno || e.line) === lineNo);
 
-            // Predicted: analyzer.py emits distinct local_time/global_time/local_space/global_space
-            // per line -- capture all four instead of collapsing them into one pair.
-            const predLocalTime = strictBigONormalizer(pLine.local_time || "O(1)");
-            const predGlobalTime = strictBigONormalizer(pLine.global_time || pLine.local_time || "O(1)");
-            const predLocalSpace = strictBigONormalizer(pLine.local_space || "O(1)");
-            const predGlobalSpace = strictBigONormalizer(pLine.global_space || pLine.local_space || "O(1)");
+            // Predicted: analyzer.py's line output now exposes a single
+            // nesting/recursion-aware time/space value per line (see
+            // _finalize_line_output in analyzer.py) -- there is no separate
+            // local value to read anymore.
+            const predTime = strictBigONormalizer(pLine.time || "O(1)");
+            const predSpace = strictBigONormalizer(pLine.space || "O(1)");
 
-            // Expected: ground-truth line_metrics entries also carry local_* and global_* separately.
-            const expLocalTime = matchedExp ? strictBigONormalizer(matchedExp.local_time || matchedExp.time || matchedExp.time_complexity || "") : null;
-            const expGlobalTime = matchedExp ? strictBigONormalizer(matchedExp.global_time || matchedExp.time || matchedExp.time_complexity || "") : null;
-            const expLocalSpace = matchedExp ? strictBigONormalizer(matchedExp.local_space || matchedExp.space || matchedExp.space_complexity || "") : null;
-            const expGlobalSpace = matchedExp ? strictBigONormalizer(matchedExp.global_space || matchedExp.space || matchedExp.space_complexity || "") : null;
+            // Expected: ground-truth line_metrics entries carry the same
+            // single time/space field (local_time/local_space were removed
+            // from the dataset).
+            const expTime = matchedExp ? strictBigONormalizer(matchedExp.time || matchedExp.time_complexity || "") : null;
+            const expSpace = matchedExp ? strictBigONormalizer(matchedExp.space || matchedExp.space_complexity || "") : null;
 
-            const isLocalTimeMatch = expLocalTime ? checkMatch(predLocalTime, expLocalTime, "time") : true;
-            const isGlobalTimeMatch = expGlobalTime ? checkMatch(predGlobalTime, expGlobalTime, "time") : true;
-            const isLocalSpaceMatch = expLocalSpace ? checkMatch(predLocalSpace, expLocalSpace, "space") : true;
-            const isGlobalSpaceMatch = expGlobalSpace ? checkMatch(predGlobalSpace, expGlobalSpace, "space") : true;
-
-            // Global-only pass/fail -- global is what nesting/recursion
-            // actually compounds into, and what the overall complexity
-            // badge is derived from, so it's the field the line-level
-            // accuracy metric should be scored against (see the matching
-            // change in evaluation_metrics.py).
-            const isLineTimeMatch = isGlobalTimeMatch;
-            const isLineSpaceMatch = isGlobalSpaceMatch;
+            const isLineTimeMatch = expTime ? checkMatch(predTime, expTime, "time") : true;
+            const isLineSpaceMatch = expSpace ? checkMatch(predSpace, expSpace, "space") : true;
 
             return {
               lineno: lineNo,
@@ -724,22 +714,8 @@ json.dumps(res)
               operation: pLine.operation || "Statement",
 
               // Canonical field names (matched by EvaluationSuite.jsx's getProp lookups)
-              predLocalTime, predGlobalTime, predLocalSpace, predGlobalSpace,
-              expLocalTime, expGlobalTime, expLocalSpace, expGlobalSpace,
-
-              // Legacy aliases kept for backward compatibility with any other consumers
-              localTime: predLocalTime,
-              localSpace: predLocalSpace,
-              predTime: predGlobalTime,
-              predSpace: predGlobalSpace,
-              expTime: expGlobalTime,
-              expSpace: expGlobalSpace,
-
-              // Per-cell match flags consumed by renderDualBadge() for pass/fail color-coding
-              ltMatch: isLocalTimeMatch,
-              gtMatch: isGlobalTimeMatch,
-              lsMatch: isLocalSpaceMatch,
-              gsMatch: isGlobalSpaceMatch,
+              predTime, predSpace,
+              expTime, expSpace,
 
               hasGroundTruth: !!matchedExp,
               isTimeMatch: isLineTimeMatch,
@@ -766,26 +742,16 @@ json.dumps(res)
               // Drop it entirely to prevent punishing the metric suite over unparsed docstrings/comments
               if (isCommentOrBlank) return;
 
-              const expLocalTime = strictBigONormalizer(eLine.local_time || eLine.time || "");
-              const expGlobalTime = strictBigONormalizer(eLine.global_time || eLine.time || "");
-              const expLocalSpace = strictBigONormalizer(eLine.local_space || eLine.space || "");
-              const expGlobalSpace = strictBigONormalizer(eLine.global_space || eLine.space || "");
+              const expTime = strictBigONormalizer(eLine.time || "");
+              const expSpace = strictBigONormalizer(eLine.space || "");
               lineValidationResults.push({
                 lineno: lineNo,
                 lineOfCode: eLine.lineOfCode || eLine.code || "(Unparsed statement)",
                 operation: eLine.operation || "Statement",
 
-                predLocalTime: "MISSING", predGlobalTime: "MISSING",
-                predLocalSpace: "MISSING", predGlobalSpace: "MISSING",
-                expLocalTime, expGlobalTime, expLocalSpace, expGlobalSpace,
-
-                // Legacy aliases
-                localTime: "-",
-                localSpace: "-",
                 predTime: "MISSING",
                 predSpace: "MISSING",
-                expTime: expGlobalTime,
-                expSpace: expGlobalSpace,
+                expTime, expSpace,
 
                 hasGroundTruth: true,
                 isTimeMatch: false,
@@ -884,37 +850,20 @@ json.dumps(res)
         const lineTimeAcc = totalLinesTestedCount > 0 ? (lineTimePassedCount / totalLinesTestedCount) * 100 : 0;
         const lineSpaceAcc = totalLinesTestedCount > 0 ? (lineSpacePassedCount / totalLinesTestedCount) * 100 : 0;
 
-        // Statement-level (global time / global space) Validation Matrix.
-        // This is a separate unit of analysis from timeReportData/spaceReportData
-        // above (n = annotated source lines, not n = algorithms), so it gets its
-        // own classification_report-style aggregation rather than being folded
-        // into the algorithm-level one. Reuses each line's already-computed
-        // expGlobalTime/predGlobalTime/expGlobalSpace/predGlobalSpace and gtMatch/
-        // gsMatch flags. Global (not local) is used because global is what the
-        // overall complexity badge is actually derived from (see matching
-        // change in evaluation_metrics.py).
+        // Statement-level Validation Matrix. This is a separate unit of
+        // analysis from timeReportData/spaceReportData above (n = annotated
+        // source lines, not n = algorithms), so it gets its own
+        // classification_report-style aggregation rather than being folded
+        // into the algorithm-level one. This is the analyzer's single,
+        // nesting/recursion-aware per-line complexity value -- the same one
+        // the overall complexity badge above is actually derived from -- so
+        // this matrix explains that number directly.
         const allGroundTruthLines = detailedResults.flatMap(
           d => (d.lineValidationResults || []).filter(l => l.hasGroundTruth)
         );
 
-        const lineTimeReportData = generateClassificationReport(allGroundTruthLines, "expGlobalTime", "predGlobalTime", timeBaseClasses);
-        const lineSpaceReportData = generateClassificationReport(allGroundTruthLines, "expGlobalSpace", "predGlobalSpace", spaceBaseClasses);
-
-        const totalLinesGlobalTested = allGroundTruthLines.length;
-        const lineGlobalTimePassedCount = allGroundTruthLines.filter(l => l.gtMatch).length;
-        const lineGlobalSpacePassedCount = allGroundTruthLines.filter(l => l.gsMatch).length;
-        const lineGlobalTimeAcc = totalLinesGlobalTested > 0 ? (lineGlobalTimePassedCount / totalLinesGlobalTested) * 100 : 0;
-        const lineGlobalSpaceAcc = totalLinesGlobalTested > 0 ? (lineGlobalSpacePassedCount / totalLinesGlobalTested) * 100 : 0;
-
-        // Internal diagnostic only -- local-vs-ground-truth, not surfaced
-        // in the UI/PDF, kept for debugging the analyzer's isolated
-        // per-line cost separately from the reported global metrics.
-        const lineTimeReportLocalDiag = generateClassificationReport(allGroundTruthLines, "expLocalTime", "predLocalTime", timeBaseClasses);
-        const lineSpaceReportLocalDiag = generateClassificationReport(allGroundTruthLines, "expLocalSpace", "predLocalSpace", spaceBaseClasses);
-        const lineLocalTimePassedCountDiag = allGroundTruthLines.filter(l => l.ltMatch).length;
-        const lineLocalSpacePassedCountDiag = allGroundTruthLines.filter(l => l.lsMatch).length;
-        const lineLocalTimeAccDiag = totalLinesGlobalTested > 0 ? (lineLocalTimePassedCountDiag / totalLinesGlobalTested) * 100 : 0;
-        const lineLocalSpaceAccDiag = totalLinesGlobalTested > 0 ? (lineLocalSpacePassedCountDiag / totalLinesGlobalTested) * 100 : 0;
+        const lineTimeReportData = generateClassificationReport(allGroundTruthLines, "expTime", "predTime", timeBaseClasses);
+        const lineSpaceReportData = generateClassificationReport(allGroundTruthLines, "expSpace", "predSpace", spaceBaseClasses);
 
         self.postMessage({
           type: 'BENCHMARK_COMPLETE',
@@ -931,31 +880,16 @@ json.dumps(res)
             perfectPassed: bothPassedCount,
             perfectAccuracyRate: parseFloat(perfectAcc.toFixed(2)),
             totalLinesTested: totalLinesTestedCount,
+            totalLinesTimeTested: allGroundTruthLines.length,
+            totalLinesSpaceTested: allGroundTruthLines.length,
             lineTimePassed: lineTimePassedCount,
             lineSpacePassed: lineSpacePassedCount,
             lineTimeAccuracyRate: parseFloat(lineTimeAcc.toFixed(2)),
             lineSpaceAccuracyRate: parseFloat(lineSpaceAcc.toFixed(2)),
-            totalLinesGlobalTimeTested: totalLinesGlobalTested,
-            totalLinesGlobalSpaceTested: totalLinesGlobalTested,
-            lineGlobalTimePassed: lineGlobalTimePassedCount,
-            lineGlobalSpacePassed: lineGlobalSpacePassedCount,
-            lineGlobalTimeAccuracyRate: parseFloat(lineGlobalTimeAcc.toFixed(2)),
-            lineGlobalSpaceAccuracyRate: parseFloat(lineGlobalSpaceAcc.toFixed(2)),
             timeReport: timeReportData,
             spaceReport: spaceReportData,
             lineTimeReport: lineTimeReportData,
             lineSpaceReport: lineSpaceReportData,
-            // Internal-only, not rendered by the UI/PDF.
-            localDiagnostics: {
-              totalLinesLocalTimeTested: totalLinesGlobalTested,
-              totalLinesLocalSpaceTested: totalLinesGlobalTested,
-              lineLocalTimePassed: lineLocalTimePassedCountDiag,
-              lineLocalSpacePassed: lineLocalSpacePassedCountDiag,
-              lineLocalTimeAccuracyRate: parseFloat(lineLocalTimeAccDiag.toFixed(2)),
-              lineLocalSpaceAccuracyRate: parseFloat(lineLocalSpaceAccDiag.toFixed(2)),
-              lineTimeReport: lineTimeReportLocalDiag,
-              lineSpaceReport: lineSpaceReportLocalDiag
-            },
             efficiency: efficiencyMetrics,
             details: detailedResults
           }

@@ -186,14 +186,8 @@ const INTRO_ACTIVITY_TOUR_BUILDERS = {
       {
         target: ".complexity-content .tab-btn-group .tab-btn:nth-child(2)",
         title: "See the cost per line",
-        description: "Switch to Local to see how much each individual line contributes — this is where you'll spot exactly which part of your code is the slow one.",
-        onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("local"); },
-      },
-      {
-        target: ".complexity-content .tab-btn-group .tab-btn:nth-child(3)",
-        title: "See the combined total",
-        description: "Global shows the single Big-O class for the whole algorithm — the number that actually gets graded.",
-        onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("global"); },
+        description: "The Complexity tab breaks down how much each line contributes and rolls it up into the single Big-O class that gets graded — expand a row to see how a line's own cost compounds into that total, which is exactly how you'll spot the slow part of your code.",
+        onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("complexity"); },
       },
       bigOStep,
     ],
@@ -221,7 +215,7 @@ const INTRO_ACTIVITY_TOUR_BUILDERS = {
         onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("overall"); },
       },
       {
-        target: ".complexity-content .tab-btn-group .tab-btn:nth-child(4)",
+        target: ".complexity-content .tab-btn-group .tab-btn:nth-child(3)",
         title: "Open the Memory Map",
         description: "This tab visualizes how variables and arrays are allocated and change over time as your program executes — the core tool for this lesson.",
         onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("memory"); },

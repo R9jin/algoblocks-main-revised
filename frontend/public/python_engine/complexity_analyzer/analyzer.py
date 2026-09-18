@@ -557,6 +557,36 @@ def fallback_analyzer(source_code):
         "lines": [], "call_graph": {}, "error": None
     }
 
+def _finalize_line_output(details):
+    """
+    Output boundary for the per-line "lines" payload.
+
+    Internally, a line's "local" cost (its own isolated weight) and
+    "global" cost (the nesting/recursion-aware cumulative weight) are
+    both still computed and both still needed -- ast_node_visitors.py
+    mutates local_time/global_time directly on these same dict entries
+    to resolve recursive-call relations (e.g. T(n-1) patterns), and
+    complexity_synthesizer.py reads both when deriving the function-level
+    badge. That internal machinery is untouched.
+
+    Externally (dataset, evaluation, UI), "local" no longer exists as its
+    own scoreable/displayable value -- only the global-derived complexity
+    is exposed, under the plain `time`/`space` keys. `time_explanation`/
+    `space_explanation` already fold local's contribution into their
+    wording (see SemanticNLGEngine.generate_explanations), so no
+    information is lost -- it just isn't a separate field anymore.
+    """
+    finalized = []
+    for d in details:
+        entry = dict(d)
+        entry["time"] = entry.pop("global_time", entry.get("time", "O(1)"))
+        entry["space"] = entry.pop("global_space", entry.get("space", "O(1)"))
+        entry.pop("local_time", None)
+        entry.pop("local_space", None)
+        finalized.append(entry)
+    return finalized
+
+
 def analyze_source_code(source_code):
     import time
     start_time = time.perf_counter()
@@ -619,7 +649,7 @@ def analyze_source_code(source_code):
             "total": analyzer.complexity_synthesizer.get_final_asymptotic_badge(),
             "space_total": analyzer.complexity_synthesizer.get_final_space_badge(),
             "overall_explanation": overall_exp,
-            "lines": analyzer.details,
+            "lines": _finalize_line_output(analyzer.details),
             "call_graph": getattr(analyzer, 'call_graph', {}),
             "error": None,
             "runtime_warning": trace_data.get("runtime_warning"),

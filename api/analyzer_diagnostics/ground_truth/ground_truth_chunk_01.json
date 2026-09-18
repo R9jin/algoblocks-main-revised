@@ -8,150 +8,108 @@
     "line_metrics": [
       {
         "lineno": 14,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 19,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 20,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 27,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 28,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 33,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 35,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 36,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 41,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 42,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 44,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 48,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 49,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 50,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 54,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 55,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 59,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 60,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 61,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 62,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 64,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -166,269 +124,193 @@
     "line_metrics": [
       {
         "lineno": 5,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 6,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 11,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 14,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 15,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 17,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 18,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 21,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 24,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 25,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 26,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 27,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 31,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 34,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 35,
-        "local_time": "O(n)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 36,
-        "local_time": "O(1)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 37,
-        "local_time": "O(1)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 42,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 43,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 44,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 47,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 48,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 49,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 52,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 53,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 54,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 57,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 58,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 59,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 62,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 63,
-        "local_time": "O(n)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 64,
-        "local_time": "O(1)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 65,
-        "local_time": "O(1)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 68,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 70,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 77,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 79,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 80,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
@@ -443,122 +325,88 @@
     "line_metrics": [
       {
         "lineno": 6,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 7,
-        "local_time": "O(1)",
-        "global_time": "O(n!)",
-        "local_space": "O(1)",
-        "global_space": "O(n!)"
+        "time": "O(n!)",
+        "space": "O(n!)"
       },
       {
         "lineno": 8,
-        "local_time": "O(1)",
-        "global_time": "O(n!)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n!)",
+        "space": "O(1)"
       },
       {
         "lineno": 11,
-        "local_time": "O(1)",
-        "global_time": "O(n!)",
-        "local_space": "O(1)",
-        "global_space": "O(n!)"
+        "time": "O(n!)",
+        "space": "O(n!)"
       },
       {
         "lineno": 12,
-        "local_time": "O(1)",
-        "global_time": "O(n!)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n!)",
+        "space": "O(1)"
       },
       {
         "lineno": 16,
-        "local_time": "O(n)",
-        "global_time": "O(n!)",
-        "local_space": "O(1)",
-        "global_space": "O(n!)"
+        "time": "O(n!)",
+        "space": "O(n!)"
       },
       {
         "lineno": 17,
-        "local_time": "O(1)",
-        "global_time": "O(n!)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n!)",
+        "space": "O(1)"
       },
       {
         "lineno": 18,
-        "local_time": "O(1)",
-        "global_time": "O(n!)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n!)",
+        "space": "O(1)"
       },
       {
         "lineno": 19,
-        "local_time": "O(1)",
-        "global_time": "O(n!)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n!)",
+        "space": "O(1)"
       },
       {
         "lineno": 20,
-        "local_time": "O(n!)",
-        "global_time": "O(n!)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n!)",
+        "space": "O(1)"
       },
       {
         "lineno": 22,
-        "local_time": "O(1)",
-        "global_time": "O(n!)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n!)",
+        "space": "O(1)"
       },
       {
         "lineno": 26,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 27,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 28,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 29,
-        "local_time": "O(n!)",
-        "global_time": "O(n!)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n!)",
+        "space": "O(1)"
       },
       {
         "lineno": 30,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 31,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n!)",
@@ -573,73 +421,53 @@
     "line_metrics": [
       {
         "lineno": 3,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 6,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 7,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 9,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 10,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 11,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 15,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 18,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 20,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 24,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -654,143 +482,103 @@
     "line_metrics": [
       {
         "lineno": 3,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 5,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 9,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 13,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 14,
-        "local_time": "O(n)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 15,
-        "local_time": "O(1)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 16,
-        "local_time": "O(1)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 20,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 21,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 26,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 30,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 31,
-        "local_time": "O(n)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 32,
-        "local_time": "O(1)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 33,
-        "local_time": "O(1)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 40,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 41,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 43,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 46,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 48,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 53,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
@@ -805,178 +593,128 @@
     "line_metrics": [
       {
         "lineno": 2,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 3,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 4,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 5,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 6,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 7,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 9,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 10,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(n)",
-        "global_space": "O(n)"
+        "time": "O(1)",
+        "space": "O(n)"
       },
       {
         "lineno": 11,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 13,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 14,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 19,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 20,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 21,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(n)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 22,
-        "local_time": "O(n)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 27,
-        "local_time": "O(1)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 32,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 38,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 43,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 44,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 47,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 48,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 49,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 53,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 56,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
@@ -991,143 +729,103 @@
     "line_metrics": [
       {
         "lineno": 8,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 9,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 15,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(n)",
-        "global_space": "O(n)"
+        "time": "O(1)",
+        "space": "O(n)"
       },
       {
         "lineno": 21,
-        "local_time": "O(n log n)",
-        "global_time": "O(n log n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n log n)",
+        "space": "O(1)"
       },
       {
         "lineno": 26,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(n)",
-        "global_space": "O(n)"
+        "time": "O(1)",
+        "space": "O(n)"
       },
       {
         "lineno": 29,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 30,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 35,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 36,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 41,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 42,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 44,
-        "local_time": "O(n)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 47,
-        "local_time": "O(1)",
-        "global_time": "O(n^2)",
-        "local_space": "O(n)",
-        "global_space": "O(n)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 50,
-        "local_time": "O(1)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 51,
-        "local_time": "O(1)",
-        "global_time": "O(n^2)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 55,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 56,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 59,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 62,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 63,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(n)",
-        "global_space": "O(n)"
+        "time": "O(1)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n log n)",
@@ -1142,73 +840,53 @@
     "line_metrics": [
       {
         "lineno": 4,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 5,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 8,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 9,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 12,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 13,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 14,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 15,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 18,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 21,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -1223,136 +901,98 @@
     "line_metrics": [
       {
         "lineno": 9,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 11,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 15,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 16,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 18,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 20,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 21,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 26,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 27,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 29,
-        "local_time": "O(n)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 33,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 39,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 43,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 47,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 49,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 50,
-        "local_time": "O(1)",
-        "global_time": "O(n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(n)",
+        "space": "O(1)"
       },
       {
         "lineno": 53,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 55,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 56,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n)",

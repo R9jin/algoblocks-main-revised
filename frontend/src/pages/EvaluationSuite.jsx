@@ -487,20 +487,14 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         if (m.lineValidationResults && m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).length > 0) {
           logText += `\nLine Level Mismatches:\n`;
           m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).forEach(l => {
-            const expLT = getProp(l, ['expLocalTime', 'expectedLocalTime', 'local_time']);
-            const predLT = getProp(l, ['predLocalTime', 'predictedLocalTime']);
-            const expGT = getProp(l, ['expGlobalTime', 'expectedGlobalTime', 'global_time']);
-            const predGT = getProp(l, ['predGlobalTime', 'predictedGlobalTime']);
-            const expLS = getProp(l, ['expLocalSpace', 'expectedLocalSpace', 'local_space']);
-            const predLS = getProp(l, ['predLocalSpace', 'predictedLocalSpace']);
-            const expGS = getProp(l, ['expGlobalSpace', 'expectedGlobalSpace', 'global_space']);
-            const predGS = getProp(l, ['predGlobalSpace', 'predictedGlobalSpace']);
+            const expTime = getProp(l, ['expTime', 'expectedTime', 'time']);
+            const predTime = getProp(l, ['predTime', 'predictedTime']);
+            const expSpace = getProp(l, ['expSpace', 'expectedSpace', 'space']);
+            const predSpace = getProp(l, ['predSpace', 'predictedSpace']);
 
             logText += `  -> Line ${l.lineno}:\n`;
-            logText += `     LT Exp [${expLT}] Act [${predLT}]\n`;
-            logText += `     GT Exp [${expGT}] Act [${predGT}]\n`;
-            logText += `     LS Exp [${expLS}] Act [${predLS}]\n`;
-            logText += `     GS Exp [${expGS}] Act [${predGS}]\n`;
+            logText += `     Time Exp [${expTime}] Act [${predTime}]\n`;
+            logText += `     Space Exp [${expSpace}] Act [${predSpace}]\n`;
           });
         }
         logText += `${'-'.repeat(60)}\n\n`;
@@ -724,11 +718,11 @@ export default function EvaluationSuite({ embedded = false } = {}) {
   };
 
   const lineTimeDistribution = useMemo(
-    () => tallyLineDistribution(results?.details, ["expGlobalTime", "expectedGlobalTime", "expTime"]),
+    () => tallyLineDistribution(results?.details, ["expTime", "expectedTime"]),
     [results]
   );
   const lineSpaceDistribution = useMemo(
-    () => tallyLineDistribution(results?.details, ["expGlobalSpace", "expectedGlobalSpace", "expSpace"]),
+    () => tallyLineDistribution(results?.details, ["expSpace", "expectedSpace"]),
     [results]
   );
 
@@ -929,10 +923,10 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
     // 4 & 5. Per-class breakdowns (line-level, global time/space only)
     if (processedLineTimeReport) {
-      addClassBreakdownTable("4. Line-Level Time Complexity Validation Matrix (Global)", processedLineTimeReport, results.lineGlobalTimePassed, results.totalLinesGlobalTimeTested);
+      addClassBreakdownTable("4. Line-Level Time Complexity Validation Matrix", processedLineTimeReport, results.lineTimePassed, results.totalLinesTimeTested);
     }
     if (processedLineSpaceReport) {
-      addClassBreakdownTable("5. Line-Level Space Complexity Validation Matrix (Global)", processedLineSpaceReport, results.lineGlobalSpacePassed, results.totalLinesGlobalSpaceTested);
+      addClassBreakdownTable("5. Line-Level Space Complexity Validation Matrix", processedLineSpaceReport, results.lineSpacePassed, results.totalLinesSpaceTested);
     }
 
     // 6. Full algorithm-by-algorithm results
@@ -1590,8 +1584,8 @@ export default function EvaluationSuite({ embedded = false } = {}) {
             <div className="eval-sklearn-grid">
               <div className="sklearn-table-box">
                 <div className="sklearn-table-title">
-                  <span>Line-Level Time Complexity Validation Matrix (Global)</span>
-                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Total Statements: {results.totalLinesGlobalTimeTested}</span>
+                  <span>Line-Level Time Complexity Validation Matrix</span>
+                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Total Statements: {results.totalLinesTimeTested}</span>
                 </div>
                 <table className="sklearn-table">
                   <thead>
@@ -1620,22 +1614,22 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                       <td>overall accuracy</td>
                       <td>-</td>
                       <td>-</td>
-                      <td><strong style={{ color: "#10B981", fontSize: "14px" }}>{results.lineGlobalTimeAccuracyRate}%</strong> <small style={{ color: "#94A3B8" }}>({(results.lineGlobalTimeAccuracyRate / 100).toFixed(2)})</small></td>
-                      <td className="td-support-count"><strong>{results.totalLinesGlobalTimeTested}</strong> <small>lines</small></td>
+                      <td><strong style={{ color: "#10B981", fontSize: "14px" }}>{results.lineTimeAccuracyRate}%</strong> <small style={{ color: "#94A3B8" }}>({(results.lineTimeAccuracyRate / 100).toFixed(2)})</small></td>
+                      <td className="td-support-count"><strong>{results.totalLinesTimeTested}</strong> <small>lines</small></td>
                     </tr>
                     <tr>
                       <td>macro avg</td>
                       <td>{renderMetricCell(processedLineTimeReport.macroAvg.precision)}</td>
                       <td>{renderMetricCell(processedLineTimeReport.macroAvg.recall)}</td>
                       <td>{renderMetricCell(processedLineTimeReport.macroAvg.f1Score)}</td>
-                      <td className="td-support-count"><strong>{results.totalLinesGlobalTimeTested}</strong> <small>lines</small></td>
+                      <td className="td-support-count"><strong>{results.totalLinesTimeTested}</strong> <small>lines</small></td>
                     </tr>
                     <tr className="tr-weighted">
                       <td>weighted avg</td>
                       <td>{renderMetricCell(processedLineTimeReport.weightedAvg.precision)}</td>
                       <td>{renderMetricCell(processedLineTimeReport.weightedAvg.recall)}</td>
                       <td>{renderMetricCell(processedLineTimeReport.weightedAvg.f1Score)}</td>
-                      <td className="td-support-count"><strong>{results.totalLinesGlobalTimeTested}</strong> <small>lines</small></td>
+                      <td className="td-support-count"><strong>{results.totalLinesTimeTested}</strong> <small>lines</small></td>
                     </tr>
                   </tbody>
                 </table>
@@ -1644,8 +1638,8 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
               <div className="sklearn-table-box">
                 <div className="sklearn-table-title">
-                  <span>Line-Level Space Complexity Validation Matrix (Global)</span>
-                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Total Statements: {results.totalLinesGlobalSpaceTested}</span>
+                  <span>Line-Level Space Complexity Validation Matrix</span>
+                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Total Statements: {results.totalLinesSpaceTested}</span>
                 </div>
                 <table className="sklearn-table">
                   <thead>
@@ -1674,22 +1668,22 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                       <td>overall accuracy</td>
                       <td>-</td>
                       <td>-</td>
-                      <td><strong style={{ color: "#0EA5E9", fontSize: "14px" }}>{results.lineGlobalSpaceAccuracyRate}%</strong> <small style={{ color: "#94A3B8" }}>({(results.lineGlobalSpaceAccuracyRate / 100).toFixed(2)})</small></td>
-                      <td className="td-support-count"><strong>{results.totalLinesGlobalSpaceTested}</strong> <small>lines</small></td>
+                      <td><strong style={{ color: "#0EA5E9", fontSize: "14px" }}>{results.lineSpaceAccuracyRate}%</strong> <small style={{ color: "#94A3B8" }}>({(results.lineSpaceAccuracyRate / 100).toFixed(2)})</small></td>
+                      <td className="td-support-count"><strong>{results.totalLinesSpaceTested}</strong> <small>lines</small></td>
                     </tr>
                     <tr>
                       <td>macro avg</td>
                       <td>{renderMetricCell(processedLineSpaceReport.macroAvg.precision)}</td>
                       <td>{renderMetricCell(processedLineSpaceReport.macroAvg.recall)}</td>
                       <td>{renderMetricCell(processedLineSpaceReport.macroAvg.f1Score)}</td>
-                      <td className="td-support-count"><strong>{results.totalLinesGlobalSpaceTested}</strong> <small>lines</small></td>
+                      <td className="td-support-count"><strong>{results.totalLinesSpaceTested}</strong> <small>lines</small></td>
                     </tr>
                     <tr className="tr-weighted">
                       <td>weighted avg</td>
                       <td>{renderMetricCell(processedLineSpaceReport.weightedAvg.precision)}</td>
                       <td>{renderMetricCell(processedLineSpaceReport.weightedAvg.recall)}</td>
                       <td>{renderMetricCell(processedLineSpaceReport.weightedAvg.f1Score)}</td>
-                      <td className="td-support-count"><strong>{results.totalLinesGlobalSpaceTested}</strong> <small>lines</small></td>
+                      <td className="td-support-count"><strong>{results.totalLinesSpaceTested}</strong> <small>lines</small></td>
                     </tr>
                   </tbody>
                 </table>
@@ -1824,23 +1818,17 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                                     <tr>
                                       <th>Line #</th>
                                       <th>Source Statement</th>
-                                      <th>Local Time</th>
-                                      <th>Global Time</th>
-                                      <th>Local Space</th>
-                                      <th>Global Space</th>
+                                      <th>Time</th>
+                                      <th>Space</th>
                                       <th>Line Status</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {(row.lineValidationResults || []).map((lineItem, lIdx) => {
-                                      const expLT = getProp(lineItem, ['expLocalTime', 'expectedLocalTime', 'local_time']);
-                                      const predLT = getProp(lineItem, ['predLocalTime', 'predictedLocalTime']);
-                                      const expGT = getProp(lineItem, ['expGlobalTime', 'expectedGlobalTime', 'global_time']);
-                                      const predGT = getProp(lineItem, ['predGlobalTime', 'predictedGlobalTime']);
-                                      const expLS = getProp(lineItem, ['expLocalSpace', 'expectedLocalSpace', 'local_space']);
-                                      const predLS = getProp(lineItem, ['predLocalSpace', 'predictedLocalSpace']);
-                                      const expGS = getProp(lineItem, ['expGlobalSpace', 'expectedGlobalSpace', 'global_space']);
-                                      const predGS = getProp(lineItem, ['predGlobalSpace', 'predictedGlobalSpace']);
+                                      const expTime = getProp(lineItem, ['expTime', 'expectedTime', 'time']);
+                                      const predTime = getProp(lineItem, ['predTime', 'predictedTime']);
+                                      const expSpace = getProp(lineItem, ['expSpace', 'expectedSpace', 'space']);
+                                      const predSpace = getProp(lineItem, ['predSpace', 'predictedSpace']);
 
                                       return (
                                         <tr key={`line_${row.id}_${lineItem.lineno}_${lIdx}`} className={!lineItem.isPassed && lineItem.hasGroundTruth ? "line-tr-fail" : ""}>
@@ -1848,23 +1836,13 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                                           <td className="line-td-code"><code>{lineItem.lineOfCode || "-"}</code></td>
                                           <td className="line-td-comp">
                                             {lineItem.hasGroundTruth
-                                              ? renderDualBadge(expLT, predLT, lineItem.ltMatch)
-                                              : <span className="comp-act comp-neutral">{predLT || "-"}</span>}
+                                              ? renderDualBadge(expTime, predTime, lineItem.isTimeMatch)
+                                              : <span className="comp-act comp-neutral">{predTime || "-"}</span>}
                                           </td>
                                           <td className="line-td-comp">
                                             {lineItem.hasGroundTruth
-                                              ? renderDualBadge(expGT, predGT, lineItem.gtMatch)
-                                              : <span className="comp-act comp-neutral">{predGT || "-"}</span>}
-                                          </td>
-                                          <td className="line-td-comp">
-                                            {lineItem.hasGroundTruth
-                                              ? renderDualBadge(expLS, predLS, lineItem.lsMatch)
-                                              : <span className="comp-act comp-neutral">{predLS || "-"}</span>}
-                                          </td>
-                                          <td className="line-td-comp">
-                                            {lineItem.hasGroundTruth
-                                              ? renderDualBadge(expGS, predGS, lineItem.gsMatch)
-                                              : <span className="comp-act comp-neutral">{predGS || "-"}</span>}
+                                              ? renderDualBadge(expSpace, predSpace, lineItem.isSpaceMatch)
+                                              : <span className="comp-act comp-neutral">{predSpace || "-"}</span>}
                                           </td>
                                           <td className="line-td-status">
                                             {lineItem.hasGroundTruth ? (
@@ -1883,7 +1861,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
                                     {(!row.lineValidationResults || row.lineValidationResults.length === 0) && (
                                       <tr>
-                                        <td colSpan="7" style={{ padding: "28px", textAlign: "center", color: "#64748B" }}>
+                                        <td colSpan="5" style={{ padding: "28px", textAlign: "center", color: "#64748B" }}>
                                           No statement-level AST trace recorded for this dataset snippet.
                                         </td>
                                       </tr>
@@ -2165,7 +2143,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
               {processedLineTimeReport && (
                 <section className="eval-report-section">
-                  <h2>4. Line-Level Time Complexity Validation Matrix (Global)</h2>
+                  <h2>4. Line-Level Time Complexity Validation Matrix</h2>
                   <table className="eval-report-table wide">
                     <thead>
                       <tr>
@@ -2193,22 +2171,22 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                         <td><strong>Overall Accuracy</strong></td>
                         <td>--</td>
                         <td>--</td>
-                        <td><strong>{results.lineGlobalTimeAccuracyRate}%</strong></td>
-                        <td>{results.totalLinesGlobalTimeTested}</td>
+                        <td><strong>{results.lineTimeAccuracyRate}%</strong></td>
+                        <td>{results.totalLinesTimeTested}</td>
                       </tr>
                       <tr>
                         <td>Macro Avg</td>
                         <td>{renderMetricCell(processedLineTimeReport.macroAvg.precision)}</td>
                         <td>{renderMetricCell(processedLineTimeReport.macroAvg.recall)}</td>
                         <td>{renderMetricCell(processedLineTimeReport.macroAvg.f1Score)}</td>
-                        <td>{results.totalLinesGlobalTimeTested}</td>
+                        <td>{results.totalLinesTimeTested}</td>
                       </tr>
                       <tr>
                         <td>Weighted Avg</td>
                         <td>{renderMetricCell(processedLineTimeReport.weightedAvg.precision)}</td>
                         <td>{renderMetricCell(processedLineTimeReport.weightedAvg.recall)}</td>
                         <td>{renderMetricCell(processedLineTimeReport.weightedAvg.f1Score)}</td>
-                        <td>{results.totalLinesGlobalTimeTested}</td>
+                        <td>{results.totalLinesTimeTested}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -2218,7 +2196,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
               {processedLineSpaceReport && (
                 <section className="eval-report-section">
-                  <h2>5. Line-Level Space Complexity Validation Matrix (Global)</h2>
+                  <h2>5. Line-Level Space Complexity Validation Matrix</h2>
                   <table className="eval-report-table wide">
                     <thead>
                       <tr>
@@ -2246,22 +2224,22 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                         <td><strong>Overall Accuracy</strong></td>
                         <td>--</td>
                         <td>--</td>
-                        <td><strong>{results.lineGlobalSpaceAccuracyRate}%</strong></td>
-                        <td>{results.totalLinesGlobalSpaceTested}</td>
+                        <td><strong>{results.lineSpaceAccuracyRate}%</strong></td>
+                        <td>{results.totalLinesSpaceTested}</td>
                       </tr>
                       <tr>
                         <td>Macro Avg</td>
                         <td>{renderMetricCell(processedLineSpaceReport.macroAvg.precision)}</td>
                         <td>{renderMetricCell(processedLineSpaceReport.macroAvg.recall)}</td>
                         <td>{renderMetricCell(processedLineSpaceReport.macroAvg.f1Score)}</td>
-                        <td>{results.totalLinesGlobalSpaceTested}</td>
+                        <td>{results.totalLinesSpaceTested}</td>
                       </tr>
                       <tr>
                         <td>Weighted Avg</td>
                         <td>{renderMetricCell(processedLineSpaceReport.weightedAvg.precision)}</td>
                         <td>{renderMetricCell(processedLineSpaceReport.weightedAvg.recall)}</td>
                         <td>{renderMetricCell(processedLineSpaceReport.weightedAvg.f1Score)}</td>
-                        <td>{results.totalLinesGlobalSpaceTested}</td>
+                        <td>{results.totalLinesSpaceTested}</td>
                       </tr>
                     </tbody>
                   </table>
