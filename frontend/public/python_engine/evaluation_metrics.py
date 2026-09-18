@@ -224,23 +224,44 @@ def calculate_metrics(injected_dataset=None):
     lines_time_correct = 0
     lines_space_correct = 0
 
-    lines_local_time_evaluated = 0
-    lines_local_time_correct = 0
-    lines_local_space_evaluated = 0
-    lines_local_space_correct = 0
+    lines_global_time_evaluated = 0
+    lines_global_time_correct = 0
+    lines_global_space_evaluated = 0
+    lines_global_space_correct = 0
+
+    # Local-vs-ground-truth counters are kept ONLY as an internal debugging
+    # diagnostic (see y_true_line_ltime_diag/y_pred_line_ltime_diag below) --
+    # they are not scored/reported as the line-level accuracy metric.
+    lines_local_time_evaluated_diag = 0
+    lines_local_time_correct_diag = 0
+    lines_local_space_evaluated_diag = 0
+    lines_local_space_correct_diag = 0
 
     y_true_time = []
     y_pred_time = []
     y_true_space = []
     y_pred_space = []
 
-    # Statement-level (local) complexity labels, kept separate from the
-    # algorithm-level arrays above so their classification_report is its
-    # own matrix rather than being blended into the overall one.
-    y_true_line_ltime = []
-    y_pred_line_ltime = []
-    y_true_line_lspace = []
-    y_pred_line_lspace = []
+    # Statement-level (global time / global space) complexity labels, kept
+    # separate from the algorithm-level arrays above so their
+    # classification_report is its own matrix rather than being blended
+    # into the overall one. Global is used here (not local) because global
+    # is the field that actually feeds the whole-function Big-O the overall
+    # accuracy numbers above are scored against -- a global per-line matrix
+    # explains that number, a local one wouldn't.
+    y_true_line_gtime = []
+    y_pred_line_gtime = []
+    y_true_line_gspace = []
+    y_pred_line_gspace = []
+
+    # Local-vs-ground-truth labels, retained purely as an internal
+    # diagnostic (not surfaced in the PDF/UI report) so the analyzer's
+    # isolated per-line cost can still be debugged separately from the
+    # nesting-aware aggregation.
+    y_true_line_ltime_diag = []
+    y_pred_line_ltime_diag = []
+    y_true_line_lspace_diag = []
+    y_pred_line_lspace_diag = []
 
     details_list = []
     failures_log = []
@@ -335,29 +356,48 @@ def calculate_metrics(injected_dataset=None):
                 ls_match = check_match(act_ls, exp_ls, "space") if exp_ls != '-' else True
                 gs_match = check_match(act_gs, exp_gs, "space") if exp_gs != '-' else True
                 
-                time_match = lt_match and gt_match
-                space_match = ls_match and gs_match
+                # Global-only pass/fail -- global is what nesting/recursion
+                # actually compounds into, and what the overall Big-O above
+                # is derived from, so it's the field the headline line-level
+                # accuracy metric should be scored against.
+                time_match = gt_match
+                space_match = gs_match
                 
                 total_lines_evaluated += 1
                 if time_match: lines_time_correct += 1
                 if space_match: lines_space_correct += 1
 
-                # Local-only labels feed the line-level Validation Matrix.
-                # Skipped when a line has no local-time/local-space ground
+                # Global-only labels feed the line-level Validation Matrix.
+                # Skipped when a line has no global-time/global-space ground
                 # truth of its own ('-'), same convention used above for
-                # lt_match/ls_match, so the matrix isn't padded with
+                # gt_match/gs_match, so the matrix isn't padded with
                 # placeholder classes that were never actually annotated.
+                if exp_gt != '-':
+                    y_true_line_gtime.append(exp_gt)
+                    y_pred_line_gtime.append(act_gt)
+                    lines_global_time_evaluated += 1
+                    if gt_match: lines_global_time_correct += 1
+
+                if exp_gs != '-':
+                    y_true_line_gspace.append(exp_gs)
+                    y_pred_line_gspace.append(act_gs)
+                    lines_global_space_evaluated += 1
+                    if gs_match: lines_global_space_correct += 1
+
+                # Internal diagnostic only -- local-vs-ground-truth, not
+                # reported in the PDF/UI, kept for debugging the analyzer's
+                # isolated per-line cost separately from its aggregation.
                 if exp_lt != '-':
-                    y_true_line_ltime.append(exp_lt)
-                    y_pred_line_ltime.append(act_lt)
-                    lines_local_time_evaluated += 1
-                    if lt_match: lines_local_time_correct += 1
+                    y_true_line_ltime_diag.append(exp_lt)
+                    y_pred_line_ltime_diag.append(act_lt)
+                    lines_local_time_evaluated_diag += 1
+                    if lt_match: lines_local_time_correct_diag += 1
 
                 if exp_ls != '-':
-                    y_true_line_lspace.append(exp_ls)
-                    y_pred_line_lspace.append(act_ls)
-                    lines_local_space_evaluated += 1
-                    if ls_match: lines_local_space_correct += 1
+                    y_true_line_lspace_diag.append(exp_ls)
+                    y_pred_line_lspace_diag.append(act_ls)
+                    lines_local_space_evaluated_diag += 1
+                    if ls_match: lines_local_space_correct_diag += 1
             else:
                 time_match = True
                 space_match = True
@@ -418,8 +458,12 @@ def calculate_metrics(injected_dataset=None):
     line_time_acc = (lines_time_correct / total_lines_evaluated) * 100 if total_lines_evaluated > 0 else 0
     line_space_acc = (lines_space_correct / total_lines_evaluated) * 100 if total_lines_evaluated > 0 else 0
 
-    line_local_time_acc = (lines_local_time_correct / lines_local_time_evaluated) * 100 if lines_local_time_evaluated > 0 else 0
-    line_local_space_acc = (lines_local_space_correct / lines_local_space_evaluated) * 100 if lines_local_space_evaluated > 0 else 0
+    line_global_time_acc = (lines_global_time_correct / lines_global_time_evaluated) * 100 if lines_global_time_evaluated > 0 else 0
+    line_global_space_acc = (lines_global_space_correct / lines_global_space_evaluated) * 100 if lines_global_space_evaluated > 0 else 0
+
+    # Diagnostic-only, not part of the reported metrics.
+    line_local_time_acc_diag = (lines_local_time_correct_diag / lines_local_time_evaluated_diag) * 100 if lines_local_time_evaluated_diag > 0 else 0
+    line_local_space_acc_diag = (lines_local_space_correct_diag / lines_local_space_evaluated_diag) * 100 if lines_local_space_evaluated_diag > 0 else 0
 
     sorted_times = sorted(case_times_ms)
     mean_ms = statistics.mean(sorted_times) if sorted_times else 0.0
@@ -469,24 +513,42 @@ def calculate_metrics(injected_dataset=None):
         time_report_dict = format_report_dict(time_report_raw)
         space_report_dict = format_report_dict(space_report_raw)
 
-        # Statement-level (local time / local space) matrices -- same
+        # Statement-level (global time / global space) matrices -- same
         # sklearn report shape, but computed over individual annotated
         # lines rather than whole algorithms. Kept as their own dict
         # rather than merged into time_report_dict/space_report_dict
         # since the two are different units of analysis (n=lines vs
-        # n=algorithms) with their own class distributions.
-        if y_true_line_ltime:
+        # n=algorithms) with their own class distributions. Global (not
+        # local) is used because global is what the overall complexity
+        # numbers above are actually derived from.
+        if y_true_line_gtime:
             line_time_report_raw = classification_report(
-                y_true_line_ltime, y_pred_line_ltime, labels=sorted(set(y_true_line_ltime)), output_dict=True, zero_division=0
+                y_true_line_gtime, y_pred_line_gtime, labels=sorted(set(y_true_line_gtime)), output_dict=True, zero_division=0
             )
             line_time_report_dict = format_report_dict(line_time_report_raw)
-        if y_true_line_lspace:
+        if y_true_line_gspace:
             line_space_report_raw = classification_report(
-                y_true_line_lspace, y_pred_line_lspace, labels=sorted(set(y_true_line_lspace)), output_dict=True, zero_division=0
+                y_true_line_gspace, y_pred_line_gspace, labels=sorted(set(y_true_line_gspace)), output_dict=True, zero_division=0
             )
             line_space_report_dict = format_report_dict(line_space_report_raw)
+
+        # Internal diagnostic only -- local-vs-ground-truth classification
+        # report, not surfaced in the PDF/UI (see localDiagnostics below).
+        if y_true_line_ltime_diag:
+            line_time_report_local_diag = format_report_dict(classification_report(
+                y_true_line_ltime_diag, y_pred_line_ltime_diag, labels=sorted(set(y_true_line_ltime_diag)), output_dict=True, zero_division=0
+            ))
+        else:
+            line_time_report_local_diag = {}
+        if y_true_line_lspace_diag:
+            line_space_report_local_diag = format_report_dict(classification_report(
+                y_true_line_lspace_diag, y_pred_line_lspace_diag, labels=sorted(set(y_true_line_lspace_diag)), output_dict=True, zero_division=0
+            ))
+        else:
+            line_space_report_local_diag = {}
     except Exception:
-        pass
+        line_time_report_local_diag = {}
+        line_space_report_local_diag = {}
 
     return {
         "totalTested": total_algorithms,
@@ -504,17 +566,30 @@ def calculate_metrics(injected_dataset=None):
         "lineSpacePassed": lines_space_correct,
         "lineTimeAccuracyRate": round(line_time_acc, 1),
         "lineSpaceAccuracyRate": round(line_space_acc, 1),
-        "totalLinesLocalTimeTested": lines_local_time_evaluated,
-        "totalLinesLocalSpaceTested": lines_local_space_evaluated,
-        "lineLocalTimePassed": lines_local_time_correct,
-        "lineLocalSpacePassed": lines_local_space_correct,
-        "lineLocalTimeAccuracyRate": round(line_local_time_acc, 1),
-        "lineLocalSpaceAccuracyRate": round(line_local_space_acc, 1),
+        "totalLinesGlobalTimeTested": lines_global_time_evaluated,
+        "totalLinesGlobalSpaceTested": lines_global_space_evaluated,
+        "lineGlobalTimePassed": lines_global_time_correct,
+        "lineGlobalSpacePassed": lines_global_space_correct,
+        "lineGlobalTimeAccuracyRate": round(line_global_time_acc, 1),
+        "lineGlobalSpaceAccuracyRate": round(line_global_space_acc, 1),
         "details": details_list,
         "timeReport": time_report_dict,
         "spaceReport": space_report_dict,
         "lineTimeReport": line_time_report_dict,
         "lineSpaceReport": line_space_report_dict,
+        # Internal-only, not rendered by the UI/PDF -- local-vs-ground-truth
+        # diagnostics kept for debugging the analyzer's isolated per-line
+        # cost separately from the reported global (nesting-aware) metrics.
+        "localDiagnostics": {
+            "totalLinesLocalTimeTested": lines_local_time_evaluated_diag,
+            "totalLinesLocalSpaceTested": lines_local_space_evaluated_diag,
+            "lineLocalTimePassed": lines_local_time_correct_diag,
+            "lineLocalSpacePassed": lines_local_space_correct_diag,
+            "lineLocalTimeAccuracyRate": round(line_local_time_acc_diag, 1),
+            "lineLocalSpaceAccuracyRate": round(line_local_space_acc_diag, 1),
+            "lineTimeReport": line_time_report_local_diag,
+            "lineSpaceReport": line_space_report_local_diag
+        },
         "efficiency": {
             "totalExecutionSec": round(total_execution_sec, 4),
             "throughputAlgos": round(throughput_algos, 2),

@@ -710,8 +710,13 @@ json.dumps(res)
             const isLocalSpaceMatch = expLocalSpace ? checkMatch(predLocalSpace, expLocalSpace, "space") : true;
             const isGlobalSpaceMatch = expGlobalSpace ? checkMatch(predGlobalSpace, expGlobalSpace, "space") : true;
 
-            const isLineTimeMatch = isLocalTimeMatch && isGlobalTimeMatch;
-            const isLineSpaceMatch = isLocalSpaceMatch && isGlobalSpaceMatch;
+            // Global-only pass/fail -- global is what nesting/recursion
+            // actually compounds into, and what the overall complexity
+            // badge is derived from, so it's the field the line-level
+            // accuracy metric should be scored against (see the matching
+            // change in evaluation_metrics.py).
+            const isLineTimeMatch = isGlobalTimeMatch;
+            const isLineSpaceMatch = isGlobalSpaceMatch;
 
             return {
               lineno: lineNo,
@@ -879,26 +884,37 @@ json.dumps(res)
         const lineTimeAcc = totalLinesTestedCount > 0 ? (lineTimePassedCount / totalLinesTestedCount) * 100 : 0;
         const lineSpaceAcc = totalLinesTestedCount > 0 ? (lineSpacePassedCount / totalLinesTestedCount) * 100 : 0;
 
-        // Statement-level (local time / local space) Validation Matrix.
+        // Statement-level (global time / global space) Validation Matrix.
         // This is a separate unit of analysis from timeReportData/spaceReportData
         // above (n = annotated source lines, not n = algorithms), so it gets its
         // own classification_report-style aggregation rather than being folded
         // into the algorithm-level one. Reuses each line's already-computed
-        // expLocalTime/predLocalTime/expLocalSpace/predLocalSpace and ltMatch/
-        // lsMatch flags -- these were being thrown away after per-item pass/fail
-        // tallying (the loop above) instead of being fed into a report.
+        // expGlobalTime/predGlobalTime/expGlobalSpace/predGlobalSpace and gtMatch/
+        // gsMatch flags. Global (not local) is used because global is what the
+        // overall complexity badge is actually derived from (see matching
+        // change in evaluation_metrics.py).
         const allGroundTruthLines = detailedResults.flatMap(
           d => (d.lineValidationResults || []).filter(l => l.hasGroundTruth)
         );
 
-        const lineTimeReportData = generateClassificationReport(allGroundTruthLines, "expLocalTime", "predLocalTime", timeBaseClasses);
-        const lineSpaceReportData = generateClassificationReport(allGroundTruthLines, "expLocalSpace", "predLocalSpace", spaceBaseClasses);
+        const lineTimeReportData = generateClassificationReport(allGroundTruthLines, "expGlobalTime", "predGlobalTime", timeBaseClasses);
+        const lineSpaceReportData = generateClassificationReport(allGroundTruthLines, "expGlobalSpace", "predGlobalSpace", spaceBaseClasses);
 
-        const totalLinesLocalTested = allGroundTruthLines.length;
-        const lineLocalTimePassedCount = allGroundTruthLines.filter(l => l.ltMatch).length;
-        const lineLocalSpacePassedCount = allGroundTruthLines.filter(l => l.lsMatch).length;
-        const lineLocalTimeAcc = totalLinesLocalTested > 0 ? (lineLocalTimePassedCount / totalLinesLocalTested) * 100 : 0;
-        const lineLocalSpaceAcc = totalLinesLocalTested > 0 ? (lineLocalSpacePassedCount / totalLinesLocalTested) * 100 : 0;
+        const totalLinesGlobalTested = allGroundTruthLines.length;
+        const lineGlobalTimePassedCount = allGroundTruthLines.filter(l => l.gtMatch).length;
+        const lineGlobalSpacePassedCount = allGroundTruthLines.filter(l => l.gsMatch).length;
+        const lineGlobalTimeAcc = totalLinesGlobalTested > 0 ? (lineGlobalTimePassedCount / totalLinesGlobalTested) * 100 : 0;
+        const lineGlobalSpaceAcc = totalLinesGlobalTested > 0 ? (lineGlobalSpacePassedCount / totalLinesGlobalTested) * 100 : 0;
+
+        // Internal diagnostic only -- local-vs-ground-truth, not surfaced
+        // in the UI/PDF, kept for debugging the analyzer's isolated
+        // per-line cost separately from the reported global metrics.
+        const lineTimeReportLocalDiag = generateClassificationReport(allGroundTruthLines, "expLocalTime", "predLocalTime", timeBaseClasses);
+        const lineSpaceReportLocalDiag = generateClassificationReport(allGroundTruthLines, "expLocalSpace", "predLocalSpace", spaceBaseClasses);
+        const lineLocalTimePassedCountDiag = allGroundTruthLines.filter(l => l.ltMatch).length;
+        const lineLocalSpacePassedCountDiag = allGroundTruthLines.filter(l => l.lsMatch).length;
+        const lineLocalTimeAccDiag = totalLinesGlobalTested > 0 ? (lineLocalTimePassedCountDiag / totalLinesGlobalTested) * 100 : 0;
+        const lineLocalSpaceAccDiag = totalLinesGlobalTested > 0 ? (lineLocalSpacePassedCountDiag / totalLinesGlobalTested) * 100 : 0;
 
         self.postMessage({
           type: 'BENCHMARK_COMPLETE',
@@ -919,16 +935,27 @@ json.dumps(res)
             lineSpacePassed: lineSpacePassedCount,
             lineTimeAccuracyRate: parseFloat(lineTimeAcc.toFixed(2)),
             lineSpaceAccuracyRate: parseFloat(lineSpaceAcc.toFixed(2)),
-            totalLinesLocalTimeTested: totalLinesLocalTested,
-            totalLinesLocalSpaceTested: totalLinesLocalTested,
-            lineLocalTimePassed: lineLocalTimePassedCount,
-            lineLocalSpacePassed: lineLocalSpacePassedCount,
-            lineLocalTimeAccuracyRate: parseFloat(lineLocalTimeAcc.toFixed(2)),
-            lineLocalSpaceAccuracyRate: parseFloat(lineLocalSpaceAcc.toFixed(2)),
+            totalLinesGlobalTimeTested: totalLinesGlobalTested,
+            totalLinesGlobalSpaceTested: totalLinesGlobalTested,
+            lineGlobalTimePassed: lineGlobalTimePassedCount,
+            lineGlobalSpacePassed: lineGlobalSpacePassedCount,
+            lineGlobalTimeAccuracyRate: parseFloat(lineGlobalTimeAcc.toFixed(2)),
+            lineGlobalSpaceAccuracyRate: parseFloat(lineGlobalSpaceAcc.toFixed(2)),
             timeReport: timeReportData,
             spaceReport: spaceReportData,
             lineTimeReport: lineTimeReportData,
             lineSpaceReport: lineSpaceReportData,
+            // Internal-only, not rendered by the UI/PDF.
+            localDiagnostics: {
+              totalLinesLocalTimeTested: totalLinesGlobalTested,
+              totalLinesLocalSpaceTested: totalLinesGlobalTested,
+              lineLocalTimePassed: lineLocalTimePassedCountDiag,
+              lineLocalSpacePassed: lineLocalSpacePassedCountDiag,
+              lineLocalTimeAccuracyRate: parseFloat(lineLocalTimeAccDiag.toFixed(2)),
+              lineLocalSpaceAccuracyRate: parseFloat(lineLocalSpaceAccDiag.toFixed(2)),
+              lineTimeReport: lineTimeReportLocalDiag,
+              lineSpaceReport: lineSpaceReportLocalDiag
+            },
             efficiency: efficiencyMetrics,
             details: detailedResults
           }
