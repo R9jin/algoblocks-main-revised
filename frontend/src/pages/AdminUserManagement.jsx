@@ -89,11 +89,16 @@ const getAuthToken = () =>
 // work correctly.
 const isSuspendedStatus = (status) => (status || "").trim().toLowerCase() === "suspended";
 
-// Temporarily hides the "Generate Full Report" trigger/modal (Overall
-// Learning Impact report) while the underlying metrics are still being
-// iterated on -- same treatment as SHOW_FULL_REPORT_FEATURE in
-// EvaluationSuite.jsx. Flip back to `true` to restore it.
-const SHOW_FULL_REPORT_FEATURE = false;
+// Controls the "Generate Full Report" trigger/modal (Overall Learning
+// Impact report) at the bottom of this page -- same switch as
+// SHOW_FULL_REPORT_FEATURE in EvaluationSuite.jsx. Set to `false` to hide
+// it again without touching anything the report depends on.
+const SHOW_FULL_REPORT_FEATURE = true;
+
+// Formats a possibly-null metric as "72.5%" -- or a bare "--" when there is
+// no value yet, instead of the dangling "--%" the report used to print for
+// respondents/modules with no scored submissions.
+const fmtPct = (v) => (v != null ? `${v}%` : "--");
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -717,7 +722,7 @@ const AdminUserManagement = () => {
     const passRate = sg.activities_attempted
       ? Math.round((sg.activities_passed / sg.activities_attempted) * 100)
       : 0;
-    return `Across ${sg.activities_attempted} recorded activity submission${sg.activities_attempted === 1 ? "" : "s"} in the current scope, respondents achieved an average Task Success Rate of ${sg.tsr ?? "--"}% and an average Algorithmic Efficiency Score of ${sg.aes ?? "--"}%, passing ${sg.activities_passed} activities (${passRate}%). Among the ${sg.rog_refactored_count} submissions where a genuine refactor took place, the average Refactoring Optimization Gain was +${sg.rog ?? 0} AES points.`;
+    return `Across ${sg.activities_attempted} recorded activity submission${sg.activities_attempted === 1 ? "" : "s"} in the current scope, respondents achieved an average Task Success Rate of ${fmtPct(sg.tsr)} and an average Algorithmic Efficiency Score of ${fmtPct(sg.aes)}, passing ${sg.activities_passed} activities (${passRate}%). Among the ${sg.rog_refactored_count} submissions where a genuine refactor took place, the average Refactoring Optimization Gain was +${sg.rog ?? 0} AES points.`;
   };
 
   const reportScopeLabel = selectedRespondents.length > 0
@@ -807,8 +812,8 @@ const AdminUserManagement = () => {
       ["Respondents Included", String(ov.user_count)],
       ["Activity Submissions", String(sg.activities_attempted)],
       ["Activities Passed", String(sg.activities_passed)],
-      ["Avg Task Success Rate (TSR)", `${sg.tsr ?? "--"}%`],
-      ["Avg Algorithmic Efficiency Score (AES)", `${sg.aes ?? "--"}%`],
+      ["Avg Task Success Rate (TSR)", fmtPct(sg.tsr)],
+      ["Avg Algorithmic Efficiency Score (AES)", fmtPct(sg.aes)],
       ["Avg Refactoring Optimization Gain (ROG)", `+${sg.rog ?? 0} (n'=${sg.rog_refactored_count})`],
       ["Functional Tests Passed", `${sg.functional_tests.passed}/${sg.functional_tests.total}`],
       ["Complexity Tests Passed", `${sg.complexity_tests.passed}/${sg.complexity_tests.total}`],
@@ -830,8 +835,8 @@ const AdminUserManagement = () => {
           MODULE_TITLES[moduleId] || moduleId,
           String(m.activities_attempted),
           String(m.activities_passed),
-          `${m.tsr ?? "--"}%`,
-          `${m.aes ?? "--"}%`,
+          fmtPct(m.tsr),
+          fmtPct(m.aes),
           `+${m.rog ?? 0}`,
         ]),
       });
@@ -870,8 +875,8 @@ const AdminUserManagement = () => {
           u.email,
           String(u.metrics.activities_attempted),
           String(u.metrics.activities_passed),
-          u.metrics.tsr != null ? `${u.metrics.tsr}%` : "--",
-          u.metrics.aes != null ? `${u.metrics.aes}%` : "--",
+          fmtPct(u.metrics.tsr),
+          fmtPct(u.metrics.aes),
           `+${u.metrics.rog ?? 0}`,
           u.preTest != null ? `${u.preTest}%` : "--",
           u.postTest != null ? `${u.postTest}%` : "--",
@@ -1660,7 +1665,7 @@ const AdminUserManagement = () => {
             view, for pulling straight into a Chapter 4 Results write-up.
             Reuses the same `overview` payload already fetched for that
             dashboard so the two never disagree with each other.
-            Hidden for now via SHOW_FULL_REPORT_FEATURE -- see top of file. */}
+            Toggle with SHOW_FULL_REPORT_FEATURE -- see top of file. */}
         {SHOW_FULL_REPORT_FEATURE && (
           <div className="admin-full-report-trigger">
             <button
@@ -1716,8 +1721,8 @@ const AdminUserManagement = () => {
                     <tr><th>Respondents Included</th><td>{overview.user_count}</td></tr>
                     <tr><th>Activity Submissions</th><td>{overview.system_generated.activities_attempted}</td></tr>
                     <tr><th>Activities Passed</th><td>{overview.system_generated.activities_passed}</td></tr>
-                    <tr><th>Avg Task Success Rate (TSR)</th><td>{overview.system_generated.tsr ?? "--"}%</td></tr>
-                    <tr><th>Avg Algorithmic Efficiency Score (AES)</th><td>{overview.system_generated.aes ?? "--"}%</td></tr>
+                    <tr><th>Avg Task Success Rate (TSR)</th><td>{fmtPct(overview.system_generated.tsr)}</td></tr>
+                    <tr><th>Avg Algorithmic Efficiency Score (AES)</th><td>{fmtPct(overview.system_generated.aes)}</td></tr>
                     <tr><th>Avg Refactoring Optimization Gain (ROG)</th><td>+{overview.system_generated.rog ?? 0} (n'={overview.system_generated.rog_refactored_count})</td></tr>
                     <tr><th>Functional Tests Passed</th><td>{overview.system_generated.functional_tests.passed}/{overview.system_generated.functional_tests.total}</td></tr>
                     <tr><th>Complexity Tests Passed</th><td>{overview.system_generated.complexity_tests.passed}/{overview.system_generated.complexity_tests.total}</td></tr>
@@ -1746,8 +1751,8 @@ const AdminUserManagement = () => {
                           <td>{MODULE_TITLES[moduleId] || moduleId}</td>
                           <td>{m.activities_attempted}</td>
                           <td>{m.activities_passed}</td>
-                          <td>{m.tsr ?? "--"}%</td>
-                          <td>{m.aes ?? "--"}%</td>
+                          <td>{fmtPct(m.tsr)}</td>
+                          <td>{fmtPct(m.aes)}</td>
                           <td>+{m.rog ?? 0}</td>
                         </tr>
                       ))}
@@ -1799,8 +1804,8 @@ const AdminUserManagement = () => {
                           <td>{u.email}</td>
                           <td>{u.metrics.activities_attempted}</td>
                           <td>{u.metrics.activities_passed}</td>
-                          <td>{u.metrics.tsr ?? "--"}{u.metrics.tsr != null ? "%" : ""}</td>
-                          <td>{u.metrics.aes ?? "--"}{u.metrics.aes != null ? "%" : ""}</td>
+                          <td>{fmtPct(u.metrics.tsr)}</td>
+                          <td>{fmtPct(u.metrics.aes)}</td>
                           <td>+{u.metrics.rog ?? 0}</td>
                           <td>{u.preTest != null ? `${u.preTest}%` : "--"}</td>
                           <td>{u.postTest != null ? `${u.postTest}%` : "--"}</td>

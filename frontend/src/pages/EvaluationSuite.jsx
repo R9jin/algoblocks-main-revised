@@ -61,11 +61,11 @@ const BIGO_COLOR_MAP = {
 const BIGO_FALLBACK_COLORS = ["#7928CA", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#22D3EE"];
 const getBigOColor = (label, idx) => BIGO_COLOR_MAP[label] || BIGO_FALLBACK_COLORS[idx % BIGO_FALLBACK_COLORS.length];
 
-// Temporarily hides the "Generate Full Report" trigger/modal while the
-// analyzer + ground-truth dataset are still being iterated on. Flip back to
-// `true` to restore it -- everything it depends on (results, PDF export,
-// the modal itself) is untouched.
-const SHOW_FULL_REPORT_FEATURE = false;
+// Controls the "Generate Full Report" trigger/modal at the bottom of the
+// Dataset Testing suite (standalone page and the embedded Admin Dashboard
+// copy). Set to `false` to hide it again -- everything it depends on
+// (results, PDF export, the modal itself) is untouched.
+const SHOW_FULL_REPORT_FEATURE = true;
 
 // The complete, fixed set of Big-O classes the analyzer is designed to
 // recognize -- nothing else. Shown to the user directly on the benchmark
@@ -1964,7 +1964,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
             Full Report" feature on the System User Management page. Reuses
             the same `results` payload already held for the dashboard above
             so the report and the on-screen charts never disagree.
-            Hidden for now via SHOW_FULL_REPORT_FEATURE -- see top of file. */}
+            Toggle with SHOW_FULL_REPORT_FEATURE -- see top of file. */}
         {SHOW_FULL_REPORT_FEATURE && (
           <div className="eval-full-report-trigger">
             <button
