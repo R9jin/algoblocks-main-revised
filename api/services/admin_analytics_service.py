@@ -21,12 +21,19 @@ key-matching approach ProfilePage.jsx uses client-side, since assessment
 keys aren't guaranteed to be named identically across activities.
 """
 
+import logging
 import math
 import statistics
 from typing import Any, Dict, List, Optional
 
 from database import get_db_connection
 from repositories.user_repo import UserRepository
+# The t/beta helpers moved to stats_utils (so the regression math is testable
+# without a database). Re-imported under the same names for existing callers.
+from services.stats_utils import _betacf, _betai, _t_two_tailed_p  # noqa: F401
+from services.regression_service import compute_learning_impact_regression
+
+logger = logging.getLogger(__name__)
 
 PRETEST_KEYWORDS = ["pretest", "coursepretest"]
 POSTTEST_KEYWORDS = ["posttest", "courseposttest"]
@@ -292,67 +299,6 @@ def _submission_details(submissions: List[Dict[str, Any]]) -> List[Dict[str, Any
     return sorted(details, key=lambda item: str(item.get("timestamp") or ""), reverse=True)
 
 
-# ---------------------------------------------------------------------------
-# Paired t-test / Cohen's d support (pure-Python regularized incomplete beta,
-# so this doesn't require adding scipy as a dependency)
-# ---------------------------------------------------------------------------
-
-def _betacf(a: float, b: float, x: float) -> float:
-    maxit, eps, fpmin = 200, 3.0e-12, 1.0e-300
-    qab, qap, qam = a + b, a + 1.0, a - 1.0
-    c = 1.0
-    d = 1.0 - qab * x / qap
-    if abs(d) < fpmin:
-        d = fpmin
-    d = 1.0 / d
-    h = d
-    for m in range(1, maxit + 1):
-        m2 = 2 * m
-        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
-        d = 1.0 + aa * d
-        if abs(d) < fpmin:
-            d = fpmin
-        c = 1.0 + aa / c
-        if abs(c) < fpmin:
-            c = fpmin
-        d = 1.0 / d
-        h *= d * c
-        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
-        d = 1.0 + aa * d
-        if abs(d) < fpmin:
-            d = fpmin
-        c = 1.0 + aa / c
-        if abs(c) < fpmin:
-            c = fpmin
-        d = 1.0 / d
-        delta = d * c
-        h *= delta
-        if abs(delta - 1.0) < eps:
-            break
-    return h
-
-
-def _betai(a: float, b: float, x: float) -> float:
-    if x <= 0.0:
-        return 0.0
-    if x >= 1.0:
-        return 1.0
-    bt = math.exp(
-        math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b)
-        + a * math.log(x) + b * math.log(1.0 - x)
-    )
-    if x < (a + 1.0) / (a + b + 2.0):
-        return bt * _betacf(a, b, x) / a
-    return 1.0 - bt * _betacf(b, a, 1.0 - x) / b
-
-
-def _t_two_tailed_p(t: Optional[float], df: Optional[int]) -> Optional[float]:
-    if t is None or not df or df <= 0:
-        return None
-    x = df / (df + t * t)
-    return _betai(df / 2.0, 0.5, x)
-
-
 def _interpret_cohens_d(d: Optional[float]) -> Optional[str]:
     if d is None:
         return None
@@ -445,6 +391,10 @@ class AdminAnalyticsService:
         submission metrics and the assessment-based measures to the same
         completer cohort, so the dashboard reflects one consistent group of
         finished respondents rather than mixing in partial data.
+
+        The returned dict also carries a `regression` key (phased regression /
+        Learning Impact Model, see regression_service.py) computed from the
+        same scoped `by_user` rows.
         """
         # PERFORMANCE: one shared connection for all three queries instead
         # of find_all_users/_fetch_all_submission_rows/_fetch_all_assessment_rows
@@ -569,6 +519,21 @@ class AdminAnalyticsService:
             else None
         )
 
+        # Phased regression ("Learning Impact Model") is computed from by_user
+        # AFTER all scoping above (selected emails / post-test completers /
+        # admins excluded), so the dashboard, PDF and Excel report all read
+        # the same numbers from this one payload. It is deliberately isolated:
+        # a failure here must never take down the existing overview, so it
+        # degrades to {"available": False, ...} instead of raising.
+        try:
+            regression = compute_learning_impact_regression(by_user)
+        except Exception as exc:  # noqa: BLE001 - see comment above
+            logger.error("Phased regression failed: %s", exc)
+            regression = {
+                "available": False,
+                "reason": "The regression could not be computed for this cohort.",
+            }
+
         return {
             "status": "success",
             "user_count": len(target_emails),
@@ -596,4 +561,5 @@ class AdminAnalyticsService:
                 "hakes_g": round(hakes_g, 3) if hakes_g is not None else None,
                 "hakes_g_interpretation": _interpret_hakes_g(hakes_g),
             },
+            "regression": regression,
         }

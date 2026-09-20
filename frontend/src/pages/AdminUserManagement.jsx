@@ -4,6 +4,8 @@ import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { addTableSheet, addKeyValueSheet, downloadWorkbook, colLetter, excelStringLiteral } from "../utils/excelReport";
+import { addRegressionSheets, drawRegressionPdfSection } from "../utils/regressionReport";
+import { LearningImpactModelSection, LearningImpactModelReportSection } from "../components/LearningImpactModel";
 import {
   LuActivity,
   LuAward,
@@ -920,6 +922,21 @@ const AdminUserManagement = () => {
       addParagraph("No per-module submissions recorded for any respondent in the current scope.");
     }
 
+    // 6. Learning Impact Model (phased regression) -- appended after the
+    // existing sections so their order and numbering are untouched. The
+    // helper only needs this handler's own layout primitives; its per-
+    // respondent appendix is anonymized (S01.. by row order, no names/emails).
+    drawRegressionPdfSection(
+      {
+        doc, autoTable, marginX, pageWidth, brandColor,
+        ensureRoom, addHeading, addParagraph,
+        getY: () => y,
+        setY: (next) => { y = next; },
+      },
+      ov.regression,
+      6
+    );
+
     doc.save(`AlgoBlocks-Learning-Impact-Report-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
@@ -1219,6 +1236,13 @@ const AdminUserManagement = () => {
       }),
       { headerColor: "5A1398" }
     );
+
+    // ----- Learning Impact Model (phased regression) --------------------
+    // Added AFTER every existing sheet so the current sheet order is
+    // untouched. "Regression Data" carries anonymized IDs and raw scores with
+    // real formulas for z-scores/P3/LII; "Regression Summary" recomputes the
+    // statistics from it (LINEST/CORREL/F.DIST.RT). No names or emails.
+    addRegressionSheets(workbook, ov.regression, { headerColor: "5A1398" });
 
     await downloadWorkbook(workbook, `AlgoBlocks-Learning-Impact-Report-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
@@ -1532,6 +1556,12 @@ const AdminUserManagement = () => {
                   </div>
                 </div>
               )}
+
+              {/* Phased regression over the SAME scoped respondents as the
+                  cards above (computed once server-side and shared with the
+                  full report / PDF / Excel). Loading, error and offline
+                  states are handled by the surrounding ternary. */}
+              <LearningImpactModelSection regression={overview.regression} />
             </>
           ) : null}
         </div>
@@ -2204,6 +2234,10 @@ const AdminUserManagement = () => {
                   <p className="analytics-empty-note">No per-module submissions recorded for any respondent in the current scope.</p>
                 )}
               </section>
+
+              {/* Section 6 mirrors the PDF/Excel regression content and is
+                  anonymized (S01.. IDs, no names/emails), unlike sections 4-5. */}
+              <LearningImpactModelReportSection regression={overview.regression} sectionNumber={6} />
             </div>
           </div>
         </div>
