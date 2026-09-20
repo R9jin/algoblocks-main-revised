@@ -1973,17 +1973,25 @@
   border-bottom: 2px solid #DDD6F0;
 }
 
-.algo-report-table {
-  display: block;
+/* Wrapper handles the horizontal scroll; the table itself stays a normal
+   table (auto layout) so column widths come from actual cell content
+   instead of being split into two independently-sized anonymous tables
+   (one for <thead>, one for <tbody>) that don't agree on column widths --
+   that mismatch was what caused adjacent-column text to visually overlap
+   once table-layout: fixed squeezed every column to an equal, content-blind
+   width. Same fix as .user-report-table in AdminUserManagement.css. */
+.algo-report-table-wrapper {
+  width: 100%;
   overflow-x: auto;
+}
+
+.algo-report-table {
+  min-width: 720px;
   white-space: nowrap;
 }
 
-.algo-report-table thead,
-.algo-report-table tbody {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
+.line-report-table {
+  min-width: 760px;
 }
 
 /* =========================================================

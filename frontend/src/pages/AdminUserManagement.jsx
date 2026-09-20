@@ -2,6 +2,8 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
+import ExcelJS from "exceljs";
+import { addTableSheet, addKeyValueSheet, downloadWorkbook, colLetter, excelStringLiteral } from "../utils/excelReport";
 import {
   LuActivity,
   LuAward,
@@ -886,7 +888,339 @@ const AdminUserManagement = () => {
       addParagraph("No respondents in the current scope.");
     }
 
+    // 5. Individual learning-path breakdown (per respondent, per module) --
+    // same flattened rows as the on-screen section 5, so the PDF and the
+    // modal never fall out of sync.
+    addHeading("5. Individual Learning Path Breakdown (by module)");
+    const learningPathRows = (ov.by_user || []).flatMap((u) => {
+      const modules = Object.entries(u.by_module || {});
+      return modules.map(([moduleId, m], idx) => [
+        idx === 0 ? (u.name || "Unnamed Profile") : "",
+        idx === 0 ? u.email : "",
+        MODULE_TITLES[moduleId] || moduleId,
+        String(m.activities_attempted),
+        String(m.activities_passed),
+        fmtPct(m.tsr),
+        fmtPct(m.aes),
+        `+${m.rog ?? 0}`,
+      ]);
+    });
+    if (learningPathRows.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        margin: { left: marginX, right: marginX },
+        theme: "grid",
+        styles: { fontSize: 8, cellPadding: 4 },
+        headStyles: { fillColor: brandColor },
+        head: [["Name", "Email", "Module", "Submissions", "Passed", "Avg TSR", "Avg AES", "Avg ROG"]],
+        body: learningPathRows,
+      });
+      y = doc.lastAutoTable.finalY + 20;
+    } else {
+      addParagraph("No per-module submissions recorded for any respondent in the current scope.");
+    }
+
     doc.save(`AlgoBlocks-Learning-Impact-Report-${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  // Builds and downloads the .xlsx counterpart of the report above -- same
+  // scope/data source (the currently-applied `overview` payload) but, since
+  // a spreadsheet isn't paginated the way a PDF page is, every sheet carries
+  // the *full* underlying data rather than a print-friendly subset: every
+  // module's full metric set (not just TSR/AES/ROG), and every respondent's
+  // full per-module learning-path breakdown alongside their summary row.
+  // ---------------------------------------------------------------------
+  // Excel export
+  //
+  // Every "computed" sheet below (Summary, Per-Module Breakdown) writes
+  // real Excel formulas that pull from the raw-data sheets (Respondents,
+  // Learning Path Detail, Pre-Post Test Data) instead of pasting in the
+  // already-rounded numbers the dashboard displays. Concretely:
+  //
+  //  - Counts and totals (submissions, passed, functional/complexity/
+  //    hidden test tallies, paired test-taker count) are plain SUM/COUNT
+  //    formulas over the raw sheet, so they always exactly match the
+  //    number the system itself would compute from that same raw data.
+  //  - The assessment-based measures (mean/SD pre & post, the paired
+  //    t-test, Cohen's d, Hake's g) are recomputed from each respondent's
+  //    individual pre-test/post-test score on the "Pre-Post Test Data"
+  //    sheet using the same formulas the backend uses (sample stdev,
+  //    mean-difference / (sd-difference/sqrt(n)), Excel's own T.TEST for
+  //    the p-value) -- these match the on-screen numbers exactly.
+  //  - TSR / AES / ROG are themselves *averages* computed server-side over
+  //    individual activity submissions, and the frontend only ever
+  //    receives each respondent's already-averaged numbers (not every
+  //    individual submission) -- so the cohort-level and per-module
+  //    versions of those three are reconstructed here as a weighted
+  //    average across respondents (weighted by each respondent's activity
+  //    count, or by their refactored-submission count for ROG, which is
+  //    exact for ROG and a very close match for TSR/AES in the normal case
+  //    where every submission carries a test result).
+  const handleDownloadExcel = async (ov) => {
+    if (!ov) return;
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "AlgoBlocks";
+    workbook.created = new Date();
+
+    const sg = ov.system_generated || {};
+    const ab = ov.assessment_based || {};
+    const byUser = ov.by_user || [];
+    const moduleEntries = Object.entries(ov.by_module || {});
+    const learningPathRowsForCount = byUser.flatMap((u) => Object.entries(u.by_module || {}));
+    const pairedUsers = byUser.filter((u) => u.preTest != null && u.postTest != null);
+
+    // Column layouts + cross-sheet range strings are worked out up front
+    // (they only need row/column *counts*, not the worksheets themselves)
+    // so the Summary sheet's formulas can be written first -- putting
+    // Summary as the first tab in the file without resorting to reordering
+    // worksheets after the fact.
+    const RESP_COLS_DEF = [
+      "name", "email", "status", "attempted", "passed", "tsr", "aes", "rog",
+      "rogN", "unchanged", "funcPassed", "funcTotal", "compPassed", "compTotal",
+      "hidPassed", "hidTotal", "preTest", "postTest",
+    ];
+    const respColIdx = {};
+    RESP_COLS_DEF.forEach((key, i) => { respColIdx[key] = i + 1; });
+    const respLastRow = 1 + byUser.length;
+    const respRange = (key) => `Respondents!${colLetter(respColIdx[key])}2:${colLetter(respColIdx[key])}${respLastRow}`;
+
+    const LP_COLS_DEF = [
+      "name", "email", "module", "attempted", "passed", "tsr", "aes", "rog",
+      "rogN", "unchanged", "funcPassed", "funcTotal", "compPassed", "compTotal",
+      "hidPassed", "hidTotal",
+    ];
+    const lpColIdx = {};
+    LP_COLS_DEF.forEach((key, i) => { lpColIdx[key] = i + 1; });
+    const lpLastRow = 1 + learningPathRowsForCount.length;
+    const lpCol = (key) => `'Learning Path Detail'!${colLetter(lpColIdx[key])}2:${colLetter(lpColIdx[key])}${lpLastRow}`;
+
+    const PP_COLS_DEF = ["name", "email", "pre", "post", "diff"];
+    const ppColIdx = {};
+    PP_COLS_DEF.forEach((key, i) => { ppColIdx[key] = i + 1; });
+    const ppLastRow = 1 + pairedUsers.length;
+    const ppRange = (key) => `'Pre-Post Test Data'!${colLetter(ppColIdx[key])}2:${colLetter(ppColIdx[key])}${ppLastRow}`;
+
+    // ----- Computed: Summary (built first so it's the first tab) ------
+    const hasRespondents = byUser.length > 0;
+    const weightedRespAvg = (valueKey, weightKey) =>
+      `SUMPRODUCT(${respRange(valueKey)},${respRange(weightKey)})/SUM(${respRange(weightKey)})`;
+
+    const systemRows = !hasRespondents ? [["Respondents Included", 0]] : [
+      ["Respondents Included", { formula: `COUNTA(${respRange("email")})`, result: ov.user_count }],
+      ["Activity Submissions", { formula: `SUM(${respRange("attempted")})`, result: sg.activities_attempted }],
+      ["Activities Passed", { formula: `SUM(${respRange("passed")})`, result: sg.activities_passed }],
+      ["Avg Task Success Rate (TSR)", { formula: weightedRespAvg("tsr", "attempted"), numFmt: '0.0"%"', result: sg.tsr }],
+      ["Avg Algorithmic Efficiency Score (AES)", { formula: weightedRespAvg("aes", "attempted"), numFmt: '0.0"%"', result: sg.aes }],
+      ["Avg Refactoring Optimization Gain (ROG)", { formula: `"+"&ROUND(${weightedRespAvg("rog", "rogN")},1)&" (n'="&SUM(${respRange("rogN")})&")"`, result: `+${sg.rog ?? 0} (n'=${sg.rog_refactored_count})` }],
+      ["Unchanged-Code Resubmissions", { formula: `SUM(${respRange("unchanged")})`, result: sg.unchanged_code_resubmissions ?? 0 }],
+      ["Functional Tests Passed", { formula: `SUM(${respRange("funcPassed")})&"/"&SUM(${respRange("funcTotal")})`, result: `${sg.functional_tests?.passed ?? 0}/${sg.functional_tests?.total ?? 0}` }],
+      ["Complexity Tests Passed", { formula: `SUM(${respRange("compPassed")})&"/"&SUM(${respRange("compTotal")})`, result: `${sg.complexity_tests?.passed ?? 0}/${sg.complexity_tests?.total ?? 0}` }],
+      ["Hidden Tests Passed", { formula: `SUM(${respRange("hidPassed")})&"/"&SUM(${respRange("hidTotal")})`, result: `${sg.hidden_tests?.passed ?? 0}/${sg.hidden_tests?.total ?? 0}` }],
+    ];
+
+    const hasPairs = pairedUsers.length > 0;
+    const preR = ppRange("pre");
+    const postR = ppRange("post");
+    const diffR = ppRange("diff");
+    const tFormula = `AVERAGE(${diffR})/(STDEV.S(${diffR})/SQRT(COUNT(${diffR})))`;
+    const dFormula = `AVERAGE(${diffR})/STDEV.S(${diffR})`;
+    const gFormula = `(AVERAGE(${postR})-AVERAGE(${preR}))/(100-AVERAGE(${preR}))`;
+    const pFormula = `T.TEST(${preR},${postR},2,1)`;
+
+    const assessmentRows = !hasPairs ? [["Paired Pre/Post Test Takers (n)", 0]] : [
+      ["Paired Pre/Post Test Takers (n)", { formula: `COUNT(${preR})`, result: ov.paired_test_takers }],
+      ["Mean Pre-test", { formula: `AVERAGE(${preR})`, numFmt: '0.00"%"', result: ab.mean_pretest }],
+      ["Mean Post-test", { formula: `AVERAGE(${postR})`, numFmt: '0.00"%"', result: ab.mean_posttest }],
+      ["SD Pre-test", { formula: `STDEV.S(${preR})`, numFmt: "0.00", result: ab.sd_pretest }],
+      ["SD Post-test", { formula: `STDEV.S(${postR})`, numFmt: "0.00", result: ab.sd_posttest }],
+      ["t-value", { formula: tFormula, numFmt: "0.000", result: ab.t_value }],
+      ["Degrees of Freedom", { formula: `COUNT(${diffR})-1`, result: ab.degrees_of_freedom }],
+      ["p-value (two-tailed paired t-test)", { formula: pFormula, numFmt: "0.0000", result: ab.p_value }],
+      ["Significant at α=.05", { formula: `IF(${pFormula}<0.05,"Yes","No")`, result: ab.significant_at_0_05 ? "Yes" : "No" }],
+      ["Cohen's d", { formula: dFormula, numFmt: "0.000", result: ab.cohens_d }],
+      ["Cohen's d Interpretation", { formula: `IF(ABS(${dFormula})>=0.8,"Large Effect",IF(ABS(${dFormula})>=0.5,"Medium Effect",IF(ABS(${dFormula})>=0.2,"Small Effect","Negligible Effect")))`, result: ab.cohens_d_interpretation }],
+      ["Hake's Normalized Gain (g)", { formula: gFormula, numFmt: "0.000", result: ab.hakes_g }],
+      ["Hake's g Interpretation", { formula: `IF(${gFormula}>=0.7,"High Gain",IF(${gFormula}>=0.3,"Medium Gain","Low Gain"))`, result: ab.hakes_g_interpretation }],
+    ];
+
+    addKeyValueSheet(workbook, "Summary", [
+      {
+        heading: "AlgoBlocks — Learning Impact Report",
+        rows: [
+          ["Generated", new Date().toLocaleString()],
+          ["Scope", `${reportScopeLabel}${postTestOnly ? ` · Post-test completers only (${ov.post_test_completers ?? 0})` : ""}`],
+        ],
+      },
+      {
+        heading: "1. System-Generated Learning Performance",
+        narrative: buildSystemNarrative(ov),
+        rows: systemRows,
+      },
+      {
+        heading: "3. Assessment-Based Learning Measures",
+        narrative: buildImpactNarrative(ov),
+        rows: assessmentRows,
+      },
+    ], { headerColor: "5A1398" });
+
+    // ----- Raw data: Respondents (one row per respondent) -----------
+    const RESP_COLS = [
+      { header: "Name", key: "name", width: 22 },
+      { header: "Email", key: "email", width: 30 },
+      { header: "Status", key: "status", width: 12 },
+      { header: "Activities Attempted", key: "attempted", width: 18 },
+      { header: "Activities Passed", key: "passed", width: 16 },
+      { header: "Avg TSR (%)", key: "tsr", width: 12, numFmt: '0.0"%"' },
+      { header: "Avg AES (%)", key: "aes", width: 12, numFmt: '0.0"%"' },
+      { header: "Avg ROG", key: "rog", width: 12, numFmt: "+0.0;-0.0;0" },
+      { header: "ROG Sample (n')", key: "rogN", width: 16 },
+      { header: "Unchanged-Code Resubmissions", key: "unchanged", width: 16 },
+      { header: "Functional Passed", key: "funcPassed", width: 16 },
+      { header: "Functional Total", key: "funcTotal", width: 16 },
+      { header: "Complexity Passed", key: "compPassed", width: 16 },
+      { header: "Complexity Total", key: "compTotal", width: 16 },
+      { header: "Hidden Passed", key: "hidPassed", width: 14 },
+      { header: "Hidden Total", key: "hidTotal", width: 14 },
+      { header: "Pre-test (%)", key: "preTest", width: 12, numFmt: '0.00"%"' },
+      { header: "Post-test (%)", key: "postTest", width: 12, numFmt: '0.00"%"' },
+    ];
+    addTableSheet(
+      workbook,
+      "Respondents",
+      RESP_COLS,
+      byUser.map((u) => ({
+        name: u.name || "Unnamed Profile",
+        email: u.email,
+        status: u.status || "active",
+        attempted: u.metrics.activities_attempted ?? 0,
+        passed: u.metrics.activities_passed ?? 0,
+        tsr: u.metrics.tsr ?? 0,
+        aes: u.metrics.aes ?? 0,
+        rog: u.metrics.rog ?? 0,
+        rogN: u.metrics.rog_refactored_count ?? 0,
+        unchanged: u.metrics.unchanged_code_resubmissions ?? 0,
+        funcPassed: u.metrics.functional_tests?.passed ?? 0,
+        funcTotal: u.metrics.functional_tests?.total ?? 0,
+        compPassed: u.metrics.complexity_tests?.passed ?? 0,
+        compTotal: u.metrics.complexity_tests?.total ?? 0,
+        hidPassed: u.metrics.hidden_tests?.passed ?? 0,
+        hidTotal: u.metrics.hidden_tests?.total ?? 0,
+        preTest: u.preTest != null ? u.preTest : "--",
+        postTest: u.postTest != null ? u.postTest : "--",
+      })),
+      { headerColor: "5A1398" }
+    );
+
+    // ----- Raw data: Learning Path Detail (respondent x module rows) --
+    const LP_COLS = [
+      { header: "Name", key: "name", width: 22 },
+      { header: "Email", key: "email", width: 30 },
+      { header: "Module", key: "module", width: 26 },
+      { header: "Submissions", key: "attempted", width: 14 },
+      { header: "Passed", key: "passed", width: 10 },
+      { header: "Avg TSR (%)", key: "tsr", width: 12, numFmt: '0.0"%"' },
+      { header: "Avg AES (%)", key: "aes", width: 12, numFmt: '0.0"%"' },
+      { header: "Avg ROG", key: "rog", width: 12, numFmt: "+0.0;-0.0;0" },
+      { header: "ROG Sample (n')", key: "rogN", width: 16 },
+      { header: "Unchanged-Code Resubmissions", key: "unchanged", width: 16 },
+      { header: "Functional Passed", key: "funcPassed", width: 16 },
+      { header: "Functional Total", key: "funcTotal", width: 16 },
+      { header: "Complexity Passed", key: "compPassed", width: 16 },
+      { header: "Complexity Total", key: "compTotal", width: 16 },
+      { header: "Hidden Passed", key: "hidPassed", width: 14 },
+      { header: "Hidden Total", key: "hidTotal", width: 14 },
+    ];
+
+    const learningPathRows = byUser.flatMap((u) =>
+      Object.entries(u.by_module || {}).map(([moduleId, m]) => ({
+        name: u.name || "Unnamed Profile",
+        email: u.email,
+        module: MODULE_TITLES[moduleId] || moduleId,
+        attempted: m.activities_attempted ?? 0,
+        passed: m.activities_passed ?? 0,
+        tsr: m.tsr ?? 0,
+        aes: m.aes ?? 0,
+        rog: m.rog ?? 0,
+        rogN: m.rog_refactored_count ?? 0,
+        unchanged: m.unchanged_code_resubmissions ?? 0,
+        funcPassed: m.functional_tests?.passed ?? 0,
+        funcTotal: m.functional_tests?.total ?? 0,
+        compPassed: m.complexity_tests?.passed ?? 0,
+        compTotal: m.complexity_tests?.total ?? 0,
+        hidPassed: m.hidden_tests?.passed ?? 0,
+        hidTotal: m.hidden_tests?.total ?? 0,
+      }))
+    );
+
+    addTableSheet(workbook, "Learning Path Detail", LP_COLS, learningPathRows, { headerColor: "5A1398" });
+
+    // ----- Raw data: Pre-Post Test Data (paired respondents only) -----
+    const PP_COLS = [
+      { header: "Name", key: "name", width: 22 },
+      { header: "Email", key: "email", width: 30 },
+      { header: "Pre-test (%)", key: "pre", width: 14, numFmt: '0.00"%"' },
+      { header: "Post-test (%)", key: "post", width: 14, numFmt: '0.00"%"' },
+      { header: "Difference (Post - Pre)", key: "diff", width: 20, numFmt: '0.00"%"' },
+    ];
+
+    addTableSheet(
+      workbook,
+      "Pre-Post Test Data",
+      PP_COLS,
+      pairedUsers.map((u, i) => {
+        const r = 2 + i;
+        return {
+          name: u.name || "Unnamed Profile",
+          email: u.email,
+          pre: u.preTest,
+          post: u.postTest,
+          diff: { formula: `${colLetter(ppColIdx.post)}${r}-${colLetter(ppColIdx.pre)}${r}` },
+        };
+      }),
+      { headerColor: "5A1398" }
+    );
+
+    // ----- Computed: Per-Module Breakdown (formulas over Learning Path) -
+    addTableSheet(
+      workbook,
+      "Per-Module Breakdown",
+      [
+        { header: "Module", key: "module", width: 28 },
+        { header: "Submissions", key: "attempted", width: 14 },
+        { header: "Passed", key: "passed", width: 12 },
+        { header: "Avg TSR", key: "tsr", width: 12 },
+        { header: "Avg AES", key: "aes", width: 12 },
+        { header: "Avg ROG", key: "rog", width: 12 },
+        { header: "ROG Sample (n')", key: "rogN", width: 16 },
+        { header: "Unchanged-Code Resubmissions", key: "unchanged", width: 16 },
+        { header: "Functional Passed/Total", key: "functional", width: 20 },
+        { header: "Complexity Passed/Total", key: "complexity", width: 20 },
+        { header: "Hidden Passed/Total", key: "hidden", width: 20 },
+      ],
+      moduleEntries.length === 0 || learningPathRows.length === 0 ? [] : moduleEntries.map(([moduleId, m]) => {
+        const title = excelStringLiteral(MODULE_TITLES[moduleId] || moduleId);
+        const moduleMatch = `${lpCol("module")}="${title}"`;
+        const weightedAvg = (valueCol, weightCol) =>
+          `SUMPRODUCT((${moduleMatch})*${lpCol(valueCol)}*${lpCol(weightCol)})/SUMPRODUCT((${moduleMatch})*${lpCol(weightCol)})`;
+        const sumIf = (valueCol) => `SUMIF(${lpCol("module")},"${title}",${lpCol(valueCol)})`;
+        return {
+          module: MODULE_TITLES[moduleId] || moduleId,
+          attempted: { formula: sumIf("attempted"), result: m.activities_attempted ?? 0 },
+          passed: { formula: sumIf("passed"), result: m.activities_passed ?? 0 },
+          tsr: { formula: weightedAvg("tsr", "attempted"), numFmt: '0.0"%"', result: m.tsr ?? 0 },
+          aes: { formula: weightedAvg("aes", "attempted"), numFmt: '0.0"%"', result: m.aes ?? 0 },
+          rog: { formula: weightedAvg("rog", "rogN"), numFmt: "+0.0;-0.0;0", result: m.rog ?? 0 },
+          rogN: { formula: sumIf("rogN"), result: m.rog_refactored_count ?? 0 },
+          unchanged: { formula: sumIf("unchanged"), result: m.unchanged_code_resubmissions ?? 0 },
+          functional: { formula: `${sumIf("funcPassed")}&"/"&${sumIf("funcTotal")}`, result: `${m.functional_tests?.passed ?? 0}/${m.functional_tests?.total ?? 0}` },
+          complexity: { formula: `${sumIf("compPassed")}&"/"&${sumIf("compTotal")}`, result: `${m.complexity_tests?.passed ?? 0}/${m.complexity_tests?.total ?? 0}` },
+          hidden: { formula: `${sumIf("hidPassed")}&"/"&${sumIf("hidTotal")}`, result: `${m.hidden_tests?.passed ?? 0}/${m.hidden_tests?.total ?? 0}` },
+        };
+      }),
+      { headerColor: "5A1398" }
+    );
+
+    await downloadWorkbook(workbook, `AlgoBlocks-Learning-Impact-Report-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (
@@ -1694,6 +2028,9 @@ const AdminUserManagement = () => {
                 <h3>Full Learning Impact Report</h3>
               </div>
               <div className="full-report-header-actions">
+                <button className="admin-refresh-btn small outline" onClick={() => handleDownloadExcel(overview)}>
+                  <LuFileText size={16} /> Download Excel
+                </button>
                 <button className="admin-refresh-btn small outline" onClick={() => handleDownloadPdf(overview)}>
                   <LuFileText size={16} /> Download PDF
                 </button>
@@ -1783,38 +2120,88 @@ const AdminUserManagement = () => {
               <section className="full-report-section">
                 <h2>4. Individual Respondent Breakdown ({overview.by_user?.length ?? 0})</h2>
                 {overview.by_user && overview.by_user.length > 0 ? (
-                  <table className="full-report-table wide user-report-table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Activities</th>
-                        <th>Passed</th>
-                        <th>Avg TSR</th>
-                        <th>Avg AES</th>
-                        <th>Avg ROG</th>
-                        <th>Pre-test</th>
-                        <th>Post-test</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {overview.by_user.map((u) => (
-                        <tr key={u.email}>
-                          <td>{u.name || "Unnamed Profile"}</td>
-                          <td>{u.email}</td>
-                          <td>{u.metrics.activities_attempted}</td>
-                          <td>{u.metrics.activities_passed}</td>
-                          <td>{fmtPct(u.metrics.tsr)}</td>
-                          <td>{fmtPct(u.metrics.aes)}</td>
-                          <td>+{u.metrics.rog ?? 0}</td>
-                          <td>{u.preTest != null ? `${u.preTest}%` : "--"}</td>
-                          <td>{u.postTest != null ? `${u.postTest}%` : "--"}</td>
+                  <div className="user-report-table-wrapper">
+                    <table className="full-report-table wide user-report-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Activities</th>
+                          <th>Passed</th>
+                          <th>Avg TSR</th>
+                          <th>Avg AES</th>
+                          <th>Avg ROG</th>
+                          <th>Pre-test</th>
+                          <th>Post-test</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {overview.by_user.map((u) => (
+                          <tr key={u.email}>
+                            <td>{u.name || "Unnamed Profile"}</td>
+                            <td>{u.email}</td>
+                            <td>{u.metrics.activities_attempted}</td>
+                            <td>{u.metrics.activities_passed}</td>
+                            <td>{fmtPct(u.metrics.tsr)}</td>
+                            <td>{fmtPct(u.metrics.aes)}</td>
+                            <td>+{u.metrics.rog ?? 0}</td>
+                            <td>{u.preTest != null ? `${u.preTest}%` : "--"}</td>
+                            <td>{u.postTest != null ? `${u.postTest}%` : "--"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 ) : (
                   <p className="analytics-empty-note">No respondents in the current scope.</p>
+                )}
+              </section>
+
+              {/* Section 4 above only carries each respondent's single
+                  cohort-wide summary row. This section drills into every
+                  respondent's own per-module numbers -- their individual
+                  progress through the curriculum ("learning path") -- rather
+                  than just the summarized totals, using the same
+                  per-respondent by_module rollup the backend now returns. */}
+              <section className="full-report-section">
+                <h2>5. Individual Learning Path Breakdown (by module)</h2>
+                {overview.by_user && overview.by_user.some((u) => Object.keys(u.by_module || {}).length > 0) ? (
+                  <div className="user-report-table-wrapper">
+                    <table className="full-report-table wide user-report-table user-module-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Module</th>
+                          <th>Submissions</th>
+                          <th>Passed</th>
+                          <th>Avg TSR</th>
+                          <th>Avg AES</th>
+                          <th>Avg ROG</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {overview.by_user.flatMap((u) => {
+                          const modules = Object.entries(u.by_module || {});
+                          if (modules.length === 0) return [];
+                          return modules.map(([moduleId, m], idx) => (
+                            <tr key={`${u.email}_${moduleId}`}>
+                              <td>{idx === 0 ? (u.name || "Unnamed Profile") : ""}</td>
+                              <td>{idx === 0 ? u.email : ""}</td>
+                              <td>{MODULE_TITLES[moduleId] || moduleId}</td>
+                              <td>{m.activities_attempted}</td>
+                              <td>{m.activities_passed}</td>
+                              <td>{fmtPct(m.tsr)}</td>
+                              <td>{fmtPct(m.aes)}</td>
+                              <td>+{m.rog ?? 0}</td>
+                            </tr>
+                          ));
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="analytics-empty-note">No per-module submissions recorded for any respondent in the current scope.</p>
                 )}
               </section>
             </div>

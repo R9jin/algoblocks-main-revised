@@ -1374,7 +1374,15 @@
 }
 
 .full-report-card {
+  /* .admin-modal-card (the base modal class also applied to this element)
+     sets `max-width: 460px` for the small confirm-dialog modals. Since both
+     selectors have identical specificity (a single class each), the cascade
+     is decided purely by source order -- and `max-width` was never
+     overridden here, so the base rule's 460px cap silently won and clamped
+     this report modal to a thin sliver no matter what `width` said below.
+     Overriding max-width explicitly (to the same value as width) fixes it. */
   width: min(920px, 94vw);
+  max-width: min(920px, 94vw);
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -1384,11 +1392,42 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .full-report-body {
   overflow-y: auto;
   padding: 28px 32px;
+}
+
+/* RESPONSIVE: on narrow viewports give the report modal nearly the full
+   screen (instead of a fixed 94vw that still leaves awkward margins on a
+   phone), stack the header so the title doesn't get squeezed against the
+   action buttons, and trim the body padding so tables have more room. */
+@media (max-width: 640px) {
+  .full-report-card {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .full-report-card .admin-modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .full-report-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .full-report-body {
+    padding: 18px 16px;
+  }
 }
 
 .full-report-meta {
@@ -1451,17 +1490,25 @@
   border-bottom: 2px solid #ddd6f0;
 }
 
-.user-report-table {
-  display: block;
+/* Wrapper handles the horizontal scroll; the table itself stays a normal
+   table (auto layout) so column widths are sized from actual cell content
+   instead of being split into two independently-sized anonymous tables
+   (one for <thead>, one for <tbody>) that don't agree on column widths --
+   that mismatch was what caused adjacent-column text to visually overlap
+   ("Johannjshxeraffdla482@..."-style garbling) once table-layout: fixed
+   squeezed every column to an equal, content-blind width. */
+.user-report-table-wrapper {
+  width: 100%;
   overflow-x: auto;
+}
+
+.user-report-table {
+  min-width: 760px;
   white-space: nowrap;
 }
 
-.user-report-table thead,
-.user-report-table tbody {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
+.user-module-table {
+  min-width: 620px;
 }
 
 

@@ -2,6 +2,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
+import ExcelJS from "exceljs";
+import { addTableSheet, addKeyValueSheet, downloadWorkbook } from "../utils/excelReport";
 import {
   FiActivity,
   FiArrowRight,
@@ -957,6 +959,185 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     });
 
     doc.save(`AlgoBlocks-Benchmark-Report-${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  // Builds and downloads the .xlsx counterpart of the report above -- same
+  // benchmark run, same scope, but since a spreadsheet isn't paginated the
+  // way a PDF page is, this carries the *full* underlying data: every field
+  // captured per algorithm (including the source snippet, the analyzer's
+  // explanation string, and per-run timing/memory), plus a fully flattened
+  // statement-by-statement sheet built from every algorithm's
+  // lineValidationResults, instead of only the 8 summary columns shown in
+  // the "Full Algorithm Results" table on screen.
+  const handleDownloadBenchmarkExcel = async () => {
+    if (!results) return;
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "AlgoBlocks";
+    workbook.created = new Date();
+    const headerColor = "7928CA";
+
+    const pct = (v) => (v <= 1 ? v * 100 : v).toFixed(1) + "%";
+
+    const classBreakdownRows = (report, passed, total) => {
+      const rows = Object.keys(report.perClass).map((cKey) => {
+        const row = report.perClass[cKey];
+        return {
+          complexityClass: cKey,
+          precision: pct(row.precision),
+          recall: pct(row.recall),
+          f1: pct(row.f1Score),
+          support: row.support,
+        };
+      });
+      rows.push({ complexityClass: "Overall Accuracy", precision: "--", recall: "--", f1: `${((passed / total) * 100).toFixed(1)}%`, support: total });
+      rows.push({ complexityClass: "Macro Avg", precision: pct(report.macroAvg.precision), recall: pct(report.macroAvg.recall), f1: pct(report.macroAvg.f1Score), support: total });
+      rows.push({ complexityClass: "Weighted Avg", precision: pct(report.weightedAvg.precision), recall: pct(report.weightedAvg.recall), f1: pct(report.weightedAvg.f1Score), support: total });
+      return rows;
+    };
+
+    const classBreakdownColumns = [
+      { header: "Complexity Class", key: "complexityClass", width: 20 },
+      { header: "Precision", key: "precision", width: 12 },
+      { header: "Recall", key: "recall", width: 12 },
+      { header: "F1-Score", key: "f1", width: 12 },
+      { header: "Support", key: "support", width: 10 },
+    ];
+
+    addKeyValueSheet(workbook, "Summary", [
+      {
+        heading: "AlgoBlocks — Complexity Analyzer Benchmark Report",
+        rows: [
+          ["Generated", new Date().toLocaleString()],
+          ["Dataset", reportScopeLabel],
+        ],
+      },
+      {
+        heading: "1. Benchmark Summary",
+        narrative: buildBenchmarkNarrative(),
+        rows: [
+          ["Algorithms Tested", results.totalTested],
+          ["Overall Time Accuracy", `${((results.timePassed / results.totalTested) * 100).toFixed(1)}% (${results.timePassed}/${results.totalTested})`],
+          ["Overall Space Accuracy", `${((results.spacePassed / results.totalTested) * 100).toFixed(1)}% (${results.spacePassed}/${results.totalTested})`],
+          ["Statements Verified (Line-Level)", results.totalLinesTested],
+          ["Line Time Accuracy", results.totalLinesTested > 0 ? `${results.lineTimeAccuracyRate}% (${results.lineTimePassed}/${results.totalLinesTested})` : "--"],
+          ["Line Space Accuracy", results.totalLinesTested > 0 ? `${results.lineSpaceAccuracyRate}% (${results.lineSpacePassed}/${results.totalLinesTested})` : "--"],
+          ...(results.efficiency ? [
+            ["Total Execution Time", `${results.efficiency.totalExecutionSec}s`],
+            ["Throughput", `${results.efficiency.throughputAlgos} algos/s · ${results.efficiency.throughputLines} lines/s`],
+            ["Mean / Median Processing Time", `${results.efficiency.meanTimeMs}ms / ${results.efficiency.medianTimeMs}ms`],
+            ["P95 / Max Processing Time", `${results.efficiency.p95TimeMs}ms / ${results.efficiency.maxTimeMs}ms`],
+            ["Peak AST Memory", `${results.efficiency.peakAstMemMB}MB (avg ${results.efficiency.meanAstMemKB}KB)`],
+          ] : []),
+        ],
+      },
+    ], { headerColor });
+
+    if (processedTimeReport) {
+      addTableSheet(workbook, "Time Complexity Matrix", classBreakdownColumns,
+        classBreakdownRows(processedTimeReport, results.timePassed, results.totalTested), { headerColor });
+    }
+    if (processedSpaceReport) {
+      addTableSheet(workbook, "Space Complexity Matrix", classBreakdownColumns,
+        classBreakdownRows(processedSpaceReport, results.spacePassed, results.totalTested), { headerColor });
+    }
+    if (processedLineTimeReport) {
+      addTableSheet(workbook, "Line-Level Time Matrix", classBreakdownColumns,
+        classBreakdownRows(processedLineTimeReport, results.lineTimePassed, results.totalLinesTimeTested), { headerColor });
+    }
+    if (processedLineSpaceReport) {
+      addTableSheet(workbook, "Line-Level Space Matrix", classBreakdownColumns,
+        classBreakdownRows(processedLineSpaceReport, results.lineSpacePassed, results.totalLinesSpaceTested), { headerColor });
+    }
+
+    // Full per-algorithm results -- every field captured for each test
+    // case, not just the 8 columns shown in the on-screen/PDF summary
+    // table.
+    addTableSheet(
+      workbook,
+      "Full Algorithm Results",
+      [
+        { header: "ID", key: "id", width: 14 },
+        { header: "Algorithm", key: "name", width: 26 },
+        { header: "Category", key: "category", width: 22 },
+        { header: "Expected Time", key: "expectedTime", width: 14 },
+        { header: "Predicted Time", key: "predictedTime", width: 14 },
+        { header: "Time Correct", key: "isTimeCorrect", width: 12 },
+        { header: "Expected Space", key: "expectedSpace", width: 14 },
+        { header: "Predicted Space", key: "predictedSpace", width: 14 },
+        { header: "Space Correct", key: "isSpaceCorrect", width: 12 },
+        { header: "Overall", key: "overall", width: 12 },
+        { header: "Processing Time (ms)", key: "processingTimeMs", width: 18 },
+        { header: "Peak Memory (bytes)", key: "peakMemBytes", width: 18 },
+        { header: "Explanation", key: "explanation", width: 50, wrap: true },
+        { header: "Code Snippet", key: "codeSnippet", width: 60, wrap: true },
+      ],
+      results.details.map((d) => ({
+        id: d.id,
+        name: d.name,
+        category: d.category || "--",
+        expectedTime: d.expectedTime,
+        predictedTime: d.predictedTime,
+        isTimeCorrect: d.isTimeCorrect ? "Yes" : "No",
+        expectedSpace: d.expectedSpace,
+        predictedSpace: d.predictedSpace,
+        isSpaceCorrect: d.isSpaceCorrect ? "Yes" : "No",
+        overall: d.isCompletelyCorrect ? "Pass" : "Mismatch",
+        processingTimeMs: d.processingTimeMs,
+        peakMemBytes: d.peakMemBytes,
+        explanation: d.explanation,
+        codeSnippet: d.codeSnippet,
+      })),
+      { headerColor }
+    );
+
+    // Fully flattened statement-level detail -- one row per source line per
+    // algorithm, built from each result's lineValidationResults. This is
+    // the "full version of the data" the on-screen report never shows in
+    // table form at all.
+    const lineRows = results.details.flatMap((d) =>
+      (d.lineValidationResults || []).map((l) => ({
+        algorithmId: d.id,
+        algorithmName: d.name,
+        lineno: l.lineno,
+        lineOfCode: l.lineOfCode,
+        operation: l.operation,
+        predTime: l.predTime,
+        expTime: l.expTime,
+        isTimeMatch: l.isTimeMatch ? "Yes" : "No",
+        predSpace: l.predSpace,
+        expSpace: l.expSpace,
+        isSpaceMatch: l.isSpaceMatch ? "Yes" : "No",
+        hasGroundTruth: l.hasGroundTruth ? "Yes" : "No",
+        isPassed: l.isPassed ? "Yes" : "No",
+        hits: l.hits,
+      }))
+    );
+    if (lineRows.length > 0) {
+      addTableSheet(
+        workbook,
+        "Line-Level Results",
+        [
+          { header: "Algorithm ID", key: "algorithmId", width: 14 },
+          { header: "Algorithm", key: "algorithmName", width: 24 },
+          { header: "Line #", key: "lineno", width: 8 },
+          { header: "Line of Code", key: "lineOfCode", width: 46, wrap: true },
+          { header: "Operation", key: "operation", width: 16 },
+          { header: "Predicted Time", key: "predTime", width: 14 },
+          { header: "Expected Time", key: "expTime", width: 14 },
+          { header: "Time Match", key: "isTimeMatch", width: 11 },
+          { header: "Predicted Space", key: "predSpace", width: 14 },
+          { header: "Expected Space", key: "expSpace", width: 14 },
+          { header: "Space Match", key: "isSpaceMatch", width: 11 },
+          { header: "Has Ground Truth", key: "hasGroundTruth", width: 14 },
+          { header: "Passed", key: "isPassed", width: 9 },
+          { header: "Hits", key: "hits", width: 8 },
+        ],
+        lineRows,
+        { headerColor }
+      );
+    }
+
+    await downloadWorkbook(workbook, `AlgoBlocks-Benchmark-Report-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   // Ctrl+S / Cmd+S shortcut -- intercepts the browser's "Save Page" dialog
@@ -1995,6 +2176,9 @@ export default function EvaluationSuite({ embedded = false } = {}) {
                 <h3>Full Benchmark Report</h3>
               </div>
               <div className="eval-report-header-actions">
+                <button className="eval-btn-inspect" onClick={handleDownloadBenchmarkExcel}>
+                  <FiFileText size={16} /> Download Excel
+                </button>
                 <button className="eval-btn-inspect" onClick={handleDownloadBenchmarkPdf}>
                   <FiFileText size={16} /> Download PDF
                 </button>
@@ -2249,40 +2433,42 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
               <section className="eval-report-section">
                 <h2>6. Full Algorithm Results ({results.details.length})</h2>
-                <table className="eval-report-table wide algo-report-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Algorithm</th>
-                      <th>Category</th>
-                      <th>Exp Time</th>
-                      <th>Act Time</th>
-                      <th>Exp Space</th>
-                      <th>Act Space</th>
-                      <th>Overall</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.details.map((d) => (
-                      <tr key={`rep_row_${d.id}`}>
-                        <td>{d.id}</td>
-                        <td>{d.name}</td>
-                        <td>{d.category || "--"}</td>
-                        <td>{d.expectedTime}</td>
-                        <td>{d.predictedTime}</td>
-                        <td>{d.expectedSpace}</td>
-                        <td>{d.predictedSpace}</td>
-                        <td>
-                          {d.isCompletelyCorrect ? (
-                            <span className="eval-verdict verdict-pass"><FiCheckCircle size={13} /> Pass</span>
-                          ) : (
-                            <span className="eval-verdict verdict-fail"><FiXCircle size={13} /> Mismatch</span>
-                          )}
-                        </td>
+                <div className="algo-report-table-wrapper">
+                  <table className="eval-report-table wide algo-report-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Algorithm</th>
+                        <th>Category</th>
+                        <th>Exp Time</th>
+                        <th>Act Time</th>
+                        <th>Exp Space</th>
+                        <th>Act Space</th>
+                        <th>Overall</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {results.details.map((d) => (
+                        <tr key={`rep_row_${d.id}`}>
+                          <td>{d.id}</td>
+                          <td>{d.name}</td>
+                          <td>{d.category || "--"}</td>
+                          <td>{d.expectedTime}</td>
+                          <td>{d.predictedTime}</td>
+                          <td>{d.expectedSpace}</td>
+                          <td>{d.predictedSpace}</td>
+                          <td>
+                            {d.isCompletelyCorrect ? (
+                              <span className="eval-verdict verdict-pass"><FiCheckCircle size={13} /> Pass</span>
+                            ) : (
+                              <span className="eval-verdict verdict-fail"><FiXCircle size={13} /> Mismatch</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </section>
             </div>
           </div>

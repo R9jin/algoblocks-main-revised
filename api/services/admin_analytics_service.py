@@ -522,12 +522,21 @@ class AdminAnalyticsService:
         by_user = []
         for email in sorted(target_emails):
             user = user_lookup.get(email, {})
-            user_metrics = _submission_metrics(submissions_by_email.get(email, []))
+            user_submissions = submissions_by_email.get(email, [])
+            user_metrics = _submission_metrics(user_submissions)
             by_user.append({
                 "email": email,
                 "name": user.get("name"),
                 "status": user.get("status", "active"),
                 "metrics": user_metrics,
+                # Per-module rollup of this respondent's own submissions --
+                # i.e. their individual progress through the curriculum
+                # ("learning path"), using the exact same _submission_metrics
+                # aggregation as the cohort-wide by_module above, just scoped
+                # to one respondent. Lets the Full Report show each
+                # respondent's own module-by-module numbers instead of only
+                # the single summarized row in `metrics` above.
+                "by_module": _group_by_module(user_submissions),
                 "preTest": pre_scores.get(email),
                 "postTest": post_scores.get(email),
             })
