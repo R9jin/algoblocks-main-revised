@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import ExcelJS from "exceljs";
-import { addTableSheet, addKeyValueSheet, downloadWorkbook } from "../utils/excelReport";
+import { addTableSheet, addKeyValueSheet, downloadWorkbook, planKeyValueSheet, sheetRefs, excelStringLiteral } from "../utils/excelReport";
 import {
   FiActivity,
   FiArrowRight,
@@ -967,8 +967,37 @@ export default function EvaluationSuite({ embedded = false } = {}) {
   // captured per algorithm (including the source snippet, the analyzer's
   // explanation string, and per-run timing/memory), plus a fully flattened
   // statement-by-statement sheet built from every algorithm's
-  // lineValidationResults, instead of only the 8 summary columns shown in
-  // the "Full Algorithm Results" table on screen.
+  // lineValidationResults.
+  // ---------------------------------------------------------------------
+  // IMPORTANT: nothing derived is written as a literal number here.
+  //
+  // Only two kinds of cell in this workbook hold a typed-in value:
+  //
+  //   1. Raw observations -- the two sheets at the end ("Full Algorithm
+  //      Results", "Line-Level Results"). One row per algorithm and one row
+  //      per analyzed statement, carrying what the run actually observed:
+  //      the ground-truth label, the label the analyzer predicted, whether
+  //      the equivalence check passed, the wall-clock time and peak memory
+  //      for that case.
+  //   2. Three run-level scalars that have no cell-range to be computed
+  //      from (total wall-clock seconds, total source lines, dataset name).
+  //
+  // Everything else -- every TP/FP/FN count, every precision, recall and
+  // F1-score, both macro and weighted averages, all four accuracy figures,
+  // the throughput and the timing percentiles -- is a live Excel formula
+  // over those raw rows. Double-click any of them and the formula bar shows
+  // the arithmetic, exactly as it would if the matrix had been tallied by
+  // hand: precision as TP/(TP+FP) pointing at its own row's count cells,
+  // those counts as COUNTIFS over the raw label columns, and the averages
+  // as SUMPRODUCT over the per-class rows above them.
+  //
+  // The formulas reproduce generateClassificationReport() in
+  // analyzer.worker.js term for term (including its rule that a class with
+  // zero support scores 0.00 across the board and is excluded from both
+  // averages), so recalculating the workbook cannot drift away from the
+  // numbers on screen. Each formula cell also carries the already-computed
+  // value as its cached result, so the figures are readable before Excel
+  // recalculates.
   const handleDownloadBenchmarkExcel = async () => {
     if (!results) return;
     const workbook = new ExcelJS.Workbook();
@@ -976,125 +1005,11 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     workbook.created = new Date();
     const headerColor = "7928CA";
 
-    const pct = (v) => (v <= 1 ? v * 100 : v).toFixed(1) + "%";
+    const details = results.details || [];
 
-    const classBreakdownRows = (report, passed, total) => {
-      const rows = Object.keys(report.perClass).map((cKey) => {
-        const row = report.perClass[cKey];
-        return {
-          complexityClass: cKey,
-          precision: pct(row.precision),
-          recall: pct(row.recall),
-          f1: pct(row.f1Score),
-          support: row.support,
-        };
-      });
-      rows.push({ complexityClass: "Overall Accuracy", precision: "--", recall: "--", f1: `${((passed / total) * 100).toFixed(1)}%`, support: total });
-      rows.push({ complexityClass: "Macro Avg", precision: pct(report.macroAvg.precision), recall: pct(report.macroAvg.recall), f1: pct(report.macroAvg.f1Score), support: total });
-      rows.push({ complexityClass: "Weighted Avg", precision: pct(report.weightedAvg.precision), recall: pct(report.weightedAvg.recall), f1: pct(report.weightedAvg.f1Score), support: total });
-      return rows;
-    };
-
-    const classBreakdownColumns = [
-      { header: "Complexity Class", key: "complexityClass", width: 20 },
-      { header: "Precision", key: "precision", width: 12 },
-      { header: "Recall", key: "recall", width: 12 },
-      { header: "F1-Score", key: "f1", width: 12 },
-      { header: "Support", key: "support", width: 10 },
-    ];
-
-    addKeyValueSheet(workbook, "Summary", [
-      {
-        heading: "AlgoBlocks — Complexity Analyzer Benchmark Report",
-        rows: [
-          ["Generated", new Date().toLocaleString()],
-          ["Dataset", reportScopeLabel],
-        ],
-      },
-      {
-        heading: "1. Benchmark Summary",
-        narrative: buildBenchmarkNarrative(),
-        rows: [
-          ["Algorithms Tested", results.totalTested],
-          ["Overall Time Accuracy", `${((results.timePassed / results.totalTested) * 100).toFixed(1)}% (${results.timePassed}/${results.totalTested})`],
-          ["Overall Space Accuracy", `${((results.spacePassed / results.totalTested) * 100).toFixed(1)}% (${results.spacePassed}/${results.totalTested})`],
-          ["Statements Verified (Line-Level)", results.totalLinesTested],
-          ["Line Time Accuracy", results.totalLinesTested > 0 ? `${results.lineTimeAccuracyRate}% (${results.lineTimePassed}/${results.totalLinesTested})` : "--"],
-          ["Line Space Accuracy", results.totalLinesTested > 0 ? `${results.lineSpaceAccuracyRate}% (${results.lineSpacePassed}/${results.totalLinesTested})` : "--"],
-          ...(results.efficiency ? [
-            ["Total Execution Time", `${results.efficiency.totalExecutionSec}s`],
-            ["Throughput", `${results.efficiency.throughputAlgos} algos/s · ${results.efficiency.throughputLines} lines/s`],
-            ["Mean / Median Processing Time", `${results.efficiency.meanTimeMs}ms / ${results.efficiency.medianTimeMs}ms`],
-            ["P95 / Max Processing Time", `${results.efficiency.p95TimeMs}ms / ${results.efficiency.maxTimeMs}ms`],
-            ["Peak AST Memory", `${results.efficiency.peakAstMemMB}MB (avg ${results.efficiency.meanAstMemKB}KB)`],
-          ] : []),
-        ],
-      },
-    ], { headerColor });
-
-    if (processedTimeReport) {
-      addTableSheet(workbook, "Time Complexity Matrix", classBreakdownColumns,
-        classBreakdownRows(processedTimeReport, results.timePassed, results.totalTested), { headerColor });
-    }
-    if (processedSpaceReport) {
-      addTableSheet(workbook, "Space Complexity Matrix", classBreakdownColumns,
-        classBreakdownRows(processedSpaceReport, results.spacePassed, results.totalTested), { headerColor });
-    }
-    if (processedLineTimeReport) {
-      addTableSheet(workbook, "Line-Level Time Matrix", classBreakdownColumns,
-        classBreakdownRows(processedLineTimeReport, results.lineTimePassed, results.totalLinesTimeTested), { headerColor });
-    }
-    if (processedLineSpaceReport) {
-      addTableSheet(workbook, "Line-Level Space Matrix", classBreakdownColumns,
-        classBreakdownRows(processedLineSpaceReport, results.lineSpacePassed, results.totalLinesSpaceTested), { headerColor });
-    }
-
-    // Full per-algorithm results -- every field captured for each test
-    // case, not just the 8 columns shown in the on-screen/PDF summary
-    // table.
-    addTableSheet(
-      workbook,
-      "Full Algorithm Results",
-      [
-        { header: "ID", key: "id", width: 14 },
-        { header: "Algorithm", key: "name", width: 26 },
-        { header: "Category", key: "category", width: 22 },
-        { header: "Expected Time", key: "expectedTime", width: 14 },
-        { header: "Predicted Time", key: "predictedTime", width: 14 },
-        { header: "Time Correct", key: "isTimeCorrect", width: 12 },
-        { header: "Expected Space", key: "expectedSpace", width: 14 },
-        { header: "Predicted Space", key: "predictedSpace", width: 14 },
-        { header: "Space Correct", key: "isSpaceCorrect", width: 12 },
-        { header: "Overall", key: "overall", width: 12 },
-        { header: "Processing Time (ms)", key: "processingTimeMs", width: 18 },
-        { header: "Peak Memory (bytes)", key: "peakMemBytes", width: 18 },
-        { header: "Explanation", key: "explanation", width: 50, wrap: true },
-        { header: "Code Snippet", key: "codeSnippet", width: 60, wrap: true },
-      ],
-      results.details.map((d) => ({
-        id: d.id,
-        name: d.name,
-        category: d.category || "--",
-        expectedTime: d.expectedTime,
-        predictedTime: d.predictedTime,
-        isTimeCorrect: d.isTimeCorrect ? "Yes" : "No",
-        expectedSpace: d.expectedSpace,
-        predictedSpace: d.predictedSpace,
-        isSpaceCorrect: d.isSpaceCorrect ? "Yes" : "No",
-        overall: d.isCompletelyCorrect ? "Pass" : "Mismatch",
-        processingTimeMs: d.processingTimeMs,
-        peakMemBytes: d.peakMemBytes,
-        explanation: d.explanation,
-        codeSnippet: d.codeSnippet,
-      })),
-      { headerColor }
-    );
-
-    // Fully flattened statement-level detail -- one row per source line per
-    // algorithm, built from each result's lineValidationResults. This is
-    // the "full version of the data" the on-screen report never shows in
-    // table form at all.
-    const lineRows = results.details.flatMap((d) =>
+    // Flattened statement-level rows -- built up front because the matrix
+    // sheets need to know how many there are before they can address them.
+    const lineRows = details.flatMap((d) =>
       (d.lineValidationResults || []).map((l) => ({
         algorithmId: d.id,
         algorithmName: d.name,
@@ -1108,14 +1023,417 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         expSpace: l.expSpace,
         isSpaceMatch: l.isSpaceMatch ? "Yes" : "No",
         hasGroundTruth: l.hasGroundTruth ? "Yes" : "No",
-        isPassed: l.isPassed ? "Yes" : "No",
         hits: l.hits,
+        // Source objects for the cached values of the formulas below.
+        _isPassed: l.isPassed,
       }))
     );
-    if (lineRows.length > 0) {
+
+    // ----- Addresses of the two raw-data sheets -------------------------
+    // Built before either sheet exists; Excel resolves forward references,
+    // which is what lets Summary and the matrices sit as the first tabs.
+    const ALGO_SHEET = "Full Algorithm Results";
+    const ALGO_KEYS = [
+      "id", "name", "category", "expectedTime", "predictedTime", "isTimeCorrect",
+      "expectedSpace", "predictedSpace", "isSpaceCorrect", "overall",
+      "processingTimeMs", "peakMemBytes", "explanation", "codeSnippet",
+    ];
+    const algo = sheetRefs(ALGO_SHEET, ALGO_KEYS, details.length);
+
+    const LINE_SHEET = "Line-Level Results";
+    const LINE_KEYS = [
+      "algorithmId", "algorithmName", "lineno", "lineOfCode", "operation",
+      "predTime", "expTime", "isTimeMatch", "predSpace", "expSpace",
+      "isSpaceMatch", "hasGroundTruth", "isPassed", "hits",
+    ];
+    const line = sheetRefs(LINE_SHEET, LINE_KEYS, lineRows.length);
+
+    const hasLines = lineRows.length > 0;
+
+    // ----- Confusion counts, recomputed here for the cached values ------
+    // Mirrors generateClassificationReport() in analyzer.worker.js. These
+    // are ONLY used as the cached result shown before Excel recalculates --
+    // the cell itself holds the COUNTIFS/arithmetic formula.
+    const classStats = (rows, expKey, predKey, cls, gtOnly) => {
+      let tp = 0, predicted = 0, support = 0;
+      rows.forEach((r) => {
+        if (gtOnly && r.hasGroundTruth !== "Yes") return;
+        const isExp = r[expKey] === cls;
+        const isPred = r[predKey] === cls;
+        if (isExp) support += 1;
+        if (isPred) predicted += 1;
+        if (isExp && isPred) tp += 1;
+      });
+      const fp = predicted - tp;
+      const fn = support - tp;
+      const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+      const recall = support > 0 ? tp / support : 0;
+      const f1 = precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
+      return { tp, fp, fn, support, precision, recall, f1 };
+    };
+
+    // ----- One validation-matrix sheet ----------------------------------
+    // `report` only decides WHICH class rows appear and in what order (the
+    // analyzer's full taxonomy, same rows as the on-screen matrix). Every
+    // number in the sheet is computed by the sheet itself.
+    const addMatrixSheet = (sheetName, report, src, expKey, predKey, srcRows, opts) => {
+      if (!report?.perClass) return;
+      const gtOnly = Boolean(opts.gtOnly);
+      const classes = Object.keys(report.perClass);
+      const expR = src.range(expKey);
+      const predR = src.range(predKey);
+      const gtR = gtOnly ? src.range("hasGroundTruth") : null;
+      const gtTerm = gtOnly ? `,${gtR},"Yes"` : "";
+
+      // Column letters of this sheet, so each row's precision/recall/F1 can
+      // point at its own TP/FP/FN cells the way a hand-built table would.
+      const C = { cls: "A", tp: "B", fp: "C", fn: "D", support: "E", p: "F", r: "G", f1: "H" };
+      const firstClassRow = 2;
+      const lastClassRow = firstClassRow + classes.length - 1;
+      const supportCol = `$${C.support}$${firstClassRow}:$${C.support}$${lastClassRow}`;
+      const metricCol = (letter) => `$${letter}$${firstClassRow}:$${letter}$${lastClassRow}`;
+
+      const stats = classes.map((c) => classStats(srcRows, expKey, predKey, c, gtOnly));
+
+      const rows = classes.map((cls, i) => {
+        const R = firstClassRow + i;
+        const q = `"${excelStringLiteral(cls)}"`;
+        const s = stats[i];
+        return {
+          complexityClass: cls,
+          // TP: ground truth says this class AND the analyzer said it too.
+          tp: { formula: `COUNTIFS(${expR},${q},${predR},${q}${gtTerm})`, result: s.tp },
+          // FP: everything the analyzer labelled this class, minus the ones
+          // it got right -- i.e. cases pulled into the class wrongly.
+          fp: { formula: `COUNTIFS(${predR},${q}${gtTerm})-${C.tp}${R}`, result: s.fp },
+          // FN: every true instance of the class, minus the ones caught.
+          fn: { formula: `COUNTIFS(${expR},${q}${gtTerm})-${C.tp}${R}`, result: s.fn },
+          // Support is TP + FN by definition -- the number of true instances.
+          support: { formula: `${C.tp}${R}+${C.fn}${R}`, result: s.support },
+          precision: {
+            formula: `IF(${C.tp}${R}+${C.fp}${R}=0,0,${C.tp}${R}/(${C.tp}${R}+${C.fp}${R}))`,
+            result: s.precision,
+          },
+          recall: {
+            formula: `IF(${C.support}${R}=0,0,${C.tp}${R}/${C.support}${R})`,
+            result: s.recall,
+          },
+          f1: {
+            formula: `IF(${C.p}${R}+${C.r}${R}=0,0,2*${C.p}${R}*${C.r}${R}/(${C.p}${R}+${C.r}${R}))`,
+            result: s.f1,
+          },
+        };
+      });
+
+      // Overall accuracy: the analyzer's own equivalence check, tallied
+      // straight off the raw sheet (NOT the diagonal of the matrix -- the
+      // check treats some classes as equivalent, which the matrix does not).
+      const correctCount = gtOnly
+        ? `COUNTIFS(${gtR},"Yes",${src.range(opts.matchKey)},"Yes")`
+        : `COUNTIF(${src.range(opts.matchKey)},"Yes")`;
+      const totalCount = gtOnly ? `COUNTIF(${gtR},"Yes")` : `COUNTA(${src.range("id")})`;
+
+      rows.push({
+        complexityClass: "Overall Accuracy",
+        tp: { formula: correctCount, result: opts.passed ?? 0 },
+        fp: "",
+        fn: "",
+        support: { formula: totalCount, result: opts.total ?? 0 },
+        precision: "",
+        recall: "",
+        f1: {
+          formula: `IF(${totalCount}=0,0,${correctCount}/${totalCount})`,
+          result: opts.total ? (opts.passed ?? 0) / opts.total : 0,
+        },
+      });
+
+      // Macro average: unweighted mean across the classes that actually
+      // have true instances. Zero-support rows are skipped, matching
+      // generateClassificationReport's scoredClassCount.
+      const scored = `COUNTIF(${supportCol},">0")`;
+      const macro = (letter, key) => {
+        const used = stats.filter((s) => s.support > 0);
+        const mean = used.length > 0 ? used.reduce((a, s) => a + s[key], 0) / used.length : 0;
+        return {
+          formula: `IF(${scored}=0,0,SUMPRODUCT((${supportCol}>0)*${metricCol(letter)})/${scored})`,
+          result: mean,
+        };
+      };
+      const totalSupport = stats.reduce((a, s) => a + s.support, 0);
+      const weighted = (letter, key) => {
+        const mean = totalSupport > 0
+          ? stats.reduce((a, s) => a + s[key] * s.support, 0) / totalSupport
+          : 0;
+        return {
+          formula: `IF(SUM(${supportCol})=0,0,SUMPRODUCT(${metricCol(letter)},${supportCol})/SUM(${supportCol}))`,
+          result: mean,
+        };
+      };
+
+      rows.push({
+        complexityClass: "Macro Avg",
+        tp: "", fp: "", fn: "",
+        support: { formula: `SUM(${supportCol})`, result: totalSupport },
+        precision: macro(C.p, "precision"),
+        recall: macro(C.r, "recall"),
+        f1: macro(C.f1, "f1"),
+      });
+      rows.push({
+        complexityClass: "Weighted Avg",
+        tp: "", fp: "", fn: "",
+        support: { formula: `SUM(${supportCol})`, result: totalSupport },
+        precision: weighted(C.p, "precision"),
+        recall: weighted(C.r, "recall"),
+        f1: weighted(C.f1, "f1"),
+      });
+
       addTableSheet(
         workbook,
-        "Line-Level Results",
+        sheetName,
+        [
+          { header: "Complexity Class", key: "complexityClass", width: 20 },
+          { header: "TP", key: "tp", width: 8 },
+          { header: "FP", key: "fp", width: 8 },
+          { header: "FN", key: "fn", width: 8 },
+          { header: "Support (TP+FN)", key: "support", width: 16 },
+          { header: "Precision", key: "precision", width: 12, numFmt: "0.0%" },
+          { header: "Recall", key: "recall", width: 12, numFmt: "0.0%" },
+          { header: "F1-Score", key: "f1", width: 12, numFmt: "0.0%" },
+        ],
+        rows,
+        { headerColor }
+      );
+    };
+
+    // ----- Summary sheet -------------------------------------------------
+    // Laid out in two passes: the skeleton below fixes each row's position
+    // so the ratios can reference the count cells above them by address
+    // (=B6/B5), the way the same table would be built by hand, instead of
+    // repeating the whole COUNTIF inside every percentage.
+    const timeCorrectR = algo.range("isTimeCorrect");
+    const spaceCorrectR = algo.range("isSpaceCorrect");
+    const overallR = algo.range("overall");
+    const idR = algo.range("id");
+    const msR = algo.range("processingTimeMs");
+    const memR = algo.range("peakMemBytes");
+    const gtR = line.range("hasGroundTruth");
+    const lineTimeR = line.range("isTimeMatch");
+    const lineSpaceR = line.range("isSpaceMatch");
+
+    const eff = results.efficiency;
+    const skeleton = [
+      {
+        heading: "AlgoBlocks — Complexity Analyzer Benchmark Report",
+        rows: [
+          ["Generated", "generated"],
+          ["Dataset", "dataset"],
+        ],
+      },
+      {
+        heading: "1. Benchmark Summary",
+        narrative: buildBenchmarkNarrative(),
+        rows: [
+          ["Algorithms Tested", "tested"],
+          ["Algorithms with Correct Time", "timePassed"],
+          ["Overall Time Accuracy", "timeAcc"],
+          ["Algorithms with Correct Space", "spacePassed"],
+          ["Overall Space Accuracy", "spaceAcc"],
+          ["Algorithms Correct on Both", "bothPassed"],
+          ["Overall Pass Rate (Time & Space)", "bothAcc"],
+        ],
+      },
+      {
+        heading: "2. Statement-Level (Line) Verification",
+        rows: hasLines ? [
+          ["Statements Verified (with ground truth)", "linesTested"],
+          ["Statements with Correct Time", "lineTimePassed"],
+          ["Line Time Accuracy", "lineTimeAcc"],
+          ["Statements with Correct Space", "lineSpacePassed"],
+          ["Line Space Accuracy", "lineSpaceAcc"],
+        ] : [["Statements Verified (with ground truth)", "linesNone"]],
+      },
+      ...(eff ? [{
+        heading: "3. Efficiency of the Analyzer",
+        narrative:
+          "Total execution time and total source lines are raw measurements of the run. " +
+          "Every other figure in this section is computed from the per-algorithm timings " +
+          "and peak-memory readings on the 'Full Algorithm Results' sheet.",
+        rows: [
+          ["Total Execution Time (s)", "execSec"],
+          ["Total Source Lines Analyzed", "srcLines"],
+          ["Throughput (algorithms/s)", "thrAlgos"],
+          ["Throughput (lines/s)", "thrLines"],
+          ["Mean Processing Time (ms)", "meanMs"],
+          ["Median Processing Time (ms)", "medianMs"],
+          ["P95 Processing Time (ms)", "p95Ms"],
+          ["Max Processing Time (ms)", "maxMs"],
+          ["Peak AST Memory (MB)", "peakMem"],
+          ["Mean AST Memory (KB)", "meanMem"],
+        ],
+      }] : []),
+    ];
+
+    const plan = planKeyValueSheet("Summary", skeleton.map((s) => ({
+      ...s,
+      rows: s.rows.map(([label, id]) => [label, null, id]),
+    })));
+    const at = (id) => plan.ref(id);
+
+    const totalLines = eff?.totalLines ?? 0;
+    const safeDiv = (a, b) => (b ? a / b : 0);
+    const values = {
+      generated: new Date().toLocaleString(),
+      dataset: reportScopeLabel,
+
+      tested: { formula: `COUNTA(${idR})`, result: details.length },
+      timePassed: { formula: `COUNTIF(${timeCorrectR},"Yes")`, result: results.timePassed },
+      timeAcc: {
+        formula: `IF(${at("tested")}=0,0,${at("timePassed")}/${at("tested")})`,
+        numFmt: "0.0%",
+        result: safeDiv(results.timePassed, results.totalTested),
+      },
+      spacePassed: { formula: `COUNTIF(${spaceCorrectR},"Yes")`, result: results.spacePassed },
+      spaceAcc: {
+        formula: `IF(${at("tested")}=0,0,${at("spacePassed")}/${at("tested")})`,
+        numFmt: "0.0%",
+        result: safeDiv(results.spacePassed, results.totalTested),
+      },
+      bothPassed: { formula: `COUNTIF(${overallR},"Pass")`, result: results.perfectPassed ?? 0 },
+      bothAcc: {
+        formula: `IF(${at("tested")}=0,0,${at("bothPassed")}/${at("tested")})`,
+        numFmt: "0.0%",
+        result: safeDiv(results.perfectPassed ?? 0, results.totalTested),
+      },
+
+      linesNone: 0,
+      linesTested: { formula: `COUNTIF(${gtR},"Yes")`, result: results.totalLinesTested ?? 0 },
+      lineTimePassed: {
+        formula: `COUNTIFS(${gtR},"Yes",${lineTimeR},"Yes")`,
+        result: results.lineTimePassed ?? 0,
+      },
+      lineTimeAcc: {
+        formula: `IF(${at("linesTested")}=0,0,${at("lineTimePassed")}/${at("linesTested")})`,
+        numFmt: "0.0%",
+        result: safeDiv(results.lineTimePassed ?? 0, results.totalLinesTested ?? 0),
+      },
+      lineSpacePassed: {
+        formula: `COUNTIFS(${gtR},"Yes",${lineSpaceR},"Yes")`,
+        result: results.lineSpacePassed ?? 0,
+      },
+      lineSpaceAcc: {
+        formula: `IF(${at("linesTested")}=0,0,${at("lineSpacePassed")}/${at("linesTested")})`,
+        numFmt: "0.0%",
+        result: safeDiv(results.lineSpacePassed ?? 0, results.totalLinesTested ?? 0),
+      },
+
+      // Raw measurements of the run itself -- no cell range exists to
+      // derive these from, so they are the only numbers typed in here.
+      execSec: eff?.totalExecutionSec ?? 0,
+      srcLines: totalLines,
+      thrAlgos: {
+        formula: `IF(${at("execSec")}=0,0,${at("tested")}/${at("execSec")})`,
+        numFmt: "0.00",
+        result: eff?.throughputAlgos ?? 0,
+      },
+      thrLines: {
+        formula: `IF(${at("execSec")}=0,0,${at("srcLines")}/${at("execSec")})`,
+        numFmt: "0.00",
+        result: eff?.throughputLines ?? 0,
+      },
+      meanMs: { formula: `AVERAGE(${msR})`, numFmt: "0.00", result: eff?.meanTimeMs ?? 0 },
+      medianMs: { formula: `MEDIAN(${msR})`, numFmt: "0.00", result: eff?.medianTimeMs ?? 0 },
+      // PERCENTILE (the pre-2010 spelling) is linear-interpolated, exactly
+      // what calcPercentile() in the worker does -- and needs no _xlfn prefix.
+      p95Ms: { formula: `PERCENTILE(${msR},0.95)`, numFmt: "0.00", result: eff?.p95TimeMs ?? 0 },
+      maxMs: { formula: `MAX(${msR})`, numFmt: "0.00", result: eff?.maxTimeMs ?? 0 },
+      peakMem: { formula: `MAX(${memR})/1048576`, numFmt: "0.0000", result: eff?.peakAstMemMB ?? 0 },
+      meanMem: { formula: `AVERAGE(${memR})/1024`, numFmt: "0.00", result: eff?.meanAstMemKB ?? 0 },
+    };
+
+    addKeyValueSheet(
+      workbook,
+      "Summary",
+      skeleton.map((s) => ({ ...s, rows: s.rows.map(([label, id]) => [label, values[id]]) })),
+      { headerColor }
+    );
+
+    // ----- The four validation matrices ---------------------------------
+    addMatrixSheet("Time Complexity Matrix", processedTimeReport, algo,
+      "expectedTime", "predictedTime", details,
+      { matchKey: "isTimeCorrect", passed: results.timePassed, total: results.totalTested });
+
+    addMatrixSheet("Space Complexity Matrix", processedSpaceReport, algo,
+      "expectedSpace", "predictedSpace", details,
+      { matchKey: "isSpaceCorrect", passed: results.spacePassed, total: results.totalTested });
+
+    if (hasLines) {
+      addMatrixSheet("Line-Level Time Matrix", processedLineTimeReport, line,
+        "expTime", "predTime", lineRows,
+        {
+          gtOnly: true, matchKey: "isTimeMatch",
+          passed: results.lineTimePassed, total: results.totalLinesTimeTested,
+        });
+
+      addMatrixSheet("Line-Level Space Matrix", processedLineSpaceReport, line,
+        "expSpace", "predSpace", lineRows,
+        {
+          gtOnly: true, matchKey: "isSpaceMatch",
+          passed: results.lineSpacePassed, total: results.totalLinesSpaceTested,
+        });
+    }
+
+    // ----- Raw data: every field captured per algorithm -----------------
+    // The expected/predicted labels below are the normalized ones the
+    // classification actually ran on, so the COUNTIFS above count exactly
+    // what the worker counted.
+    addTableSheet(
+      workbook,
+      ALGO_SHEET,
+      [
+        { header: "ID", key: "id", width: 14 },
+        { header: "Algorithm", key: "name", width: 26 },
+        { header: "Category", key: "category", width: 22 },
+        { header: "Expected Time", key: "expectedTime", width: 14 },
+        { header: "Predicted Time", key: "predictedTime", width: 14 },
+        { header: "Time Correct", key: "isTimeCorrect", width: 12 },
+        { header: "Expected Space", key: "expectedSpace", width: 14 },
+        { header: "Predicted Space", key: "predictedSpace", width: 14 },
+        { header: "Space Correct", key: "isSpaceCorrect", width: 12 },
+        { header: "Overall", key: "overall", width: 12 },
+        { header: "Processing Time (ms)", key: "processingTimeMs", width: 18, numFmt: "0.00" },
+        { header: "Peak Memory (bytes)", key: "peakMemBytes", width: 18 },
+        { header: "Explanation", key: "explanation", width: 50, wrap: true },
+        { header: "Code Snippet", key: "codeSnippet", width: 60, wrap: true },
+      ],
+      details.map((d, i) => ({
+        id: d.id,
+        name: d.name,
+        category: d.category || "--",
+        expectedTime: d.expectedTime,
+        predictedTime: d.predictedTime,
+        isTimeCorrect: d.isTimeCorrect ? "Yes" : "No",
+        expectedSpace: d.expectedSpace,
+        predictedSpace: d.predictedSpace,
+        isSpaceCorrect: d.isSpaceCorrect ? "Yes" : "No",
+        // A case counts as a pass only when BOTH checks passed -- written
+        // as the AND of the two cells on its own row rather than restated.
+        overall: {
+          formula: `IF(AND(${algo.localCell("isTimeCorrect", i)}="Yes",${algo.localCell("isSpaceCorrect", i)}="Yes"),"Pass","Mismatch")`,
+          result: d.isCompletelyCorrect ? "Pass" : "Mismatch",
+        },
+        processingTimeMs: d.processingTimeMs,
+        peakMemBytes: d.peakMemBytes,
+        explanation: d.explanation,
+        codeSnippet: d.codeSnippet,
+      })),
+      { headerColor }
+    );
+
+    // ----- Raw data: one row per analyzed statement ---------------------
+    if (hasLines) {
+      addTableSheet(
+        workbook,
+        LINE_SHEET,
         [
           { header: "Algorithm ID", key: "algorithmId", width: 14 },
           { header: "Algorithm", key: "algorithmName", width: 24 },
@@ -1132,7 +1450,13 @@ export default function EvaluationSuite({ embedded = false } = {}) {
           { header: "Passed", key: "isPassed", width: 9 },
           { header: "Hits", key: "hits", width: 8 },
         ],
-        lineRows,
+        lineRows.map((l, i) => ({
+          ...l,
+          isPassed: {
+            formula: `IF(AND(${line.localCell("isTimeMatch", i)}="Yes",${line.localCell("isSpaceMatch", i)}="Yes"),"Yes","No")`,
+            result: l._isPassed ? "Yes" : "No",
+          },
+        })),
         { headerColor }
       );
     }

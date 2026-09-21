@@ -143,9 +143,98 @@ export function addTableSheet(workbook, sheetName, columns, rows, opts = {}) {
 }
 
 /**
+ * Builds the cross-sheet reference strings for a table sheet added with
+ * addTableSheet, given only its name, its column keys in order, and how
+ * many data rows it will have.
+ *
+ * Callers use this to write formulas that point at a raw-data sheet
+ * (`'Submissions'!$J$2:$J$418`) without hand-tracking column letters, and
+ * it is safe to build BEFORE the sheet itself is added -- Excel resolves
+ * forward references fine, which is what lets a computed Summary sit as
+ * the first tab while reading from raw sheets further right.
+ *
+ * @param {string} sheetName - the SAME string passed to addTableSheet.
+ * @param {string[]} colKeys - column keys, in the order the columns appear.
+ * @param {number} rowCount - number of data rows (excluding the header).
+ * @param {{ headerRows?: number }} [opts] - headerRows defaults to 1; pass
+ *   2 or 3 when the sheet is created with a title/subtitle banner.
+ */
+export function sheetRefs(sheetName, colKeys, rowCount, opts = {}) {
+  const safeName = sheetName.replace(/[[\]:*?/\\]/g, "").slice(0, 31) || "Sheet";
+  const quoted = /[^A-Za-z0-9_]/.test(safeName) ? `'${safeName}'` : safeName;
+  const headerRows = opts.headerRows || 1;
+  const firstRow = headerRows + 1;
+  // An empty sheet still needs a syntactically valid range; point it at the
+  // first data row so COUNTIF/SUMIF return 0 instead of erroring.
+  const lastRow = rowCount > 0 ? headerRows + rowCount : firstRow;
+
+  const letters = {};
+  colKeys.forEach((key, i) => { letters[key] = colLetter(i + 1); });
+
+  return {
+    sheet: quoted,
+    firstRow,
+    lastRow,
+    rowCount,
+    col: (key) => letters[key],
+    /** Absolute, sheet-qualified range for a whole column of data. */
+    range: (key) => `${quoted}!$${letters[key]}$${firstRow}:$${letters[key]}$${lastRow}`,
+    /** Sheet-qualified single cell, by column key and data-row index (0-based). */
+    cell: (key, i) => `${quoted}!$${letters[key]}$${firstRow + i}`,
+    /** Local (same-sheet) cell address, for formulas written INTO this sheet. */
+    localCell: (key, i) => `${letters[key]}${firstRow + i}`,
+  };
+}
+
+/**
+ * Works out, BEFORE anything is written, which row each labelled row of a
+ * key-value sheet will land on, and returns a `ref(id)` helper giving that
+ * row's value-cell address (e.g. `'Summary'!$B$14`).
+ *
+ * This is what lets a Summary sheet chain its own cells together the way a
+ * person would by hand -- "Overall Time Accuracy" as `=B6/B5` (correct
+ * count over total tested) rather than as one long COUNTIF(...)/COUNTA(...)
+ * expression repeated in every row, or worse, as a pasted-in number.
+ *
+ * Pass rows as `[label, value, id]`; the third element is the lookup id and
+ * is ignored by addKeyValueSheet itself. The row arithmetic below mirrors
+ * addKeyValueSheet exactly: row 1 is the "Metric / Value" header written by
+ * `sheet.columns`, then one row per heading, one per narrative, one per
+ * data row, and one blank spacer after each section.
+ *
+ * @param {string} sheetName - must be the SAME string passed to
+ *   addKeyValueSheet (it is sanitized here the same way).
+ * @param {Array} sections
+ * @returns {{ ref: (id: string) => string, rowOf: (id: string) => number }}
+ */
+export function planKeyValueSheet(sheetName, sections) {
+  const safeName = sheetName.replace(/[[\]:*?/\\]/g, "").slice(0, 31) || "Summary";
+  const rowOfId = {};
+  let row = 1; // row 1 is the header written by sheet.columns
+
+  sections.forEach((section) => {
+    if (section.heading) row += 1;
+    if (section.narrative) row += 1;
+    (section.rows || []).forEach(([, , id]) => {
+      row += 1;
+      if (id) rowOfId[id] = row;
+    });
+    row += 1; // trailing blank spacer row
+  });
+
+  return {
+    rowOf: (id) => rowOfId[id],
+    ref: (id) => (rowOfId[id] ? `'${safeName}'!$B$${rowOfId[id]}` : "#REF!"),
+  };
+}
+
+/**
  * Adds a simple two-column "label / value" sheet -- used for the Summary /
  * Overview sheet of a report, mirroring the key-value tables the PDF
  * version renders with autoTable.
+ *
+ * Rows may be `[label, value]` or `[label, value, id]` -- the optional id is
+ * only meaningful to planKeyValueSheet above and is ignored here.
  */
 export function addKeyValueSheet(workbook, sheetName, sections, opts = {}) {
   const safeName = sheetName.replace(/[[\]:*?/\\]/g, "").slice(0, 31) || "Summary";

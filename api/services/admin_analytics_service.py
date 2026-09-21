@@ -161,6 +161,93 @@ def _test_breakdown(sub: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
     return categories
 
 
+def _resolve_tsr_counts(sub: Dict[str, Any], breakdown: Dict[str, Dict[str, int]]) -> tuple:
+    """Resolves the (passed, total) pair that the Task Success Rate is built
+    from for ONE submission.
+
+    Pulled out of `_submission_metrics` so the per-submission rows exported
+    to the Excel report (see `_submission_raw_row`) carry the exact same two
+    numbers the aggregate mean is computed from. If these two ever drifted
+    apart, the spreadsheet's `=AVERAGEIF(...)` over the raw rows would stop
+    reproducing the dashboard's TSR -- keeping one implementation makes that
+    impossible by construction.
+    """
+    breakdown_total = sum(item["total"] for item in breakdown.values())
+    breakdown_passed = sum(item["passed"] for item in breakdown.values())
+    total = sub.get("total_tests") or sub.get("totalTestCases") or breakdown_total
+    passed = sub.get("passed_tests")
+    if not isinstance(passed, (int, float)) or (passed == 0 and breakdown_passed > 0):
+        passed = sub.get("passedTestCases") or breakdown_passed
+    return passed, total
+
+
+def _counts_toward_tsr(passed: Any, total: Any) -> bool:
+    return isinstance(total, (int, float)) and total > 0 and isinstance(passed, (int, float))
+
+
+def _submission_raw_row(email: str, sub: Any) -> Dict[str, Any]:
+    """One flat, already-resolved row per submission -- the finest grain of
+    data behind every system-generated number on the dashboard.
+
+    The cohort overview previously only ever returned *averages* (per user,
+    per module, per cohort), which meant the Excel export had no choice but
+    to paste those averages in as literal numbers. Shipping the underlying
+    submissions lets the workbook rebuild every one of them with real
+    spreadsheet formulas (AVERAGEIF / SUMIFS / COUNTIFS) whose inputs a
+    reader can trace and recompute by hand.
+
+    Every field here is a raw observation or a directly-resolved count --
+    deliberately NOT an average, so nothing in this list is itself derived
+    from another row.
+    """
+    if not isinstance(sub, dict):
+        # Still emitted so the row count matches `activities_attempted`
+        # (which is len(submissions), including any malformed entries).
+        return {
+            "email": email, "moduleId": None, "activityId": None, "type": None,
+            "status": None, "code_unchanged": False, "tsr_passed": None,
+            "tsr_total": None, "final_aes": None, "rog": None,
+            "functional_passed": 0, "functional_total": 0,
+            "complexity_passed": 0, "complexity_total": 0,
+            "hidden_passed": 0, "hidden_total": 0, "timestamp": None,
+        }
+
+    breakdown = _test_breakdown(sub)
+    passed, total = _resolve_tsr_counts(sub, breakdown)
+    counts = _counts_toward_tsr(passed, total)
+
+    final_aes = sub.get("final_aes")
+    if not isinstance(final_aes, (int, float)):
+        final_aes = None
+
+    rog = sub.get("rog")
+    if not isinstance(rog, (int, float)):
+        rog = None
+
+    return {
+        "email": email,
+        "moduleId": sub.get("moduleId") or "unknown",
+        "activityId": sub.get("activityId"),
+        "type": sub.get("type", "activity"),
+        "status": sub.get("status", "draft"),
+        "code_unchanged": sub.get("code_unchanged") is True,
+        # Only populated when this submission actually contributes to TSR,
+        # so a blank cell in the spreadsheet means "excluded from the mean"
+        # for exactly the same reason the backend excludes it.
+        "tsr_passed": passed if counts else None,
+        "tsr_total": total if counts else None,
+        "final_aes": final_aes,
+        "rog": rog,
+        "functional_passed": breakdown["functional"]["passed"],
+        "functional_total": breakdown["functional"]["total"],
+        "complexity_passed": breakdown["complexity"]["passed"],
+        "complexity_total": breakdown["complexity"]["total"],
+        "hidden_passed": breakdown["hidden"]["passed"],
+        "hidden_total": breakdown["hidden"]["total"],
+        "timestamp": sub.get("timestamp") or sub.get("submittedAt"),
+    }
+
+
 def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
     aes_values, rog_values, tsr_values = [], [], []
     functional_passed = functional_total = 0
@@ -209,13 +296,8 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
         hidden_passed += breakdown["hidden"]["passed"]
         hidden_total += breakdown["hidden"]["total"]
 
-        breakdown_total = sum(item["total"] for item in breakdown.values())
-        breakdown_passed = sum(item["passed"] for item in breakdown.values())
-        total = sub.get("total_tests") or sub.get("totalTestCases") or breakdown_total
-        passed = sub.get("passed_tests")
-        if not isinstance(passed, (int, float)) or (passed == 0 and breakdown_passed > 0):
-            passed = sub.get("passedTestCases") or breakdown_passed
-        if isinstance(total, (int, float)) and total > 0 and isinstance(passed, (int, float)):
+        passed, total = _resolve_tsr_counts(sub, breakdown)
+        if _counts_toward_tsr(passed, total):
             tsr_values.append(passed / total)
 
         if (isinstance(final_aes, (int, float)) and final_aes >= 50) or sub.get("status") == "passed":
@@ -435,9 +517,18 @@ class AdminAnalyticsService:
                     post_test_completers.add(email)
             target_emails = target_emails & post_test_completers
 
-        all_submissions = [
-            row.get("data") for row in submission_rows
+        scoped_submission_rows = [
+            row for row in submission_rows
             if row.get("data") and row.get("email") in target_emails
+        ]
+        all_submissions = [row.get("data") for row in scoped_submission_rows]
+        # Flat, per-submission raw rows for the Excel export. Same scope and
+        # same order of operations as the aggregates below -- this is the
+        # level the workbook's formulas average over, rather than receiving
+        # the averages pre-computed.
+        raw_submission_rows = [
+            _submission_raw_row(row.get("email"), row.get("data"))
+            for row in scoped_submission_rows
         ]
         cohort_submission_metrics = _submission_metrics(all_submissions)
         by_module = _group_by_module(all_submissions)
@@ -545,6 +636,11 @@ class AdminAnalyticsService:
             "system_generated": cohort_submission_metrics,
             "by_module": by_module,
             "by_user": by_user,
+            # One entry per scoped submission (see _submission_raw_row). The
+            # dashboard itself does not read this -- it exists so the Excel
+            # report can carry a genuine raw-data sheet and derive every
+            # TSR / AES / ROG / test-count figure from it with formulas.
+            "submissions": raw_submission_rows,
             "assessment_based": {
                 "mean_pretest": mean_pre,
                 "mean_posttest": mean_post,

@@ -3,7 +3,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import ExcelJS from "exceljs";
-import { addTableSheet, addKeyValueSheet, downloadWorkbook, colLetter, excelStringLiteral } from "../utils/excelReport";
+import { addTableSheet, addKeyValueSheet, downloadWorkbook, colLetter, excelStringLiteral, sheetRefs } from "../utils/excelReport";
 import { addRegressionSheets, drawRegressionPdfSection } from "../utils/regressionReport";
 import { LearningImpactModelSection, LearningImpactModelReportSection } from "../components/LearningImpactModel";
 import {
@@ -943,36 +943,51 @@ const AdminUserManagement = () => {
   // Builds and downloads the .xlsx counterpart of the report above -- same
   // scope/data source (the currently-applied `overview` payload) but, since
   // a spreadsheet isn't paginated the way a PDF page is, every sheet carries
-  // the *full* underlying data rather than a print-friendly subset: every
-  // module's full metric set (not just TSR/AES/ROG), and every respondent's
-  // full per-module learning-path breakdown alongside their summary row.
+  // the *full* underlying data rather than a print-friendly subset.
   // ---------------------------------------------------------------------
   // Excel export
   //
-  // Every "computed" sheet below (Summary, Per-Module Breakdown) writes
-  // real Excel formulas that pull from the raw-data sheets (Respondents,
-  // Learning Path Detail, Pre-Post Test Data) instead of pasting in the
-  // already-rounded numbers the dashboard displays. Concretely:
+  // The workbook is built as a chain, bottom-up, so that no derived number
+  // anywhere in it is a pasted-in literal:
   //
-  //  - Counts and totals (submissions, passed, functional/complexity/
-  //    hidden test tallies, paired test-taker count) are plain SUM/COUNT
-  //    formulas over the raw sheet, so they always exactly match the
-  //    number the system itself would compute from that same raw data.
-  //  - The assessment-based measures (mean/SD pre & post, the paired
-  //    t-test, Cohen's d, Hake's g) are recomputed from each respondent's
-  //    individual pre-test/post-test score on the "Pre-Post Test Data"
-  //    sheet using the same formulas the backend uses (sample stdev,
-  //    mean-difference / (sd-difference/sqrt(n)), Excel's own T.TEST for
-  //    the p-value) -- these match the on-screen numbers exactly.
-  //  - TSR / AES / ROG are themselves *averages* computed server-side over
-  //    individual activity submissions, and the frontend only ever
-  //    receives each respondent's already-averaged numbers (not every
-  //    individual submission) -- so the cohort-level and per-module
-  //    versions of those three are reconstructed here as a weighted
-  //    average across respondents (weighted by each respondent's activity
-  //    count, or by their refactored-submission count for ROG, which is
-  //    exact for ROG and a very close match for TSR/AES in the normal case
-  //    where every submission carries a test result).
+  //   Submissions  (raw: one row per activity submission, exactly as the
+  //                 database holds it -- tests passed/total, the final AES,
+  //                 the ROG, the per-category test counts)
+  //        |
+  //        v  AVERAGEIF / SUMIF / COUNTIFS on each respondent's email
+  //   Respondents  and  Learning Path Detail  and  Per-Module Breakdown
+  //        |
+  //        v  AVERAGE / SUM / COUNTA over the columns above
+  //   Summary  (cohort TSR, AES, ROG, test tallies)
+  //
+  //   Pre-Post Test Data  (raw: each respondent's two scores)
+  //        |
+  //        v  AVERAGE / STDEV.S / T.TEST / the t, d and g definitions
+  //   Summary  (assessment-based measures)
+  //
+  // Concretely, every one of these is a live formula you can double-click:
+  //
+  //  - Each submission's own TSR is `=IF(AND(ISNUMBER(passed),ISNUMBER(total),
+  //    total>0),passed/total*100,"")` -- the ratio, computed in the cell,
+  //    left blank when that submission has no scored tests so it drops out
+  //    of every mean exactly as the backend drops it.
+  //  - Whether a submission counts as "passed" is the AES >= 50 OR
+  //    status = "passed" rule, written out as an IF/OR over its own row.
+  //  - A respondent's TSR / AES / ROG are AVERAGEIF over their submissions;
+  //    their activity, pass and test-case counts are COUNTIF / SUMIF.
+  //  - Per-module figures are the same formulas with a second criterion,
+  //    and the cohort figures are plain AVERAGE / SUM over the raw column.
+  //  - The paired t-test, Cohen's d and Hake's g are rebuilt from the two
+  //    score columns using the same definitions the backend uses (sample
+  //    stdev, mean-difference / (sd-difference / sqrt(n)), Excel's own
+  //    T.TEST for the p-value).
+  //
+  // The only typed-in numbers are genuine raw observations: a submission's
+  // test counts, its AES and ROG, and each respondent's pre/post score.
+  // Every formula also carries the server's value as its cached result, so
+  // the numbers read correctly before Excel recalculates -- and because the
+  // formulas mirror the backend's definitions term for term, recalculating
+  // reproduces them rather than shifting them.
   const handleDownloadExcel = async (ov) => {
     if (!ov) return;
     const workbook = new ExcelJS.Workbook();
@@ -986,16 +1001,38 @@ const AdminUserManagement = () => {
     const learningPathRowsForCount = byUser.flatMap((u) => Object.entries(u.by_module || {}));
     const pairedUsers = byUser.filter((u) => u.preTest != null && u.postTest != null);
 
+    // Per-submission raw rows (api/services/admin_analytics_service.py ->
+    // _submission_raw_row). Older backends don't send them; in that case the
+    // aggregates fall back to being reconstructed one level up, from the
+    // Respondents / Learning Path sheets, which is still formula-driven --
+    // just averaging already-averaged rows rather than raw submissions.
+    const rawSubs = Array.isArray(ov.submissions) ? ov.submissions : [];
+    const hasRawSubs = rawSubs.length > 0;
+
+    const nameByEmail = {};
+    byUser.forEach((u) => { nameByEmail[u.email] = u.name || "Unnamed Profile"; });
+    const moduleTitle = (moduleId) => MODULE_TITLES[moduleId] || moduleId || "unknown";
+
     // Column layouts + cross-sheet range strings are worked out up front
     // (they only need row/column *counts*, not the worksheets themselves)
     // so the Summary sheet's formulas can be written first -- putting
     // Summary as the first tab in the file without resorting to reordering
     // worksheets after the fact.
+    const SUB_SHEET = "Submissions";
+    const SUB_KEYS = [
+      "name", "email", "module", "activity", "type", "status", "unchanged",
+      "tsrPassed", "tsrTotal", "tsr", "aes", "rog", "rogCounted", "countedPassed",
+      "funcPassed", "funcTotal", "compPassed", "compTotal", "hidPassed", "hidTotal",
+      "timestamp",
+    ];
+    const sub = sheetRefs(SUB_SHEET, SUB_KEYS, rawSubs.length);
+
     const RESP_COLS_DEF = [
       "name", "email", "status", "attempted", "passed", "tsr", "aes", "rog",
       "rogN", "unchanged", "funcPassed", "funcTotal", "compPassed", "compTotal",
       "hidPassed", "hidTotal", "preTest", "postTest",
     ];
+    const resp = sheetRefs("Respondents", RESP_COLS_DEF, byUser.length);
     const respColIdx = {};
     RESP_COLS_DEF.forEach((key, i) => { respColIdx[key] = i + 1; });
     const respLastRow = 1 + byUser.length;
@@ -1006,6 +1043,7 @@ const AdminUserManagement = () => {
       "rogN", "unchanged", "funcPassed", "funcTotal", "compPassed", "compTotal",
       "hidPassed", "hidTotal",
     ];
+    const lp = sheetRefs("Learning Path Detail", LP_COLS_DEF, learningPathRowsForCount.length);
     const lpColIdx = {};
     LP_COLS_DEF.forEach((key, i) => { lpColIdx[key] = i + 1; });
     const lpLastRow = 1 + learningPathRowsForCount.length;
@@ -1017,39 +1055,123 @@ const AdminUserManagement = () => {
     const ppLastRow = 1 + pairedUsers.length;
     const ppRange = (key) => `'Pre-Post Test Data'!${colLetter(ppColIdx[key])}2:${colLetter(ppColIdx[key])}${ppLastRow}`;
 
+    // ----- Helpers for the submission-backed formulas -------------------
+    // `criteria` is a list of [rangeString, criterionString] pairs -- the
+    // respondent's email cell, the module title cell, or both.
+    const flat = (criteria) => criteria.map(([r, c]) => `${r},${c}`).join(",");
+    const countRows = (criteria) => `COUNTIFS(${flat(criteria)})`;
+    const sumCol = (key, criteria) =>
+      criteria.length === 0
+        ? `SUM(${sub.range(key)})`
+        : `SUMIFS(${sub.range(key)},${flat(criteria)})`;
+    // Means deliberately go through AVERAGEIFS, which skips the blank-string
+    // cells the raw sheet writes for "this submission has no value here" --
+    // the same submissions the backend leaves out of the mean.
+    const avgCol = (key, criteria) =>
+      criteria.length === 0
+        ? `IFERROR(AVERAGE(${sub.range(key)}),"")`
+        : `IFERROR(AVERAGEIFS(${sub.range(key)},${flat(criteria)}),"")`;
+    const countRog = (criteria) => countRows([...criteria, [sub.range("rogCounted"), '">0"']]);
+    const countUnchanged = (criteria) => countRows([...criteria, [sub.range("unchanged"), '"Yes"']]);
+    const pairStr = (aKey, bKey, criteria) =>
+      `${sumCol(aKey, criteria)}&"/"&${sumCol(bKey, criteria)}`;
+
+    /**
+     * The full metric set for one scope (a respondent, a respondent+module,
+     * a module, or the whole cohort), as formulas over the Submissions
+     * sheet. `m` supplies the cached values the server already computed.
+     */
+    const metricFormulas = (criteria, m = {}) => ({
+      attempted: {
+        formula: criteria.length === 0 ? `COUNTA(${sub.range("email")})` : countRows(criteria),
+        result: m.activities_attempted ?? 0,
+      },
+      passed: { formula: sumCol("countedPassed", criteria), result: m.activities_passed ?? 0 },
+      tsr: { formula: avgCol("tsr", criteria), result: m.tsr ?? "" },
+      aes: { formula: avgCol("aes", criteria), result: m.aes ?? "" },
+      rog: { formula: avgCol("rogCounted", criteria), result: m.rog ?? "" },
+      rogN: { formula: countRog(criteria), result: m.rog_refactored_count ?? 0 },
+      unchanged: { formula: countUnchanged(criteria), result: m.unchanged_code_resubmissions ?? 0 },
+      funcPassed: { formula: sumCol("funcPassed", criteria), result: m.functional_tests?.passed ?? 0 },
+      funcTotal: { formula: sumCol("funcTotal", criteria), result: m.functional_tests?.total ?? 0 },
+      compPassed: { formula: sumCol("compPassed", criteria), result: m.complexity_tests?.passed ?? 0 },
+      compTotal: { formula: sumCol("compTotal", criteria), result: m.complexity_tests?.total ?? 0 },
+      hidPassed: { formula: sumCol("hidPassed", criteria), result: m.hidden_tests?.passed ?? 0 },
+      hidTotal: { formula: sumCol("hidTotal", criteria), result: m.hidden_tests?.total ?? 0 },
+    });
+
     // ----- Computed: Summary (built first so it's the first tab) ------
     const hasRespondents = byUser.length > 0;
+    // Fallback only: without raw submissions the cohort means are rebuilt
+    // from the Respondents sheet, weighted by each respondent's activity
+    // count (exact for ROG, a close match for TSR/AES).
     const weightedRespAvg = (valueKey, weightKey) =>
       `SUMPRODUCT(${respRange(valueKey)},${respRange(weightKey)})/SUM(${respRange(weightKey)})`;
 
-    const systemRows = !hasRespondents ? [["Respondents Included", 0]] : [
-      ["Respondents Included", { formula: `COUNTA(${respRange("email")})`, result: ov.user_count }],
-      ["Activity Submissions", { formula: `SUM(${respRange("attempted")})`, result: sg.activities_attempted }],
-      ["Activities Passed", { formula: `SUM(${respRange("passed")})`, result: sg.activities_passed }],
-      ["Avg Task Success Rate (TSR)", { formula: weightedRespAvg("tsr", "attempted"), numFmt: '0.0"%"', result: sg.tsr }],
-      ["Avg Algorithmic Efficiency Score (AES)", { formula: weightedRespAvg("aes", "attempted"), numFmt: '0.0"%"', result: sg.aes }],
-      ["Avg Refactoring Optimization Gain (ROG)", { formula: `"+"&ROUND(${weightedRespAvg("rog", "rogN")},1)&" (n'="&SUM(${respRange("rogN")})&")"`, result: `+${sg.rog ?? 0} (n'=${sg.rog_refactored_count})` }],
-      ["Unchanged-Code Resubmissions", { formula: `SUM(${respRange("unchanged")})`, result: sg.unchanged_code_resubmissions ?? 0 }],
-      ["Functional Tests Passed", { formula: `SUM(${respRange("funcPassed")})&"/"&SUM(${respRange("funcTotal")})`, result: `${sg.functional_tests?.passed ?? 0}/${sg.functional_tests?.total ?? 0}` }],
-      ["Complexity Tests Passed", { formula: `SUM(${respRange("compPassed")})&"/"&SUM(${respRange("compTotal")})`, result: `${sg.complexity_tests?.passed ?? 0}/${sg.complexity_tests?.total ?? 0}` }],
-      ["Hidden Tests Passed", { formula: `SUM(${respRange("hidPassed")})&"/"&SUM(${respRange("hidTotal")})`, result: `${sg.hidden_tests?.passed ?? 0}/${sg.hidden_tests?.total ?? 0}` }],
-    ];
+    let systemRows;
+    if (!hasRespondents) {
+      systemRows = [["Respondents Included", 0]];
+    } else if (hasRawSubs) {
+      const cohort = metricFormulas([], sg);
+      systemRows = [
+        ["Respondents Included", { formula: `COUNTA(${respRange("email")})`, result: ov.user_count }],
+        ["Activity Submissions", cohort.attempted],
+        ["Activities Passed", cohort.passed],
+        ["Avg Task Success Rate (TSR)", { ...cohort.tsr, numFmt: '0.0"%"' }],
+        ["Avg Algorithmic Efficiency Score (AES)", { ...cohort.aes, numFmt: '0.0"%"' }],
+        ["Avg Refactoring Optimization Gain (ROG)", {
+          formula: `"+"&ROUND(IFERROR(AVERAGE(${sub.range("rogCounted")}),0),1)&" (n'="&COUNT(${sub.range("rogCounted")})&")"`,
+          result: `+${sg.rog ?? 0} (n'=${sg.rog_refactored_count})`,
+        }],
+        ["Unchanged-Code Resubmissions", {
+          formula: `COUNTIF(${sub.range("unchanged")},"Yes")`,
+          result: sg.unchanged_code_resubmissions ?? 0,
+        }],
+        ["Functional Tests Passed", {
+          formula: pairStr("funcPassed", "funcTotal", []),
+          result: `${sg.functional_tests?.passed ?? 0}/${sg.functional_tests?.total ?? 0}`,
+        }],
+        ["Complexity Tests Passed", {
+          formula: pairStr("compPassed", "compTotal", []),
+          result: `${sg.complexity_tests?.passed ?? 0}/${sg.complexity_tests?.total ?? 0}`,
+        }],
+        ["Hidden Tests Passed", {
+          formula: pairStr("hidPassed", "hidTotal", []),
+          result: `${sg.hidden_tests?.passed ?? 0}/${sg.hidden_tests?.total ?? 0}`,
+        }],
+      ];
+    } else {
+      systemRows = [
+        ["Respondents Included", { formula: `COUNTA(${respRange("email")})`, result: ov.user_count }],
+        ["Activity Submissions", { formula: `SUM(${respRange("attempted")})`, result: sg.activities_attempted }],
+        ["Activities Passed", { formula: `SUM(${respRange("passed")})`, result: sg.activities_passed }],
+        ["Avg Task Success Rate (TSR)", { formula: weightedRespAvg("tsr", "attempted"), numFmt: '0.0"%"', result: sg.tsr }],
+        ["Avg Algorithmic Efficiency Score (AES)", { formula: weightedRespAvg("aes", "attempted"), numFmt: '0.0"%"', result: sg.aes }],
+        ["Avg Refactoring Optimization Gain (ROG)", { formula: `"+"&ROUND(${weightedRespAvg("rog", "rogN")},1)&" (n'="&SUM(${respRange("rogN")})&")"`, result: `+${sg.rog ?? 0} (n'=${sg.rog_refactored_count})` }],
+        ["Unchanged-Code Resubmissions", { formula: `SUM(${respRange("unchanged")})`, result: sg.unchanged_code_resubmissions ?? 0 }],
+        ["Functional Tests Passed", { formula: `SUM(${respRange("funcPassed")})&"/"&SUM(${respRange("funcTotal")})`, result: `${sg.functional_tests?.passed ?? 0}/${sg.functional_tests?.total ?? 0}` }],
+        ["Complexity Tests Passed", { formula: `SUM(${respRange("compPassed")})&"/"&SUM(${respRange("compTotal")})`, result: `${sg.complexity_tests?.passed ?? 0}/${sg.complexity_tests?.total ?? 0}` }],
+        ["Hidden Tests Passed", { formula: `SUM(${respRange("hidPassed")})&"/"&SUM(${respRange("hidTotal")})`, result: `${sg.hidden_tests?.passed ?? 0}/${sg.hidden_tests?.total ?? 0}` }],
+      ];
+    }
 
     const hasPairs = pairedUsers.length > 0;
     const preR = ppRange("pre");
     const postR = ppRange("post");
     const diffR = ppRange("diff");
-    const tFormula = `AVERAGE(${diffR})/(STDEV.S(${diffR})/SQRT(COUNT(${diffR})))`;
-    const dFormula = `AVERAGE(${diffR})/STDEV.S(${diffR})`;
+    const tFormula = `AVERAGE(${diffR})/(_xlfn.STDEV.S(${diffR})/SQRT(COUNT(${diffR})))`;
+    const dFormula = `AVERAGE(${diffR})/_xlfn.STDEV.S(${diffR})`;
     const gFormula = `(AVERAGE(${postR})-AVERAGE(${preR}))/(100-AVERAGE(${preR}))`;
-    const pFormula = `T.TEST(${preR},${postR},2,1)`;
+    const pFormula = `_xlfn.T.TEST(${preR},${postR},2,1)`;
 
     const assessmentRows = !hasPairs ? [["Paired Pre/Post Test Takers (n)", 0]] : [
       ["Paired Pre/Post Test Takers (n)", { formula: `COUNT(${preR})`, result: ov.paired_test_takers }],
       ["Mean Pre-test", { formula: `AVERAGE(${preR})`, numFmt: '0.00"%"', result: ab.mean_pretest }],
       ["Mean Post-test", { formula: `AVERAGE(${postR})`, numFmt: '0.00"%"', result: ab.mean_posttest }],
-      ["SD Pre-test", { formula: `STDEV.S(${preR})`, numFmt: "0.00", result: ab.sd_pretest }],
-      ["SD Post-test", { formula: `STDEV.S(${postR})`, numFmt: "0.00", result: ab.sd_posttest }],
+      ["SD Pre-test", { formula: `_xlfn.STDEV.S(${preR})`, numFmt: "0.00", result: ab.sd_pretest }],
+      ["SD Post-test", { formula: `_xlfn.STDEV.S(${postR})`, numFmt: "0.00", result: ab.sd_posttest }],
+      ["Mean Difference (Post - Pre)", { formula: `AVERAGE(${diffR})`, numFmt: "0.00", result: ab.mean_difference }],
+      ["SD of Differences", { formula: `_xlfn.STDEV.S(${diffR})`, numFmt: "0.00", result: ab.sd_difference }],
       ["t-value", { formula: tFormula, numFmt: "0.000", result: ab.t_value }],
       ["Degrees of Freedom", { formula: `COUNT(${diffR})-1`, result: ab.degrees_of_freedom }],
       ["p-value (two-tailed paired t-test)", { formula: pFormula, numFmt: "0.0000", result: ab.p_value }],
@@ -1066,6 +1188,9 @@ const AdminUserManagement = () => {
         rows: [
           ["Generated", new Date().toLocaleString()],
           ["Scope", `${reportScopeLabel}${postTestOnly ? ` · Post-test completers only (${ov.post_test_completers ?? 0})` : ""}`],
+          ["How to read this workbook", hasRawSubs
+            ? "Every figure below is an Excel formula over the raw sheets. Click a cell to see its arithmetic."
+            : "Figures below are Excel formulas over the Respondents and Pre-Post Test Data sheets."],
         ],
       },
       {
@@ -1105,26 +1230,36 @@ const AdminUserManagement = () => {
       workbook,
       "Respondents",
       RESP_COLS,
-      byUser.map((u) => ({
-        name: u.name || "Unnamed Profile",
-        email: u.email,
-        status: u.status || "active",
-        attempted: u.metrics.activities_attempted ?? 0,
-        passed: u.metrics.activities_passed ?? 0,
-        tsr: u.metrics.tsr ?? 0,
-        aes: u.metrics.aes ?? 0,
-        rog: u.metrics.rog ?? 0,
-        rogN: u.metrics.rog_refactored_count ?? 0,
-        unchanged: u.metrics.unchanged_code_resubmissions ?? 0,
-        funcPassed: u.metrics.functional_tests?.passed ?? 0,
-        funcTotal: u.metrics.functional_tests?.total ?? 0,
-        compPassed: u.metrics.complexity_tests?.passed ?? 0,
-        compTotal: u.metrics.complexity_tests?.total ?? 0,
-        hidPassed: u.metrics.hidden_tests?.passed ?? 0,
-        hidTotal: u.metrics.hidden_tests?.total ?? 0,
-        preTest: u.preTest != null ? u.preTest : "--",
-        postTest: u.postTest != null ? u.postTest : "--",
-      })),
+      byUser.map((u, i) => {
+        // Each respondent's row aggregates their own submissions, keyed off
+        // the email cell in this very row -- so editing or filtering the
+        // Submissions sheet flows straight through to here.
+        const byEmail = [[sub.range("email"), resp.localCell("email", i)]];
+        const m = u.metrics || {};
+        const computed = hasRawSubs ? metricFormulas(byEmail, m) : {
+          attempted: m.activities_attempted ?? 0,
+          passed: m.activities_passed ?? 0,
+          tsr: m.tsr ?? 0,
+          aes: m.aes ?? 0,
+          rog: m.rog ?? 0,
+          rogN: m.rog_refactored_count ?? 0,
+          unchanged: m.unchanged_code_resubmissions ?? 0,
+          funcPassed: m.functional_tests?.passed ?? 0,
+          funcTotal: m.functional_tests?.total ?? 0,
+          compPassed: m.complexity_tests?.passed ?? 0,
+          compTotal: m.complexity_tests?.total ?? 0,
+          hidPassed: m.hidden_tests?.passed ?? 0,
+          hidTotal: m.hidden_tests?.total ?? 0,
+        };
+        return {
+          name: u.name || "Unnamed Profile",
+          email: u.email,
+          status: u.status || "active",
+          ...computed,
+          preTest: u.preTest != null ? u.preTest : "--",
+          postTest: u.postTest != null ? u.postTest : "--",
+        };
+      }),
       { headerColor: "5A1398" }
     );
 
@@ -1148,25 +1283,36 @@ const AdminUserManagement = () => {
       { header: "Hidden Total", key: "hidTotal", width: 14 },
     ];
 
+    let lpIndex = -1;
     const learningPathRows = byUser.flatMap((u) =>
-      Object.entries(u.by_module || {}).map(([moduleId, m]) => ({
-        name: u.name || "Unnamed Profile",
-        email: u.email,
-        module: MODULE_TITLES[moduleId] || moduleId,
-        attempted: m.activities_attempted ?? 0,
-        passed: m.activities_passed ?? 0,
-        tsr: m.tsr ?? 0,
-        aes: m.aes ?? 0,
-        rog: m.rog ?? 0,
-        rogN: m.rog_refactored_count ?? 0,
-        unchanged: m.unchanged_code_resubmissions ?? 0,
-        funcPassed: m.functional_tests?.passed ?? 0,
-        funcTotal: m.functional_tests?.total ?? 0,
-        compPassed: m.complexity_tests?.passed ?? 0,
-        compTotal: m.complexity_tests?.total ?? 0,
-        hidPassed: m.hidden_tests?.passed ?? 0,
-        hidTotal: m.hidden_tests?.total ?? 0,
-      }))
+      Object.entries(u.by_module || {}).map(([moduleId, m]) => {
+        lpIndex += 1;
+        const criteria = [
+          [sub.range("email"), lp.localCell("email", lpIndex)],
+          [sub.range("module"), lp.localCell("module", lpIndex)],
+        ];
+        const computed = hasRawSubs ? metricFormulas(criteria, m) : {
+          attempted: m.activities_attempted ?? 0,
+          passed: m.activities_passed ?? 0,
+          tsr: m.tsr ?? 0,
+          aes: m.aes ?? 0,
+          rog: m.rog ?? 0,
+          rogN: m.rog_refactored_count ?? 0,
+          unchanged: m.unchanged_code_resubmissions ?? 0,
+          funcPassed: m.functional_tests?.passed ?? 0,
+          funcTotal: m.functional_tests?.total ?? 0,
+          compPassed: m.complexity_tests?.passed ?? 0,
+          compTotal: m.complexity_tests?.total ?? 0,
+          hidPassed: m.hidden_tests?.passed ?? 0,
+          hidTotal: m.hidden_tests?.total ?? 0,
+        };
+        return {
+          name: u.name || "Unnamed Profile",
+          email: u.email,
+          module: moduleTitle(moduleId),
+          ...computed,
+        };
+      })
     );
 
     addTableSheet(workbook, "Learning Path Detail", LP_COLS, learningPathRows, { headerColor: "5A1398" });
@@ -1191,13 +1337,60 @@ const AdminUserManagement = () => {
           email: u.email,
           pre: u.preTest,
           post: u.postTest,
-          diff: { formula: `${colLetter(ppColIdx.post)}${r}-${colLetter(ppColIdx.pre)}${r}` },
+          diff: {
+            formula: `${colLetter(ppColIdx.post)}${r}-${colLetter(ppColIdx.pre)}${r}`,
+            result: u.postTest - u.preTest,
+          },
         };
       }),
       { headerColor: "5A1398" }
     );
 
-    // ----- Computed: Per-Module Breakdown (formulas over Learning Path) -
+    // ----- Computed: Per-Module Breakdown -------------------------------
+    // With raw submissions this reads straight off them (one criterion: the
+    // module title in column A). Without, it aggregates the Learning Path
+    // sheet, weighting each respondent's module average by their activity
+    // count.
+    const moduleRows = moduleEntries.length === 0 ? [] : moduleEntries.map(([moduleId, m], i) => {
+      const title = moduleTitle(moduleId);
+      if (hasRawSubs) {
+        const criteria = [[sub.range("module"), `A${2 + i}`]];
+        const c = metricFormulas(criteria, m);
+        return {
+          module: title,
+          attempted: c.attempted,
+          passed: c.passed,
+          tsr: { ...c.tsr, numFmt: '0.0"%"' },
+          aes: { ...c.aes, numFmt: '0.0"%"' },
+          rog: { ...c.rog, numFmt: "+0.0;-0.0;0" },
+          rogN: c.rogN,
+          unchanged: c.unchanged,
+          functional: { formula: pairStr("funcPassed", "funcTotal", criteria), result: `${m.functional_tests?.passed ?? 0}/${m.functional_tests?.total ?? 0}` },
+          complexity: { formula: pairStr("compPassed", "compTotal", criteria), result: `${m.complexity_tests?.passed ?? 0}/${m.complexity_tests?.total ?? 0}` },
+          hidden: { formula: pairStr("hidPassed", "hidTotal", criteria), result: `${m.hidden_tests?.passed ?? 0}/${m.hidden_tests?.total ?? 0}` },
+        };
+      }
+      if (learningPathRows.length === 0) return null;
+      const quoted = excelStringLiteral(title);
+      const moduleMatch = `${lpCol("module")}="${quoted}"`;
+      const weightedAvg = (valueCol, weightCol) =>
+        `SUMPRODUCT((${moduleMatch})*${lpCol(valueCol)}*${lpCol(weightCol)})/SUMPRODUCT((${moduleMatch})*${lpCol(weightCol)})`;
+      const sumIf = (valueCol) => `SUMIF(${lpCol("module")},"${quoted}",${lpCol(valueCol)})`;
+      return {
+        module: title,
+        attempted: { formula: sumIf("attempted"), result: m.activities_attempted ?? 0 },
+        passed: { formula: sumIf("passed"), result: m.activities_passed ?? 0 },
+        tsr: { formula: weightedAvg("tsr", "attempted"), numFmt: '0.0"%"', result: m.tsr ?? 0 },
+        aes: { formula: weightedAvg("aes", "attempted"), numFmt: '0.0"%"', result: m.aes ?? 0 },
+        rog: { formula: weightedAvg("rog", "rogN"), numFmt: "+0.0;-0.0;0", result: m.rog ?? 0 },
+        rogN: { formula: sumIf("rogN"), result: m.rog_refactored_count ?? 0 },
+        unchanged: { formula: sumIf("unchanged"), result: m.unchanged_code_resubmissions ?? 0 },
+        functional: { formula: `${sumIf("funcPassed")}&"/"&${sumIf("funcTotal")}`, result: `${m.functional_tests?.passed ?? 0}/${m.functional_tests?.total ?? 0}` },
+        complexity: { formula: `${sumIf("compPassed")}&"/"&${sumIf("compTotal")}`, result: `${m.complexity_tests?.passed ?? 0}/${m.complexity_tests?.total ?? 0}` },
+        hidden: { formula: `${sumIf("hidPassed")}&"/"&${sumIf("hidTotal")}`, result: `${m.hidden_tests?.passed ?? 0}/${m.hidden_tests?.total ?? 0}` },
+      };
+    }).filter(Boolean);
+
     addTableSheet(
       workbook,
       "Per-Module Breakdown",
@@ -1214,28 +1407,94 @@ const AdminUserManagement = () => {
         { header: "Complexity Passed/Total", key: "complexity", width: 20 },
         { header: "Hidden Passed/Total", key: "hidden", width: 20 },
       ],
-      moduleEntries.length === 0 || learningPathRows.length === 0 ? [] : moduleEntries.map(([moduleId, m]) => {
-        const title = excelStringLiteral(MODULE_TITLES[moduleId] || moduleId);
-        const moduleMatch = `${lpCol("module")}="${title}"`;
-        const weightedAvg = (valueCol, weightCol) =>
-          `SUMPRODUCT((${moduleMatch})*${lpCol(valueCol)}*${lpCol(weightCol)})/SUMPRODUCT((${moduleMatch})*${lpCol(weightCol)})`;
-        const sumIf = (valueCol) => `SUMIF(${lpCol("module")},"${title}",${lpCol(valueCol)})`;
-        return {
-          module: MODULE_TITLES[moduleId] || moduleId,
-          attempted: { formula: sumIf("attempted"), result: m.activities_attempted ?? 0 },
-          passed: { formula: sumIf("passed"), result: m.activities_passed ?? 0 },
-          tsr: { formula: weightedAvg("tsr", "attempted"), numFmt: '0.0"%"', result: m.tsr ?? 0 },
-          aes: { formula: weightedAvg("aes", "attempted"), numFmt: '0.0"%"', result: m.aes ?? 0 },
-          rog: { formula: weightedAvg("rog", "rogN"), numFmt: "+0.0;-0.0;0", result: m.rog ?? 0 },
-          rogN: { formula: sumIf("rogN"), result: m.rog_refactored_count ?? 0 },
-          unchanged: { formula: sumIf("unchanged"), result: m.unchanged_code_resubmissions ?? 0 },
-          functional: { formula: `${sumIf("funcPassed")}&"/"&${sumIf("funcTotal")}`, result: `${m.functional_tests?.passed ?? 0}/${m.functional_tests?.total ?? 0}` },
-          complexity: { formula: `${sumIf("compPassed")}&"/"&${sumIf("compTotal")}`, result: `${m.complexity_tests?.passed ?? 0}/${m.complexity_tests?.total ?? 0}` },
-          hidden: { formula: `${sumIf("hidPassed")}&"/"&${sumIf("hidTotal")}`, result: `${m.hidden_tests?.passed ?? 0}/${m.hidden_tests?.total ?? 0}` },
-        };
-      }),
+      moduleRows,
       { headerColor: "5A1398" }
     );
+
+    // ----- Raw data: Submissions (the base of the whole workbook) -------
+    // One row per activity submission. The three computed columns here are
+    // the per-submission definitions the backend applies before averaging:
+    // a submission's own TSR, whether its ROG counts as a refactoring gain,
+    // and whether it counts as a passed activity.
+    if (hasRawSubs) {
+      addTableSheet(
+        workbook,
+        SUB_SHEET,
+        [
+          { header: "Name", key: "name", width: 22 },
+          { header: "Email", key: "email", width: 30 },
+          { header: "Module", key: "module", width: 26 },
+          { header: "Activity", key: "activity", width: 26 },
+          { header: "Type", key: "type", width: 12 },
+          { header: "Status", key: "status", width: 12 },
+          { header: "Code Unchanged", key: "unchanged", width: 15 },
+          { header: "Tests Passed", key: "tsrPassed", width: 13 },
+          { header: "Tests Total", key: "tsrTotal", width: 13 },
+          { header: "TSR (%)", key: "tsr", width: 11, numFmt: "0.00" },
+          { header: "Final AES", key: "aes", width: 11, numFmt: "0.00" },
+          { header: "ROG", key: "rog", width: 10, numFmt: "0.00" },
+          { header: "ROG Counted", key: "rogCounted", width: 13, numFmt: "0.00" },
+          { header: "Counted as Passed", key: "countedPassed", width: 16 },
+          { header: "Functional Passed", key: "funcPassed", width: 16 },
+          { header: "Functional Total", key: "funcTotal", width: 16 },
+          { header: "Complexity Passed", key: "compPassed", width: 16 },
+          { header: "Complexity Total", key: "compTotal", width: 16 },
+          { header: "Hidden Passed", key: "hidPassed", width: 14 },
+          { header: "Hidden Total", key: "hidTotal", width: 14 },
+          { header: "Timestamp", key: "timestamp", width: 22 },
+        ],
+        rawSubs.map((s, i) => {
+          const P = sub.localCell("tsrPassed", i);
+          const T = sub.localCell("tsrTotal", i);
+          const A = sub.localCell("aes", i);
+          const G = sub.localCell("rog", i);
+          const S = sub.localCell("status", i);
+          const countsTsr = typeof s.tsr_passed === "number" && typeof s.tsr_total === "number" && s.tsr_total > 0;
+          const countsRog = typeof s.final_aes === "number" && typeof s.rog === "number" && s.rog > 0;
+          const countsPassed = (typeof s.final_aes === "number" && s.final_aes >= 50) || s.status === "passed";
+          return {
+            name: nameByEmail[s.email] || s.email || "Unnamed Profile",
+            email: s.email,
+            module: moduleTitle(s.moduleId),
+            activity: s.activityId ?? "",
+            type: s.type ?? "",
+            status: s.status ?? "",
+            unchanged: s.code_unchanged ? "Yes" : "No",
+            tsrPassed: s.tsr_passed ?? "",
+            tsrTotal: s.tsr_total ?? "",
+            // This submission's own Task Success Rate. Blank -- and so
+            // skipped by every AVERAGEIF above -- when it has no scored
+            // tests, which is exactly when the backend skips it too.
+            tsr: {
+              formula: `IF(AND(ISNUMBER(${P}),ISNUMBER(${T}),${T}>0),${P}/${T}*100,"")`,
+              result: countsTsr ? (s.tsr_passed / s.tsr_total) * 100 : "",
+            },
+            aes: s.final_aes ?? "",
+            rog: s.rog ?? "",
+            // ROG only counts as a refactoring gain when the activity was
+            // actually evaluated (an AES exists) and the gain is positive.
+            rogCounted: {
+              formula: `IF(AND(ISNUMBER(${A}),ISNUMBER(${G}),${G}>0),${G},"")`,
+              result: countsRog ? s.rog : "",
+            },
+            // The backend's pass rule, written out: AES >= 50, or the
+            // submission was explicitly marked passed.
+            countedPassed: {
+              formula: `IF(OR(AND(ISNUMBER(${A}),${A}>=50),${S}="passed"),1,0)`,
+              result: countsPassed ? 1 : 0,
+            },
+            funcPassed: s.functional_passed ?? 0,
+            funcTotal: s.functional_total ?? 0,
+            compPassed: s.complexity_passed ?? 0,
+            compTotal: s.complexity_total ?? 0,
+            hidPassed: s.hidden_passed ?? 0,
+            hidTotal: s.hidden_total ?? 0,
+            timestamp: s.timestamp ?? "",
+          };
+        }),
+        { headerColor: "5A1398" }
+      );
+    }
 
     // ----- Learning Impact Model (simple regression) --------------------
     // Added AFTER every existing sheet so the current sheet order is
