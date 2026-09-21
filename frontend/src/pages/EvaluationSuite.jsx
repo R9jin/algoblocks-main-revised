@@ -902,11 +902,15 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     addParagraph(buildBenchmarkNarrative());
     addKeyValueTable([
       ["Algorithms Tested", String(results.totalTested)],
-      ["Overall Time Accuracy", `${((results.timePassed / results.totalTested) * 100).toFixed(1)}% (${results.timePassed}/${results.totalTested})`],
-      ["Overall Space Accuracy", `${((results.spacePassed / results.totalTested) * 100).toFixed(1)}% (${results.spacePassed}/${results.totalTested})`],
+      ["Overall Time Accuracy (TCDA)", `${((results.timePassed / results.totalTested) * 100).toFixed(1)}% (${results.timePassed}/${results.totalTested}, ${results.totalTested - results.timePassed} mismatches)`],
+      ["Time Complexity Error Rate (TCER)", `${(100 - (results.timePassed / results.totalTested) * 100).toFixed(2)}%`],
+      ["Overall Space Accuracy (SCDA)", `${((results.spacePassed / results.totalTested) * 100).toFixed(1)}% (${results.spacePassed}/${results.totalTested}, ${results.totalTested - results.spacePassed} mismatches)`],
+      ["Space Complexity Error Rate (SCER)", `${(100 - (results.spacePassed / results.totalTested) * 100).toFixed(2)}%`],
       ["Statements Verified (Line-Level)", String(results.totalLinesTested)],
       ["Line Time Accuracy", results.totalLinesTested > 0 ? `${results.lineTimeAccuracyRate}% (${results.lineTimePassed}/${results.totalLinesTested})` : "--"],
+      ["Line-Level Time Error Rate", results.totalLinesTested > 0 ? `${(100 - results.lineTimeAccuracyRate).toFixed(2)}%` : "--"],
       ["Line Space Accuracy", results.totalLinesTested > 0 ? `${results.lineSpaceAccuracyRate}% (${results.lineSpacePassed}/${results.totalLinesTested})` : "--"],
+      ["Line-Level Space Error Rate", results.totalLinesTested > 0 ? `${(100 - results.lineSpaceAccuracyRate).toFixed(2)}%` : "--"],
       ...(results.efficiency ? [
         ["Total Execution Time", `${results.efficiency.totalExecutionSec}s`],
         ["Throughput", `${results.efficiency.throughputAlgos} algos/s \u00b7 ${results.efficiency.throughputLines} lines/s`],
@@ -1281,9 +1285,13 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         rows: [
           ["Algorithms Tested", "tested"],
           ["Algorithms with Correct Time", "timePassed"],
-          ["Overall Time Accuracy", "timeAcc"],
+          ["Time Mismatches", "timeMismatch"],
+          ["Overall Time Accuracy (Time Complexity Detection Accuracy)", "timeAcc"],
+          ["Time Complexity Error Rate (TCER)", "timeErr"],
           ["Algorithms with Correct Space", "spacePassed"],
-          ["Overall Space Accuracy", "spaceAcc"],
+          ["Space Mismatches", "spaceMismatch"],
+          ["Overall Space Accuracy (Space Complexity Detection Accuracy)", "spaceAcc"],
+          ["Space Complexity Error Rate (SCER)", "spaceErr"],
           ["Algorithms Correct on Both", "bothPassed"],
           ["Overall Pass Rate (Time & Space)", "bothAcc"],
         ],
@@ -1294,8 +1302,10 @@ export default function EvaluationSuite({ embedded = false } = {}) {
           ["Statements Verified (with ground truth)", "linesTested"],
           ["Statements with Correct Time", "lineTimePassed"],
           ["Line Time Accuracy", "lineTimeAcc"],
+          ["Line-Level Time Error Rate", "lineTimeErr"],
           ["Statements with Correct Space", "lineSpacePassed"],
           ["Line Space Accuracy", "lineSpaceAcc"],
+          ["Line-Level Space Error Rate", "lineSpaceErr"],
         ] : [["Statements Verified (with ground truth)", "linesNone"]],
       },
       ...(eff ? [{
@@ -1335,16 +1345,37 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
       tested: { formula: algo.count("id"), result: details.length },
       timePassed: { formula: `COUNTIF(${timeCorrectR},"Yes")`, result: results.timePassed },
+      timeMismatch: {
+        formula: `COUNTIF(${timeCorrectR},"No")`,
+        result: results.totalTested - results.timePassed,
+      },
       timeAcc: {
         formula: `IF(${at("tested")}=0,0,${at("timePassed")}/${at("tested")})`,
         numFmt: "0.0%",
         result: safeDiv(results.timePassed, results.totalTested),
       },
+      // TCER = 100% - TCDA, computed off this sheet's own accuracy cell so
+      // it can never drift out of step with it.
+      timeErr: {
+        formula: `1-${at("timeAcc")}`,
+        numFmt: "0.0%",
+        result: 1 - safeDiv(results.timePassed, results.totalTested),
+      },
       spacePassed: { formula: `COUNTIF(${spaceCorrectR},"Yes")`, result: results.spacePassed },
+      spaceMismatch: {
+        formula: `COUNTIF(${spaceCorrectR},"No")`,
+        result: results.totalTested - results.spacePassed,
+      },
       spaceAcc: {
         formula: `IF(${at("tested")}=0,0,${at("spacePassed")}/${at("tested")})`,
         numFmt: "0.0%",
         result: safeDiv(results.spacePassed, results.totalTested),
+      },
+      // SCER = 100% - SCDA
+      spaceErr: {
+        formula: `1-${at("spaceAcc")}`,
+        numFmt: "0.0%",
+        result: 1 - safeDiv(results.spacePassed, results.totalTested),
       },
       bothPassed: { formula: `COUNTIF(${overallR},"Pass")`, result: results.perfectPassed ?? 0 },
       bothAcc: {
@@ -1364,6 +1395,11 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         numFmt: "0.0%",
         result: safeDiv(results.lineTimePassed ?? 0, results.totalLinesTested ?? 0),
       },
+      lineTimeErr: {
+        formula: `1-${at("lineTimeAcc")}`,
+        numFmt: "0.0%",
+        result: 1 - safeDiv(results.lineTimePassed ?? 0, results.totalLinesTested ?? 0),
+      },
       lineSpacePassed: {
         formula: `COUNTIFS(${gtR},"Yes",${lineSpaceR},"Yes")`,
         result: results.lineSpacePassed ?? 0,
@@ -1372,6 +1408,11 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         formula: `IF(${at("linesTested")}=0,0,${at("lineSpacePassed")}/${at("linesTested")})`,
         numFmt: "0.0%",
         result: safeDiv(results.lineSpacePassed ?? 0, results.totalLinesTested ?? 0),
+      },
+      lineSpaceErr: {
+        formula: `1-${at("lineSpaceAcc")}`,
+        numFmt: "0.0%",
+        result: 1 - safeDiv(results.lineSpacePassed ?? 0, results.totalLinesTested ?? 0),
       },
 
       // Raw measurements of the run itself -- no cell range exists to
