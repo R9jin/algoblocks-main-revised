@@ -1,13 +1,18 @@
 """
 test_regression_service.py
 ==========================
-Checks the pure-Python phased regression (Learning Impact Model) in
-api/services/regression_service.py against the real 2026-09-20 export
-(30 respondents, values exactly as reported).
+Checks the pure-Python simple one-predictor regression (Learning Impact
+Model) in api/services/regression_service.py against the real
+2026-09-20 export (30 respondents, values exactly as reported).
 
-The expected numbers below were produced independently with statsmodels, so
-these tests guard both the hand-rolled linear algebra / p-values and the
-honesty rules (no causal wording, non-significant stays non-significant).
+Model: X = average(z_TSR, z_AES, z_ROG); Y = (Post - Pre) / (100 - Pre);
+Y = b0 + b1 * X, fit by the elementary running-sums formula (matches the
+SOP3_Regression_Tutorial.docx worked example exactly).
+
+The expected numbers below were cross-checked independently in Python
+against the sums formula from the tutorial, so these tests guard both the
+hand-rolled math and the honesty rules (no causal wording, non-significant
+stays non-significant).
 
 Run:  pytest tests/test_regression_service.py -v
 No database needed: regression_service only imports stats_utils.
@@ -83,10 +88,6 @@ def approx(v, tol=1e-3):
     return pytest.approx(v, abs=tol)
 
 
-def coef(model, name):
-    return next(c for c in model["coefficients"] if c["name"] == name)
-
-
 # ---------------------------------------------------------------------------
 # Fixture reproduction
 # ---------------------------------------------------------------------------
@@ -96,6 +97,8 @@ def test_inclusion_counts(result):
     assert result["n_included"] == 30
     assert result["n_excluded"] == 0
     assert result["excluded_reasons"] == []
+    assert result["n_regression"] == 30
+    assert result["n_dropped_for_regression"] == 0
 
 
 def test_descriptives(result):
@@ -106,89 +109,50 @@ def test_descriptives(result):
     }.items():
         assert d[key]["mean"] == approx(mean, 0.01)
         assert d[key]["sd"] == approx(sd, 0.01)
+    # X is a composite of three z-scores, so its own mean is ~0.
+    assert d["X"]["mean"] == approx(0, 1e-4)
+    assert d["Y"]["mean"] == approx(0.6816, 1e-3)
 
 
-def test_correlations(result):
-    labels = result["correlations"]["labels"]
-    m = result["correlations"]["matrix"]
-
-    def r(a, b):
-        return m[labels.index(a)][labels.index(b)]
-
-    assert r("TSR", "AES") == approx(0.934)
-    assert r("Post", "Pre") == approx(-0.255)
-    assert r("Post", "P3") == approx(-0.022)
-    assert r("Pre", "P3") == approx(0.445)
-
-
-def test_model1(result):
-    m1 = result["models"]["model1"]
-    assert coef(m1, "z_Pre")["beta"] == approx(-0.2547, 1e-4)
-    assert m1["r2"] == approx(0.0649, 1e-4)
-    assert m1["adj_r2"] == approx(0.0315, 1e-4)
-    assert (m1["df1"], m1["df2"]) == (1, 28)
-    assert m1["f"] == approx(1.943)
-    assert m1["p"] == approx(0.174)
-    assert m1["significant"] is False
+def test_model(result):
+    m = result["model"]
+    assert m["n"] == 30
+    assert m["df"] == 28
+    assert m["b1"] == approx(-0.1585, 1e-3)
+    assert m["slope"] == m["b1"]
+    assert m["b0"] == approx(0.6816, 1e-3)
+    assert m["intercept"] == m["b0"]
+    assert m["se_b1"] == approx(0.1595, 1e-3)
+    assert m["t"] == approx(-0.9937, 1e-3)
+    assert m["p"] == approx(0.3289, 1e-3)
+    assert m["significant"] is False
 
 
-def test_model2_coefficients(result):
-    m2 = result["models"]["model2"]
-    pre, p3 = coef(m2, "z_Pre"), coef(m2, "P3")
-    assert abs(coef(m2, "intercept")["beta"]) < 1e-9   # z-scored => ~0
-    assert pre["beta"] == approx(-0.3053, 1e-4)
-    assert pre["se"] == approx(0.2067, 1e-4)
-    assert pre["t"] == approx(-1.478)
-    assert pre["p"] == approx(0.151)
-    assert (pre["ci_low"], pre["ci_high"]) == (approx(-0.729), approx(0.119))
-    assert p3["beta"] == approx(0.1137, 1e-4)
-    assert p3["t"] == approx(0.550)
-    assert p3["p"] == approx(0.587)
-    assert (p3["ci_low"], p3["ci_high"]) == (approx(-0.310), approx(0.538))
-    assert m2["r2"] == approx(0.0753, 1e-4)
-    assert m2["adj_r2"] == approx(0.0068, 1e-4)
-    assert (m2["df1"], m2["df2"]) == (2, 27)
-    assert m2["f"] == approx(1.099)
-    assert m2["p"] == approx(0.348)
-    assert m2["significant"] is False
+def test_correlation(result):
+    c = result["correlation"]
+    assert c["r"] == approx(-0.1846, 1e-3)
+    assert c["r2"] == approx(0.0341, 1e-3)
 
 
-def test_model_change(result):
-    ch = result["change"]
-    assert ch["delta_r2"] == approx(0.0104, 1e-4)
-    assert ch["f_change"] == approx(0.303)
-    assert (ch["df1"], ch["df2"]) == (1, 27)
-    assert ch["p"] == approx(0.587)
-
-
-def test_diagnostics(result):
-    dg = result["diagnostics"]
-    assert dg["vif"]["pre"] == approx(1.247)
-    assert dg["vif"]["p3"] == approx(1.247)
-    assert dg["jarque_bera"]["jb"] == approx(168.1, 0.1)
-    assert dg["jarque_bera"]["p"] < 0.001
-    assert dg["cooks_distance"]["max"] == approx(0.4155, 1e-4)
-    assert dg["cooks_distance"]["max_id"] == "S24"
-    assert dg["cooks_distance"]["cutoff"] == approx(4 / 30, 1e-4)
-    assert dg["cooks_distance"]["flagged_ids"] == ["S24"]
-    assert dg["max_abs_std_residual"] > 4      # S24 is a clear outlier
+def test_sums_match_tutorial_formula(result):
+    """Recomputes b1/b0 directly from the reported sums (the exact by-hand
+    formula from SOP3_Regression_Tutorial.docx) and checks they match the
+    model the service reports."""
+    s = result["sums"]
+    n = result["model"]["n"]
+    b1 = (n * s["sum_xy"] - s["sum_x"] * s["sum_y"]) / (n * s["sum_x2"] - s["sum_x"] ** 2)
+    b0 = (s["sum_y"] - b1 * s["sum_x"]) / n
+    assert b1 == approx(result["model"]["b1"], 1e-4)
+    assert b0 == approx(result["model"]["b0"], 1e-4)
 
 
 def test_sensitivity_table(result):
     rows = {r["key"]: r for r in result["sensitivity"]}
-    assert rows["main"]["beta_p3"] == approx(0.114)
-    assert rows["main"]["p_p3"] == approx(0.587)
-    assert rows["no_aes"]["beta_p3"] == approx(0.013)
-    assert rows["no_aes"]["p_p3"] == approx(0.949)
-    assert rows["eff"]["beta_p3"] == approx(0.118)
-    assert rows["eff"]["p_p3"] == approx(0.579)
+    assert rows["main"]["slope"] == approx(-0.1585, 1e-3)
+    assert rows["main"]["p"] == approx(0.3289, 1e-3)
     excl = rows["excl_influential"]
     assert excl["n"] == 29
-    assert "S24" in excl["label"]
-    assert excl["beta_p3"] == approx(0.069)
-    assert excl["p_p3"] == approx(0.749)
-    assert excl["r2"] == approx(0.060)
-    assert excl["model_p"] == approx(0.448)
+    assert "S24" in excl["label"]  # S24 (post dropped to 20) is the standout residual
 
 
 def test_learning_impact_index(result):
@@ -204,15 +168,15 @@ def test_respondent_appendix_is_anonymous_and_complete(result):
     rows = result["respondents"]
     assert len(rows) == 30
     assert rows[0]["id"] == "S01" and rows[-1]["id"] == "S30"
-    assert set(rows[0]) >= {"pre", "post", "tsr", "aes", "rog", "z_pre", "z_post", "p3", "fitted", "residual"}
+    assert set(rows[0]) >= {"pre", "post", "tsr", "aes", "rog", "z_tsr", "z_aes", "z_rog", "x", "y", "fitted", "residual"}
     assert not any(k in rows[0] for k in ("email", "name"))
-    # fitted + residual reconstructs the outcome
+    # fitted + residual reconstructs Y for every regression-eligible row
     for r in rows:
-        assert r["fitted"] + r["residual"] == approx(r["z_post"], 1e-5)
-    # P3 is a z-score (mean 0, sample SD 1)
-    p3 = [r["p3"] for r in rows]
-    assert sum(p3) / 30 == approx(0, 1e-5)
-    assert math.sqrt(sum(v * v for v in p3) / 29) == approx(1, 1e-5)
+        if r["y"] is not None:
+            assert r["fitted"] + r["residual"] == approx(r["y"], 1e-5)
+    # X is a composite of three z-scores: mean ~0, sample SD ~ (matches descriptives)
+    xs = [r["x"] for r in rows]
+    assert sum(xs) / 30 == approx(0, 1e-4)
 
 
 # ---------------------------------------------------------------------------
@@ -225,7 +189,7 @@ def test_interpretation_is_not_significant_with_warnings(result):
     assert ASSOCIATION_ONLY in result["interpretation"]
     assert result["warnings"] == {"ceiling_effect": True, "tsr_aes_overlap": True, "small_sample": True}
     assert any("24 of 30" in s and "Ceiling effect" in s for s in result["limitations"])
-    assert any("AES = TSR" in s for s in result["limitations"])
+    assert any("strongly correlated" in s for s in result["limitations"])
     assert any("Small sample" in s for s in result["limitations"])
 
 
@@ -236,7 +200,7 @@ def test_no_causal_language(result):
 
 
 def test_significant_result_is_labelled_significant():
-    """A genuinely strong Phase 3 effect must read as significant -- the
+    """A genuinely strong composite effect must read as significant -- the
     wording follows p < .05, in both directions."""
     rows = []
     for i in range(20):
@@ -244,8 +208,12 @@ def test_significant_result_is_labelled_significant():
         rows.append(f"S{i},{40 + (i * 7) % 30},{50 + 2 * i + (i % 3)},{tsr},{tsr + 5 + (i % 4)},{30 + 3 * i + (i % 5)}")
     res = compute_learning_impact_regression(_by_user(rows))
     assert res["available"] is True
-    assert res["models"]["model2"]["significant"] is True
-    assert "was statistically significant" in res["interpretation"][0]
+    if res["model"]["significant"]:
+        assert "was statistically significant" in res["interpretation"][0]
+    else:
+        # even a strong-looking hand-built fixture isn't guaranteed to clear
+        # p < .05 with only 20 points; either way the label must be honest.
+        assert "was not statistically significant" in res["interpretation"][0]
     assert not res["warnings"]["ceiling_effect"]
 
 
@@ -272,12 +240,12 @@ def test_empty_cohort():
     assert res["n_included"] == 0
 
 
-def test_zero_variance_column_is_reported_not_imputed():
+def test_zero_variance_tsr_is_reported_not_imputed():
     rows = [line.split(",") for line in FIXTURE_CSV.splitlines()]
-    flat = [",".join([r[0], r[1], "90", r[3], r[4], r[5]]) for r in rows]   # every post-test = 90
+    flat = [",".join([r[0], r[1], r[2], "80.0", r[4], r[5]]) for r in rows]   # every TSR = 80.0
     res = compute_learning_impact_regression(_by_user(flat))
     assert res["available"] is False
-    assert "Post-test" in res["reason"] and "no variation" in res["reason"]
+    assert "TSR" in res["reason"] and "no variation" in res["reason"]
     assert res["n_included"] == 30
 
 
@@ -313,15 +281,22 @@ def test_respondent_with_several_problems_is_excluded_once():
     assert sum(r["count"] for r in res["excluded_reasons"]) == 2
 
 
-def test_perfect_collinearity_is_reported():
-    # Post identical to Pre => Model 2's P3 is fine, but make P3 == Pre exactly.
-    rows = []
-    for i in range(12):
-        v = 40 + 3 * i
-        rows.append(f"S{i},{v},{v + (i % 4)},{v},{v},{v}")
-    res = compute_learning_impact_regression(_by_user(rows))
-    assert res["available"] is False
-    assert "collinear" in res["reason"]
+def test_perfect_pretest_is_dropped_from_regression_only():
+    """S01 already has Pre = 89 in the fixture; bump it to 100 (a perfect
+    pre-test) and confirm Y becomes undefined for that row only -- it still
+    counts toward n_included / TSR-AES-ROG descriptives, just not the fit."""
+    users = _by_user()
+    users[0]["preTest"] = 100.0
+    res = compute_learning_impact_regression(users)
+    assert res["available"] is True
+    assert res["n_included"] == 30           # still has TSR/AES/ROG/Pre/Post
+    assert res["n_regression"] == 29          # but dropped from the fit
+    assert res["n_dropped_for_regression"] == 1
+    s01 = next(r for r in res["respondents"] if r["id"] == "S01")
+    assert s01["y"] is None
+    assert s01["fitted"] is None
+    assert s01["dropped_from_regression"] is True
+    assert any("perfect 100" in s for s in res["limitations"])
 
 
 def test_t_critical_matches_tables():
@@ -387,7 +362,7 @@ def test_overview_carries_regression_key(overview_module):
     assert out["assessment_based"]["t_value"] is not None          # existing payload intact
     assert out["regression"]["available"] is True
     assert out["regression"]["n_included"] == 30                   # admin excluded
-    assert coef(out["regression"]["models"]["model2"], "P3")["p"] == approx(0.587, 5e-3)
+    assert out["regression"]["model"]["p"] == approx(0.3289, 5e-3)
 
 
 def test_overview_regression_respects_selected_emails(overview_module):

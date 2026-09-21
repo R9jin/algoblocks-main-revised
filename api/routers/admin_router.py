@@ -256,12 +256,13 @@ def get_analytics_overview(
         Normalized Learning Gain (g) -- exactly as defined in the study's
         Statistical Treatment of Data section.
 
-      - Learning Impact Model: a `regression` key with the phased
-        (hierarchical) regression of post-test on pre-test and a Phase 3
-        composite of TSR/AES/ROG, plus diagnostics, sensitivity runs and the
-        proposed Learning Impact Index. Added key only -- every existing key
-        is unchanged. When it cannot be fitted it is
-        {"available": false, "reason": ...} rather than an error.
+      - Learning Impact Model: a `regression` key with the simple
+        one-predictor regression of normalized learning gain (Y) on a
+        "System Interaction" composite of TSR/AES/ROG (X), plus a
+        sensitivity check and the proposed Learning Impact Index. Added
+        key only -- every existing key is unchanged. When it cannot be
+        fitted it is {"available": false, "reason": ...} rather than an
+        error.
 
     Administrator accounts are always excluded from these computations.
 

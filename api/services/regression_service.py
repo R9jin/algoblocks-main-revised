@@ -1,34 +1,50 @@
 # api/services/regression_service.py
 """
-Phased (hierarchical) regression -- the "Learning Impact Model" for SOP 3.
+Simple one-predictor regression -- the "Learning Impact Model" for SOP 3.
 
-Phases of the study
+This is deliberately the small model the adviser asked for in the
+consultation, NOT a hierarchical / multi-predictor design:
+
+  X (independent variable) = "System Interaction"
+      TSR, AES, and ROG are each standardized (z-score, sample SD, n - 1)
+      across every included respondent, then the three z-scores are
+      averaged into one composite per respondent.
+
+  Y (dependent variable) = "Normalized Learning Gain" (Hake's g)
+      Y_i = (Post_i - Pre_i) / (100 - Pre_i)
+      Undefined when Pre_i = 100 (a perfect pre-test score); that
+      respondent's row is dropped from the regression only, and the drop
+      is reported, not silently absorbed.
+
+  Model: Y = b0 + b1 * X, fit with the elementary running-sums formula
+  (n, SigmaX, SigmaY, SigmaXY, SigmaX^2) -- the same one used by hand in
+  the SOP 3 tutorial, so the JSON payload and a by-hand check always land
+  on the same numbers.
+
+Phases of the study (kept only as a static legend for the UI/report; the
+model itself no longer needs the phase structure to explain itself):
   1 = pre-test
-  2 = in-app interaction (the treatment; not scored, so not in the model)
-  3 = in-app performance (TSR, AES, ROG)
-  4 = post-test
+  2 = in-app interaction (the treatment; not scored)
+  3 = in-app performance (TSR, AES, ROG) -- this is where X comes from
+  4 = post-test -- this is where Y comes from
 
-Unit of analysis: ONE ROW PER RESPONDENT (per-student means already produced
-by AdminAnalyticsService.get_cohort_overview -> by_user), never per submission.
+Unit of analysis: ONE ROW PER RESPONDENT (per-student means already
+produced by AdminAnalyticsService.get_cohort_overview -> by_user), never
+per submission.
 
-Model steps (all on z-scored variables, sample SD n-1):
-  Model 1:  z_Post = b0 + b1 * z_Pre + e
-  Model 2:  z_Post = b0 + b1 * z_Pre + b2 * P3 + e
-  where P3 = z( mean(z_TSR, z_AES, z_ROG) ).
+Pure Python. numpy/scipy/statsmodels are deliberately NOT used: this runs
+on a serverless function where bundle size matters, and the p-value
+machinery already exists in stats_utils (regularized incomplete beta).
 
-Everything here is pure Python. numpy/scipy/statsmodels are deliberately NOT
-used: this runs on a serverless function where bundle size matters, and the
-p-value machinery already exists in stats_utils (regularized incomplete beta).
-
-This module reports what the data says and nothing else. There is no option to
-drop cases from the main model; case exclusion exists only as one clearly
-labelled row of the sensitivity table.
+This module reports what the data says and nothing else. There is no
+option to drop cases from the main model; case exclusion exists only as
+one clearly labelled row of the sensitivity table.
 """
 
 import math
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from services.stats_utils import _betai, _t_two_tailed_p
+from services.stats_utils import _t_two_tailed_p
 
 MIN_RESPONDENTS = 8
 ALPHA = 0.05
@@ -39,8 +55,15 @@ OVERLAP_R = 0.80              # |r(TSR, AES)| above this => overlap warning
 
 ASSOCIATION_ONLY = "Regression shows association only; there is no control group."
 
-# Per-respondent number rounding for the payload. Six decimals is far below any
-# reported precision but keeps the JSON small and stable.
+PHASES = [
+    {"phase": 1, "label": "Pre-test"},
+    {"phase": 2, "label": "In-app interaction (treatment, not scored)"},
+    {"phase": 3, "label": "In-app performance (TSR, AES, ROG) -- source of X"},
+    {"phase": 4, "label": "Post-test -- source of Y"},
+]
+
+# Per-respondent number rounding for the payload. Six decimals is far below
+# any reported precision but keeps the JSON small and stable.
 _ROUND = 6
 
 
@@ -72,35 +95,6 @@ def _zscores(xs: List[float], label: str) -> List[float]:
     return [(x - m) / sd for x in xs]
 
 
-def _pearson(xs: List[float], ys: List[float]) -> float:
-    mx, my = _mean(xs), _mean(ys)
-    sxy = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
-    sxx = sum((x - mx) ** 2 for x in xs)
-    syy = sum((y - my) ** 2 for y in ys)
-    if sxx == 0 or syy == 0:
-        raise _Unavailable("A variable has no variation, so a correlation cannot be computed.")
-    return sxy / math.sqrt(sxx * syy)
-
-
-def _invert(matrix: List[List[float]]) -> List[List[float]]:
-    """Gauss-Jordan inverse with partial pivoting."""
-    k = len(matrix)
-    a = [list(row) + [1.0 if i == j else 0.0 for j in range(k)] for i, row in enumerate(matrix)]
-    for col in range(k):
-        pivot = max(range(col, k), key=lambda r: abs(a[r][col]))
-        if abs(a[pivot][col]) < 1e-12:
-            raise _Unavailable("The predictors are perfectly collinear, so the model cannot be estimated.")
-        a[col], a[pivot] = a[pivot], a[col]
-        p = a[col][col]
-        a[col] = [v / p for v in a[col]]
-        for r in range(k):
-            if r != col:
-                f = a[r][col]
-                if f:
-                    a[r] = [rv - f * cv for rv, cv in zip(a[r], a[col])]
-    return [row[k:] for row in a]
-
-
 def _t_critical(df: int, alpha: float = ALPHA) -> float:
     """Two-tailed t critical value by bisection on the existing two-tailed p
     (p falls as |t| grows), so no inverse-t implementation is needed."""
@@ -117,185 +111,6 @@ def _t_critical(df: int, alpha: float = ALPHA) -> float:
     return (lo + hi) / 2.0
 
 
-def _f_p_value(f: float, df1: int, df2: int) -> Optional[float]:
-    if f is None or df1 <= 0 or df2 <= 0 or f < 0:
-        return None
-    return _betai(df2 / 2.0, df1 / 2.0, df2 / (df2 + df1 * f))
-
-
-# ---------------------------------------------------------------------------
-# OLS (general k predictors, with intercept)
-# ---------------------------------------------------------------------------
-
-def _ols(y: List[float], predictors: List[List[float]], names: List[str]) -> Dict[str, Any]:
-    n = len(y)
-    k = len(predictors)
-    df2 = n - k - 1
-    if df2 < 1:
-        raise _Unavailable("Not enough respondents for the number of predictors.")
-
-    rows = [[1.0] + [predictors[j][i] for j in range(k)] for i in range(n)]
-    p = k + 1
-    xtx = [[sum(rows[i][a] * rows[i][b] for i in range(n)) for b in range(p)] for a in range(p)]
-    xty = [sum(rows[i][a] * y[i] for i in range(n)) for a in range(p)]
-    inv = _invert(xtx)
-    coef = [sum(inv[a][b] * xty[b] for b in range(p)) for a in range(p)]
-
-    fitted = [sum(coef[a] * rows[i][a] for a in range(p)) for i in range(n)]
-    resid = [y[i] - fitted[i] for i in range(n)]
-    sse = sum(e * e for e in resid)
-    my = _mean(y)
-    sst = sum((v - my) ** 2 for v in y)
-    if sst == 0:
-        raise _Unavailable("The outcome has no variation.")
-
-    s2 = sse / df2
-    r2 = 1.0 - sse / sst
-    adj_r2 = 1.0 - (1.0 - r2) * (n - 1) / df2
-    f_stat = (r2 / k) / ((1.0 - r2) / df2) if r2 < 1.0 else float("inf")
-    f_p = _f_p_value(f_stat, k, df2) if math.isfinite(f_stat) else 0.0
-
-    t_crit = _t_critical(df2)
-    coefficients = []
-    for a, name in enumerate(["intercept"] + names):
-        se = math.sqrt(max(s2 * inv[a][a], 0.0))
-        t = coef[a] / se if se > 0 else None
-        pv = _t_two_tailed_p(t, df2) if t is not None else None
-        coefficients.append({
-            "name": name,
-            "beta": coef[a],
-            "se": se,
-            "t": t,
-            "p": pv,
-            "ci_low": coef[a] - t_crit * se,
-            "ci_high": coef[a] + t_crit * se,
-        })
-
-    # Leverage h_ii = x_i' (X'X)^-1 x_i, needed for Cook's D / studentized residuals.
-    leverage = [
-        sum(rows[i][a] * sum(inv[a][b] * rows[i][b] for b in range(p)) for a in range(p))
-        for i in range(n)
-    ]
-
-    return {
-        "n": n, "k": k, "df1": k, "df2": df2,
-        "coefficients": coefficients,
-        "r2": r2, "adj_r2": adj_r2,
-        "f": f_stat, "f_p": f_p,
-        "sse": sse, "s2": s2,
-        "fitted": fitted, "residuals": resid, "leverage": leverage,
-        "n_params": p,
-    }
-
-
-def _model_summary(fit: Dict[str, Any]) -> Dict[str, Any]:
-    return {
-        "n": fit["n"],
-        "predictors": [c["name"] for c in fit["coefficients"][1:]],
-        "coefficients": fit["coefficients"],
-        "r2": fit["r2"],
-        "adj_r2": fit["adj_r2"],
-        "f": fit["f"],
-        "df1": fit["df1"],
-        "df2": fit["df2"],
-        "p": fit["f_p"],
-        "significant": bool(fit["f_p"] is not None and fit["f_p"] < ALPHA),
-    }
-
-
-def _coef(fit: Dict[str, Any], name: str) -> Dict[str, Any]:
-    return next(c for c in fit["coefficients"] if c["name"] == name)
-
-
-# ---------------------------------------------------------------------------
-# Core pipeline: raw rows -> z-scores -> P3 -> Model 1 / Model 2
-# ---------------------------------------------------------------------------
-
-def _composite(components: List[List[float]]) -> Tuple[List[float], List[float]]:
-    """mean of the component z-scores, then z-scored again (sample SD)."""
-    n = len(components[0])
-    raw = [_mean([c[i] for c in components]) for i in range(n)]
-    return raw, _zscores(raw, "The Phase 3 composite")
-
-
-def _fit_pipeline(rows: List[Dict[str, float]], variant: str = "main") -> Dict[str, Any]:
-    """Runs the full standardize -> composite -> Model 1 / Model 2 chain.
-
-    variant:
-      main      P3 from TSR, AES, ROG
-      no_aes    P3 from TSR, ROG (AES contains TSR, so this drops the overlap)
-      eff       P3 from TSR, Efficiency (= AES / TSR), ROG
-    """
-    pre = [r["pre"] for r in rows]
-    post = [r["post"] for r in rows]
-    tsr = [r["tsr"] for r in rows]
-    aes = [r["aes"] for r in rows]
-    rog = [r["rog"] for r in rows]
-
-    z_pre = _zscores(pre, "Pre-test")
-    z_post = _zscores(post, "Post-test")
-    z_tsr = _zscores(tsr, "TSR")
-    z_aes = _zscores(aes, "AES")
-    z_rog = _zscores(rog, "ROG")
-
-    if variant == "main":
-        components = [z_tsr, z_aes, z_rog]
-    elif variant == "no_aes":
-        components = [z_tsr, z_rog]
-    elif variant == "eff":
-        # A respondent with TSR = 0 would make the ratio undefined; TSR is a
-        # mean of pass rates so that is not expected, but never divide blindly.
-        if any(t == 0 for t in tsr):
-            raise _Unavailable("Efficiency (AES / TSR) is undefined when TSR is 0.")
-        z_eff = _zscores([a / t for a, t in zip(aes, tsr)], "Efficiency (AES / TSR)")
-        components = [z_tsr, z_eff, z_rog]
-    else:  # pragma: no cover - internal misuse
-        raise ValueError(variant)
-
-    p3_raw, p3 = _composite(components)
-    m1 = _ols(z_post, [z_pre], ["z_Pre"])
-    m2 = _ols(z_post, [z_pre, p3], ["z_Pre", "P3"])
-    return {
-        "z_pre": z_pre, "z_post": z_post, "z_tsr": z_tsr, "z_aes": z_aes, "z_rog": z_rog,
-        "p3_raw": p3_raw, "p3": p3, "m1": m1, "m2": m2,
-    }
-
-
-def _skew_kurt(resid: List[float]) -> Tuple[float, float]:
-    n = len(resid)
-    m = _mean(resid)
-    m2 = sum((e - m) ** 2 for e in resid) / n
-    if m2 == 0:
-        return 0.0, 0.0
-    m3 = sum((e - m) ** 3 for e in resid) / n
-    m4 = sum((e - m) ** 4 for e in resid) / n
-    return m3 / m2 ** 1.5, m4 / m2 ** 2 - 3.0
-
-
-def _cooks_distance(fit: Dict[str, Any]) -> List[float]:
-    p = fit["n_params"]
-    s2 = fit["s2"]
-    out = []
-    for e, h in zip(fit["residuals"], fit["leverage"]):
-        denom = p * s2 * (1.0 - h) ** 2
-        out.append((e * e * h) / denom if denom > 0 else 0.0)
-    return out
-
-
-def _sensitivity_row(key: str, label: str, run: Dict[str, Any], n: int) -> Dict[str, Any]:
-    m2 = run["m2"]
-    p3 = _coef(m2, "P3")
-    return {
-        "key": key,
-        "label": label,
-        "n": n,
-        "beta_p3": p3["beta"],
-        "p_p3": p3["p"],
-        "r2": m2["r2"],
-        "model_p": m2["f_p"],
-    }
-
-
 def _fmt_p(p: Optional[float]) -> str:
     if p is None:
         return "p = n/a"
@@ -308,6 +123,129 @@ def _fmt_r2(v: float) -> str:
     """APA style (no leading zero) for quantities bounded by 1, sign kept."""
     text = f"{v:.3f}"
     return text.replace("0.", ".", 1) if abs(v) < 1 else text
+
+
+# ---------------------------------------------------------------------------
+# Simple linear regression by running sums -- Y = b0 + b1 * X
+# ---------------------------------------------------------------------------
+
+def _simple_regression(xs: List[float], ys: List[float]) -> Dict[str, Any]:
+    """
+    Ordinary least squares for ONE predictor, fit exactly the way the SOP 3
+    tutorial does it by hand: build the four running sums, then plug them
+    into the b1/b0/r formulas. No matrix algebra.
+    """
+    n = len(xs)
+    df = n - 2
+    if df < 1:
+        raise _Unavailable("Not enough respondents with a usable pre-test score to fit the regression (need at least 3).")
+
+    sum_x = sum(xs)
+    sum_y = sum(ys)
+    sum_xy = sum(x * y for x, y in zip(xs, ys))
+    sum_x2 = sum(x * x for x in xs)
+    sum_y2 = sum(y * y for y in ys)
+
+    denom = n * sum_x2 - sum_x ** 2
+    if denom == 0:
+        raise _Unavailable("X (the System Interaction composite) has no variation, so the regression cannot be fitted.")
+
+    b1 = (n * sum_xy - sum_x * sum_y) / denom
+    b0 = (sum_y - b1 * sum_x) / n
+
+    fitted = [b0 + b1 * x for x in xs]
+    resid = [y - f for y, f in zip(ys, fitted)]
+    sse = sum(e * e for e in resid)
+    my = _mean(ys)
+    sst = sum((y - my) ** 2 for y in ys)
+    if sst == 0:
+        raise _Unavailable("Y (normalized learning gain) has no variation, so the regression cannot be fitted.")
+
+    r2 = 1.0 - sse / sst
+    r_denom = math.sqrt(max(denom * (n * sum_y2 - sum_y ** 2), 0.0))
+    r = (n * sum_xy - sum_x * sum_y) / r_denom if r_denom > 0 else None
+
+    s2 = sse / df
+    sxx = sum_x2 - (sum_x ** 2) / n
+    se_b1 = math.sqrt(s2 / sxx) if sxx > 0 else None
+    t = (b1 / se_b1) if se_b1 else None
+    p = _t_two_tailed_p(t, df) if t is not None else None
+    t_crit = _t_critical(df)
+    ci_low = b1 - t_crit * se_b1 if se_b1 else None
+    ci_high = b1 + t_crit * se_b1 if se_b1 else None
+
+    return {
+        "n": n, "df": df,
+        "sums": {"sum_x": sum_x, "sum_y": sum_y, "sum_xy": sum_xy, "sum_x2": sum_x2, "sum_y2": sum_y2},
+        "b0": b0, "b1": b1,
+        "se_b1": se_b1, "t": t, "p": p, "ci_low": ci_low, "ci_high": ci_high,
+        "r": r, "r2": r2,
+        "significant": bool(p is not None and p < ALPHA),
+        "fitted": fitted, "residuals": resid,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Core pipeline: raw rows -> z-scores -> X (composite) -> Y (normalized gain)
+# ---------------------------------------------------------------------------
+
+def _fit_pipeline(rows: List[Dict[str, float]]) -> Dict[str, Any]:
+    """
+    rows: every respondent with complete pre/post/tsr/aes/rog (the listwise
+    'included' set). Standardization for X uses ALL of these rows -- the
+    normalization step doesn't care whether Y is defined for a given row.
+    Y (and therefore the regression itself) is computed only for the subset
+    whose pre-test isn't a perfect 100.
+    """
+    tsr = [r["tsr"] for r in rows]
+    aes = [r["aes"] for r in rows]
+    rog = [r["rog"] for r in rows]
+
+    z_tsr = _zscores(tsr, "TSR")
+    z_aes = _zscores(aes, "AES")
+    z_rog = _zscores(rog, "ROG")
+    x_all = [(a + b + c) / 3.0 for a, b, c in zip(z_tsr, z_aes, z_rog)]
+
+    reg_idx = [i for i, r in enumerate(rows) if r["pre"] != 100]
+    dropped_idx = [i for i, r in enumerate(rows) if r["pre"] == 100]
+
+    if len(reg_idx) < 3:
+        raise _Unavailable(
+            "Fewer than 3 respondents have a usable (non-perfect) pre-test score, "
+            "so the normalized gain (Y) can't be regressed."
+        )
+
+    x_reg = [x_all[i] for i in reg_idx]
+    y_reg = [(rows[i]["post"] - rows[i]["pre"]) / (100 - rows[i]["pre"]) for i in reg_idx]
+
+    fit = _simple_regression(x_reg, y_reg)
+
+    fitted_full: List[Optional[float]] = [None] * len(rows)
+    residual_full: List[Optional[float]] = [None] * len(rows)
+    y_full: List[Optional[float]] = [None] * len(rows)
+    for pos, i in enumerate(reg_idx):
+        y_full[i] = y_reg[pos]
+        fitted_full[i] = fit["fitted"][pos]
+        residual_full[i] = fit["residuals"][pos]
+
+    return {
+        "z_tsr": z_tsr, "z_aes": z_aes, "z_rog": z_rog,
+        "x": x_all, "y": y_full,
+        "fitted": fitted_full, "residual": residual_full,
+        "reg_idx": reg_idx, "dropped_idx": dropped_idx,
+        "fit": fit,
+    }
+
+
+def _sensitivity_row(key: str, label: str, x: List[float], y: List[float]) -> Dict[str, Any]:
+    try:
+        fit = _simple_regression(x, y)
+        return {
+            "key": key, "label": label, "n": fit["n"],
+            "slope": fit["b1"], "p": fit["p"], "r2": fit["r2"],
+        }
+    except _Unavailable as exc:
+        return {"key": key, "label": label, "n": len(x), "unavailable": str(exc)}
 
 
 # ---------------------------------------------------------------------------
@@ -381,7 +319,7 @@ def compute_learning_impact_regression(by_user: List[Dict[str, Any]]) -> Dict[st
             "available": False,
             "reason": (
                 f"Only {n} respondent(s) have a pre-test, post-test, TSR, AES and ROG. "
-                f"At least {MIN_RESPONDENTS} are needed to fit the phased regression."
+                f"At least {MIN_RESPONDENTS} are needed to fit the regression."
             ),
             **base,
         }
@@ -394,10 +332,11 @@ def compute_learning_impact_regression(by_user: List[Dict[str, Any]]) -> Dict[st
 
 def _build_payload(rows: List[Dict[str, float]]) -> Dict[str, Any]:
     n = len(rows)
-    main = _fit_pipeline(rows, "main")
-    m1, m2 = main["m1"], main["m2"]
+    pipe = _fit_pipeline(rows)
+    fit = pipe["fit"]
+    ids = [f"S{i + 1:02d}" for i in range(n)]
 
-    # -- descriptives + correlations ------------------------------------------
+    # -- descriptives ------------------------------------------------------------
     series = {
         "TSR": [r["tsr"] for r in rows],
         "AES": [r["aes"] for r in rows],
@@ -406,57 +345,35 @@ def _build_payload(rows: List[Dict[str, float]]) -> Dict[str, Any]:
         "Post": [r["post"] for r in rows],
     }
     descriptives = {k: {"mean": _mean(v), "sd": _sample_sd(v)} for k, v in series.items()}
+    descriptives["X"] = {"mean": _mean(pipe["x"]), "sd": _sample_sd(pipe["x"])}
+    y_values = [v for v in pipe["y"] if v is not None]
+    descriptives["Y"] = {"mean": _mean(y_values), "sd": _sample_sd(y_values)}
 
-    corr_series = dict(series)
-    corr_series["P3"] = main["p3"]
-    labels = ["TSR", "AES", "ROG", "Pre", "Post", "P3"]
-    matrix = [[1.0 if a == b else _pearson(corr_series[a], corr_series[b]) for b in labels] for a in labels]
+    # TSR/AES overlap check reuses a plain Pearson correlation (only place a
+    # correlation is needed now that there is no full correlation matrix).
+    def _pearson(xs: List[float], ys: List[float]) -> Optional[float]:
+        mx, my = _mean(xs), _mean(ys)
+        sxy = sum((a - mx) * (b - my) for a, b in zip(xs, ys))
+        sxx = sum((a - mx) ** 2 for a in xs)
+        syy = sum((b - my) ** 2 for b in ys)
+        return sxy / math.sqrt(sxx * syy) if sxx > 0 and syy > 0 else None
 
-    def r_of(a: str, b: str) -> float:
-        return matrix[labels.index(a)][labels.index(b)]
+    r_tsr_aes = _pearson(series["TSR"], series["AES"])
 
-    # -- model comparison --------------------------------------------------------
-    delta_r2 = m2["r2"] - m1["r2"]
-    df1_change, df2_change = 1, m2["df2"]
-    f_change = (delta_r2 / df1_change) / ((1.0 - m2["r2"]) / df2_change) if m2["r2"] < 1.0 else float("inf")
-    f_change_p = _f_p_value(f_change, df1_change, df2_change) if math.isfinite(f_change) else 0.0
-
-    # -- diagnostics ---------------------------------------------------------------
-    r_pre_p3 = r_of("Pre", "P3")
-    vif = 1.0 / (1.0 - r_pre_p3 ** 2) if abs(r_pre_p3) < 1 else float("inf")
-
-    skew, exkurt = _skew_kurt(m2["residuals"])
-    jb = n / 6.0 * (skew ** 2 + exkurt ** 2 / 4.0)
-    jb_p = math.exp(-jb / 2.0)   # chi-square(2) survival function
-
-    cooks = _cooks_distance(m2)
-    cook_cutoff = 4.0 / n
-    top = max(range(n), key=lambda i: cooks[i])
-    ids = [f"S{i + 1:02d}" for i in range(n)]
-    std_resid = [
-        e / math.sqrt(m2["s2"] * (1.0 - h)) if m2["s2"] * (1.0 - h) > 0 else 0.0
-        for e, h in zip(m2["residuals"], m2["leverage"])
+    # -- sensitivity: main vs excluding the largest-residual respondent -----------
+    reg_idx = pipe["reg_idx"]
+    x_reg = [pipe["x"][i] for i in reg_idx]
+    y_reg = [pipe["y"][i] for i in reg_idx]
+    abs_resid = [abs(e) for e in fit["residuals"]]
+    top_pos = max(range(len(abs_resid)), key=lambda i: abs_resid[i])
+    top_idx = reg_idx[top_pos]
+    excl_label = f"Main model excluding largest-residual respondent ({ids[top_idx]})"
+    x_wo = x_reg[:top_pos] + x_reg[top_pos + 1:]
+    y_wo = y_reg[:top_pos] + y_reg[top_pos + 1:]
+    sensitivity = [
+        {"key": "main", "label": "Main model (X = TSR, AES, ROG composite)", "n": fit["n"], "slope": fit["b1"], "p": fit["p"], "r2": fit["r2"]},
+        _sensitivity_row("excl_influential", excl_label, x_wo, y_wo),
     ]
-
-    # -- sensitivity ------------------------------------------------------------------
-    sensitivity = [_sensitivity_row("main", "Main model (P3 = TSR, AES, ROG)", main, n)]
-    for key, label, variant in (
-        ("no_aes", "TSR + ROG only (AES dropped)", "no_aes"),
-        ("eff", "TSR + Efficiency (AES/TSR) + ROG", "eff"),
-    ):
-        try:
-            sensitivity.append(_sensitivity_row(key, label, _fit_pipeline(rows, variant), n))
-        except _Unavailable as exc:
-            sensitivity.append({"key": key, "label": label, "n": n, "unavailable": str(exc)})
-
-    # Case exclusion lives here ONLY, as a labelled row -- never a switch on
-    # the main model. All variables are re-standardized on the n-1 sample.
-    excl_label = f"Main model excluding most influential respondent ({ids[top]})"
-    try:
-        without = rows[:top] + rows[top + 1:]
-        sensitivity.append(_sensitivity_row("excl_influential", excl_label, _fit_pipeline(without, "main"), n - 1))
-    except _Unavailable as exc:
-        sensitivity.append({"key": "excl_influential", "label": excl_label, "n": n - 1, "unavailable": str(exc)})
 
     # -- Learning Impact Index (descriptive only) ----------------------------------------
     lii = [(r["tsr"] + r["aes"] + r["rog"] + r["post"]) / 4.0 for r in rows]
@@ -467,37 +384,33 @@ def _build_payload(rows: List[Dict[str, float]]) -> Dict[str, Any]:
         respondents.append({
             "id": ids[i],
             "pre": r["pre"], "post": r["post"], "tsr": r["tsr"], "aes": r["aes"], "rog": r["rog"],
-            "z_pre": main["z_pre"][i], "z_post": main["z_post"][i],
-            "z_tsr": main["z_tsr"][i], "z_aes": main["z_aes"][i], "z_rog": main["z_rog"][i],
-            "p3_raw": main["p3_raw"][i], "p3": main["p3"][i],
-            "fitted": m2["fitted"][i], "residual": m2["residuals"][i],
-            "cooks_d": cooks[i], "std_residual": std_resid[i],
+            "z_tsr": pipe["z_tsr"][i], "z_aes": pipe["z_aes"][i], "z_rog": pipe["z_rog"][i],
+            "x": pipe["x"][i], "y": pipe["y"][i],
+            "fitted": pipe["fitted"][i], "residual": pipe["residual"][i],
+            "dropped_from_regression": i in pipe["dropped_idx"],
             "lii": lii[i],
         })
 
     # -- deterministic interpretation ----------------------------------------------------------
-    p3c = _coef(m2, "P3")
     high_post = sum(1 for r in rows if r["post"] >= CEILING_SCORE)
     ceiling = high_post / n >= CEILING_SHARE
-    overlap = abs(r_of("TSR", "AES")) > OVERLAP_R
+    overlap = r_tsr_aes is not None and abs(r_tsr_aes) > OVERLAP_R
 
     def verdict(p: Optional[float]) -> str:
         return "statistically significant" if p is not None and p < ALPHA else "not statistically significant"
 
-    interpretation = [
-        (
-            f"Model 2 (pre-test and Phase 3 composite) was {verdict(m2['f_p'])}, "
-            f"F({m2['df1']}, {m2['df2']}) = {m2['f']:.2f}, {_fmt_p(m2['f_p'])}, "
-            f"R\u00b2 = {_fmt_r2(m2['r2'])}, adjusted R\u00b2 = {_fmt_r2(m2['adj_r2'])}."
-        ),
-        (
-            f"The Phase 3 composite (TSR, AES, ROG) was {verdict(p3c['p'])} as a predictor of post-test score "
-            f"(\u03b2 = {p3c['beta']:.3f}, {_fmt_p(p3c['p'])}); adding it to the pre-test model changed R\u00b2 by "
-            f"{delta_r2:.3f} (F-change({df1_change}, {df2_change}) = {f_change:.2f}, {_fmt_p(f_change_p)}), "
-            f"which was {verdict(f_change_p)}."
-        ),
-        ASSOCIATION_ONLY,
-    ]
+    line1 = (
+        f"The System Interaction composite (X, from TSR, AES, and ROG) was {verdict(fit['p'])} as a predictor "
+        f"of normalized learning gain (Y): b1 = {fit['b1']:.3f} ({_fmt_p(fit['p'])})"
+        + (f", t({fit['df']}) = {fit['t']:.3f}" if fit["t"] is not None else "")
+        + (f", r = {fit['r']:.3f}" if fit["r"] is not None else "")
+        + "."
+    )
+    line2 = (
+        f"The regression line is Y = {fit['b0']:.3f} + ({fit['b1']:.3f})X, and X explains "
+        f"{_fmt_r2(fit['r2'])} of the variance in normalized gain (R\u00b2 = {_fmt_r2(fit['r2'])})."
+    )
+    interpretation = [line1, line2, ASSOCIATION_ONLY]
 
     limitations = []
     if n < SMALL_SAMPLE_N:
@@ -509,49 +422,38 @@ def _build_payload(rows: List[Dict[str, float]]) -> Dict[str, Any]:
         )
     if overlap:
         limitations.append(
-            f"TSR and AES are strongly correlated (r = {r_of('TSR', 'AES'):.2f}) because AES = TSR \u00d7 Efficiency "
-            "contains TSR, so the two overlap and are not independent evidence."
+            f"TSR and AES are strongly correlated (r = {r_tsr_aes:.2f}), so within the X composite they carry "
+            "overlapping, not fully independent, information."
         )
-    if jb_p < ALPHA:
+    if pipe["dropped_idx"]:
+        dropped_ids = ", ".join(ids[i] for i in pipe["dropped_idx"])
         limitations.append(
-            "Residuals depart from normality (Jarque-Bera), so p-values should be read with caution."
-        )
-    if cooks[top] > cook_cutoff:
-        limitations.append(
-            f"{ids[top]} is an influential respondent (Cook's D = {cooks[top]:.3f}, cutoff 4/n = {cook_cutoff:.3f}); "
-            "see the sensitivity table for the model without that respondent."
+            f"{len(pipe['dropped_idx'])} respondent(s) ({dropped_ids}) scored a perfect 100 on the pre-test, "
+            "making normalized gain undefined; they are excluded from the regression only (still shown in the "
+            "appendix and in TSR/AES/ROG descriptives)."
         )
 
     return _round_tree({
-        "phases": [
-            {"phase": 1, "label": "Pre-test"},
-            {"phase": 2, "label": "In-app interaction (treatment, not scored)"},
-            {"phase": 3, "label": "In-app performance (TSR, AES, ROG)"},
-            {"phase": 4, "label": "Post-test"},
-        ],
+        "phases": PHASES,
         "method": {
-            "normalization": "z-scores with sample SD (n-1)",
-            "p3_definition": "P3 = z( mean(z_TSR, z_AES, z_ROG) )",
-            "model_equation": "z_Post = b1 * z_Pre + b2 * P3 + e",
+            "x_definition": "X = average(z_TSR, z_AES, z_ROG) -- \"System Interaction\" composite",
+            "y_definition": "Y = (Post - Pre) / (100 - Pre) -- normalized learning gain (Hake's g)",
+            "normalization": "z-scores with sample SD (n-1), each metric standardized separately across all included respondents",
+            "model_equation": "Y = b0 + b1 * X",
         },
         "descriptives": descriptives,
-        "correlations": {"labels": labels, "matrix": matrix},
-        "models": {"model1": _model_summary(m1), "model2": _model_summary(m2)},
-        "change": {
-            "delta_r2": delta_r2, "f_change": f_change,
-            "df1": df1_change, "df2": df2_change, "p": f_change_p,
+        "n_regression": fit["n"],
+        "n_dropped_for_regression": len(pipe["dropped_idx"]),
+        "model": {
+            "n": fit["n"], "df": fit["df"],
+            "b0": fit["b0"], "b1": fit["b1"],
+            "intercept": fit["b0"], "slope": fit["b1"],
+            "se_b1": fit["se_b1"], "t": fit["t"], "p": fit["p"],
+            "ci_low": fit["ci_low"], "ci_high": fit["ci_high"],
+            "significant": fit["significant"],
         },
-        "diagnostics": {
-            "vif": {"pre": vif, "p3": vif},
-            "jarque_bera": {"jb": jb, "p": jb_p, "skew": skew, "excess_kurtosis": exkurt},
-            "cooks_distance": {
-                "cutoff": cook_cutoff,
-                "max": cooks[top],
-                "max_id": ids[top],
-                "flagged_ids": [ids[i] for i in range(n) if cooks[i] > cook_cutoff],
-            },
-            "max_abs_std_residual": max(abs(v) for v in std_resid),
-        },
+        "correlation": {"r": fit["r"], "r2": fit["r2"]},
+        "sums": fit["sums"],
         "sensitivity": sensitivity,
         "lii": {
             "label": "Learning Impact Index (proposed - pending adviser approval)",

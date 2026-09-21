@@ -1,6 +1,6 @@
 // frontend/src/utils/regressionReport.js
 //
-// Everything the "Learning Impact Model (Phased Regression)" needs on the
+// Everything the "Learning Impact Model (Simple Regression)" needs on the
 // client, kept out of AdminUserManagement.jsx so that file only gains a few
 // call sites:
 //   - number formatting shared by the dashboard, the on-screen report, the PDF
@@ -11,8 +11,11 @@
 //   - addRegressionSheets(): the "Regression Data" / "Regression Summary" sheets
 //
 // All statistics come from the backend's `overview.regression` payload
-// (api/services/regression_service.py). Nothing here re-fits or "improves" the
-// model: the only maths done client-side is drawing a simple least-squares line
+// (api/services/regression_service.py): X = average(z_TSR, z_AES, z_ROG) ---
+// the "System Interaction" composite; Y = (Post - Pre) / (100 - Pre) ---
+// normalized learning gain; Y = b0 + b1 * X, one predictor, fit by the
+// elementary running-sums formula. Nothing here re-fits or "improves" the
+// model: the only maths done client-side is drawing the already-fitted line
 // through the plotted points, and the Excel formulas that let a reader
 // recompute the same numbers.
 
@@ -32,7 +35,7 @@ export const fmtP = (p) => {
   return p.toFixed(3).replace(/^0/, "");
 };
 
-/** APA-style statistic bounded by 1 (R², adjusted R²): ".075", "-.023". */
+/** APA-style statistic bounded by 1 (R², r): ".075", "-.023". */
 export const fmtR2 = (v) => {
   if (v == null || !Number.isFinite(v)) return "--";
   const s = v.toFixed(3);
@@ -41,16 +44,14 @@ export const fmtR2 = (v) => {
 
 export const fmtCi = (lo, hi) => `[${fmtNum(lo)}, ${fmtNum(hi)}]`;
 
-export const fmtF = (f, df1, df2) => `F(${df1}, ${df2}) = ${fmtNum(f, 2)}`;
-
-/** True only when the model's overall F test is significant at alpha = .05. */
+/** True only when the model's slope test is significant at alpha = .05. */
 export const isModelSignificant = (model) =>
-  Boolean(model && model.p != null && model.p < 0.05);
+  Boolean(model && (model.significant === true || (model.p != null && model.p < 0.05)));
 
 // jsPDF's built-in Helvetica is WinAnsi-only: Greek letters and a few
 // math symbols come out as garbage, and the superscript 2 / multiplication
 // sign were observed to render blank. The backend's interpretation strings
-// use them (beta, R\u00b2, TSR \u00d7 Efficiency), so map to plain ASCII first.
+// use them (beta, R\u00b2), so map to plain ASCII first.
 export const pdfSafe = (text) =>
   String(text ?? "")
     .replace(/\u03b2/g, "beta")
@@ -63,60 +64,44 @@ export const pdfSafe = (text) =>
     .replace(/\u2192/g, "->");
 
 // ---------------------------------------------------------------------------
-// Scatter plots: Post vs Pre and Post vs P3 (z-scored, the model's own scale)
+// Scatter plot: Y (normalized gain) vs X (System Interaction composite)
 // ---------------------------------------------------------------------------
 
-/** Simple least-squares line y = intercept + slope * x through the points. */
-export function simpleFit(xs, ys) {
-  const n = xs.length;
-  const mx = xs.reduce((a, b) => a + b, 0) / n;
-  const my = ys.reduce((a, b) => a + b, 0) / n;
-  let sxy = 0;
-  let sxx = 0;
-  for (let i = 0; i < n; i += 1) {
-    sxy += (xs[i] - mx) * (ys[i] - my);
-    sxx += (xs[i] - mx) ** 2;
-  }
-  const slope = sxx === 0 ? 0 : sxy / sxx;
-  return { slope, intercept: my - slope * mx };
-}
-
 /**
- * Builds the two scatter specs. Respondents whose Cook's D exceeds the
- * backend's 4/n cutoff are tagged `influential` so they are visibly marked --
- * hiding them would misrepresent the fit.
+ * Builds the single scatter spec for Y vs X, using the already-fitted line
+ * from the backend (b0, b1) rather than refitting client-side. Respondents
+ * dropped from the regression (perfect 100 pre-test, Y undefined) are left
+ * out of the plot entirely -- there is no Y to place them at. The
+ * "excl_influential" sensitivity row's respondent is tagged so it renders
+ * visibly distinct, since it's the one point a reader is told to check.
  */
-export function buildScatterSpecs(reg) {
-  if (!reg?.available || !reg.respondents?.length) return [];
-  const flagged = new Set(reg.diagnostics?.cooks_distance?.flagged_ids || []);
-  const make = (key, xKey, title, xLabel) => {
-    const points = reg.respondents.map((r) => ({
-      id: r.id,
-      x: r[xKey],
-      y: r.z_post,
-      influential: flagged.has(r.id),
-    }));
-    const fit = simpleFit(points.map((p) => p.x), points.map((p) => p.y));
-    const xs = points.map((p) => p.x);
-    const xMin = Math.min(...xs);
-    const xMax = Math.max(...xs);
-    return {
-      key,
-      title,
-      xLabel,
-      yLabel: "Post-test (z)",
-      points,
-      fit,
-      line: [
-        { x: xMin, y: fit.intercept + fit.slope * xMin },
-        { x: xMax, y: fit.intercept + fit.slope * xMax },
-      ],
-    };
+export function buildScatterSpec(reg) {
+  if (!reg?.available || !reg.respondents?.length) return null;
+  const exclRow = (reg.sensitivity || []).find((s) => s.key === "excl_influential");
+  const exclMatch = exclRow?.label ? exclRow.label.match(/\(([^)]+)\)$/) : null;
+  const flaggedId = exclMatch ? exclMatch[1] : null;
+
+  const points = reg.respondents
+    .filter((r) => r.x != null && r.y != null)
+    .map((r) => ({ id: r.id, x: r.x, y: r.y, influential: r.id === flaggedId }));
+  if (points.length === 0) return null;
+
+  const { b0 = 0, b1 = 0 } = reg.model || {};
+  const xs = points.map((p) => p.x);
+  const xMin = Math.min(...xs);
+  const xMax = Math.max(...xs);
+  return {
+    key: "x_y",
+    title: "Normalized Gain (Y) vs System Interaction (X)",
+    xLabel: "X: System Interaction composite (z)",
+    yLabel: "Y: Normalized learning gain",
+    points,
+    fit: { slope: b1, intercept: b0 },
+    line: [
+      { x: xMin, y: b0 + b1 * xMin },
+      { x: xMax, y: b0 + b1 * xMax },
+    ],
   };
-  return [
-    make("pre", "z_pre", "Post-test vs Pre-test", "Pre-test (z)"),
-    make("p3", "p3", "Post-test vs Phase 3 composite (P3)", "P3 composite (z)"),
-  ];
 }
 
 function niceTicks(min, max, target = 6) {
@@ -133,11 +118,11 @@ function niceTicks(min, max, target = 6) {
 }
 
 /**
- * Draws one scatter + regression line on an offscreen canvas and returns a
+ * Draws the scatter + regression line on an offscreen canvas and returns a
  * PNG data URL. Uses only the 2D canvas API (no DOM chart), so it works while
  * the dashboard chart is unmounted or the report modal is closed.
  */
-export function renderScatterPng(spec, { width = 520, height = 360, scale = 2 } = {}) {
+export function renderScatterPng(spec, { width = 560, height = 380, scale = 2 } = {}) {
   const canvas = document.createElement("canvas");
   canvas.width = width * scale;
   canvas.height = height * scale;
@@ -147,7 +132,7 @@ export function renderScatterPng(spec, { width = 520, height = 360, scale = 2 } 
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, width, height);
 
-  const pad = { left: 56, right: 18, top: 34, bottom: 48 };
+  const pad = { left: 60, right: 18, top: 34, bottom: 48 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
 
@@ -185,7 +170,7 @@ export function renderScatterPng(spec, { width = 520, height = 360, scale = 2 } 
     ctx.moveTo(pad.left, sy(t));
     ctx.lineTo(pad.left + plotW, sy(t));
     ctx.stroke();
-    ctx.fillText(t.toFixed(yt.step < 1 ? 1 : 0), pad.left - 6, sy(t));
+    ctx.fillText(t.toFixed(yt.step < 1 ? 1 : 2), pad.left - 6, sy(t));
   });
 
   // frame
@@ -229,7 +214,7 @@ export function renderScatterPng(spec, { width = 520, height = 360, scale = 2 } 
   ctx.textBaseline = "alphabetic";
   ctx.fillText(spec.xLabel, pad.left + plotW / 2, height - 10);
   ctx.save();
-  ctx.translate(14, pad.top + plotH / 2);
+  ctx.translate(16, pad.top + plotH / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.fillText(spec.yLabel, 0, 0);
   ctx.restore();
@@ -251,7 +236,7 @@ export function renderScatterPng(spec, { width = 520, height = 360, scale = 2 } 
  */
 export function drawRegressionPdfSection(ctx, reg, sectionNumber = 6) {
   const { doc, autoTable, marginX, pageWidth, brandColor, ensureRoom, addHeading, addParagraph, getY, setY } = ctx;
-  const title = `${sectionNumber}. Learning Impact Model (Phased Regression)`;
+  const title = `${sectionNumber}. Learning Impact Model (Simple Regression)`;
   const advance = () => setY(doc.lastAutoTable.finalY + 20);
 
   const addSubheading = (text) => {
@@ -292,84 +277,55 @@ export function drawRegressionPdfSection(ctx, reg, sectionNumber = 6) {
     return;
   }
 
-  const { models, change, diagnostics: dg, sensitivity, lii, method } = reg;
-  const m1 = models.model1;
-  const m2 = models.model2;
+  const { model, correlation, sensitivity, lii, method } = reg;
 
   // -- method ---------------------------------------------------------------
   addParagraph(
     "Phases: 1 = pre-test; 2 = in-app interaction (the treatment, not scored); 3 = in-app performance " +
-    "(TSR, AES, ROG); 4 = post-test. Each respondent contributes one row (per-student means). TSR, AES, ROG, " +
-    "pre-test and post-test are converted to z-scores using the sample standard deviation (n - 1). The Phase 3 " +
-    `composite is ${method.p3_definition} (the mean of the three z-scores, standardized again). ` +
-    `The phased model is ${method.model_equation}; Model 1 contains the pre-test only, Model 2 adds P3.`
+    "(TSR, AES, ROG); 4 = post-test. Each respondent contributes one row (per-student means). " +
+    `X is the independent variable: ${pdfSafe(method.x_definition)}. ` +
+    `Y is the dependent variable: ${pdfSafe(method.y_definition)}. ` +
+    `The model is ${method.model_equation}, fit with the elementary running-sums formula.`
   );
 
   // -- inclusion ------------------------------------------------------------
   const inclusionRows = [
-    ["Respondents included in the model", String(reg.n_included)],
+    ["Respondents with complete pre/post/TSR/AES/ROG", String(reg.n_included)],
     ["Respondents excluded (listwise, nothing imputed)", String(reg.n_excluded)],
   ];
   (reg.excluded_reasons || []).forEach((r) => inclusionRows.push([`  - ${pdfSafe(r.reason)}`, String(r.count)]));
-  table(null, inclusionRows, { columnStyles: { 0: { fontStyle: "bold", cellWidth: 300 } } });
+  if (reg.n_dropped_for_regression > 0) {
+    inclusionRows.push([
+      "  - dropped from the regression only (perfect pre-test, Y undefined)",
+      String(reg.n_dropped_for_regression),
+    ]);
+  }
+  inclusionRows.push(["Respondents in the fitted regression", String(reg.n_regression)]);
+  table(null, inclusionRows, { columnStyles: { 0: { fontStyle: "bold", cellWidth: 320 } } });
 
-  // -- Model 2 coefficients -----------------------------------------------------
-  addSubheading("Model 2 coefficients (z_Post ~ z_Pre + P3)");
+  // -- model ------------------------------------------------------------------
+  addSubheading("Regression: Y = b0 + b1 X");
   table(
-    ["Predictor", "Beta", "SE", "t", "p", "95% CI"],
-    m2.coefficients.map((c) => [
-      c.name === "intercept" ? "Intercept" : c.name === "z_Pre" ? "Pre-test (z)" : "Phase 3 composite (P3)",
-      fmtNum(c.beta),
-      fmtNum(c.se),
-      fmtNum(c.t, 2),
-      fmtP(c.p),
-      fmtCi(c.ci_low, c.ci_high),
-    ])
+    ["b0 (intercept)", "b1 (slope)", "SE(b1)", "t", "p", "95% CI (b1)", "r", "R2"],
+    [[
+      fmtNum(model.b0), fmtNum(model.b1), fmtNum(model.se_b1), fmtNum(model.t, 2), fmtP(model.p),
+      fmtCi(model.ci_low, model.ci_high), fmtNum(correlation.r), fmtR2(correlation.r2),
+    ]]
   );
 
-  // -- Model 1 vs 2 ---------------------------------------------------------------
-  addSubheading("Model 1 vs Model 2");
+  // -- sensitivity ----------------------------------------------------------------
+  addSubheading("Sensitivity check");
   table(
-    ["Model", "R2", "Adj. R2", "F (df)", "p (model)"],
-    [
-      ["1: Pre-test", fmtR2(m1.r2), fmtR2(m1.adj_r2), fmtF(m1.f, m1.df1, m1.df2), fmtP(m1.p)],
-      ["2: Pre-test + P3", fmtR2(m2.r2), fmtR2(m2.adj_r2), fmtF(m2.f, m2.df1, m2.df2), fmtP(m2.p)],
-      [
-        "Change (adding Phase 3)",
-        `Delta R2 = ${fmtR2(change.delta_r2)}`,
-        "",
-        `F-change(${change.df1}, ${change.df2}) = ${fmtNum(change.f_change, 2)}`,
-        fmtP(change.p),
-      ],
-    ]
-  );
-
-  // -- diagnostics + sensitivity ----------------------------------------------------
-  addSubheading("Diagnostics");
-  table(null, [
-    ["VIF (pre-test, P3)", `${fmtNum(dg.vif.pre, 2)}, ${fmtNum(dg.vif.p3, 2)}`],
-    ["Residual normality (Jarque-Bera)", `JB = ${fmtNum(dg.jarque_bera.jb, 1)}, p ${fmtP(dg.jarque_bera.p).startsWith("<") ? fmtP(dg.jarque_bera.p) : `= ${fmtP(dg.jarque_bera.p)}`}`],
-    [
-      "Most influential respondent (Cook's D)",
-      `${dg.cooks_distance.max_id}: D = ${fmtNum(dg.cooks_distance.max)} (cutoff 4/n = ${fmtNum(dg.cooks_distance.cutoff)})`,
-    ],
-    ["Respondents above the Cook's D cutoff", (dg.cooks_distance.flagged_ids || []).join(", ") || "none"],
-    ["Max |standardized residual|", fmtNum(dg.max_abs_std_residual, 2)],
-  ], { columnStyles: { 0: { fontStyle: "bold", cellWidth: 240 } } });
-
-  addSubheading("Sensitivity of the Phase 3 effect");
-  table(
-    ["Specification", "n", "Beta (P3)", "p (P3)", "R2", "p (model)"],
+    ["Specification", "n", "b1 (slope)", "p", "R2"],
     sensitivity.map((s) =>
       s.unavailable
-        ? [pdfSafe(s.label), String(s.n), "n/a", "n/a", "n/a", pdfSafe(s.unavailable)]
-        : [pdfSafe(s.label), String(s.n), fmtNum(s.beta_p3), fmtP(s.p_p3), fmtR2(s.r2), fmtP(s.model_p)]
-    ),
-    { fontSize: 8.5 }
+        ? [pdfSafe(s.label), String(s.n), "n/a", "n/a", pdfSafe(s.unavailable)]
+        : [pdfSafe(s.label), String(s.n), fmtNum(s.slope), fmtP(s.p), fmtR2(s.r2)]
+    )
   );
   addParagraph(
-    "Case exclusion appears only as the last sensitivity row, as a check on how much one respondent matters. " +
-    "It is not applied to the main model."
+    "Case exclusion appears only as the second sensitivity row, as a check on how much one respondent's residual " +
+    "matters. It is not applied to the main model."
   );
 
   // -- interpretation + limitations --------------------------------------------------
@@ -385,33 +341,30 @@ export function drawRegressionPdfSection(ctx, reg, sectionNumber = 6) {
   addParagraph(`${pdfSafe(lii.label)}. ${pdfSafe(lii.formula)}.`);
   table(["Mean", "SD", "Min", "Max"], [[fmtNum(lii.mean, 2), fmtNum(lii.sd, 2), fmtNum(lii.min, 1), fmtNum(lii.max, 1)]]);
 
-  // -- scatter plots ---------------------------------------------------------------------
-  const specs = buildScatterSpecs(reg);
-  if (specs.length > 0) {
-    addSubheading("Scatter plots (z-scores; line = simple least-squares fit; orange = above Cook's D cutoff)");
-    const gap = 12;
-    const imgW = (pageWidth - marginX * 2 - gap) / 2;
-    const imgH = imgW * (360 / 520);
+  // -- scatter plot ---------------------------------------------------------------------
+  const spec = buildScatterSpec(reg);
+  if (spec) {
+    addSubheading("Scatter plot (line = fitted regression; orange = flagged in the sensitivity check)");
+    const imgW = Math.min(pageWidth - marginX * 2, 420);
+    const imgH = imgW * (380 / 560);
     ensureRoom(imgH + 10);
     const top = getY();
-    specs.forEach((spec, i) => {
-      const png = renderScatterPng(spec);
-      // "FAST" makes jsPDF deflate the image stream; uncompressed, the two
-      // 2x canvases alone made the PDF ~4.5 MB.
-      doc.addImage(png, "PNG", marginX + i * (imgW + gap), top, imgW, imgH, undefined, "FAST");
-    });
+    const png = renderScatterPng(spec);
+    // "FAST" makes jsPDF deflate the image stream.
+    doc.addImage(png, "PNG", marginX, top, imgW, imgH, undefined, "FAST");
     setY(top + imgH + 16);
   }
 
   // -- anonymized appendix ----------------------------------------------------------------
   addSubheading("Appendix: per-respondent data (anonymized by row order)");
   table(
-    ["ID", "Pre", "Post", "TSR", "AES", "ROG", "z Pre", "z Post", "z TSR", "z AES", "z ROG", "P3", "Fitted", "Resid."],
+    ["ID", "Pre", "Post", "TSR", "AES", "ROG", "z TSR", "z AES", "z ROG", "X", "Y", "Fitted", "Resid."],
     reg.respondents.map((r) => [
       r.id,
       fmtNum(r.pre, 1), fmtNum(r.post, 1), fmtNum(r.tsr, 1), fmtNum(r.aes, 1), fmtNum(r.rog, 1),
-      fmtNum(r.z_pre, 2), fmtNum(r.z_post, 2), fmtNum(r.z_tsr, 2), fmtNum(r.z_aes, 2), fmtNum(r.z_rog, 2),
-      fmtNum(r.p3, 2), fmtNum(r.fitted, 2), fmtNum(r.residual, 2),
+      fmtNum(r.z_tsr, 2), fmtNum(r.z_aes, 2), fmtNum(r.z_rog, 2),
+      fmtNum(r.x, 2), r.y == null ? "n/a" : fmtNum(r.y, 3),
+      r.fitted == null ? "n/a" : fmtNum(r.fitted, 3), r.residual == null ? "n/a" : fmtNum(r.residual, 3),
     ]),
     { fontSize: 6.5, cellPadding: 2.5 }
   );
@@ -428,13 +381,17 @@ const SUMMARY_SHEET = "Regression Summary";
  * Adds "Regression Data" and "Regression Summary" (in that order, after any
  * sheets already in the workbook). No names or emails: anonymized IDs only.
  *
- * Data sheet: raw numbers as plain values, then z-scores / P3 / LII as REAL
- * formulas. Summary sheet: every statistic is a formula over the data sheet
- * (LINEST / CORREL / F.DIST.RT / T.DIST.2T), with the server-computed value as
- * the cached result so it shows immediately and is recomputed by Excel.
- * Diagnostics that Excel cannot reproduce with one formula (Jarque-Bera,
- * Cook's D, sensitivity runs) and the interpretation text are static,
- * server-computed cells and are labelled that way.
+ * Data sheet: raw numbers as plain values, then z-scores / X / Y / LII as
+ * REAL formulas. Y is left blank for a respondent dropped from the
+ * regression (perfect pre-test), which SLOPE/INTERCEPT/CORREL/RSQ/STEYX all
+ * silently skip -- so the Summary sheet's formulas naturally match the
+ * server's n_regression rather than n_included.
+ *
+ * Summary sheet: every statistic is a formula over the data sheet (SLOPE,
+ * INTERCEPT, CORREL, RSQ, STEYX, T.DIST.2T), with the server-computed value
+ * as the cached result so it shows immediately and is recomputed by Excel.
+ * The sensitivity row and the interpretation text are static, server-
+ * computed cells and are labelled that way.
  *
  * Excel stores post-2007 functions with an `_xlfn.` prefix in the file
  * format; without it Excel shows #NAME? until the cell is re-entered.
@@ -457,7 +414,7 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
   if (!reg || !reg.available) {
     addKeyValueSheet(workbook, SUMMARY_SHEET, [
       {
-        heading: "Learning Impact Model (Phased Regression)",
+        heading: "Learning Impact Model (Simple Regression)",
         rows: [
           ["Status", "Not available for the current scope"],
           ["Reason", reg?.reason || "The server did not return a regression."],
@@ -474,8 +431,6 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
   const last = n + 1;
 
   // ----- Regression Data -----------------------------------------------------
-  // Column order matters: z_Pre (L) sits directly beside P3 (M) so LINEST can
-  // take them as one contiguous predictor block.
   const COLS = [
     ["id", "ID (anonymized)", 16],
     ["pre", "Pre-test", 11],
@@ -486,10 +441,8 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
     ["zTsr", "z_TSR", 10],
     ["zAes", "z_AES", 10],
     ["zRog", "z_ROG", 10],
-    ["zPost", "z_Post", 10],
-    ["p3Raw", "P3_raw", 10],
-    ["zPre", "z_Pre", 10],
-    ["p3", "P3", 10],
+    ["x", "X (System Interaction)", 14],
+    ["y", "Y (Normalized Gain)", 14],
     ["lii", "LII", 10],
   ];
   const col = {};
@@ -497,7 +450,6 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
   const abs = (key) => `$${col[key]}$2:$${col[key]}$${last}`;
   const dataRef = (key) => `'${DATA_SHEET}'!${col[key]}2:${col[key]}${last}`;
   const dataAbs = (key) => `'${DATA_SHEET}'!$${col[key]}$2:$${col[key]}$${last}`;
-  const z = (key, r) => `STANDARDIZE(${col[key]}${r},AVERAGE(${abs(key)}),_xlfn.STDEV.S(${abs(key)}))`;
 
   const dataRows = rows.map((r, i) => {
     const rr = i + 2;
@@ -507,10 +459,10 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
       zTsr: f(`STANDARDIZE(D${rr},AVERAGE(${abs("tsr")}),_xlfn.STDEV.S(${abs("tsr")}))`, r.z_tsr),
       zAes: f(`STANDARDIZE(E${rr},AVERAGE(${abs("aes")}),_xlfn.STDEV.S(${abs("aes")}))`, r.z_aes),
       zRog: f(`STANDARDIZE(F${rr},AVERAGE(${abs("rog")}),_xlfn.STDEV.S(${abs("rog")}))`, r.z_rog),
-      zPost: f(`STANDARDIZE(C${rr},AVERAGE(${abs("post")}),_xlfn.STDEV.S(${abs("post")}))`, r.z_post),
-      p3Raw: f(`AVERAGE(${col.zTsr}${rr}:${col.zRog}${rr})`, r.p3_raw),
-      zPre: f(`STANDARDIZE(B${rr},AVERAGE(${abs("pre")}),_xlfn.STDEV.S(${abs("pre")}))`, r.z_pre),
-      p3: f(z("p3Raw", rr), r.p3),
+      x: f(`AVERAGE(${col.zTsr}${rr}:${col.zRog}${rr})`, r.x),
+      // Left blank for a dropped respondent (Pre = 100): SLOPE/CORREL/etc.
+      // over a mismatched blank-vs-number pair simply skip that row.
+      y: r.y == null ? "" : f(`(C${rr}-B${rr})/(100-B${rr})`, r.y),
       lii: f(`AVERAGE(${col.tsr}${rr}:${col.rog}${rr},${col.post}${rr})`, r.lii),
     };
   });
@@ -522,129 +474,89 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
       header,
       key,
       width,
-      numFmt: ["zTsr", "zAes", "zRog", "zPost", "p3Raw", "zPre", "p3"].includes(key) ? "0.000" : key === "lii" ? "0.00" : undefined,
+      numFmt: ["zTsr", "zAes", "zRog", "x", "y"].includes(key) ? "0.000" : key === "lii" ? "0.00" : undefined,
     })),
     dataRows,
     { headerColor }
   );
 
   // ----- Regression Summary --------------------------------------------------
-  const Y = dataAbs("zPost");
-  const X2 = `'${DATA_SHEET}'!$${col.zPre}$2:$${col.p3}$${last}`; // z_Pre:P3, adjacent
-  const X1 = dataAbs("zPre");
-  const lin2 = (r, c) => `INDEX(LINEST(${Y},${X2},TRUE,TRUE),${r},${c})`;
-  const lin1 = (r, c) => `INDEX(LINEST(${Y},${X1},TRUE,TRUE),${r},${c})`;
-  // LINEST lists coefficients in REVERSE predictor order, then the intercept:
-  // model 2 -> [P3, z_Pre, intercept]; model 1 -> [z_Pre, intercept].
-  const M2 = { P3: 1, Pre: 2, icpt: 3 };
-
-  const m1 = reg.models.model1;
-  const m2 = reg.models.model2;
-  const c2 = (name) => m2.coefficients.find((c) => c.name === name);
-  const c1 = (name) => m1.coefficients.find((c) => c.name === name);
-
-  const coefRows = (lin, colIdx, coef, label) => {
-    const beta = lin(1, colIdx);
-    const se = lin(2, colIdx);
-    const df = lin(4, 2);
-    const t = `${beta}/${se}`;
-    return [
-      [`${label}: beta`, f(beta, coef.beta, "0.0000")],
-      [`${label}: SE`, f(se, coef.se, "0.0000")],
-      [`${label}: t`, f(t, coef.t, "0.000")],
-      [`${label}: p (two-tailed)`, f(`_xlfn.T.DIST.2T(ABS(${t}),${df})`, coef.p, "0.0000")],
-      [`${label}: 95% CI lower`, f(`${beta}-_xlfn.T.INV.2T(0.05,${df})*${se}`, coef.ci_low, "0.0000")],
-      [`${label}: 95% CI upper`, f(`${beta}+_xlfn.T.INV.2T(0.05,${df})*${se}`, coef.ci_high, "0.0000")],
-    ];
-  };
-  const fitRows = (lin, model, k) => {
-    const r2 = lin(3, 1);
-    const df2 = lin(4, 2);
-    return [
-      ["R2", f(r2, model.r2, "0.0000")],
-      ["Adjusted R2", f(`1-(1-${r2})*(COUNT(${Y})-1)/${df2}`, model.adj_r2, "0.0000")],
-      ["F", f(lin(4, 1), model.f, "0.000")],
-      ["df1", k],
-      ["df2", f(df2, model.df2)],
-      ["p (model F)", f(`_xlfn.F.DIST.RT(${lin(4, 1)},${k},${df2})`, model.p, "0.0000")],
-    ];
-  };
-
-  const dR2 = `${lin2(3, 1)}-${lin1(3, 1)}`;
-  const fChange = `(${dR2})/1/((1-${lin2(3, 1)})/${lin2(4, 2)})`;
-  const dg = reg.diagnostics;
-  const jbP = fmtP(dg.jarque_bera.p);
+  const X = dataAbs("x");
+  const Y = dataAbs("y");
+  const m = reg.model;
+  const c = reg.correlation;
+  const dg = reg.sums;
   const staticNote = "static, computed on the server";
 
-  const pair = (a, b) => `CORREL(${dataRef(a)},${dataRef(b)})`;
-  const corrLabels = reg.correlations.labels;
-  const corrKey = { TSR: "tsr", AES: "aes", ROG: "rog", Pre: "pre", Post: "post", P3: "p3" };
+  const b1 = f(`SLOPE(${Y},${X})`, m.b1, "0.0000");
+  const b0 = f(`INTERCEPT(${Y},${X})`, m.b0, "0.0000");
+  const r = f(`CORREL(${Y},${X})`, c.r, "0.0000");
+  const r2 = f(`RSQ(${Y},${X})`, c.r2, "0.0000");
+  const nCount = `COUNT(${Y})`;
+  const df = `${nCount}-2`;
+  const devsqX = `DEVSQ(${X})`;
+  // STEYX is a legacy (pre-2007) function -- no _xlfn. prefix needed, unlike
+  // STDEV.S / T.DIST.2T / T.INV.2T below.
+  const seB1 = `STEYX(${Y},${X})/SQRT(${devsqX})`;
+  const tStat = `SLOPE(${Y},${X})/(${seB1})`;
 
   const sections = [
     {
-      heading: "Learning Impact Model (Phased Regression)",
+      heading: "Learning Impact Model (Simple Regression)",
       narrative:
         "Numbers in this sheet are Excel formulas over the 'Regression Data' sheet, so they recompute if the data change. " +
-        "Cells marked (static) were computed on the server because Excel has no single formula for them. " +
-        "The correlation matrix is to the right (columns D-J).",
+        "Cells marked (static) were computed on the server because Excel has no single formula for them.",
       rows: [
-        ["Respondents included", f(`COUNT(${dataRef("post")})`, reg.n_included)],
+        ["Respondents with complete data", reg.n_included],
         ["Respondents excluded (static)", reg.n_excluded],
-        ...(reg.excluded_reasons || []).map((r) => [`  reason (static): ${r.reason}`, r.count]),
+        ...(reg.excluded_reasons || []).map((rr) => [`  reason (static): ${rr.reason}`, rr.count]),
+        ["Respondents in the fitted regression", f(nCount, reg.n_regression)],
+        ["Dropped from regression only (perfect pre-test, static)", reg.n_dropped_for_regression],
+        ["X definition", reg.method.x_definition],
+        ["Y definition", reg.method.y_definition],
         ["Normalization", reg.method.normalization],
-        ["P3 definition", reg.method.p3_definition],
         ["Model equation", reg.method.model_equation],
       ],
     },
     {
-      heading: "Model 1: z_Post ~ z_Pre",
+      heading: "Regression: Y = b0 + b1 X",
       rows: [
-        ...coefRows(lin1, 1, c1("z_Pre"), "z_Pre"),
-        ...fitRows(lin1, m1, 1),
+        ["b0 (intercept)", b0],
+        ["b1 (slope)", b1],
+        ["SE(b1)", f(seB1, m.se_b1, "0.0000")],
+        ["t", f(tStat, m.t, "0.000")],
+        ["df", f(df, m.df)],
+        ["p (two-tailed)", f(`_xlfn.T.DIST.2T(ABS(${tStat}),${df})`, m.p, "0.0000")],
+        ["95% CI lower (b1)", f(`${b1.formula}-_xlfn.T.INV.2T(0.05,${df})*(${seB1})`, m.ci_low, "0.0000")],
+        ["95% CI upper (b1)", f(`${b1.formula}+_xlfn.T.INV.2T(0.05,${df})*(${seB1})`, m.ci_high, "0.0000")],
+        ["r (Pearson correlation)", r],
+        ["R2", r2],
       ],
     },
     {
-      heading: "Model 2: z_Post ~ z_Pre + P3",
+      heading: "Running sums (matches the by-hand tutorial)",
       rows: [
-        ["Intercept (about 0 for z-scores)", f(lin2(1, M2.icpt), c2("intercept").beta, "0.0000")],
-        ...coefRows(lin2, M2.Pre, c2("z_Pre"), "z_Pre"),
-        ...coefRows(lin2, M2.P3, c2("P3"), "P3"),
-        ...fitRows(lin2, m2, 2),
+        ["n", f(nCount, m.n)],
+        ["SigmaX", f(`SUM(${X})`, dg.sum_x, "0.0000")],
+        ["SigmaY", f(`SUM(${Y})`, dg.sum_y, "0.0000")],
+        ["SigmaXY", f(`SUMPRODUCT(${X},${Y})`, dg.sum_xy, "0.0000")],
+        ["SigmaX2", f(`SUMSQ(${X})`, dg.sum_x2, "0.0000")],
+        ["SigmaY2", f(`SUMSQ(${Y})`, dg.sum_y2, "0.0000")],
       ],
     },
     {
-      heading: "Model 1 to Model 2 (adding Phase 3)",
-      rows: [
-        ["Delta R2", f(dR2, reg.change.delta_r2, "0.0000")],
-        ["F-change", f(fChange, reg.change.f_change, "0.000")],
-        ["df1, df2", `${reg.change.df1}, ${reg.change.df2}`],
-        ["p (F-change)", f(`_xlfn.F.DIST.RT(${fChange},1,${lin2(4, 2)})`, reg.change.p, "0.0000")],
-      ],
-    },
-    {
-      heading: "Diagnostics",
-      rows: [
-        ["VIF (pre-test and P3)", f(`1/(1-CORREL(${dataRef("zPre")},${dataRef("p3")})^2)`, dg.vif.pre, "0.000")],
-        [`Jarque-Bera (${staticNote})`, `${fmtNum(dg.jarque_bera.jb, 1)}, p ${jbP.startsWith("<") ? jbP : `= ${jbP}`}`],
-        [`Max Cook's D (${staticNote})`, `${dg.cooks_distance.max_id}: ${fmtNum(dg.cooks_distance.max, 4)}`],
-        ["Cook's D cutoff 4/n", f(`4/COUNT(${dataRef("post")})`, dg.cooks_distance.cutoff, "0.0000")],
-        [`Respondents above cutoff (${staticNote})`, (dg.cooks_distance.flagged_ids || []).join(", ") || "none"],
-        [`Max |standardized residual| (${staticNote})`, fmtNum(dg.max_abs_std_residual, 3)],
-      ],
-    },
-    {
-      heading: `Sensitivity of the Phase 3 effect (${staticNote})`,
-      narrative: "Same Model 2 form. Case exclusion is a labelled check only, never applied to the main model.",
+      heading: `Sensitivity check (${staticNote})`,
+      narrative: "Same Y = b0 + b1 X form. Case exclusion is a labelled check only, never applied to the main model.",
       rows: reg.sensitivity.map((s) => [
         `${s.label} (n = ${s.n})`,
         s.unavailable
           ? `not available: ${s.unavailable}`
-          : `beta P3 = ${fmtNum(s.beta_p3)}, p = ${fmtP(s.p_p3)}, R2 = ${fmtR2(s.r2)}, model p = ${fmtP(s.model_p)}`,
+          : `b1 = ${fmtNum(s.slope)}, p = ${fmtP(s.p)}, R2 = ${fmtR2(s.r2)}`,
       ]),
     },
     {
       heading: reg.lii.label,
-      narrative: `${reg.lii.formula}. Descriptive only; not a model.`,
+      narrative: `${reg.lii.formula}. Descriptive only; not part of the regression.`,
       rows: [
         ["LII mean", f(`AVERAGE(${dataRef("lii")})`, reg.lii.mean, "0.00")],
         ["LII SD (sample)", f(`_xlfn.STDEV.S(${dataRef("lii")})`, reg.lii.sd, "0.00")],
@@ -664,7 +576,6 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
 
   // Merged narrative rows don't auto-fit their height in Excel; size them from
   // the text length (the two merged columns are ~120 characters wide).
-  // Long labels (sensitivity rows) need more room than addKeyValueSheet's default.
   sheet.getColumn(1).width = 62;
   sheet.getColumn(2).width = 58;
   sheet.eachRow((row) => {
@@ -672,30 +583,5 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
     if (typeof v === "string" && v.length > 60 && row.getCell(1).font?.italic) {
       row.height = 14 * Math.ceil(v.length / 120) + 4;
     }
-  });
-
-  // Correlation matrix: CORREL formulas, placed beside the key/value columns.
-  const startCol = 4; // D
-  sheet.getCell(1, startCol).value = "Pearson correlation matrix (CORREL over 'Regression Data')";
-  sheet.getCell(1, startCol).font = { bold: true, size: 12, color: { argb: `FF${headerColor}` } };
-  corrLabels.forEach((lab, j) => {
-    const cell = sheet.getCell(2, startCol + 1 + j);
-    cell.value = lab;
-    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${headerColor}` } };
-    cell.alignment = { horizontal: "center" };
-    sheet.getColumn(startCol + 1 + j).width = 9;
-  });
-  sheet.getColumn(startCol).width = 8;
-  corrLabels.forEach((rowLab, i) => {
-    const head = sheet.getCell(3 + i, startCol);
-    head.value = rowLab;
-    head.font = { bold: true };
-    corrLabels.forEach((colLab, j) => {
-      const cell = sheet.getCell(3 + i, startCol + 1 + j);
-      const formula = pair(corrKey[rowLab], corrKey[colLab]);
-      cell.value = withCache ? { formula, result: reg.correlations.matrix[i][j] } : { formula };
-      cell.numFmt = "0.000";
-    });
   });
 }

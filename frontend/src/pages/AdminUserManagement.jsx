@@ -922,7 +922,7 @@ const AdminUserManagement = () => {
       addParagraph("No per-module submissions recorded for any respondent in the current scope.");
     }
 
-    // 6. Learning Impact Model (phased regression) -- appended after the
+    // 6. Learning Impact Model (simple regression) -- appended after the
     // existing sections so their order and numbering are untouched. The
     // helper only needs this handler's own layout primitives; its per-
     // respondent appendix is anonymized (S01.. by row order, no names/emails).
@@ -1237,11 +1237,11 @@ const AdminUserManagement = () => {
       { headerColor: "5A1398" }
     );
 
-    // ----- Learning Impact Model (phased regression) --------------------
+    // ----- Learning Impact Model (simple regression) --------------------
     // Added AFTER every existing sheet so the current sheet order is
     // untouched. "Regression Data" carries anonymized IDs and raw scores with
-    // real formulas for z-scores/P3/LII; "Regression Summary" recomputes the
-    // statistics from it (LINEST/CORREL/F.DIST.RT). No names or emails.
+    // real formulas for z-scores/X/Y/LII; "Regression Summary" recomputes the
+    // statistics from it (SLOPE/INTERCEPT/CORREL/RSQ/T.DIST.2T). No names or emails.
     addRegressionSheets(workbook, ov.regression, { headerColor: "5A1398" });
 
     await downloadWorkbook(workbook, `AlgoBlocks-Learning-Impact-Report-${new Date().toISOString().slice(0, 10)}.xlsx`);
@@ -1557,7 +1557,7 @@ const AdminUserManagement = () => {
                 </div>
               )}
 
-              {/* Phased regression over the SAME scoped respondents as the
+              {/* Simple regression over the SAME scoped respondents as the
                   cards above (computed once server-side and shared with the
                   full report / PDF / Excel). Loading, error and offline
                   states are handled by the surrounding ternary. */}
