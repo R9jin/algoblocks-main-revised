@@ -38,6 +38,27 @@ export function excelStringLiteral(value) {
 }
 
 /**
+ * Same as excelStringLiteral, but for a literal used as the *criterion* of
+ * COUNTIF / COUNTIFS / SUMIFS / AVERAGEIFS. Those functions treat `*`, `?`
+ * and `~` as wildcard syntax, so a label like "O(n * m)" would also match
+ * "O(n + m)" unless the wildcard characters are escaped with `~`.
+ */
+export function excelCriterion(value) {
+  return String(value ?? "")
+    .replace(/~/g, "~~")
+    .replace(/\*/g, "~*")
+    .replace(/\?/g, "~?")
+    .replace(/"/g, '""');
+}
+
+/**
+ * Last row used by the bounded "open" ranges below. Only needed by
+ * formulas that cannot take a whole-column reference (SUMPRODUCT would
+ * walk all 1,048,576 rows); everything else uses whole columns.
+ */
+export const OPEN_LAST_ROW = 5000;
+
+/**
  * A cell in a `rows` array passed to addTableSheet/addKeyValueSheet can be
  * either a plain value (string/number/etc, written as-is, same as before)
  * or `{ formula, result, numFmt }` to write an actual Excel formula --
@@ -135,7 +156,7 @@ export function addTableSheet(workbook, sheetName, columns, rows, opts = {}) {
   if (rows.length > 0 && columns.length > 0) {
     sheet.autoFilter = {
       from: { row: headerRowNumber, column: 1 },
-      to: { row: headerRowNumber, column: columns.length },
+      to: { row: headerRowNumber + rows.length, column: columns.length },
     };
   }
 
@@ -148,14 +169,26 @@ export function addTableSheet(workbook, sheetName, columns, rows, opts = {}) {
  * many data rows it will have.
  *
  * Callers use this to write formulas that point at a raw-data sheet
- * (`'Submissions'!$J$2:$J$418`) without hand-tracking column letters, and
- * it is safe to build BEFORE the sheet itself is added -- Excel resolves
- * forward references fine, which is what lets a computed Summary sit as
- * the first tab while reading from raw sheets further right.
+ * without hand-tracking column letters, and it is safe to build BEFORE the
+ * sheet itself is added -- Excel resolves forward references fine, which is
+ * what lets a computed Summary sit as the first tab while reading from raw
+ * sheets further right.
+ *
+ * IMPORTANT -- ranges are OPEN, not frozen to the exported row count.
+ * `range(key)` is the whole column (`'Submissions'!$J:$J`), so a row that
+ * is added below the last one, pasted in, or inserted directly under the
+ * header is picked up by every formula that reads the column, and deleting
+ * rows can never leave a #REF! behind. (The previous version wrote
+ * `$J$2:$J$418`, which silently ignored anything added past row 418.)
+ * The header cell is inside a whole-column range; every function used over
+ * it (COUNTIFS/SUMIFS/AVERAGEIFS criteria, AVERAGE, SUM, COUNT, MEDIAN,
+ * PERCENTILE, MAX ...) ignores text, and `count(key)` subtracts it for the
+ * one that does not (COUNTA).
  *
  * @param {string} sheetName - the SAME string passed to addTableSheet.
  * @param {string[]} colKeys - column keys, in the order the columns appear.
- * @param {number} rowCount - number of data rows (excluding the header).
+ * @param {number} rowCount - number of data rows AT EXPORT TIME (only used
+ *   for `lastRow` / `cell()` addressing; ranges do not depend on it).
  * @param {{ headerRows?: number }} [opts] - headerRows defaults to 1; pass
  *   2 or 3 when the sheet is created with a title/subtitle banner.
  */
@@ -164,12 +197,11 @@ export function sheetRefs(sheetName, colKeys, rowCount, opts = {}) {
   const quoted = /[^A-Za-z0-9_]/.test(safeName) ? `'${safeName}'` : safeName;
   const headerRows = opts.headerRows || 1;
   const firstRow = headerRows + 1;
-  // An empty sheet still needs a syntactically valid range; point it at the
-  // first data row so COUNTIF/SUMIF return 0 instead of erroring.
   const lastRow = rowCount > 0 ? headerRows + rowCount : firstRow;
 
   const letters = {};
   colKeys.forEach((key, i) => { letters[key] = colLetter(i + 1); });
+  const wholeCol = (key) => `${quoted}!$${letters[key]}:$${letters[key]}`;
 
   return {
     sheet: quoted,
@@ -177,8 +209,15 @@ export function sheetRefs(sheetName, colKeys, rowCount, opts = {}) {
     lastRow,
     rowCount,
     col: (key) => letters[key],
-    /** Absolute, sheet-qualified range for a whole column of data. */
-    range: (key) => `${quoted}!$${letters[key]}$${firstRow}:$${letters[key]}$${lastRow}`,
+    /** Whole column, sheet-qualified: grows and shrinks with the data. */
+    range: wholeCol,
+    /**
+     * Data-only range that stops at OPEN_LAST_ROW -- for SUMPRODUCT and
+     * other array formulas where a whole column would be needlessly slow.
+     */
+    bounded: (key) => `${quoted}!$${letters[key]}$${firstRow}:$${letters[key]}$${OPEN_LAST_ROW}`,
+    /** Number of non-empty data cells in a column (COUNTA minus the header row(s)). */
+    count: (key) => `(COUNTA(${wholeCol(key)})-${headerRows})`,
     /** Sheet-qualified single cell, by column key and data-row index (0-based). */
     cell: (key, i) => `${quoted}!$${letters[key]}$${firstRow + i}`,
     /** Local (same-sheet) cell address, for formulas written INTO this sheet. */
@@ -273,6 +312,12 @@ export function addKeyValueSheet(workbook, sheetName, sections, opts = {}) {
  * client-side with jsPDF.
  */
 export async function downloadWorkbook(workbook, filename) {
+  // Ask Excel to rebuild every formula from the raw cells when the file is
+  // opened, instead of trusting the cached results written alongside them.
+  // The cached values only exist so the numbers read correctly in viewers
+  // that never calculate (previewers, Protected View); they must never be
+  // what Excel keeps showing after a cell is edited or a row is removed.
+  workbook.calcProperties = { ...(workbook.calcProperties || {}), fullCalcOnLoad: true };
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

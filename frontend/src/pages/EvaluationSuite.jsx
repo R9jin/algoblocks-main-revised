@@ -3,7 +3,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import ExcelJS from "exceljs";
-import { addTableSheet, addKeyValueSheet, downloadWorkbook, planKeyValueSheet, sheetRefs, excelStringLiteral } from "../utils/excelReport";
+import { addTableSheet, addKeyValueSheet, downloadWorkbook, planKeyValueSheet, sheetRefs, excelCriterion } from "../utils/excelReport";
+import { buildEquivalencePairs } from "../utils/complexityMatch";
 import {
   FiActivity,
   FiArrowRight,
@@ -969,18 +970,25 @@ export default function EvaluationSuite({ embedded = false } = {}) {
   // statement-by-statement sheet built from every algorithm's
   // lineValidationResults.
   // ---------------------------------------------------------------------
-  // IMPORTANT: nothing derived is written as a literal number here.
+  // IMPORTANT: nothing derived is written as a literal value here.
   //
   // Only two kinds of cell in this workbook hold a typed-in value:
   //
-  //   1. Raw observations -- the two sheets at the end ("Full Algorithm
-  //      Results", "Line-Level Results"). One row per algorithm and one row
-  //      per analyzed statement, carrying what the run actually observed:
-  //      the ground-truth label, the label the analyzer predicted, whether
-  //      the equivalence check passed, the wall-clock time and peak memory
-  //      for that case.
-  //   2. Three run-level scalars that have no cell-range to be computed
-  //      from (total wall-clock seconds, total source lines, dataset name).
+  //   1. Raw observations -- "Full Algorithm Results" and "Line-Level
+  //      Results" (one row per algorithm / per analyzed statement: the
+  //      ground-truth label, the label the analyzer predicted, wall-clock
+  //      time, peak memory, the source snippet) plus the "Equivalence Rules"
+  //      sheet (which label pairs the analyzer treats as the same answer).
+  //   2. Two run-level scalars that have no cell-range to be computed
+  //      from (total wall-clock seconds, dataset name).
+  //
+  // The Yes/No columns -- "Time Correct", "Space Correct", "Time Match",
+  // "Space Match", "Has Ground Truth" -- are formulas over the label cells
+  // beside them and the Equivalence Rules sheet, NOT pasted-in verdicts, so
+  // editing a label or a rule re-scores that row and everything downstream.
+  //
+  // Every range points at a WHOLE COLUMN of the raw sheets, so rows that are
+  // deleted, pasted in or added below the last one are all picked up.
   //
   // Everything else -- every TP/FP/FN count, every precision, recall and
   // F1-score, both macro and weighted averages, all four accuracy figures,
@@ -1050,6 +1058,42 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
     const hasLines = lineRows.length > 0;
 
+    // ----- Equivalence Rules (raw, editable) ---------------------------
+    // The analyzer does not demand string equality: checkMatch() in
+    // utils/complexityMatch.js also accepts some different-looking pairs
+    // (e.g. expected O(1) / predicted O(n) for time). Those accepted pairs
+    // are written out here, one row each, and the Yes/No formulas below look
+    // a pair up in this sheet -- so the workbook applies exactly the rule the
+    // benchmark itself applied, and a reader can add or delete a row to see
+    // what a stricter or looser rule would do.
+    const RULES_SHEET = "Equivalence Rules";
+    const RULES_KEYS = ["metric", "expected", "predicted"];
+    const rules = sheetRefs(RULES_SHEET, RULES_KEYS, 0);
+    const labelUniverse = [
+      "O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n^2)", "O(n^3)", "O(2^n)", "O(3^n)",
+      "O(V + E)", "O(n * m)", "O(sqrt n)", "O(log min(a, b))",
+      ...details.flatMap((d) => [d.expectedTime, d.predictedTime, d.expectedSpace, d.predictedSpace]),
+      ...lineRows.flatMap((l) => [l.predTime, l.expTime, l.predSpace, l.expSpace]),
+      ...[processedTimeReport, processedSpaceReport, processedLineTimeReport, processedLineSpaceReport]
+        .flatMap((r) => Object.keys(r?.perClass || {})),
+    ];
+    const ruleRows = [
+      ...buildEquivalencePairs(labelUniverse, "time").map((p) => ({ metric: "Time", ...p })),
+      ...buildEquivalencePairs(labelUniverse, "space").map((p) => ({ metric: "Space", ...p })),
+    ];
+
+    // "Does the predicted label count as matching the expected one?" as a
+    // cell formula -- the same four shortcuts checkMatch() starts with
+    // (either side blank, identical label, expected "-"), then the rules
+    // sheet. Excel's `=` is case-insensitive, like checkMatch's toLowerCase.
+    const matchFormula = (expCell, predCell, metric) => {
+      const rm = rules.bounded("metric");
+      const re = rules.bounded("expected");
+      const rp = rules.bounded("predicted");
+      return `IF(OR(${predCell}="",${expCell}="",${predCell}=${expCell},${expCell}="-",` +
+        `SUMPRODUCT((${rm}="${metric}")*(${re}=${expCell})*(${rp}=${predCell}))>0),"Yes","No")`;
+    };
+
     // ----- Confusion counts, recomputed here for the cached values ------
     // Mirrors generateClassificationReport() in analyzer.worker.js. These
     // are ONLY used as the cached result shown before Excel recalculates --
@@ -1097,7 +1141,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
       const rows = classes.map((cls, i) => {
         const R = firstClassRow + i;
-        const q = `"${excelStringLiteral(cls)}"`;
+        const q = `"${excelCriterion(cls)}"`;
         const s = stats[i];
         return {
           complexityClass: cls,
@@ -1131,7 +1175,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
       const correctCount = gtOnly
         ? `COUNTIFS(${gtR},"Yes",${src.range(opts.matchKey)},"Yes")`
         : `COUNTIF(${src.range(opts.matchKey)},"Yes")`;
-      const totalCount = gtOnly ? `COUNTIF(${gtR},"Yes")` : `COUNTA(${src.range("id")})`;
+      const totalCount = gtOnly ? `COUNTIF(${gtR},"Yes")` : src.count("id");
 
       rows.push({
         complexityClass: "Overall Accuracy",
@@ -1216,6 +1260,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     const idR = algo.range("id");
     const msR = algo.range("processingTimeMs");
     const memR = algo.range("peakMemBytes");
+    const snipR = algo.bounded("codeSnippet");
     const gtR = line.range("hasGroundTruth");
     const lineTimeR = line.range("isTimeMatch");
     const lineSpaceR = line.range("isSpaceMatch");
@@ -1227,6 +1272,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         rows: [
           ["Generated", "generated"],
           ["Dataset", "dataset"],
+          ["How to read this workbook", "howto"],
         ],
       },
       {
@@ -1255,9 +1301,9 @@ export default function EvaluationSuite({ embedded = false } = {}) {
       ...(eff ? [{
         heading: "3. Efficiency of the Analyzer",
         narrative:
-          "Total execution time and total source lines are raw measurements of the run. " +
-          "Every other figure in this section is computed from the per-algorithm timings " +
-          "and peak-memory readings on the 'Full Algorithm Results' sheet.",
+          "Total execution time is the one raw measurement of the run. " +
+          "Every other figure in this section is computed from the per-algorithm timings, " +
+          "peak-memory readings and code snippets on the 'Full Algorithm Results' sheet.",
         rows: [
           ["Total Execution Time (s)", "execSec"],
           ["Total Source Lines Analyzed", "srcLines"],
@@ -1284,8 +1330,10 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     const values = {
       generated: new Date().toLocaleString(),
       dataset: reportScopeLabel,
+      howto: "Every figure is a formula over the raw sheets (Full Algorithm Results, Line-Level Results, " +
+        "Equivalence Rules). Edit a label, delete a row or add a row there and every sheet recalculates.",
 
-      tested: { formula: `COUNTA(${idR})`, result: details.length },
+      tested: { formula: algo.count("id"), result: details.length },
       timePassed: { formula: `COUNTIF(${timeCorrectR},"Yes")`, result: results.timePassed },
       timeAcc: {
         formula: `IF(${at("tested")}=0,0,${at("timePassed")}/${at("tested")})`,
@@ -1329,7 +1377,13 @@ export default function EvaluationSuite({ embedded = false } = {}) {
       // Raw measurements of the run itself -- no cell range exists to
       // derive these from, so they are the only numbers typed in here.
       execSec: eff?.totalExecutionSec ?? 0,
-      srcLines: totalLines,
+      // Lines are counted off the code-snippet cells themselves (newlines + 1
+      // per non-empty snippet, the same count the worker took with
+      // split("\n")), so deleting an algorithm also removes its lines.
+      srcLines: {
+        formula: `SUMPRODUCT((${snipR}<>"")*(LEN(${snipR})-LEN(SUBSTITUTE(${snipR},CHAR(10),""))+1))`,
+        result: totalLines,
+      },
       thrAlgos: {
         formula: `IF(${at("execSec")}=0,0,${at("tested")}/${at("execSec")})`,
         numFmt: "0.00",
@@ -1340,14 +1394,16 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         numFmt: "0.00",
         result: eff?.throughputLines ?? 0,
       },
-      meanMs: { formula: `AVERAGE(${msR})`, numFmt: "0.00", result: eff?.meanTimeMs ?? 0 },
-      medianMs: { formula: `MEDIAN(${msR})`, numFmt: "0.00", result: eff?.medianTimeMs ?? 0 },
+      // Wrapped in IFERROR(...,0): with every row deleted these have nothing
+      // to average, and the worker reports 0 in that case too.
+      meanMs: { formula: `IFERROR(AVERAGE(${msR}),0)`, numFmt: "0.00", result: eff?.meanTimeMs ?? 0 },
+      medianMs: { formula: `IFERROR(MEDIAN(${msR}),0)`, numFmt: "0.00", result: eff?.medianTimeMs ?? 0 },
       // PERCENTILE (the pre-2010 spelling) is linear-interpolated, exactly
       // what calcPercentile() in the worker does -- and needs no _xlfn prefix.
-      p95Ms: { formula: `PERCENTILE(${msR},0.95)`, numFmt: "0.00", result: eff?.p95TimeMs ?? 0 },
+      p95Ms: { formula: `IFERROR(PERCENTILE(${msR},0.95),0)`, numFmt: "0.00", result: eff?.p95TimeMs ?? 0 },
       maxMs: { formula: `MAX(${msR})`, numFmt: "0.00", result: eff?.maxTimeMs ?? 0 },
       peakMem: { formula: `MAX(${memR})/1048576`, numFmt: "0.0000", result: eff?.peakAstMemMB ?? 0 },
-      meanMem: { formula: `AVERAGE(${memR})/1024`, numFmt: "0.00", result: eff?.meanAstMemKB ?? 0 },
+      meanMem: { formula: `IFERROR(AVERAGE(${memR})/1024,0)`, numFmt: "0.00", result: eff?.meanAstMemKB ?? 0 },
     };
 
     addKeyValueSheet(
@@ -1411,10 +1467,18 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         category: d.category || "--",
         expectedTime: d.expectedTime,
         predictedTime: d.predictedTime,
-        isTimeCorrect: d.isTimeCorrect ? "Yes" : "No",
+        // Scored by formula from the two label cells on this row (and the
+        // Equivalence Rules sheet), so editing either label re-scores it.
+        isTimeCorrect: {
+          formula: matchFormula(algo.localCell("expectedTime", i), algo.localCell("predictedTime", i), "Time"),
+          result: d.isTimeCorrect ? "Yes" : "No",
+        },
         expectedSpace: d.expectedSpace,
         predictedSpace: d.predictedSpace,
-        isSpaceCorrect: d.isSpaceCorrect ? "Yes" : "No",
+        isSpaceCorrect: {
+          formula: matchFormula(algo.localCell("expectedSpace", i), algo.localCell("predictedSpace", i), "Space"),
+          result: d.isSpaceCorrect ? "Yes" : "No",
+        },
         // A case counts as a pass only when BOTH checks passed -- written
         // as the AND of the two cells on its own row rather than restated.
         overall: {
@@ -1452,6 +1516,20 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         ],
         lineRows.map((l, i) => ({
           ...l,
+          // Ground truth exists exactly when an expected label is present;
+          // the two match columns are scored like the algorithm-level ones.
+          hasGroundTruth: {
+            formula: `IF(${line.localCell("expTime", i)}<>"","Yes","No")`,
+            result: l.hasGroundTruth,
+          },
+          isTimeMatch: {
+            formula: matchFormula(line.localCell("expTime", i), line.localCell("predTime", i), "Time"),
+            result: l.isTimeMatch,
+          },
+          isSpaceMatch: {
+            formula: matchFormula(line.localCell("expSpace", i), line.localCell("predSpace", i), "Space"),
+            result: l.isSpaceMatch,
+          },
           isPassed: {
             formula: `IF(AND(${line.localCell("isTimeMatch", i)}="Yes",${line.localCell("isSpaceMatch", i)}="Yes"),"Yes","No")`,
             result: l._isPassed ? "Yes" : "No",
@@ -1460,6 +1538,19 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         { headerColor }
       );
     }
+
+    // ----- Raw data: the label pairs the analyzer treats as matching -----
+    addTableSheet(
+      workbook,
+      RULES_SHEET,
+      [
+        { header: "Metric", key: "metric", width: 10 },
+        { header: "Expected", key: "expected", width: 22 },
+        { header: "Predicted (also counts as correct)", key: "predicted", width: 34 },
+      ],
+      ruleRows,
+      { headerColor }
+    );
 
     await downloadWorkbook(workbook, `AlgoBlocks-Benchmark-Report-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };

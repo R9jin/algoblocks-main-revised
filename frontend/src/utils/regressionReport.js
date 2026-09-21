@@ -19,7 +19,7 @@
 // through the plotted points, and the Excel formulas that let a reader
 // recompute the same numbers.
 
-import { addTableSheet, addKeyValueSheet, colLetter } from "./excelReport";
+import { addTableSheet, addKeyValueSheet, colLetter, OPEN_LAST_ROW } from "./excelReport";
 
 // ---------------------------------------------------------------------------
 // Formatting
@@ -427,8 +427,6 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
   }
 
   const rows = reg.respondents;
-  const n = rows.length;
-  const last = n + 1;
 
   // ----- Regression Data -----------------------------------------------------
   const COLS = [
@@ -447,9 +445,17 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
   ];
   const col = {};
   COLS.forEach(([key], i) => { col[key] = colLetter(i + 1); });
-  const abs = (key) => `$${col[key]}$2:$${col[key]}$${last}`;
-  const dataRef = (key) => `'${DATA_SHEET}'!${col[key]}2:${col[key]}${last}`;
-  const dataAbs = (key) => `'${DATA_SHEET}'!$${col[key]}$2:$${col[key]}$${last}`;
+  // Whole-column references, not a range frozen to the exported row count:
+  // a row added below the last respondent (or deleted from anywhere) is
+  // picked up by the z-scores and every statistic, with no #REF!. Every
+  // function used over them (AVERAGE, STDEV.S, SLOPE, INTERCEPT, CORREL, RSQ,
+  // STEYX, DEVSQ, SUM, SUMSQ, COUNT, MIN, MAX) ignores the header text.
+  // SUMPRODUCT alone gets a bounded range, since a whole column would make
+  // it walk a million rows.
+  const abs = (key) => `$${col[key]}:$${col[key]}`;
+  const dataRef = (key) => `'${DATA_SHEET}'!$${col[key]}:$${col[key]}`;
+  const dataAbs = dataRef;
+  const dataBounded = (key) => `'${DATA_SHEET}'!$${col[key]}$2:$${col[key]}$${OPEN_LAST_ROW}`;
 
   const dataRows = rows.map((r, i) => {
     const rr = i + 2;
@@ -539,7 +545,7 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
         ["n", f(nCount, m.n)],
         ["SigmaX", f(`SUM(${X})`, dg.sum_x, "0.0000")],
         ["SigmaY", f(`SUM(${Y})`, dg.sum_y, "0.0000")],
-        ["SigmaXY", f(`SUMPRODUCT(${X},${Y})`, dg.sum_xy, "0.0000")],
+        ["SigmaXY", f(`SUMPRODUCT(${dataBounded("x")},${dataBounded("y")})`, dg.sum_xy, "0.0000")],
         ["SigmaX2", f(`SUMSQ(${X})`, dg.sum_x2, "0.0000")],
         ["SigmaY2", f(`SUMSQ(${Y})`, dg.sum_y2, "0.0000")],
       ],

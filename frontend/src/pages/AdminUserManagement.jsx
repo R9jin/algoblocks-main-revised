@@ -3,7 +3,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import ExcelJS from "exceljs";
-import { addTableSheet, addKeyValueSheet, downloadWorkbook, colLetter, excelStringLiteral, sheetRefs } from "../utils/excelReport";
+import { addTableSheet, addKeyValueSheet, downloadWorkbook, colLetter, excelStringLiteral, sheetRefs, OPEN_LAST_ROW } from "../utils/excelReport";
 import { addRegressionSheets, drawRegressionPdfSection } from "../utils/regressionReport";
 import { LearningImpactModelSection, LearningImpactModelReportSection } from "../components/LearningImpactModel";
 import {
@@ -982,6 +982,20 @@ const AdminUserManagement = () => {
   //    stdev, mean-difference / (sd-difference / sqrt(n)), Excel's own
   //    T.TEST for the p-value).
   //
+  // Everything is LIVE, in both directions:
+  //
+  //  - Respondents is the roster. Each submission carries an "In Respondents"
+  //    flag (a COUNTIF against the Respondents email column), and the cohort
+  //    Summary, Per-Module Breakdown and Learning Path Detail all count only
+  //    flagged submissions -- so deleting a respondent's row removes them from
+  //    every figure, and editing a name there renames them everywhere.
+  //  - Pre-Post Test Data has no typed scores: each row looks its respondent
+  //    up by email on the Respondents sheet, and a row only counts when that
+  //    respondent has BOTH scores. Edit or clear a score on Respondents and
+  //    the t-test, Cohen's d and Hake's g follow.
+  //  - Every range is a whole column (see sheetRefs), so rows added below the
+  //    last one -- or deleted from anywhere -- are picked up automatically.
+  //
   // The only typed-in numbers are genuine raw observations: a submission's
   // test counts, its AES and ROG, and each respondent's pre/post score.
   // Every formula also carries the server's value as its cached result, so
@@ -999,7 +1013,6 @@ const AdminUserManagement = () => {
     const byUser = ov.by_user || [];
     const moduleEntries = Object.entries(ov.by_module || {});
     const learningPathRowsForCount = byUser.flatMap((u) => Object.entries(u.by_module || {}));
-    const pairedUsers = byUser.filter((u) => u.preTest != null && u.postTest != null);
 
     // Per-submission raw rows (api/services/admin_analytics_service.py ->
     // _submission_raw_row). Older backends don't send them; in that case the
@@ -1022,6 +1035,7 @@ const AdminUserManagement = () => {
     const SUB_KEYS = [
       "name", "email", "module", "activity", "type", "status", "unchanged",
       "tsrPassed", "tsrTotal", "tsr", "aes", "rog", "rogCounted", "countedPassed",
+      "inRoster",
       "funcPassed", "funcTotal", "compPassed", "compTotal", "hidPassed", "hidTotal",
       "timestamp",
     ];
@@ -1033,10 +1047,9 @@ const AdminUserManagement = () => {
       "hidPassed", "hidTotal", "preTest", "postTest",
     ];
     const resp = sheetRefs("Respondents", RESP_COLS_DEF, byUser.length);
-    const respColIdx = {};
-    RESP_COLS_DEF.forEach((key, i) => { respColIdx[key] = i + 1; });
-    const respLastRow = 1 + byUser.length;
-    const respRange = (key) => `Respondents!${colLetter(respColIdx[key])}2:${colLetter(respColIdx[key])}${respLastRow}`;
+    // Bounded (row 2..OPEN_LAST_ROW) variant, only for the SUMPRODUCT-based
+    // fallback below, which cannot take whole columns.
+    const respRange = (key) => resp.bounded(key);
 
     const LP_COLS_DEF = [
       "name", "email", "module", "attempted", "passed", "tsr", "aes", "rog",
@@ -1044,16 +1057,21 @@ const AdminUserManagement = () => {
       "hidPassed", "hidTotal",
     ];
     const lp = sheetRefs("Learning Path Detail", LP_COLS_DEF, learningPathRowsForCount.length);
-    const lpColIdx = {};
-    LP_COLS_DEF.forEach((key, i) => { lpColIdx[key] = i + 1; });
-    const lpLastRow = 1 + learningPathRowsForCount.length;
-    const lpCol = (key) => `'Learning Path Detail'!${colLetter(lpColIdx[key])}2:${colLetter(lpColIdx[key])}${lpLastRow}`;
+    const lpCol = (key) => lp.bounded(key);
 
+    // Pre-Post Test Data has one row per respondent; a row only counts when
+    // that respondent has both scores (otherwise pre/post/diff are blank and
+    // AVERAGE / STDEV.S / COUNT skip them together, keeping the pairs aligned).
     const PP_COLS_DEF = ["name", "email", "pre", "post", "diff"];
+    const pp = sheetRefs("Pre-Post Test Data", PP_COLS_DEF, byUser.length);
     const ppColIdx = {};
     PP_COLS_DEF.forEach((key, i) => { ppColIdx[key] = i + 1; });
-    const ppLastRow = 1 + pairedUsers.length;
-    const ppRange = (key) => `'Pre-Post Test Data'!${colLetter(ppColIdx[key])}2:${colLetter(ppColIdx[key])}${ppLastRow}`;
+    const ppRange = (key) => pp.range(key);
+
+    // Name lookup shared by the sheets that repeat a respondent's name: the
+    // Respondents sheet is the one place the name is typed.
+    const nameLookup = (emailCell, fallback) =>
+      `IFERROR(INDEX(${resp.range("name")},MATCH(${emailCell},${resp.range("email")},0)),${fallback})`;
 
     // ----- Helpers for the submission-backed formulas -------------------
     // `criteria` is a list of [rangeString, criterionString] pairs -- the
@@ -1075,6 +1093,10 @@ const AdminUserManagement = () => {
     const countUnchanged = (criteria) => countRows([...criteria, [sub.range("unchanged"), '"Yes"']]);
     const pairStr = (aKey, bKey, criteria) =>
       `${sumCol(aKey, criteria)}&"/"&${sumCol(bKey, criteria)}`;
+    // Cohort-, module- and learning-path-level figures count only submissions
+    // whose respondent is still listed on the Respondents sheet.
+    const inRoster = [sub.range("inRoster"), "1"];
+    const cohortCriteria = [inRoster];
 
     /**
      * The full metric set for one scope (a respondent, a respondent+module,
@@ -1112,37 +1134,37 @@ const AdminUserManagement = () => {
     if (!hasRespondents) {
       systemRows = [["Respondents Included", 0]];
     } else if (hasRawSubs) {
-      const cohort = metricFormulas([], sg);
+      const cohort = metricFormulas(cohortCriteria, sg);
       systemRows = [
-        ["Respondents Included", { formula: `COUNTA(${respRange("email")})`, result: ov.user_count }],
+        ["Respondents Included", { formula: resp.count("email"), result: ov.user_count }],
         ["Activity Submissions", cohort.attempted],
         ["Activities Passed", cohort.passed],
         ["Avg Task Success Rate (TSR)", { ...cohort.tsr, numFmt: '0.0"%"' }],
         ["Avg Algorithmic Efficiency Score (AES)", { ...cohort.aes, numFmt: '0.0"%"' }],
         ["Avg Refactoring Optimization Gain (ROG)", {
-          formula: `"+"&ROUND(IFERROR(AVERAGE(${sub.range("rogCounted")}),0),1)&" (n'="&COUNT(${sub.range("rogCounted")})&")"`,
+          formula: `"+"&ROUND(IFERROR(AVERAGEIFS(${sub.range("rogCounted")},${flat(cohortCriteria)}),0),1)&" (n'="&${countRog(cohortCriteria)}&")"`,
           result: `+${sg.rog ?? 0} (n'=${sg.rog_refactored_count})`,
         }],
         ["Unchanged-Code Resubmissions", {
-          formula: `COUNTIF(${sub.range("unchanged")},"Yes")`,
+          formula: countUnchanged(cohortCriteria),
           result: sg.unchanged_code_resubmissions ?? 0,
         }],
         ["Functional Tests Passed", {
-          formula: pairStr("funcPassed", "funcTotal", []),
+          formula: pairStr("funcPassed", "funcTotal", cohortCriteria),
           result: `${sg.functional_tests?.passed ?? 0}/${sg.functional_tests?.total ?? 0}`,
         }],
         ["Complexity Tests Passed", {
-          formula: pairStr("compPassed", "compTotal", []),
+          formula: pairStr("compPassed", "compTotal", cohortCriteria),
           result: `${sg.complexity_tests?.passed ?? 0}/${sg.complexity_tests?.total ?? 0}`,
         }],
         ["Hidden Tests Passed", {
-          formula: pairStr("hidPassed", "hidTotal", []),
+          formula: pairStr("hidPassed", "hidTotal", cohortCriteria),
           result: `${sg.hidden_tests?.passed ?? 0}/${sg.hidden_tests?.total ?? 0}`,
         }],
       ];
     } else {
       systemRows = [
-        ["Respondents Included", { formula: `COUNTA(${respRange("email")})`, result: ov.user_count }],
+        ["Respondents Included", { formula: resp.count("email"), result: ov.user_count }],
         ["Activity Submissions", { formula: `SUM(${respRange("attempted")})`, result: sg.activities_attempted }],
         ["Activities Passed", { formula: `SUM(${respRange("passed")})`, result: sg.activities_passed }],
         ["Avg Task Success Rate (TSR)", { formula: weightedRespAvg("tsr", "attempted"), numFmt: '0.0"%"', result: sg.tsr }],
@@ -1155,31 +1177,44 @@ const AdminUserManagement = () => {
       ];
     }
 
-    const hasPairs = pairedUsers.length > 0;
+    // Assessment-based measures, all over the Pre-Post Test Data sheet, whose
+    // pre/post/diff cells are themselves formulas over the Respondents sheet.
+    // A respondent without both scores is blank there, and AVERAGE / STDEV.S /
+    // COUNT skip blanks together, so pairs stay aligned. The p-value is the
+    // two-tailed t distribution at the paired t statistic -- identical to
+    // T.TEST(pre, post, 2, 1), but it does not need the two ranges to be the
+    // same length, which is what lets rows be deleted or left blank safely.
+    // Fewer than two pairs make STDEV.S fail, hence the "n/a".
     const preR = ppRange("pre");
     const postR = ppRange("post");
     const diffR = ppRange("diff");
-    const tFormula = `AVERAGE(${diffR})/(_xlfn.STDEV.S(${diffR})/SQRT(COUNT(${diffR})))`;
+    const nPairs = `COUNT(${diffR})`;
+    const tFormula = `AVERAGE(${diffR})/(_xlfn.STDEV.S(${diffR})/SQRT(${nPairs}))`;
     const dFormula = `AVERAGE(${diffR})/_xlfn.STDEV.S(${diffR})`;
     const gFormula = `(AVERAGE(${postR})-AVERAGE(${preR}))/(100-AVERAGE(${preR}))`;
-    const pFormula = `_xlfn.T.TEST(${preR},${postR},2,1)`;
+    const pFormula = `_xlfn.T.DIST.2T(ABS(${tFormula}),${nPairs}-1)`;
+    const live = (formula, result, numFmt) => ({
+      formula: `IFERROR(${formula},"n/a")`,
+      result: result ?? "n/a",
+      ...(numFmt ? { numFmt } : {}),
+    });
 
-    const assessmentRows = !hasPairs ? [["Paired Pre/Post Test Takers (n)", 0]] : [
-      ["Paired Pre/Post Test Takers (n)", { formula: `COUNT(${preR})`, result: ov.paired_test_takers }],
-      ["Mean Pre-test", { formula: `AVERAGE(${preR})`, numFmt: '0.00"%"', result: ab.mean_pretest }],
-      ["Mean Post-test", { formula: `AVERAGE(${postR})`, numFmt: '0.00"%"', result: ab.mean_posttest }],
-      ["SD Pre-test", { formula: `_xlfn.STDEV.S(${preR})`, numFmt: "0.00", result: ab.sd_pretest }],
-      ["SD Post-test", { formula: `_xlfn.STDEV.S(${postR})`, numFmt: "0.00", result: ab.sd_posttest }],
-      ["Mean Difference (Post - Pre)", { formula: `AVERAGE(${diffR})`, numFmt: "0.00", result: ab.mean_difference }],
-      ["SD of Differences", { formula: `_xlfn.STDEV.S(${diffR})`, numFmt: "0.00", result: ab.sd_difference }],
-      ["t-value", { formula: tFormula, numFmt: "0.000", result: ab.t_value }],
-      ["Degrees of Freedom", { formula: `COUNT(${diffR})-1`, result: ab.degrees_of_freedom }],
-      ["p-value (two-tailed paired t-test)", { formula: pFormula, numFmt: "0.0000", result: ab.p_value }],
-      ["Significant at α=.05", { formula: `IF(${pFormula}<0.05,"Yes","No")`, result: ab.significant_at_0_05 ? "Yes" : "No" }],
-      ["Cohen's d", { formula: dFormula, numFmt: "0.000", result: ab.cohens_d }],
-      ["Cohen's d Interpretation", { formula: `IF(ABS(${dFormula})>=0.8,"Large Effect",IF(ABS(${dFormula})>=0.5,"Medium Effect",IF(ABS(${dFormula})>=0.2,"Small Effect","Negligible Effect")))`, result: ab.cohens_d_interpretation }],
-      ["Hake's Normalized Gain (g)", { formula: gFormula, numFmt: "0.000", result: ab.hakes_g }],
-      ["Hake's g Interpretation", { formula: `IF(${gFormula}>=0.7,"High Gain",IF(${gFormula}>=0.3,"Medium Gain","Low Gain"))`, result: ab.hakes_g_interpretation }],
+    const assessmentRows = !hasRespondents ? [["Paired Pre/Post Test Takers (n)", 0]] : [
+      ["Paired Pre/Post Test Takers (n)", { formula: nPairs, result: ov.paired_test_takers ?? 0 }],
+      ["Mean Pre-test", live(`AVERAGE(${preR})`, ab.mean_pretest, '0.00"%"')],
+      ["Mean Post-test", live(`AVERAGE(${postR})`, ab.mean_posttest, '0.00"%"')],
+      ["SD Pre-test", live(`_xlfn.STDEV.S(${preR})`, ab.sd_pretest, "0.00")],
+      ["SD Post-test", live(`_xlfn.STDEV.S(${postR})`, ab.sd_posttest, "0.00")],
+      ["Mean Difference (Post - Pre)", live(`AVERAGE(${diffR})`, ab.mean_difference, "0.00")],
+      ["SD of Differences", live(`_xlfn.STDEV.S(${diffR})`, ab.sd_difference, "0.00")],
+      ["t-value", live(tFormula, ab.t_value, "0.000")],
+      ["Degrees of Freedom", { formula: `IF(${nPairs}>0,${nPairs}-1,"n/a")`, result: ab.degrees_of_freedom ?? "n/a" }],
+      ["p-value (two-tailed paired t-test)", live(pFormula, ab.p_value, "0.0000")],
+      ["Significant at α=.05", { formula: `IFERROR(IF(${pFormula}<0.05,"Yes","No"),"n/a")`, result: ab.significant_at_0_05 == null ? "n/a" : (ab.significant_at_0_05 ? "Yes" : "No") }],
+      ["Cohen's d", live(dFormula, ab.cohens_d, "0.000")],
+      ["Cohen's d Interpretation", { formula: `IFERROR(IF(ABS(${dFormula})>=0.8,"Large Effect",IF(ABS(${dFormula})>=0.5,"Medium Effect",IF(ABS(${dFormula})>=0.2,"Small Effect","Negligible Effect"))),"n/a")`, result: ab.cohens_d_interpretation ?? "n/a" }],
+      ["Hake's Normalized Gain (g)", live(gFormula, ab.hakes_g, "0.000")],
+      ["Hake's g Interpretation", { formula: `IFERROR(IF(${gFormula}>=0.7,"High Gain",IF(${gFormula}>=0.3,"Medium Gain","Low Gain")),"n/a")`, result: ab.hakes_g_interpretation ?? "n/a" }],
     ];
 
     addKeyValueSheet(workbook, "Summary", [
@@ -1290,6 +1325,7 @@ const AdminUserManagement = () => {
         const criteria = [
           [sub.range("email"), lp.localCell("email", lpIndex)],
           [sub.range("module"), lp.localCell("module", lpIndex)],
+          inRoster,
         ];
         const computed = hasRawSubs ? metricFormulas(criteria, m) : {
           attempted: m.activities_attempted ?? 0,
@@ -1307,7 +1343,12 @@ const AdminUserManagement = () => {
           hidTotal: m.hidden_tests?.total ?? 0,
         };
         return {
-          name: u.name || "Unnamed Profile",
+          // The name is looked up from the Respondents sheet (the one place
+          // it is typed); email and module are this row's two keys.
+          name: {
+            formula: nameLookup(lp.localCell("email", lpIndex), '""'),
+            result: u.name || "Unnamed Profile",
+          },
           email: u.email,
           module: moduleTitle(moduleId),
           ...computed,
@@ -1326,20 +1367,34 @@ const AdminUserManagement = () => {
       { header: "Difference (Post - Pre)", key: "diff", width: 20, numFmt: '0.00"%"' },
     ];
 
+    // One row per respondent. Nothing here is typed except the email key:
+    // name, pre, post and the difference are formulas over the Respondents
+    // sheet, and pre/post/diff stay blank unless that respondent has BOTH
+    // scores -- so a row whose respondent was deleted, or who lacks a score,
+    // drops out of every statistic on its own. To add a respondent, add them
+    // to Respondents first, then copy the last row of this sheet down one and
+    // type their email.
+    const respEmailR = resp.range("email");
+    const scoreLookup = (emailCell, scoreKey) =>
+      `IF(COUNTIFS(${respEmailR},${emailCell},${resp.range("preTest")},">=0",${resp.range("postTest")},">=0")>0,` +
+      `SUMIFS(${resp.range(scoreKey)},${respEmailR},${emailCell}),"")`;
     addTableSheet(
       workbook,
       "Pre-Post Test Data",
       PP_COLS,
-      pairedUsers.map((u, i) => {
-        const r = 2 + i;
+      byUser.map((u, i) => {
+        const emailCell = pp.localCell("email", i);
+        const preCell = pp.localCell("pre", i);
+        const postCell = pp.localCell("post", i);
+        const paired = u.preTest != null && u.postTest != null;
         return {
-          name: u.name || "Unnamed Profile",
+          name: { formula: nameLookup(emailCell, '""'), result: u.name || "Unnamed Profile" },
           email: u.email,
-          pre: u.preTest,
-          post: u.postTest,
+          pre: { formula: scoreLookup(emailCell, "preTest"), result: paired ? u.preTest : "" },
+          post: { formula: scoreLookup(emailCell, "postTest"), result: paired ? u.postTest : "" },
           diff: {
-            formula: `${colLetter(ppColIdx.post)}${r}-${colLetter(ppColIdx.pre)}${r}`,
-            result: u.postTest - u.preTest,
+            formula: `IF(AND(ISNUMBER(${preCell}),ISNUMBER(${postCell})),${postCell}-${preCell},"")`,
+            result: paired ? u.postTest - u.preTest : "",
           },
         };
       }),
@@ -1354,7 +1409,7 @@ const AdminUserManagement = () => {
     const moduleRows = moduleEntries.length === 0 ? [] : moduleEntries.map(([moduleId, m], i) => {
       const title = moduleTitle(moduleId);
       if (hasRawSubs) {
-        const criteria = [[sub.range("module"), `A${2 + i}`]];
+        const criteria = [[sub.range("module"), `$A${2 + i}`], inRoster];
         const c = metricFormulas(criteria, m);
         return {
           module: title,
@@ -1435,6 +1490,7 @@ const AdminUserManagement = () => {
           { header: "ROG", key: "rog", width: 10, numFmt: "0.00" },
           { header: "ROG Counted", key: "rogCounted", width: 13, numFmt: "0.00" },
           { header: "Counted as Passed", key: "countedPassed", width: 16 },
+          { header: "In Respondents (1/0)", key: "inRoster", width: 18 },
           { header: "Functional Passed", key: "funcPassed", width: 16 },
           { header: "Functional Total", key: "funcTotal", width: 16 },
           { header: "Complexity Passed", key: "compPassed", width: 16 },
@@ -1452,8 +1508,14 @@ const AdminUserManagement = () => {
           const countsTsr = typeof s.tsr_passed === "number" && typeof s.tsr_total === "number" && s.tsr_total > 0;
           const countsRog = typeof s.final_aes === "number" && typeof s.rog === "number" && s.rog > 0;
           const countsPassed = (typeof s.final_aes === "number" && s.final_aes >= 50) || s.status === "passed";
+          const emailCell = sub.localCell("email", i);
           return {
-            name: nameByEmail[s.email] || s.email || "Unnamed Profile",
+            // Looked up from the Respondents sheet by email (falls back to
+            // the email itself when the respondent is no longer listed).
+            name: {
+              formula: nameLookup(emailCell, emailCell),
+              result: nameByEmail[s.email] || s.email || "Unnamed Profile",
+            },
             email: s.email,
             module: moduleTitle(s.moduleId),
             activity: s.activityId ?? "",
@@ -1482,6 +1544,14 @@ const AdminUserManagement = () => {
             countedPassed: {
               formula: `IF(OR(AND(ISNUMBER(${A}),${A}>=50),${S}="passed"),1,0)`,
               result: countsPassed ? 1 : 0,
+            },
+            // 1 while this submission's respondent is still on the
+            // Respondents sheet. Delete the respondent and this flips to 0,
+            // which drops the row from the cohort, module and learning-path
+            // figures without touching the submission itself.
+            inRoster: {
+              formula: `IF(COUNTIF(${resp.range("email")},${emailCell})>0,1,0)`,
+              result: nameByEmail[s.email] !== undefined ? 1 : 0,
             },
             funcPassed: s.functional_passed ?? 0,
             funcTotal: s.functional_total ?? 0,
