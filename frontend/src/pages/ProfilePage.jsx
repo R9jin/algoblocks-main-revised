@@ -31,7 +31,12 @@ import "../styles/ProfilePage.css";
 /** ActivityMetrics — graphical widget card for per-activity stats shown in the profile. */
 function ActivityMetrics({ act }) {
   const aes     = act.aes  || 0;
-  const rog     = act.rog  || 0;
+  // ROG only exists for optimization-challenge activities -- a regular
+  // lesson activity has no baseline-vs-refactored comparison, so even if
+  // its submission happens to carry a leftover/stray rog value, it's never
+  // surfaced here.
+  const isOptimization = act.type === "optimization";
+  const rog     = isOptimization ? (act.rog || 0) : 0;
   const aesPct  = Math.min(Math.max(aes, 0), 100);
   const aesClr  = aes >= 100 ? '#10b981' : aes > 0 ? '#7c5cff' : '#d1d5db';
   const tb      = act.testBreakdown;
@@ -49,11 +54,13 @@ function ActivityMetrics({ act }) {
               {aes > 0 ? `${aes}%` : '--'}
             </span>
           </div>
-          <div className={`rog-pill ${rog > 0 ? 'rog-active' : 'rog-empty'}`}>
-            <span className="rog-icon">{rog > 0 ? '↑' : '∼'}</span>
-            <span className="rog-value">{rog > 0 ? `+${rog}` : '--'}</span>
-            <span className="rog-sub">ROG</span>
-          </div>
+          {isOptimization && (
+            <div className={`rog-pill ${rog > 0 ? 'rog-active' : 'rog-empty'}`}>
+              <span className="rog-icon">{rog > 0 ? '↑' : '∼'}</span>
+              <span className="rog-value">{rog > 0 ? `+${rog}` : '--'}</span>
+              <span className="rog-sub">ROG</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -518,7 +525,7 @@ export default function ProfilePage() {
 
             const mappedActs = acts.map((act) => {
               const sub = userSubs[mod.moduleId]?.[act.id];
-              let aes = 0; let rog = 0; let isCompleted = false;
+              let aes = 0; let isCompleted = false;
               let passedTests = null; let totalTests = null;
               let testBreakdown = null;
               let actualTime = null; let actualSpace = null;
@@ -532,7 +539,6 @@ export default function ProfilePage() {
                 if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100; 
                 aes = Math.min(aes, 100);
 
-                rog = getSafeRog(sub);
                 isCompleted = aes >= 50 || sub.status === "passed";
 
                 passedTests = sub.passedTestCases ?? sub.passed_tests ?? null;
@@ -548,10 +554,15 @@ export default function ProfilePage() {
                 if (isCompleted) lessonCompletedActs++;
                 
                 modAesSum += aes; modAesCount++; globalAesSum += aes; globalAesCount++;
-                if (rog > 0) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
+                // Regular (non-optimization) lesson activities never
+                // contribute to ROG -- ROG is only a meaningful measure on
+                // optimization-challenge activities (a baseline-vs-
+                // refactored comparison), so a stray `rog` value on a
+                // normal submission is left out of the module/global sums
+                // rather than averaged in or displayed.
               }
 
-              return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, hasSubmission, passedTests, totalTests, testBreakdown, actualTime, actualSpace, baselineTime, baselineSpace, latestTime, latestSpace };
+              return { ...act, aes: Math.round(aes), rog: 0, type: act.type || 'activity', isCompleted, hasSubmission, passedTests, totalTests, testBreakdown, actualTime, actualSpace, baselineTime, baselineSpace, latestTime, latestSpace };
             });
 
             // `lesson.minimumActivities` is never actually set anywhere in
@@ -643,7 +654,7 @@ export default function ProfilePage() {
               optCompletedCount++;
             }
 
-            return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, hasSubmission, passedTests, totalTests, testBreakdown, actualTime, actualSpace, baselineTime, baselineSpace, latestTime, latestSpace };
+            return { ...act, aes: Math.round(aes), rog: Math.round(rog), type: 'optimization', isCompleted, hasSubmission, passedTests, totalTests, testBreakdown, actualTime, actualSpace, baselineTime, baselineSpace, latestTime, latestSpace };
           });
 
           const modClean = mod.moduleId.toLowerCase().replace(/[-_ ]/g, ''); 

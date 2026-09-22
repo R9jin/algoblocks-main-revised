@@ -1502,7 +1502,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       aesScore: scoreForDisplay,
       funcPassed,
       funcTotal,
-      rogGain: currentRog > 0 ? currentRog : 0,
+      // ROG only exists for optimization-challenge activities -- even if a
+      // regular activity's submission happens to carry a leftover/stray
+      // rog value, the reward modal never shows it for a non-optimization
+      // completion.
+      rogGain: isOptimization && currentRog > 0 ? currentRog : 0,
       passedCount: completionData.passedCount,
       threshold: completionData.threshold,
       // MODAL FIX: the progress bar used to always say "Lesson Progress",
@@ -1891,7 +1895,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                   </span>
                 </div>
               </span>
-              {currentRog > 0 && (
+              {(activityDataResolved?.type === "optimization" || activityId.includes("opt")) && currentRog > 0 && (
                 <span className="total-badge rog-badge" style={{ position: 'relative' }}>
                   <span className="total-label">ROG:</span>
                   <span className="total-val">+{currentRog}</span>

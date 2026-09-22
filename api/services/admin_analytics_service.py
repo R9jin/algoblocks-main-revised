@@ -267,26 +267,25 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
         if isinstance(final_aes, (int, float)):
             aes_values.append(final_aes)
 
-            # Per the paper: ROG = AES_Final - AES_Baseline, with no added
-            # requirement that the Big-O complexity class itself changed --
-            # a resubmission that only fixed correctness (same class, higher
-            # TSR) still raised AES and is still a real refactoring gain.
+            # Per the paper: ROG = AES_Final - AES_Baseline. ROG only has a
+            # meaningful baseline-vs-refactored comparison on optimization-
+            # type activities -- normal (non-optimization) activities don't
+            # have that comparison, so any rog value sitting on one of their
+            # submissions is ignored here rather than folded into the
+            # cohort's ROG average.
             #
-            # Gated on final_aes being present (same as aes_values above)
-            # AND on rog > 0: this average is now specifically "mean gain
-            # among activities where a refactor actually happened," not
-            # "mean gain across every submission." That deliberately drops
-            # two kinds of zero: never-evaluated drafts (final_aes is None,
-            # already excluded by the outer gate) and legitimate first-try
-            # passes (final_aes present, rog == 0 because there was nothing
-            # to improve on resubmission). Neither represents a refactor,
-            # so neither belongs in a metric about refactor size. This
-            # trades "average gain per activity" for "average gain per
-            # activity that was actually refactored" -- see rog_refactored_count
-            # below for how many submissions that average is drawn from.
-            rog = sub.get("rog")
-            if isinstance(rog, (int, float)) and rog > 0:
-                rog_values.append(rog)
+            # Within optimization-type submissions, every numeric rog counts,
+            # INCLUDING zero: a zero ROG on an optimization activity (e.g. a
+            # first-try pass with nothing left to improve) is still a real,
+            # evaluated outcome for that activity, not a "no data" case, so
+            # it belongs in the average. Only genuinely un-evaluated rows
+            # (final_aes is None, already excluded by the outer gate) are
+            # left out -- see rog_refactored_count below for how many
+            # submissions that average is drawn from.
+            if sub.get("type", "activity") == "optimization":
+                rog = sub.get("rog")
+                if isinstance(rog, (int, float)):
+                    rog_values.append(rog)
 
         breakdown = _test_breakdown(sub)
         functional_passed += breakdown["functional"]["passed"]
@@ -306,9 +305,12 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {
         "aes": round(statistics.mean(aes_values), 1) if aes_values else None,
         "rog": round(statistics.mean(rog_values), 1) if rog_values else None,
-        # How many submissions the "rog" average above was actually drawn
-        # from (i.e. how many had rog > 0), for context next to a number
-        # that no longer represents "every submission."
+        # How many optimization-type submissions the "rog" average above was
+        # actually drawn from (every optimization submission with a numeric
+        # rog, zeros included -- normal-activity submissions never count
+        # here). Kept under its original key for compatibility with the
+        # frontend dashboard/export, even though it's no longer restricted
+        # to "rog > 0" refactors.
         "rog_refactored_count": len(rog_values),
         # Rows whose most recent save was a byte-for-byte resubmission of
         # the learner's prior code for that activity (see ActivityApp.jsx's
