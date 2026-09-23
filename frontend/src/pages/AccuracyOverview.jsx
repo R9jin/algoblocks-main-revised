@@ -32,6 +32,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import { usePyodide } from "../context/PyodideContext";
+import { prefetchGroundTruth } from "../utils/datasetCache";
 import "../styles/AccuracyOverview.css";
 
 const CACHE_KEY = "algoblocks_accuracy_overview_cache_v2";
@@ -195,30 +196,13 @@ export default function AccuracyOverview() {
     setIsChecking(true);
     setCheckFailed(false);
 
-    // Chunk count is not hardcoded -- keep fetching sequential chunk files
-    // until a run of consecutive misses, so newly added chunks are included
-    // without needing another magic number here (see EvaluationSuite.jsx).
-    let stitched = [];
-    let consecutiveMisses = 0;
-    for (let i = 1; consecutiveMisses < 3; i++) {
-      const padded = i.toString().padStart(2, "0");
-      let found = false;
-      try {
-        const r = await fetch(`/data/evaluation/processed/ground_truth_chunk_${padded}.json`);
-        if (r.ok) {
-          const json = await r.json();
-          if (Array.isArray(json)) {
-            stitched = stitched.concat(json);
-            found = true;
-          }
-        }
-      } catch {
-        // skip a missing/broken chunk rather than failing the whole check
-      }
-      consecutiveMisses = found ? 0 : consecutiveMisses + 1;
-    }
+    // Ground-truth chunks are pre-fetched in the background as soon as the
+    // user signs in (see App.jsx / utils/datasetCache.js) and persisted to
+    // IndexedDB, so this normally resolves instantly from cache instead of
+    // re-issuing ~30 sequential network requests every time the check runs.
+    const stitched = await prefetchGroundTruth();
 
-    if (stitched.length === 0) {
+    if (!stitched || stitched.length === 0) {
       if (isMountedRef.current) {
         setIsChecking(false);
         setCheckFailed(true);

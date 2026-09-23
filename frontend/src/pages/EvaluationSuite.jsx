@@ -43,6 +43,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import { usePyodide } from "../context/PyodideContext";
+import { prefetchGroundTruth } from "../utils/datasetCache";
 import "../styles/EvaluationSuite.css";
 
 // Stable color palette for Big-O complexity classes so the same class always
@@ -364,63 +365,9 @@ export default function EvaluationSuite({ embedded = false } = {}) {
   }, [worker]);
 
   // --- VITE SPA FALLBACK GUARDS ---
-  const safeFetchText = async (url) => {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) return null;
-      const text = await res.text();
-      if (text.trim().toLowerCase().startsWith("<!doctype") || text.trim().toLowerCase().startsWith("<html")) {
-        return null;
-      }
-      return text;
-    } catch (e) {
-      return null;
-    }
-  };
-
-  const safeFetchJson = async (url) => {
-    const text = await safeFetchText(url);
-    if (!text) return null;
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      return null;
-    }
-  };
-
-  // NOTE: this used to support several dataset "modes" (textbook,
-  // codeforces, tasty-CSV, both) inherited from earlier iterations of the
-  // evaluation pipeline. The rest (algo_blocks_dataset.csv, ground_truth.json,
-  // curated_ground_truth.json, curated_part_*.json) reference files that no
-  // longer exist, and every code path was defaulting to "both" on first
-  // load, which tried (and failed) to fetch all of them -- hence the
-  // "Failed to load Tasty dataset" popup. Simplified to the one dataset
-  // that's actually present: the ground-truth chunks.
-  //
-  // Chunk count is NOT hardcoded: a static host has no directory listing, so
-  // we just keep fetching ground_truth_chunk_NN.json in order and stop once
-  // we hit a run of consecutive misses. This way new chunks (e.g. added to
-  // backfill an underrepresented complexity class) are picked up automatically
-  // without another magic number here.
-  const MAX_CONSECUTIVE_MISSES = 3;
-  const fetchActiveGauntletData = async () => {
-    setStatusText("Fetching Ground Truth Chunks...");
-    let stitchedArray = [];
-    let consecutiveMisses = 0;
-    let i = 1;
-    while (consecutiveMisses < MAX_CONSECUTIVE_MISSES) {
-      const paddedNum = i.toString().padStart(2, '0');
-      const partJson = await safeFetchJson(`/data/evaluation/processed/ground_truth_chunk_${paddedNum}.json`);
-      if (partJson) {
-        stitchedArray = stitchedArray.concat(partJson);
-        consecutiveMisses = 0;
-      } else {
-        consecutiveMisses += 1;
-      }
-      i += 1;
-    }
-    return stitchedArray;
-  };
+  // (safeFetchText/safeFetchJson/the manual chunk-fetch loop that used to
+  // live here have moved into utils/datasetCache.js, which every page
+  // that needs the ground-truth dataset now shares -- see below.)
 
   const handleStartEvaluation = async () => {
     if (!isEngineReady) {
@@ -430,7 +377,12 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
     setIsLoading(true); setProgress(0); setResults(null); setExpandedRows({});
 
-    const gauntletPayload = await fetchActiveGauntletData();
+    // Ground-truth chunks are pre-fetched in the background as soon as the
+    // user signs in (see App.jsx) and cached in IndexedDB, so this
+    // normally resolves instantly instead of stalling on ~30 sequential
+    // requests right when the user is waiting to see progress.
+    setStatusText("Loading ground-truth dataset...");
+    const gauntletPayload = await prefetchGroundTruth();
     if (!gauntletPayload || gauntletPayload.length === 0) {
       alert("Critical Failure: Could not load the ground-truth chunks. Ensure ground_truth_chunk_01.json (and onward) exist inside /public/data/evaluation/processed/");
       setIsLoading(false);

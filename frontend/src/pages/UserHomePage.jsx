@@ -215,7 +215,13 @@ export default function UserHomePage() {
     await clearLocalUserData();
     localStorage.clear();
     sessionStorage.clear();
-    window.location.replace("/");
+    // Client-side navigate, not a hard reload -- see DashboardHeader.jsx's
+    // handleLogout for why. clearLocalUserData() above already wipes the
+    // per-user IndexedDB stores (progress/assessments/submissions/etc); the
+    // deliberately-excluded curriculumCache and datasetCache stores are
+    // static app content, not this user's data, so there's nothing left
+    // that needs a full process teardown to clean up.
+    navigate("/", { replace: true });
   };
 
   if (!user) return null;

@@ -726,7 +726,7 @@ const AdminUserManagement = () => {
     const passRate = sg.activities_attempted
       ? Math.round((sg.activities_passed / sg.activities_attempted) * 100)
       : 0;
-    return `Across ${sg.activities_attempted} recorded activity submission${sg.activities_attempted === 1 ? "" : "s"} in the current scope, respondents achieved an average Task Success Rate of ${fmtPct(sg.tsr)} and an average Algorithmic Efficiency Score of ${fmtPct(sg.aes)}, passing ${sg.activities_passed} activities (${passRate}%). Among the ${sg.rog_refactored_count} optimization-activity submissions evaluated, the average Refactoring Optimization Gain was +${sg.rog ?? 0} AES points.`;
+    return `Across ${sg.activities_attempted} recorded activity submission${sg.activities_attempted === 1 ? "" : "s"} in the current scope, respondents achieved an average Task Success Rate of ${fmtPct(sg.tsr)} and an average Algorithmic Efficiency Score of ${fmtPct(sg.aes)}, passing ${sg.activities_passed} activities (${passRate}%). Among the ${sg.rog_refactored_count} submissions where a genuine refactor took place, the average Refactoring Optimization Gain was +${sg.rog ?? 0} AES points.`;
   };
 
   const reportScopeLabel = selectedRespondents.length > 0
@@ -1089,23 +1089,7 @@ const AdminUserManagement = () => {
       criteria.length === 0
         ? `IFERROR(AVERAGE(${sub.range(key)}),"")`
         : `IFERROR(AVERAGEIFS(${sub.range(key)},${flat(criteria)}),"")`;
-    // ROG only counts on optimization-type submissions (normal activities'
-    // rog, if present, is ignored) -- zero gains DO count, so this needs
-    // "is a number", not "> 0".
-    //
-    // BUG FIX (n' inflated to the full row count): this used to test
-    // "<>" against the rogCounted column, which is meant as an
-    // is-this-blank check. But every row's rogCounted cell holds an
-    // actual formula (=IF(...,value,"")), even on rows where it
-    // evaluates to "". A formula that *returns* "" is not a truly
-    // blank cell to Excel, so "<>" counted it anyway -- inflating n'
-    // to every row in scope (e.g. 3066) instead of just the rows with
-    // a real numeric ROG (e.g. 458). A numeric-range comparison doesn't
-    // have this problem: COUNTIFS never treats a text result (including
-    // "") as satisfying a numeric inequality, regardless of whether
-    // that text came from a formula or a literal cell. -1E+15 is just
-    // a bound far below any real ROG value (which is always >= 0).
-    const countRog = (criteria) => countRows([...criteria, [sub.range("rogCounted"), '">-1E+15"']]);
+    const countRog = (criteria) => countRows([...criteria, [sub.range("rogCounted"), '">0"']]);
     const countUnchanged = (criteria) => countRows([...criteria, [sub.range("unchanged"), '"Yes"']]);
     const pairStr = (aKey, bKey, criteria) =>
       `${sumCol(aKey, criteria)}&"/"&${sumCol(bKey, criteria)}`;
@@ -1520,15 +1504,9 @@ const AdminUserManagement = () => {
           const T = sub.localCell("tsrTotal", i);
           const A = sub.localCell("aes", i);
           const G = sub.localCell("rog", i);
-          const TY = sub.localCell("type", i);
           const S = sub.localCell("status", i);
           const countsTsr = typeof s.tsr_passed === "number" && typeof s.tsr_total === "number" && s.tsr_total > 0;
-          // ROG is only meaningful on optimization-type submissions (normal
-          // activities don't have a baseline-vs-refactored comparison, so
-          // any rog sitting on one of their rows is ignored). Zero gains DO
-          // count within optimization submissions -- only "was this ever
-          // evaluated" (final_aes present) gates it, not "was the gain > 0".
-          const countsRog = s.type === "optimization" && typeof s.final_aes === "number" && typeof s.rog === "number";
+          const countsRog = typeof s.final_aes === "number" && typeof s.rog === "number" && s.rog > 0;
           const countsPassed = (typeof s.final_aes === "number" && s.final_aes >= 50) || s.status === "passed";
           const emailCell = sub.localCell("email", i);
           return {
@@ -1555,12 +1533,10 @@ const AdminUserManagement = () => {
             },
             aes: s.final_aes ?? "",
             rog: s.rog ?? "",
-            // ROG only counts on optimization-type submissions (normal
-            // activities' rog is ignored), and only needs the activity to
-            // have actually been evaluated (an AES exists) -- a zero gain
-            // counts same as any other.
+            // ROG only counts as a refactoring gain when the activity was
+            // actually evaluated (an AES exists) and the gain is positive.
             rogCounted: {
-              formula: `IF(AND(${TY}="optimization",ISNUMBER(${A}),ISNUMBER(${G})),${G},"")`,
+              formula: `IF(AND(ISNUMBER(${A}),ISNUMBER(${G}),${G}>0),${G},"")`,
               result: countsRog ? s.rog : "",
             },
             // The backend's pass rule, written out: AES >= 50, or the
@@ -1792,7 +1768,7 @@ const AdminUserManagement = () => {
                         title="Average Refactoring Optimization Gain (Mean ROG)"
                         meanFormula="Mean ROG = (1 / M') × Σ [ AES_final,k - AES_baseline,k ]  for k where gain > 0"
                         baseFormula="where ROG_k = AES_final,k - AES_baseline,k for activity k"
-                        desc={`Calculated by computing the score improvement from initial baseline attempt to final refactored solution for each optimization-type activity, averaged only over the M' = ${overview.system_generated.rog_refactored_count ?? 0} optimization submissions that were actually evaluated (includes zero-gain first-try passes; excludes never-attempted drafts and normal, non-optimization activities entirely).`}
+                        desc={`Calculated by computing the score improvement from initial baseline attempt to final refactored solution for each activity, averaged only over the M' = ${overview.system_generated.rog_refactored_count ?? 0} submissions that actually recorded a gain (excludes never-attempted drafts and first-try passes with nothing to improve).`}
                       >
                         Avg Refactoring Optimization Gain (ROG)
                       </MetricTooltip>
@@ -2337,10 +2313,7 @@ const AdminUserManagement = () => {
                                                   </span>
                                                 </td>
                                                 <td>{activity.aes !== null && activity.aes !== undefined ? `${activity.aes}%` : "--"}</td>
-                                                {/* ROG only exists for optimization-challenge activities -- a
-                                                    regular activity never shows it here, even if its record
-                                                    happens to carry a leftover/stray rog value. */}
-                                                <td>{activity.type === "optimization" ? `+${activity.rog ?? 0}` : "--"}</td>
+                                                <td>+{activity.rog ?? 0}</td>
                                                 <td><code className="admin-complexity-code">{activity.time || "--"}</code></td>
                                                 <td><code className="admin-complexity-code">{activity.space || "--"}</code></td>
                                                 <td>{activity.tests?.passed || 0}/{activity.tests?.total || 0}</td>

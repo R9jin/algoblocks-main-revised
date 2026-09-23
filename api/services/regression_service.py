@@ -370,17 +370,9 @@ def _build_payload(rows: List[Dict[str, float]]) -> Dict[str, Any]:
     excl_label = f"Main model excluding largest-residual respondent ({ids[top_idx]})"
     x_wo = x_reg[:top_pos] + x_reg[top_pos + 1:]
     y_wo = y_reg[:top_pos] + y_reg[top_pos + 1:]
-    # ROG alone, same respondents/rows as the main model (reg_idx), as its own
-    # single-predictor check -- the composite model above averages TSR, AES,
-    # and ROG into one X, which dilutes ROG's own relationship to Y with two
-    # other predictors. Reported here so "how well does ROG alone predict
-    # gain" has a real, visible number in the report instead of only living
-    # inside the 3-variable composite.
-    z_rog_reg = [pipe["z_rog"][i] for i in reg_idx]
     sensitivity = [
         {"key": "main", "label": "Main model (X = TSR, AES, ROG composite)", "n": fit["n"], "slope": fit["b1"], "p": fit["p"], "r2": fit["r2"]},
         _sensitivity_row("excl_influential", excl_label, x_wo, y_wo),
-        _sensitivity_row("rog_only", "ROG alone (single predictor, not the TSR/AES/ROG composite)", z_rog_reg, y_reg),
     ]
 
     # -- Learning Impact Index (descriptive only) ----------------------------------------
