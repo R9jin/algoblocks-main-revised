@@ -155,13 +155,9 @@ def test_sensitivity_table(result):
     assert "S24" in excl["label"]  # S24 (post dropped to 20) is the standout residual
 
 
-def test_learning_impact_index(result):
-    lii = result["lii"]
-    assert lii["mean"] == approx(81.75, 0.01)
-    assert lii["sd"] == approx(5.60, 0.01)
-    assert lii["min"] == approx(69.1, 0.01)
-    assert lii["max"] == approx(92.1, 0.01)
-    assert "pending adviser approval" in lii["label"]
+def test_learning_impact_index_is_removed(result):
+    assert "lii" not in result
+    assert all("lii" not in r for r in result["respondents"])
 
 
 def test_respondent_appendix_is_anonymous_and_complete(result):

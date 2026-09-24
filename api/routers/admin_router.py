@@ -259,7 +259,7 @@ def get_analytics_overview(
       - Learning Impact Model: a `regression` key with the simple
         one-predictor regression of normalized learning gain (Y) on a
         "System Interaction" composite of TSR/AES/ROG (X), plus a
-        sensitivity check and the proposed Learning Impact Index. Added
+        sensitivity check. Added
         key only -- every existing key is unchanged. When it cannot be
         fitted it is {"available": false, "reason": ...} rather than an
         error.

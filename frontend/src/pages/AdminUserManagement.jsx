@@ -1569,7 +1569,7 @@ const AdminUserManagement = () => {
     // ----- Learning Impact Model (simple regression) --------------------
     // Added AFTER every existing sheet so the current sheet order is
     // untouched. "Regression Data" carries anonymized IDs and raw scores with
-    // real formulas for z-scores/X/Y/LII; "Regression Summary" recomputes the
+    // real formulas for z-scores/X/Y; "Regression Summary" recomputes the
     // statistics from it (SLOPE/INTERCEPT/CORREL/RSQ/T.DIST.2T). No names or emails.
     addRegressionSheets(workbook, ov.regression, { headerColor: "5A1398" });
 

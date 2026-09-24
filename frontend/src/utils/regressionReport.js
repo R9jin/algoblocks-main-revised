@@ -8,7 +8,8 @@
 //   - scatter-plot data + an offscreen canvas renderer (the PDF must not
 //     depend on the on-screen Recharts chart being mounted)
 //   - drawRegressionPdfSection(): the jsPDF/autoTable section
-//   - addRegressionSheets(): the "Regression Data" / "Regression Summary" sheets
+//   - addRegressionSheets(): the "Regression Data" / "Regression Summary" sheets,
+//     plus the scatter plot embedded in the Regression Summary sheet
 //
 // All statistics come from the backend's `overview.regression` payload
 // (api/services/regression_service.py): X = average(z_TSR, z_AES, z_ROG) ---
@@ -122,7 +123,10 @@ function niceTicks(min, max, target = 6) {
  * PNG data URL. Uses only the 2D canvas API (no DOM chart), so it works while
  * the dashboard chart is unmounted or the report modal is closed.
  */
-export function renderScatterPng(spec, { width = 560, height = 380, scale = 2 } = {}) {
+export function renderScatterPng(
+  spec,
+  { width = 560, height = 380, scale = 2, lineWidth = 2, pointColor, pointRadius = 4 } = {}
+) {
   const canvas = document.createElement("canvas");
   canvas.width = width * scale;
   canvas.height = height * scale;
@@ -184,7 +188,7 @@ export function renderScatterPng(spec, { width = 560, height = 380, scale = 2 } 
   ctx.clip();
 
   ctx.strokeStyle = "#5A1398";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = lineWidth;
   ctx.beginPath();
   ctx.moveTo(sx(spec.line[0].x), sy(spec.line[0].y));
   ctx.lineTo(sx(spec.line[1].x), sy(spec.line[1].y));
@@ -192,8 +196,8 @@ export function renderScatterPng(spec, { width = 560, height = 380, scale = 2 } 
 
   spec.points.forEach((p) => {
     ctx.beginPath();
-    ctx.arc(sx(p.x), sy(p.y), p.influential ? 5 : 4, 0, Math.PI * 2);
-    ctx.fillStyle = p.influential ? "rgba(234,88,12,0.85)" : "rgba(90,19,152,0.55)";
+    ctx.arc(sx(p.x), sy(p.y), p.influential ? pointRadius + 1 : pointRadius, 0, Math.PI * 2);
+    ctx.fillStyle = pointColor || (p.influential ? "rgba(234,88,12,0.85)" : "rgba(90,19,152,0.55)");
     ctx.fill();
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1;
@@ -277,7 +281,7 @@ export function drawRegressionPdfSection(ctx, reg, sectionNumber = 6) {
     return;
   }
 
-  const { model, correlation, sensitivity, lii, method } = reg;
+  const { model, correlation, sensitivity, method } = reg;
 
   // -- method ---------------------------------------------------------------
   addParagraph(
@@ -336,11 +340,6 @@ export function drawRegressionPdfSection(ctx, reg, sectionNumber = 6) {
     reg.limitations.forEach((s) => addParagraph(pdfSafe(s)));
   }
 
-  // -- LII ----------------------------------------------------------------------------
-  addSubheading("Learning Impact Index (descriptive)");
-  addParagraph(`${pdfSafe(lii.label)}. ${pdfSafe(lii.formula)}.`);
-  table(["Mean", "SD", "Min", "Max"], [[fmtNum(lii.mean, 2), fmtNum(lii.sd, 2), fmtNum(lii.min, 1), fmtNum(lii.max, 1)]]);
-
   // -- scatter plot ---------------------------------------------------------------------
   const spec = buildScatterSpec(reg);
   if (spec) {
@@ -377,11 +376,50 @@ export function drawRegressionPdfSection(ctx, reg, sectionNumber = 6) {
 const DATA_SHEET = "Regression Data";
 const SUMMARY_SHEET = "Regression Summary";
 
+const PLOT_SHEET = "Regression Plot";
+
 /**
- * Adds "Regression Data" and "Regression Summary" (in that order, after any
+ * Adds a "Regression Plot" sheet holding the scatter plot of the fitted
+ * regression: one dot per respondent plus the fitted line. Axis labels are
+ * deliberately just "System Interaction" (X) and "Learning Gain" (Y).
+ *
+ * ExcelJS cannot author native Excel charts, so the plot is drawn on an
+ * offscreen canvas (the same renderer the PDF uses) and embedded as a PNG.
+ * It shows the numbers as of export time; the statistics on the Summary sheet
+ * remain live formulas. Skipped (silently) where no canvas exists.
+ */
+function addRegressionPlotSheet(workbook, reg) {
+  const spec = buildScatterSpec(reg);
+  if (!spec || typeof document === "undefined") return;
+
+  const width = 760;
+  const height = 460;
+  const png = renderScatterPng(
+    {
+      ...spec,
+      title: "Learning Gain vs System Interaction",
+      xLabel: "System Interaction",
+      yLabel: "Learning Gain",
+      // one plain series: the PDF's orange "flagged" respondent needs a
+      // legend, which this sheet does not have
+      points: spec.points.map((p) => ({ ...p, influential: false })),
+    },
+    { width, height, scale: 2, lineWidth: 3, pointColor: "rgba(37,99,235,0.85)", pointRadius: 5 }
+  );
+
+  const sheet = workbook.addWorksheet(PLOT_SHEET);
+  sheet.views = [{ showGridLines: false }];
+  // keep the whole plot on one printed page
+  sheet.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 1 };
+  const imageId = workbook.addImage({ base64: png, extension: "png" });
+  sheet.addImage(imageId, { tl: { col: 0.3, row: 0.6 }, ext: { width, height } });
+}
+
+/**
+ * Adds "Regression Data" and "Regression Summary" plus a scatter-plot sheet (in that order, after any
  * sheets already in the workbook). No names or emails: anonymized IDs only.
  *
- * Data sheet: raw numbers as plain values, then z-scores / X / Y / LII as
+ * Data sheet: raw numbers as plain values, then z-scores / X / Y as
  * REAL formulas. Y is left blank for a respondent dropped from the
  * regression (perfect pre-test), which SLOPE/INTERCEPT/CORREL/RSQ/STEYX all
  * silently skip -- so the Summary sheet's formulas naturally match the
@@ -441,7 +479,6 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
     ["zRog", "z_ROG", 10],
     ["x", "X (System Interaction)", 14],
     ["y", "Y (Normalized Gain)", 14],
-    ["lii", "LII", 10],
   ];
   const col = {};
   COLS.forEach(([key], i) => { col[key] = colLetter(i + 1); });
@@ -469,7 +506,6 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
       // Left blank for a dropped respondent (Pre = 100): SLOPE/CORREL/etc.
       // over a mismatched blank-vs-number pair simply skip that row.
       y: r.y == null ? "" : f(`(C${rr}-B${rr})/(100-B${rr})`, r.y),
-      lii: f(`AVERAGE(${col.tsr}${rr}:${col.rog}${rr},${col.post}${rr})`, r.lii),
     };
   });
 
@@ -480,7 +516,7 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
       header,
       key,
       width,
-      numFmt: ["zTsr", "zAes", "zRog", "x", "y"].includes(key) ? "0.000" : key === "lii" ? "0.00" : undefined,
+      numFmt: ["zTsr", "zAes", "zRog", "x", "y"].includes(key) ? "0.000" : undefined,
     })),
     dataRows,
     { headerColor }
@@ -560,16 +596,6 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
           : `b1 = ${fmtNum(s.slope)}, p = ${fmtP(s.p)}, R2 = ${fmtR2(s.r2)}`,
       ]),
     },
-    {
-      heading: reg.lii.label,
-      narrative: `${reg.lii.formula}. Descriptive only; not part of the regression.`,
-      rows: [
-        ["LII mean", f(`AVERAGE(${dataRef("lii")})`, reg.lii.mean, "0.00")],
-        ["LII SD (sample)", f(`_xlfn.STDEV.S(${dataRef("lii")})`, reg.lii.sd, "0.00")],
-        ["LII min", f(`MIN(${dataRef("lii")})`, reg.lii.min, "0.0")],
-        ["LII max", f(`MAX(${dataRef("lii")})`, reg.lii.max, "0.0")],
-      ],
-    },
     { heading: `Interpretation (${staticNote})` },
     ...(reg.interpretation || []).map((s) => ({ narrative: s })),
   ];
@@ -579,6 +605,7 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
   }
 
   const sheet = addKeyValueSheet(workbook, SUMMARY_SHEET, sections, { headerColor });
+  addRegressionPlotSheet(workbook, reg);
 
   // Merged narrative rows don't auto-fit their height in Excel; size them from
   // the text length (the two merged columns are ~120 characters wide).

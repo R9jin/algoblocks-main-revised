@@ -375,9 +375,6 @@ def _build_payload(rows: List[Dict[str, float]]) -> Dict[str, Any]:
         _sensitivity_row("excl_influential", excl_label, x_wo, y_wo),
     ]
 
-    # -- Learning Impact Index (descriptive only) ----------------------------------------
-    lii = [(r["tsr"] + r["aes"] + r["rog"] + r["post"]) / 4.0 for r in rows]
-
     # -- per-respondent appendix (anonymized) ------------------------------------------------
     respondents = []
     for i, r in enumerate(rows):
@@ -388,7 +385,6 @@ def _build_payload(rows: List[Dict[str, float]]) -> Dict[str, Any]:
             "x": pipe["x"][i], "y": pipe["y"][i],
             "fitted": pipe["fitted"][i], "residual": pipe["residual"][i],
             "dropped_from_regression": i in pipe["dropped_idx"],
-            "lii": lii[i],
         })
 
     # -- deterministic interpretation ----------------------------------------------------------
@@ -455,14 +451,6 @@ def _build_payload(rows: List[Dict[str, float]]) -> Dict[str, Any]:
         "correlation": {"r": fit["r"], "r2": fit["r2"]},
         "sums": fit["sums"],
         "sensitivity": sensitivity,
-        "lii": {
-            "label": "Learning Impact Index (proposed - pending adviser approval)",
-            "formula": "LII = (TSR + AES + ROG + Post-test) / 4, raw 0-100 scale",
-            "mean": _mean(lii),
-            "sd": _sample_sd(lii),
-            "min": min(lii),
-            "max": max(lii),
-        },
         "respondents": respondents,
         "interpretation": interpretation,
         "limitations": limitations,

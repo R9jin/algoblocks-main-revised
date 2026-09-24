@@ -30,7 +30,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { LuChevronDown, LuChevronUp, LuTriangleAlert, LuTrendingUp } from "react-icons/lu";
+import { LuChevronDown, LuChevronUp, LuTriangleAlert } from "react-icons/lu";
 import {
   buildScatterSpec,
   fmtCi,
@@ -117,22 +117,6 @@ function ModelTable({ reg }) {
           </tr>
         </tbody>
       </table>
-    </div>
-  );
-}
-
-function LiiCard({ lii }) {
-  return (
-    <div className="analytics-card lim-lii-card">
-      <div className="analytics-card-icon hakesg"><LuTrendingUp size={20} /></div>
-      <div className="analytics-card-body">
-        <span className="analytics-card-value">{fmtNum(lii.mean, 2)} / 100</span>
-        <span className="analytics-card-label">
-          Learning Impact Index (mean) &middot; SD {fmtNum(lii.sd, 2)}, range {fmtNum(lii.min, 1)}&ndash;{fmtNum(lii.max, 1)}
-        </span>
-        <span className="lim-lii-status">Proposed &mdash; pending adviser approval</span>
-        <span className="analytics-card-label">{lii.formula}. Descriptive only.</span>
-      </div>
     </div>
   );
 }
@@ -297,7 +281,6 @@ export function LearningImpactModelSection({ regression }) {
                 </span>
               </div>
             </div>
-            <LiiCard lii={reg.lii} />
           </div>
 
           <div className="analytics-section-label">Regression (Y = normalized gain, X = System Interaction)</div>
@@ -357,11 +340,6 @@ export function LearningImpactModelReportSection({ regression, sectionNumber = 6
 
           <h3 className="lim-h3">Interpretation</h3>
           <InterpretationBlock reg={reg} />
-
-          <h3 className="lim-h3">Learning Impact Index (descriptive)</h3>
-          <div className="analytics-card-grid lim-cards">
-            <LiiCard lii={reg.lii} />
-          </div>
 
           <ScatterPlot reg={reg} />
 

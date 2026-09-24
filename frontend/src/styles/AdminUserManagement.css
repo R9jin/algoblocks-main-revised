@@ -1746,16 +1746,6 @@ h1, h2, h3, h4, .analytics-card-value, .admin-metric-value, .eval-metric-value {
   margin-bottom: 4px;
 }
 
-.lim-lii-status {
-  align-self: flex-start;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #fef9c3;
-  color: #854d0e;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
 .lim-table {
   min-width: 520px;
   white-space: nowrap;
