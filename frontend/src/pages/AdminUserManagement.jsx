@@ -5,6 +5,7 @@ import { autoTable } from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { addTableSheet, addKeyValueSheet, downloadWorkbook, colLetter, excelStringLiteral, sheetRefs, OPEN_LAST_ROW } from "../utils/excelReport";
 import { addRegressionSheets, drawRegressionPdfSection } from "../utils/regressionReport";
+import { anonymizeOverview } from "../utils/anonymize";
 import { LearningImpactModelSection, LearningImpactModelReportSection } from "../components/LearningImpactModel";
 import {
   LuActivity,
@@ -738,8 +739,10 @@ const AdminUserManagement = () => {
   // report's text and tables onto PDF pages ourselves, so pagination is
   // fully under our control (autoTable repeats headers and breaks rows
   // cleanly across pages on its own).
-  const handleDownloadPdf = (ov) => {
-    if (!ov) return;
+  const handleDownloadPdf = (rawOv) => {
+    if (!rawOv) return;
+    // names and emails never leave the app: respondents become S01, S02, ...
+    const ov = anonymizeOverview(rawOv);
     const doc = new jsPDF({ unit: "pt", format: "letter" });
     const marginX = 40;
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -873,9 +876,8 @@ const AdminUserManagement = () => {
         theme: "grid",
         styles: { fontSize: 8, cellPadding: 4 },
         headStyles: { fillColor: brandColor },
-        head: [["Name", "Email", "Activities", "Passed", "Avg TSR", "Avg AES", "Avg ROG", "Pre-test", "Post-test"]],
+        head: [["Respondent ID", "Activities", "Passed", "Avg TSR", "Avg AES", "Avg ROG", "Pre-test", "Post-test"]],
         body: ov.by_user.map((u) => [
-          u.name || "Unnamed Profile",
           u.email,
           String(u.metrics.activities_attempted),
           String(u.metrics.activities_passed),
@@ -897,7 +899,6 @@ const AdminUserManagement = () => {
     const learningPathRows = (ov.by_user || []).flatMap((u) => {
       const modules = Object.entries(u.by_module || {});
       return modules.map(([moduleId, m], idx) => [
-        idx === 0 ? (u.name || "Unnamed Profile") : "",
         idx === 0 ? u.email : "",
         MODULE_TITLES[moduleId] || moduleId,
         String(m.activities_attempted),
@@ -914,7 +915,7 @@ const AdminUserManagement = () => {
         theme: "grid",
         styles: { fontSize: 8, cellPadding: 4 },
         headStyles: { fillColor: brandColor },
-        head: [["Name", "Email", "Module", "Submissions", "Passed", "Avg TSR", "Avg AES", "Avg ROG"]],
+        head: [["Respondent ID", "Module", "Submissions", "Passed", "Avg TSR", "Avg AES", "Avg ROG"]],
         body: learningPathRows,
       });
       y = doc.lastAutoTable.finalY + 20;
@@ -1002,8 +1003,10 @@ const AdminUserManagement = () => {
   // the numbers read correctly before Excel recalculates -- and because the
   // formulas mirror the backend's definitions term for term, recalculating
   // reproduces them rather than shifting them.
-  const handleDownloadExcel = async (ov) => {
-    if (!ov) return;
+  const handleDownloadExcel = async (rawOv) => {
+    if (!rawOv) return;
+    // names and emails never leave the app: respondents become S01, S02, ...
+    const ov = anonymizeOverview(rawOv);
     const workbook = new ExcelJS.Workbook();
     workbook.creator = "AlgoBlocks";
     workbook.created = new Date();
@@ -1022,8 +1025,8 @@ const AdminUserManagement = () => {
     const rawSubs = Array.isArray(ov.submissions) ? ov.submissions : [];
     const hasRawSubs = rawSubs.length > 0;
 
-    const nameByEmail = {};
-    byUser.forEach((u) => { nameByEmail[u.email] = u.name || "Unnamed Profile"; });
+    // Respondent IDs on the roster (the "email" field holds the anonymized ID).
+    const rosterIds = new Set(byUser.map((u) => u.email));
     const moduleTitle = (moduleId) => MODULE_TITLES[moduleId] || moduleId || "unknown";
 
     // Column layouts + cross-sheet range strings are worked out up front
@@ -1033,7 +1036,7 @@ const AdminUserManagement = () => {
     // worksheets after the fact.
     const SUB_SHEET = "Submissions";
     const SUB_KEYS = [
-      "name", "email", "module", "activity", "type", "status", "unchanged",
+      "email", "module", "activity", "type", "status", "unchanged",
       "tsrPassed", "tsrTotal", "tsr", "aes", "rog", "rogCounted", "countedPassed",
       "inRoster",
       "funcPassed", "funcTotal", "compPassed", "compTotal", "hidPassed", "hidTotal",
@@ -1042,7 +1045,7 @@ const AdminUserManagement = () => {
     const sub = sheetRefs(SUB_SHEET, SUB_KEYS, rawSubs.length);
 
     const RESP_COLS_DEF = [
-      "name", "email", "status", "attempted", "passed", "tsr", "aes", "rog",
+      "email", "status", "attempted", "passed", "tsr", "aes", "rog",
       "rogN", "unchanged", "funcPassed", "funcTotal", "compPassed", "compTotal",
       "hidPassed", "hidTotal", "preTest", "postTest",
     ];
@@ -1052,7 +1055,7 @@ const AdminUserManagement = () => {
     const respRange = (key) => resp.bounded(key);
 
     const LP_COLS_DEF = [
-      "name", "email", "module", "attempted", "passed", "tsr", "aes", "rog",
+      "email", "module", "attempted", "passed", "tsr", "aes", "rog",
       "rogN", "unchanged", "funcPassed", "funcTotal", "compPassed", "compTotal",
       "hidPassed", "hidTotal",
     ];
@@ -1062,16 +1065,11 @@ const AdminUserManagement = () => {
     // Pre-Post Test Data has one row per respondent; a row only counts when
     // that respondent has both scores (otherwise pre/post/diff are blank and
     // AVERAGE / STDEV.S / COUNT skip them together, keeping the pairs aligned).
-    const PP_COLS_DEF = ["name", "email", "pre", "post", "diff"];
+    const PP_COLS_DEF = ["email", "pre", "post", "diff"];
     const pp = sheetRefs("Pre-Post Test Data", PP_COLS_DEF, byUser.length);
     const ppColIdx = {};
     PP_COLS_DEF.forEach((key, i) => { ppColIdx[key] = i + 1; });
     const ppRange = (key) => pp.range(key);
-
-    // Name lookup shared by the sheets that repeat a respondent's name: the
-    // Respondents sheet is the one place the name is typed.
-    const nameLookup = (emailCell, fallback) =>
-      `IFERROR(INDEX(${resp.range("name")},MATCH(${emailCell},${resp.range("email")},0)),${fallback})`;
 
     // ----- Helpers for the submission-backed formulas -------------------
     // `criteria` is a list of [rangeString, criterionString] pairs -- the
@@ -1139,11 +1137,11 @@ const AdminUserManagement = () => {
         ["Respondents Included", { formula: resp.count("email"), result: ov.user_count }],
         ["Activity Submissions", cohort.attempted],
         ["Activities Passed", cohort.passed],
-        ["Avg Task Success Rate (TSR)", { ...cohort.tsr, numFmt: '0.0"%"' }],
-        ["Avg Algorithmic Efficiency Score (AES)", { ...cohort.aes, numFmt: '0.0"%"' }],
-        ["Avg Refactoring Optimization Gain (ROG)", {
-          formula: `"+"&ROUND(IFERROR(AVERAGEIFS(${sub.range("rogCounted")},${flat(cohortCriteria)}),0),1)&" (n'="&${countRog(cohortCriteria)}&")"`,
-          result: `+${sg.rog ?? 0} (n'=${sg.rog_refactored_count})`,
+        ["Avg TSR", { ...cohort.tsr, numFmt: '0.0"%"' }],
+        ["Avg AES", { ...cohort.aes, numFmt: '0.0"%"' }],
+        ["Avg ROG", {
+          formula: `"+"&ROUND(IFERROR(AVERAGEIFS(${sub.range("rogCounted")},${flat(cohortCriteria)}),0),1)&", n'="&${countRog(cohortCriteria)}`,
+          result: `+${sg.rog ?? 0}, n'=${sg.rog_refactored_count}`,
         }],
         ["Unchanged-Code Resubmissions", {
           formula: countUnchanged(cohortCriteria),
@@ -1167,9 +1165,9 @@ const AdminUserManagement = () => {
         ["Respondents Included", { formula: resp.count("email"), result: ov.user_count }],
         ["Activity Submissions", { formula: `SUM(${respRange("attempted")})`, result: sg.activities_attempted }],
         ["Activities Passed", { formula: `SUM(${respRange("passed")})`, result: sg.activities_passed }],
-        ["Avg Task Success Rate (TSR)", { formula: weightedRespAvg("tsr", "attempted"), numFmt: '0.0"%"', result: sg.tsr }],
-        ["Avg Algorithmic Efficiency Score (AES)", { formula: weightedRespAvg("aes", "attempted"), numFmt: '0.0"%"', result: sg.aes }],
-        ["Avg Refactoring Optimization Gain (ROG)", { formula: `"+"&ROUND(${weightedRespAvg("rog", "rogN")},1)&" (n'="&SUM(${respRange("rogN")})&")"`, result: `+${sg.rog ?? 0} (n'=${sg.rog_refactored_count})` }],
+        ["Avg TSR", { formula: weightedRespAvg("tsr", "attempted"), numFmt: '0.0"%"', result: sg.tsr }],
+        ["Avg AES", { formula: weightedRespAvg("aes", "attempted"), numFmt: '0.0"%"', result: sg.aes }],
+        ["Avg ROG", { formula: `"+"&ROUND(${weightedRespAvg("rog", "rogN")},1)&", n'="&SUM(${respRange("rogN")})`, result: `+${sg.rog ?? 0}, n'=${sg.rog_refactored_count}` }],
         ["Unchanged-Code Resubmissions", { formula: `SUM(${respRange("unchanged")})`, result: sg.unchanged_code_resubmissions ?? 0 }],
         ["Functional Tests Passed", { formula: `SUM(${respRange("funcPassed")})&"/"&SUM(${respRange("funcTotal")})`, result: `${sg.functional_tests?.passed ?? 0}/${sg.functional_tests?.total ?? 0}` }],
         ["Complexity Tests Passed", { formula: `SUM(${respRange("compPassed")})&"/"&SUM(${respRange("compTotal")})`, result: `${sg.complexity_tests?.passed ?? 0}/${sg.complexity_tests?.total ?? 0}` }],
@@ -1199,58 +1197,52 @@ const AdminUserManagement = () => {
       ...(numFmt ? { numFmt } : {}),
     });
 
-    const assessmentRows = !hasRespondents ? [["Paired Pre/Post Test Takers (n)", 0]] : [
-      ["Paired Pre/Post Test Takers (n)", { formula: nPairs, result: ov.paired_test_takers ?? 0 }],
+    const assessmentRows = !hasRespondents ? [["Paired Pre/Post Test Takers", 0]] : [
+      ["Paired Pre/Post Test Takers", { formula: nPairs, result: ov.paired_test_takers ?? 0 }],
       ["Mean Pre-test", live(`AVERAGE(${preR})`, ab.mean_pretest, '0.00"%"')],
       ["Mean Post-test", live(`AVERAGE(${postR})`, ab.mean_posttest, '0.00"%"')],
       ["SD Pre-test", live(`_xlfn.STDEV.S(${preR})`, ab.sd_pretest, "0.00")],
       ["SD Post-test", live(`_xlfn.STDEV.S(${postR})`, ab.sd_posttest, "0.00")],
-      ["Mean Difference (Post - Pre)", live(`AVERAGE(${diffR})`, ab.mean_difference, "0.00")],
+      ["Mean Difference Post minus Pre", live(`AVERAGE(${diffR})`, ab.mean_difference, "0.00")],
       ["SD of Differences", live(`_xlfn.STDEV.S(${diffR})`, ab.sd_difference, "0.00")],
       ["t-value", live(tFormula, ab.t_value, "0.000")],
       ["Degrees of Freedom", { formula: `IF(${nPairs}>0,${nPairs}-1,"n/a")`, result: ab.degrees_of_freedom ?? "n/a" }],
-      ["p-value (two-tailed paired t-test)", live(pFormula, ab.p_value, "0.0000")],
+      ["p-value two-tailed", live(pFormula, ab.p_value, "0.0000")],
       ["Significant at α=.05", { formula: `IFERROR(IF(${pFormula}<0.05,"Yes","No"),"n/a")`, result: ab.significant_at_0_05 == null ? "n/a" : (ab.significant_at_0_05 ? "Yes" : "No") }],
       ["Cohen's d", live(dFormula, ab.cohens_d, "0.000")],
       ["Cohen's d Interpretation", { formula: `IFERROR(IF(ABS(${dFormula})>=0.8,"Large Effect",IF(ABS(${dFormula})>=0.5,"Medium Effect",IF(ABS(${dFormula})>=0.2,"Small Effect","Negligible Effect"))),"n/a")`, result: ab.cohens_d_interpretation ?? "n/a" }],
-      ["Hake's Normalized Gain (g)", live(gFormula, ab.hakes_g, "0.000")],
+      ["Hake's Normalized Gain", live(gFormula, ab.hakes_g, "0.000")],
       ["Hake's g Interpretation", { formula: `IFERROR(IF(${gFormula}>=0.7,"High Gain",IF(${gFormula}>=0.3,"Medium Gain","Low Gain")),"n/a")`, result: ab.hakes_g_interpretation ?? "n/a" }],
     ];
 
     addKeyValueSheet(workbook, "Summary", [
       {
-        heading: "AlgoBlocks — Learning Impact Report",
+        heading: "AlgoBlocks Learning Impact Report",
         rows: [
           ["Generated", new Date().toLocaleString()],
-          ["Scope", `${reportScopeLabel}${postTestOnly ? ` · Post-test completers only (${ov.post_test_completers ?? 0})` : ""}`],
-          ["How to read this workbook", hasRawSubs
-            ? "Every figure below is an Excel formula over the raw sheets. Click a cell to see its arithmetic."
-            : "Figures below are Excel formulas over the Respondents and Pre-Post Test Data sheets."],
+          ["Scope", `${reportScopeLabel.replace(/\s*\(([^)]*)\)/g, ", $1")}${postTestOnly ? `, post-test completers only, ${ov.post_test_completers ?? 0}` : ""}`],
         ],
       },
       {
         heading: "1. System-Generated Learning Performance",
-        narrative: buildSystemNarrative(ov),
         rows: systemRows,
       },
       {
         heading: "3. Assessment-Based Learning Measures",
-        narrative: buildImpactNarrative(ov),
         rows: assessmentRows,
       },
     ], { headerColor: "5A1398" });
 
     // ----- Raw data: Respondents (one row per respondent) -----------
     const RESP_COLS = [
-      { header: "Name", key: "name", width: 22 },
-      { header: "Email", key: "email", width: 30 },
+      { header: "Respondent ID", key: "email", width: 16 },
       { header: "Status", key: "status", width: 12 },
       { header: "Activities Attempted", key: "attempted", width: 18 },
       { header: "Activities Passed", key: "passed", width: 16 },
-      { header: "Avg TSR (%)", key: "tsr", width: 12, numFmt: '0.0"%"' },
-      { header: "Avg AES (%)", key: "aes", width: 12, numFmt: '0.0"%"' },
+      { header: "Avg TSR %", key: "tsr", width: 12, numFmt: '0.0"%"' },
+      { header: "Avg AES %", key: "aes", width: 12, numFmt: '0.0"%"' },
       { header: "Avg ROG", key: "rog", width: 12, numFmt: "+0.0;-0.0;0" },
-      { header: "ROG Sample (n')", key: "rogN", width: 16 },
+      { header: "ROG Sample", key: "rogN", width: 16 },
       { header: "Unchanged-Code Resubmissions", key: "unchanged", width: 16 },
       { header: "Functional Passed", key: "funcPassed", width: 16 },
       { header: "Functional Total", key: "funcTotal", width: 16 },
@@ -1258,8 +1250,8 @@ const AdminUserManagement = () => {
       { header: "Complexity Total", key: "compTotal", width: 16 },
       { header: "Hidden Passed", key: "hidPassed", width: 14 },
       { header: "Hidden Total", key: "hidTotal", width: 14 },
-      { header: "Pre-test (%)", key: "preTest", width: 12, numFmt: '0.00"%"' },
-      { header: "Post-test (%)", key: "postTest", width: 12, numFmt: '0.00"%"' },
+      { header: "Pre-test %", key: "preTest", width: 12, numFmt: '0.00"%"' },
+      { header: "Post-test %", key: "postTest", width: 12, numFmt: '0.00"%"' },
     ];
     addTableSheet(
       workbook,
@@ -1287,7 +1279,6 @@ const AdminUserManagement = () => {
           hidTotal: m.hidden_tests?.total ?? 0,
         };
         return {
-          name: u.name || "Unnamed Profile",
           email: u.email,
           status: u.status || "active",
           ...computed,
@@ -1300,15 +1291,14 @@ const AdminUserManagement = () => {
 
     // ----- Raw data: Learning Path Detail (respondent x module rows) --
     const LP_COLS = [
-      { header: "Name", key: "name", width: 22 },
-      { header: "Email", key: "email", width: 30 },
+      { header: "Respondent ID", key: "email", width: 16 },
       { header: "Module", key: "module", width: 26 },
       { header: "Submissions", key: "attempted", width: 14 },
       { header: "Passed", key: "passed", width: 10 },
-      { header: "Avg TSR (%)", key: "tsr", width: 12, numFmt: '0.0"%"' },
-      { header: "Avg AES (%)", key: "aes", width: 12, numFmt: '0.0"%"' },
+      { header: "Avg TSR %", key: "tsr", width: 12, numFmt: '0.0"%"' },
+      { header: "Avg AES %", key: "aes", width: 12, numFmt: '0.0"%"' },
       { header: "Avg ROG", key: "rog", width: 12, numFmt: "+0.0;-0.0;0" },
-      { header: "ROG Sample (n')", key: "rogN", width: 16 },
+      { header: "ROG Sample", key: "rogN", width: 16 },
       { header: "Unchanged-Code Resubmissions", key: "unchanged", width: 16 },
       { header: "Functional Passed", key: "funcPassed", width: 16 },
       { header: "Functional Total", key: "funcTotal", width: 16 },
@@ -1343,12 +1333,6 @@ const AdminUserManagement = () => {
           hidTotal: m.hidden_tests?.total ?? 0,
         };
         return {
-          // The name is looked up from the Respondents sheet (the one place
-          // it is typed); email and module are this row's two keys.
-          name: {
-            formula: nameLookup(lp.localCell("email", lpIndex), '""'),
-            result: u.name || "Unnamed Profile",
-          },
           email: u.email,
           module: moduleTitle(moduleId),
           ...computed,
@@ -1360,11 +1344,10 @@ const AdminUserManagement = () => {
 
     // ----- Raw data: Pre-Post Test Data (paired respondents only) -----
     const PP_COLS = [
-      { header: "Name", key: "name", width: 22 },
-      { header: "Email", key: "email", width: 30 },
-      { header: "Pre-test (%)", key: "pre", width: 14, numFmt: '0.00"%"' },
-      { header: "Post-test (%)", key: "post", width: 14, numFmt: '0.00"%"' },
-      { header: "Difference (Post - Pre)", key: "diff", width: 20, numFmt: '0.00"%"' },
+      { header: "Respondent ID", key: "email", width: 16 },
+      { header: "Pre-test %", key: "pre", width: 14, numFmt: '0.00"%"' },
+      { header: "Post-test %", key: "post", width: 14, numFmt: '0.00"%"' },
+      { header: "Difference", key: "diff", width: 20, numFmt: '0.00"%"' },
     ];
 
     // One row per respondent. Nothing here is typed except the email key:
@@ -1388,7 +1371,6 @@ const AdminUserManagement = () => {
         const postCell = pp.localCell("post", i);
         const paired = u.preTest != null && u.postTest != null;
         return {
-          name: { formula: nameLookup(emailCell, '""'), result: u.name || "Unnamed Profile" },
           email: u.email,
           pre: { formula: scoreLookup(emailCell, "preTest"), result: paired ? u.preTest : "" },
           post: { formula: scoreLookup(emailCell, "postTest"), result: paired ? u.postTest : "" },
@@ -1456,7 +1438,7 @@ const AdminUserManagement = () => {
         { header: "Avg TSR", key: "tsr", width: 12 },
         { header: "Avg AES", key: "aes", width: 12 },
         { header: "Avg ROG", key: "rog", width: 12 },
-        { header: "ROG Sample (n')", key: "rogN", width: 16 },
+        { header: "ROG Sample", key: "rogN", width: 16 },
         { header: "Unchanged-Code Resubmissions", key: "unchanged", width: 16 },
         { header: "Functional Passed/Total", key: "functional", width: 20 },
         { header: "Complexity Passed/Total", key: "complexity", width: 20 },
@@ -1476,8 +1458,7 @@ const AdminUserManagement = () => {
         workbook,
         SUB_SHEET,
         [
-          { header: "Name", key: "name", width: 22 },
-          { header: "Email", key: "email", width: 30 },
+          { header: "Respondent ID", key: "email", width: 16 },
           { header: "Module", key: "module", width: 26 },
           { header: "Activity", key: "activity", width: 26 },
           { header: "Type", key: "type", width: 12 },
@@ -1485,12 +1466,12 @@ const AdminUserManagement = () => {
           { header: "Code Unchanged", key: "unchanged", width: 15 },
           { header: "Tests Passed", key: "tsrPassed", width: 13 },
           { header: "Tests Total", key: "tsrTotal", width: 13 },
-          { header: "TSR (%)", key: "tsr", width: 11, numFmt: "0.00" },
+          { header: "TSR %", key: "tsr", width: 11, numFmt: "0.00" },
           { header: "Final AES", key: "aes", width: 11, numFmt: "0.00" },
           { header: "ROG", key: "rog", width: 10, numFmt: "0.00" },
           { header: "ROG Counted", key: "rogCounted", width: 13, numFmt: "0.00" },
           { header: "Counted as Passed", key: "countedPassed", width: 16 },
-          { header: "In Respondents (1/0)", key: "inRoster", width: 18 },
+          { header: "In Respondents", key: "inRoster", width: 18 },
           { header: "Functional Passed", key: "funcPassed", width: 16 },
           { header: "Functional Total", key: "funcTotal", width: 16 },
           { header: "Complexity Passed", key: "compPassed", width: 16 },
@@ -1510,12 +1491,6 @@ const AdminUserManagement = () => {
           const countsPassed = (typeof s.final_aes === "number" && s.final_aes >= 50) || s.status === "passed";
           const emailCell = sub.localCell("email", i);
           return {
-            // Looked up from the Respondents sheet by email (falls back to
-            // the email itself when the respondent is no longer listed).
-            name: {
-              formula: nameLookup(emailCell, emailCell),
-              result: nameByEmail[s.email] || s.email || "Unnamed Profile",
-            },
             email: s.email,
             module: moduleTitle(s.moduleId),
             activity: s.activityId ?? "",
@@ -1551,7 +1526,7 @@ const AdminUserManagement = () => {
             // figures without touching the submission itself.
             inRoster: {
               formula: `IF(COUNTIF(${resp.range("email")},${emailCell})>0,1,0)`,
-              result: nameByEmail[s.email] !== undefined ? 1 : 0,
+              result: rosterIds.has(s.email) ? 1 : 0,
             },
             funcPassed: s.functional_passed ?? 0,
             funcTotal: s.functional_total ?? 0,

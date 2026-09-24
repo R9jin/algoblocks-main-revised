@@ -378,6 +378,14 @@ const SUMMARY_SHEET = "Regression Summary";
 
 const PLOT_SHEET = "Regression Plot";
 
+/** Plain sensitivity row label with no parenthetical, e.g. "Main model excluding S04". */
+function sensitivityLabel(s) {
+  if (s.key === "main") return "Main model";
+  const id = s.label?.match(/\(([^)]+)\)$/)?.[1];
+  if (s.key === "excl_influential" && id) return `Main model excluding ${id}`;
+  return String(s.label ?? "").replace(/\s*\(([^)]*)\)/g, ", $1");
+}
+
 /**
  * Adds a "Regression Plot" sheet holding the scatter plot of the fitted
  * regression: one dot per respondent plus the fitted line. Axis labels are
@@ -452,7 +460,7 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
   if (!reg || !reg.available) {
     addKeyValueSheet(workbook, SUMMARY_SHEET, [
       {
-        heading: "Learning Impact Model (Simple Regression)",
+        heading: "Learning Impact Model: Simple Regression",
         rows: [
           ["Status", "Not available for the current scope"],
           ["Reason", reg?.reason || "The server did not return a regression."],
@@ -468,7 +476,7 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
 
   // ----- Regression Data -----------------------------------------------------
   const COLS = [
-    ["id", "ID (anonymized)", 16],
+    ["id", "Respondent ID", 16],
     ["pre", "Pre-test", 11],
     ["post", "Post-test", 11],
     ["tsr", "TSR", 10],
@@ -477,8 +485,8 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
     ["zTsr", "z_TSR", 10],
     ["zAes", "z_AES", 10],
     ["zRog", "z_ROG", 10],
-    ["x", "X (System Interaction)", 14],
-    ["y", "Y (Normalized Gain)", 14],
+    ["x", "X System Interaction", 16],
+    ["y", "Y Learning Gain", 14],
   ];
   const col = {};
   COLS.forEach(([key], i) => { col[key] = colLetter(i + 1); });
@@ -528,7 +536,6 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
   const m = reg.model;
   const c = reg.correlation;
   const dg = reg.sums;
-  const staticNote = "static, computed on the server";
 
   const b1 = f(`SLOPE(${Y},${X})`, m.b1, "0.0000");
   const b0 = f(`INTERCEPT(${Y},${X})`, m.b0, "0.0000");
@@ -544,39 +551,33 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
 
   const sections = [
     {
-      heading: "Learning Impact Model (Simple Regression)",
-      narrative:
-        "Numbers in this sheet are Excel formulas over the 'Regression Data' sheet, so they recompute if the data change. " +
-        "Cells marked (static) were computed on the server because Excel has no single formula for them.",
+      heading: "Learning Impact Model: Simple Regression",
       rows: [
         ["Respondents with complete data", reg.n_included],
-        ["Respondents excluded (static)", reg.n_excluded],
-        ...(reg.excluded_reasons || []).map((rr) => [`  reason (static): ${rr.reason}`, rr.count]),
+        ["Respondents excluded", reg.n_excluded],
+        ...(reg.excluded_reasons || []).map((rr) => [`Excluded: ${rr.reason}`, rr.count]),
         ["Respondents in the fitted regression", f(nCount, reg.n_regression)],
-        ["Dropped from regression only (perfect pre-test, static)", reg.n_dropped_for_regression],
-        ["X definition", reg.method.x_definition],
-        ["Y definition", reg.method.y_definition],
-        ["Normalization", reg.method.normalization],
+        ["Dropped for perfect pre-test", reg.n_dropped_for_regression],
         ["Model equation", reg.method.model_equation],
       ],
     },
     {
-      heading: "Regression: Y = b0 + b1 X",
+      heading: "Regression",
       rows: [
-        ["b0 (intercept)", b0],
-        ["b1 (slope)", b1],
-        ["SE(b1)", f(seB1, m.se_b1, "0.0000")],
+        ["Intercept b0", b0],
+        ["Slope b1", b1],
+        ["SE of b1", f(seB1, m.se_b1, "0.0000")],
         ["t", f(tStat, m.t, "0.000")],
         ["df", f(df, m.df)],
-        ["p (two-tailed)", f(`_xlfn.T.DIST.2T(ABS(${tStat}),${df})`, m.p, "0.0000")],
-        ["95% CI lower (b1)", f(`${b1.formula}-_xlfn.T.INV.2T(0.05,${df})*(${seB1})`, m.ci_low, "0.0000")],
-        ["95% CI upper (b1)", f(`${b1.formula}+_xlfn.T.INV.2T(0.05,${df})*(${seB1})`, m.ci_high, "0.0000")],
-        ["r (Pearson correlation)", r],
+        ["p two-tailed", f(`_xlfn.T.DIST.2T(ABS(${tStat}),${df})`, m.p, "0.0000")],
+        ["95% CI lower", f(`${b1.formula}-_xlfn.T.INV.2T(0.05,${df})*(${seB1})`, m.ci_low, "0.0000")],
+        ["95% CI upper", f(`${b1.formula}+_xlfn.T.INV.2T(0.05,${df})*(${seB1})`, m.ci_high, "0.0000")],
+        ["Pearson r", r],
         ["R2", r2],
       ],
     },
     {
-      heading: "Running sums (matches the by-hand tutorial)",
+      heading: "Running sums",
       rows: [
         ["n", f(nCount, m.n)],
         ["SigmaX", f(`SUM(${X})`, dg.sum_x, "0.0000")],
@@ -587,20 +588,19 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
       ],
     },
     {
-      heading: `Sensitivity check (${staticNote})`,
-      narrative: "Same Y = b0 + b1 X form. Case exclusion is a labelled check only, never applied to the main model.",
+      heading: "Sensitivity check",
       rows: reg.sensitivity.map((s) => [
-        `${s.label} (n = ${s.n})`,
+        `${sensitivityLabel(s)}, n = ${s.n}`,
         s.unavailable
-          ? `not available: ${s.unavailable}`
-          : `b1 = ${fmtNum(s.slope)}, p = ${fmtP(s.p)}, R2 = ${fmtR2(s.r2)}`,
+          ? `Not available: ${s.unavailable}`
+          : `b1 = ${fmtNum(s.slope)}, p ${fmtP(s.p).startsWith("<") ? "" : "= "}${fmtP(s.p)}, R2 = ${fmtR2(s.r2)}`,
       ]),
     },
-    { heading: `Interpretation (${staticNote})` },
+    { heading: "Interpretation" },
     ...(reg.interpretation || []).map((s) => ({ narrative: s })),
   ];
   if ((reg.limitations || []).length > 0) {
-    sections.push({ heading: `Limitations (${staticNote})` });
+    sections.push({ heading: "Limitations" });
     reg.limitations.forEach((s) => sections.push({ narrative: s }));
   }
 
@@ -608,13 +608,13 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
   addRegressionPlotSheet(workbook, reg);
 
   // Merged narrative rows don't auto-fit their height in Excel; size them from
-  // the text length (the two merged columns are ~120 characters wide).
+  // the text length (the two merged columns are ~110 characters wide).
   sheet.getColumn(1).width = 62;
   sheet.getColumn(2).width = 58;
   sheet.eachRow((row) => {
     const v = row.getCell(1).value;
-    if (typeof v === "string" && v.length > 60 && row.getCell(1).font?.italic) {
-      row.height = 14 * Math.ceil(v.length / 120) + 4;
+    if (typeof v === "string" && v.length > 60 && row.getCell(1).alignment?.wrapText) {
+      row.height = 15 * Math.ceil(v.length / 105) + 4;
     }
   });
 }

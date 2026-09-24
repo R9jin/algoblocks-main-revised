@@ -116,7 +116,7 @@ export function addTableSheet(workbook, sheetName, columns, rows, opts = {}) {
     headerRowNumber += 1;
     if (opts.subtitle) {
       const subtitleRow = sheet.addRow([opts.subtitle]);
-      subtitleRow.font = { italic: true, size: 9, color: { argb: "FF666677" } };
+      subtitleRow.font = { size: 11 };
       sheet.mergeCells(2, 1, 2, columns.length || 1);
       headerRowNumber += 1;
     }
@@ -291,8 +291,7 @@ export function addKeyValueSheet(workbook, sheetName, sections, opts = {}) {
     }
     if (section.narrative) {
       const narrativeRow = sheet.addRow([section.narrative]);
-      narrativeRow.font = { italic: true, size: 9, color: { argb: "FF444455" } };
-      narrativeRow.alignment = { wrapText: true };
+      narrativeRow.alignment = { wrapText: true, vertical: "top" };
       sheet.mergeCells(narrativeRow.number, 1, narrativeRow.number, 2);
     }
     (section.rows || []).forEach(([label, value]) => {
