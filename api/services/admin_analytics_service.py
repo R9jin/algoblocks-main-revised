@@ -6,6 +6,7 @@ Admin-facing analytics built directly from the metrics defined in the study:
     - Task Success Rate (TSR)              = PTC / TTC
     - Algorithmic Efficiency Score (AES)    = floor((TSR * Efficiency) * 100)
     - Refactoring Optimization Gain (ROG)   = AES_final - AES_baseline
+                                              (OPTIMIZATION activities only)
 
   Assessment-Based Learning Measures
     - Mean / Standard Deviation of pre-test and post-test scores
@@ -223,6 +224,11 @@ def _submission_raw_row(email: str, sub: Any) -> Dict[str, Any]:
     rog = sub.get("rog")
     if not isinstance(rog, (int, float)):
         rog = None
+    # ROG is only defined for optimization activities; regular activities
+    # export a blank so the raw sheet can never show (or be averaged into)
+    # a "gain" for them, even if an older build stored a non-null value.
+    if not _is_optimization_submission(sub):
+        rog = None
 
     return {
         "email": email,
@@ -246,6 +252,34 @@ def _submission_raw_row(email: str, sub: Any) -> Dict[str, Any]:
         "hidden_total": breakdown["hidden"]["total"],
         "timestamp": sub.get("timestamp") or sub.get("submittedAt"),
     }
+
+
+ROG_ACTIVITY_TYPE = "optimization"
+
+
+def _is_optimization_submission(sub: Dict[str, Any]) -> bool:
+    """True only for OPTIMIZATION-type activity submissions.
+
+    ROG (Refactoring Optimization Gain) is defined solely for optimization
+    activities. `type` is written by ActivityApp.jsx on every submission
+    ("optimization" | "activity"); anything else (missing, "activity",
+    malformed) is treated as a regular activity.
+    """
+    return isinstance(sub, dict) and sub.get("type") == ROG_ACTIVITY_TYPE
+
+
+def _counts_toward_rog(sub: Dict[str, Any]) -> bool:
+    """A submission contributes to the ROG mean only when it is an
+    optimization activity, was actually evaluated (final_aes present) and
+    recorded a positive gain. Applied server-side so rows already stored
+    with a non-null `rog` on regular activities (written by earlier
+    builds) are excluded too -- no data migration required."""
+    if not _is_optimization_submission(sub):
+        return False
+    if not isinstance(sub.get("final_aes"), (int, float)):
+        return False
+    rog = sub.get("rog")
+    return isinstance(rog, (int, float)) and rog > 0
 
 
 def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -284,9 +318,18 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
             # trades "average gain per activity" for "average gain per
             # activity that was actually refactored" -- see rog_refactored_count
             # below for how many submissions that average is drawn from.
-            rog = sub.get("rog")
-            if isinstance(rog, (int, float)) and rog > 0:
-                rog_values.append(rog)
+            #
+            # SCOPE: ROG is only defined for OPTIMIZATION activities. Those
+            # are the only activities that ship a working-but-inefficient
+            # starter solution, so "baseline -> final" is a genuine
+            # before/after refactor. For a regular activity the "baseline"
+            # is just the learner's first attempt (often a failing one), so
+            # AES_final - AES_baseline there measures debugging / TSR
+            # recovery, not optimization -- it also double counts TSR
+            # (AES = TSR x efficiency). Regular activities still feed TSR
+            # and AES; they never feed ROG (see _counts_toward_rog).
+            if _counts_toward_rog(sub):
+                rog_values.append(sub.get("rog"))
 
         breakdown = _test_breakdown(sub)
         functional_passed += breakdown["functional"]["passed"]
@@ -360,7 +403,14 @@ def _submission_details(submissions: List[Dict[str, Any]]) -> List[Dict[str, Any
         # (see ActivityApp.jsx) -- .get("rog", 0) only applies its default
         # when the key is *missing*, not when it's present-but-null, so
         # normalize that to 0 here for the per-activity table display.
-        safe_rog = sub.get("rog") if sub.get("rog") is not None else 0
+        #
+        # ROG only exists for optimization activities. Regular activities
+        # report None ("not applicable") rather than 0, so the UI can show
+        # "--" instead of a misleading "+0".
+        if _is_optimization_submission(sub):
+            safe_rog = sub.get("rog") if sub.get("rog") is not None else 0
+        else:
+            safe_rog = None
         details.append({
             "moduleId": sub.get("moduleId"),
             "activityId": sub.get("activityId"),

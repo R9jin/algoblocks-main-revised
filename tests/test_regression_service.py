@@ -339,6 +339,7 @@ def overview_module(monkeypatch):
         users.append({"email": email, "name": f"Student {i}", "role": "user", "is_admin": False})
         # one refactored submission carrying exactly the fixture values
         subs.append({"email": email, "data": {
+            "type": "optimization",  # ROG is optimization-only
             "final_aes": float(aes), "rog": float(rog),
             "passed_tests": float(tsr), "total_tests": 100,
         }})

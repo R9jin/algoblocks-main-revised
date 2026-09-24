@@ -233,7 +233,12 @@ export default function ProfilePage() {
   // higher TSR) still raised AES and is still a real refactoring gain.
   // ActivityApp.jsx already stores the correct value in `sub.rog`; this
   // just guards against a negative or missing number reaching the UI.
-  const getSafeRog = (sub) => Math.max(0, Number(sub?.rog) || 0);
+  //
+  // SCOPE: ROG is optimization-only. `isOptimization` is passed by the
+  // caller (the optimization-challenge mapping below); regular lesson
+  // activities always resolve to 0, even if an older build stored a value.
+  const getSafeRog = (sub, isOptimization = false) =>
+    isOptimization ? Math.max(0, Number(sub?.rog) || 0) : 0;
 
   // Harder lessons should demand fewer activities to count as "cleared,"
   // not the same fixed majority as an easy one -- a lesson full of Hard
@@ -532,7 +537,7 @@ export default function ProfilePage() {
                 if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100; 
                 aes = Math.min(aes, 100);
 
-                rog = getSafeRog(sub);
+                rog = getSafeRog(sub, false);
                 isCompleted = aes >= 50 || sub.status === "passed";
 
                 passedTests = sub.passedTestCases ?? sub.passed_tests ?? null;
@@ -621,7 +626,7 @@ export default function ProfilePage() {
               if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100;
               aes = Math.min(aes, 100);
 
-              rog = getSafeRog(sub);
+              rog = getSafeRog(sub, true);
               isCompleted = aes >= 50 || sub.status === "passed";
 
               passedTests = sub.passedTestCases ?? sub.passed_tests ?? null;

@@ -104,6 +104,9 @@ const SHOW_FULL_REPORT_FEATURE = true;
 // no value yet, instead of the dangling "--%" the report used to print for
 // respondents/modules with no scored submissions.
 const fmtPct = (v) => (v != null ? `${v}%` : "--");
+// ROG exists only for optimization activities: a module/respondent/activity
+// with no optimization data shows "N/A" instead of a misleading "+0".
+const fmtRog = (v) => (v != null ? `+${v}` : "N/A");
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -727,7 +730,7 @@ const AdminUserManagement = () => {
     const passRate = sg.activities_attempted
       ? Math.round((sg.activities_passed / sg.activities_attempted) * 100)
       : 0;
-    return `Across ${sg.activities_attempted} recorded activity submission${sg.activities_attempted === 1 ? "" : "s"} in the current scope, respondents achieved an average Task Success Rate of ${fmtPct(sg.tsr)} and an average Algorithmic Efficiency Score of ${fmtPct(sg.aes)}, passing ${sg.activities_passed} activities (${passRate}%). Among the ${sg.rog_refactored_count} submissions where a genuine refactor took place, the average Refactoring Optimization Gain was +${sg.rog ?? 0} AES points.`;
+    return `Across ${sg.activities_attempted} recorded activity submission${sg.activities_attempted === 1 ? "" : "s"} in the current scope, respondents achieved an average Task Success Rate of ${fmtPct(sg.tsr)} and an average Algorithmic Efficiency Score of ${fmtPct(sg.aes)}, passing ${sg.activities_passed} activities (${passRate}%). Refactoring Optimization Gain (ROG) is measured on optimization activities only; among the ${sg.rog_refactored_count} optimization-activity submissions where a genuine refactor took place, the average ROG was +${sg.rog ?? 0} AES points.`;
   };
 
   const reportScopeLabel = selectedRespondents.length > 0
@@ -844,7 +847,7 @@ const AdminUserManagement = () => {
           String(m.activities_passed),
           fmtPct(m.tsr),
           fmtPct(m.aes),
-          `+${m.rog ?? 0}`,
+          fmtRog(m.rog),
         ]),
       });
       y = doc.lastAutoTable.finalY + 20;
@@ -883,7 +886,7 @@ const AdminUserManagement = () => {
           String(u.metrics.activities_passed),
           fmtPct(u.metrics.tsr),
           fmtPct(u.metrics.aes),
-          `+${u.metrics.rog ?? 0}`,
+          fmtRog(u.metrics.rog),
           u.preTest != null ? `${u.preTest}%` : "--",
           u.postTest != null ? `${u.postTest}%` : "--",
         ]),
@@ -905,7 +908,7 @@ const AdminUserManagement = () => {
         String(m.activities_passed),
         fmtPct(m.tsr),
         fmtPct(m.aes),
-        `+${m.rog ?? 0}`,
+        fmtRog(m.rog),
       ]);
     });
     if (learningPathRows.length > 0) {
@@ -1419,7 +1422,7 @@ const AdminUserManagement = () => {
         passed: { formula: sumIf("passed"), result: m.activities_passed ?? 0 },
         tsr: { formula: weightedAvg("tsr", "attempted"), numFmt: '0.0"%"', result: m.tsr ?? 0 },
         aes: { formula: weightedAvg("aes", "attempted"), numFmt: '0.0"%"', result: m.aes ?? 0 },
-        rog: { formula: weightedAvg("rog", "rogN"), numFmt: "+0.0;-0.0;0", result: m.rog ?? 0 },
+        rog: { formula: `IFERROR(${weightedAvg("rog", "rogN")},"")`, numFmt: "+0.0;-0.0;0", result: m.rog ?? "" },
         rogN: { formula: sumIf("rogN"), result: m.rog_refactored_count ?? 0 },
         unchanged: { formula: sumIf("unchanged"), result: m.unchanged_code_resubmissions ?? 0 },
         functional: { formula: `${sumIf("funcPassed")}&"/"&${sumIf("funcTotal")}`, result: `${m.functional_tests?.passed ?? 0}/${m.functional_tests?.total ?? 0}` },
@@ -1487,7 +1490,8 @@ const AdminUserManagement = () => {
           const G = sub.localCell("rog", i);
           const S = sub.localCell("status", i);
           const countsTsr = typeof s.tsr_passed === "number" && typeof s.tsr_total === "number" && s.tsr_total > 0;
-          const countsRog = typeof s.final_aes === "number" && typeof s.rog === "number" && s.rog > 0;
+          const T_TYPE = sub.localCell("type", i);
+          const countsRog = s.type === "optimization" && typeof s.final_aes === "number" && typeof s.rog === "number" && s.rog > 0;
           const countsPassed = (typeof s.final_aes === "number" && s.final_aes >= 50) || s.status === "passed";
           const emailCell = sub.localCell("email", i);
           return {
@@ -1508,10 +1512,12 @@ const AdminUserManagement = () => {
             },
             aes: s.final_aes ?? "",
             rog: s.rog ?? "",
-            // ROG only counts as a refactoring gain when the activity was
-            // actually evaluated (an AES exists) and the gain is positive.
+            // ROG only counts as a refactoring gain when the activity is an
+            // OPTIMIZATION activity, was actually evaluated (an AES exists)
+            // and the gain is positive. Regular activities feed TSR and AES
+            // only -- never ROG.
             rogCounted: {
-              formula: `IF(AND(ISNUMBER(${A}),ISNUMBER(${G}),${G}>0),${G},"")`,
+              formula: `IF(AND(${T_TYPE}="optimization",ISNUMBER(${A}),ISNUMBER(${G}),${G}>0),${G},"")`,
               result: countsRog ? s.rog : "",
             },
             // The backend's pass rule, written out: AES >= 50, or the
@@ -1743,7 +1749,7 @@ const AdminUserManagement = () => {
                         title="Average Refactoring Optimization Gain (Mean ROG)"
                         meanFormula="Mean ROG = (1 / M') × Σ [ AES_final,k - AES_baseline,k ]  for k where gain > 0"
                         baseFormula="where ROG_k = AES_final,k - AES_baseline,k for activity k"
-                        desc={`Calculated by computing the score improvement from initial baseline attempt to final refactored solution for each activity, averaged only over the M' = ${overview.system_generated.rog_refactored_count ?? 0} submissions that actually recorded a gain (excludes never-attempted drafts and first-try passes with nothing to improve).`}
+                        desc={`Calculated on OPTIMIZATION activities only: the score improvement from the starter solution's baseline to the final refactored solution, averaged over the n' = ${overview.system_generated.rog_refactored_count ?? 0} optimization submissions that actually recorded a gain (excludes regular activities, never-attempted drafts and unchanged starters).`}
                       >
                         Avg Refactoring Optimization Gain (ROG)
                       </MetricTooltip>
@@ -2288,7 +2294,7 @@ const AdminUserManagement = () => {
                                                   </span>
                                                 </td>
                                                 <td>{activity.aes !== null && activity.aes !== undefined ? `${activity.aes}%` : "--"}</td>
-                                                <td>+{activity.rog ?? 0}</td>
+                                                <td>{fmtRog(activity.rog)}</td>
                                                 <td><code className="admin-complexity-code">{activity.time || "--"}</code></td>
                                                 <td><code className="admin-complexity-code">{activity.space || "--"}</code></td>
                                                 <td>{activity.tests?.passed || 0}/{activity.tests?.total || 0}</td>
@@ -2424,7 +2430,7 @@ const AdminUserManagement = () => {
                           <td>{m.activities_passed}</td>
                           <td>{fmtPct(m.tsr)}</td>
                           <td>{fmtPct(m.aes)}</td>
-                          <td>+{m.rog ?? 0}</td>
+                          <td>{fmtRog(m.rog)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2478,7 +2484,7 @@ const AdminUserManagement = () => {
                             <td>{u.metrics.activities_passed}</td>
                             <td>{fmtPct(u.metrics.tsr)}</td>
                             <td>{fmtPct(u.metrics.aes)}</td>
-                            <td>+{u.metrics.rog ?? 0}</td>
+                            <td>{fmtRog(u.metrics.rog)}</td>
                             <td>{u.preTest != null ? `${u.preTest}%` : "--"}</td>
                             <td>{u.postTest != null ? `${u.postTest}%` : "--"}</td>
                           </tr>
@@ -2527,7 +2533,7 @@ const AdminUserManagement = () => {
                               <td>{m.activities_passed}</td>
                               <td>{fmtPct(m.tsr)}</td>
                               <td>{fmtPct(m.aes)}</td>
-                              <td>+{m.rog ?? 0}</td>
+                              <td>{fmtRog(m.rog)}</td>
                             </tr>
                           ));
                         })}
