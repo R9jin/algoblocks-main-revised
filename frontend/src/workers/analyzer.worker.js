@@ -233,12 +233,34 @@ async function initPyodide() {
   if (pyodide) return pyodide;
   if (!pyodidePromise) {
     pyodidePromise = (async () => {
+      // loadPyodide() below does its own internal fetches for
+      // pyodide.asm.wasm (~8.6MB) and python_stdlib.zip (~2.4MB) and
+      // doesn't expose byte-level progress, so there's nothing to hook
+      // into for a real percentage during that call. Previously this just
+      // posted one "10%" message and then went silent until the whole
+      // thing resolved at 65% -- on a slow connection that could take a
+      // long time, and with no visible movement in between it reads as
+      // "stuck" rather than "still working". This heartbeat ticks the
+      // displayed percent upward every couple seconds while the download
+      // is actually in flight, purely so the UI keeps visibly moving; it
+      // stops the moment loadPyodide() resolves (or throws) either way.
+      let heartbeatPercent = 10;
+      const heartbeat = setInterval(() => {
+        heartbeatPercent = Math.min(heartbeatPercent + 3, 60);
+        self.postMessage({
+          type: "ENGINE_PROGRESS",
+          stage: "Downloading Python runtime... this can take a while on a slow connection, please keep this tab open",
+          percent: heartbeatPercent,
+        });
+      }, 2000);
+
       try {
         self.postMessage({ type: "ENGINE_PROGRESS", stage: "Downloading Python runtime...", percent: 10 });
         const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
         const module = await import(/* @vite-ignore */ pyodideUrl);
         const loadPyodide = module.loadPyodide;
         const tempPyodide = await loadPyodide();
+        clearInterval(heartbeat);
         const cacheBuster = "?t=" + Date.now();
 
         self.postMessage({ type: "ENGINE_PROGRESS", stage: "Loading analyzer modules...", percent: 65 });
@@ -273,6 +295,7 @@ async function initPyodide() {
         pyodide = tempPyodide;
         return tempPyodide;
       } catch (error) {
+        clearInterval(heartbeat);
         console.error("Pyodide Engine Crash:", error);
         pyodidePromise = null; 
         throw error;
