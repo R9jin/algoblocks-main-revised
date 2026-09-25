@@ -413,42 +413,6 @@ class AuthService:
         return generic_response
 
     @staticmethod
-    def list_pending_password_resets():
-        return UserRepository.find_pending_reset_requests()
-
-    @staticmethod
-    def approve_password_reset(email: str, origin: str = None):
-        """Legacy admin override, kept for accounts stuck from the old
-        manual-approval workaround. Issues a reset token directly and
-        returns the link so an admin can hand it to the user by hand
-        (chat, phone, in person) -- this is an intentional out-of-band
-        delivery path (see AdminUserManagement.jsx's confirm dialog), not
-        an oversight, so the raw link is returned here on purpose. Not part
-        of the normal flow anymore -- forgot_password() above emails the
-        token itself now."""
-        user = UserRepository.find_by_email(email)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        raw_token = secrets.token_urlsafe(32)
-        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
-
-        rowcount = UserRepository.approve_password_reset(email, token_hash, expires_at)
-        if rowcount == 0:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        reset_link = f"{mail_service._resolve_frontend_url(origin)}/reset-password?token={raw_token}"
-        return {"status": "success", "reset_link": reset_link, "expires_at": expires_at.isoformat()}
-
-    @staticmethod
-    def deny_password_reset(email: str):
-        rowcount = UserRepository.deny_password_reset(email)
-        if rowcount == 0:
-            raise HTTPException(status_code=404, detail="User not found")
-        return {"status": "success"}
-
-    @staticmethod
     def verify_reset_token(token: str):
         token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
         user = UserRepository.find_by_reset_token_hash(token_hash)
