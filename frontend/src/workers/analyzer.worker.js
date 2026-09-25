@@ -259,7 +259,13 @@ async function initPyodide() {
         const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
         const module = await import(/* @vite-ignore */ pyodideUrl);
         const loadPyodide = module.loadPyodide;
-        const tempPyodide = await loadPyodide();
+        // Explicit indexURL: without this, pyodide.mjs falls back to
+        // parsing a `throw new Error()` stack trace to guess its own file
+        // location (see calculateDirname() in pyodide.mjs) -- a genuinely
+        // fragile way to find a URL, and one extra thing that can go wrong
+        // silently in a bundled/worker context. Passing it explicitly
+        // removes that guesswork entirely.
+        const tempPyodide = await loadPyodide({ indexURL: self.location.origin + "/pyodide/" });
         clearInterval(heartbeat);
         const cacheBuster = "?t=" + Date.now();
 
