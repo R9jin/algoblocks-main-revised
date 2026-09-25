@@ -269,17 +269,27 @@ def _is_optimization_submission(sub: Dict[str, Any]) -> bool:
 
 
 def _counts_toward_rog(sub: Dict[str, Any]) -> bool:
-    """A submission contributes to the ROG mean only when it is an
-    optimization activity, was actually evaluated (final_aes present) and
-    recorded a positive gain. Applied server-side so rows already stored
-    with a non-null `rog` on regular activities (written by earlier
-    builds) are excluded too -- no data migration required."""
+    """A submission contributes to the ROG mean whenever it is an
+    optimization activity that was actually evaluated (final_aes present)
+    -- whether or not the refactor produced a positive gain. Applied
+    server-side so rows already stored with a non-null `rog` on regular
+    activities (written by earlier builds) are excluded too -- no data
+    migration required.
+
+    Zero-gain attempts (an optimization submission where the learner's
+    final solution was no more efficient than the starter) deliberately
+    count here. Dropping them would be the same survivorship bias that
+    inflated Module 0's phantom +98.1 ROG in the first place, just
+    relocated: a student who attempts optimization and gets 0% gain would
+    look identical to a student who never attempted it at all, and both
+    would silently vanish from the average. Counting every evaluated
+    optimization submission -- gain floored at 0, never excluded -- is the
+    intent-to-treat-style choice: it is more conservative and it keeps
+    real data (e.g. a resubmission that didn't improve) in the metric
+    instead of discarding it."""
     if not _is_optimization_submission(sub):
         return False
-    if not isinstance(sub.get("final_aes"), (int, float)):
-        return False
-    rog = sub.get("rog")
-    return isinstance(rog, (int, float)) and rog > 0
+    return isinstance(sub.get("final_aes"), (int, float))
 
 
 def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -306,18 +316,17 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
             # a resubmission that only fixed correctness (same class, higher
             # TSR) still raised AES and is still a real refactoring gain.
             #
-            # Gated on final_aes being present (same as aes_values above)
-            # AND on rog > 0: this average is now specifically "mean gain
-            # among activities where a refactor actually happened," not
-            # "mean gain across every submission." That deliberately drops
-            # two kinds of zero: never-evaluated drafts (final_aes is None,
-            # already excluded by the outer gate) and legitimate first-try
-            # passes (final_aes present, rog == 0 because there was nothing
-            # to improve on resubmission). Neither represents a refactor,
-            # so neither belongs in a metric about refactor size. This
-            # trades "average gain per activity" for "average gain per
-            # activity that was actually refactored" -- see rog_refactored_count
-            # below for how many submissions that average is drawn from.
+            # Gated on final_aes being present (same as aes_values above):
+            # this average is "mean gain across every evaluated optimization
+            # submission," including zero-gain attempts (rog == 0 because
+            # the refactor didn't improve on the starter). Those zeros stay
+            # in on purpose -- excluding them would silently make "attempted
+            # optimization, no improvement" indistinguishable from "never
+            # attempted," which is exactly the survivorship bias that
+            # produced Module 0's phantom ROG. Only never-evaluated drafts
+            # (final_aes is None) are excluded, by the outer gate above --
+            # see rog_refactored_count below for how many submissions this
+            # average is drawn from.
             #
             # SCOPE: ROG is only defined for OPTIMIZATION activities. Those
             # are the only activities that ship a working-but-inefficient
@@ -329,7 +338,7 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
             # (AES = TSR x efficiency). Regular activities still feed TSR
             # and AES; they never feed ROG (see _counts_toward_rog).
             if _counts_toward_rog(sub):
-                rog_values.append(sub.get("rog"))
+                rog_values.append(sub.get("rog") or 0)
 
         breakdown = _test_breakdown(sub)
         functional_passed += breakdown["functional"]["passed"]
@@ -350,8 +359,10 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
         "aes": round(statistics.mean(aes_values), 1) if aes_values else None,
         "rog": round(statistics.mean(rog_values), 1) if rog_values else None,
         # How many submissions the "rog" average above was actually drawn
-        # from (i.e. how many had rog > 0), for context next to a number
-        # that no longer represents "every submission."
+        # from -- every evaluated optimization submission, zero-gain ones
+        # included (i.e. how many passed _counts_toward_rog), for context
+        # next to a number that doesn't represent "every submission" (drafts
+        # and non-optimization activities are still excluded).
         "rog_refactored_count": len(rog_values),
         # Rows whose most recent save was a byte-for-byte resubmission of
         # the learner's prior code for that activity (see ActivityApp.jsx's

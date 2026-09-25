@@ -13,6 +13,8 @@ import os
 import sys
 import types
 
+import pytest
+
 API_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "api"))
 if API_DIR not in sys.path:
     sys.path.insert(0, API_DIR)
@@ -58,11 +60,21 @@ def test_only_optimization_submissions_feed_rog():
         _sub("activity", 100),          # excluded (regular)
         _sub("optimization", 40),       # counted
         _sub("optimization", 60),       # counted
-        _sub("optimization", 0),        # unchanged starter -> not a gain
-        _sub("optimization", None, final_aes=None),  # never evaluated
+        _sub("optimization", 0),        # unchanged starter -> counted as a zero gain
+        _sub("optimization", None, final_aes=None),  # never evaluated -- excluded
     ])
-    assert m["rog"] == 50.0
-    assert m["rog_refactored_count"] == 2
+    assert m["rog"] == pytest.approx(33.3, abs=0.05)
+    assert m["rog_refactored_count"] == 3
+
+
+def test_zero_gain_optimization_submission_counts_as_zero_not_excluded():
+    # A student who attempts optimization and gets no improvement is a real
+    # data point, not the same as a student who never attempted it. Excluding
+    # rog == 0 would relocate the exact survivorship bias that inflated
+    # Module 0's phantom ROG.
+    m = svc._submission_metrics([_sub("optimization", 0)])
+    assert m["rog"] == 0.0
+    assert m["rog_refactored_count"] == 1
 
 
 def test_missing_type_is_treated_as_regular_activity():

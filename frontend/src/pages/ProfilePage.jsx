@@ -232,13 +232,23 @@ export default function ProfilePage() {
   // changed -- a resubmission that only fixed correctness (same class,
   // higher TSR) still raised AES and is still a real refactoring gain.
   // ActivityApp.jsx already stores the correct value in `sub.rog`; this
-  // just guards against a negative or missing number reaching the UI.
+  // just guards against a negative number reaching the UI.
+  //
+  // Returns null -- not 0 -- when this submission was never evaluated
+  // (sub.final_aes is not a number), so the average below can tell
+  // "attempted optimization, no gain" (a real 0) apart from "hasn't
+  // attempted it" (null). Collapsing that distinction to 0 either way is
+  // exactly the survivorship-bias mixup that produced Module 0's phantom
+  // ROG, just moved from "excluding zeros" to "manufacturing zeros."
   //
   // SCOPE: ROG is optimization-only. `isOptimization` is passed by the
   // caller (the optimization-challenge mapping below); regular lesson
-  // activities always resolve to 0, even if an older build stored a value.
+  // activities always resolve to null, even if an older build stored a
+  // value.
   const getSafeRog = (sub, isOptimization = false) =>
-    isOptimization ? Math.max(0, Number(sub?.rog) || 0) : 0;
+    isOptimization && typeof sub?.final_aes === "number"
+      ? Math.max(0, Number(sub?.rog) || 0)
+      : null;
 
   // Harder lessons should demand fewer activities to count as "cleared,"
   // not the same fixed majority as an easy one -- a lesson full of Hard
@@ -553,7 +563,9 @@ export default function ProfilePage() {
                 if (isCompleted) lessonCompletedActs++;
                 
                 modAesSum += aes; modAesCount++; globalAesSum += aes; globalAesCount++;
-                if (rog > 0) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
+                // Count every evaluated optimization submission, zero-gain
+                // ones included -- same reasoning as getSafeRog above.
+                if (rog !== null) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
               }
 
               return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted, hasSubmission, passedTests, totalTests, testBreakdown, actualTime, actualSpace, baselineTime, baselineSpace, latestTime, latestSpace };
@@ -642,7 +654,10 @@ export default function ProfilePage() {
               if (isCompleted) optCompletedCount++;
 
               modAesSum += aes; modAesCount++; globalAesSum += aes; globalAesCount++;
-              if (rog > 0) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
+              // Count every evaluated optimization submission, zero-gain
+              // ones included -- excluding them would make "attempted,
+              // no improvement" indistinguishable from "never attempted."
+              if (rog !== null) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
             } else if (finalUser.progress[act.id] >= 50 || finalUser.progress[act.id] === true) {
               isCompleted = true;
               optCompletedCount++;

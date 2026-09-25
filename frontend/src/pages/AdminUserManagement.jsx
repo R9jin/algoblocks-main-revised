@@ -730,7 +730,7 @@ const AdminUserManagement = () => {
     const passRate = sg.activities_attempted
       ? Math.round((sg.activities_passed / sg.activities_attempted) * 100)
       : 0;
-    return `Across ${sg.activities_attempted} recorded activity submission${sg.activities_attempted === 1 ? "" : "s"} in the current scope, respondents achieved an average Task Success Rate of ${fmtPct(sg.tsr)} and an average Algorithmic Efficiency Score of ${fmtPct(sg.aes)}, passing ${sg.activities_passed} activities (${passRate}%). Refactoring Optimization Gain (ROG) is measured on optimization activities only; among the ${sg.rog_refactored_count} optimization-activity submissions where a genuine refactor took place, the average ROG was +${sg.rog ?? 0} AES points.`;
+    return `Across ${sg.activities_attempted} recorded activity submission${sg.activities_attempted === 1 ? "" : "s"} in the current scope, respondents achieved an average Task Success Rate of ${fmtPct(sg.tsr)} and an average Algorithmic Efficiency Score of ${fmtPct(sg.aes)}, passing ${sg.activities_passed} activities (${passRate}%). Refactoring Optimization Gain (ROG) is measured on optimization activities only; across the ${sg.rog_refactored_count} evaluated optimization-activity submissions (zero-gain attempts included), the average ROG was +${sg.rog ?? 0} AES points.`;
   };
 
   const reportScopeLabel = selectedRespondents.length > 0
@@ -1040,7 +1040,7 @@ const AdminUserManagement = () => {
     const SUB_SHEET = "Submissions";
     const SUB_KEYS = [
       "email", "module", "activity", "type", "status", "unchanged",
-      "tsrPassed", "tsrTotal", "tsr", "aes", "rog", "rogCounted", "countedPassed",
+      "tsrPassed", "tsrTotal", "tsr", "aes", "rog", "rogCounted", "rogEligible", "countedPassed",
       "inRoster",
       "funcPassed", "funcTotal", "compPassed", "compTotal", "hidPassed", "hidTotal",
       "timestamp",
@@ -1090,7 +1090,14 @@ const AdminUserManagement = () => {
       criteria.length === 0
         ? `IFERROR(AVERAGE(${sub.range(key)}),"")`
         : `IFERROR(AVERAGEIFS(${sub.range(key)},${flat(criteria)}),"")`;
-    const countRog = (criteria) => countRows([...criteria, [sub.range("rogCounted"), '">0"']]);
+    // n' for ROG is "how many rows counted toward the ROG average" -- every
+    // evaluated optimization submission, zero-gain included. That can't be
+    // a COUNTIF(">0") against `rogCounted` any more (0 is now a real,
+    // counted value, indistinguishable from a positive one under that
+    // test), and COUNTIF("<>") against a formula-blank "" cell isn't
+    // reliably version-safe in Excel. So `rogEligible` is a plain 1/0
+    // column and this just sums it.
+    const countRog = (criteria) => sumCol("rogEligible", criteria);
     const countUnchanged = (criteria) => countRows([...criteria, [sub.range("unchanged"), '"Yes"']]);
     const pairStr = (aKey, bKey, criteria) =>
       `${sumCol(aKey, criteria)}&"/"&${sumCol(bKey, criteria)}`;
@@ -1454,7 +1461,7 @@ const AdminUserManagement = () => {
     // ----- Raw data: Submissions (the base of the whole workbook) -------
     // One row per activity submission. The three computed columns here are
     // the per-submission definitions the backend applies before averaging:
-    // a submission's own TSR, whether its ROG counts as a refactoring gain,
+    // a submission's own TSR, whether its ROG counts toward the ROG average,
     // and whether it counts as a passed activity.
     if (hasRawSubs) {
       addTableSheet(
@@ -1473,6 +1480,7 @@ const AdminUserManagement = () => {
           { header: "Final AES", key: "aes", width: 11, numFmt: "0.00" },
           { header: "ROG", key: "rog", width: 10, numFmt: "0.00" },
           { header: "ROG Counted", key: "rogCounted", width: 13, numFmt: "0.00" },
+          { header: "ROG Eligible", key: "rogEligible", width: 13, numFmt: "0" },
           { header: "Counted as Passed", key: "countedPassed", width: 16 },
           { header: "In Respondents", key: "inRoster", width: 18 },
           { header: "Functional Passed", key: "funcPassed", width: 16 },
@@ -1491,7 +1499,12 @@ const AdminUserManagement = () => {
           const S = sub.localCell("status", i);
           const countsTsr = typeof s.tsr_passed === "number" && typeof s.tsr_total === "number" && s.tsr_total > 0;
           const T_TYPE = sub.localCell("type", i);
-          const countsRog = s.type === "optimization" && typeof s.final_aes === "number" && typeof s.rog === "number" && s.rog > 0;
+          // ROG counts every evaluated optimization submission -- zero-gain
+          // ones included. Excluding rog === 0 would make "attempted
+          // optimization, no improvement" indistinguishable from "never
+          // attempted," the same survivorship bias that produced Module
+          // 0's phantom ROG.
+          const countsRog = s.type === "optimization" && typeof s.final_aes === "number" && typeof s.rog === "number";
           const countsPassed = (typeof s.final_aes === "number" && s.final_aes >= 50) || s.status === "passed";
           const emailCell = sub.localCell("email", i);
           return {
@@ -1512,13 +1525,24 @@ const AdminUserManagement = () => {
             },
             aes: s.final_aes ?? "",
             rog: s.rog ?? "",
-            // ROG only counts as a refactoring gain when the activity is an
-            // OPTIMIZATION activity, was actually evaluated (an AES exists)
-            // and the gain is positive. Regular activities feed TSR and AES
-            // only -- never ROG.
+            // ROG counts as long as the activity is an OPTIMIZATION activity
+            // and was actually evaluated (an AES exists) -- the gain itself
+            // may be zero (the refactor didn't improve on the starter) and
+            // still counts, on purpose: dropping zero-gain rows would make
+            // "attempted optimization, no improvement" indistinguishable
+            // from "never attempted," which is the same survivorship bias
+            // that produced Module 0's phantom ROG. Regular activities feed
+            // TSR and AES only -- never ROG.
             rogCounted: {
-              formula: `IF(AND(${T_TYPE}="optimization",ISNUMBER(${A}),ISNUMBER(${G}),${G}>0),${G},"")`,
+              formula: `IF(AND(${T_TYPE}="optimization",ISNUMBER(${A}),ISNUMBER(${G})),${G},"")`,
               result: countsRog ? s.rog : "",
+            },
+            // 1/0 companion to rogCounted, used to sum n' exactly (see
+            // countRog above) since 0 is now a valid counted ROG value and
+            // can't be told apart from "not counted" with a ">0" test.
+            rogEligible: {
+              formula: `IF(AND(${T_TYPE}="optimization",ISNUMBER(${A}),ISNUMBER(${G})),1,0)`,
+              result: countsRog ? 1 : 0,
             },
             // The backend's pass rule, written out: AES >= 50, or the
             // submission was explicitly marked passed.
@@ -1749,7 +1773,7 @@ const AdminUserManagement = () => {
                         title="Average Refactoring Optimization Gain (Mean ROG)"
                         meanFormula="Mean ROG = (1 / M') × Σ [ AES_final,k - AES_baseline,k ]  for k where gain > 0"
                         baseFormula="where ROG_k = AES_final,k - AES_baseline,k for activity k"
-                        desc={`Calculated on OPTIMIZATION activities only: the score improvement from the starter solution's baseline to the final refactored solution, averaged over the n' = ${overview.system_generated.rog_refactored_count ?? 0} optimization submissions that actually recorded a gain (excludes regular activities, never-attempted drafts and unchanged starters).`}
+                        desc={`Calculated on OPTIMIZATION activities only: the score improvement from the starter solution's baseline to the final refactored solution, averaged over the n' = ${overview.system_generated.rog_refactored_count ?? 0} evaluated optimization submissions (excludes regular activities and never-attempted drafts; zero-gain attempts -- where the refactor didn't improve on the starter -- are included, not excluded).`}
                       >
                         Avg Refactoring Optimization Gain (ROG)
                       </MetricTooltip>
