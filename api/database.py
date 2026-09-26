@@ -159,13 +159,6 @@ def init_db():
     cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ')
     cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_state JSONB DEFAULT '{}'::jsonb")
 
-    # Legacy admin-override plumbing for forgot-password: NULL = no pending
-    # request; a timestamp = requested-but-not-yet-reviewed. Nothing in the
-    # normal flow writes this anymore -- AuthService.forgot_password emails
-    # a reset token directly now -- but it's kept for the manual-override
-    # path in Admin > User Management (see AuthService.approve_password_reset).
-    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_requested_at TIMESTAMPTZ')
-
     # SECURITY: email verification. New columns are added with DEFAULT TRUE
     # so every account that already exists (created before this feature
     # shipped) is grandfathered in as verified and is never locked out of

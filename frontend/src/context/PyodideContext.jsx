@@ -1,80 +1,48 @@
 // frontend/src/context/PyodideContext.jsx
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+//
+// Thin React wrapper around the app-lifetime Pyodide singleton in
+// workers/pyodideEngine.js. This provider itself no longer owns a Worker
+// (creating/terminating it on mount/unmount) -- it just subscribes to the
+// singleton's state and re-renders when it changes, so mounting this
+// provider in multiple places (or having it survive route changes) never
+// creates duplicate engines or tears down a warmed-up one.
+//
+// `active` decides whether THIS mount should be allowed to *trigger* the
+// engine to start (e.g. only once the user is actually signed in) -- it
+// does not gate whether the engine keeps running. Once started, the
+// engine keeps running regardless of what `active` does afterwards,
+// including going back to `false` on sign-out.
+import { createContext, useContext, useEffect, useState } from "react";
+import { getState, restartEngine, startEngine, subscribe } from "../workers/pyodideEngine";
 
 const PyodideContext = createContext(null);
 
-const INITIAL_PROGRESS = { stage: "Preparing Python engine...", percent: 0 };
-
-export const PyodideProvider = ({ children }) => {
-    const [worker, setWorker] = useState(null);
-    const [isEngineReady, setIsEngineReady] = useState(false);
-    const [progress, setProgress] = useState(INITIAL_PROGRESS);
-    const [engineError, setEngineError] = useState(null);
-    const workerInitialized = useRef(false);
-
-    const attachListeners = (workerInstance) => {
-        workerInstance.addEventListener("message", (event) => {
-            if (event.data.type === "ENGINE_READY") {
-                setProgress({ stage: "Ready", percent: 100 });
-                setIsEngineReady(true);
-                setEngineError(null);
-            } else if (event.data.type === "ENGINE_PROGRESS") {
-                setProgress({ stage: event.data.stage, percent: event.data.percent });
-            } else if (event.data.type === "ENGINE_ERROR") {
-                setEngineError(event.data.message || "Failed to load the Python engine.");
-            }
-        });
-    };
-
-    const initGlobalWorker = () => {
-        if (workerInitialized.current) return;
-        workerInitialized.current = true;
-
-        const newWorker = new Worker(
-            new URL("../workers/analyzer.worker.js", import.meta.url),
-            { type: "module" }
-        );
-
-        attachListeners(newWorker);
-        newWorker.postMessage({ type: "INIT_ENGINE" });
-        setWorker(newWorker);
-    };
-
-    const resetWorker = () => {
-        setWorker((prevWorker) => {
-            if (prevWorker) prevWorker.terminate();
-
-            setIsEngineReady(false);
-            setEngineError(null);
-            setProgress(INITIAL_PROGRESS);
-
-            const newWorker = new Worker(
-                new URL("../workers/analyzer.worker.js", import.meta.url),
-                { type: "module" }
-            );
-
-            attachListeners(newWorker);
-            newWorker.postMessage({ type: "INIT_ENGINE" });
-
-            return newWorker;
-        });
-    };
+export const PyodideProvider = ({ children, active = true }) => {
+    const [engineState, setEngineState] = useState(getState());
 
     useEffect(() => {
-        // Worker initialization intentionally updates provider state after mount.
+        // Subscribing can race a state change that happened between the
+        // initial useState(getState()) call and this effect running, so
+        // resync once on mount in addition to subscribing.
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        initGlobalWorker();
-        return () => {
-            setWorker((prevWorker) => {
-                if (prevWorker) prevWorker.terminate();
-                return null;
-            });
-            workerInitialized.current = false;
-        };
+        setEngineState(getState());
+        return subscribe(setEngineState);
     }, []);
 
+    useEffect(() => {
+        if (active) startEngine();
+    }, [active]);
+
     return (
-        <PyodideContext.Provider value={{ worker, isEngineReady, resetWorker, progress, engineError }}>
+        <PyodideContext.Provider
+            value={{
+                worker: engineState.worker,
+                isEngineReady: engineState.isEngineReady,
+                resetWorker: restartEngine,
+                progress: engineState.progress,
+                engineError: engineState.engineError,
+            }}
+        >
             {children}
         </PyodideContext.Provider>
     );

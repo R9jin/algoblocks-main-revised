@@ -6,6 +6,7 @@ Admin-facing analytics built directly from the metrics defined in the study:
     - Task Success Rate (TSR)              = PTC / TTC
     - Algorithmic Efficiency Score (AES)    = floor((TSR * Efficiency) * 100)
     - Refactoring Optimization Gain (ROG)   = AES_final - AES_baseline
+                                              (OPTIMIZATION activities only)
 
   Assessment-Based Learning Measures
     - Mean / Standard Deviation of pre-test and post-test scores
@@ -21,12 +22,19 @@ key-matching approach ProfilePage.jsx uses client-side, since assessment
 keys aren't guaranteed to be named identically across activities.
 """
 
+import logging
 import math
 import statistics
 from typing import Any, Dict, List, Optional
 
 from database import get_db_connection
 from repositories.user_repo import UserRepository
+# The t/beta helpers moved to stats_utils (so the regression math is testable
+# without a database). Re-imported under the same names for existing callers.
+from services.stats_utils import _betacf, _betai, _t_two_tailed_p  # noqa: F401
+from services.regression_service import compute_learning_impact_regression
+
+logger = logging.getLogger(__name__)
 
 PRETEST_KEYWORDS = ["pretest", "coursepretest"]
 POSTTEST_KEYWORDS = ["posttest", "courseposttest"]
@@ -154,6 +162,136 @@ def _test_breakdown(sub: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
     return categories
 
 
+def _resolve_tsr_counts(sub: Dict[str, Any], breakdown: Dict[str, Dict[str, int]]) -> tuple:
+    """Resolves the (passed, total) pair that the Task Success Rate is built
+    from for ONE submission.
+
+    Pulled out of `_submission_metrics` so the per-submission rows exported
+    to the Excel report (see `_submission_raw_row`) carry the exact same two
+    numbers the aggregate mean is computed from. If these two ever drifted
+    apart, the spreadsheet's `=AVERAGEIF(...)` over the raw rows would stop
+    reproducing the dashboard's TSR -- keeping one implementation makes that
+    impossible by construction.
+    """
+    breakdown_total = sum(item["total"] for item in breakdown.values())
+    breakdown_passed = sum(item["passed"] for item in breakdown.values())
+    total = sub.get("total_tests") or sub.get("totalTestCases") or breakdown_total
+    passed = sub.get("passed_tests")
+    if not isinstance(passed, (int, float)) or (passed == 0 and breakdown_passed > 0):
+        passed = sub.get("passedTestCases") or breakdown_passed
+    return passed, total
+
+
+def _counts_toward_tsr(passed: Any, total: Any) -> bool:
+    return isinstance(total, (int, float)) and total > 0 and isinstance(passed, (int, float))
+
+
+def _submission_raw_row(email: str, sub: Any) -> Dict[str, Any]:
+    """One flat, already-resolved row per submission -- the finest grain of
+    data behind every system-generated number on the dashboard.
+
+    The cohort overview previously only ever returned *averages* (per user,
+    per module, per cohort), which meant the Excel export had no choice but
+    to paste those averages in as literal numbers. Shipping the underlying
+    submissions lets the workbook rebuild every one of them with real
+    spreadsheet formulas (AVERAGEIF / SUMIFS / COUNTIFS) whose inputs a
+    reader can trace and recompute by hand.
+
+    Every field here is a raw observation or a directly-resolved count --
+    deliberately NOT an average, so nothing in this list is itself derived
+    from another row.
+    """
+    if not isinstance(sub, dict):
+        # Still emitted so the row count matches `activities_attempted`
+        # (which is len(submissions), including any malformed entries).
+        return {
+            "email": email, "moduleId": None, "activityId": None, "type": None,
+            "status": None, "code_unchanged": False, "tsr_passed": None,
+            "tsr_total": None, "final_aes": None, "rog": None,
+            "functional_passed": 0, "functional_total": 0,
+            "complexity_passed": 0, "complexity_total": 0,
+            "hidden_passed": 0, "hidden_total": 0, "timestamp": None,
+        }
+
+    breakdown = _test_breakdown(sub)
+    passed, total = _resolve_tsr_counts(sub, breakdown)
+    counts = _counts_toward_tsr(passed, total)
+
+    final_aes = sub.get("final_aes")
+    if not isinstance(final_aes, (int, float)):
+        final_aes = None
+
+    rog = sub.get("rog")
+    if not isinstance(rog, (int, float)):
+        rog = None
+    # ROG is only defined for optimization activities; regular activities
+    # export a blank so the raw sheet can never show (or be averaged into)
+    # a "gain" for them, even if an older build stored a non-null value.
+    if not _is_optimization_submission(sub):
+        rog = None
+
+    return {
+        "email": email,
+        "moduleId": sub.get("moduleId") or "unknown",
+        "activityId": sub.get("activityId"),
+        "type": sub.get("type", "activity"),
+        "status": sub.get("status", "draft"),
+        "code_unchanged": sub.get("code_unchanged") is True,
+        # Only populated when this submission actually contributes to TSR,
+        # so a blank cell in the spreadsheet means "excluded from the mean"
+        # for exactly the same reason the backend excludes it.
+        "tsr_passed": passed if counts else None,
+        "tsr_total": total if counts else None,
+        "final_aes": final_aes,
+        "rog": rog,
+        "functional_passed": breakdown["functional"]["passed"],
+        "functional_total": breakdown["functional"]["total"],
+        "complexity_passed": breakdown["complexity"]["passed"],
+        "complexity_total": breakdown["complexity"]["total"],
+        "hidden_passed": breakdown["hidden"]["passed"],
+        "hidden_total": breakdown["hidden"]["total"],
+        "timestamp": sub.get("timestamp") or sub.get("submittedAt"),
+    }
+
+
+ROG_ACTIVITY_TYPE = "optimization"
+
+
+def _is_optimization_submission(sub: Dict[str, Any]) -> bool:
+    """True only for OPTIMIZATION-type activity submissions.
+
+    ROG (Refactoring Optimization Gain) is defined solely for optimization
+    activities. `type` is written by ActivityApp.jsx on every submission
+    ("optimization" | "activity"); anything else (missing, "activity",
+    malformed) is treated as a regular activity.
+    """
+    return isinstance(sub, dict) and sub.get("type") == ROG_ACTIVITY_TYPE
+
+
+def _counts_toward_rog(sub: Dict[str, Any]) -> bool:
+    """A submission contributes to the ROG mean whenever it is an
+    optimization activity that was actually evaluated (final_aes present)
+    -- whether or not the refactor produced a positive gain. Applied
+    server-side so rows already stored with a non-null `rog` on regular
+    activities (written by earlier builds) are excluded too -- no data
+    migration required.
+
+    Zero-gain attempts (an optimization submission where the learner's
+    final solution was no more efficient than the starter) deliberately
+    count here. Dropping them would be the same survivorship bias that
+    inflated Module 0's phantom +98.1 ROG in the first place, just
+    relocated: a student who attempts optimization and gets 0% gain would
+    look identical to a student who never attempted it at all, and both
+    would silently vanish from the average. Counting every evaluated
+    optimization submission -- gain floored at 0, never excluded -- is the
+    intent-to-treat-style choice: it is more conservative and it keeps
+    real data (e.g. a resubmission that didn't improve) in the metric
+    instead of discarding it."""
+    if not _is_optimization_submission(sub):
+        return False
+    return isinstance(sub.get("final_aes"), (int, float))
+
+
 def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
     aes_values, rog_values, tsr_values = [], [], []
     functional_passed = functional_total = 0
@@ -178,21 +316,29 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
             # a resubmission that only fixed correctness (same class, higher
             # TSR) still raised AES and is still a real refactoring gain.
             #
-            # Gated on final_aes being present (same as aes_values above)
-            # AND on rog > 0: this average is now specifically "mean gain
-            # among activities where a refactor actually happened," not
-            # "mean gain across every submission." That deliberately drops
-            # two kinds of zero: never-evaluated drafts (final_aes is None,
-            # already excluded by the outer gate) and legitimate first-try
-            # passes (final_aes present, rog == 0 because there was nothing
-            # to improve on resubmission). Neither represents a refactor,
-            # so neither belongs in a metric about refactor size. This
-            # trades "average gain per activity" for "average gain per
-            # activity that was actually refactored" -- see rog_refactored_count
-            # below for how many submissions that average is drawn from.
-            rog = sub.get("rog")
-            if isinstance(rog, (int, float)) and rog > 0:
-                rog_values.append(rog)
+            # Gated on final_aes being present (same as aes_values above):
+            # this average is "mean gain across every evaluated optimization
+            # submission," including zero-gain attempts (rog == 0 because
+            # the refactor didn't improve on the starter). Those zeros stay
+            # in on purpose -- excluding them would silently make "attempted
+            # optimization, no improvement" indistinguishable from "never
+            # attempted," which is exactly the survivorship bias that
+            # produced Module 0's phantom ROG. Only never-evaluated drafts
+            # (final_aes is None) are excluded, by the outer gate above --
+            # see rog_refactored_count below for how many submissions this
+            # average is drawn from.
+            #
+            # SCOPE: ROG is only defined for OPTIMIZATION activities. Those
+            # are the only activities that ship a working-but-inefficient
+            # starter solution, so "baseline -> final" is a genuine
+            # before/after refactor. For a regular activity the "baseline"
+            # is just the learner's first attempt (often a failing one), so
+            # AES_final - AES_baseline there measures debugging / TSR
+            # recovery, not optimization -- it also double counts TSR
+            # (AES = TSR x efficiency). Regular activities still feed TSR
+            # and AES; they never feed ROG (see _counts_toward_rog).
+            if _counts_toward_rog(sub):
+                rog_values.append(sub.get("rog") or 0)
 
         breakdown = _test_breakdown(sub)
         functional_passed += breakdown["functional"]["passed"]
@@ -202,13 +348,8 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
         hidden_passed += breakdown["hidden"]["passed"]
         hidden_total += breakdown["hidden"]["total"]
 
-        breakdown_total = sum(item["total"] for item in breakdown.values())
-        breakdown_passed = sum(item["passed"] for item in breakdown.values())
-        total = sub.get("total_tests") or sub.get("totalTestCases") or breakdown_total
-        passed = sub.get("passed_tests")
-        if not isinstance(passed, (int, float)) or (passed == 0 and breakdown_passed > 0):
-            passed = sub.get("passedTestCases") or breakdown_passed
-        if isinstance(total, (int, float)) and total > 0 and isinstance(passed, (int, float)):
+        passed, total = _resolve_tsr_counts(sub, breakdown)
+        if _counts_toward_tsr(passed, total):
             tsr_values.append(passed / total)
 
         if (isinstance(final_aes, (int, float)) and final_aes >= 50) or sub.get("status") == "passed":
@@ -218,8 +359,10 @@ def _submission_metrics(submissions: List[Dict[str, Any]]) -> Dict[str, Any]:
         "aes": round(statistics.mean(aes_values), 1) if aes_values else None,
         "rog": round(statistics.mean(rog_values), 1) if rog_values else None,
         # How many submissions the "rog" average above was actually drawn
-        # from (i.e. how many had rog > 0), for context next to a number
-        # that no longer represents "every submission."
+        # from -- every evaluated optimization submission, zero-gain ones
+        # included (i.e. how many passed _counts_toward_rog), for context
+        # next to a number that doesn't represent "every submission" (drafts
+        # and non-optimization activities are still excluded).
         "rog_refactored_count": len(rog_values),
         # Rows whose most recent save was a byte-for-byte resubmission of
         # the learner's prior code for that activity (see ActivityApp.jsx's
@@ -271,7 +414,14 @@ def _submission_details(submissions: List[Dict[str, Any]]) -> List[Dict[str, Any
         # (see ActivityApp.jsx) -- .get("rog", 0) only applies its default
         # when the key is *missing*, not when it's present-but-null, so
         # normalize that to 0 here for the per-activity table display.
-        safe_rog = sub.get("rog") if sub.get("rog") is not None else 0
+        #
+        # ROG only exists for optimization activities. Regular activities
+        # report None ("not applicable") rather than 0, so the UI can show
+        # "--" instead of a misleading "+0".
+        if _is_optimization_submission(sub):
+            safe_rog = sub.get("rog") if sub.get("rog") is not None else 0
+        else:
+            safe_rog = None
         details.append({
             "moduleId": sub.get("moduleId"),
             "activityId": sub.get("activityId"),
@@ -290,67 +440,6 @@ def _submission_details(submissions: List[Dict[str, Any]]) -> List[Dict[str, Any
             "timestamp": sub.get("timestamp") or sub.get("submittedAt"),
         })
     return sorted(details, key=lambda item: str(item.get("timestamp") or ""), reverse=True)
-
-
-# ---------------------------------------------------------------------------
-# Paired t-test / Cohen's d support (pure-Python regularized incomplete beta,
-# so this doesn't require adding scipy as a dependency)
-# ---------------------------------------------------------------------------
-
-def _betacf(a: float, b: float, x: float) -> float:
-    maxit, eps, fpmin = 200, 3.0e-12, 1.0e-300
-    qab, qap, qam = a + b, a + 1.0, a - 1.0
-    c = 1.0
-    d = 1.0 - qab * x / qap
-    if abs(d) < fpmin:
-        d = fpmin
-    d = 1.0 / d
-    h = d
-    for m in range(1, maxit + 1):
-        m2 = 2 * m
-        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
-        d = 1.0 + aa * d
-        if abs(d) < fpmin:
-            d = fpmin
-        c = 1.0 + aa / c
-        if abs(c) < fpmin:
-            c = fpmin
-        d = 1.0 / d
-        h *= d * c
-        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
-        d = 1.0 + aa * d
-        if abs(d) < fpmin:
-            d = fpmin
-        c = 1.0 + aa / c
-        if abs(c) < fpmin:
-            c = fpmin
-        d = 1.0 / d
-        delta = d * c
-        h *= delta
-        if abs(delta - 1.0) < eps:
-            break
-    return h
-
-
-def _betai(a: float, b: float, x: float) -> float:
-    if x <= 0.0:
-        return 0.0
-    if x >= 1.0:
-        return 1.0
-    bt = math.exp(
-        math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b)
-        + a * math.log(x) + b * math.log(1.0 - x)
-    )
-    if x < (a + 1.0) / (a + b + 2.0):
-        return bt * _betacf(a, b, x) / a
-    return 1.0 - bt * _betacf(b, a, 1.0 - x) / b
-
-
-def _t_two_tailed_p(t: Optional[float], df: Optional[int]) -> Optional[float]:
-    if t is None or not df or df <= 0:
-        return None
-    x = df / (df + t * t)
-    return _betai(df / 2.0, 0.5, x)
 
 
 def _interpret_cohens_d(d: Optional[float]) -> Optional[str]:
@@ -445,6 +534,10 @@ class AdminAnalyticsService:
         submission metrics and the assessment-based measures to the same
         completer cohort, so the dashboard reflects one consistent group of
         finished respondents rather than mixing in partial data.
+
+        The returned dict also carries a `regression` key (phased regression /
+        Learning Impact Model, see regression_service.py) computed from the
+        same scoped `by_user` rows.
         """
         # PERFORMANCE: one shared connection for all three queries instead
         # of find_all_users/_fetch_all_submission_rows/_fetch_all_assessment_rows
@@ -485,9 +578,18 @@ class AdminAnalyticsService:
                     post_test_completers.add(email)
             target_emails = target_emails & post_test_completers
 
-        all_submissions = [
-            row.get("data") for row in submission_rows
+        scoped_submission_rows = [
+            row for row in submission_rows
             if row.get("data") and row.get("email") in target_emails
+        ]
+        all_submissions = [row.get("data") for row in scoped_submission_rows]
+        # Flat, per-submission raw rows for the Excel export. Same scope and
+        # same order of operations as the aggregates below -- this is the
+        # level the workbook's formulas average over, rather than receiving
+        # the averages pre-computed.
+        raw_submission_rows = [
+            _submission_raw_row(row.get("email"), row.get("data"))
+            for row in scoped_submission_rows
         ]
         cohort_submission_metrics = _submission_metrics(all_submissions)
         by_module = _group_by_module(all_submissions)
@@ -522,12 +624,21 @@ class AdminAnalyticsService:
         by_user = []
         for email in sorted(target_emails):
             user = user_lookup.get(email, {})
-            user_metrics = _submission_metrics(submissions_by_email.get(email, []))
+            user_submissions = submissions_by_email.get(email, [])
+            user_metrics = _submission_metrics(user_submissions)
             by_user.append({
                 "email": email,
                 "name": user.get("name"),
                 "status": user.get("status", "active"),
                 "metrics": user_metrics,
+                # Per-module rollup of this respondent's own submissions --
+                # i.e. their individual progress through the curriculum
+                # ("learning path"), using the exact same _submission_metrics
+                # aggregation as the cohort-wide by_module above, just scoped
+                # to one respondent. Lets the Full Report show each
+                # respondent's own module-by-module numbers instead of only
+                # the single summarized row in `metrics` above.
+                "by_module": _group_by_module(user_submissions),
                 "preTest": pre_scores.get(email),
                 "postTest": post_scores.get(email),
             })
@@ -560,6 +671,21 @@ class AdminAnalyticsService:
             else None
         )
 
+        # Phased regression ("Learning Impact Model") is computed from by_user
+        # AFTER all scoping above (selected emails / post-test completers /
+        # admins excluded), so the dashboard, PDF and Excel report all read
+        # the same numbers from this one payload. It is deliberately isolated:
+        # a failure here must never take down the existing overview, so it
+        # degrades to {"available": False, ...} instead of raising.
+        try:
+            regression = compute_learning_impact_regression(by_user)
+        except Exception as exc:  # noqa: BLE001 - see comment above
+            logger.error("Phased regression failed: %s", exc)
+            regression = {
+                "available": False,
+                "reason": "The regression could not be computed for this cohort.",
+            }
+
         return {
             "status": "success",
             "user_count": len(target_emails),
@@ -571,6 +697,11 @@ class AdminAnalyticsService:
             "system_generated": cohort_submission_metrics,
             "by_module": by_module,
             "by_user": by_user,
+            # One entry per scoped submission (see _submission_raw_row). The
+            # dashboard itself does not read this -- it exists so the Excel
+            # report can carry a genuine raw-data sheet and derive every
+            # TSR / AES / ROG / test-count figure from it with formulas.
+            "submissions": raw_submission_rows,
             "assessment_based": {
                 "mean_pretest": mean_pre,
                 "mean_posttest": mean_post,
@@ -587,4 +718,5 @@ class AdminAnalyticsService:
                 "hakes_g": round(hakes_g, 3) if hakes_g is not None else None,
                 "hakes_g_interpretation": _interpret_hakes_g(hakes_g),
             },
+            "regression": regression,
         }

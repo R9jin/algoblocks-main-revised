@@ -96,7 +96,18 @@ export default function DashboardHeader({
       sessionStorage.removeItem(k);
     });
 
-    window.location.replace("/");
+    // Client-side navigate instead of a hard reload (window.location.replace
+    // used to live here). A full reload destroys the entire JS process --
+    // including the app-lifetime Pyodide engine and the prefetched
+    // ground-truth dataset cache (see workers/pyodideEngine.js /
+    // utils/datasetCache.js) -- which is exactly what was forcing a full
+    // re-download every time someone signed out and back in. Both of those
+    // are module-level singletons that persist for as long as the JS
+    // process is alive, so staying in the same SPA session on sign-out lets
+    // them survive; ProtectedRoute/PublicRoute re-check localStorage on
+    // every render, so the redirect to "/" (and away from any protected
+    // page) still happens correctly.
+    navigate("/", { replace: true });
   };
 
   // Check multiple admin identifier formats to ensure compatibility with the backend payload

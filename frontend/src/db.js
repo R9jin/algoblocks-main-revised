@@ -2,7 +2,7 @@
 import { openDB } from "idb";
 
 const DB_NAME = "AlgoBlocksDB";
-const DB_VERSION = 6; // Bumped to 6 to fix submissions keyPath
+const DB_VERSION = 7; // Bumped to 7 to add the datasetCache store (offline ground-truth prefetch)
 
 // PERFORMANCE FIX: initDB() used to call openDB(...) fresh every single
 // time it was invoked -- and every method on createStoreWrapper below
@@ -51,6 +51,16 @@ export const initDB = async () => {
 
             if (!db.objectStoreNames.contains("curriculumCache")) {
                 db.createObjectStore("curriculumCache", { keyPath: "id" });
+            }
+
+            // Holds the pre-fetched ground-truth benchmark chunks (see
+            // utils/datasetCache.js) so "Start Evaluation" on Dataset
+            // Testing reads from disk instantly instead of re-fetching ~30
+            // JSON files one at a time over an unstable connection. Static
+            // app content, not per-user data -- same rationale as
+            // curriculumCache above.
+            if (!db.objectStoreNames.contains("datasetCache")) {
+                db.createObjectStore("datasetCache", { keyPath: "id" });
             }
         },
         }).catch((e) => {
@@ -134,6 +144,7 @@ export const assessmentsDB = createStoreWrapper("assessments", "assessmentId");
 // FIX: Updated keyPath binding to match the new DB schema
 export const submissionsDB = createStoreWrapper("submissions", "id");
 export const curriculumCacheDB = createStoreWrapper("curriculumCache", "id");
+export const datasetCacheDB = createStoreWrapper("datasetCache", "id");
 
 export const syncQueueDB = {
     async add(action, payload) {
@@ -179,10 +190,12 @@ export const syncQueueDB = {
 // stayed cached locally and were read straight into the next guest (or
 // next different-account) session.
 //
-// This clears every user-scoped local store. `curriculumCache` is
-// deliberately excluded since it only holds static lesson/curriculum
-// content (not per-user data) and clearing it just forces needless
-// refetches.
+// This clears every user-scoped local store. `curriculumCache` and
+// `datasetCache` are deliberately excluded since they only hold static
+// lesson/curriculum and benchmark-dataset content (not per-user data), and
+// clearing them would just force needless refetches -- including
+// re-downloading the ground-truth chunks right after the sign-out this
+// function runs on, defeating the point of caching them ahead of time.
 export async function clearLocalUserData() {
     await Promise.all([
         projectsDB.clear(),

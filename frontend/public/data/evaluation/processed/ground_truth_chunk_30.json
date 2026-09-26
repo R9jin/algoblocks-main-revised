@@ -8,87 +8,63 @@
     "line_metrics": [
       {
         "lineno": 8,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 9,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 12,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 13,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 15,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 16,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 17,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 21,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 22,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 23,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 24,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 26,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(V+E)",
@@ -103,87 +79,63 @@
     "line_metrics": [
       {
         "lineno": 7,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 8,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 9,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 11,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 12,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 14,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 15,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 16,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 20,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 21,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 22,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 24,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(V+E)",
@@ -198,87 +150,63 @@
     "line_metrics": [
       {
         "lineno": 6,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 7,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 10,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 11,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 12,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 14,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 17,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 22,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 23,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 26,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 27,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 28,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       }
     ],
     "dataset_original_time": "O(V+E)",
@@ -293,101 +221,73 @@
     "line_metrics": [
       {
         "lineno": 7,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(V+E)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 10,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 11,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 12,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 15,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(V+E)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 16,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 18,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 19,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 20,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 23,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 24,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 25,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 26,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 28,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(V+E)",
@@ -402,80 +302,58 @@
     "line_metrics": [
       {
         "lineno": 6,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 9,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 10,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 11,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 15,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(1)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 16,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 20,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 21,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 22,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 23,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 25,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(V+E)",
@@ -490,108 +368,78 @@
     "line_metrics": [
       {
         "lineno": 7,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(V+E)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 9,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 10,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 11,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 13,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 14,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 16,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 17,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 21,
-        "local_time": "O(V+E)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 22,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 23,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 24,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 25,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(V+E)"
+        "time": "O(V+E)",
+        "space": "O(V+E)"
       },
       {
         "lineno": 26,
-        "local_time": "O(1)",
-        "global_time": "O(V+E)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(V+E)",
+        "space": "O(1)"
       },
       {
         "lineno": 28,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(V+E)",
@@ -606,80 +454,58 @@
     "line_metrics": [
       {
         "lineno": 7,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 8,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 9,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 10,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 11,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 12,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 16,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 17,
-        "local_time": "O(sqrt n)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 18,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 19,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 21,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(sqrt n)",
@@ -694,52 +520,38 @@
     "line_metrics": [
       {
         "lineno": 7,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 11,
-        "local_time": "O(sqrt n)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(sqrt n)"
+        "time": "O(sqrt n)",
+        "space": "O(sqrt n)"
       },
       {
         "lineno": 12,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(sqrt n)"
+        "time": "O(sqrt n)",
+        "space": "O(sqrt n)"
       },
       {
         "lineno": 13,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(sqrt n)"
+        "time": "O(sqrt n)",
+        "space": "O(sqrt n)"
       },
       {
         "lineno": 14,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(sqrt n)"
+        "time": "O(sqrt n)",
+        "space": "O(sqrt n)"
       },
       {
         "lineno": 15,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(sqrt n)"
+        "time": "O(sqrt n)",
+        "space": "O(sqrt n)"
       },
       {
         "lineno": 17,
-        "local_time": "O(sqrt n log(sqrt n))",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(sqrt n)",
-        "global_space": "O(sqrt n)"
+        "time": "O(sqrt n)",
+        "space": "O(sqrt n)"
       }
     ],
     "dataset_original_time": "O(sqrt n)",
@@ -754,52 +566,38 @@
     "line_metrics": [
       {
         "lineno": 7,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 11,
-        "local_time": "O(sqrt n)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 12,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 13,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 14,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 15,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 17,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(sqrt n)",
@@ -814,101 +612,73 @@
     "line_metrics": [
       {
         "lineno": 7,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 10,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 11,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 12,
-        "local_time": "O(log n)",
-        "global_time": "O(log n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(log n)",
+        "space": "O(1)"
       },
       {
         "lineno": 13,
-        "local_time": "O(1)",
-        "global_time": "O(log n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(log n)",
+        "space": "O(1)"
       },
       {
         "lineno": 17,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 18,
-        "local_time": "O(sqrt n)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 19,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 20,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 21,
-        "local_time": "O(log n)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 22,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 23,
-        "local_time": "O(1)",
-        "global_time": "O(sqrt n)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(sqrt n)",
+        "space": "O(1)"
       },
       {
         "lineno": 26,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       },
       {
         "lineno": 29,
-        "local_time": "O(1)",
-        "global_time": "O(1)",
-        "local_space": "O(1)",
-        "global_space": "O(1)"
+        "time": "O(1)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(sqrt n)",

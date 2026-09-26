@@ -187,10 +187,6 @@ Note: `frontend/public/data/evaluation/processed/dataset.zip` and
 were **not** modified — regenerate them from the corrected loose JSON files
 if anything in the pipeline reads from the archives instead of the JSONs.
 
-`MIN_SPACE_ACCURACY` in `regression_check.py` / `tests/test_analyzer_regression.py`
-is still set to the old 0.50 floor and was intentionally left as-is — raise it
-once you're ready to lock in the corrected baseline.
-
 ## Analyzer-side fixes (not a dataset change)
 
 Everything above corrected the *dataset*. The entries below are the first

@@ -1374,7 +1374,15 @@
 }
 
 .full-report-card {
+  /* .admin-modal-card (the base modal class also applied to this element)
+     sets `max-width: 460px` for the small confirm-dialog modals. Since both
+     selectors have identical specificity (a single class each), the cascade
+     is decided purely by source order -- and `max-width` was never
+     overridden here, so the base rule's 460px cap silently won and clamped
+     this report modal to a thin sliver no matter what `width` said below.
+     Overriding max-width explicitly (to the same value as width) fixes it. */
   width: min(920px, 94vw);
+  max-width: min(920px, 94vw);
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -1384,11 +1392,42 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .full-report-body {
   overflow-y: auto;
   padding: 28px 32px;
+}
+
+/* RESPONSIVE: on narrow viewports give the report modal nearly the full
+   screen (instead of a fixed 94vw that still leaves awkward margins on a
+   phone), stack the header so the title doesn't get squeezed against the
+   action buttons, and trim the body padding so tables have more room. */
+@media (max-width: 640px) {
+  .full-report-card {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .full-report-card .admin-modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .full-report-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .full-report-body {
+    padding: 18px 16px;
+  }
 }
 
 .full-report-meta {
@@ -1451,17 +1490,25 @@
   border-bottom: 2px solid #ddd6f0;
 }
 
-.user-report-table {
-  display: block;
+/* Wrapper handles the horizontal scroll; the table itself stays a normal
+   table (auto layout) so column widths are sized from actual cell content
+   instead of being split into two independently-sized anonymous tables
+   (one for <thead>, one for <tbody>) that don't agree on column widths --
+   that mismatch was what caused adjacent-column text to visually overlap
+   ("Johannjshxeraffdla482@..."-style garbling) once table-layout: fixed
+   squeezed every column to an equal, content-blind width. */
+.user-report-table-wrapper {
+  width: 100%;
   overflow-x: auto;
+}
+
+.user-report-table {
+  min-width: 760px;
   white-space: nowrap;
 }
 
-.user-report-table thead,
-.user-report-table tbody {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
+.user-module-table {
+  min-width: 620px;
 }
 
 
@@ -1594,4 +1641,247 @@ h1, h2, h3, h4, .analytics-card-value, .admin-metric-value, .eval-metric-value {
   border: 1.5px solid rgba(255, 255, 255, 0.72) !important;
   box-shadow: inset 0 2px 0 rgba(255,255,255,0.90), 0 4px 16px rgba(60,30,120,0.06) !important;
   border-radius: 12px !important;
+}
+
+
+/* =========================================================
+   LEARNING IMPACT MODEL (phased regression) -- dashboard block
+   + numbered section in the Full Report modal.
+   Brand purple #5A1398. The significance badge is green ONLY
+   when the model p < .05; anything else is neutral gray.
+========================================================= */
+.lim-section {
+  margin-top: 8px;
+}
+
+.lim-toprow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  margin-bottom: 12px;
+}
+
+.lim-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.lim-badge.is-neutral {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+.lim-badge.is-significant {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.lim-badge-detail {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.lim-inclusion {
+  font-size: 0.9rem;
+  color: #3a3450;
+}
+
+.lim-exclusions {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 0.82rem;
+  color: #5b5675;
+}
+
+.lim-phases {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+}
+
+.lim-phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 6px;
+  border: 1px solid #ddd6f0;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: #5b5675;
+}
+
+.lim-phase.is-modelled {
+  border-color: #5A1398;
+  background: #f3ecff;
+  color: #5A1398;
+  font-weight: 700;
+}
+
+.lim-phase-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ede6ff;
+  color: #5A1398;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.lim-cards {
+  margin-bottom: 4px;
+}
+
+.lim-table {
+  min-width: 520px;
+  white-space: nowrap;
+}
+
+.lim-table thead th {
+  color: #5b5675;
+  font-weight: 700;
+  border-bottom: 2px solid #ddd6f0;
+}
+
+.lim-change-row td {
+  font-style: italic;
+  color: #5b5675;
+}
+
+.lim-kv-table th {
+  width: 42%;
+}
+
+.lim-h3 {
+  margin: 18px 0 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.lim-note {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #6b6785;
+}
+
+.lim-interpretation p {
+  margin: 12px 0 6px;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #3a3450;
+}
+
+.lim-limitations {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.lim-limitations li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #7c3a06;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.lim-limitations svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #ea580c;
+}
+
+.lim-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 8px 14px;
+  border: 1px solid #ddd6f0;
+  border-radius: 10px;
+  background: transparent;
+  color: #5A1398;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lim-toggle:hover {
+  background: #f3ecff;
+}
+
+.lim-collapsible {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border: 1px solid #ece8f8;
+  border-radius: 12px;
+}
+
+.lim-scatter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.lim-scatter {
+  margin: 0;
+  padding: 10px 12px 4px;
+  border: 1px solid #ece8f8;
+  border-radius: 12px;
+  min-width: 0;
+}
+
+.lim-scatter figcaption {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #241b52;
+}
+
+.lim-tooltip {
+  padding: 6px 10px;
+  border: 1px solid #ddd6f0;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.78rem;
+  color: #3a3450;
+}
+
+.lim-tooltip-flag {
+  color: #ea580c;
+  font-weight: 700;
+}
+
+.lim-appendix {
+  min-width: 900px;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 768px) {
+  .lim-scatter-grid {
+    grid-template-columns: 1fr;
+  }
 }

@@ -201,10 +201,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       { target: ".console-content-wrapper .clear-console-btn", title: "Clear the console", description: "Clear output before rerunning a test or experiment.", onEnter: () => { focusDockPanel("console"); setConsoleTab("output"); } },
       { target: ".console-content-wrapper .tab-btn-group .tab-btn:nth-child(2)", title: "Line executions", description: "Check the frequency count for each line in the current solution.", onEnter: () => { focusDockPanel("console"); setConsoleTab("executions"); } },
       { target: ".footer-tab:nth-child(2)", title: "Open complexity analysis", description: "Switch to the complexity panel for time and space analysis.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("overall"); } },
-      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(2)", title: "Local complexity", description: "Inspect local cost per line and see how each step contributes.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("local"); } },
-      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(3)", title: "Global complexity", description: "Switch to the global analysis view for the whole algorithm.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("global"); } },
-      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(4)", title: "Memory map", description: "Open the memory map to visualize how state changes over time.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("memory"); } },
-      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(5)", title: "Call graph", description: "Follow recursion and call flow in the call graph view.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("callgraph"); } },
+      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(2)", title: "Complexity", description: "Inspect the per-line time and space cost and see how each step contributes to the whole algorithm.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("complexity"); } },
+      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(3)", title: "Memory map", description: "Open the memory map to visualize how state changes over time.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("memory"); } },
+      { target: ".complexity-content .tab-btn-group .tab-btn:nth-child(4)", title: "Call graph", description: "Follow recursion and call flow in the call graph view.", onEnter: () => { focusDockPanel("complexity"); setActiveComplexityTab("callgraph"); } },
       { target: ".big-o-btn", title: "Big-O reference", description: "Open the complexity reference modal when you need a reminder of the notation.", onEnter: () => setIsBigOModalOpen(true), onExit: () => setIsBigOModalOpen(false) },
       { target: ".big-o-modal-content", title: "Reference library", description: "Browse the reference table and expand entries for deeper details." },
       { target: ".big-o-accordion .big-o-row-trigger", title: "Expandable complexity rows", description: "Open any row to inspect the definition, analogy, and examples behind a complexity class." },
@@ -708,7 +707,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       // rog once an evaluation has actually produced a final_aes; leave
       // it null otherwise so the admin dashboard can tell "never
       // attempted" apart from "attempted, no gain."
-      rog: state.final_aes != null ? Math.max(0, state.final_aes - (state.initial_aes || 0)) : null,
+      // SCOPE: ROG is only defined for OPTIMIZATION activities (they ship a
+      // working-but-inefficient starter, so baseline -> final is a real
+      // refactor). Regular activities store null; they contribute TSR and
+      // AES only.
+      rog: state.type === "optimization" && state.final_aes != null ? Math.max(0, state.final_aes - (state.initial_aes || 0)) : null,
       code_unchanged: state.code_unchanged ?? false,
       passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
       functional_passed: state.functional_passed, functional_total: state.functional_total,
@@ -947,7 +950,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             latestStateRef.current.baseline_actualSpace = finalSubmissionToLoad.baseline_actual_space_complexity ?? null;
             latestStateRef.current.latest_actualTime = finalSubmissionToLoad.latest_actual_complexity ?? finalSubmissionToLoad.actual_complexity ?? null;
             latestStateRef.current.latest_actualSpace = finalSubmissionToLoad.latest_actual_space_complexity ?? finalSubmissionToLoad.actual_space_complexity ?? null;
-            latestStateRef.current.rog = finalSubmissionToLoad.rog ?? 0;
+            // Older builds stored a ROG on regular activities too; ignore it (ROG is optimization-only).
+            latestStateRef.current.rog = latestStateRef.current.type === "optimization" ? (finalSubmissionToLoad.rog ?? 0) : 0;
             latestStateRef.current.lastSubmittedCode = (finalSubmissionToLoad.pythonCode || "").trim();
             latestStateRef.current.functional_passed = finalSubmissionToLoad.functional_passed ?? 0;
             latestStateRef.current.functional_total = finalSubmissionToLoad.functional_total ?? 0;
@@ -968,7 +972,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             if (loadedInitAes !== null) {
               // Per the paper: ROG = AES_Final - AES_Baseline, no
               // "complexity class must have changed" condition.
-              const calcRog = computedAes - loadedInitAes;
+              // ROG is optimization-only; regular activities never show one.
+              const isOptSub = (finalSubmissionToLoad.type || latestStateRef.current.type) === "optimization";
+              const calcRog = isOptSub ? computedAes - loadedInitAes : 0;
               setCurrentRog(calcRog > 0 ? calcRog : 0);
             }
 
@@ -1066,7 +1072,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       // isDraft=true calls below) synced the ref's untouched default
       // rog=0 alongside a null final_aes, which the admin dashboard's ROG
       // average then counted as a real (phantom) zero-gain attempt.
-      rog: latestStateRef.current.final_aes != null ? (latestStateRef.current.rog || 0) : null,
+      // ROG is optimization-only (see triggerFinalSave); regular activities store null.
+      rog: latestStateRef.current.type === "optimization" && latestStateRef.current.final_aes != null ? (latestStateRef.current.rog || 0) : null,
       // Lets analytics see (and exclude, if needed) submissions where the
       // code was byte-for-byte identical to the learner's previous
       // submission for this activity -- see the ROG-freeze comment above
@@ -1746,7 +1753,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     // still raised AES and is still a real refactoring gain. (An
     // unchanged-code resubmission is excluded above, before this line
     // ever runs, by freezing bestAes at its prior value.)
-    const calculatedRog = Math.max(0, bestAes - initialAes);
+    //
+    // SCOPE: this only applies to OPTIMIZATION activities. On a regular
+    // activity the "baseline" is just the learner's first attempt (often a
+    // failing one), so AES_final - AES_baseline there would measure
+    // debugging / TSR recovery, not optimization (AES = TSR x efficiency),
+    // and would double count TSR. Regular activities keep AES but ROG = 0.
+    const isOptimizationActivity = latestStateRef.current.type === "optimization";
+    const calculatedRog = isOptimizationActivity ? Math.max(0, bestAes - initialAes) : 0;
     latestStateRef.current.rog = calculatedRog;
     latestStateRef.current.functional_passed = functionalPassed;
     latestStateRef.current.functional_total = functionalTotal;

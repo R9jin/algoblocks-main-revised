@@ -59,7 +59,11 @@ export default function UserHeader({ user, onLogoutClick, tour, tourPageId }) {
     }
     localStorage.clear();
     sessionStorage.clear();
-    window.location.replace("/");
+    // Client-side navigate, not a hard reload -- see the matching comment
+    // in DashboardHeader.jsx's handleLogout. Keeping the SPA alive across
+    // sign-out is what lets the app-lifetime Pyodide engine and dataset
+    // cache survive instead of being wiped and re-downloaded.
+    navigate("/", { replace: true });
   };
 
   return (

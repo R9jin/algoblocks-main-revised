@@ -1,63 +1,10 @@
 // frontend/src/workers/analyzer.worker.js
+import { checkMatch } from "../utils/complexityMatch.js";
+
 let pyodide = null;
 let pyodidePromise = null; 
 
 let inputResolve = null;
-const EQUIVALENCE_MAP = {
-  "t(n) = t(n/2) + o(1)": "O(log n)",
-  "t(n) = 2t(n/2) + o(n)": "O(n log n)",
-  "t(n) = t(n-1) + o(1)": "O(n)",
-  "t(n) = t(n-1) + o(n)": "O(n^2)",
-  "t(n) = t(n-1) + t(n-2) + o(1)": "O(2^n)",
-  "t(n) = 2t(n/2) + o(1)": "O(n)",
-  "t(n) = t(n/2) + o(n)": "O(n)",
-  "t(n) = t(n-1) + o(log n)": "O(n log n)",
-  "o(n * m)": "O(n^2)",
-  "o(n^2 log n)": "O(n^2 log n)",
-  "o(1) amortized": "O(1)",
-  "o(v)": "O(V + E)",
-  "o(n^0.5)": "O(sqrt n)",
-  "o(v + e)": "O(V + E)",
-  "o(exponential)": "O(2^n)",
-  "o(quartic)": "O(n^4)"
-};
-
-function checkMatch(actual, expected, metricType = "time") {
-  if (!actual || !expected) return true;
-  if (actual.toLowerCase() === expected.toLowerCase()) return true;
-  if (expected === "-") return true;
-
-  const normActual = actual.toLowerCase();
-  const normExpected = expected.toLowerCase();
-
-  const t_a = EQUIVALENCE_MAP[normActual] ? EQUIVALENCE_MAP[normActual].toLowerCase() : normActual;
-  const t_e = EQUIVALENCE_MAP[normExpected] ? EQUIVALENCE_MAP[normExpected].toLowerCase() : normExpected;
-
-  if (t_a === t_e) return true;
-
-  const graphMatrixEq = ["o(v + e)", "o(v)", "o(n)", "o(n^2)", "o(n^4)"];
-  if (graphMatrixEq.includes(t_a) && graphMatrixEq.includes(t_e)) {
-    if (["o(v + e)", "o(v)"].includes(t_a) && ["o(n)", "o(n^2)"].includes(t_e)) return true;
-    if (["o(v + e)", "o(v)"].includes(t_e) && ["o(n)", "o(n^2)"].includes(t_a)) return true;
-  }
-
-  if (t_e === "o(1)" && ["o(log n)", "o(n)"].includes(t_a)) return true;
-  if (t_e === "o(log n)" && t_a === "o(n)") return true;
-  if (t_e === "o(n)" && t_a === "o(n log n)") return true;
-
-  const combEq = ["o(2^n)", "o(3^n)"];
-  const polyEq = ["o(n)", "o(n^2)"];
-  if (combEq.includes(t_a) && polyEq.includes(t_e)) return true;
-  if (combEq.includes(t_e) && polyEq.includes(t_a)) return true;
-
-  if (metricType === "space") {
-    if (t_e === "o(1)" && ["o(log n)", "o(n)", "o(n^2)", "o(v + e)", "o(v)"].includes(t_a)) return true;
-    if (t_e === "o(n)" && ["o(n^2)", "o(v + e)", "o(v)"].includes(t_a)) return true;
-  }
-
-  return false;
-}
-
 function strictBigONormalizer(raw) {
   if (!raw) return "O(1)";
   let s = String(raw).toLowerCase().trim().replace(/\s+/g, "");
@@ -286,12 +233,40 @@ async function initPyodide() {
   if (pyodide) return pyodide;
   if (!pyodidePromise) {
     pyodidePromise = (async () => {
+      // loadPyodide() below does its own internal fetches for
+      // pyodide.asm.wasm (~8.6MB) and python_stdlib.zip (~2.4MB) and
+      // doesn't expose byte-level progress, so there's nothing to hook
+      // into for a real percentage during that call. Previously this just
+      // posted one "10%" message and then went silent until the whole
+      // thing resolved at 65% -- on a slow connection that could take a
+      // long time, and with no visible movement in between it reads as
+      // "stuck" rather than "still working". This heartbeat ticks the
+      // displayed percent upward every couple seconds while the download
+      // is actually in flight, purely so the UI keeps visibly moving; it
+      // stops the moment loadPyodide() resolves (or throws) either way.
+      let heartbeatPercent = 10;
+      const heartbeat = setInterval(() => {
+        heartbeatPercent = Math.min(heartbeatPercent + 3, 60);
+        self.postMessage({
+          type: "ENGINE_PROGRESS",
+          stage: "Downloading Python runtime... this can take a while on a slow connection, please keep this tab open",
+          percent: heartbeatPercent,
+        });
+      }, 2000);
+
       try {
         self.postMessage({ type: "ENGINE_PROGRESS", stage: "Downloading Python runtime...", percent: 10 });
         const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
         const module = await import(/* @vite-ignore */ pyodideUrl);
         const loadPyodide = module.loadPyodide;
-        const tempPyodide = await loadPyodide();
+        // Explicit indexURL: without this, pyodide.mjs falls back to
+        // parsing a `throw new Error()` stack trace to guess its own file
+        // location (see calculateDirname() in pyodide.mjs) -- a genuinely
+        // fragile way to find a URL, and one extra thing that can go wrong
+        // silently in a bundled/worker context. Passing it explicitly
+        // removes that guesswork entirely.
+        const tempPyodide = await loadPyodide({ indexURL: self.location.origin + "/pyodide/" });
+        clearInterval(heartbeat);
         const cacheBuster = "?t=" + Date.now();
 
         self.postMessage({ type: "ENGINE_PROGRESS", stage: "Loading analyzer modules...", percent: 65 });
@@ -326,6 +301,7 @@ async function initPyodide() {
         pyodide = tempPyodide;
         return tempPyodide;
       } catch (error) {
+        clearInterval(heartbeat);
         console.error("Pyodide Engine Crash:", error);
         pyodidePromise = null; 
         throw error;
@@ -692,26 +668,21 @@ json.dumps(res)
             const lineNo = pLine.lineno || pLine.line || 0;
             const matchedExp = expectedLines.find(e => (e.lineno || e.line) === lineNo);
 
-            // Predicted: analyzer.py emits distinct local_time/global_time/local_space/global_space
-            // per line -- capture all four instead of collapsing them into one pair.
-            const predLocalTime = strictBigONormalizer(pLine.local_time || "O(1)");
-            const predGlobalTime = strictBigONormalizer(pLine.global_time || pLine.local_time || "O(1)");
-            const predLocalSpace = strictBigONormalizer(pLine.local_space || "O(1)");
-            const predGlobalSpace = strictBigONormalizer(pLine.global_space || pLine.local_space || "O(1)");
+            // Predicted: analyzer.py's line output now exposes a single
+            // nesting/recursion-aware time/space value per line (see
+            // _finalize_line_output in analyzer.py) -- there is no separate
+            // local value to read anymore.
+            const predTime = strictBigONormalizer(pLine.time || "O(1)");
+            const predSpace = strictBigONormalizer(pLine.space || "O(1)");
 
-            // Expected: ground-truth line_metrics entries also carry local_* and global_* separately.
-            const expLocalTime = matchedExp ? strictBigONormalizer(matchedExp.local_time || matchedExp.time || matchedExp.time_complexity || "") : null;
-            const expGlobalTime = matchedExp ? strictBigONormalizer(matchedExp.global_time || matchedExp.time || matchedExp.time_complexity || "") : null;
-            const expLocalSpace = matchedExp ? strictBigONormalizer(matchedExp.local_space || matchedExp.space || matchedExp.space_complexity || "") : null;
-            const expGlobalSpace = matchedExp ? strictBigONormalizer(matchedExp.global_space || matchedExp.space || matchedExp.space_complexity || "") : null;
+            // Expected: ground-truth line_metrics entries carry the same
+            // single time/space field (local_time/local_space were removed
+            // from the dataset).
+            const expTime = matchedExp ? strictBigONormalizer(matchedExp.time || matchedExp.time_complexity || "") : null;
+            const expSpace = matchedExp ? strictBigONormalizer(matchedExp.space || matchedExp.space_complexity || "") : null;
 
-            const isLocalTimeMatch = expLocalTime ? checkMatch(predLocalTime, expLocalTime, "time") : true;
-            const isGlobalTimeMatch = expGlobalTime ? checkMatch(predGlobalTime, expGlobalTime, "time") : true;
-            const isLocalSpaceMatch = expLocalSpace ? checkMatch(predLocalSpace, expLocalSpace, "space") : true;
-            const isGlobalSpaceMatch = expGlobalSpace ? checkMatch(predGlobalSpace, expGlobalSpace, "space") : true;
-
-            const isLineTimeMatch = isLocalTimeMatch && isGlobalTimeMatch;
-            const isLineSpaceMatch = isLocalSpaceMatch && isGlobalSpaceMatch;
+            const isLineTimeMatch = expTime ? checkMatch(predTime, expTime, "time") : true;
+            const isLineSpaceMatch = expSpace ? checkMatch(predSpace, expSpace, "space") : true;
 
             return {
               lineno: lineNo,
@@ -719,22 +690,8 @@ json.dumps(res)
               operation: pLine.operation || "Statement",
 
               // Canonical field names (matched by EvaluationSuite.jsx's getProp lookups)
-              predLocalTime, predGlobalTime, predLocalSpace, predGlobalSpace,
-              expLocalTime, expGlobalTime, expLocalSpace, expGlobalSpace,
-
-              // Legacy aliases kept for backward compatibility with any other consumers
-              localTime: predLocalTime,
-              localSpace: predLocalSpace,
-              predTime: predGlobalTime,
-              predSpace: predGlobalSpace,
-              expTime: expGlobalTime,
-              expSpace: expGlobalSpace,
-
-              // Per-cell match flags consumed by renderDualBadge() for pass/fail color-coding
-              ltMatch: isLocalTimeMatch,
-              gtMatch: isGlobalTimeMatch,
-              lsMatch: isLocalSpaceMatch,
-              gsMatch: isGlobalSpaceMatch,
+              predTime, predSpace,
+              expTime, expSpace,
 
               hasGroundTruth: !!matchedExp,
               isTimeMatch: isLineTimeMatch,
@@ -761,26 +718,16 @@ json.dumps(res)
               // Drop it entirely to prevent punishing the metric suite over unparsed docstrings/comments
               if (isCommentOrBlank) return;
 
-              const expLocalTime = strictBigONormalizer(eLine.local_time || eLine.time || "");
-              const expGlobalTime = strictBigONormalizer(eLine.global_time || eLine.time || "");
-              const expLocalSpace = strictBigONormalizer(eLine.local_space || eLine.space || "");
-              const expGlobalSpace = strictBigONormalizer(eLine.global_space || eLine.space || "");
+              const expTime = strictBigONormalizer(eLine.time || "");
+              const expSpace = strictBigONormalizer(eLine.space || "");
               lineValidationResults.push({
                 lineno: lineNo,
                 lineOfCode: eLine.lineOfCode || eLine.code || "(Unparsed statement)",
                 operation: eLine.operation || "Statement",
 
-                predLocalTime: "MISSING", predGlobalTime: "MISSING",
-                predLocalSpace: "MISSING", predGlobalSpace: "MISSING",
-                expLocalTime, expGlobalTime, expLocalSpace, expGlobalSpace,
-
-                // Legacy aliases
-                localTime: "-",
-                localSpace: "-",
                 predTime: "MISSING",
                 predSpace: "MISSING",
-                expTime: expGlobalTime,
-                expSpace: expGlobalSpace,
+                expTime, expSpace,
 
                 hasGroundTruth: true,
                 isTimeMatch: false,
@@ -879,26 +826,20 @@ json.dumps(res)
         const lineTimeAcc = totalLinesTestedCount > 0 ? (lineTimePassedCount / totalLinesTestedCount) * 100 : 0;
         const lineSpaceAcc = totalLinesTestedCount > 0 ? (lineSpacePassedCount / totalLinesTestedCount) * 100 : 0;
 
-        // Statement-level (local time / local space) Validation Matrix.
-        // This is a separate unit of analysis from timeReportData/spaceReportData
-        // above (n = annotated source lines, not n = algorithms), so it gets its
-        // own classification_report-style aggregation rather than being folded
-        // into the algorithm-level one. Reuses each line's already-computed
-        // expLocalTime/predLocalTime/expLocalSpace/predLocalSpace and ltMatch/
-        // lsMatch flags -- these were being thrown away after per-item pass/fail
-        // tallying (the loop above) instead of being fed into a report.
+        // Statement-level Validation Matrix. This is a separate unit of
+        // analysis from timeReportData/spaceReportData above (n = annotated
+        // source lines, not n = algorithms), so it gets its own
+        // classification_report-style aggregation rather than being folded
+        // into the algorithm-level one. This is the analyzer's single,
+        // nesting/recursion-aware per-line complexity value -- the same one
+        // the overall complexity badge above is actually derived from -- so
+        // this matrix explains that number directly.
         const allGroundTruthLines = detailedResults.flatMap(
           d => (d.lineValidationResults || []).filter(l => l.hasGroundTruth)
         );
 
-        const lineTimeReportData = generateClassificationReport(allGroundTruthLines, "expLocalTime", "predLocalTime", timeBaseClasses);
-        const lineSpaceReportData = generateClassificationReport(allGroundTruthLines, "expLocalSpace", "predLocalSpace", spaceBaseClasses);
-
-        const totalLinesLocalTested = allGroundTruthLines.length;
-        const lineLocalTimePassedCount = allGroundTruthLines.filter(l => l.ltMatch).length;
-        const lineLocalSpacePassedCount = allGroundTruthLines.filter(l => l.lsMatch).length;
-        const lineLocalTimeAcc = totalLinesLocalTested > 0 ? (lineLocalTimePassedCount / totalLinesLocalTested) * 100 : 0;
-        const lineLocalSpaceAcc = totalLinesLocalTested > 0 ? (lineLocalSpacePassedCount / totalLinesLocalTested) * 100 : 0;
+        const lineTimeReportData = generateClassificationReport(allGroundTruthLines, "expTime", "predTime", timeBaseClasses);
+        const lineSpaceReportData = generateClassificationReport(allGroundTruthLines, "expSpace", "predSpace", spaceBaseClasses);
 
         self.postMessage({
           type: 'BENCHMARK_COMPLETE',
@@ -915,16 +856,12 @@ json.dumps(res)
             perfectPassed: bothPassedCount,
             perfectAccuracyRate: parseFloat(perfectAcc.toFixed(2)),
             totalLinesTested: totalLinesTestedCount,
+            totalLinesTimeTested: allGroundTruthLines.length,
+            totalLinesSpaceTested: allGroundTruthLines.length,
             lineTimePassed: lineTimePassedCount,
             lineSpacePassed: lineSpacePassedCount,
             lineTimeAccuracyRate: parseFloat(lineTimeAcc.toFixed(2)),
             lineSpaceAccuracyRate: parseFloat(lineSpaceAcc.toFixed(2)),
-            totalLinesLocalTimeTested: totalLinesLocalTested,
-            totalLinesLocalSpaceTested: totalLinesLocalTested,
-            lineLocalTimePassed: lineLocalTimePassedCount,
-            lineLocalSpacePassed: lineLocalSpacePassedCount,
-            lineLocalTimeAccuracyRate: parseFloat(lineLocalTimeAcc.toFixed(2)),
-            lineLocalSpaceAccuracyRate: parseFloat(lineLocalSpaceAcc.toFixed(2)),
             timeReport: timeReportData,
             spaceReport: spaceReportData,
             lineTimeReport: lineTimeReportData,

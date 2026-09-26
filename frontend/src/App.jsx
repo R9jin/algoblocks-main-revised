@@ -9,6 +9,8 @@ import { OnboardingProvider } from "./context/OnboardingContext";
 import { PyodideProvider } from "./context/PyodideContext";
 import { startBackgroundSync, stopBackgroundSync } from "./utils/syncManager";
 import { isAdminUser } from "./utils/auth";
+import { prefetchGroundTruth } from "./utils/datasetCache";
+import { warmupRouteChunks } from "./utils/routeWarmup";
 
 // Lazy load ALL pages to prevent circular dependency crashes and reduce the initial load payload
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
@@ -125,7 +127,31 @@ function App() {
     return () => stopBackgroundSync();
   }, [isValidUser, isAuthPage]);
 
+  // Fire the moment the user is signed in -- including on a page refresh
+  // where they were already signed in, not just the instant of the
+  // sign-in click -- so the Pyodide engine, the ground-truth dataset, and
+  // every other page's JS chunk all have as much of a head start as
+  // possible before the user actually navigates somewhere that needs
+  // them. None of these get undone on sign-out: the engine and dataset
+  // cache are app-lifetime singletons (see pyodideEngine.js /
+  // datasetCache.js) and simply keep whatever they've already downloaded.
+  useEffect(() => {
+    if (isValidUser) {
+      prefetchGroundTruth().catch(() => {});
+      warmupRouteChunks().catch(() => {});
+    }
+  }, [isValidUser]);
+
   return (
+    // Mounted once for the whole app (not per-route) so the Pyodide
+    // engine it manages survives navigation between pages and sign-out ->
+    // sign-in, instead of being torn down and re-downloaded every time.
+    // `active` only controls whether THIS render is allowed to trigger a
+    // fresh engine start -- an anonymous visitor on the landing/sign-in
+    // page won't kick off a 13MB download, but once `isValidUser` flips
+    // to true the engine starts immediately regardless of which route
+    // they land on.
+    <PyodideProvider active={isValidUser}>
     <OnboardingProvider>
       <OfflineIndicator />
       <SyncLimitNotice />
@@ -156,39 +182,41 @@ function App() {
             /dashboard is now role-branched. Admin accounts get their own
             dashboard (User Management overview + full Dataset Testing) and
             never see the student dashboard's Learning Path / Workspace /
-            Project content. It needs PyodideProvider since the embedded
-            Dataset Testing panel runs the analyzer in-browser.
+            Project content. The embedded Dataset Testing panel runs the
+            analyzer in-browser via the app-root PyodideProvider (see
+            above) -- no per-route provider needed here anymore.
           */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
-              {isAdminUser() ? <PyodideProvider><AdminDashboard /></PyodideProvider> : <Dashboard />}
+              {isAdminUser() ? <AdminDashboard /> : <Dashboard />}
             </ProtectedRoute>
           } />
           <Route path="/learning-path" element={<StudentOnlyRoute><LearningPath /></StudentOnlyRoute>} />
           <Route path="/learning-path/:moduleId/:lessonId" element={<StudentOnlyRoute><LessonViewer /></StudentOnlyRoute>} />
           <Route path="/projects" element={<StudentOnlyRoute><Projects /></StudentOnlyRoute>} />
           {/*
-            Only these four routes actually touch the Pyodide engine, so
-            PyodideProvider is scoped here rather than at the app root.
-            The worker (and its multi-megabyte wasm download) now only
-            spins up when the user actually navigates into a workspace,
-            activity, or evaluation-suite page, instead of on every single
-            route including sign-in and the dashboard.
+            These routes touch the Pyodide engine, but the engine itself is
+            now a single app-lifetime singleton owned by the PyodideProvider
+            wrapping the whole app (started the moment the user signs in --
+            see the isValidUser effect above), not something spun up fresh
+            per route. Navigating between these pages just reads the
+            already-warm (or still-warming) engine instead of re-creating
+            it.
           */}
-          <Route path="/app" element={<StudentOnlyRoute><PyodideProvider><MainApp /></PyodideProvider></StudentOnlyRoute>} />
-          <Route path="/workspace" element={<StudentOnlyRoute><PyodideProvider><MainApp /></PyodideProvider></StudentOnlyRoute>} />
-          <Route path="/activity/:moduleId/:activityId" element={<StudentOnlyRoute><PyodideProvider><ActivityApp /></PyodideProvider></StudentOnlyRoute>} />
+          <Route path="/app" element={<StudentOnlyRoute><MainApp /></StudentOnlyRoute>} />
+          <Route path="/workspace" element={<StudentOnlyRoute><MainApp /></StudentOnlyRoute>} />
+          <Route path="/activity/:moduleId/:activityId" element={<StudentOnlyRoute><ActivityApp /></StudentOnlyRoute>} />
           <Route path="/home" element={<StudentOnlyRoute><UserHomePage /></StudentOnlyRoute>} />
           <Route path="/assessment/:moduleId/:type" element={<StudentOnlyRoute><AssessmentPage /></StudentOnlyRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           {/*
             Simplified, student-friendly accuracy overview -- open to every
-            signed-in student. It reuses the same Pyodide worker as the admin
-            evaluation suite below, so it needs the same provider, but the
-            page itself only ever shows two headline percentages plus plain
-            language -- no tables, no per-class breakdowns.
+            signed-in student. It reuses the same app-root Pyodide engine as
+            the admin evaluation suite below, but the page itself only ever
+            shows two headline percentages plus plain language -- no tables,
+            no per-class breakdowns.
           */}
-          <Route path="/accuracy" element={<StudentOnlyRoute><PyodideProvider><AccuracyOverview /></PyodideProvider></StudentOnlyRoute>} />
+          <Route path="/accuracy" element={<StudentOnlyRoute><AccuracyOverview /></StudentOnlyRoute>} />
           
           {/*
             Protected Admin Routes -- these remain as standalone/direct-link
@@ -197,7 +225,7 @@ function App() {
             dashboard itself. Restricted to admin accounts only.
           */}
           <Route path="/admin/users" element={<AdminOnlyRoute><AdminUserManagement /></AdminOnlyRoute>} />
-          <Route path="/admin/evaluation-suite" element={<AdminOnlyRoute><PyodideProvider><EvaluationSuite /></PyodideProvider></AdminOnlyRoute>} />
+          <Route path="/admin/evaluation-suite" element={<AdminOnlyRoute><EvaluationSuite /></AdminOnlyRoute>} />
 
           {/* Catch-all route: prevents a completely blank screen if the user lands on an invalid 404 path */}
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -206,6 +234,7 @@ function App() {
       </Suspense>
       </RouteErrorBoundary>
     </OnboardingProvider>
+    </PyodideProvider>
   );
 }
 

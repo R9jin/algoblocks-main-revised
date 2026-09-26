@@ -11,8 +11,6 @@ from services.admin_analytics_service import (
     _find_milestone,
     POSTTEST_KEYWORDS,
 )
-from services.analyzer_diagnostics_service import AnalyzerDiagnosticsService
-from services.auth_service import AuthService
 from limiter import limiter
 
 router = APIRouter()
@@ -124,70 +122,6 @@ def manually_verify_user(
         logger.error(f"Error manually verifying user in PostgreSQL: {str(e)}")
         raise HTTPException(status_code=500, detail="Error verifying user")
 
-@router.get("/password-reset-requests")
-@limiter.limit("30/minute")
-def get_pending_password_resets(
-    request: Request,
-    admin_email: str = Depends(get_current_admin_user)
-):
-    """
-    Accounts with a pending forgot-password request. Legacy: normal
-    forgot-password requests now email the user directly (see
-    AuthService.forgot_password) -- this list stays empty unless
-    something explicitly calls UserRepository.request_password_reset,
-    which nothing in the current flow does. Kept as a manual-override
-    path for edge cases (e.g. an account's email is unreachable).
-    """
-    try:
-        return {"status": "success", "requests": AuthService.list_pending_password_resets()}
-    except Exception as e:
-        logger.error(f"Error fetching pending password reset requests: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error fetching pending password reset requests")
-
-
-@router.post("/password-reset-requests/{email}/approve")
-@limiter.limit("20/minute")
-def approve_password_reset_request(
-    email: str,
-    request: Request,
-    admin_email: str = Depends(get_current_admin_user)
-):
-    """
-    Grants a pending reset request: issues the actual reset token and
-    returns the full /reset-password?token=... link. The admin is
-    responsible for getting that link to the user (chat, phone, in person)
-    -- there's no email step in this flow.
-    """
-    if not email:
-        raise HTTPException(status_code=400, detail="Missing email")
-    try:
-        return AuthService.approve_password_reset(email, origin=request.headers.get("origin"))
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error approving password reset for {email}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error approving password reset")
-
-
-@router.post("/password-reset-requests/{email}/deny")
-@limiter.limit("20/minute")
-def deny_password_reset_request(
-    email: str,
-    request: Request,
-    admin_email: str = Depends(get_current_admin_user)
-):
-    """Dismisses a pending request without issuing a token."""
-    if not email:
-        raise HTTPException(status_code=400, detail="Missing email")
-    try:
-        return AuthService.deny_password_reset(email)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error denying password reset for {email}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error denying password reset")
-
-
 @router.delete("/users/{email}")
 @limiter.limit("10/minute")
 def delete_user(
@@ -256,6 +190,14 @@ def get_analytics_overview(
         Normalized Learning Gain (g) -- exactly as defined in the study's
         Statistical Treatment of Data section.
 
+      - Learning Impact Model: a `regression` key with the simple
+        one-predictor regression of normalized learning gain (Y) on a
+        "System Interaction" composite of TSR/AES/ROG (X), plus a
+        sensitivity check. Added
+        key only -- every existing key is unchanged. When it cannot be
+        fitted it is {"available": false, "reason": ...} rather than an
+        error.
+
     Administrator accounts are always excluded from these computations.
 
     Pass `?emails=a@x.com,b@x.com` to restrict the computation to a
@@ -279,32 +221,3 @@ def get_analytics_overview(
     except Exception as e:
         logger.error(f"Error computing analytics overview: {str(e)}")
         raise HTTPException(status_code=500, detail="Error computing analytics overview")
-
-
-@router.get("/analyzer/regression-check")
-@limiter.limit("5/minute")
-def get_analyzer_regression_check(
-    request: Request,
-    refresh: bool = False,
-    admin_email: str = Depends(get_current_admin_user),
-):
-    """
-    Server-side pass/fail regression check for the complexity analyzer.
-
-    This is deliberately separate from the client-side Pyodide benchmark
-    (EvaluationSuite.jsx / "Dataset Testing"): it runs entirely in the
-    FastAPI backend on plain CPython, against a vendored copy of the
-    analyzer and ground-truth dataset (see api/analyzer_diagnostics/),
-    and returns a fixed-floor PASS/FAIL verdict instead of just descriptive
-    charts. Intended as the answer to "how do you know the analyzer's
-    reported accuracy hasn't regressed" -- runnable on demand from the
-    admin dashboard, no browser/WASM required.
-
-    Results are cached for ~30s per server instance; pass `?refresh=true`
-    to force a fresh run.
-    """
-    try:
-        return AnalyzerDiagnosticsService.get_regression_report(force_refresh=refresh)
-    except Exception as e:
-        logger.error(f"Error running analyzer regression check: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error running analyzer regression check")
