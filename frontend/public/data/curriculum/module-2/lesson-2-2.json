@@ -1,0 +1,517 @@
+{
+  "lessonId": "lesson-2-2",
+  "moduleId": "module-2",
+  "title": "Linear Search",
+  "description": "The most basic search there is: scan sequentially, compare each item, stop when you find it -- a predictable **O(n)**.",
+  "difficulty": "Intermediate",
+  "estimatedTime": "24 min",
+  "prerequisites": "Brute Force Strategy",
+  "tags": [
+    "linear search",
+    "searching",
+    "arrays",
+    "sequential traversal",
+    "pointers"
+  ],
+  "activities": [
+    {
+      "id": "m2_l2_a1",
+      "title": "Target Search"
+    },
+    {
+      "id": "m2_l2_a2",
+      "title": "Count Occurrences"
+    },
+    {
+      "id": "m2_l2_a3",
+      "title": "Last Occurrence"
+    },
+    {
+      "id": "m2_l2_a4",
+      "title": "Search in Range"
+    },
+    {
+      "id": "m2_l2_a5",
+      "title": "Multi-Target Search"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction to Sequential Traversal",
+      "content": "**Linear Search** is the most basic way to find something: check each element in order until you find the target or run out of elements.\n\nNo sorting, no recursion, no extra data structures -- it works on any array or linked list, making no assumptions about order.\n\nSimple as it is, mastering its control flow -- boundary checks, pointer logic -- is the foundation for everything from binary search onward."
+    },
+    {
+      "id": "why-linear-search-matters",
+      "type": "concept",
+      "title": "Why Linear Search Matters",
+      "content": "Real systems constantly deal with unsorted data -- attendance lists, error logs, small contact lists.\n\nWhen data has no order, there's **no safe way to skip elements** -- you have to check each one.\n\nSorting costs O(n log n). If you only need one search, paying that cost just to unlock a faster search isn't worth it -- a direct O(n) linear search wins.",
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-2-why-linear-search-matters.svg",
+          "alt": "Why Linear Search Matters: Works on unsorted arrays with no preprocessing.; Simple to implement and debug.; Runs in O(1) auxiliary space.; Ideal for small datasets or one-time queries.."
+        }
+      ]
+    },
+    {
+      "id": "core-idea",
+      "type": "concept",
+      "title": "Core Idea of Linear Search",
+      "content": "Compare each element to the target, in order, starting at index 0. Match found → return the index immediately. Reach the end with no match → return a not-found value (typically -1).\n\nUnlike Binary Search, nothing gets eliminated -- elements are simply checked one by one. That guarantees finding the target if it exists, but worst case means checking everything."
+    },
+    {
+      "id": "step-by-step",
+      "type": "deep_dive",
+      "title": "Searching Through an Array",
+      "content": "Step through both cases below at your own pace -- a **hit**, where the scan can stop early, and a **miss**, where every element has to be checked. Worst case is always one of these two shapes: target at the end, or missing entirely.",
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Searching for 11 (found)",
+          "description": "The scan stops the moment a match is found -- everything after index 3 is never touched.",
+          "steps": [
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "0": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                }
+              ],
+              "caption": "Compare index 0 (3) with 11 -- no match, keep going.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "1 of 4 comparisons so far",
+                "note": "Best/average case -- the scan can stop the moment a match is found.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (best/average case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 1
+                }
+              ],
+              "caption": "Compare index 1 (8) with 11 -- no match, keep going.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "2 of 4 comparisons so far",
+                "note": "Best/average case -- the scan can stop the moment a match is found.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (best/average case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 2
+                }
+              ],
+              "caption": "Compare index 2 (5) with 11 -- no match, keep going.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "3 of 4 comparisons so far",
+                "note": "Best/average case -- the scan can stop the moment a match is found.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (best/average case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "3": "found"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 3
+                }
+              ],
+              "caption": "Compare index 3 (11) with 11 -- match! Return index 3 immediately.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 4,
+                "bigO": "O(n)",
+                "formula": "4 of 4 comparisons so far",
+                "note": "Best/average case -- the scan can stop the moment a match is found.",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (best/average case)"
+              },
+              "activeLine": 3
+            }
+          ],
+          "codeLines": [
+            "function linearSearch(arr, target):",
+            "  for i in range(len(arr)):",
+            "    if arr[i] == target:",
+            "      return i",
+            "  return -1"
+          ]
+        },
+        {
+          "kind": "array",
+          "title": "Searching for 10 (not present)",
+          "description": "No match exists, so the scan can't stop early -- every element is examined before giving up.",
+          "steps": [
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "0": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                }
+              ],
+              "caption": "Compare index 0 (3) with 10 -- no match.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "1 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 1
+                }
+              ],
+              "caption": "Compare index 1 (8) with 10 -- no match.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "2 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 2
+                }
+              ],
+              "caption": "Compare index 2 (5) with 10 -- no match.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "3 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "3": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 3
+                }
+              ],
+              "caption": "Compare index 3 (11) with 10 -- no match.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "4 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                3,
+                8,
+                5,
+                11,
+                2
+              ],
+              "roles": {
+                "4": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 4
+                }
+              ],
+              "caption": "Compare index 4 (2) with 10 -- no match. End of array reached, return -1.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 5,
+                "bigO": "O(n)",
+                "formula": "5 of 5 comparisons so far",
+                "note": "Worst case -- every element must be checked before concluding the target isn't there.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            }
+          ],
+          "codeLines": [
+            "function linearSearch(arr, target):",
+            "  for i in range(len(arr)):",
+            "    if arr[i] == target:",
+            "      return i",
+            "  return -1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "advanced-traversals",
+      "type": "deep_dive",
+      "title": "Advanced Traversal Paradigms",
+      "content": "A few variations on the basic scan:\n\n**Reverse Traversal for Terminal Tracking:** need the *last* occurrence of a value? Scanning front-to-back means reading the whole array to be sure. Start at `len(arr) - 1` and count down instead -- the first match found is guaranteed to be the last occurrence, so you can exit immediately.\n\n**Boundary Sanitization (Range Searching):** searching within a `start`/`end` sub-range needs those bounds clamped first -- negative start to 0, overflowing end to `len(arr) - 1` -- or you risk an Index Out of Bounds crash.\n\n**Multi-Target Extraction:** need every index where a value appears? No early exit allowed -- scan the whole array, appending each match's index to a results list. That pushes space from O(1) up to O(n)."
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Code Implementations and Execution Flow",
+      "content": "A search function needs to return correctly on both success and failure -- exit early on a match, fall back to a not-found value once the loop completes.",
+      "codeSnippets": [
+        {
+          "title": "Standard Linear Identifier (Early Exit)",
+          "language": "python",
+          "code": "def linear_search(arr, target):\n    for i in range(len(arr)):\n        if arr[i] == target:\n            return i\n\n    return -1\n\nprint(linear_search([3, 8, 5, 11, 2], 11))\nprint(linear_search([3, 8, 5, 11, 2], 10))"
+        },
+        {
+          "title": "Count all matches instead of stopping early",
+          "language": "python",
+          "code": "def count_occurrences(arr, target):\n    count = 0\n\n    for value in arr:\n        if value == target:\n            count += 1\n\n    return count\n\nprint(count_occurrences([1, 2, 2, 3], 2))"
+        },
+        {
+          "title": "Reverse Traversal (Terminal Occurrence Extraction)",
+          "language": "python",
+          "code": "def last_occurrence(arr, target):\n    for i in range(len(arr) - 1, -1, -1):\n        if arr[i] == target:\n            return i\n    return -1\n\nprint(last_occurrence([1, 2, 2, 3, 2, 4], 2))"
+        },
+        {
+          "title": "Bounded Range Traversal with Sanitization",
+          "language": "python",
+          "code": "def search_in_range(arr, target, start, end):\n    start = max(0, start)\n    end = min(len(arr) - 1, end)\n    for i in range(start, end + 1):\n        if arr[i] == target:\n            return i\n    return -1"
+        }
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "Worst case is **O(n) time** -- double the array, double the worst-case comparisons.\n\nSpace is **O(1)**: just a loop counter and a return value, no new arrays (unless doing Multi-Target Extraction).\n\nAt n=10 million, that's noticeable. At n=1 billion, it's impractical -- exactly when sorted data and binary search become worth it.",
+      "chart": {
+        "title": "Linear Search Growth Correlation",
+        "description": "Linear Search scales proportionally with input size -- shown here against constant and logarithmic growth for contrast.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(1)",
+          "O(log n)",
+          "O(n)"
+        ]
+      }
+    },
+    {
+      "id": "best-vs-worst",
+      "type": "concept",
+      "title": "Best Case vs Worst Case",
+      "subsections": [
+        {
+          "id": "best-case",
+          "title": "The Omega Bound (Ω): Best Case",
+          "content": "**Ω(1)** -- the target is the very first element. Searching for 8 in [8, 3, 5, 1] takes one comparison."
+        },
+        {
+          "id": "worst-case",
+          "title": "The Big-O Bound (O): Worst Case",
+          "content": "Target at the end or missing entirely. Searching for 10 in [3, 8, 5, 11, 2] checks every element before returning -1 -- n comparisons for n elements."
+        }
+      ]
+    },
+    {
+      "id": "linear-vs-binary",
+      "type": "real_world_connection",
+      "title": "Linear Search vs Binary Search",
+      "content": "Linear Search: works on unsorted data, simple, but slow at scale. Binary Search: needs sorted data, but halves the search space every step.\n\nAt 1 million items: linear search up to 1,000,000 comparisons; binary search ~20 -- **50,000x faster**.\n\nBut binary search has a cost of entry: unsorted data needs an O(n log n) sort first. Linear search wins when the array is small, you're only searching once, or you're working with a linked list where random access is expensive."
+    },
+    {
+      "id": "advantages-limitations",
+      "type": "concept",
+      "title": "Advantages and Limitations",
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-2-advantages-limitations-comparison.svg",
+          "alt": "Comparison: Advantages - No sorting required.; Beginner-friendly, works on any list.; O(1) auxiliary space, in-place.; Great for small datasets or one-off queries.. Limitations - Slow on large datasets.; Repeated searches get expensive fast.; No use of ordering or indexing.; Optimized searches win once data is structured.."
+        }
+      ]
+    },
+    {
+      "id": "applications",
+      "type": "real_world_connection",
+      "title": "Real-World Applications",
+      "content": "Small contact-list search in mobile apps, checking if user input is in a list of valid options, scanning small config files, reading files line by line.\n\nReal-time data (sensor readings, log entries) arrives chronologically, not sorted -- backend services scan it linearly by necessity.\n\nIt's also the standard teaching algorithm for comparison flow, stop conditions, and the relationship between input size and runtime."
+    },
+    {
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "forgetting-stop",
+          "title": "Mistake: Forgetting to stop after a match",
+          "content": "Once you need the *first* match, return immediately -- continuing to scan wastes work and can return the wrong index."
+        },
+        {
+          "id": "wrong-return",
+          "title": "Mistake: Returning the element instead of the index",
+          "content": "A common slip: returning `arr[i]` instead of `i`. Check whether the task wants the index, the value, or a boolean."
+        },
+        {
+          "id": "missing-not-found",
+          "title": "Mistake: Ignoring the not-found case",
+          "content": "Always define what happens when nothing matches. `-1` is the standard sentinel, since real indices are never negative."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
+      "type": "summary",
+      "title": "Key Takeaways",
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-2-takeaways.svg",
+          "alt": "Key Takeaways: Linear Search checks elements sequentially, with zero preprocessing.; Reverse Traversal and Boundary Clamping handle specialized queries.; Best case: O(1) (target first).; Worst case: O(n) (target last or missing).; Simple and reliable, but not ideal for repeated searches on large data.."
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "title": "Programiz - Linear Search",
+      "url": "https://www.programiz.com/dsa/linear-search"
+    },
+    {
+      "title": "GeeksforGeeks - Linear Search",
+      "url": "https://www.geeksforgeeks.org/linear-search/"
+    },
+    {
+      "title": "Stanford University - Data Structures and Algorithms",
+      "url": "https://web.stanford.edu/class/cs106b/"
+    }
+  ]
+}

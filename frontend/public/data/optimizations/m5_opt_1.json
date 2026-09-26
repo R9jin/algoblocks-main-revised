@@ -1,0 +1,264 @@
+{
+  "type": "algoblocks_project",
+  "version": "1.0",
+  "title": "algoblocks_workspace",
+  "blocklyJson": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "09e2b131-c411-4",
+          "x": 20,
+          "y": 20,
+          "extraState": {
+            "params": [
+              {
+                "name": "n",
+                "id": "n"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "fib_optimized"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "controls_if",
+                "id": "c44f7718-f5a8-4",
+                "inputs": {
+                  "IF0": {
+                    "block": {
+                      "type": "logic_compare",
+                      "id": "712cc3bd-6932-4",
+                      "fields": {
+                        "OP": "LTE"
+                      },
+                      "inputs": {
+                        "A": {
+                          "block": {
+                            "type": "variables_get",
+                            "id": "b0d09cca-c3f5-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "n"
+                              }
+                            }
+                          }
+                        },
+                        "B": {
+                          "block": {
+                            "type": "math_number",
+                            "id": "3365a8a9-6622-4",
+                            "fields": {
+                              "NUM": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "DO0": {
+                    "block": {
+                      "type": "procedure_return_value",
+                      "id": "e6506e10-5d69-4",
+                      "inputs": {
+                        "VALUE": {
+                          "block": {
+                            "type": "math_number",
+                            "id": "ca09b59e-4384-4",
+                            "fields": {
+                              "NUM": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "controls_if",
+                    "id": "467fa080-6c82-4",
+                    "inputs": {
+                      "IF0": {
+                        "block": {
+                          "type": "logic_compare",
+                          "id": "88a856db-752f-4",
+                          "fields": {
+                            "OP": "EQ"
+                          },
+                          "inputs": {
+                            "A": {
+                              "block": {
+                                "type": "variables_get",
+                                "id": "2c2607ce-bd7e-4",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "n"
+                                  }
+                                }
+                              }
+                            },
+                            "B": {
+                              "block": {
+                                "type": "math_number",
+                                "id": "068decae-bf5a-4",
+                                "fields": {
+                                  "NUM": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "DO0": {
+                        "block": {
+                          "type": "procedure_return_value",
+                          "id": "2a3c4f12-830a-4",
+                          "inputs": {
+                            "VALUE": {
+                              "block": {
+                                "type": "math_number",
+                                "id": "28009073-6d3f-4",
+                                "fields": {
+                                  "NUM": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "math_arithmetic",
+                "id": "290684b5-92e6-4",
+                "fields": {
+                  "OP": "ADD"
+                },
+                "inputs": {
+                  "A": {
+                    "block": {
+                      "type": "procedures_callreturn",
+                      "id": "21a19323-ae0b-4",
+                      "extraState": {
+                        "name": "fib_optimized",
+                        "params": [
+                          "arg0"
+                        ]
+                      },
+                      "inputs": {
+                        "ARG0": {
+                          "block": {
+                            "type": "math_arithmetic",
+                            "id": "3c0251c0-ecab-4",
+                            "fields": {
+                              "OP": "MINUS"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "cf827d79-c61c-4",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "n"
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "math_number",
+                                  "id": "9cbb44fe-e986-4",
+                                  "fields": {
+                                    "NUM": 1
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "B": {
+                    "block": {
+                      "type": "procedures_callreturn",
+                      "id": "48ac5901-8acf-4",
+                      "extraState": {
+                        "name": "fib_optimized",
+                        "params": [
+                          "arg0"
+                        ]
+                      },
+                      "inputs": {
+                        "ARG0": {
+                          "block": {
+                            "type": "math_arithmetic",
+                            "id": "12a0f7b0-b433-4",
+                            "fields": {
+                              "OP": "MINUS"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "917b420b-8891-4",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "n"
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "math_number",
+                                  "id": "ced6a891-2271-4",
+                                  "fields": {
+                                    "NUM": 2
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "n",
+        "id": "n"
+      },
+      {
+        "name": "arg0",
+        "id": ",Jmue|%SD)o3D*]NKbsT"
+      }
+    ],
+    "backpack": []
+  },
+  "pythonCode": "def fib_optimized(n):\n    if n <= 0:\n        return 0\n\n    if n == 1:\n        return 1\n\n    return fib_optimized(n - 1) + fib_optimized(n - 2)"
+}

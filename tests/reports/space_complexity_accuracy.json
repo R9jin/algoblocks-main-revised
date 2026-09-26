@@ -1,0 +1,137 @@
+{
+  "metric": "expected_overall_space vs analyzer 'space_total'",
+  "n": 266,
+  "correct": 250,
+  "accuracy": 0.9398,
+  "floor": 0.8,
+  "mismatches": [
+    {
+      "id": "algo_n2_002",
+      "name": "Python3 program to replace all 'O's with",
+      "source_file": "ground_truth_chunk_01.json",
+      "expected": "O(V+E)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_2n_003",
+      "name": "Python program to print all distinct",
+      "source_file": "ground_truth_chunk_01.json",
+      "expected": "O(n!)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_070",
+      "name": "Algorithm Snippet",
+      "source_file": "ground_truth_chunk_07.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_072",
+      "name": "Python 3 program to check",
+      "source_file": "ground_truth_chunk_08.json",
+      "expected": "O(n^2)",
+      "predicted": "O(1)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_077",
+      "name": "Python 3 program to find the maximum",
+      "source_file": "ground_truth_chunk_08.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_086",
+      "name": "Python3 program to count the number less",
+      "source_file": "ground_truth_chunk_09.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_135",
+      "name": "Python3 program to find difficulty",
+      "source_file": "ground_truth_chunk_14.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_141",
+      "name": "Python3 program to shift k",
+      "source_file": "ground_truth_chunk_15.json",
+      "expected": "O(1)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "error"
+    },
+    {
+      "id": "algo_n2_161",
+      "name": "code contributed by mahee96",
+      "source_file": "ground_truth_chunk_17.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_205",
+      "name": "Python program to find unique element in matrix",
+      "source_file": "ground_truth_chunk_21.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_207",
+      "name": "Python 3 program to find a common element",
+      "source_file": "ground_truth_chunk_21.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_212",
+      "name": "Python3 program to print all palindromic",
+      "source_file": "ground_truth_chunk_22.json",
+      "expected": "O(n!)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_252",
+      "name": "Optimized Python3 program",
+      "source_file": "ground_truth_chunk_26.json",
+      "expected": "O(n)",
+      "predicted": "O(1)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_253",
+      "name": "Python3 program to find all distinct characters",
+      "source_file": "ground_truth_chunk_26.json",
+      "expected": "O(1)",
+      "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_267",
+      "name": "Python3 program to check two n-ary trees are mirror.",
+      "source_file": "ground_truth_chunk_27.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_275",
+      "name": "A Python3 program to find all symmetric",
+      "source_file": "ground_truth_chunk_28.json",
+      "expected": "O(n)",
+      "predicted": "O(1)",
+      "analyzer_status": "success"
+    }
+  ]
+}

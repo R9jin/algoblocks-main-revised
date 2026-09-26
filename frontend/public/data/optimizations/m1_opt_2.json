@@ -1,0 +1,308 @@
+{
+  "type": "algoblocks_project",
+  "version": "1.0",
+  "title": "algoblocks_workspace",
+  "blocklyJson": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "34064f7a-48d4-4",
+          "x": 20,
+          "y": 20,
+          "extraState": {
+            "params": [
+              {
+                "name": "arr",
+                "id": "arr"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "running_total"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "variables_set",
+                "id": "5f39a7b9-b5ba-4",
+                "fields": {
+                  "VAR": {
+                    "id": "result"
+                  }
+                },
+                "inputs": {
+                  "VALUE": {
+                    "block": {
+                      "type": "lists_create_with",
+                      "id": "9461dead-e0ff-4",
+                      "extraState": {
+                        "itemCount": 0
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "controls_for",
+                    "id": "0182e6ed-9803-4",
+                    "fields": {
+                      "VAR": {
+                        "id": "i"
+                      }
+                    },
+                    "inputs": {
+                      "FROM": {
+                        "block": {
+                          "type": "math_number",
+                          "id": "01281c57-fbe0-4",
+                          "fields": {
+                            "NUM": 0
+                          }
+                        }
+                      },
+                      "TO": {
+                        "block": {
+                          "type": "lists_length",
+                          "id": "3b0330d8-9e99-4",
+                          "inputs": {
+                            "VALUE": {
+                              "block": {
+                                "type": "variables_get",
+                                "id": "9869b76d-2710-4",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "arr"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "BY": {
+                        "block": {
+                          "type": "math_number",
+                          "id": "dcaeba67-442a-4",
+                          "fields": {
+                            "NUM": 1
+                          }
+                        }
+                      },
+                      "DO": {
+                        "block": {
+                          "type": "variables_set",
+                          "id": "88a3c4f6-e705-4",
+                          "fields": {
+                            "VAR": {
+                              "id": "current_sum"
+                            }
+                          },
+                          "inputs": {
+                            "VALUE": {
+                              "block": {
+                                "type": "math_number",
+                                "id": "0cc6262a-e436-4",
+                                "fields": {
+                                  "NUM": 0
+                                }
+                              }
+                            }
+                          },
+                          "next": {
+                            "block": {
+                              "type": "controls_for",
+                              "id": "41836999-9e6b-4",
+                              "fields": {
+                                "VAR": {
+                                  "id": "j"
+                                }
+                              },
+                              "inputs": {
+                                "FROM": {
+                                  "block": {
+                                    "type": "math_number",
+                                    "id": "4b4bcd74-a984-4",
+                                    "fields": {
+                                      "NUM": 0
+                                    }
+                                  }
+                                },
+                                "TO": {
+                                  "block": {
+                                    "type": "math_arithmetic",
+                                    "id": "079bb6e5-3357-4",
+                                    "fields": {
+                                      "OP": "ADD"
+                                    },
+                                    "inputs": {
+                                      "A": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "a7d07c45-288e-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "i"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "B": {
+                                        "block": {
+                                          "type": "math_number",
+                                          "id": "3ee1e354-dc6f-4",
+                                          "fields": {
+                                            "NUM": 1
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "BY": {
+                                  "block": {
+                                    "type": "math_number",
+                                    "id": "ce97fe51-1b4c-4",
+                                    "fields": {
+                                      "NUM": 1
+                                    }
+                                  }
+                                },
+                                "DO": {
+                                  "block": {
+                                    "type": "math_assignment",
+                                    "id": "5a1e2501-e9e5-4",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "current_sum"
+                                      },
+                                      "OP": "ADD"
+                                    },
+                                    "inputs": {
+                                      "DELTA": {
+                                        "block": {
+                                          "type": "lists_getIndex",
+                                          "id": "47085653-36ac-4",
+                                          "fields": {
+                                            "MODE": "GET",
+                                            "WHERE": "FROM_START"
+                                          },
+                                          "inputs": {
+                                            "VALUE": {
+                                              "block": {
+                                                "type": "variables_get",
+                                                "id": "d9b3a1d3-9fdb-4",
+                                                "fields": {
+                                                  "VAR": {
+                                                    "id": "arr"
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            "AT": {
+                                              "block": {
+                                                "type": "variables_get",
+                                                "id": "925c7642-79ce-4",
+                                                "fields": {
+                                                  "VAR": {
+                                                    "id": "j"
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "next": {
+                                "block": {
+                                  "type": "list_append",
+                                  "id": "ebe42fe8-7b15-4",
+                                  "inputs": {
+                                    "ITEM": {
+                                      "block": {
+                                        "type": "variables_get",
+                                        "id": "620c64a4-f384-4",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "current_sum"
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "LIST": {
+                                      "block": {
+                                        "type": "variables_get",
+                                        "id": "6c299899-a412-4",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "result"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "variables_get",
+                "id": "5ffc67a7-a70b-4",
+                "fields": {
+                  "VAR": {
+                    "id": "result"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "arr",
+        "id": "arr"
+      },
+      {
+        "name": "result",
+        "id": "result"
+      },
+      {
+        "name": "j",
+        "id": "j"
+      },
+      {
+        "name": "i",
+        "id": "i"
+      },
+      {
+        "name": "current_sum",
+        "id": "current_sum"
+      }
+    ],
+    "backpack": []
+  },
+  "pythonCode": "def running_total(arr):\n    result = []\n\n    for i in range(len(arr)):\n        current_sum = 0\n\n        for j in range(i + 1):\n            current_sum += (arr[j])\n        result.append(current_sum)\n\n    return result"
+}

@@ -1,0 +1,9 @@
+<svg viewBox="0 0 640 154" width="640" height="154" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="154" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="8" height="154" rx="4" fill="#7C5CFF"/>
+<text x="30" y="30" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#2B005C">The Logic Toolbox</text>
+<circle cx="36" cy="66.5" r="6" fill="#7C5CFF"/>
+<text x="58" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#2B005C">Comparisons:</tspan><tspan dx="4" font-weight="400" fill="#3D3554">equality,</tspan><tspan dx="4" font-weight="400" fill="#3D3554">greater-than,</tspan><tspan dx="4" font-weight="400" fill="#3D3554">less-than.</tspan></text>
+<circle cx="36" cy="114.5" r="6" fill="#7C5CFF"/>
+<text x="58" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#2B005C">Boolean</tspan><tspan dx="4" font-weight="700" fill="#2B005C">Operators:</tspan><tspan dx="4" font-weight="400" fill="#3D3554">AND,</tspan><tspan dx="4" font-weight="400" fill="#3D3554">OR,</tspan><tspan dx="4" font-weight="400" fill="#3D3554">NOT,</tspan><tspan dx="4" font-weight="400" fill="#3D3554">for</tspan><tspan dx="4" font-weight="400" fill="#3D3554">combining</tspan><tspan dx="4" font-weight="400" fill="#3D3554">multiple</tspan><tspan dx="4" font-weight="400" fill="#3D3554">conditions</tspan><tspan dx="4" font-weight="400" fill="#3D3554">into</tspan><tspan dx="4" font-weight="400" fill="#3D3554">one.</tspan></text>
+</svg>

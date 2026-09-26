@@ -1,0 +1,11 @@
+<svg viewBox="0 0 640 202" width="640" height="202" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="202" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="8" height="202" rx="4" fill="#7C5CFF"/>
+<text x="30" y="30" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#2B005C">What is Sequential Execution?</text>
+<circle cx="36" cy="66.5" r="6" fill="#7C5CFF"/>
+<text x="58" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">1.</tspan><tspan dx="4" font-weight="400" fill="#3D3554">print</tspan><tspan dx="4" font-weight="400" fill="#3D3554">"First"</tspan></text>
+<circle cx="36" cy="114.5" r="6" fill="#7C5CFF"/>
+<text x="58" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">2.</tspan><tspan dx="4" font-weight="400" fill="#3D3554">print</tspan><tspan dx="4" font-weight="400" fill="#3D3554">"Second"</tspan></text>
+<circle cx="36" cy="162.5" r="6" fill="#7C5CFF"/>
+<text x="58" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">3.</tspan><tspan dx="4" font-weight="400" fill="#3D3554">print</tspan><tspan dx="4" font-weight="400" fill="#3D3554">"Third"</tspan></text>
+</svg>

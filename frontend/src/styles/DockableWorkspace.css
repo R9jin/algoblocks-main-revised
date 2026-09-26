@@ -1,0 +1,343 @@
+/* frontend/src/styles/DockableWorkspace.css */
+
+.dock-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.dock-middle-row {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dock-region {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  background: var(--panel-bg);
+}
+
+.dock-region-drag-over {
+  outline: 2px dashed var(--purple-main);
+  outline-offset: -2px;
+}
+
+/* --- Tab bar (also doubles as the drag handle row) ---
+   Matches the app's light theme everywhere: the original bottom panel
+   (.bottom-docked-panel) was always light — only the console's own inner
+   terminal box (.console-container) is dark — so every dock region uses
+   the same light chrome regardless of which panels it hosts. This also
+   keeps the Complexity tab's badges (Total Time/Space/Analysis), which
+   are translucent light fills with dark text, readable: they were never
+   designed to sit on a dark background. */
+.dock-tab-bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: stretch;
+  background: var(--app-bg);
+  border-bottom: 1px solid var(--border-light);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.dock-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: grab;
+  white-space: nowrap;
+  border-right: 1px solid var(--border-light);
+  user-select: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.dock-tab:active {
+  cursor: grabbing;
+}
+
+.dock-tab:hover {
+  color: var(--text-main);
+  background: rgba(121, 40, 202, 0.06);
+}
+
+.dock-tab.active {
+  color: var(--purple-hover);
+  background: var(--panel-bg);
+  border-bottom: 2px solid var(--purple-main);
+}
+
+.dock-tab-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dock-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  padding: 2px;
+  border-radius: 4px;
+  color: inherit;
+  opacity: 0.55;
+  flex-shrink: 0;
+  /* Must NOT inherit the tab's grab/grabbing cursor -- this is a click
+     target, not part of the drag handle. */
+  cursor: pointer;
+}
+
+.dock-tab-close:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+}
+
+/* --- Panel content area --- */
+.dock-region-body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  position: relative;
+}
+
+.dock-panel-slot {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dock-region-center-empty {
+  background: var(--app-bg);
+  border-left: 1px dashed var(--border-light);
+  border-right: 1px dashed var(--border-light);
+  transition: flex-basis 0.15s ease, background-color 0.15s ease;
+}
+
+.dock-region-center-empty.dock-region-drag-over {
+  flex-basis: 140px !important;
+  background: rgba(121, 40, 202, 0.06);
+}
+
+.dock-empty-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  padding: 10px 6px;
+  text-align: center;
+  opacity: 0.75;
+}
+
+/* --- Splitters --- */
+.dock-splitter {
+  flex-shrink: 0;
+  background: var(--border-light);
+  transition: background-color 0.15s ease;
+  z-index: 20;
+}
+
+.dock-splitter-x {
+  width: 5px;
+  cursor: col-resize;
+}
+
+.dock-splitter-y {
+  height: 5px;
+  cursor: row-resize;
+}
+
+.dock-splitter:hover,
+.dock-splitter:active {
+  background: var(--purple-main);
+}
+
+/* --- Drag-and-dock drop indicator overlay --- */
+.dock-drop-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  background: rgba(121, 40, 202, 0.06);
+}
+
+.dock-drop-indicator {
+  position: absolute;
+  background: rgba(121, 40, 202, 0.45);
+  border: 2px solid var(--purple-main);
+  border-radius: 4px;
+}
+
+.dock-drop-center {
+  inset: 12%;
+}
+
+.dock-drop-left {
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: 34%;
+}
+
+.dock-drop-right {
+  top: 4px;
+  bottom: 4px;
+  right: 4px;
+  width: 34%;
+}
+
+.dock-drop-top {
+  left: 4px;
+  right: 4px;
+  top: 4px;
+  height: 34%;
+}
+
+.dock-drop-bottom {
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  height: 34%;
+}
+
+/* --- Mobile region switcher ---
+   Hidden by default (desktop shows every region side-by-side at once, so
+   there's nothing to switch between); the component only renders it when
+   there's more than one non-empty region, and it only takes effect once
+   the media query below turns it on. */
+.dock-mobile-switcher {
+  display: none;
+}
+
+.dock-mobile-switcher-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-light);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 6px;
+  cursor: pointer;
+}
+
+.dock-mobile-switcher-btn:last-child {
+  border-right: none;
+}
+
+.dock-mobile-switcher-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dock-mobile-switcher-btn.active {
+  color: var(--purple-main);
+  background: rgba(121, 40, 202, 0.08);
+  box-shadow: inset 0 -2px 0 var(--purple-main);
+}
+
+@media (max-width: 900px) {
+  .dock-tab {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+/* =========================================================
+   Phone layout: the 5-region split/splitter arrangement has no room to
+   exist side-by-side on a phone screen, so below this width exactly one
+   region is shown at a time (full width/height), switched via the tab
+   strip at the top of the workspace instead of via drag-and-drop or
+   resize splitters (neither of which are realistic touch interactions
+   for this kind of precision layout).
+========================================================= */
+@media (max-width: 768px) {
+  .dock-mobile-switcher {
+    display: flex;
+    flex-shrink: 0;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-light);
+    overflow-x: auto;
+  }
+
+  .dock-root {
+    flex-direction: column;
+  }
+
+  .dock-middle-row {
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Splitters are a mouse-drag interaction and every region is full-size
+     on its own now anyway, so there's nothing left for them to resize. */
+  .dock-splitter {
+    display: none;
+  }
+
+  /* Only the active region is shown; it takes up all the space the
+     workspace has, regardless of whatever size/flex value it was given
+     for the desktop side-by-side layout. */
+  .dock-root > .dock-region,
+  .dock-middle-row > .dock-region {
+    display: none;
+  }
+
+  .dock-root > .dock-region.dock-region-mobile-active,
+  .dock-middle-row > .dock-region.dock-region-mobile-active {
+    display: flex;
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1 1 auto !important;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* The empty-center drop target only exists to receive drag-and-dock
+     drops, which aren't available on touch -- collapsing it to nothing
+     avoids reserving dead space on phone screens. */
+  .dock-region-center-empty {
+    display: none !important;
+  }
+
+  .dock-tab-bar {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dock-tab {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}

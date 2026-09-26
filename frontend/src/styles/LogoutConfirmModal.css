@@ -1,0 +1,202 @@
+.logout-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(10, 4, 28, 0.58);
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: overlayFadeIn 0.3s ease;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.logout-modal {
+  /* Frosted dark-glass panel */
+  background-color: rgba(22, 8, 52, 0.76);
+  background-image: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.20) 0%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+  backdrop-filter: blur(44px) saturate(220%);
+  -webkit-backdrop-filter: blur(44px) saturate(220%);
+  border: 1.5px solid rgba(255, 255, 255, 0.32);
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.55),
+    0  8px 24px rgba(0, 0, 0, 0.22),
+    inset 0 2px 0 rgba(255, 255, 255, 0.55);
+  border-radius: 20px;
+  padding: 2.5rem;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+
+@keyframes modalPopIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Exit animations, paired with useMountTransition in LogoutConfirmModal.jsx */
+.logout-modal-overlay.is-closing {
+  animation: overlayFadeOut 0.22s ease-in forwards;
+}
+
+.logout-modal.is-closing {
+  animation: modalPopOut 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes overlayFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes modalPopOut {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to { opacity: 0; transform: scale(0.95) translateY(10px); }
+}
+
+.logout-modal h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #FFFFFF;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.logout-modal p {
+  color: #A396B8;
+  font-size: 1.05rem;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.logout-modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.logout-modal-actions button {
+  flex: 1;
+  padding: 0.85rem;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logout-btn {
+  background: linear-gradient(135deg, #7F57F9, #E058FB);
+  color: #FFFFFF;
+  border: none;
+  box-shadow: 0 4px 15px rgba(127, 87, 249, 0.3);
+}
+
+.logout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(224, 88, 251, 0.5);
+}
+
+.logout-btn-cancel {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  box-shadow: none;
+}
+
+.logout-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #B570FA;
+  transform: translateY(-2px);
+}
+
+/* NOTE: The logout modal's visual treatment (dark glass, text colors,
+   cancel-button ghost style) is now fully managed by LiquidGlass.css —
+   the old white-theme overrides that used to live here have been removed
+   to avoid fighting the unified glass rules. */
+
+.logout-modal button:focus-visible {
+  outline: 3px solid rgba(127, 87, 249, 0.38);
+  outline-offset: 3px;
+}
+
+.logout-modal-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+  transform: none !important;
+}
+
+.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.logout-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  animation: logoutSpin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes logoutSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width: 480px) {
+  .logout-modal {
+    padding: 1.5rem;
+  }
+}
+
+/* OVERRIDE LOGOUT MODAL TO LIGHT GLASS (to match the rest of the application) */
+.logout-modal {
+  background-color: rgba(255, 255, 255, 0.75) !important;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.90) 0%, rgba(235,220,255,0.55) 100%) !important;
+  backdrop-filter: blur(28px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.95), 0 16px 40px rgba(60,30,120,0.12) !important;
+  border-radius: 20px !important;
+}
+
+.logout-modal h2 {
+  color: #1a1a2e !important;
+}
+
+.logout-modal p {
+  color: #4b3a7c !important;
+}
+
+.logout-btn-cancel {
+  background: rgba(255, 255, 255, 0.35) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.7) !important;
+  color: #1a1a2e !important;
+}
+
+.logout-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.65) !important;
+  border-color: #9b71ff !important;
+  transform: translateY(-2px) !important;
+}

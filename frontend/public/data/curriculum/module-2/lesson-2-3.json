@@ -1,0 +1,475 @@
+{
+  "lessonId": "lesson-2-3",
+  "moduleId": "module-2",
+  "title": "Simple Sorting",
+  "description": "Bubble Sort and Selection Sort: how they rearrange data, why they're both O(n²), and where they still make sense.",
+  "difficulty": "Intermediate",
+  "estimatedTime": "28 min",
+  "prerequisites": "Linear Search",
+  "tags": [
+    "sorting",
+    "bubble sort",
+    "selection sort",
+    "arrays",
+    "quadratic complexity",
+    "in-place algorithms"
+  ],
+  "activities": [
+    {
+      "id": "m2_l3_a1",
+      "title": "Bubble Sort Ascending"
+    },
+    {
+      "id": "m2_l3_a2",
+      "title": "Selection Sort Ascending"
+    },
+    {
+      "id": "m2_l3_a3",
+      "title": "Bubble Sort Descending"
+    },
+    {
+      "id": "m2_l3_a4",
+      "title": "Selection Sort Descending"
+    },
+    {
+      "id": "m2_l3_a5",
+      "title": "Visual Sort Tracking"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction to Algorithmic Sorting",
+      "content": "Sorting rearranges data into ascending or descending order -- a near-mandatory prerequisite for fast search and clean database queries.\n\nAn e-commerce backend sorts products by price; a trading platform sorts transactions by timestamp. Sorted data unlocks fast searches like Binary Search; unsorted data is stuck with O(n) linear scans.\n\nProduction systems usually reach for O(n log n) sorts (Timsort, Merge Sort). This lesson covers the simpler, slower O(n²) ones -- Bubble Sort and Selection Sort -- because their mechanics (nested loops, in-place swapping) are the foundation everything else builds on."
+    },
+    {
+      "id": "why-sorting-matters",
+      "type": "concept",
+      "title": "The Strategic Value of Organized Data",
+      "content": "Searching 1,000,000 unsorted records for a string: up to 1,000,000 checks. Sorted (alphabetized) first: ~20 checks with a logarithmic search.\n\nEvery sorting algorithm boils down to the same three moves:",
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-3-why-sorting-matters.svg",
+          "alt": "The Strategic Value of Organized Data: Compare: check two elements against each other.; Validate: decide if the current order is wrong.; Swap: exchange out-of-order elements in place.; Repeat: keep passing over the data until nothing's out of order.."
+        }
+      ]
+    },
+    {
+      "id": "what-is-bubble-sort",
+      "type": "deep_dive",
+      "title": "Algorithm Profile: Bubble Sort",
+      "content": "Bubble Sort compares each pair of adjacent elements and swaps them if they're in the wrong order (e.g. left > right for ascending).\n\nThat repeated local swapping pushes the largest remaining value steadily rightward -- by the end of one full pass, the single largest value is guaranteed to be in its correct final spot.\n\nSince each pass locks one more element in place at the end, the next pass can ignore it -- the unsorted region shrinks by one each time, until nothing's left to sort."
+    },
+    {
+      "id": "what-is-selection-sort",
+      "type": "deep_dive",
+      "title": "Algorithm Profile: Selection Sort",
+      "content": "Instead of swapping constantly, Selection Sort splits the array into a sorted left side and unsorted right side, and does just one swap per pass.\n\nIt scans the whole unsorted region for the minimum (or maximum) value, tracking its *index* as it goes -- not swapping yet. Once the scan finishes, it swaps that extremum into place at the boundary.\n\nOne swap per pass, versus Bubble Sort's many -- far less memory writing, same overall O(n²) time."
+    },
+    {
+      "id": "walkthrough",
+      "type": "deep_dive",
+      "title": "Execution Trace: The Single Pass Invariant",
+      "content": "Both algorithms below run **one pass** over the same starting array, `[5, 2, 8, 1]` (ascending). Step through each to see exactly which comparisons trigger a swap, and which value ends up locked into place by the end of the pass.",
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Bubble Sort -- one pass",
+          "description": "Adjacent elements are compared and swapped as the scan moves left to right; the largest value \"bubbles\" to the end.",
+          "steps": [
+            {
+              "array": [
+                5,
+                2,
+                8,
+                1
+              ],
+              "roles": {},
+              "caption": "Starting array: [5, 2, 8, 1].",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 4,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "1 of 4 comparisons this pass so far",
+                "note": "One pass is O(n); repeating this for every element is what makes the full sort O(n²).",
+                "line": 1,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 1
+            },
+            {
+              "array": [
+                2,
+                5,
+                8,
+                1
+              ],
+              "roles": {
+                "0": "swap",
+                "1": "swap"
+              },
+              "caption": "Compare 5 and 2 -> swap -> [2, 5, 8, 1].",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 4,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "2 of 4 comparisons this pass so far",
+                "note": "One pass is O(n); repeating this for every element is what makes the full sort O(n²).",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            },
+            {
+              "array": [
+                2,
+                5,
+                8,
+                1
+              ],
+              "roles": {
+                "1": "compare",
+                "2": "compare"
+              },
+              "caption": "Compare 5 and 8 -> no swap -> [2, 5, 8, 1].",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 4,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "3 of 4 comparisons this pass so far",
+                "note": "One pass is O(n); repeating this for every element is what makes the full sort O(n²).",
+                "line": 3,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 3
+            },
+            {
+              "array": [
+                2,
+                5,
+                1,
+                8
+              ],
+              "roles": {
+                "2": "swap",
+                "3": "sorted"
+              },
+              "caption": "Compare 8 and 1 -> swap -> [2, 5, 1, 8]. The largest value (8) is now locked into the last slot.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 4,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "4 of 4 comparisons this pass so far",
+                "note": "One pass is O(n); repeating this for every element is what makes the full sort O(n²).",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            }
+          ],
+          "codeLines": [
+            "def bubble_pass(arr):",
+            "    n = len(arr)",
+            "    for j in range(n - 1):",
+            "        if arr[j] > arr[j + 1]:",
+            "            arr[j], arr[j + 1] = arr[j + 1], arr[j]"
+          ]
+        },
+        {
+          "kind": "array",
+          "title": "Selection Sort -- one pass",
+          "description": "The whole unsorted region is scanned first to find the true minimum, then a single swap places it at the front.",
+          "steps": [
+            {
+              "array": [
+                5,
+                2,
+                8,
+                1
+              ],
+              "roles": {
+                "0": "candidate"
+              },
+              "pointers": [
+                {
+                  "label": "min",
+                  "index": 0
+                }
+              ],
+              "caption": "Assume index 0 (5) is the minimum, for now.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 5,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "1 of 5 comparisons this pass so far",
+                "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
+                "line": 2,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 2
+            },
+            {
+              "array": [
+                5,
+                2,
+                8,
+                1
+              ],
+              "roles": {
+                "0": "eliminated",
+                "1": "candidate"
+              },
+              "pointers": [
+                {
+                  "label": "min",
+                  "index": 1
+                }
+              ],
+              "caption": "Scan index 1 (2) -- smaller than 5, so 2 becomes the new minimum candidate.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 5,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "2 of 5 comparisons this pass so far",
+                "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
+                "line": 5,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 5
+            },
+            {
+              "array": [
+                5,
+                2,
+                8,
+                1
+              ],
+              "roles": {
+                "0": "eliminated",
+                "1": "candidate",
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "min",
+                  "index": 1
+                }
+              ],
+              "caption": "Scan index 2 (8) -- not smaller than 2, minimum candidate stays the same.",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 5,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "3 of 5 comparisons this pass so far",
+                "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            },
+            {
+              "array": [
+                5,
+                2,
+                8,
+                1
+              ],
+              "roles": {
+                "0": "eliminated",
+                "1": "eliminated",
+                "3": "candidate"
+              },
+              "pointers": [
+                {
+                  "label": "min",
+                  "index": 3
+                }
+              ],
+              "caption": "Scan index 3 (1) -- smaller than 2, so 1 becomes the new minimum candidate.",
+              "complexity": {
+                "opsSoFar": 4,
+                "opsTotal": 5,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "4 of 5 comparisons this pass so far",
+                "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
+                "line": 5,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 5
+            },
+            {
+              "array": [
+                1,
+                2,
+                8,
+                5
+              ],
+              "roles": {
+                "0": "sorted"
+              },
+              "caption": "Swap index 0 and index 3 -> [1, 2, 8, 5]. One swap, 1 is now locked in, and the sorted boundary advances by one.",
+              "complexity": {
+                "opsSoFar": 5,
+                "opsTotal": 5,
+                "bigO": "O(n) this pass (O(n²) overall)",
+                "formula": "5 of 5 comparisons this pass so far",
+                "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
+                "line": 6,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 6
+            }
+          ],
+          "codeLines": [
+            "def selection_pass(arr):",
+            "    n = len(arr)",
+            "    min_idx = 0",
+            "    for i in range(1, n):",
+            "        if arr[i] < arr[min_idx]:",
+            "            min_idx = i",
+            "    arr[0], arr[min_idx] = arr[min_idx], arr[0]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Architectural Implementation in Python",
+      "content": "The outer loop tracks the shrinking unsorted boundary; the inner loop does the scanning and comparing.\n\nBubble Sort's inner loop stops at `len(arr) - pass_index - 1` to skip already-sorted elements. Selection Sort's inner loop tracks an index (`min_idx`), not values, deferring the actual swap until the scan is done.\n\nFlipping `>` to `<` flips ascending to descending.",
+      "codeSnippets": [
+        {
+          "title": "Bubble Sort: Ascending Execution",
+          "language": "python",
+          "code": "def bubble_sort_asc(arr):\n    result = arr[:]\n    for pass_index in range(len(result)):\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] > result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n    return result"
+        },
+        {
+          "title": "Bubble Sort: Descending Execution",
+          "language": "python",
+          "code": "def bubble_sort_desc(arr):\n    result = arr[:]\n    for pass_index in range(len(result)):\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] < result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n    return result"
+        },
+        {
+          "title": "Selection Sort: Ascending Execution",
+          "language": "python",
+          "code": "def selection_sort_asc(arr):\n    result = arr[:]\n    for i in range(len(result)):\n        min_idx = i\n        for j in range(i + 1, len(result)):\n            if result[j] < result[min_idx]:\n                min_idx = j\n        result[i], result[min_idx] = result[min_idx], result[i]\n    return result"
+        },
+        {
+          "title": "Sort Execution Tracking: Single Pass Isolation",
+          "language": "python",
+          "code": "def single_pass(arr):\n    result = arr[:]\n    for i in range(len(result) - 1):\n        if result[i] > result[i + 1]:\n            result[i], result[i + 1] = result[i + 1], result[i]\n    return result"
+        }
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Mathematical Complexity and Quadratic Constraints",
+      "content": "Both algorithms nest a nearly-full loop inside another, degrading to **O(n²)**.\n\nWhy: pass 1 does ~n comparisons, pass 2 does n-1, pass 3 does n-2, and so on down to 1. That sum is n(n-1)/2 -- drop the constants and lower terms, and you're left with O(n²).\n\nAt n=10,000, that's ~50,000,000 iterations. Timsort (O(n log n)) solves the same array in ~132,000.\n\nBoth are still **O(1) auxiliary space** -- no new arrays, just in-place swaps via temp pointers.",
+      "chart": {
+        "title": "Quadratic Degradation of Simple Sorting",
+        "description": "The O(n²) curve shows how fast nested-loop sorting blows up as input grows.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(n log n)",
+          "O(n^2)"
+        ]
+      }
+    },
+    {
+      "id": "sorting-vs-searching",
+      "type": "concept",
+      "title": "Architectural Trade-offs: Sorting vs. Searching",
+      "content": "Sorting restructures data; searching just scans it -- and sorting is expensive enough that it's worth asking whether it's justified.\n\nRunning thousands of repeated queries against a static dataset? Pay the one-time O(n log n) sort to unlock O(log n) searches forever after -- a clear win.\n\nJust one lookup on data that changes constantly? Sorting first (O(n log n) or worse) just to search once is a net loss -- a plain O(n) linear search wins."
+    },
+    {
+      "id": "advantages-limitations",
+      "type": "concept",
+      "title": "Algorithm Evaluation Profile",
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-3-advantages-limitations-comparison.svg",
+          "alt": "Comparison: Engineering Merits - In-Place: O(1) auxiliary space.; Simple: no recursion, no pivot selection.; Educational: clean invariants, easy to trace.; Stable (Bubble Sort): equal elements keep their original order.. System Vulnerabilities - O(n²) scaling falls apart past ~1,000 items.; Bubble Sort writes a lot -- heavy swap overhead.; Not adaptive -- doesn't notice data that's already mostly sorted.."
+        }
+      ]
+    },
+    {
+      "id": "applications",
+      "type": "real_world_connection",
+      "title": "Real-World Integration Constraints",
+      "content": "Enterprise backends avoid these entirely -- O(n²) is a nonstarter at scale.\n\nBut in embedded systems (microcontrollers, IoT sensors) with arrays of maybe 10-20 items and tight memory, Selection Sort's low overhead can genuinely beat a recursive Merge Sort's setup cost.\n\nMostly, though, they're the standard teaching tool -- a hands-on way to see nested loops turn into real runtime cost before moving to faster algorithms."
+    },
+    {
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Implementation Errors",
+      "subsections": [
+        {
+          "id": "one-pass",
+          "title": "Vulnerability: Assuming Single Pass Resolution",
+          "content": "One pass only locks in the extreme value at the boundary -- the rest of the array still needs more passes."
+        },
+        {
+          "id": "loop-boundaries",
+          "title": "Vulnerability: Redundant Boundary Scanning",
+          "content": "Skip the `- pass_index` shrink on the inner loop and you'll keep re-checking elements that are already sorted -- not wrong, just wasteful."
+        },
+        {
+          "id": "pointer-indirection",
+          "title": "Vulnerability: Value Swapping vs. Pointer Indirection",
+          "content": "Swapping during Selection Sort's scan itself turns it into a clumsy Bubble Sort. Track the index (`min_idx`), swap once, after the scan."
+        },
+        {
+          "id": "ignoring-complexity",
+          "title": "Vulnerability: Disregarding Quadratic Reality",
+          "content": "Looks instant at n=10. Extrapolating that to production data without checking the actual complexity is how you get a slow system."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
+      "type": "summary",
+      "title": "Key Engineering Takeaways",
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-3-takeaways.svg",
+          "alt": "Key Engineering Takeaways: Bubble Sort swaps adjacent out-of-order pairs continuously.; Selection Sort finds the extremum first, swaps once per pass.; The Single Pass Invariant: one pass locks the extreme value into its final spot.; Both are O(n²) worst-case and average-case time.; Both are O(1) auxiliary space -- safe, in-place mutation.."
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "title": "MIT OpenCourseWare - Introduction to Algorithms",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
+    },
+    {
+      "title": "Programiz - Bubble Sort",
+      "url": "https://www.programiz.com/dsa/bubble-sort"
+    },
+    {
+      "title": "GeeksforGeeks - Selection Sort",
+      "url": "https://www.geeksforgeeks.org/selection-sort/"
+    }
+  ]
+}

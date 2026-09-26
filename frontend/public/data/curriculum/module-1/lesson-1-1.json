@@ -1,0 +1,1126 @@
+{
+  "lessonId": "lesson-1-1",
+  "moduleId": "module-1",
+  "title": "Asymptotic Notations and Complexity Analysis",
+  "description": "The universal language for measuring algorithm performance -- Big-O, Big-Omega, Big-Theta, and the full catalog of growth rates the analyzer detects.",
+  "difficulty": "Beginner",
+  "estimatedTime": "30 min",
+  "prerequisites": "The Complexity Analyzer",
+  "tags": [
+    "big-o",
+    "complexity",
+    "theory",
+    "performance",
+    "asymptotic",
+    "space complexity"
+  ],
+  "activities": [
+    {
+      "id": "m1_l1_a1",
+      "title": "Creating Your First List"
+    },
+    {
+      "id": "m1_l1_a2",
+      "title": "Finding the List Length"
+    },
+    {
+      "id": "m1_l1_a3",
+      "title": "Getting the First Item"
+    },
+    {
+      "id": "m1_l1_a4",
+      "title": "Changing Items in a List"
+    },
+    {
+      "id": "m1_l1_a5",
+      "title": "Adding Items to the End"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction to Algorithm Complexity",
+      "content": "You've already seen the Complexity Analyzer stamp your blocks with an O(n) or O(n²) rating. This lesson is where you learn to read that rating like the analyzer does -- and eventually, to predict it yourself before you even open the tab.\n\nBig-O measures how an algorithm's workload grows as its input size `n` grows -- not how fast it happens to run on your machine today, but how it'll hold up once the data gets big. Two algorithms can look identical on a 10-item test case and behave completely differently once that input hits a million.\n\nWhy does that matter? Three reasons: **Performance** -- slow algorithms waste real time and resources. **Scalability** -- going from 1,000 to 1,000,000 items slows an O(n²) algorithm down by roughly 1,000x, while an O(n log n) one only slows down by about 20x. **Portability** -- Big-O lets you compare two algorithms on their own merits, without caring what hardware or language either one happens to run on."
+    },
+    {
+      "id": "cost-models",
+      "type": "concept",
+      "title": "Cost Models & Basic Terminology",
+      "content": "A few terms you'll see constantly:",
+      "subsections": [
+        {
+          "id": "operation-cost",
+          "title": "Operation Cost",
+          "content": "One comparison, assignment, or basic arithmetic op = 1 \"step.\" We don't split hairs over add vs. multiply at the hardware level."
+        },
+        {
+          "id": "input-size",
+          "title": "Input Size (n)",
+          "content": "Whatever you're processing: array length, node count in a graph, digit count in a number."
+        },
+        {
+          "id": "running-time",
+          "title": "Running-Time Function f(n)",
+          "content": "The formula for exactly how many steps the algorithm takes, as a function of n."
+        },
+        {
+          "id": "space-complexity-def",
+          "title": "Space Complexity",
+          "content": "The extra memory an algorithm needs beyond the input itself -- auxiliary arrays, hash maps, the recursion stack."
+        }
+      ]
+    },
+    {
+      "id": "need-for-asymptotic",
+      "type": "concept",
+      "title": "The Need for Asymptotic Analysis",
+      "content": "A stopwatch is a bad way to compare algorithms -- results depend on your CPU, your compiler, and whatever else is running in the background. Two algorithms might tie at n=10 and one might freeze your machine at n=1,000,000.\n\nAsymptotic analysis sidesteps all of that: it studies how an algorithm behaves as n approaches infinity, ignoring machine-specific noise and lower-order terms to focus on the trend that actually matters at scale."
+    },
+    {
+      "id": "the-three-bounds",
+      "type": "concept",
+      "title": "Best, Average, and Worst-Case Scenarios",
+      "content": "Performance can swing wildly depending on how the input is arranged. Three bounds capture that:",
+      "subsections": [
+        {
+          "id": "omega-bound",
+          "title": "Big-Omega (Ω): The Best-Case Scenario",
+          "content": "The minimum work required, under the most favorable input. In a Linear Search, if the target is the very first item, that's **Ω(1)**. Useful in theory, but risky to design around -- you can't count on lucky data."
+        },
+        {
+          "id": "theta-bound",
+          "title": "Big-Theta (Θ): The Average-Case Scenario",
+          "content": "The expected performance across typical, randomly-distributed inputs. A Linear Search usually finds its target somewhere near the middle, giving an average of `n/2` steps -- which simplifies to **Θ(n)**."
+        },
+        {
+          "id": "o-bound",
+          "title": "Big-O (O): The Worst-Case Scenario",
+          "content": "The absolute upper bound -- the most work the algorithm could ever do. For Linear Search, that's when the target is last (or missing entirely): **O(n)**.\n\n**System Note:** The Complexity Analyzer in your workspace always computes **Worst-Case Big-O**. That's the industry standard, because it's the one guarantee you can build on: your program will never do worse than its Big-O rating."
+        }
+      ]
+    },
+    {
+      "id": "properties",
+      "type": "concept",
+      "title": "Properties of Asymptotic Notations",
+      "content": "A few simplification rules let you skip the tedious algebra and jump straight to the dominant trend:",
+      "subsections": [
+        {
+          "id": "general-properties",
+          "title": "1. General Properties (Simplification Rules)",
+          "content": "Drop constants and low-order terms. `3n + 2` becomes O(n); `n² + n` becomes O(n²) -- once n is large, the n² term makes the rest irrelevant."
+        },
+        {
+          "id": "transitive",
+          "title": "2. Transitive Properties",
+          "content": "If f(n) is O(g(n)) and g(n) is O(h(n)), then f(n) is O(h(n)) -- comparisons chain."
+        },
+        {
+          "id": "reflexive",
+          "title": "3. Reflexive Properties",
+          "content": "f(n) is always O(f(n)) -- an algorithm trivially bounds itself."
+        },
+        {
+          "id": "symmetric",
+          "title": "4. Symmetric Properties",
+          "content": "If f(n) is Θ(g(n)), then g(n) is Θ(f(n)) -- tight bounds go both ways."
+        },
+        {
+          "id": "transpose-symmetric",
+          "title": "5. Transpose Symmetric Properties",
+          "content": "If f(n) is O(g(n)), then g(n) is Ω(f(n)) -- upper and lower bounds mirror each other."
+        }
+      ]
+    },
+    {
+      "id": "common-classes",
+      "type": "deep_dive",
+      "title": "Common Big-O Complexity Classes",
+      "content": "The growth rates you'll see constantly, from fastest to slowest:",
+      "subsections": [
+        {
+          "id": "o-1",
+          "title": "O(1) Constant Time",
+          "content": "**Description:** Same runtime no matter the input size -- as scalable as it gets.\n\n**Example:** Array index access, checking `len()`, pushing to a stack.\n\n**Loop:** None, or a loop with a fixed number of iterations.",
+          "chart": {
+            "title": "O(1) Constant Time Growth",
+            "description": "Flat, regardless of input size.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(1)"
+            ]
+          },
+          "traces": [
+            {
+              "kind": "array",
+              "title": "O(1) - Accessing the first item",
+              "description": "It takes exactly one step to retrieve the first element, no matter how long the array is.",
+              "steps": [
+                {
+                  "array": [
+                    42,
+                    7,
+                    19,
+                    88,
+                    3
+                  ],
+                  "roles": {
+                    "0": "found"
+                  },
+                  "pointers": [
+                    {
+                      "label": "arr[0]",
+                      "index": 0
+                    }
+                  ],
+                  "caption": "Accessing index 0 instantly yields 42. Work done: 1 step.",
+                  "complexity": {
+                    "opsSoFar": 1,
+                    "opsTotal": 1,
+                    "bigO": "O(1)",
+                    "formula": "1 of 1 operations so far",
+                    "note": "One lookup, regardless of array size -- the count never grows.",
+                    "line": 1,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 1
+                }
+              ],
+              "codeLines": [
+                "def get_first(arr):",
+                "    return arr[0]"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "o-log-n",
+          "title": "O(log n) Logarithmic Time",
+          "content": "**Description:** Cuts the problem down by a fraction (usually half) each step -- doubling n only adds one extra step.\n\n**Example:** Binary Search, lookups in a balanced BST.\n\n**Loop:** Tracking variable is multiplied, divided, or bit-shifted each pass (`i *= 2`, `n //= 2`).",
+          "chart": {
+            "title": "O(log n) Logarithmic Time Growth",
+            "description": "Rises slowly -- highly efficient at scale.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(log n)"
+            ]
+          },
+          "traces": [
+            {
+              "kind": "array",
+              "title": "O(log n) - Binary Search",
+              "description": "By splitting the search space in half each step, we can search 8 items in just 3 checks.",
+              "steps": [
+                {
+                  "array": [
+                    2,
+                    5,
+                    8,
+                    12,
+                    16,
+                    23,
+                    38,
+                    56
+                  ],
+                  "roles": {
+                    "3": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "mid",
+                      "index": 3
+                    }
+                  ],
+                  "caption": "Looking for 23. Check the middle (12). 23 is greater.",
+                  "complexity": {
+                    "opsSoFar": 1,
+                    "opsTotal": 3,
+                    "bigO": "O(log n)",
+                    "formula": "1 of 3 comparisons so far",
+                    "note": "Each comparison throws away half of what's left.",
+                    "line": [
+                      4,
+                      7
+                    ],
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 4
+                },
+                {
+                  "array": [
+                    2,
+                    5,
+                    8,
+                    12,
+                    16,
+                    23,
+                    38,
+                    56
+                  ],
+                  "roles": {
+                    "0": "eliminated",
+                    "1": "eliminated",
+                    "2": "eliminated",
+                    "3": "eliminated",
+                    "5": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "mid",
+                      "index": 5
+                    }
+                  ],
+                  "caption": "Rule out the left half. Check the middle of the right half (23).",
+                  "complexity": {
+                    "opsSoFar": 2,
+                    "opsTotal": 3,
+                    "bigO": "O(log n)",
+                    "formula": "2 of 3 comparisons so far",
+                    "note": "Each comparison throws away half of what's left.",
+                    "line": 4,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 4
+                },
+                {
+                  "array": [
+                    2,
+                    5,
+                    8,
+                    12,
+                    16,
+                    23,
+                    38,
+                    56
+                  ],
+                  "roles": {
+                    "0": "eliminated",
+                    "1": "eliminated",
+                    "2": "eliminated",
+                    "3": "eliminated",
+                    "5": "found"
+                  },
+                  "pointers": [
+                    {
+                      "label": "match",
+                      "index": 5
+                    }
+                  ],
+                  "caption": "Found 23 in just 2 steps!",
+                  "complexity": {
+                    "opsSoFar": 3,
+                    "opsTotal": 3,
+                    "bigO": "O(log n)",
+                    "formula": "3 of 3 comparisons so far",
+                    "note": "Each comparison throws away half of what's left.",
+                    "line": 5,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 5
+                }
+              ],
+              "codeLines": [
+                "def binary_search(arr, target):",
+                "    lo, hi = 0, len(arr) - 1",
+                "    while lo <= hi:",
+                "        mid = (lo + hi) // 2",
+                "        if arr[mid] == target:",
+                "            return mid",
+                "        elif arr[mid] < target:",
+                "            lo = mid + 1",
+                "        else:",
+                "            hi = mid - 1",
+                "    return -1"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "o-n",
+          "title": "O(n) Linear Time",
+          "content": "**Description:** Work scales 1-to-1 with input size -- double the data, double the work.\n\n**Example:** Linear Search, summing an array, finding the max of an unsorted list.\n\n**Loop:** One straightforward loop from 0 to n.",
+          "chart": {
+            "title": "O(n) Linear Time Growth",
+            "description": "Climbs steadily, in direct proportion to input.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n)"
+            ]
+          },
+          "traces": [
+            {
+              "kind": "array",
+              "title": "O(n) - Linear Scan",
+              "description": "Checking every item one by one. If we have 5 items, it might take 5 steps.",
+              "steps": [
+                {
+                  "array": [
+                    14,
+                    22,
+                    9,
+                    31,
+                    8
+                  ],
+                  "roles": {
+                    "0": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 0
+                    }
+                  ],
+                  "caption": "Check index 0.",
+                  "complexity": {
+                    "opsSoFar": 1,
+                    "opsTotal": 5,
+                    "bigO": "O(n)",
+                    "formula": "1 of 5 comparisons so far",
+                    "note": "One comparison per element -- the count tracks the array size exactly.",
+                    "line": 2,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 2
+                },
+                {
+                  "array": [
+                    14,
+                    22,
+                    9,
+                    31,
+                    8
+                  ],
+                  "roles": {
+                    "1": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 1
+                    }
+                  ],
+                  "caption": "Check index 1.",
+                  "complexity": {
+                    "opsSoFar": 2,
+                    "opsTotal": 5,
+                    "bigO": "O(n)",
+                    "formula": "2 of 5 comparisons so far",
+                    "note": "One comparison per element -- the count tracks the array size exactly.",
+                    "line": 2,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 2
+                },
+                {
+                  "array": [
+                    14,
+                    22,
+                    9,
+                    31,
+                    8
+                  ],
+                  "roles": {
+                    "2": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 2
+                    }
+                  ],
+                  "caption": "Check index 2.",
+                  "complexity": {
+                    "opsSoFar": 3,
+                    "opsTotal": 5,
+                    "bigO": "O(n)",
+                    "formula": "3 of 5 comparisons so far",
+                    "note": "One comparison per element -- the count tracks the array size exactly.",
+                    "line": 2,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 2
+                },
+                {
+                  "array": [
+                    14,
+                    22,
+                    9,
+                    31,
+                    8
+                  ],
+                  "roles": {
+                    "3": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 3
+                    }
+                  ],
+                  "caption": "Check index 3.",
+                  "complexity": {
+                    "opsSoFar": 4,
+                    "opsTotal": 5,
+                    "bigO": "O(n)",
+                    "formula": "4 of 5 comparisons so far",
+                    "note": "One comparison per element -- the count tracks the array size exactly.",
+                    "line": 2,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 2
+                },
+                {
+                  "array": [
+                    14,
+                    22,
+                    9,
+                    31,
+                    8
+                  ],
+                  "roles": {
+                    "4": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 4
+                    }
+                  ],
+                  "caption": "Check index 4. The work scales exactly with the size.",
+                  "complexity": {
+                    "opsSoFar": 5,
+                    "opsTotal": 5,
+                    "bigO": "O(n)",
+                    "formula": "5 of 5 comparisons so far",
+                    "note": "One comparison per element -- the count tracks the array size exactly.",
+                    "line": 2,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 2
+                }
+              ],
+              "codeLines": [
+                "def linear_scan(arr):",
+                "    for i in range(len(arr)):",
+                "        check(arr[i])",
+                "    return"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "o-n-log-n",
+          "title": "O(n log n) Linearithmic Time",
+          "content": "**Description:** Linear work combined with logarithmic splitting -- the best achievable worst-case for comparison-based sorting.\n\n**Example:** Merge Sort, Heap Sort, Timsort.\n\n**Loop:** An O(n) pass containing O(log n) work, or divide-and-conquer with linear merge cost per level.",
+          "chart": {
+            "title": "O(n log n) Linearithmic Time Growth",
+            "description": "Bends slightly above linear.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n log n)"
+            ]
+          }
+        },
+        {
+          "id": "o-n-squared",
+          "title": "O(n²) Quadratic Time",
+          "content": "**Description:** Work grows with the square of n. Typical of two nested loops. Inefficient at scale.\n\n**Example:** Bubble Sort, Selection Sort, Insertion Sort, naive n×n matrix traversal.\n\n**Loop:** A loop nested inside another loop, both scaling with n.",
+          "chart": {
+            "title": "O(n²) Quadratic Time Growth",
+            "description": "Steep: n=10 → 100 ops, n=100 → 10,000 ops.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n^2)"
+            ]
+          },
+          "traces": [
+            {
+              "kind": "array",
+              "title": "O(n²) - Comparing all pairs",
+              "description": "For 4 items, we need many checks (nested loops) to compare everything.",
+              "steps": [
+                {
+                  "array": [
+                    4,
+                    1,
+                    3,
+                    2
+                  ],
+                  "roles": {
+                    "0": "compare",
+                    "1": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 0
+                    },
+                    {
+                      "label": "j",
+                      "index": 1
+                    }
+                  ],
+                  "caption": "i=0, j=1",
+                  "complexity": {
+                    "opsSoFar": 1,
+                    "opsTotal": 6,
+                    "bigO": "O(n²)",
+                    "formula": "1 of 6 pair comparisons so far",
+                    "note": "Every element is compared against every other element -- n × n comparisons total.",
+                    "line": 4,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 4
+                },
+                {
+                  "array": [
+                    4,
+                    1,
+                    3,
+                    2
+                  ],
+                  "roles": {
+                    "0": "compare",
+                    "2": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 0
+                    },
+                    {
+                      "label": "j",
+                      "index": 2
+                    }
+                  ],
+                  "caption": "i=0, j=2",
+                  "complexity": {
+                    "opsSoFar": 2,
+                    "opsTotal": 6,
+                    "bigO": "O(n²)",
+                    "formula": "2 of 6 pair comparisons so far",
+                    "note": "Every element is compared against every other element -- n × n comparisons total.",
+                    "line": 4,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 4
+                },
+                {
+                  "array": [
+                    4,
+                    1,
+                    3,
+                    2
+                  ],
+                  "roles": {
+                    "0": "compare",
+                    "3": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 0
+                    },
+                    {
+                      "label": "j",
+                      "index": 3
+                    }
+                  ],
+                  "caption": "i=0, j=3",
+                  "complexity": {
+                    "opsSoFar": 3,
+                    "opsTotal": 6,
+                    "bigO": "O(n²)",
+                    "formula": "3 of 6 pair comparisons so far",
+                    "note": "Every element is compared against every other element -- n × n comparisons total.",
+                    "line": 4,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 4
+                },
+                {
+                  "array": [
+                    4,
+                    1,
+                    3,
+                    2
+                  ],
+                  "roles": {
+                    "1": "compare",
+                    "2": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 1
+                    },
+                    {
+                      "label": "j",
+                      "index": 2
+                    }
+                  ],
+                  "caption": "i=1, j=2",
+                  "complexity": {
+                    "opsSoFar": 4,
+                    "opsTotal": 6,
+                    "bigO": "O(n²)",
+                    "formula": "4 of 6 pair comparisons so far",
+                    "note": "Every element is compared against every other element -- n × n comparisons total.",
+                    "line": 4,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 4
+                },
+                {
+                  "array": [
+                    4,
+                    1,
+                    3,
+                    2
+                  ],
+                  "roles": {
+                    "1": "compare",
+                    "3": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 1
+                    },
+                    {
+                      "label": "j",
+                      "index": 3
+                    }
+                  ],
+                  "caption": "i=1, j=3",
+                  "complexity": {
+                    "opsSoFar": 5,
+                    "opsTotal": 6,
+                    "bigO": "O(n²)",
+                    "formula": "5 of 6 pair comparisons so far",
+                    "note": "Every element is compared against every other element -- n × n comparisons total.",
+                    "line": 4,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 4
+                },
+                {
+                  "array": [
+                    4,
+                    1,
+                    3,
+                    2
+                  ],
+                  "roles": {
+                    "2": "compare",
+                    "3": "compare"
+                  },
+                  "pointers": [
+                    {
+                      "label": "i",
+                      "index": 2
+                    },
+                    {
+                      "label": "j",
+                      "index": 3
+                    }
+                  ],
+                  "caption": "i=2, j=3. Notice how the work explodes.",
+                  "complexity": {
+                    "opsSoFar": 6,
+                    "opsTotal": 6,
+                    "bigO": "O(n²)",
+                    "formula": "6 of 6 pair comparisons so far",
+                    "note": "Every element is compared against every other element -- n × n comparisons total.",
+                    "line": 4,
+                    "lineOps": 1,
+                    "localBigO": "O(1)",
+                    "caseLabel": "Overall (worst case)"
+                  },
+                  "activeLine": 4
+                }
+              ],
+              "codeLines": [
+                "def compare_all_pairs(arr):",
+                "    n = len(arr)",
+                "    for i in range(n):",
+                "        for j in range(i + 1, n):",
+                "            compare(arr[i], arr[j])"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "o-n-cubed",
+          "title": "O(n³) Cubic Time",
+          "content": "**Description:** Three nested loops. Slow, but shows up in some dense linear-algebra algorithms.\n\n**Example:** Naive matrix multiplication, dense graph algorithms.\n\n**Loop:** Three loops nested together, all scaling with n.",
+          "chart": {
+            "title": "O(n³) Cubic Time Growth",
+            "description": "Explosive growth from three nested loops.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n^3)"
+            ]
+          }
+        },
+        {
+          "id": "o-2-n",
+          "title": "O(2^n) Exponential Time",
+          "content": "**Description:** Work doubles with every added item. Freezes a computer past roughly n=40.\n\n**Example:** Naive recursive Fibonacci, generating all subsets, Towers of Hanoi.\n\n**Loop:** A function that recursively calls itself multiple times per branch.",
+          "chart": {
+            "title": "O(2^n) Exponential Time Growth",
+            "description": "Explodes almost instantly.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(2^n)"
+            ]
+          },
+          "traces": [
+            {
+              "kind": "recursionTree",
+              "title": "O(2^n) - Branching recursion",
+              "description": "Each step splits into two branches.",
+              "nodes": [
+                {
+                  "id": "n1",
+                  "parentId": null,
+                  "label": "Fib(3)",
+                  "revealAt": 1
+                },
+                {
+                  "id": "n2",
+                  "parentId": "n1",
+                  "label": "Fib(2)",
+                  "revealAt": 2
+                },
+                {
+                  "id": "n4",
+                  "parentId": "n2",
+                  "label": "Fib(1)",
+                  "revealAt": 3
+                },
+                {
+                  "id": "n5",
+                  "parentId": "n2",
+                  "label": "Fib(0)",
+                  "revealAt": 4
+                },
+                {
+                  "id": "n3",
+                  "parentId": "n1",
+                  "label": "Fib(1)",
+                  "revealAt": 5
+                }
+              ],
+              "stepCaptions": [
+                "Initial Call",
+                "Left branch starts",
+                "Base case reached",
+                "Another base case",
+                "Right branch starts"
+              ],
+              "stepComplexity": [
+                {
+                  "opsSoFar": 1,
+                  "opsTotal": 5,
+                  "bigO": "O(2ⁿ)",
+                  "formula": "1 of 5 recursive calls so far",
+                  "note": "Each level of recursion doubles the number of calls below it.",
+                  "line": 0,
+                  "lineOps": 1,
+                  "localBigO": "O(1)",
+                  "caseLabel": "Overall (worst case)"
+                },
+                {
+                  "opsSoFar": 2,
+                  "opsTotal": 5,
+                  "bigO": "O(2ⁿ)",
+                  "formula": "2 of 5 recursive calls so far",
+                  "note": "Each level of recursion doubles the number of calls below it.",
+                  "line": 3,
+                  "lineOps": 1,
+                  "localBigO": "O(1)",
+                  "caseLabel": "Overall (worst case)"
+                },
+                {
+                  "opsSoFar": 3,
+                  "opsTotal": 5,
+                  "bigO": "O(2ⁿ)",
+                  "formula": "3 of 5 recursive calls so far",
+                  "note": "Each level of recursion doubles the number of calls below it.",
+                  "line": 2,
+                  "lineOps": 1,
+                  "localBigO": "O(1)",
+                  "caseLabel": "Overall (worst case)"
+                },
+                {
+                  "opsSoFar": 4,
+                  "opsTotal": 5,
+                  "bigO": "O(2ⁿ)",
+                  "formula": "4 of 5 recursive calls so far",
+                  "note": "Each level of recursion doubles the number of calls below it.",
+                  "line": 2,
+                  "lineOps": 1,
+                  "localBigO": "O(1)",
+                  "caseLabel": "Overall (worst case)"
+                },
+                {
+                  "opsSoFar": 5,
+                  "opsTotal": 5,
+                  "bigO": "O(2ⁿ)",
+                  "formula": "5 of 5 recursive calls so far",
+                  "note": "Each level of recursion doubles the number of calls below it.",
+                  "line": 3,
+                  "lineOps": 1,
+                  "localBigO": "O(1)",
+                  "caseLabel": "Overall (worst case)"
+                }
+              ],
+              "codeLines": [
+                "def fib(n):",
+                "    if n <= 1:",
+                "        return n",
+                "    return fib(n - 1) + fib(n - 2)"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "o-n-factorial",
+          "title": "O(n!) Factorial Time",
+          "content": "**Description:** The slowest common class -- generating every possible ordering of n items.\n\n**Example:** Brute-force Traveling Salesman, generating all permutations.\n\n**Loop:** Recursive backtracking that generates every arrangement.",
+          "chart": {
+            "title": "O(n!) Factorial Time Growth",
+            "description": "Usable only for tiny inputs.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n!)"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "special-cases",
+      "type": "deep_dive",
+      "title": "Special Case Big-O Notations",
+      "content": "The analyzer also detects a handful of specialized growth patterns:",
+      "subsections": [
+        {
+          "id": "o-sqrt-n",
+          "title": "O(sqrt n) Square Root Time",
+          "content": "**Description:** Scales with the square root of n -- sits between logarithmic and linear.\n\n**Example:** Primality testing by checking factors up to √n.\n\n**Loop:** Condition like `while i * i <= n`.",
+          "chart": {
+            "title": "O(sqrt n) Square Root Growth",
+            "description": "Between O(log n) and O(n).",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(sqrt n)"
+            ]
+          }
+        },
+        {
+          "id": "o-n-m",
+          "title": "O(n * m) Multi-Variable Time",
+          "content": "**Description:** Bound by two different input sizes instead of one.\n\n**Example:** Processing a rows × columns matrix, comparing two strings of different lengths.\n\n**Loop:** Outer loop of n, inner loop of m.",
+          "chart": {
+            "title": "Multi-Variable Growth Representation",
+            "description": "Looks quadratic when n ≈ m.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n^2)"
+            ]
+          }
+        },
+        {
+          "id": "o-v-e",
+          "title": "O(V + E) Graph Traversal Time",
+          "content": "**Description:** The standard metric for graph algorithms -- scales with Vertices (V) plus Edges (E).\n\n**Example:** BFS and DFS over an adjacency list.\n\n**Loop:** A queue/stack loop over nodes (V), with a nested loop over each node's neighbors (E).",
+          "chart": {
+            "title": "Graph Traversal Growth",
+            "description": "Roughly linear in graph size.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n)"
+            ]
+          }
+        },
+        {
+          "id": "o-euclidean",
+          "title": "O(log min(a, b)) Euclidean Modulo Time",
+          "content": "**Description:** A fast logarithmic reduction from repeatedly applying modulo to two numbers.\n\n**Example:** Euclid's GCD algorithm.\n\n**Loop:** Recursion or a `while` loop swapping in the remainder each step.",
+          "chart": {
+            "title": "Euclidean Reduction Growth",
+            "description": "Scales against the smaller input.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(log n)"
+            ]
+          }
+        },
+        {
+          "id": "o-log-quadratic",
+          "title": "O(n² log n) Log-Quadratic Time",
+          "content": "**Description:** A quadratic pass combined with a logarithmic step, like sorting inside a nested loop.\n\n**Example:** Sorting every row of a matrix, some computational-geometry algorithms.\n\n**Loop:** Nested O(n²) loop with an O(log n) operation inside.",
+          "chart": {
+            "title": "O(n² log n) Log-Quadratic Growth",
+            "description": "Slightly worse than pure quadratic.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n^2 log n)"
+            ]
+          }
+        },
+        {
+          "id": "o-polynomial-d",
+          "title": "O(n^d) Higher Polynomial Time",
+          "content": "**Description:** Any polynomial with exponent d > 3 -- rarely usable in practice.\n\n**Example:** Brute-force combination generation, over-dimensioned DP tables.\n\n**Loop:** Four or more nested loops, all scaling with n.",
+          "chart": {
+            "title": "Higher Polynomial Growth",
+            "description": "Deep nested loops, rapid blow-up.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n^4)"
+            ]
+          }
+        },
+        {
+          "id": "o-n-n-factorial",
+          "title": "O(n * n!) Extreme Factorial Time",
+          "content": "**Description:** Factorial growth multiplied by an extra linear pass, e.g. copying data on every permutation.\n\n**Example:** Combinatorial generation with a full array copy at each step.\n\n**Loop:** A recursive factorial generator wrapped in an extra linear loop.",
+          "chart": {
+            "title": "O(n * n!) Extreme Factorial Growth",
+            "description": "The worst practical anti-pattern.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": [
+              "O(n!)"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "space-complexity",
+      "type": "concept",
+      "title": "Understanding Space Complexity",
+      "content": "Space complexity is the extra memory an algorithm uses relative to n. It matters just as much as time -- a system might have plenty of CPU but very little RAM, or vice versa.",
+      "subsections": [
+        {
+          "id": "space-why-matters",
+          "title": "Why Space Complexity Matters",
+          "content": "Mobile and embedded systems have tight RAM limits. Big-data algorithms can crash a system through excessive allocation. And time/space are often a trade-off: memoization spends memory to save time; an in-place algorithm does the reverse."
+        },
+        {
+          "id": "types-of-space",
+          "title": "Types of Space",
+          "content": "**Fixed part:** independent of n -- loop counters, primitive pointers. O(1). **Variable part:** scales with n -- new arrays, hash maps, or the call stack in recursion. Usually O(n) or O(n²)."
+        },
+        {
+          "id": "in-place-memory",
+          "title": "In-Place Execution and The Call Stack",
+          "content": "In-place algorithms modify existing data directly, using O(1) extra memory (e.g. swapping in an array). Recursive algorithms, though, push a frame onto the call stack per call -- often adding O(log n) or O(n) hidden memory cost."
+        }
+      ]
+    },
+    {
+      "id": "pitfalls-and-misconceptions",
+      "type": "key_concept",
+      "title": "Pitfalls & Misconceptions",
+      "content": "A few traps beginners fall into:",
+      "subsections": [
+        {
+          "id": "pitfall-constants",
+          "title": "Misconception: Constants Never Matter",
+          "content": "Big-O ignores constants asymptotically, but on small inputs a well-tuned O(n²) can beat a sloppy O(n log n). For small, fixed-size or embedded workloads, constant-factor overhead still matters."
+        },
+        {
+          "id": "pitfall-average",
+          "title": "Misconception: Average Case is the 'Typical' Case",
+          "content": "Θ assumes uniformly random input, but real data rarely is. Partially-sorted or clustered inputs can push actual performance closer to best- or worst-case."
+        },
+        {
+          "id": "pitfall-addition",
+          "title": "Misconception: O(f(n) + g(n)) Simply Drops the Smaller Term",
+          "content": "Mathematically true (O(n² + n) → O(n²)), but if the dropped term is something expensive in the real world (disk I/O, network calls), ignoring it can hide a real bottleneck."
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "title": "Lesson Summary",
+      "content": "Algorithm analysis measures efficiency in time (steps) and space (memory) as functions of input size -- the shared language for comparing algorithms and predicting how they'll behave at scale.",
+      "subsections": [
+        {
+          "id": "sum-key-takeaways",
+          "title": "Key Takeaways",
+          "content": "Keep these in mind:",
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-1-1-sum-key-takeaways.svg",
+              "alt": "Key Takeaways: The analyzer always evaluates Worst-Case (Big-O) -- a guaranteed performance ceiling.; Drop constants and non-dominant terms to find the true growth trend.; One loop ≈ O(n). Nested loops ≈ O(n²). Multiply/divide loops ≈ O(log n).; Special structures (grids, graphs, modulo math) produce classes like O(V + E) or O(n * m).; Don't forget space -- new lists or deep recursion can crash a system just as easily as slow time can.."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "title": "GeeksforGeeks — Big-O Notation",
+      "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/"
+    },
+    {
+      "title": "Programiz — Time Complexity",
+      "url": "https://www.programiz.com/dsa/time-complexity"
+    },
+    {
+      "title": "MIT OpenCourseWare — Introduction to Algorithms",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
+    }
+  ]
+}

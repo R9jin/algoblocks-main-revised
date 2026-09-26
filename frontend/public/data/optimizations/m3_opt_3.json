@@ -1,0 +1,634 @@
+{
+  "type": "algoblocks_project",
+  "version": "1.0",
+  "title": "algoblocks_workspace",
+  "blocklyJson": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defnoreturn",
+          "id": "cd2fc51c-3a2f-4",
+          "x": 20,
+          "y": 20,
+          "extraState": {
+            "params": [
+              {
+                "name": "arr",
+                "id": "arr"
+              },
+              {
+                "name": "target",
+                "id": "target"
+              },
+              {
+                "name": "low",
+                "id": "low"
+              },
+              {
+                "name": "high",
+                "id": "high"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "search_optimized"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "controls_if",
+                "id": "6914f5c3-7c53-4",
+                "inputs": {
+                  "IF0": {
+                    "block": {
+                      "type": "logic_compare",
+                      "id": "61e198fe-b415-4",
+                      "fields": {
+                        "OP": "EQ"
+                      },
+                      "inputs": {
+                        "A": {
+                          "block": {
+                            "type": "variables_get",
+                            "id": "53077beb-2a70-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "high"
+                              }
+                            }
+                          }
+                        },
+                        "B": {
+                          "block": {
+                            "type": "logic_null",
+                            "id": "bc8582f4-534b-4"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "DO0": {
+                    "block": {
+                      "type": "variables_set",
+                      "id": "6b7b8d66-69d5-4",
+                      "fields": {
+                        "VAR": {
+                          "id": "high"
+                        }
+                      },
+                      "inputs": {
+                        "VALUE": {
+                          "block": {
+                            "type": "math_arithmetic",
+                            "id": "a42f1d15-e7cd-4",
+                            "fields": {
+                              "OP": "MINUS"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "lists_length",
+                                  "id": "fbda7fa6-52b8-4",
+                                  "inputs": {
+                                    "VALUE": {
+                                      "block": {
+                                        "type": "variables_get",
+                                        "id": "8b29a3af-fb3c-4",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "arr"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "math_number",
+                                  "id": "c4991bf7-cb5f-4",
+                                  "fields": {
+                                    "NUM": 1
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "controls_if",
+                    "id": "ffc5afe5-1da5-4",
+                    "inputs": {
+                      "IF0": {
+                        "block": {
+                          "type": "logic_compare",
+                          "id": "e03a3096-1d2a-4",
+                          "fields": {
+                            "OP": "GT"
+                          },
+                          "inputs": {
+                            "A": {
+                              "block": {
+                                "type": "variables_get",
+                                "id": "f0c65ac6-2691-4",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "low"
+                                  }
+                                }
+                              }
+                            },
+                            "B": {
+                              "block": {
+                                "type": "variables_get",
+                                "id": "a065e4b7-e7e7-4",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "high"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "DO0": {
+                        "block": {
+                          "type": "procedure_return_value",
+                          "id": "b4819535-9d43-4",
+                          "inputs": {
+                            "VALUE": {
+                              "block": {
+                                "type": "math_number",
+                                "id": "716741fd-901c-4",
+                                "fields": {
+                                  "NUM": -1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "block": {
+                        "type": "variables_set",
+                        "id": "e087fb89-1006-4",
+                        "fields": {
+                          "VAR": {
+                            "id": "mid"
+                          }
+                        },
+                        "inputs": {
+                          "VALUE": {
+                            "block": {
+                              "type": "math_advanced_operators",
+                              "id": "854d996e-a43a-4",
+                              "fields": {
+                                "OP": "FLOOR_DIV"
+                              },
+                              "inputs": {
+                                "A": {
+                                  "block": {
+                                    "type": "math_arithmetic",
+                                    "id": "c70f4969-9267-4",
+                                    "fields": {
+                                      "OP": "ADD"
+                                    },
+                                    "inputs": {
+                                      "A": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "6b890919-78ef-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "low"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "B": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "19e1612c-037c-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "high"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "B": {
+                                  "block": {
+                                    "type": "math_number",
+                                    "id": "cec70f19-e40b-4",
+                                    "fields": {
+                                      "NUM": 2
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "next": {
+                          "block": {
+                            "type": "controls_if",
+                            "id": "bdd48207-2322-4",
+                            "extraState": {
+                              "hasElse": true
+                            },
+                            "inputs": {
+                              "IF0": {
+                                "block": {
+                                  "type": "logic_compare",
+                                  "id": "e690969a-0204-4",
+                                  "fields": {
+                                    "OP": "EQ"
+                                  },
+                                  "inputs": {
+                                    "A": {
+                                      "block": {
+                                        "type": "lists_getIndex",
+                                        "id": "63a7ae30-8fda-4",
+                                        "fields": {
+                                          "MODE": "GET",
+                                          "WHERE": "FROM_START"
+                                        },
+                                        "inputs": {
+                                          "VALUE": {
+                                            "block": {
+                                              "type": "variables_get",
+                                              "id": "fda36427-a0de-4",
+                                              "fields": {
+                                                "VAR": {
+                                                  "id": "arr"
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "AT": {
+                                            "block": {
+                                              "type": "variables_get",
+                                              "id": "90687ccb-2dd1-4",
+                                              "fields": {
+                                                "VAR": {
+                                                  "id": "mid"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "B": {
+                                      "block": {
+                                        "type": "variables_get",
+                                        "id": "1799b7c3-f005-4",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "target"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "DO0": {
+                                "block": {
+                                  "type": "procedure_return_value",
+                                  "id": "1346bba0-8c2e-4",
+                                  "inputs": {
+                                    "VALUE": {
+                                      "block": {
+                                        "type": "variables_get",
+                                        "id": "3dde24cc-33d9-4",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "mid"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "ELSE": {
+                                "block": {
+                                  "type": "controls_if",
+                                  "id": "134f5513-dd1b-4",
+                                  "extraState": {
+                                    "hasElse": true
+                                  },
+                                  "inputs": {
+                                    "IF0": {
+                                      "block": {
+                                        "type": "logic_compare",
+                                        "id": "06055477-f383-4",
+                                        "fields": {
+                                          "OP": "GT"
+                                        },
+                                        "inputs": {
+                                          "A": {
+                                            "block": {
+                                              "type": "lists_getIndex",
+                                              "id": "37b8c560-d12f-4",
+                                              "fields": {
+                                                "MODE": "GET",
+                                                "WHERE": "FROM_START"
+                                              },
+                                              "inputs": {
+                                                "VALUE": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "40245581-8a44-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "arr"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "AT": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "87e406f2-bda1-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "mid"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "B": {
+                                            "block": {
+                                              "type": "variables_get",
+                                              "id": "c2dbb777-62a7-4",
+                                              "fields": {
+                                                "VAR": {
+                                                  "id": "target"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "DO0": {
+                                      "block": {
+                                        "type": "procedure_return_value",
+                                        "id": "e2d9dfef-3042-4",
+                                        "inputs": {
+                                          "VALUE": {
+                                            "block": {
+                                              "type": "procedures_callreturn",
+                                              "id": "5dbb4860-6ab5-4",
+                                              "extraState": {
+                                                "name": "search_optimized",
+                                                "params": [
+                                                  "arg0",
+                                                  "arg1",
+                                                  "arg2",
+                                                  "arg3"
+                                                ]
+                                              },
+                                              "inputs": {
+                                                "ARG0": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "27279d2a-999c-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "arr"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "ARG1": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "3699e460-f448-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "target"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "ARG2": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "d204ba96-1e02-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "low"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "ARG3": {
+                                                  "block": {
+                                                    "type": "math_arithmetic",
+                                                    "id": "f5c44c45-fb1e-4",
+                                                    "fields": {
+                                                      "OP": "MINUS"
+                                                    },
+                                                    "inputs": {
+                                                      "A": {
+                                                        "block": {
+                                                          "type": "variables_get",
+                                                          "id": "3642f8d0-454d-4",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "mid"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "B": {
+                                                        "block": {
+                                                          "type": "math_number",
+                                                          "id": "5d447df2-dc03-4",
+                                                          "fields": {
+                                                            "NUM": 1
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "ELSE": {
+                                      "block": {
+                                        "type": "procedure_return_value",
+                                        "id": "f8e44d8d-50d9-4",
+                                        "inputs": {
+                                          "VALUE": {
+                                            "block": {
+                                              "type": "procedures_callreturn",
+                                              "id": "c0538cda-878c-4",
+                                              "extraState": {
+                                                "name": "search_optimized",
+                                                "params": [
+                                                  "arg0",
+                                                  "arg1",
+                                                  "arg2",
+                                                  "arg3"
+                                                ]
+                                              },
+                                              "inputs": {
+                                                "ARG0": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "2e956115-b777-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "arr"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "ARG1": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "b7f217f3-5f82-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "target"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "ARG2": {
+                                                  "block": {
+                                                    "type": "math_arithmetic",
+                                                    "id": "3afec9f9-3930-4",
+                                                    "fields": {
+                                                      "OP": "ADD"
+                                                    },
+                                                    "inputs": {
+                                                      "A": {
+                                                        "block": {
+                                                          "type": "variables_get",
+                                                          "id": "d4ab3a9b-056f-4",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "mid"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "B": {
+                                                        "block": {
+                                                          "type": "math_number",
+                                                          "id": "b360c182-fa14-4",
+                                                          "fields": {
+                                                            "NUM": 1
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "ARG3": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "250c75a5-1dc6-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "high"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "high",
+        "id": "high"
+      },
+      {
+        "name": "low",
+        "id": "low"
+      },
+      {
+        "name": "arr",
+        "id": "arr"
+      },
+      {
+        "name": "target",
+        "id": "target"
+      },
+      {
+        "name": "mid",
+        "id": "mid"
+      },
+      {
+        "name": "arg0",
+        "id": ";y:*%z`ix}WwDe,e:z/1"
+      },
+      {
+        "name": "arg1",
+        "id": "Jqdhk4/rI_inqt|A8RSZ"
+      },
+      {
+        "name": "arg2",
+        "id": "}E2|WR?{tqM+0[.,kAUY"
+      },
+      {
+        "name": "arg3",
+        "id": "*f0u)e+A;f0[%B-G/)`S"
+      }
+    ],
+    "backpack": []
+  },
+  "pythonCode": "def search_optimized(arr, target, low, high):\n    if high == None:\n        high = len(arr) - 1\n\n    if low > high:\n        return -1\n    mid = (low + high) // 2\n\n    if arr[mid] == target:\n        return mid\n    else:\n        if arr[mid] > target:\n            return search_optimized(arr, target, low, mid - 1)\n        else:\n            return search_optimized(arr, target, mid + 1, high)"
+}

@@ -1,0 +1,194 @@
+{
+  "type": "algoblocks_project",
+  "version": "1.0",
+  "title": "algoblocks_workspace",
+  "blocklyJson": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "a5ff0cd2-7100-4",
+          "x": 20,
+          "y": 20,
+          "extraState": {
+            "params": [
+              {
+                "name": "n",
+                "id": "n"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "fast_sum"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "variables_set",
+                "id": "661c0cf2-d347-4",
+                "fields": {
+                  "VAR": {
+                    "id": "total"
+                  }
+                },
+                "inputs": {
+                  "VALUE": {
+                    "block": {
+                      "type": "math_number",
+                      "id": "41138a24-f6ee-4",
+                      "fields": {
+                        "NUM": 0
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "controls_for",
+                    "id": "d5c4e165-92d1-4",
+                    "fields": {
+                      "VAR": {
+                        "id": "i"
+                      }
+                    },
+                    "inputs": {
+                      "FROM": {
+                        "block": {
+                          "type": "math_number",
+                          "id": "339a5ac7-93a7-4",
+                          "fields": {
+                            "NUM": 1
+                          }
+                        }
+                      },
+                      "TO": {
+                        "block": {
+                          "type": "math_arithmetic",
+                          "id": "5bedef6b-13b6-4",
+                          "fields": {
+                            "OP": "ADD"
+                          },
+                          "inputs": {
+                            "A": {
+                              "block": {
+                                "type": "type_cast_int",
+                                "id": "0257df85-7d3d-4",
+                                "inputs": {
+                                  "VALUE": {
+                                    "block": {
+                                      "type": "variables_get",
+                                      "id": "457f6b37-1e40-4",
+                                      "fields": {
+                                        "VAR": {
+                                          "id": "n"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "B": {
+                              "block": {
+                                "type": "math_number",
+                                "id": "059a2d49-2ea9-4",
+                                "fields": {
+                                  "NUM": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "BY": {
+                        "block": {
+                          "type": "math_number",
+                          "id": "95f0943c-80d2-4",
+                          "fields": {
+                            "NUM": 1
+                          }
+                        }
+                      },
+                      "DO": {
+                        "block": {
+                          "type": "math_assignment",
+                          "id": "966a6068-fc46-4",
+                          "fields": {
+                            "VAR": {
+                              "id": "total"
+                            },
+                            "OP": "ADD"
+                          },
+                          "inputs": {
+                            "DELTA": {
+                              "block": {
+                                "type": "variables_get",
+                                "id": "1b1c94b5-f6a1-4",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "i"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "type_cast_advanced",
+                "id": "de6ebed5-2a01-4",
+                "fields": {
+                  "TYPE": "float"
+                },
+                "inputs": {
+                  "VALUE": {
+                    "block": {
+                      "type": "variables_get",
+                      "id": "cfe0b294-22f0-4",
+                      "fields": {
+                        "VAR": {
+                          "id": "total"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "n",
+        "id": "n"
+      },
+      {
+        "name": "total",
+        "id": "total"
+      },
+      {
+        "name": "i",
+        "id": "i"
+      }
+    ],
+    "backpack": []
+  },
+  "pythonCode": "def fast_sum(n):\n    total = 0\n\n    for i in range(1, int(n) + 1):\n        total += i\n\n    return float(total)"
+}

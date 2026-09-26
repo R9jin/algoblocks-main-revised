@@ -1,0 +1,704 @@
+{
+  "lesson_1": [
+    {
+      "id": "m0_l1_a1",
+      "title": "Workspace Introduction",
+      "difficulty": "Beginner",
+      "task": [
+        "Welcome to the AlgoBlocks workspace. This initial module introduces the visual programming interface. We will begin by constructing a foundational function that returns a static text string.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Text: Text (String Literal)",
+        "1. Open the 'Functions' tab and , extract a function block containing a return slot. Assign it the name 'hello'.",
+        "2. Open the 'Text' tab, retrieve a standard text block, and input the string 'Hello World'.",
+        "3. Attach the text block to the function's return slot.",
+        "4. 💡 Workspace Tip: If you make a mistake, simply drag the incorrect block to the Trash Can icon in the corner, or right-click the block and select 'Delete'.",
+        "5. Observe the Python Code tab to monitor the real-time translation of your visual blocks into standard syntax.",
+        "Sample Output:",
+        "hello() → 'Hello World'"
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": false,
+      "testCasesPool": [
+        {
+          "call": "hello()",
+          "expected": "'Hello World'",
+          "isHidden": false
+        },
+        {
+          "call": "hello()",
+          "expected": "'Hello World'",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l1_a2",
+      "title": "String Outputs",
+      "difficulty": "Beginner",
+      "task": [
+        "String manipulation is a fundamental component of software development. This exercise demonstrates how to construct a function that returns a specific character sequence.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Text: Text (String Literal)",
+        "1. Open the 'Functions' tab, initialize a new return function, and assign it the name 'draw_star'.",
+        "2. Retrieve a text block from the 'Text' tab and input the sequence '***'.",
+        "3. Attach the text block to the return slot.",
+        "4. Verify the generated output within the Python Code tab.",
+        "",
+        "Sample Output:",
+        "draw_star() → '***'"
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": false,
+      "testCasesPool": [
+        {
+          "call": "draw_star()",
+          "expected": "'***'",
+          "isHidden": false
+        },
+        {
+          "call": "draw_star()",
+          "expected": "'***'",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l1_a3",
+      "title": "Parameter Handling",
+      "difficulty": "Beginner",
+      "task": [
+        "Functions utilize parameters to process dynamic inputs. This activity demonstrates parameter implementation through a basic addition operation.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Math: Arithmetic (+ − × ÷)",
+        "1. Create a function named 'add'. Select the configuration icon on the function block to define two input parameters: 'a' and 'b'.",
+        "2. Navigate to the 'Math' tab and extract an addition block (+).",
+        "3. Open the 'Variables' tab, retrieve the 'a' and 'b' parameter blocks, and insert them into the addition block.",
+        "4. Attach the completed mathematical expression to the return slot.",
+        "",
+        "Sample Outputs:",
+        "add(5, 3) → 8",
+        "add(10, 20) → 30"
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        {
+          "call": "add(5, 3)",
+          "expected": "8",
+          "isHidden": false
+        },
+        {
+          "call": "add(10, 20)",
+          "expected": "30",
+          "isHidden": false
+        },
+        {
+          "call": "add(0, 0)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "add(-5, 15)",
+          "expected": "10",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l1_a4",
+      "title": "String Concatenation",
+      "difficulty": "Beginner",
+      "task": [
+        "String concatenation allows multiple text segments and variables to be merged into a single sequential string.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Text: Join Text | Text: Text (String Literal)",
+        "1. Create a function named 'greet' containing a single parameter named 'name'.",
+        "2. Open the 'Text' tab and extract the 'create text with' block.",
+        "3. Insert a standard text block containing 'Hi ' into the first slot, and the 'name' variable block into the second slot.",
+        "4. Return the concatenated string.",
+        "",
+        "Sample Outputs:",
+        "greet('Alice') → 'Hi Alice'",
+        "greet('Bob') → 'Hi Bob'"
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        {
+          "call": "greet('Alice')",
+          "expected": "'Hi Alice'",
+          "isHidden": false
+        },
+        {
+          "call": "greet('Bob')",
+          "expected": "'Hi Bob'",
+          "isHidden": false
+        },
+        {
+          "call": "greet('Charlie')",
+          "expected": "'Hi Charlie'",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l1_a5",
+      "title": "Array Initialization",
+      "difficulty": "Beginner",
+      "task": [
+        "An array, or list, is a sequential data structure utilized to store multiple elements within a single memory reference.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Lists: Create List With",
+        "1. Create a function named 'get_numbers'.",
+        "2. Navigate to the 'Lists' tab and extract a 'create list with' block.",
+        "3. Insert three numerical blocks (1, 2, and 3) from the 'Math' tab into the list slots.",
+        "4. Return the initialized array.",
+        "",
+        "Sample Output:",
+        "get_numbers() → [1, 2, 3]"
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": false,
+      "testCasesPool": [
+        {
+          "call": "get_numbers()",
+          "expected": "[1, 2, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "get_numbers()",
+          "expected": "[1, 2, 3]",
+          "isHidden": true
+        }
+      ]
+    }
+  ],
+  "lesson_2": [
+    {
+      "id": "m0_l2_a1",
+      "title": "Variable Assignment",
+      "difficulty": "Beginner",
+      "task": [
+        "Variables act as named memory references where data can be stored, retrieved, and modified during program execution.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return)",
+        "1. Create a function named 'store_data'.",
+        "2. Open the 'Variables' tab and select 'Create variable...'. Assign it the name 'x'.",
+        "3. Extract the 'set x to' block and assign it the numerical value 100.",
+        "4. Retrieve the 'x' variable block and attach it to the function's return slot.",
+        "",
+        "Sample Output:",
+        "store_data() → 100"
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": false,
+      "testCasesPool": [
+        {
+          "call": "store_data()",
+          "expected": "100",
+          "isHidden": false
+        },
+        {
+          "call": "store_data()",
+          "expected": "100",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l2_a2",
+      "title": "Conditional Logic",
+      "difficulty": "Beginner",
+      "task": [
+        "Conditional statements allow functions to execute specific code paths based on logical Boolean evaluations.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else",
+        "1. Define a function named 'is_positive' with a parameter 'n'.",
+        "2. Navigate to the 'Logic' tab and extract an 'if / do' block. Select the configuration icon on the block to append an 'else' segment.",
+        "3. Retrieve a comparison block from the 'Logic' tab to evaluate if 'n > 0'.",
+        "4. If the condition evaluates to true, return the string 'Yes'. Within the 'else' segment, return the string 'No'.",
+        "",
+        "Sample Outputs:",
+        "is_positive(5) → 'Yes'",
+        "is_positive(-2) → 'No'"
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        {
+          "call": "is_positive(5)",
+          "expected": "'Yes'",
+          "isHidden": false
+        },
+        {
+          "call": "is_positive(-2)",
+          "expected": "'No'",
+          "isHidden": false
+        },
+        {
+          "call": "is_positive(0)",
+          "expected": "'No'",
+          "isHidden": false
+        },
+        {
+          "call": "is_positive(99)",
+          "expected": "'Yes'",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l2_a3",
+      "title": "Iteration Basics",
+      "difficulty": "Beginner",
+      "task": [
+        "Iteration, or looping, allows a sequence of instructions to be executed repeatedly without writing redundant code structures.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Variables: Set Variable | Math: Compound Assignment (+=, -=, *=, /=)",
+        "1. Create a function named 'repeat_five'.",
+        "2. Initialize a variable named 'total' and assign it a value of 0.",
+        "3. Open the 'Loops' tab and extract a 'repeat 5 times' block.",
+        "4. Within the loop, navigate to the 'Math' tab and utilize the variable modification block to increment 'total' by 1 during each iteration.",
+        "5. Return the 'total' variable after the loop terminates.",
+        "",
+        "Sample Output:",
+        "repeat_five() → 5"
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": false,
+      "testCasesPool": [
+        {
+          "call": "repeat_five()",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "repeat_five()",
+          "expected": "5",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l2_a4",
+      "title": "Defensive Programming: Safe Array Access",
+      "difficulty": "Beginner",
+      "task": [
+        "Attempting to read data from an empty array will crash your program. Professional developers use 'Defensive Programming' to check if data exists before trying to use it.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else | Lists: Length Of List | Lists: Get Item At Index",
+        "1. Create a function named `safe_first_item(arr)`.",
+        "2. Drag in an `If / Else` block from the Logic tab.",
+        "3. Set the condition to check: `length of list arr > 0`.",
+        "4. If true, return the first item of the array (index 0).",
+        "5. Else (if the array is empty), return the text string 'Empty'."
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "safe_first_item([10, 20, 30])",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "safe_first_item(['Apple', 'Banana'])",
+          "expected": "'Apple'",
+          "isHidden": false
+        },
+        {
+          "call": "safe_first_item([])",
+          "expected": "'Empty'",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l2_a5",
+      "title": "Array Appending",
+      "difficulty": "Beginner",
+      "task": [
+        "Dynamic arrays allow new elements to be inserted after initialization. Modifying the array by adding an item to the end is formally referred to as appending.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Lists: Append To List",
+        "1. Create a function 'add_zero' containing the parameter 'arr'.",
+        "2. Open the 'Lists' tab and extract the 'append' block.",
+        "3. Configure the block to append the numerical value 0 to 'arr'.",
+        "4. Return the modified 'arr' variable.",
+        "",
+        "Sample Outputs:",
+        "add_zero([1, 2]) → [1, 2, 0]",
+        "add_zero([]) → [0]"
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        {
+          "call": "add_zero([1, 2])",
+          "expected": "[1, 2, 0]",
+          "isHidden": false
+        },
+        {
+          "call": "add_zero([])",
+          "expected": "[0]",
+          "isHidden": false
+        },
+        {
+          "call": "add_zero([99, 100])",
+          "expected": "[99, 100, 0]",
+          "isHidden": true
+        }
+      ]
+    }
+  ],
+  "lesson_3": [
+    {
+      "id": "m0_l3_a1",
+      "title": "Constant Time Evaluation",
+      "difficulty": "Beginner",
+      "task": [
+        "The Complexity tab evaluates the execution efficiency of your function. Operations that execute in a fixed sequence, regardless of input size, are classified by the static analyzer as O(1) constant time.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return)",
+        "1. Create a function 'fast_math' containing the parameter 'n'.",
+        "2. Construct an expression to return the value of 'n * 2'.",
+        "3. Observe the Complexity tab. The metric resolves to O(1) because a singular mathematical operation requires constant execution time."
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        {
+          "call": "fast_math(5)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "fast_math(10)",
+          "expected": "20",
+          "isHidden": false
+        }
+      ]
+    },
+    {
+      "id": "m0_l3_a2",
+      "title": "Linear Time Evaluation",
+      "difficulty": "Beginner",
+      "task": [
+        "A loop that iterates 'n' times scales computationally in direct proportion to the input size. The static analyzer classifies this execution pattern as O(n) linear time.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Loops: Count With (For Loop) | Variables: Set Variable | Math: Compound Assignment (+=, -=, *=, /=)",
+        "1. Create a function 'loop_test' containing the parameter 'n'.",
+        "2. Initialize a variable 'total' and assign it a value of 0.",
+        "3. Construct a loop configured to repeat 'n' times.",
+        "4. Within the loop, increment the 'total' variable by 1.",
+        "5. Return the 'total' variable. Review the Complexity tab to observe the transition to an O(n) score."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        {
+          "call": "loop_test(5)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "loop_test(3)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "loop_test(12)",
+          "expected": "12",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l3_a3",
+      "title": "Quadratic Time Evaluation",
+      "difficulty": "Beginner",
+      "task": [
+        "Nested iteration exponentially increases computational work. If an outer loop and an inner loop both iterate 'n' times, the time complexity degrades to O(n²).",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Loops: Count With (For Loop) | Math: Compound Assignment (+=, -=, *=, /=)",
+        "1. Create a function 'double_loop' containing the parameter 'n'. Initialize a 'total' variable to 0.",
+        "2. Construct an outer loop configured to repeat 'n' times.",
+        "3. Insert a secondary loop inside the first one, also configured to repeat 'n' times.",
+        "4. Increment the 'total' variable by 1 within the inner loop.",
+        "5. Return the 'total' variable. Review the Complexity tab to observe the O(n²) classification."
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        {
+          "call": "double_loop(3)",
+          "expected": "9",
+          "isHidden": false
+        },
+        {
+          "call": "double_loop(4)",
+          "expected": "16",
+          "isHidden": false
+        },
+        {
+          "call": "double_loop(5)",
+          "expected": "25",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l3_a4",
+      "title": "Branch Evaluation",
+      "difficulty": "Beginner",
+      "task": [
+        "When analyzing conditional branches, asymptotic complexity is determined by evaluating the worst-case execution path among all potential conditions.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else",
+        "1. Create a function 'check_size' containing the parameter 'n'.",
+        "2. Implement an If/Else structure from the 'Logic' tab to evaluate if 'n > 10'.",
+        "3. Return the integer 100 if the condition is true, and 0 if the condition is false.",
+        "4. Because returning an integer operates in constant time across all paths, the static analyzer preserves an O(1) evaluation."
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        {
+          "call": "check_size(15)",
+          "expected": "100",
+          "isHidden": false
+        },
+        {
+          "call": "check_size(5)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "check_size(10)",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l3_a5",
+      "title": "Mathematical Optimization",
+      "difficulty": "Beginner",
+      "task": [
+        "Iterating through a sequence to calculate a sum results in an O(n) linear time complexity. In computer science, mathematical formulas can often replace iterative loops to improve efficiency.",
+        "We can compute the sum of a sequence in O(1) constant time by utilizing the arithmetic series formula.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Math: Arithmetic (+ − × ÷)",
+        "1. Create the function `fast_sum` with the parameter `n`.",
+        "2. Utilize the math operators to construct the formula: n * (n + 1) / 2.",
+        "3. Return the computed result. The static analyzer will evaluate this direct mathematical operation as an O(1) time complexity."
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        {
+          "call": "fast_sum(4)",
+          "expected": "10.0",
+          "isHidden": false
+        },
+        {
+          "call": "fast_sum(10)",
+          "expected": "55.0",
+          "isHidden": false
+        },
+        {
+          "call": "fast_sum(100)",
+          "expected": "5050.0",
+          "isHidden": true
+        }
+      ]
+    }
+  ],
+  "lesson_4": [
+    {
+      "id": "m0_l4_a1",
+      "title": "Constant Memory Allocation",
+      "difficulty": "Beginner",
+      "task": [
+        "Executing instructions requires physical memory. The Space Complexity meter evaluates the supplementary memory overhead requested by your algorithm.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Variables: Set Variable",
+        "1. Create a function named 'mem_test'.",
+        "2. Initialize a variable 'a' and assign it the value 50.",
+        "3. Return the variable 'a'.",
+        "4. Observe the Space Complexity meter. The allocation of a single variable evaluates to an O(1) constant space requirement."
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": false,
+      "testCasesPool": [
+        {
+          "call": "mem_test()",
+          "expected": "50",
+          "isHidden": false
+        }
+      ]
+    },
+    {
+      "id": "m0_l4_a2",
+      "title": "Static Data Structures",
+      "difficulty": "Beginner",
+      "task": [
+        "Initializing an array with a pre-defined, unchanging number of elements evaluates to an O(1) space complexity because the memory footprint remains static.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Lists: Create List With | Text: Text (String Literal)",
+        "1. Create a function named 'fixed_list'.",
+        "2. Construct a list from the 'Lists' tab containing exactly two string literals: 'Apple' and 'Banana'.",
+        "3. Return the list. Verify that the static analyzer registers an O(1) space complexity."
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": false,
+      "testCasesPool": [
+        {
+          "call": "fixed_list()",
+          "expected": "['Apple', 'Banana']",
+          "isHidden": false
+        }
+      ]
+    },
+    {
+      "id": "m0_l4_a3",
+      "title": "Linear Memory Scaling",
+      "difficulty": "Beginner",
+      "task": [
+        "Appending elements to a list relative to an input parameter 'n' causes the data structure to expand dynamically. This process scales the memory requirements linearly, yielding an O(n) space complexity.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Lists: Append To List | Loops: Count With (For Loop)",
+        "1. Create a function 'grow_list' containing the parameter 'n'. Initialize an empty list variable.",
+        "2. Construct a loop configured to repeat 'n' times.",
+        "3. Within the loop, apply the 'append' block to add the integer 1 to the list.",
+        "4. Return the list. Observe the Space meter reflecting an O(n) evaluation."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        {
+          "call": "grow_list(3)",
+          "expected": "[1, 1, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "grow_list(1)",
+          "expected": "[1]",
+          "isHidden": false
+        },
+        {
+          "call": "grow_list(5)",
+          "expected": "[1, 1, 1, 1, 1]",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l4_a4",
+      "title": "String Memory Scaling",
+      "difficulty": "Beginner",
+      "task": [
+        "String objects require memory. Concatenating characters to a string repeatedly within a loop expands the string's length proportionally, which also results in an O(n) linear space complexity.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Loops: Count With (For Loop) | Variables: Set Variable",
+        "1. Create a function 'build_text' containing the parameter 'n'. Initialize a variable with an empty text string (\"\").",
+        "2. Construct a loop configured to repeat 'n' times.",
+        "3. Within the loop, concatenate the character 'A' to the text variable.",
+        "4. Return the modified text variable to observe the O(n) space allocation."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        {
+          "call": "build_text(3)",
+          "expected": "'AAA'",
+          "isHidden": false
+        },
+        {
+          "call": "build_text(2)",
+          "expected": "'AA'",
+          "isHidden": false
+        },
+        {
+          "call": "build_text(5)",
+          "expected": "'AAAAA'",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m0_l4_a5",
+      "title": "In-Place Variable Swapping",
+      "difficulty": "Beginner",
+      "task": [
+        "To efficiently exchange variable data without explicitly requesting secondary auxiliary memory, the workspace provides an in-place swap utility.",
+        "Utilizing this native utility instructs the environment to manage the reference exchange cleanly in constant time.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Variables: Swap Two Variables",
+        "1. Create a function 'swap_test' containing parameters 'a' and 'b'.",
+        "2. Open the 'Variables' tab and extract the 'swap variable' block. Configure it to swap 'a' and 'b'.",
+        "3. Construct a return list utilizing the 'Lists' tab.",
+        "4. Insert 'a' into the first index slot and 'b' into the second index slot.",
+        "5. Return the finalized list."
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        {
+          "call": "swap_test(1, 2)",
+          "expected": "[2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "swap_test(99, 100)",
+          "expected": "[100, 99]",
+          "isHidden": false
+        },
+        {
+          "call": "swap_test(0, -5)",
+          "expected": "[-5, 0]",
+          "isHidden": true
+        }
+      ]
+    }
+  ]
+}

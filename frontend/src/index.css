@@ -1,0 +1,367 @@
+/*frontend\src\index.css*/
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;600&display=swap');
+
+:root {
+  font-family: 'Outfit', system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light;
+
+  /* --- Global glass/light theme tokens (matches the ActivityApp reward-modal
+     design language, tuned for a bright surface: soft off-white base, glass
+     surfaces, purple accent glow) --- */
+  --gb-bg-base: #F4F4F4;
+  --gb-bg-elevated: #FFFFFF;
+  --gb-glass-bg: rgba(60, 45, 118, 0.04);
+  --gb-glass-bg-strong: rgba(60, 45, 118, 0.07);
+  --gb-glass-border: rgba(60, 45, 118, 0.12);
+  --gb-accent: #6C5CE7;
+  --gb-accent-light: #7928CA;
+  --gb-text-heading: #1f2328;
+  --gb-text-secondary: #4b4b4b;
+  --gb-text-muted: #64748B;
+}
+
+html {
+  background-color: #F0EBF9;
+  /* Explicit 100% (browser default 16px) so the mobile scale-downs below
+     have a known baseline to shrink from. Nearly every font-size in this
+     codebase is in rem, so scaling this one value cascades site-wide --
+     text, and most rem-based padding/gaps, shrink together instead of
+     needing a per-component override in every stylesheet. */
+  font-size: 100%;
+}
+
+/* --- Site-wide responsive type scale ---
+   Desktop keeps the 16px baseline. Tablet and phone widths step it down
+   so headings/body copy/buttons read as "phone-sized" instead of just
+   being a desktop layout squeezed into a narrow column. Components that
+   need their own additional phone-specific tightening still do that in
+   their own stylesheet's @media block; this just lowers the shared
+   starting point everything else scales from. */
+@media (max-width: 1024px) {
+  html { font-size: 93.75%; } /* ~15px */
+}
+
+@media (max-width: 768px) {
+  html { font-size: 87.5%; } /* ~14px */
+}
+
+@media (max-width: 480px) {
+  html { font-size: 81.25%; } /* ~13px */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  color: var(--gb-text-secondary);
+
+  /* ============================================================
+     GLOBAL PURPLE MESH BACKGROUND — shared across ALL pages.
+     Matches the dashboard bento grid. Every page's own flat
+     background-color is overridden below so this mesh always
+     shows through the frosted-glass panels / modals.
+     ============================================================ */
+  background-color: #F0EBF9;
+  background-image:
+    radial-gradient(ellipse 900px 700px at 5%  -5%,  rgba(167, 99, 255, 0.45), transparent 60%),
+    radial-gradient(ellipse 700px 600px at 97%  8%,  rgba(108, 75, 231, 0.35), transparent 55%),
+    radial-gradient(ellipse 800px 600px at 50% 108%, rgba(80,  18, 148, 0.22), transparent 60%),
+    radial-gradient(ellipse 500px 400px at 85%  60%, rgba(200, 80, 240, 0.18), transparent 55%),
+    linear-gradient(175deg, #F6F2FD 0%, #EAE2F8 55%, #E0D4F7 100%);
+  background-attachment: fixed;
+}
+
+/* Thin, glassy scrollbars to match the polished light theme site-wide */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(121, 40, 202, 0.25);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(121, 40, 202, 0.4); background-clip: padding-box; }
+* { scrollbar-color: rgba(121, 40, 202, 0.3) transparent; }
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.app-header {
+  height: 60px;
+  background-color: #3C2D76;
+  color: white;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #1a252f;
+  flex-shrink: 0;
+}
+
+/* --- ADD THESE NEW STYLES --- */
+.header-left-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.save-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.save-button:hover {
+  background-color: #2980b9;
+}
+
+/* ---------------------------- */
+
+.complexity-badge {
+  background-color: #3a2661;
+  color: #2c3e50;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-weight: bold;
+}
+
+/* ... (keep the rest of your split pane styles below) ... */
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  border-right: 4px solid #ddd;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+}
+
+.workspace-area {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.code-area {
+  background-color: #282c34;
+  color: #abb2bf;
+  border-top: 4px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.complexity-area {
+  overflow-y: auto;
+  border-bottom: 4px solid #ddd;
+}
+
+.console-area {
+  background-color: #1e1e1e;
+  color: #0f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  background: #e0e0e0;
+  color: #333;
+  padding: 5px 10px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #ccc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+pre {
+  margin: 0;
+  padding: 10px;
+  font-family: "Fira Code", monospace;
+  white-space: pre-wrap;
+  overflow: auto;
+  flex: 1;
+}
+
+.run-button {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 5px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.run-button:hover {
+  background-color: #2ecc71;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th {
+  text-align: left;
+  background-color: #f0f0f0;
+  padding: 8px;
+  border-bottom: 2px solid #ccc;
+  position: sticky;
+  top: 0;
+}
+
+td {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  font-family: monospace;
+  color: #4b4b4b;
+}
+
+.gutter {
+  background-color: #4f008b;
+  background-repeat: no-repeat;
+  background-position: 50%;
+}
+
+.gutter.gutter-horizontal {
+  cursor: col-resize;
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+}
+
+.gutter.gutter-vertical {
+  cursor: row-resize;
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
+}
+
+.split {
+  display: flex;
+  flex-direction: row;
+}
+
+.left-column,
+.right-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+/* --- Dynamic Network Popup Indicator --- */
+.network-popup {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100px); /* Start hidden above the screen */
+  color: white;
+  padding: 14px 24px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  z-index: 10000;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+  opacity: 0;
+  pointer-events: none; /* Let users click through it */
+}
+
+.network-popup.faded {
+    opacity: 0.3; /* Drops the visibility so it's not distracting */
+    transform: scale(0.9) translateY(10px); /* Shrinks it slightly and pushes it down */
+    pointer-events: none; /* CRITICAL: Lets the user click right through it to the UI below */
+}
+
+/* Animation Classes controlled by React */
+.network-popup.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.network-popup.hide {
+  transform: translateX(-50%) translateY(-100px);
+  opacity: 0;
+}
+
+/* State Colors */
+.network-popup.offline {
+  background-color: #ef4444; /* Alert Red */
+}
+
+.network-popup.restored {
+  background-color: #10b981; /* Success Green */
+}
+
+/* Content Layout */
+.network-popup-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.network-popup-content strong {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 2px;
+}
+
+.network-popup-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.network-icon {
+  font-size: 1.8rem;
+}
+/* --- Top-level page fade transition (App.jsx) --- */
+/* Applied to the wrapper around <Routes> so navigating between different
+   sections of the app (e.g. Learning Path -> Activity) fades out/in
+   instead of hard-cutting. Deliberately not applied to same-section
+   navigation (activity-to-activity, lesson-to-lesson) -- see the comment
+   in App.jsx for why. */
+.route-fade-in {
+  animation: routeFadeIn 0.22s ease both;
+}
+
+.route-fade-out {
+  animation: routeFadeOut 0.15s ease both;
+}
+
+@keyframes routeFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes routeFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-fade-in,
+  .route-fade-out {
+    animation: none !important;
+  }
+}

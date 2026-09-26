@@ -1,0 +1,452 @@
+{
+  "lessonId": "lesson-2-1",
+  "moduleId": "module-2",
+  "title": "Brute Force Strategy",
+  "description": "How **brute force** solves problems by checking every possibility -- correct by construction, but expensive at scale.",
+  "difficulty": "Intermediate",
+  "estimatedTime": "24 min",
+  "prerequisites": "Space Complexity",
+  "tags": [
+    "brute force",
+    "searching",
+    "algorithm strategies",
+    "exhaustive enumeration",
+    "computational complexity"
+  ],
+  "activities": [
+    {
+      "id": "m2_l1_a1",
+      "title": "Max Finder"
+    },
+    {
+      "id": "m2_l1_a2",
+      "title": "Min Finder"
+    },
+    {
+      "id": "m2_l1_a3",
+      "title": "Sum Search"
+    },
+    {
+      "id": "m2_l1_a4",
+      "title": "Count Evens"
+    },
+    {
+      "id": "m2_l1_a5",
+      "title": "First Negative Finder"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction to Exhaustive Enumeration",
+      "content": "The most direct way to solve a problem: check every possible candidate. That's the **Brute Force** strategy.\n\nNo heuristics, no caching, no math shortcuts -- just sequential checking of every candidate until the answer is found or the search space runs out.\n\nBrute force matters because it's usually your **first correct solution**. Dynamic programming, divide-and-conquer, and greedy algorithms are often just optimized versions of an initial brute-force idea -- understanding the exhaustive version is how you spot where to optimize."
+    },
+    {
+      "id": "why-brute-force-matters",
+      "type": "concept",
+      "title": "The Engineering Value of Brute Force",
+      "content": "A brute-force implementation gives you a **trusted baseline** -- correct output on small inputs that you can check faster algorithms against.\n\nIt also makes the whole search space visible: checking every combination lets you spot redundant work and memory issues directly. And on small, bounded inputs (a 4-element config array, a tiny state machine), brute force is genuinely the right tool -- no risk, no overhead.",
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-1-why-brute-force-matters.svg",
+          "alt": "The Engineering Value of Brute Force: A correct baseline for testing faster algorithms.; Covers the full search space -- no missed edge cases.; Reliable on small, bounded datasets.; Minimal setup -- no preprocessing required.."
+        }
+      ]
+    },
+    {
+      "id": "core-idea",
+      "type": "concept",
+      "title": "The Core Mechanics of Systematic Testing",
+      "content": "The core idea: **deterministic, systematic iteration**. No jumping around based on sorted order or probability -- just sequential checking.\n\nFor arrays, that means index 0 to n-1 in order. For combinatorial problems (like finding a pair that sums to a target), it means nested loops generating every combination.\n\nBecause every candidate gets checked, brute force **mathematically guarantees** a correct answer on any finite search space -- there's no risk of an optimization heuristic skipping the right one."
+    },
+    {
+      "id": "brute-force-searching",
+      "type": "deep_dive",
+      "title": "Brute Force in Searching",
+      "content": "The classic example: **Linear Scan**. Looking for a value in an unsorted list means starting at index 0 and checking each one in turn -- the only option, since there's no sorted structure to exploit.\n\nThat's what makes it brute force: worst case, it checks 100% of the data. It stops early on a match (an easy optimization), or runs to the end and returns \"not found.\""
+    },
+    {
+      "id": "implementation-examples",
+      "type": "concept",
+      "title": "Implementation Examples",
+      "content": "Brute force leans on basic loops, tracking variables, and comparisons.\n\n**Extrema Tracking:** start a tracker at the first element, then compare each remaining element against it, updating when you find something bigger (or smaller). O(n).\n\n**Combinatorial Pairing:** an outer loop plus a nested inner loop checks every pair for a target sum. Since the inner loop runs fully for each outer step, that's O(n²).\n\n**Conditional Aggregation & Early Exit:** counting evens with a modulo check is a full O(n) pass; finding the *first* negative number can return the instant it's found, which helps average case while the worst case stays O(n).",
+      "codeSnippets": [
+        {
+          "title": "Find the maximum by checking every element",
+          "language": "python",
+          "code": "def find_max(arr):\n    if len(arr) == 0:\n        return 'Error'\n\n    max_value = arr[0]\n    for value in arr:\n        if value > max_value:\n            max_value = value\n\n    return max_value\n\nprint(find_max([32, 45, 28, 47, 39]))"
+        },
+        {
+          "title": "Find the minimum with one sequential pass",
+          "language": "python",
+          "code": "def find_min(arr):\n    if len(arr) == 0:\n        return 'Error'\n\n    min_value = arr[0]\n    for value in arr:\n        if value < min_value:\n            min_value = value\n\n    return min_value\n\nprint(find_min([3, 1, 9, 2]))"
+        },
+        {
+          "title": "Count even values through exhaustive checking",
+          "language": "python",
+          "code": "def count_evens(arr):\n    count = 0\n\n    for value in arr:\n        if value % 2 == 0:\n            count += 1\n\n    return count\n\nprint(count_evens([1, 2, 3, 4, 5, 6]))"
+        },
+        {
+          "title": "Check every pair for a target sum",
+          "language": "python",
+          "code": "def has_pair_sum(arr, target):\n    for i in range(len(arr)):\n        for j in range(i + 1, len(arr)):\n            if arr[i] + arr[j] == target:\n                return True\n\n    return False\n\nprint(has_pair_sum([2, 4, 7, 11], 13))"
+        }
+      ]
+    },
+    {
+      "id": "exhaustive-search",
+      "type": "deep_dive",
+      "title": "Understanding Exhaustive Search",
+      "content": "Brute force is also called **exhaustive search** -- nothing is skipped, everything is checked methodically.\n\nThe cost depends on what's being enumerated: a linear scan is O(n), checking every sub-array pushes to O(n²), and checking every subset of a set is O(2^n). At n=20, that's ~1,000,000 branches; at n=40, over 1,000,000,000,000 -- a hard wall for exponential brute force.\n\nCorrectness is guaranteed. Scalability is not.",
+      "chart": {
+        "title": "Exhaustive growth as input size increases",
+        "description": "Brute force often starts linear, but combinations and nested checks push it toward quadratic or exponential.",
+        "maxN": 20,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(n^2)",
+          "O(2^n)"
+        ]
+      },
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Exhaustive Pair Checking",
+          "description": "Finding if any two numbers sum to 13 in [2, 4, 7, 11]. Every pair is checked.",
+          "steps": [
+            {
+              "array": [
+                2,
+                4,
+                7,
+                11
+              ],
+              "roles": {
+                "0": "compare",
+                "1": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                },
+                {
+                  "label": "j",
+                  "index": 1
+                }
+              ],
+              "caption": "2 + 4 = 6. Not 13.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 3,
+                "bigO": "O(n²)",
+                "formula": "1 of 3 pair checks so far",
+                "note": "Brute force checks every possible pair -- n × n combinations.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            },
+            {
+              "array": [
+                2,
+                4,
+                7,
+                11
+              ],
+              "roles": {
+                "0": "compare",
+                "2": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                },
+                {
+                  "label": "j",
+                  "index": 2
+                }
+              ],
+              "caption": "2 + 7 = 9. Not 13.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 3,
+                "bigO": "O(n²)",
+                "formula": "2 of 3 pair checks so far",
+                "note": "Brute force checks every possible pair -- n × n combinations.",
+                "line": 4,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            },
+            {
+              "array": [
+                2,
+                4,
+                7,
+                11
+              ],
+              "roles": {
+                "0": "compare",
+                "3": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "i",
+                  "index": 0
+                },
+                {
+                  "label": "j",
+                  "index": 3
+                }
+              ],
+              "caption": "2 + 11 = 13. Match found!",
+              "complexity": {
+                "opsSoFar": 3,
+                "opsTotal": 3,
+                "bigO": "O(n²)",
+                "formula": "3 of 3 pair checks so far",
+                "note": "Brute force checks every possible pair -- n × n combinations.",
+                "line": 5,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 5
+            }
+          ],
+          "codeLines": [
+            "def has_pair_sum(arr, target):",
+            "    n = len(arr)",
+            "    for i in range(n):",
+            "        for j in range(i + 1, n):",
+            "            if arr[i] + arr[j] == target:",
+            "                return True",
+            "    return False"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "backtracking-smart-brute-force",
+      "type": "deep_dive",
+      "title": "Backtracking: Smart Brute Force",
+      "content": "Generating every full candidate up front (like all N-Queens boards) can blow up memory fast. **Backtracking** fixes this: build a candidate incrementally, and the moment a partial choice fails, abandon that branch immediately instead of finishing it.\n\nThat \"choose, explore, prune, unchoose\" loop skips huge chunks of the search space before ever computing them -- exhaustive correctness, without the memory blowup.",
+      "traces": [
+        {
+          "kind": "recursionTree",
+          "title": "Backtracking Pruning",
+          "description": "Instead of building every complete combination, backtracking abandons a branch as soon as it becomes invalid.",
+          "nodes": [
+            {
+              "id": "root",
+              "parentId": null,
+              "label": "Start",
+              "revealAt": 1
+            },
+            {
+              "id": "a",
+              "parentId": "root",
+              "label": "Try Path A",
+              "revealAt": 2
+            },
+            {
+              "id": "a1",
+              "parentId": "a",
+              "label": "A-1",
+              "revealAt": 3
+            },
+            {
+              "id": "a2",
+              "parentId": "a",
+              "label": "A-2",
+              "revealAt": 4
+            },
+            {
+              "id": "b",
+              "parentId": "root",
+              "label": "Try Path B (Invalid)",
+              "revealAt": 5
+            },
+            {
+              "id": "c",
+              "parentId": "root",
+              "label": "Try Path C",
+              "revealAt": 6
+            }
+          ],
+          "stepCaptions": [
+            "Begin search.",
+            "Explore Path A.",
+            "Explore A-1 (complete).",
+            "Explore A-2 (complete).",
+            "Explore Path B. It violates a constraint immediately! PRUNED. We do not explore B-1, B-2, etc.",
+            "Skip straight to Path C."
+          ],
+          "stepComplexity": [
+            {
+              "opsSoFar": 1,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "1 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 0,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 2,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "2 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 6,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 3,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "3 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 1,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 4,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "4 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 1,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 5,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "5 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 4,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            },
+            {
+              "opsSoFar": 6,
+              "opsTotal": 6,
+              "bigO": "O(2ⁿ) pruned",
+              "formula": "6 of 6 branches explored so far",
+              "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
+              "line": 6,
+              "lineOps": 1,
+              "localBigO": "O(1)",
+              "caseLabel": "Overall (worst case)"
+            }
+          ],
+          "codeLines": [
+            "def backtrack(path, choices):",
+            "    if is_goal(path):",
+            "        return path",
+            "    for choice in choices:",
+            "        if not is_valid(path, choice):",
+            "            continue",
+            "        path.append(choice)",
+            "        backtrack(path, remaining(choices, choice))",
+            "        path.pop()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "concept",
+      "title": "Time and Space Complexity",
+      "content": "One loop over n items → O(n) time. A loop nested inside another → O(n²). Generating all subsets → O(2^n).\n\nSimple aggregations (extrema, counting) use a fixed number of trackers regardless of input size -- **O(1) space**.\n\nMore complex searches cost more: storing all candidates is O(n) space, tracking visited states can be O(n) or O(n²), and recursive combination generation needs O(depth) stack space -- watch for stack overflow if unbounded."
+    },
+    {
+      "id": "brute-force-vs-optimized",
+      "type": "real_world_connection",
+      "title": "Brute Force vs Optimized Algorithms",
+      "content": "The difference: brute force ignores data structure and just checks everything; optimized algorithms exploit structure to skip work.\n\nUnsorted array search: brute force O(n). Sort it first, then Binary Search cuts the search space in half each step -- O(log n). At 1 million items: ~1,000,000 checks vs. ~20 -- **50,000x faster**.\n\nSame story for pair-matching: brute force is O(n²) from nested loops, but a Hash Map turns the inner loop into an O(1) lookup, dropping the whole thing to O(n).\n\nUse brute force when **n is small**, **correctness matters most**, or you need a **baseline**. Use optimized algorithms when **n is large** or **performance matters**."
+    },
+    {
+      "id": "advantages-limitations",
+      "type": "concept",
+      "title": "Advantages and Limitations",
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-1-advantages-limitations-comparison.svg",
+          "alt": "Comparison: Advantages - Easy to understand and implement.; A solid correctness baseline.; Reliable on small search spaces.; Great for debugging and testing faster solutions.. Limitations - Does unnecessary work.; Scales poorly as candidates grow.; Can burn excessive time or memory.; Often impractical for large or real-time systems.."
+        }
+      ]
+    },
+    {
+      "id": "applications",
+      "type": "real_world_connection",
+      "title": "Real-World Applications",
+      "content": "Brute force shows up when input is small, correctness matters most, or optimizing just isn't worth the effort.\n\n**Password testing:** security tools try every combination in a character set -- slow, but guaranteed to find it if it's in range.\n\n**Small game AI:** Tic-Tac-Toe's state space is small enough that an AI can check every move and play perfectly.\n\n**Configuration testing:** with only a few settings, testing every combination to find a bug or best config is entirely feasible.\n\n**Competitive programming:** many beginner problems are sized specifically so a brute-force solution passes within the time limit."
+    },
+    {
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Misconceptions",
+      "subsections": [
+        {
+          "id": "always-bad",
+          "title": "Misconception: Brute force is always bad",
+          "content": "For under ~100 elements, a fancy balanced tree or hash map often costs more overhead than it saves. Brute force can genuinely be the *faster* choice at small scale -- the problem only shows up as the search space grows."
+        },
+        {
+          "id": "always-linear",
+          "title": "Misconception: Brute force is always O(n)",
+          "content": "Brute force describes a *method* (check everything), not a fixed complexity. Depending on what's enumerated, it can land at O(n²), O(n³), or even O(n!)."
+        },
+        {
+          "id": "random-guessing",
+          "title": "Misconception: Brute force means random guessing",
+          "content": "It's the opposite -- **strictly deterministic and systematic**, methodically covering every candidate with no repeats and no skips. Random guessing can miss things; brute force can't."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
+      "type": "summary",
+      "title": "Key Takeaways",
+      "images": [
+        {
+          "src": "/assets/lesson-visuals/auto/lesson-2-1-takeaways.svg",
+          "alt": "Key Takeaways: Brute force solves problems by systematically checking every candidate.; Simple, and usually guarantees correctness.; A great baseline before optimizing.; Cost depends on how many candidates get tested.; Large search spaces can make it impractical -- watch for quadratic or exponential blowup.."
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "title": "GeeksforGeeks - Brute Force Algorithm",
+      "url": "https://www.geeksforgeeks.org/introduction-to-brute-force-algorithm/"
+    },
+    {
+      "title": "Programiz - Searching Algorithms",
+      "url": "https://www.programiz.com/dsa/searching-algorithms"
+    },
+    {
+      "title": "MIT OpenCourseWare - Introduction to Algorithms",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
+    }
+  ]
+}

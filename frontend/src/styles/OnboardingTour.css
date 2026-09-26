@@ -1,0 +1,209 @@
+.tour-help-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(90, 19, 152, 0.18);
+  background: rgba(255, 255, 255, 0.92);
+  color: #5a1398;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(90, 19, 152, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.tour-help-btn:hover {
+  transform: translateY(-1px);
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(90, 19, 152, 0.14);
+}
+
+.tour-help-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* The tour needs to stay visible above every other layer in the app,
+   including page-level modals that a step's onEnter opens on purpose (e.g.
+   the Big-O reference modal, Block Explorer). Those modals use z-index:
+   9999 too, and since they mount later in the DOM than this
+   always-rendered <OnboardingTour /> (it sits above <Routes> in App.jsx),
+   equal z-index meant the modal painted on top and hid the tour's own
+   explanation bubble the instant it opened. Keeping a wide margin above
+   the app's highest in-page z-index (10000) avoids that regardless of
+   DOM order. */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 10, 21, 0.58);
+  backdrop-filter: blur(2px);
+  z-index: 1000000;
+  pointer-events: none;
+}
+
+.onboarding-highlight {
+  position: fixed;
+  z-index: 1000001;
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.85),
+    0 0 0 7px rgba(124, 92, 255, 0.30),
+    0 0 0 9999px rgba(10, 4, 28, 0.50);
+  outline: 2px solid rgba(124, 92, 255, 0.85);
+  pointer-events: none;
+  transition:
+    top    0.40s cubic-bezier(0.34, 1.56, 0.64, 1),
+    left   0.40s cubic-bezier(0.34, 1.56, 0.64, 1),
+    width  0.32s cubic-bezier(0.25, 0.8, 0.25, 1),
+    height 0.32s cubic-bezier(0.25, 0.8, 0.25, 1),
+    border-radius 0.22s ease;
+  will-change: top, left, width, height;
+}
+
+.onboarding-bubble {
+  position: fixed;
+  z-index: 1000002;
+  width: min(360px, calc(100vw - 32px));
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1.5px solid rgba(255, 255, 255, 0.78);
+  border-radius: 20px;
+  box-shadow:
+    0 20px 48px rgba(10, 4, 28, 0.28),
+    inset 0 2px 0 rgba(255, 255, 255, 0.90);
+  padding: 18px;
+  color: #241b52;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: bubble-enter 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes bubble-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+.onboarding-bubble-scroll {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.onboarding-bubble-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.onboarding-bubble h3 {
+  margin: 4px 0 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.onboarding-step-count {
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7c5cff;
+  background: rgba(124, 92, 255, 0.1);
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+
+.onboarding-bubble p {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.onboarding-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  flex-shrink: 0;
+}
+
+.onboarding-skip-btn,
+.onboarding-nav-btn {
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.onboarding-skip-btn {
+  background: rgba(90, 19, 152, 0.08);
+  color: #5a1398;
+  padding: 10px 14px;
+}
+
+.onboarding-nav-btns {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.onboarding-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: rgba(241, 245, 249, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  color: #1f2937;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.onboarding-nav-btn:hover {
+  background: rgba(224, 231, 255, 0.95);
+  border-color: rgba(124, 92, 255, 0.40);
+  transform: translateY(-1px);
+}
+
+.onboarding-nav-btn.primary {
+  background: linear-gradient(135deg, #5a1398 0%, #7c5cff 100%);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(90, 19, 152, 0.18);
+}
+
+.onboarding-nav-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .onboarding-bubble {
+    left: 16px !important;
+    right: 16px !important;
+    width: auto;
+  }
+
+  .onboarding-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .onboarding-nav-btns {
+    width: 100%;
+  }
+
+  .onboarding-nav-btns .onboarding-nav-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}

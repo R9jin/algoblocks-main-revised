@@ -1,0 +1,20 @@
+<svg viewBox="0 0 640 298" width="640" height="298" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="298" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="8" height="298" rx="4" fill="#7C5CFF"/>
+<text x="30" y="30" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#2B005C">Key Takeaways</text>
+<circle cx="36" cy="66.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 66.5 L 34.5 70.5 L 41.5 62.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">The</tspan><tspan dx="4" font-weight="400" fill="#3D3554">goal:</tspan><tspan dx="4" font-weight="700" fill="#2B005C">maximize</tspan><tspan dx="4" font-weight="700" fill="#2B005C">compatible,</tspan><tspan dx="4" font-weight="700" fill="#2B005C">non-overlapping</tspan><tspan dx="4" font-weight="700" fill="#2B005C">activities.</tspan></text>
+<circle cx="36" cy="114.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 114.5 L 34.5 118.5 L 41.5 110.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Greedy</tspan><tspan dx="4" font-weight="400" fill="#3D3554">picks</tspan><tspan dx="4" font-weight="400" fill="#3D3554">the</tspan><tspan dx="4" font-weight="700" fill="#2B005C">earliest-finishing</tspan><tspan dx="4" font-weight="400" fill="#3D3554">activity</tspan><tspan dx="4" font-weight="400" fill="#3D3554">first.</tspan></text>
+<circle cx="36" cy="162.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 162.5 L 34.5 166.5 L 41.5 158.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Early</tspan><tspan dx="4" font-weight="400" fill="#3D3554">finishing</tspan><tspan dx="4" font-weight="700" fill="#2B005C">preserves</tspan><tspan dx="4" font-weight="700" fill="#2B005C">future</tspan><tspan dx="4" font-weight="700" fill="#2B005C">flexibility.</tspan></text>
+<circle cx="36" cy="210.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 210.5 L 34.5 214.5 L 41.5 206.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="217" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#2B005C">Sorting</tspan><tspan dx="4" font-weight="700" fill="#2B005C">by</tspan><tspan dx="4" font-weight="700" fill="#2B005C">finish</tspan><tspan dx="4" font-weight="700" fill="#2B005C">time</tspan><tspan dx="4" font-weight="400" fill="#3D3554">is</tspan><tspan dx="4" font-weight="400" fill="#3D3554">essential.</tspan></text>
+<circle cx="36" cy="258.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 258.5 L 34.5 262.5 L 41.5 254.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="265" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Achieves</tspan><tspan dx="4" font-weight="700" fill="#2B005C">O(n</tspan><tspan dx="4" font-weight="700" fill="#2B005C">log</tspan><tspan dx="4" font-weight="700" fill="#2B005C">n)</tspan><tspan dx="4" font-weight="400" fill="#3D3554">overall.</tspan></text>
+</svg>

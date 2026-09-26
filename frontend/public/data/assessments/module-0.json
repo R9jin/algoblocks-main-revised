@@ -1,0 +1,196 @@
+{
+  "moduleId": "module-0",
+  "moduleTitle": "Welcome to AlgoBlocks",
+  "questions": [
+    {
+      "id": "m0_q1",
+      "question": "What is AlgoBlocks?",
+      "options": [
+        "A text-based programming language for advanced developers",
+        "A visual, block-based learning platform for understanding algorithmic logic",
+        "A database management tool for storing algorithms",
+        "A hardware simulation tool for testing processors"
+      ],
+      "answer": 1,
+      "explanation": "AlgoBlocks is a visual, block-based educational platform designed to teach algorithmic logic and complexity analysis to beginner students."
+    },
+    {
+      "id": "m0_q2",
+      "question": "How are programs constructed in a block-based system?",
+      "options": [
+        "By writing text code in a terminal window",
+        "By dragging and connecting pre-built logical blocks that represent programming constructs",
+        "By drawing diagrams on a whiteboard",
+        "By configuring settings in a menu-driven interface"
+      ],
+      "answer": 1,
+      "explanation": "In a block-based system, programs are built by dragging and snapping together visual blocks that each represent a programming construct such as variables, loops, or conditions."
+    },
+    {
+      "id": "m0_q3",
+      "type": "code",
+      "code": "arr = [5, 10, 15, 20, 25]\nprint(arr[0])",
+      "question": "What is the time complexity of this code?",
+      "options": [
+        "O(1) \u2014 accesses a single element directly by index",
+        "O(n) \u2014 iterates through all elements",
+        "O(log n) \u2014 halves the array each time",
+        "O(n\u00b2) \u2014 uses a nested loop"
+      ],
+      "answer": 0,
+      "explanation": "Accessing an array element by index is O(1) \u2014 it is a direct memory lookup that takes the same time regardless of array size."
+    },
+    {
+      "id": "m0_q4",
+      "question": "What does the Output Console display?",
+      "options": [
+        "The Big-O complexity rating of the algorithm",
+        "The Python source code generated from blocks",
+        "The results of program execution, including printed values and errors",
+        "The memory usage graph over time"
+      ],
+      "answer": 2,
+      "explanation": "The Output Console shows the results of running the program, including any printed output, return values, and runtime errors."
+    },
+    {
+      "id": "m0_q5",
+      "question": "What does sequential execution mean?",
+      "options": [
+        "Instructions are executed in a random order determined by the CPU",
+        "Instructions execute only when a condition is true",
+        "Instructions are executed from top to bottom in the order they appear",
+        "Instructions run in parallel across multiple threads"
+      ],
+      "answer": 2,
+      "explanation": "Sequential execution means each instruction runs one after another from top to bottom, following the natural order they appear in the program."
+    },
+    {
+      "id": "m0_q6",
+      "question": "What is a variable used for?",
+      "options": [
+        "To define a reusable block of code that can be called multiple times",
+        "To store and manage a named piece of data that can change during execution",
+        "To loop through a list of items automatically",
+        "To compare two values and branch the program flow"
+      ],
+      "answer": 1,
+      "explanation": "A variable is a named storage location that holds a value which can be read, modified, and reused throughout the program."
+    },
+    {
+      "id": "m0_q7",
+      "type": "code",
+      "code": "n = 10\nfor i in range(n):\n    print(i)",
+      "question": "What is the time complexity of this loop?",
+      "options": [
+        "O(1) \u2014 prints a fixed number of times",
+        "O(log n) \u2014 loop count halves each iteration",
+        "O(n) \u2014 the loop runs n times, one print per iteration",
+        "O(n\u00b2) \u2014 there are two nested loops"
+      ],
+      "answer": 2,
+      "explanation": "The loop runs exactly n times, performing O(1) work each iteration, making the total time complexity O(n)."
+    },
+    {
+      "id": "m0_q8",
+      "question": "What is conditional logic?",
+      "options": [
+        "Logic that executes the same path regardless of input",
+        "Logic that determines which branch of code executes based on whether a condition is true or false",
+        "Logic that runs only once at program startup",
+        "Logic used exclusively inside loops"
+      ],
+      "answer": 1,
+      "explanation": "Conditional logic (if/else) directs program flow by evaluating a condition and executing different blocks of code depending on whether the result is true or false."
+    },
+    {
+      "id": "m0_q9",
+      "question": "What is an array?",
+      "options": [
+        "A single variable that stores one value at a time",
+        "A function that processes numbers sequentially",
+        "An ordered collection of elements stored under a single variable name, accessible by index",
+        "A loop that iterates a fixed number of times"
+      ],
+      "answer": 2,
+      "explanation": "An array is a data structure that stores multiple values in an ordered sequence, where each element is accessible by its index position."
+    },
+    {
+      "id": "m0_q10",
+      "type": "code",
+      "code": "for i in range(n):\n    for j in range(n):\n        print(i, j)",
+      "question": "What is the time complexity of this nested loop?",
+      "options": [
+        "O(n) \u2014 two loops but only one runs at a time",
+        "O(n + n) \u2014 outer plus inner loop",
+        "O(n\u00b2) \u2014 outer loop runs n times, inner loop runs n times for each outer iteration",
+        "O(2n) \u2014 double the single loop cost"
+      ],
+      "answer": 2,
+      "explanation": "Each of the n outer iterations triggers n inner iterations, giving n \u00d7 n = n\u00b2 total operations \u2014 classic O(n\u00b2) nested loop complexity."
+    },
+    {
+      "id": "m0_q11",
+      "question": "What represents constant time complexity?",
+      "options": [
+        "O(n) \u2014 performance scales linearly with input size",
+        "O(log n) \u2014 performance scales logarithmically",
+        "O(n\u00b2) \u2014 performance scales quadratically",
+        "O(1) \u2014 performance does not change regardless of input size"
+      ],
+      "answer": 3,
+      "explanation": "O(1) means the operation always takes the same amount of time regardless of how large the input is."
+    },
+    {
+      "id": "m0_q12",
+      "question": "What represents linear time complexity?",
+      "options": [
+        "O(1) \u2014 constant regardless of input",
+        "O(n) \u2014 performance grows directly proportional to input size",
+        "O(n\u00b2) \u2014 performance grows quadratically",
+        "O(log n) \u2014 performance grows logarithmically"
+      ],
+      "answer": 1,
+      "explanation": "O(n) means the number of operations grows linearly as the input size increases \u2014 doubling the input roughly doubles the execution time."
+    },
+    {
+      "id": "m0_q13",
+      "type": "code",
+      "code": "def greet(name):\n    message = 'Hello, ' + name\n    return message\n\nresult = greet('Alice')",
+      "question": "What is the space complexity of this function?",
+      "options": [
+        "O(n) \u2014 space grows with the length of the name string",
+        "O(1) \u2014 uses a fixed number of variables regardless of input",
+        "O(n\u00b2) \u2014 allocates a 2D structure",
+        "O(log n) \u2014 space halves each call"
+      ],
+      "answer": 1,
+      "explanation": "The function creates a fixed number of variables (message, result) regardless of what name is passed \u2014 constant O(1) space usage."
+    },
+    {
+      "id": "m0_q14",
+      "question": "What is a function call stack?",
+      "options": [
+        "A list of all variables declared in the program",
+        "A data structure that records the active function calls, tracking which function called which and in what order",
+        "A log of all output printed to the console",
+        "A visual timeline of loop iterations"
+      ],
+      "answer": 1,
+      "explanation": "The call stack is a LIFO data structure that keeps track of all active function calls during execution, including where each function was called from."
+    },
+    {
+      "id": "m0_q15",
+      "type": "code",
+      "code": "total = 0\nfor i in range(n):\n    total += i\nprint(total)",
+      "question": "What are the time and space complexities of this code?",
+      "options": [
+        "Time: O(n\u00b2), Space: O(n)",
+        "Time: O(n), Space: O(1) \u2014 loop runs n times but uses only one extra variable",
+        "Time: O(1), Space: O(1)",
+        "Time: O(n), Space: O(n) \u2014 stores each value"
+      ],
+      "answer": 1,
+      "explanation": "The loop runs n times \u2192 O(n) time. Only the variable 'total' is allocated regardless of n \u2192 O(1) space. This is a common pattern: linear time, constant space."
+    }
+  ]
+}

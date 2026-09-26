@@ -1,0 +1,310 @@
+﻿/* frontend/src/styles/DashboardHeader.css */
+
+/* =========================================================
+   Header layout (moved here from Dashboard.css -- this component is
+   shared across Dashboard, Projects, ProfilePage, AssessmentPage,
+   LearningPath, and AdminUserManagement, so its layout rules need to
+   live in the stylesheet DashboardHeader.jsx itself imports, not in a
+   page-specific one that may not be loaded on every route)
+========================================================= */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 4px 24px rgba(76, 29, 149, 0.06);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    gap: 12px;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .dashboard-header {
+        background: #FFFFFF;
+    }
+}
+
+.dashboard-header .header-left,
+.dashboard-header .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.back-home {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: #5A1398;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+}
+
+.back-home:hover {
+    color: #7F57F9;
+}
+
+.logo-container {
+    margin-left: 20px;
+}
+
+.logo-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.logo-img {
+    width: 30px;
+    height: 30px;
+}
+
+.logo-text {
+    color: #3C2D76;
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+/* --- Header Button Styles --- */
+.btn-open-project {
+    background: transparent;
+    color: #5A1398;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-icon-open {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+.btn-new-project {
+    background: #5A1398;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+/* --- User Profile Dropdown Styles --- */
+.user-menu {
+    margin-left: 15px;
+    position: relative;
+}
+
+.user-menu-btn {
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-profile-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    background-color: transparent;
+}
+
+.user-profile-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #EBE4FF;
+    border: 2px solid #A594DC;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #5A1398;
+    font-size: 0.9rem;
+    transition: transform 0.2s ease;
+}
+
+.user-profile-img:hover {
+    transform: scale(1.05);
+}
+
+.user-dropdown {
+    position: absolute;
+    top: 55px;
+    right: 0;
+    background-color: #FFFFFF;
+  backdrop-filter: none;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(60, 30, 120, 0.18), 0 2px 8px rgba(0,0,0,0.08);
+    width: 220px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideDown 0.2s ease-out;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .user-dropdown {
+        background-color: #ffffff;
+    }
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.user-dropdown-head {
+    padding: 16px;
+    background-color: rgba(248, 250, 252, 0.5);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.dropdown-avatar-img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #f1f5f9;
+    border: 2px solid #cbd5e1;
+    object-fit: cover;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #5A1398;
+    font-size: 1.2rem;
+}
+
+.user-name {
+    color: #1e293b;
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+.user-email {
+    color: #64748b;
+    font-size: 0.8rem;
+    word-break: break-all;
+}
+
+.user-dd-item {
+    background: none;
+    border: none;
+    color: #334155;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.2s ease;
+    width: 100%;
+}
+
+.user-dd-item:hover {
+    background-color: #f1f5f9;
+}
+
+.user-dd-item svg {
+    color: #64748b;
+}
+
+.user-dd-item.danger {
+    color: #ef4444;
+}
+
+.user-dd-item.danger svg {
+    color: #ef4444;
+}
+
+.user-dd-item.danger:hover {
+    background-color: #fef2f2;
+}
+
+.user-dd-divider {
+    height: 1px;
+    background-color: #e2e8f0;
+    margin: 4px 0;
+}
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width: 768px) {
+  .dashboard-header {
+    padding: 12px 16px;
+  }
+
+  .logo-container {
+    margin-left: 12px;
+  }
+
+  .logo-text {
+    font-size: 1.05rem;
+  }
+
+  .dashboard-header .header-left,
+  .dashboard-header .header-right {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header {
+    padding: 10px 12px;
+  }
+
+  /* Keep the back button as an icon only -- there isn't room for the
+     label next to the logo on a phone-width screen */
+  .back-home-text {
+    display: none;
+  }
+
+  .logo-container {
+    margin-left: 8px;
+  }
+
+  /* Drop the wordmark, keep just the icon, once space is this tight */
+  .logo-text {
+    display: none;
+  }
+
+  .user-dropdown {
+    width: min(220px, calc(100vw - 24px));
+    right: -8px;
+  }
+}
+

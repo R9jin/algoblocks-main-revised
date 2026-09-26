@@ -1,0 +1,196 @@
+{
+  "moduleId": "module-1",
+  "moduleTitle": "Foundations of Algorithm Analysis",
+  "questions": [
+    {
+      "id": "m1_q1",
+      "question": "What is algorithm efficiency?",
+      "options": [
+        "The visual neatness of the block arrangement in the workspace",
+        "A measure of how well an algorithm uses time and memory resources as input size grows",
+        "The number of lines of code written to solve a problem",
+        "Whether an algorithm produces the correct output for a single test case"
+      ],
+      "answer": 1,
+      "explanation": "Algorithm efficiency measures how an algorithm's time and space resource usage scales with increasing input size, independent of hardware."
+    },
+    {
+      "id": "m1_q2",
+      "type": "code",
+      "code": "def find_first(arr, target):\n    if arr[0] == target:\n        return 0\n    return -1",
+      "question": "This code represents which execution case for a search algorithm?",
+      "options": [
+        "Worst case \u2014 target is at the last position",
+        "Best case \u2014 target is found immediately at index 0 in O(1)",
+        "Average case \u2014 target is somewhere in the middle",
+        "Space case \u2014 measures memory allocation"
+      ],
+      "answer": 1,
+      "explanation": "Checking only index 0 and returning immediately represents the best case \u2014 the target is found in the first comparison, taking O(1) time."
+    },
+    {
+      "id": "m1_q3",
+      "question": "What is meant by worst-case execution?",
+      "options": [
+        "The input that causes the algorithm to crash or fail",
+        "The most unfavorable input that causes the algorithm to take the maximum number of steps",
+        "The scenario with the highest memory allocation",
+        "Any input where the algorithm returns an incorrect result"
+      ],
+      "answer": 1,
+      "explanation": "Worst-case execution is the upper bound on performance \u2014 the hardest possible input for the algorithm, such as searching for a target that doesn't exist in an array."
+    },
+    {
+      "id": "m1_q4",
+      "question": "What is Big-O notation?",
+      "options": [
+        "A notation system for writing Python functions",
+        "A visual chart showing algorithm block counts",
+        "A mathematical notation that describes the upper bound of an algorithm's growth rate as input size approaches infinity",
+        "A grading scale for measuring code readability"
+      ],
+      "answer": 2,
+      "explanation": "Big-O notation describes how an algorithm's resource usage grows in the worst case as n (input size) increases, abstracting away hardware and constant factors."
+    },
+    {
+      "id": "m1_q5",
+      "question": "Why does Big-O ignore hardware differences?",
+      "options": [
+        "Because hardware is always the same across all computers",
+        "Because Big-O focuses on the mathematical growth rate of the algorithm itself, which is independent of the machine running it",
+        "Because hardware does not affect how fast code runs",
+        "Because Big-O only applies to programs running in the cloud"
+      ],
+      "answer": 1,
+      "explanation": "Big-O strips away constant factors and hardware-specific speeds to focus purely on how the number of operations scales with n, making it a universal measure."
+    },
+    {
+      "id": "m1_q6",
+      "type": "code",
+      "code": "n = 64\ncount = 0\nwhile n > 1:\n    n = n // 2\n    count += 1\nprint(count)  # prints 6",
+      "question": "What is the time complexity of this loop?",
+      "options": [
+        "O(n) \u2014 runs n times",
+        "O(n\u00b2) \u2014 nested iterations",
+        "O(log n) \u2014 n is halved each iteration, so it runs log\u2082(n) times",
+        "O(1) \u2014 fixed number of steps"
+      ],
+      "answer": 2,
+      "explanation": "Dividing n by 2 each iteration means the loop runs log\u2082(n) times before n reaches 1 \u2014 the defining pattern of O(log n) complexity."
+    },
+    {
+      "id": "m1_q7",
+      "question": "What complexity class is O(n\u00b2)?",
+      "options": [
+        "Linear \u2014 grows proportionally to input size",
+        "Logarithmic \u2014 grows slowly",
+        "Quadratic \u2014 grows proportional to the square of the input size",
+        "Exponential \u2014 doubles with each additional input"
+      ],
+      "answer": 2,
+      "explanation": "O(n\u00b2) is quadratic complexity, typically caused by nested loops where the outer and inner loops each iterate n times."
+    },
+    {
+      "id": "m1_q8",
+      "question": "Which is faster: O(1) or O(n)?",
+      "options": [
+        "O(n), because it processes more elements",
+        "They are equal for all input sizes",
+        "O(1), because it executes in constant time regardless of input size",
+        "It depends entirely on the hardware being used"
+      ],
+      "answer": 2,
+      "explanation": "O(1) is always faster in terms of growth rate because it never increases with n, while O(n) grows linearly as input size increases."
+    },
+    {
+      "id": "m1_q9",
+      "type": "code",
+      "code": "# Algorithm A\nfor i in range(n):          # O(n)\n    print(i)\n\n# Algorithm B  \nfor i in range(n):          # O(n)\n    for j in range(n):      # O(n)\n        print(i, j)",
+      "question": "Comparing Algorithm A and B, which is slower and why?",
+      "options": [
+        "Algorithm A is slower because it runs twice",
+        "They are equal \u2014 both use for loops",
+        "Algorithm B is slower \u2014 it is O(n\u00b2) while Algorithm A is O(n), and O(n\u00b2) grows much faster for large n",
+        "Algorithm A is slower because single loops are less efficient than nested ones"
+      ],
+      "answer": 2,
+      "explanation": "Algorithm A is O(n) and Algorithm B is O(n\u00b2). For n=1000: A runs 1,000 operations vs B's 1,000,000 \u2014 O(n\u00b2) is dramatically slower for large input sizes."
+    },
+    {
+      "id": "m1_q10",
+      "question": "What does space complexity measure?",
+      "options": [
+        "The physical disk space needed to install the program",
+        "The number of blocks in the workspace",
+        "The amount of memory (RAM) an algorithm uses as a function of input size",
+        "The time taken to allocate variables at program startup"
+      ],
+      "answer": 2,
+      "explanation": "Space complexity measures how much memory an algorithm requires relative to its input size, including variables, data structures, and call stack frames."
+    },
+    {
+      "id": "m1_q11",
+      "question": "Does faster execution always result in lower memory usage?",
+      "options": [
+        "Yes, faster algorithms always use less memory",
+        "No, there is often a time-space tradeoff where using more memory can speed up execution, and vice versa",
+        "Yes, because the CPU handles both time and memory the same way",
+        "No, but memory usage is always irrelevant to algorithm design"
+      ],
+      "answer": 1,
+      "explanation": "There is a common time-space tradeoff: using additional memory (like a cache or lookup table) can dramatically reduce execution time, but at the cost of higher memory usage."
+    },
+    {
+      "id": "m1_q12",
+      "type": "code",
+      "code": "def build_list(n):\n    result = []\n    for i in range(n):\n        result.append(i * 2)\n    return result",
+      "question": "What is the space complexity of this function?",
+      "options": [
+        "O(1) \u2014 only one list is created",
+        "O(log n) \u2014 list grows logarithmically",
+        "O(n) \u2014 the result list grows linearly with n, storing one element per iteration",
+        "O(n\u00b2) \u2014 nested structure is allocated"
+      ],
+      "answer": 2,
+      "explanation": "The function allocates a list that grows by one element per iteration, reaching size n at completion \u2014 this is O(n) space complexity."
+    },
+    {
+      "id": "m1_q13",
+      "question": "How does deep recursion affect space complexity?",
+      "options": [
+        "It has no impact because recursion is handled by the CPU automatically",
+        "It reduces space complexity by reusing the same memory frame",
+        "Each recursive call adds a new stack frame, increasing space complexity proportional to the recursion depth",
+        "Deep recursion only affects time complexity, not space complexity"
+      ],
+      "answer": 2,
+      "explanation": "Every recursive call creates a new stack frame on the call stack. For a recursion depth of n, this adds O(n) space complexity even if no other data structures are used."
+    },
+    {
+      "id": "m1_q14",
+      "type": "code",
+      "code": "def process(arr):\n    total = 0                    # O(1)\n    for i in range(len(arr)):    # O(n)\n        for j in range(len(arr)):# O(n)\n            total += arr[i] * arr[j]\n    return total",
+      "question": "What is the computational bottleneck in this function?",
+      "options": [
+        "Line 1 \u2014 the variable assignment total = 0",
+        "The nested loop on lines 3\u20135 \u2014 it runs n\u00b2 times and dominates the overall O(n\u00b2) complexity",
+        "The return statement \u2014 it executes last",
+        "Line 2 \u2014 the outer loop alone makes it O(n\u00b2)"
+      ],
+      "answer": 1,
+      "explanation": "The nested loop is the bottleneck \u2014 it executes n \u00d7 n = n\u00b2 times, dominating over the O(1) assignment. The overall complexity is O(n\u00b2), and this is where optimization efforts should focus."
+    },
+    {
+      "id": "m1_q15",
+      "question": "What defines algorithmic scalability?",
+      "options": [
+        "Whether the algorithm can be rewritten in a different programming language",
+        "The number of programmers needed to maintain the algorithm",
+        "How well an algorithm maintains acceptable performance as input size increases significantly",
+        "Whether the algorithm uses loops or recursive functions"
+      ],
+      "answer": 2,
+      "explanation": "Scalability refers to how an algorithm performs as n grows large. A scalable algorithm (e.g., O(n log n)) remains practical at large input sizes, while an unscalable one (e.g., O(2\u207f)) becomes infeasible quickly."
+    }
+  ]
+}

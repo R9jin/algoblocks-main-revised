@@ -1,0 +1,227 @@
+{
+  "lessonId": "lesson-0-3",
+  "moduleId": "module-0",
+  "title": "The Complexity Analyzer",
+  "description": "How the built-in Complexity Analyzer reads your blocks and reports Time and Space Big-O -- and how to act on what it tells you.",
+  "difficulty": "Beginner",
+  "estimatedTime": "15 min",
+  "prerequisites": "Core Blockly Components",
+  "tags": [
+    "complexity",
+    "performance",
+    "analysis"
+  ],
+  "activities": [
+    {
+      "id": "m0_l3_a1",
+      "title": "Checking How Fast Code Runs"
+    },
+    {
+      "id": "m0_l3_a2",
+      "title": "Loops Make Code Take Longer"
+    },
+    {
+      "id": "m0_l3_a3",
+      "title": "Loops Inside Loops"
+    },
+    {
+      "id": "m0_l3_a4",
+      "title": "Checking Both Paths"
+    },
+    {
+      "id": "m0_l3_a5",
+      "title": "Math is Faster than Loops"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction to Scalability",
+      "content": "A quick thought experiment: your code runs perfectly on a list of 10 items, in a fraction of a second. What happens on a list of 10,000? Or 10,000,000? Producing the *correct* output isn't the whole job -- you also need to know how the amount of work grows as the input grows. That question has a name: scalability, and it's what this lesson is about.",
+      "subsections": [
+        {
+          "id": "intro-analyzer",
+          "title": "The Complexity Tab",
+          "content": "The workspace's Complexity tab automatically reads your blocks and reports two numbers, both in a notation called Big-O: **Time Complexity** (how the number of operations scales) and **Space Complexity** (how memory use scales). You'll build both intuitions in this lesson using the activities from **Task 1**, where a Constant-Time evaluation is your very first hands-on example.",
+          "images": [
+            {
+              "src": "/assets/local-complexity-analysis.png",
+              "alt": "The Complexity Analysis panel showing a line-by-line breakdown of local time and space complexity for a Bubble Sort function, alongside total time and space",
+              "caption": "The Complexity tab breaks a program down line by line, showing local Big-O for each line plus the totals at the top."
+            }
+          ]
+        },
+        {
+          "id": "intro-graph",
+          "title": "The Complexity Graph",
+          "content": "Below the two scores, the Complexity Graph plots the theoretical Big-O curve for your logic -- it's a prediction based on your block structure, not a live trace of an actual run. An O(n²) result draws a steep, upward-curving line, making it immediately visible just how much performance degrades as the input grows."
+        }
+      ]
+    },
+    {
+      "id": "time-complexity",
+      "type": "concept",
+      "title": "Understanding Time Complexity",
+      "content": "Time complexity measures how the number of operations grows as input size -- written `n` -- grows. It focuses on the worst case, drops constant factors, and cares only about the overall trend, not the exact number of steps.",
+      "subsections": [
+        {
+          "id": "tc-common",
+          "title": "Standard Time Complexities",
+          "content": "Four classes you'll see constantly, in order from fastest to slowest:",
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-3-tc-common.svg",
+              "alt": "Standard Time Complexities: O(1) Constant: the same fixed amount of work regardless of input size -- e.g. a formula, or looking something up by its exact index.; O(n) Linear: work scales one-to-one with the input -- e.g. one loop through a dataset, checking every item once.; O(n²) Quadratic: work scales with the *square* of the input -- e.g. a loop nested inside another loop, where every outer step re-runs the whole inner loop.; O(log n) Logarithmic: the amount of data left to search shrinks at every step -- e.g. Binary Search, which you'll meet properly in Module 3.."
+            }
+          ]
+        },
+        {
+          "id": "micro-transition-o-n-squared",
+          "title": "Visualizing Quadratic Growth",
+          "content": "Picture a group chat where every person messages every other person exactly once: 5 people means 5 x 4 = 20 messages; add a 6th person and it jumps to 30. That's the shape of quadratic growth -- small additions to the input cause disproportionately large jumps in work. Build a nested loop yourself in the workspace (**Task 2's** \"Loops Inside Loops\" activity) and watch the Complexity Graph draw that exact same compounding curve."
+        }
+      ],
+      "traces": [
+        {
+          "kind": "array",
+          "title": "Fast vs Slow",
+          "description": "O(1) vs O(n) visually.",
+          "steps": [
+            {
+              "array": [
+                10,
+                20,
+                30,
+                40
+              ],
+              "roles": {
+                "0": "found"
+              },
+              "pointers": [
+                {
+                  "label": "O(1)",
+                  "index": 0
+                }
+              ],
+              "caption": "O(1) accesses immediately.",
+              "complexity": {
+                "opsSoFar": 1,
+                "opsTotal": 2,
+                "bigO": "O(1) vs O(n)",
+                "formula": "1 of 2 operations performed so far",
+                "note": "Same task, two approaches -- watch how far apart their operation counts drift as the step count rises.",
+                "line": 1,
+                "lineOps": 1,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 1
+            },
+            {
+              "array": [
+                10,
+                20,
+                30,
+                40
+              ],
+              "roles": {
+                "0": "compare",
+                "1": "compare",
+                "2": "compare",
+                "3": "compare"
+              },
+              "pointers": [
+                {
+                  "label": "O(n)",
+                  "index": 3
+                }
+              ],
+              "caption": "O(n) scans all.",
+              "complexity": {
+                "opsSoFar": 2,
+                "opsTotal": 2,
+                "bigO": "O(1) vs O(n)",
+                "formula": "2 of 2 operations performed so far",
+                "note": "Same task, two approaches -- watch how far apart their operation counts drift as the step count rises.",
+                "line": 4,
+                "lineOps": 4,
+                "localBigO": "O(1)",
+                "caseLabel": "Overall (worst case)"
+              },
+              "activeLine": 4
+            }
+          ],
+          "codeLines": [
+            "def get_first(arr):",
+            "    return arr[0]",
+            "",
+            "def scan_all(arr):",
+            "    for x in arr:",
+            "        check(x)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "space-complexity",
+      "type": "concept",
+      "title": "Understanding Space Complexity",
+      "content": "Time isn't the only resource an algorithm spends -- it also needs memory to run. Space complexity measures how much *extra* memory your algorithm needs beyond the input itself, and managing it well is a mark of thoughtful design, not just correct design.",
+      "subsections": [
+        {
+          "id": "sc-memory-allocation",
+          "title": "Allocation versus Mutation",
+          "content": "Appending to an array as the input grows requests fresh memory for every new item -- that's **O(n) Space**. Updating a variable that already exists, or swapping two values in place, needs no new memory at all -- that's **O(1) Space**. The difference comes down to a simple question: are you creating new storage, or reusing what you already have?"
+        }
+      ]
+    },
+    {
+      "id": "system-tools",
+      "type": "deep_dive",
+      "title": "System Tools for Optimization",
+      "content": "Knowing your algorithm's Big-O is only half the story -- knowing what to do about it is the other half. Two tools in the workspace help with exactly that:",
+      "subsections": [
+        {
+          "id": "tool-bigo-modal",
+          "title": "The Big O Reference Modal",
+          "content": "The **Big O Reference** button in the footer opens a full reference table covering every complexity class the analyzer detects, with definitions, real examples, and their growth-rate graphs side by side."
+        },
+        {
+          "id": "tool-bottlenecks",
+          "title": "Resolving Algorithmic Bottlenecks",
+          "content": "A bottleneck is the one piece of logic dragging down your algorithm's entire rating -- often just one loop out of several. Summing a sequence of numbers with a loop is O(n); swapping in a closed-form formula (like the classic `n * (n+1) / 2` for consecutive integers) collapses that same task to O(1). Spotting where a formula could replace a loop is one of the most valuable optimization skills you'll build in this course."
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "title": "Lesson Summary",
+      "content": "The Complexity Analyzer turns the shape of your blocks directly into a scalability verdict, no extra effort required on your part. Optimizing well means watching both Time and Space together, not chasing just one number.",
+      "subsections": [
+        {
+          "id": "sum-workflow",
+          "title": "Analytical Workflow",
+          "content": "A simple loop to follow whenever you're checking your own work:",
+          "images": [
+            {
+              "src": "/assets/lesson-visuals/auto/lesson-0-3-sum-workflow.svg",
+              "alt": "Analytical Workflow: 1. Build your logic on the canvas.; 2. Open the Complexity tab to see the Big-O verdict.; 3. Check the growth curve on the Complexity Graph.; 4. If it's steep (e.g. O(n²)), isolate and refactor the nested logic causing it.; 5. Check the Big O Reference table for a faster alternative.."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "title": "GeeksforGeeks — Analysis of Algorithms",
+      "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/"
+    },
+    {
+      "title": "Programiz — Time Complexity",
+      "url": "https://www.programiz.com/dsa/time-complexity"
+    }
+  ]
+}

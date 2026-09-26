@@ -1,0 +1,558 @@
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.learning-path-page {
+  background: transparent;  /* global purple mesh from body shows through */
+  width: 100%;
+  min-height: 100vh;
+  overflow-y: auto;
+}
+
+.learning-path-container {
+  /* Liquid glass tokens to brighten module cards */
+  --glass-surface: rgba(255, 255, 255, 0.85);
+  --glass-surface-strong: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(255, 255, 255, 0.9);
+  --glass-blur: blur(24px) saturate(180%);
+  --glass-shadow: 0 8px 32px rgba(76, 29, 149, 0.08), 0 1px 2px rgba(76, 29, 149, 0.03);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 24px 120px;
+}
+
+.learning-path-header {
+  margin-bottom: 56px;
+}
+
+.learning-path-header h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #241b52;
+  margin-bottom: 16px;
+}
+
+.learning-path-header p {
+  max-width: 720px;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #5b5675;
+}
+
+.modules-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.module-card-v2 {
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  border: 1px solid #ece8f8;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.module-card-v2:hover {
+  border-color: #d8cbff;
+  box-shadow: 0 8px 20px rgba(124, 92, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.module-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.module-card-content {
+  flex: 1;
+}
+
+.module-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.module-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #2d245c;
+  margin: 0 0 8px 0;
+}
+
+.module-card-description {
+  font-size: 0.95rem;
+  color: #5b5675;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.module-card-chevron {
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.module-card-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.module-lessons-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.module-lessons-collapse.is-expanded {
+  grid-template-rows: 1fr;
+}
+
+.module-lessons-collapse > .module-lessons-dropdown {
+  /* Required for the CSS grid collapse trick: a grid item's min-height
+     defaults to the size of its content, which would stop the 0fr row
+     from ever reaching zero. overflow: hidden here (not on the collapse
+     wrapper, which needs to keep round bottom corners visible) lets the
+     row track actually animate all the way from 0 to full height and
+     back, instead of the dropdown just popping open/shut at either end. */
+  min-height: 0;
+  overflow: hidden;
+}
+
+.module-lessons-dropdown {
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid #ece8f8;
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+}
+
+/* Footer button styled like a lesson row */
+.module-dropdown-footer {
+  border-top: 1px solid #ece8f8;
+  padding: 0;
+  background: transparent;
+}
+
+.module-dropdown-footer .view-all-lessons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 24px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #2d245c;
+}
+
+.module-dropdown-footer .view-all-lessons::before {
+  content: "All";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #5A1398;
+  background: #ede6ff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.module-dropdown-footer .view-all-lessons:hover {
+  background: #f0e8ff;
+}
+
+.module-dropdown-footer .view-all-lessons svg {
+  color: #d8cbff;
+  flex-shrink: 0;
+}
+
+.module-dropdown-footer .view-all-lessons:hover svg {
+  color: #5A1398;
+}
+
+.module-dropdown-footer .view-all-lessons:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(124,92,255,0.06);
+  border-radius: 6px;
+}
+
+/* Adjusted Dropdown Item Layout */
+.dropdown-lesson-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 24px;
+  background: transparent;
+  border-bottom: 1px solid #ece8f8;
+  transition: all 0.2s ease;
+}
+
+.dropdown-lesson-item.locked {
+  background: #f8f8fb;
+  opacity: 0.65;
+}
+
+.dropdown-lesson-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-lesson-item:hover:not(.locked) {
+  background: #f0e8ff;
+}
+
+.lesson-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.lesson-number {
+  min-width: 50px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #5A1398;
+  background: #ede6ff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.lesson-title {
+  font-size: 0.95rem;
+  color: #2d245c;
+  font-weight: 500;
+}
+
+/* Buttons Container */
+.lesson-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-right: 16px;
+}
+
+.btn-read-lesson, .btn-start-activity {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-read-lesson {
+  background: #f0e8ff;
+  color: #5A1398;
+}
+
+.btn-read-lesson:hover:not(:disabled) {
+  background: #e0d4ff;
+}
+
+.btn-start-activity {
+  background: #5A1398;
+  color: #ffffff;
+}
+
+.btn-start-activity:hover:not(:disabled) {
+  background: #6248d4;
+}
+
+.btn-start-activity.disabled, .btn-start-activity:disabled, .btn-read-lesson:disabled {
+  background: #e2e8f0;
+  color: #475569;
+  cursor: not-allowed;
+}
+
+.lesson-status-icon {
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+}
+/* ── ASSESSMENT ROWS ─────────────────────────────────────── */
+
+.assessment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 24px;
+  border-bottom: 1px solid #ece8f8;
+  transition: background 0.2s ease;
+}
+
+.assessment-row.pre {
+  background: #f5f0ff;
+  border-left: 3px solid #7c5cff;
+}
+
+.assessment-row.post {
+  background: #f0fdf4;
+  border-left: 3px solid #22c55e;
+}
+
+.assessment-row.post.locked {
+  background: #f8f8fb;
+  border-left: 3px solid #cbd5e1;
+  opacity: 0.85;
+}
+
+.assessment-row.done.pre {
+  background: #ede9ff;
+  border-left: 3px solid #7c5cff;
+}
+
+.assessment-row.done.post {
+  background: #dcfce7;
+  border-left: 3px solid #22c55e;
+}
+
+/* Left side: icon + label + score badge */
+.assessment-row-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.assessment-row-left svg {
+  color: #5A1398;
+  flex-shrink: 0;
+}
+
+.assessment-row.post .assessment-row-left svg {
+  color: #22c55e;
+}
+
+.assessment-row.locked .assessment-row-left svg {
+  color: #64748b;
+}
+
+.assessment-row-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2d245c;
+}
+
+.assessment-row.locked .assessment-row-label {
+  color: #475569;
+}
+
+.assessment-score-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #5A1398;
+  color: #fff;
+}
+
+.assessment-score-badge.post {
+  background: #22c55e;
+}
+
+.assessment-gate-note {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Right side: status icon + button */
+.assessment-row-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Buttons */
+.btn-assessment {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-assessment.start {
+  background: linear-gradient(135deg, #5A1398 0%, #7c5cff 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(90,19,152,0.30), inset 0 1px 0 rgba(255,255,255,0.22);
+}
+
+.btn-assessment.start:hover {
+  background: linear-gradient(135deg, #6248d4 0%, #9b71ff 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(124, 92, 255, 0.38);
+}
+
+.btn-assessment.start.post {
+  background: linear-gradient(135deg, #059669 0%, #22c55e 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(34,197,94,0.28), inset 0 1px 0 rgba(255,255,255,0.22);
+}
+
+.btn-assessment.start.post:hover {
+  background: linear-gradient(135deg, #047857 0%, #16a34a 100%);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.38);
+  transform: translateY(-1px);
+}
+
+.btn-assessment.view-results {
+  background: rgba(124, 92, 255, 0.12);
+  color: #7c5cff;
+  border: 1.5px solid rgba(124, 92, 255, 0.50);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.btn-assessment.view-results:hover {
+  background: rgba(124, 92, 255, 0.22);
+  border-color: rgba(124, 92, 255, 0.80);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(124, 92, 255, 0.25);
+}
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width: 768px) {
+  .learning-path-container {
+    padding: 32px 16px 100px;
+  }
+
+  .learning-path-header {
+    margin-bottom: 36px;
+  }
+
+  .learning-path-header h1 {
+    font-size: 2rem;
+  }
+
+  .learning-path-header p {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .module-card-v2 {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .module-card-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .module-card-title {
+    font-size: 1.05rem;
+  }
+
+  .module-card-description {
+    font-size: 0.88rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .learning-path-header h1 {
+    font-size: 1.6rem;
+  }
+
+  .module-card-v2 {
+    align-items: flex-start;
+  }
+
+  .module-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .module-card-chevron {
+    align-self: flex-end;
+    margin-top: -28px;
+  }
+
+  /* Lesson rows: stack info above actions instead of forcing a fixed
+     50px lesson-number + title + two buttons into one row */
+  .dropdown-lesson-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .lesson-info {
+    width: 100%;
+  }
+
+  .lesson-actions {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .btn-read-lesson, .btn-start-activity {
+    flex: 1;
+    text-align: center;
+  }
+
+  .module-dropdown-footer .view-all-lessons {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Assessment rows: same stacking treatment */
+  .assessment-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .assessment-row-right {
+    width: 100%;
+  }
+
+  .btn-assessment {
+    width: 100%;
+    text-align: center;
+  }
+}

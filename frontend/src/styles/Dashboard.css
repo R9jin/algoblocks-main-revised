@@ -1,0 +1,728 @@
+/* frontend/src/styles/Dashboard.css */
+
+/* NOTE: .dashboard-header / .header-left / .header-right now live in
+   DashboardHeader.css, co-located with the DashboardHeader component that
+   actually renders them. That component is shared across 6 pages
+   (Dashboard, Projects, ProfilePage, AssessmentPage, LearningPath,
+   AdminUserManagement), but only Dashboard.jsx imports this stylesheet --
+   so keeping the header's layout rules here meant the header rendered
+   completely unstyled on any of those other pages if the user landed on
+   them directly (route-based code-splitting via React.lazy means this
+   file was never guaranteed to load elsewhere). */
+
+/* =========================================================
+   2. Base Layout & Bento Grid
+========================================================= */
+.bento-dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  color: #3C2D76;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Liquid glass tokens -- reused by every card below */
+  --glass-surface: rgba(255, 255, 255, 0.55);
+  --glass-surface-strong: rgba(255, 255, 255, 0.72);
+  --glass-surface-soft: rgba(255, 255, 255, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-blur: blur(24px) saturate(180%);
+  --glass-shadow: 0 8px 32px rgba(76, 29, 149, 0.12), 0 1px 2px rgba(76, 29, 149, 0.05);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+
+  /* Glass only reads as glass when there's something underneath it to
+     distort -- a flat #F4F7F9 gave the old attempt nothing to blur, so
+     it just looked like grey haze. This is a fixed, low-saturation
+     mesh of the existing brand purples, kept light enough that body
+     text outside the cards stays comfortably readable. */
+  background-color: #F6F4FC;
+  background-image:
+    radial-gradient(760px circle at 6% -8%, rgba(199, 148, 255, 0.38), transparent 60%),
+    radial-gradient(680px circle at 98% 6%, rgba(127, 87, 249, 0.28), transparent 55%),
+    radial-gradient(900px circle at 50% 105%, rgba(90, 19, 152, 0.14), transparent 60%),
+    linear-gradient(180deg, #F8F6FD 0%, #EEE8FC 100%);
+  background-attachment: fixed;
+}
+
+.bento-dashboard-content {
+  flex: 1;
+  padding: 32px 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.bento-grid-container {
+  width: 100%;
+  max-width: 1280px;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 32px;
+  animation: slideFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.bento-main-column {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* =========================================================
+   3. Hero Card
+========================================================= */
+.bento-hero-card {
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: 20px;
+  padding: 36px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.bento-hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  background: linear-gradient(180deg, #5A1398 0%, #7F57F9 100%);
+}
+
+.hero-text { max-width: 500px; }
+
+.hero-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1E293B;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+}
+
+.hero-subtitle {
+  font-size: 1.05rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.hero-primary-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(135deg, #5A1398 0%, #7F57F9 100%);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 16px 28px;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(127, 87, 249, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(127, 87, 249, 0.4);
+}
+
+.hero-primary-btn:active { transform: translateY(1px); }
+
+/* =========================================================
+   4. Restored Learning Path Card
+========================================================= */
+.bento-learning-card {
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: 20px;
+  padding: 28px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.bento-learning-card:hover {
+  transform: translateY(-2px);
+  background: var(--glass-surface-strong);
+  box-shadow: 0 12px 36px rgba(76, 29, 149, 0.16), var(--glass-highlight);
+}
+
+.learning-content { flex: 1; padding-right: 32px; }
+
+.module-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 800;
+  color: #7F57F9;
+  background: rgba(127, 87, 249, 0.1);
+  padding: 6px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.learning-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1E293B;
+  margin: 0 0 8px 0;
+}
+
+.learning-desc {
+  font-size: 0.95rem;
+  color: #64748B;
+  margin: 0 0 24px 0;
+}
+
+.progress-container { width: 100%; }
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background-color: rgba(241, 245, 249, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #5A1398 0%, #7F57F9 100%);
+  border-radius: 10px;
+  transition: width 1s ease-in-out;
+}
+
+.banner-icon-btn {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 55%),
+    #C994FF;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  width: 76px;
+  height: 76px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(127, 87, 249, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.banner-icon-btn:hover {
+  background: #BCA1FC;
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 24px rgba(127, 87, 249, 0.3);
+}
+
+.learning-path-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  opacity: 1; /* Ensures no fading occurs */
+}
+
+/* =========================================================
+   5. Template Library
+========================================================= */
+.bento-library-section {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.bento-library-section .section-header h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 6px 0;
+}
+
+.bento-library-section .section-header p {
+  color: #64748B;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.category-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #5A1398;
+  margin: 0 0 16px 0;
+  letter-spacing: 1px;
+  padding-left: 4px;
+}
+
+.bento-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.bento-template-card {
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+.bento-template-card:hover {
+  transform: translateY(-4px);
+  background: var(--glass-surface-strong);
+  border-color: rgba(127, 87, 249, 0.55);
+  box-shadow: 0 16px 32px rgba(127, 87, 249, 0.18), var(--glass-highlight);
+}
+
+.custom-template-card { border-left: 4px solid #7F57F9; }
+
+.template-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.template-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #F8FAFC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.template-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.template-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+}
+
+.template-desc {
+  font-size: 0.85rem;
+  color: #64748B;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+  flex-grow: 1;
+}
+
+.template-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #7F57F9;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding-top: 12px;
+  border-top: 1px solid #F1F5F9;
+  transition: color 0.2s ease;
+}
+
+.bento-template-card:hover .template-card-footer { color: #5A1398; }
+
+/* =========================================================
+   6. Help & Resources Section
+========================================================= */
+.bento-help-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.bento-help-section .section-header h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 6px 0;
+}
+
+.bento-help-section .section-header p {
+  color: #64748B;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.bento-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.bento-resource-card {
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+.bento-resource-card:hover {
+  transform: translateY(-3px);
+  background: var(--glass-surface-strong);
+  border-color: rgba(127, 87, 249, 0.55);
+  box-shadow: 0 14px 28px rgba(127, 87, 249, 0.16), var(--glass-highlight);
+}
+
+.bento-resource-card svg:last-child {
+  flex-shrink: 0;
+  color: #94A3B8;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.bento-resource-card:hover svg:last-child {
+  color: #7F57F9;
+  transform: translateX(2px);
+}
+
+.resource-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #F5F1FE;
+  color: #7F57F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.resource-card-body {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.resource-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 2px 0;
+}
+
+.resource-desc {
+  font-size: 0.8rem;
+  color: #64748B;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.bento-faq-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bento-faq-item {
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+.bento-faq-item.expanded {
+  background: var(--glass-surface-strong);
+  border-color: rgba(127, 87, 249, 0.4);
+  box-shadow: 0 8px 20px rgba(76, 29, 149, 0.1), var(--glass-highlight);
+}
+
+.bento-faq-question {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1E293B;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.2s;
+}
+
+.bento-faq-question:hover {
+  background-color: rgba(255, 255, 255, 0.35);
+}
+
+.bento-faq-question span {
+  padding-right: 16px;
+}
+
+.bento-faq-answer {
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bento-faq-answer p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #64748B;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   7. Sidebar Column (Recent Projects)
+========================================================= */
+.bento-sidebar-column { display: flex; flex-direction: column; }
+
+.bento-recent-card {
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.recent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.recent-header h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1E293B;
+  margin: 0;
+}
+
+.recent-badge {
+  background: #F1F5F9;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.recent-projects-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.bento-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bento-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(248, 250, 252, 0.65);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bento-recent-item:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(127, 87, 249, 0.3);
+  box-shadow: 0 4px 12px rgba(76, 29, 149, 0.08);
+  transform: translateX(4px);
+}
+
+.recent-item-icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(127, 87, 249, 0.1);
+  color: #7F57F9;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recent-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.recent-item-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.recent-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #64748B;
+}
+
+.dot-separator { color: #CBD5E1; }
+.sync-status { font-weight: 700; }
+.sync-status.synced { color: #10B981; }
+.sync-status.local { color: #F59E0B; }
+
+.view-all-projects-btn {
+  margin-top: 0;
+  margin-bottom: 20px;
+  width: 100%;
+  padding: 12px;
+  background: rgba(248, 250, 252, 0.65);
+  color: #5A1398;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-all-projects-btn:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(127, 87, 249, 0.3);
+  color: #3C2D76;
+}
+
+.bento-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748B;
+  height: 100%;
+}
+
+.bento-empty-state .empty-icon {
+  width: 48px;
+  height: 48px;
+  background: #F1F5F9;
+  color: #94A3B8;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.bento-empty-state p {
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 4px 0;
+}
+
+/* =========================================================
+   8. Animations & Responsive
+========================================================= */
+@keyframes slideFadeUp {
+  0% { opacity: 0; transform: translateY(15px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1024px) {
+  .bento-grid-container { grid-template-columns: 1fr; }
+  .bento-sidebar-column { order: -1; }
+}
+
+@media (max-width: 768px) {
+  .bento-hero-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 24px;
+  }
+  .bento-template-grid { grid-template-columns: 1fr; }
+  .bento-learning-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  .learning-content { padding-right: 0; width: 100%; }
+}
+
+/* =========================================================
+   9. Glass fallback & accessibility
+========================================================= */
+
+/* If the browser can't blur what's behind a card, translucent white
+   over the mesh background reads as a washed-out smudge instead of
+   glass. Fall back to a near-opaque surface so cards stay legible. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .bento-hero-card,
+  .bento-learning-card,
+  .bento-template-card,
+  .bento-resource-card,
+  .bento-faq-item,
+  .bento-recent-card {
+    background: #FFFFFF;
+  }
+}
+
+/* Respect a user's OS-level request for less transparency by raising
+   surface opacity instead of turning glass fully solid. */
+@media (prefers-reduced-transparency: reduce) {
+  .bento-dashboard-layout {
+    --glass-surface: rgba(255, 255, 255, 0.92);
+    --glass-surface-strong: rgba(255, 255, 255, 0.97);
+    --glass-surface-soft: rgba(255, 255, 255, 0.88);
+  }
+}
