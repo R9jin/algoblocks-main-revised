@@ -27,7 +27,8 @@ import DashboardHeader from "../components/DashboardHeader";
 import UnlockIcon from "../components/UnlockIcon";
 import { useOnboarding } from "../context/OnboardingContext";
 import curriculumIndex from "../data/curriculumIndex";
-import { assessmentsDB, curriculumCacheDB, progressDB, submissionsDB } from "../db";
+import { fetchStaticJson } from "../utils/staticJsonCache";
+import { assessmentsDB, progressDB, submissionsDB } from "../db";
 import "../styles/LearningPath.css";
 import "../styles/UnlockIcon.css";
 import { detectNewlyUnlocked } from "../utils/unlockAnimationTracker";
@@ -154,26 +155,16 @@ export default function LearningPath() {
   useEffect(() => {
     const fetchAllData = async () => {
       try {
-        const details = {};
         const acts = {};
         const fetchPromises = [];
 
+        // Local copy first (instant, refreshed quietly in the background),
+        // then network / service worker / Cache Storage. The old version had
+        // no Cache Storage step and never gave up on a hung request.
         const fetchWithCache = async (url, type, key) => {
           try {
-            const cachedData = await curriculumCacheDB.getItem(url);
-            if (cachedData) {
-              if (type === 'activity') acts[key] = cachedData;
-              if (type === 'lesson') details[key] = cachedData;
-              return;
-            }
-
-            const res = await fetch(url);
-            if (res.ok) {
-              const data = await res.json();
-              await curriculumCacheDB.setItem(url, data);
-              if (type === 'activity') acts[key] = data;
-              if (type === 'lesson') details[key] = data;
-            }
+            const data = await fetchStaticJson(url, { preferLocal: true });
+            if (type === 'activity') acts[key] = data;
           } catch (e) {
             console.warn(`Failed to load ${url}`, e);
           }
@@ -189,14 +180,7 @@ export default function LearningPath() {
         // assessments) equally available offline after one online visit.
         const warmAssessmentCache = async (url) => {
           try {
-            const cachedData = await curriculumCacheDB.getItem(url);
-            if (cachedData) return;
-
-            const res = await fetch(url);
-            if (res.ok) {
-              const data = await res.json();
-              await curriculumCacheDB.setItem(url, data);
-            }
+            await fetchStaticJson(url, { preferLocal: true });
           } catch (e) {
             console.warn(`Failed to precache assessment ${url}`, e);
           }

@@ -24,12 +24,13 @@ import UnlockIcon from "../components/UnlockIcon";
 import { BLOCK_EXAMPLES } from "../data/blockExamples";
 import curriculumIndex from "../data/curriculumIndex";
 import { LESSON_BLOCK_PLAYGROUNDS } from "../data/lessonBlockPlaygrounds";
-import { assessmentsDB, curriculumCacheDB, progressDB, submissionsDB } from "../db";
+import { assessmentsDB, progressDB, submissionsDB } from "../db";
 import { useExampleWorker } from "../hooks/useExampleWorker.js";
 import "../styles/LessonViewer.css";
 import "../styles/Skeleton.css";
 import "../styles/UnlockIcon.css";
 import { detectNewlyUnlocked } from "../utils/unlockAnimationTracker";
+import { fetchStaticJson } from "../utils/staticJsonCache";
 import { syncDownFromServer } from "../utils/syncManager";
 
 // Mirrors the difficulty map in LearningPath.jsx (kept local here since it's
@@ -377,6 +378,15 @@ export default function LessonViewer() {
 
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Set when the lesson JSON couldn't be loaded from the network OR any
+  // local copy (typically: offline before this lesson was ever opened).
+  const [lessonError, setLessonError] = useState(null);
+  // True once the sidebar's supporting data (activities per module, used
+  // for lock state) has been attempted. This -- not "did we get any data" --
+  // is what lets the page leave its skeleton: the page used to wait for
+  // lesson details to be non-empty, which never happens offline when nothing
+  // is cached, leaving it on a skeleton with no way out.
+  const [curriculumReady, setCurriculumReady] = useState(false);
   const [expandedModules, setExpandedModules] = useState(new Set([moduleId]));
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   // Tracks which single block playground dropdown (if any) is expanded
@@ -388,7 +398,6 @@ export default function LessonViewer() {
   const [openPlaygroundId, setOpenPlaygroundId] = useState(null);
 
   const [userProgress, setUserProgress] = useState({});
-  const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
   const [assessments, setAssessments] = useState({});
   const [submissions, setSubmissions] = useState({});
@@ -513,84 +522,66 @@ export default function LessonViewer() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchAllData = async () => {
-      const details = {};
       const acts = {};
-      const fetchPromises = [];
 
-      const fetchWithCache = async (url, type, key) => {
+      const load = async (url, type, key) => {
         try {
-          const cachedData = await curriculumCacheDB.getItem(url);
-          if (cachedData) {
-            if (type === 'activity') acts[key] = cachedData;
-            if (type === 'lesson') details[key] = cachedData;
-            return;
-          }
-
-          const res = await fetch(url);
-          if (res.ok) {
-            const data = await res.json();
-            await curriculumCacheDB.setItem(url, data);
-            if (type === 'activity') acts[key] = data;
-            if (type === 'lesson') details[key] = data;
-          }
+          const data = await fetchStaticJson(url, { preferLocal: true });
+          if (type === "activity") acts[key] = data;
         } catch (e) {
+          // Not available offline yet -- the sidebar just treats it as
+          // "no data" instead of the whole page failing.
           console.warn(`Failed to load ${url}`, e);
         }
       };
 
+      const jobs = [];
       for (const module of curriculumIndex) {
         const mid = module.moduleId.split("-").pop();
-        
-        fetchPromises.push(
-          fetchWithCache(`/data/activities/module_${mid}.json`, 'activity', module.moduleId)
-        );
-
+        jobs.push(load(`/data/activities/module_${mid}.json`, "activity", module.moduleId));
+        // Also pull each lesson's text into the local cache so every lesson
+        // opens offline after one online visit to any lesson page.
         for (const lessonMeta of module.lessons) {
-          fetchPromises.push(
-            fetchWithCache(`/data/curriculum/${module.moduleId}/${lessonMeta.lessonId}.json`, 'lesson', lessonMeta.lessonId)
-          );
+          jobs.push(load(`/data/curriculum/${module.moduleId}/${lessonMeta.lessonId}.json`, "lesson", lessonMeta.lessonId));
         }
       }
 
-      // Parallel fetch for the sidebar mapping
-      await Promise.all(fetchPromises);
-
-      setLessonDetails(details);
+      await Promise.all(jobs);
+      if (cancelled) return;
       setActivitiesData(acts);
+      setCurriculumReady(true);
     };
     fetchAllData();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const loadLesson = async () => {
       setLoading(true);
+      setLessonError(null);
       try {
         const module = curriculumIndex.find((m) => m.moduleId === moduleId);
-        if (!module) return;
+        if (!module) throw new Error("Unknown module.");
         const lessonMeta = module.lessons.find((l) => l.lessonId === lessonId);
-        if (!lessonMeta) return;
+        if (!lessonMeta) throw new Error("Unknown lesson.");
 
-        const fetchPath = `/data/curriculum/${moduleId}/${lessonId}.json`;
-        
-        // Optimize actual lesson text load with Cache
-        const cachedData = await curriculumCacheDB.getItem(fetchPath);
-        if (cachedData) {
-          setLesson(cachedData);
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch(fetchPath);
-        if (!response.ok) throw new Error(`Failed to fetch lesson: ${response.status}`);
-
-        const data = await response.json();
-        await curriculumCacheDB.setItem(fetchPath, data); // Save for next time
-        setLesson(data);
+        const data = await fetchStaticJson(`/data/curriculum/${moduleId}/${lessonId}.json`, { preferLocal: true });
+        if (!cancelled) setLesson(data);
       } catch (error) {
         console.error("Failed to load lesson:", error);
+        if (!cancelled) {
+          setLesson(null);
+          setLessonError(
+            navigator.onLine
+              ? "This lesson couldn't be loaded. Please try again."
+              : "This lesson hasn't been saved for offline use yet. Open it once while online and it will be available offline."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     loadLesson();
@@ -598,6 +589,7 @@ export default function LessonViewer() {
     // whatever was open on the previous lesson rather than carrying a
     // stale (and now meaningless) id across the navigation.
     setOpenPlaygroundId(null);
+    return () => { cancelled = true; };
   }, [moduleId, lessonId]);
 
   // BUG FIX: the old hasPostAssessment did an EXACT string match --
@@ -775,7 +767,7 @@ export default function LessonViewer() {
   const [animatingKeys, setAnimatingKeys] = useState(new Set());
 
   useEffect(() => {
-    if (Object.keys(lessonDetails).length === 0) return undefined;
+    if (!curriculumReady) return undefined;
 
     const fresh = detectNewlyUnlocked(userEmail, gateState);
     if (fresh.length === 0) return undefined;
@@ -807,7 +799,7 @@ export default function LessonViewer() {
   const lessonNum = lessonId?.split("-").pop();
   const currentActivityId = lesson?.activities?.[0]?.id;
 
-  if (Object.keys(lessonDetails).length === 0) {
+  if (!curriculumReady) {
     return (
       <div className="lesson-skeleton-wrapper">
         <aside className="lesson-skeleton-sidebar">
@@ -994,6 +986,25 @@ export default function LessonViewer() {
             >
               Return to Path
             </button>
+          </div>
+        ) : lessonError ? (
+          <div style={{ textAlign: "center", padding: "80px 24px", maxWidth: 560, margin: "0 auto" }}>
+            <h2>Lesson unavailable</h2>
+            <p style={{ margin: "12px 0 24px", lineHeight: 1.6 }}>{lessonError}</p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <button
+                onClick={() => window.location.reload()}
+                style={{ padding: "10px 20px", backgroundColor: "#7c5cff", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
+              >
+                Try again
+              </button>
+              <button
+                onClick={() => navigate("/learning-path")}
+                style={{ padding: "10px 20px", backgroundColor: "transparent", color: "inherit", border: "1px solid currentColor", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
+              >
+                Back to Learning Path
+              </button>
+            </div>
           </div>
         ) : loading ? (
           <div className="lesson-content-skeleton">

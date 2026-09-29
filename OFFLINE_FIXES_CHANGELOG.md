@@ -15,6 +15,16 @@ fonts disappeared, and the Python engine never recovered.
 | Fonts | Google Fonts had no runtime cache. | `vite.config.js`: StaleWhileRevalidate for the stylesheets, CacheFirst for font files. |
 | App-shell fallback | `index.html` was returned for any navigation, including `/api`, `/pyodide`, `/templates`, `/data`. | `navigateFallbackDenylist` added. |
 
+## Lesson Viewer / Learning Path (second pass)
+| Problem | Fix |
+|---|---|
+| Lesson Viewer stayed on a skeleton forever offline. The page only left its skeleton once at least one lesson JSON had loaded (`lessonDetails` non-empty); offline with nothing cached, none loaded, so it never did. | The gate is now `curriculumReady`, set as soon as loading has been *attempted*. The sidebar degrades to "no activity data" instead of blocking the page. |
+| A lesson that could not be loaded left a blank page (no error state). | New "Lesson unavailable" card with an offline-specific message, Try again and Back to Learning Path. |
+| Lesson, activity and assessment JSON were read from IndexedDB or the network only; no Cache Storage step, and a hung request could wait indefinitely. | Both pages now use `fetchStaticJson(url, { preferLocal: true })`: IndexedDB first (instant, refreshed quietly in the background), then network (8 s timeout), service worker / Cache Storage, IndexedDB. |
+| Stale content: IndexedDB copies were never refreshed after a deploy. | The background refresh in `preferLocal` mode keeps them current. |
+
+Files: `pages/LessonViewer.jsx`, `pages/LearningPath.jsx`, `utils/staticJsonCache.js`.
+
 ## Testing offline
 1. `npm run build && npm run preview` (the dev server has no service worker).
 2. Sign in online and wait until the Python engine reports Ready. Open the workspace once.
