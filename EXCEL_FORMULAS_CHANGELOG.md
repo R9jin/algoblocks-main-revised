@@ -167,3 +167,86 @@ Every formula cell carries the server's value as a cached result, so the numbers
 read correctly before Excel recalculates. Recalculation reproduces them rather
 than changing them — that was the point of mirroring the backend definitions
 term for term instead of writing "better" statistics.
+
+---
+
+# Addendum: AES and ROG calculated in every submission row
+
+The Learning Impact export already computed each submission's TSR in its own
+cell, but **AES and ROG were typed-in values** copied from the database, so a
+panelist clicking an AES cell saw a literal. Every submission row on the
+`Submissions` sheet now carries the whole chain as live formulas.
+
+## Files changed
+
+| File | Change |
+| --- | --- |
+| `api/services/admin_analytics_service.py` | `_submission_raw_row` also sends the raw AES/ROG inputs: `initial_aes`, `latest_aes`, target / baseline / latest time and space complexity strings |
+| `frontend/src/utils/submissionWorkings.js` | **New.** Column layout, formulas, cached results and the `AES-ROG Reference` sheet |
+| `frontend/src/pages/AdminUserManagement.jsx` | Submissions block now uses the module; two reconciliation rows added to Summary |
+
+## Formula chain (one row per submission, left to right)
+
+```
+TSR %             =IF(AND(ISNUMBER(H2),ISNUMBER(I2),I2>0),H2/I2*100,"")
+Functional TSR    =IF(funcTotal>0, funcPassed/funcTotal, 1)
+Weight (x6)       lookup of each Big-O string in 'AES-ROG Reference'
+Time Ratio        =MIN(1, targetTimeWeight / actualTimeWeight)
+Space Ratio       =MIN(1, targetSpaceWeight / actualSpaceWeight)
+Efficiency        =(TimeRatio + SpaceRatio) / 2
+Latest AES        =INT(FunctionalTSR * Efficiency * 100)
+Best Earlier AES  =IF(recordedFinal > recordedLatest, recordedFinal, "")
+Final AES         =MAX(LatestAES, BestEarlierAES)
+Baseline AES      =INT(BaselineEfficiency * 100)         (starter solution, TSR = 1)
+ROG               =MAX(0, FinalAES - BaselineAES)        (optimization activities only)
+```
+
+These are the rules `ActivityApp.jsx` applies on "Run Tests" (`getComplexityWeight`,
+`timeRatio` / `spaceRatio`, `Math.floor`, `Math.max`).
+
+## Check columns
+
+Each recalculated value sits beside the value the app recorded, with an
+`OK` / `DIFF` / `n/a` check column (latest AES, final AES, baseline AES, ROG).
+Summary counts the DIFF rows for Final AES and ROG; 0 means every figure
+reproduces exactly. Older records that lack the new fields fall back to the
+recorded value, so their numbers do not change.
+
+## Things worth knowing
+
+* **Final AES** is the best AES across attempts. Earlier attempts are not stored,
+  so their best is taken from the recorded final AES; the latest attempt is fully
+  recalculated.
+* **Baseline AES** uses the value the app recorded. That is the learner's *first
+  evaluation* (failed tests included), so it is often lower than the starter's
+  complexity alone would give. The starter's AES is recalculated beside it
+  (TSR assumed 1) as information only; it does not feed ROG.
+* **Unchanged-code resubmissions** (`Code Unchanged = Yes`): the app freezes the
+  final AES at its earlier value, so the formula uses that value and the ROG
+  stays frozen with it.
+* The AES uses **functional** TSR; the dashboard TSR uses **all** tests. Both are
+  visible in separate columns.
+* Weights are looked up from a visible table (`AES-ROG Reference`) mirroring
+  `getComplexityWeight()` pattern for pattern, so the table can be shown to the
+  panel.
+
+## Verification
+
+Simulated 120 submissions (regular and optimization, multiple attempts, 15
+different Big-O spellings including unrecognised text), recalculated in
+LibreOffice: 3,364 formulas, 0 errors, and all 6,360 cells on the Submissions
+sheet equal the expected values. The recalculated AES and ROG match an
+independent re-implementation of the `ActivityApp.jsx` math on every row.
+
+## Verification on real data (2026-09-29 export, 3,055 submissions)
+
+The first version of this change moved the cohort figures (Avg AES 91.8 -> 91.9,
+Avg ROG +16.9 -> +17.2) because it ignored the app's unchanged-code freeze: 12
+submissions had a recalculated final AES above the frozen recorded one. Fixed in
+`submissionWorkings.js`. After the fix, rebuilt from the same 3,055 rows and
+recalculated in LibreOffice (85,547 formulas, 0 errors):
+
+* Final AES, latest AES and ROG differ from the recorded values in **0** rows.
+* Avg AES 91.78 and Avg ROG +16.86 (n' = 459), identical to the 09-25 export.
+* Per-row Final AES, ROG counted / eligible, counted-as-passed and TSR match the
+  09-25 export on every row.
