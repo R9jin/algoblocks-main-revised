@@ -5,6 +5,10 @@ import { autoTable } from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { addTableSheet, addKeyValueSheet, downloadWorkbook, colLetter, excelStringLiteral, sheetRefs, OPEN_LAST_ROW } from "../utils/excelReport";
 import { addRegressionSheets, drawRegressionPdfSection } from "../utils/regressionReport";
+import {
+  SUB_COLUMNS, SUB_KEYS, addAesRogReferenceSheet, buildSubmissionRow,
+  styleSubmissionHeaders, reconciliationCounts,
+} from "../utils/submissionWorkings";
 import { anonymizeOverview } from "../utils/anonymize";
 import { LearningImpactModelSection, LearningImpactModelReportSection } from "../components/LearningImpactModel";
 import {
@@ -869,6 +873,10 @@ const AdminUserManagement = () => {
   //    total>0),passed/total*100,"")` -- the ratio, computed in the cell,
   //    left blank when that submission has no scored tests so it drops out
   //    of every mean exactly as the backend drops it.
+  //  - Each submission's AES and ROG are calculated in its own row too
+  //    (functional TSR x efficiency x 100, then final AES minus baseline
+  //    AES), with the Big-O weights looked up on 'AES-ROG Reference' and a
+  //    check column against what the app recorded -- see submissionWorkings.js.
   //  - Whether a submission counts as "passed" is the AES >= 50 OR
   //    status = "passed" rule, written out as an IF/OR over its own row.
   //  - A respondent's TSR / AES / ROG are AVERAGEIF over their submissions;
@@ -932,13 +940,6 @@ const AdminUserManagement = () => {
     // Summary as the first tab in the file without resorting to reordering
     // worksheets after the fact.
     const SUB_SHEET = "Submissions";
-    const SUB_KEYS = [
-      "email", "module", "activity", "type", "status", "unchanged",
-      "tsrPassed", "tsrTotal", "tsr", "aes", "rog", "rogCounted", "rogEligible", "countedPassed",
-      "inRoster",
-      "funcPassed", "funcTotal", "compPassed", "compTotal", "hidPassed", "hidTotal",
-      "timestamp",
-    ];
     const sub = sheetRefs(SUB_SHEET, SUB_KEYS, rawSubs.length);
 
     const RESP_COLS_DEF = [
@@ -1032,6 +1033,7 @@ const AdminUserManagement = () => {
     const weightedRespAvg = (valueKey, weightKey) =>
       `SUMPRODUCT(${respRange(valueKey)},${respRange(weightKey)})/SUM(${respRange(weightKey)})`;
 
+    const recon = reconciliationCounts(rawSubs, rosterIds);
     let systemRows;
     if (!hasRespondents) {
       systemRows = [["Respondents Included", 0]];
@@ -1062,6 +1064,18 @@ const AdminUserManagement = () => {
         ["Hidden Tests Passed", {
           formula: pairStr("hidPassed", "hidTotal", cohortCriteria),
           result: `${sg.hidden_tests?.passed ?? 0}/${sg.hidden_tests?.total ?? 0}`,
+        }],
+        // AES and ROG are recalculated per submission on the Submissions
+        // sheet (columns explained on 'AES-ROG Reference'); these two rows
+        // count submissions where the recalculation disagrees with what the
+        // app recorded. 0 means every AES and ROG reproduces exactly.
+        ["Final AES Recalculated Differs From Recorded", {
+          formula: countRows([[sub.range("finalCheck"), '"DIFF"'], inRoster]),
+          result: recon.aes,
+        }],
+        ["ROG Recalculated Differs From Recorded", {
+          formula: countRows([[sub.range("rogCheck"), '"DIFF"'], inRoster]),
+          result: recon.rog,
         }],
       ];
     } else {
@@ -1353,116 +1367,28 @@ const AdminUserManagement = () => {
     );
 
     // ----- Raw data: Submissions (the base of the whole workbook) -------
-    // One row per activity submission. The three computed columns here are
-    // the per-submission definitions the backend applies before averaging:
-    // a submission's own TSR, whether its ROG counts toward the ROG average,
-    // and whether it counts as a passed activity.
+    // One row per activity submission, and the whole TSR -> AES -> ROG chain
+    // for it, as live formulas (see utils/submissionWorkings.js): the
+    // functional TSR, the Big-O weight lookups, the time / space ratios, the
+    // efficiency, the latest and final AES, the baseline AES and the ROG. Each
+    // recalculated AES / ROG sits beside the value the app recorded, with a
+    // check column, so a panelist can click any cell and trace it.
     if (hasRawSubs) {
-      addTableSheet(
+      const subSheet = addTableSheet(
         workbook,
         SUB_SHEET,
-        [
-          { header: "Respondent ID", key: "email", width: 16 },
-          { header: "Module", key: "module", width: 26 },
-          { header: "Activity", key: "activity", width: 26 },
-          { header: "Type", key: "type", width: 12 },
-          { header: "Status", key: "status", width: 12 },
-          { header: "Code Unchanged", key: "unchanged", width: 15 },
-          { header: "Tests Passed", key: "tsrPassed", width: 13 },
-          { header: "Tests Total", key: "tsrTotal", width: 13 },
-          { header: "TSR %", key: "tsr", width: 11, numFmt: "0.00" },
-          { header: "Final AES", key: "aes", width: 11, numFmt: "0.00" },
-          { header: "ROG", key: "rog", width: 10, numFmt: "0.00" },
-          { header: "ROG Counted", key: "rogCounted", width: 13, numFmt: "0.00" },
-          { header: "ROG Eligible", key: "rogEligible", width: 13, numFmt: "0" },
-          { header: "Counted as Passed", key: "countedPassed", width: 16 },
-          { header: "In Respondents", key: "inRoster", width: 18 },
-          { header: "Functional Passed", key: "funcPassed", width: 16 },
-          { header: "Functional Total", key: "funcTotal", width: 16 },
-          { header: "Complexity Passed", key: "compPassed", width: 16 },
-          { header: "Complexity Total", key: "compTotal", width: 16 },
-          { header: "Hidden Passed", key: "hidPassed", width: 14 },
-          { header: "Hidden Total", key: "hidTotal", width: 14 },
-          { header: "Timestamp", key: "timestamp", width: 22 },
-        ],
-        rawSubs.map((s, i) => {
-          const P = sub.localCell("tsrPassed", i);
-          const T = sub.localCell("tsrTotal", i);
-          const A = sub.localCell("aes", i);
-          const G = sub.localCell("rog", i);
-          const S = sub.localCell("status", i);
-          const countsTsr = typeof s.tsr_passed === "number" && typeof s.tsr_total === "number" && s.tsr_total > 0;
-          const T_TYPE = sub.localCell("type", i);
-          // ROG counts every evaluated optimization submission -- zero-gain
-          // ones included. Excluding rog === 0 would make "attempted
-          // optimization, no improvement" indistinguishable from "never
-          // attempted," the same survivorship bias that produced Module
-          // 0's phantom ROG.
-          const countsRog = s.type === "optimization" && typeof s.final_aes === "number" && typeof s.rog === "number";
-          const countsPassed = (typeof s.final_aes === "number" && s.final_aes >= 50) || s.status === "passed";
-          const emailCell = sub.localCell("email", i);
-          return {
-            email: s.email,
-            module: moduleTitle(s.moduleId),
-            activity: s.activityId ?? "",
-            type: s.type ?? "",
-            status: s.status ?? "",
-            unchanged: s.code_unchanged ? "Yes" : "No",
-            tsrPassed: s.tsr_passed ?? "",
-            tsrTotal: s.tsr_total ?? "",
-            // This submission's own Task Success Rate. Blank -- and so
-            // skipped by every AVERAGEIF above -- when it has no scored
-            // tests, which is exactly when the backend skips it too.
-            tsr: {
-              formula: `IF(AND(ISNUMBER(${P}),ISNUMBER(${T}),${T}>0),${P}/${T}*100,"")`,
-              result: countsTsr ? (s.tsr_passed / s.tsr_total) * 100 : "",
-            },
-            aes: s.final_aes ?? "",
-            rog: s.rog ?? "",
-            // ROG counts as long as the activity is an OPTIMIZATION activity
-            // and was actually evaluated (an AES exists) -- the gain itself
-            // may be zero (the refactor didn't improve on the starter) and
-            // still counts, on purpose: dropping zero-gain rows would make
-            // "attempted optimization, no improvement" indistinguishable
-            // from "never attempted," which is the same survivorship bias
-            // that produced Module 0's phantom ROG. Regular activities feed
-            // TSR and AES only -- never ROG.
-            rogCounted: {
-              formula: `IF(AND(${T_TYPE}="optimization",ISNUMBER(${A}),ISNUMBER(${G})),${G},"")`,
-              result: countsRog ? s.rog : "",
-            },
-            // 1/0 companion to rogCounted, used to sum n' exactly (see
-            // countRog above) since 0 is now a valid counted ROG value and
-            // can't be told apart from "not counted" with a ">0" test.
-            rogEligible: {
-              formula: `IF(AND(${T_TYPE}="optimization",ISNUMBER(${A}),ISNUMBER(${G})),1,0)`,
-              result: countsRog ? 1 : 0,
-            },
-            // The backend's pass rule, written out: AES >= 50, or the
-            // submission was explicitly marked passed.
-            countedPassed: {
-              formula: `IF(OR(AND(ISNUMBER(${A}),${A}>=50),${S}="passed"),1,0)`,
-              result: countsPassed ? 1 : 0,
-            },
-            // 1 while this submission's respondent is still on the
-            // Respondents sheet. Delete the respondent and this flips to 0,
-            // which drops the row from the cohort, module and learning-path
-            // figures without touching the submission itself.
-            inRoster: {
-              formula: `IF(COUNTIF(${resp.range("email")},${emailCell})>0,1,0)`,
-              result: rosterIds.has(s.email) ? 1 : 0,
-            },
-            funcPassed: s.functional_passed ?? 0,
-            funcTotal: s.functional_total ?? 0,
-            compPassed: s.complexity_passed ?? 0,
-            compTotal: s.complexity_total ?? 0,
-            hidPassed: s.hidden_passed ?? 0,
-            hidTotal: s.hidden_total ?? 0,
-            timestamp: s.timestamp ?? "",
-          };
-        }),
+        SUB_COLUMNS,
+        rawSubs.map((s, i) =>
+          buildSubmissionRow(s, i, sub, {
+            moduleTitle,
+            rosterIds,
+            respEmailRange: resp.range("email"),
+          })
+        ),
         { headerColor: "5A1398" }
       );
+      styleSubmissionHeaders(subSheet);
+      addAesRogReferenceSheet(workbook);
     }
 
     // ----- Learning Impact Model (simple regression) --------------------
