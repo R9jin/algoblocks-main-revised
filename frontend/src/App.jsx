@@ -11,6 +11,7 @@ import { startBackgroundSync, stopBackgroundSync } from "./utils/syncManager";
 import { isAdminUser } from "./utils/auth";
 import { prefetchGroundTruth } from "./utils/datasetCache";
 import { warmupRouteChunks } from "./utils/routeWarmup";
+import { mirrorStaticContentToIndexedDb, whenIdle, whenServiceWorkerReady } from "./utils/offlineReadiness";
 
 // Lazy load ALL pages to prevent circular dependency crashes and reduce the initial load payload
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
@@ -139,6 +140,10 @@ function App() {
     if (isValidUser) {
       prefetchGroundTruth().catch(() => {});
       warmupRouteChunks().catch(() => {});
+      // Second, independent offline copy of every lesson / activity /
+      // template file (IndexedDB), made once the service worker has
+      // finished installing and the browser is idle.
+      whenServiceWorkerReady().then(() => whenIdle(() => { mirrorStaticContentToIndexedDb(); }, 8000));
     }
   }, [isValidUser]);
 

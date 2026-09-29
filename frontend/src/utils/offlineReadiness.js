@@ -61,3 +61,70 @@ export function whenIdle(fn, timeout = 5000) {
   if (typeof requestIdleCallback === "function") requestIdleCallback(fn, { timeout });
   else setTimeout(fn, 2000);
 }
+
+// ---------------------------------------------------------------------------
+// Static content -> IndexedDB mirror
+// ---------------------------------------------------------------------------
+// The service worker precache already holds every lesson, activity and
+// template JSON, but browsers can evict Cache Storage under storage pressure
+// and the precache only answers while a worker controls the page. Mirroring
+// the same files into IndexedDB (curriculumCache, which fetchStaticJson()
+// reads as its last-resort layer) gives every page a second, independent
+// offline copy. The list is read from the precache itself, so a new lesson or
+// template is picked up automatically -- nothing to maintain by hand.
+let mirroring = null;
+
+export function mirrorStaticContentToIndexedDb() {
+  if (mirroring) return mirroring;
+  if (typeof caches === "undefined" || typeof navigator === "undefined" || !navigator.onLine) {
+    return Promise.resolve(0);
+  }
+  mirroring = (async () => {
+    let stored = 0;
+    try {
+      const names = await caches.keys();
+      const precacheName = names.find((n) => n.includes("precache"));
+      if (!precacheName) return 0;
+      const cache = await caches.open(precacheName);
+      const requests = await cache.keys();
+      const urls = requests
+        .map((r) => new URL(r.url))
+        .filter((u) => u.origin === self.location.origin)
+        .map((u) => u.pathname)
+        // Lessons, activity banks, assessments, templates, optimizations.
+        // The (large) ground-truth chunks have their own store, see datasetCache.js.
+        .filter((p) => /^\/(data|templates)\/.+\.json$/.test(p) && !p.startsWith("/data/evaluation/"));
+
+      // Lazy import: staticJsonCache pulls in db.js, which this module
+      // otherwise has no reason to load.
+      const { fetchStaticJson } = await import("./staticJsonCache.js");
+      const { curriculumCacheDB } = await import("../db.js");
+      for (const url of [...new Set(urls)]) {
+        try {
+          // Already mirrored on an earlier visit -- pages that read it
+          // (preferLocal) refresh it themselves, so don't re-download it.
+          if (await curriculumCacheDB.get(url)) continue;
+          await fetchStaticJson(url);
+          stored += 1;
+        } catch (e) { /* keep going -- best effort */ }
+      }
+      return stored;
+    } catch (e) {
+      console.warn("Static content mirror skipped:", e);
+      return stored;
+    } finally {
+      mirroring = null;
+    }
+  })();
+  return mirroring;
+}
+
+// Resolves once a service worker is controlling the page (or immediately if
+// the browser has none), so warm-ups don't race the worker's first claim.
+export function whenServiceWorkerReady(timeoutMs = 15000) {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return Promise.resolve(false);
+  return Promise.race([
+    navigator.serviceWorker.ready.then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), timeoutMs)),
+  ]);
+}

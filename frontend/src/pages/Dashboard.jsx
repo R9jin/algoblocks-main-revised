@@ -8,6 +8,7 @@ import { useOnboarding } from "../context/OnboardingContext";
 import { progressDB, projectsDB, templatesDB } from "../db";
 import "../styles/Dashboard.css";
 import "../styles/Skeleton.css";
+import { fetchStaticJson } from "../utils/staticJsonCache";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
@@ -404,9 +405,10 @@ export default function Dashboard() {
   const handleTryTemplate = async (template) => {
     try {
       if (template.isSystem) {
-        const response = await fetch(`/templates/${template.path}.json`);
-        if (!response.ok) throw new Error("Template file not found");
-        const data = await response.json();
+        // Layered lookup (network -> Cache Storage -> IndexedDB) so system
+        // templates still open offline even when the service worker isn't
+        // answering this request.
+        const data = await fetchStaticJson(`/templates/${template.path}.json`, { preferLocal: true });
         
         const proj = { 
           data: data, 

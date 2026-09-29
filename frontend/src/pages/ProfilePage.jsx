@@ -24,8 +24,9 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
-import { assessmentsDB, curriculumCacheDB, progressDB, submissionsDB } from "../db";
+import { assessmentsDB, progressDB, submissionsDB } from "../db";
 import { isAdminUser } from "../utils/auth";
+import { fetchStaticJson } from "../utils/staticJsonCache";
 import "../styles/ProfilePage.css";
 
 /** ActivityMetrics — graphical widget card for per-activity stats shown in the profile. */
@@ -145,6 +146,10 @@ export default function ProfilePage() {
   const [expandedModules, setExpandedModules] = useState({});
   const [userRank, setUserRank] = useState("Novice Coder");
   const [loading, setLoading] = useState(true);
+  // Set when we are showing saved data because the network (or part of the
+  // course content) isn't reachable, so the page explains itself instead of
+  // silently looking empty.
+  const [offlineNotice, setOfflineNotice] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
@@ -289,9 +294,17 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    const loadDashboardData = async () => {
+    // OFFLINE FIX: this used to be one all-or-nothing pass -- read local data,
+    // then (if navigator.onLine) await three API calls with no deadline, then
+    // render. On a dead-but-\"connected\" network those calls hung, so the
+    // page never left its spinner; and the module JSON fell straight to a bare
+    // fetch() with no local fallback. It is now two passes: a local pass that
+    // only touches IndexedDB + cached static files (renders in milliseconds,
+    // works fully offline), then a cloud pass that refreshes in the background
+    // with a hard timeout and re-renders if anything changed.
+    const loadDashboardData = async ({ includeCloud = false, showSpinner = true } = {}) => {
       try {
-        setLoading(true);
+        if (showSpinner) setLoading(true);
         const API_BASE = import.meta.env.VITE_API_URL || "";
         const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
         let parsed = JSON.parse(stored || "{}");
@@ -332,16 +345,10 @@ export default function ProfilePage() {
         const moduleResultsPromise = Promise.all(
           Array.from({ length: 7 }, (_, i) => {
             const url = `/data/activities/module_${i}.json`;
-            return curriculumCacheDB.getItem(url)
-              .then((cached) => {
-                if (cached) return [i, cached];
-                return fetch(url).then(async (res) => {
-                  if (!res.ok) return null;
-                  const data = await res.json();
-                  curriculumCacheDB.setItem(url, data).catch(() => {});
-                  return [i, data];
-                });
-              })
+            // Local copy first (IndexedDB), then network / service worker /
+            // Cache Storage -- see utils/staticJsonCache.js.
+            return fetchStaticJson(url, { preferLocal: true })
+              .then((data) => [i, data])
               .catch(() => { console.warn(`Could not load module_${i}.json`); return null; });
           })
         );
@@ -360,7 +367,7 @@ export default function ProfilePage() {
           ]);
         }
 
-        if (navigator.onLine && parsed.email && !isGuest) {
+        if (includeCloud && navigator.onLine && parsed.email && !isGuest) {
           try {
             const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
             const headers = { "Content-Type": "application/json" };
@@ -370,11 +377,20 @@ export default function ProfilePage() {
             // other, but were previously awaited one after the other --
             // doubling the network wait on every profile-page load. Firing
             // them together with Promise.all cuts that in half.
-            const [progRes, assmRes, subsRes] = await Promise.all([
-              fetch(`${API_BASE}/api/get-progress`, { headers }),
-              fetch(`${API_BASE}/api/get-assessments`, { headers }),
-              fetch(`${API_BASE}/api/get-all-submissions`, { headers }),
-            ]);
+            // Hard deadline: one shared AbortController so a hung backend
+            // (or a captive-portal network) can't hold the page hostage.
+            const cloudController = new AbortController();
+            const cloudTimer = setTimeout(() => cloudController.abort(), 8000);
+            let progRes, assmRes, subsRes;
+            try {
+              [progRes, assmRes, subsRes] = await Promise.all([
+                fetch(`${API_BASE}/api/get-progress`, { headers, signal: cloudController.signal }),
+                fetch(`${API_BASE}/api/get-assessments`, { headers, signal: cloudController.signal }),
+                fetch(`${API_BASE}/api/get-all-submissions`, { headers, signal: cloudController.signal }),
+              ]);
+            } finally {
+              clearTimeout(cloudTimer);
+            }
 
             // PERFORMANCE FIX: these three loops previously did
             // `for (...) { ...; await store.setItem(...) }` -- awaiting
@@ -480,11 +496,20 @@ export default function ProfilePage() {
         // returns immediately instead of adding its own wait.
         const allActivities = {};
         const moduleResults = await moduleResultsPromise;
+        let loadedModules = 0;
         for (const result of moduleResults) {
           if (result) {
             const [i, json] = result;
             allActivities[`module-${i}`] = json;
+            loadedModules += 1;
           }
+        }
+        if (loadedModules < moduleResults.length) {
+          setOfflineNotice("Some course content isn't saved on this device yet, so a few activity details may be missing. Connect once and open the Learning Path to download everything for offline use.");
+        } else if (!navigator.onLine) {
+          setOfflineNotice("You're offline -- showing the progress saved on this device. It will refresh and sync when you reconnect.");
+        } else {
+          setOfflineNotice(null);
         }
 
         // Any lesson the learner has actually saved work in should stay
@@ -739,7 +764,23 @@ export default function ProfilePage() {
       }
     };
 
-    loadDashboardData();
+    // Passes run one after another (never overlapping) so a late cloud
+    // refresh can't interleave its state updates with the local pass.
+    let chain = Promise.resolve();
+    const enqueue = (opts) => { chain = chain.then(() => loadDashboardData(opts)).catch(() => {}); return chain; };
+
+    const refreshFromCloud = () => {
+      if (navigator.onLine) enqueue({ includeCloud: true, showSpinner: false });
+      else setOfflineNotice((prev) => prev || "You're offline -- showing the progress saved on this device. It will refresh and sync when you reconnect.");
+    };
+
+    enqueue({ includeCloud: false, showSpinner: true }).then(refreshFromCloud);
+    window.addEventListener("online", refreshFromCloud);
+    window.addEventListener("offline", refreshFromCloud);
+    return () => {
+      window.removeEventListener("online", refreshFromCloud);
+      window.removeEventListener("offline", refreshFromCloud);
+    };
   }, []);
 
   const initials = user.name ? user.name.charAt(0).toUpperCase() : "U";
@@ -836,6 +877,25 @@ export default function ProfilePage() {
       <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" tour={profileTour} tourPageId="profile" />
 
       <div className="profile-container-v2">
+        {offlineNotice && (
+          <div
+            role="status"
+            style={{
+              margin: "0 0 12px",
+              padding: "10px 14px",
+              borderRadius: "10px",
+              background: "rgba(245, 158, 11, 0.12)",
+              border: "1px solid rgba(245, 158, 11, 0.45)",
+              color: "inherit",
+              fontSize: "0.9rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <FiInfo aria-hidden="true" /> <span>{offlineNotice}</span>
+          </div>
+        )}
         <div className="profile-cover">
           <div className="cover-pattern"></div>
         </div>

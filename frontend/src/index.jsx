@@ -2,6 +2,25 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { registerSW } from 'virtual:pwa-register';
+// Self-hosted fonts (latin subset). These used to be pulled from Google Fonts,
+// which meant the very first offline load had no fonts unless an earlier
+// online visit had already been intercepted by the service worker. Bundled
+// here, the woff2 files are part of the precache like every other asset.
+import '@fontsource/inter/latin-400.css';
+import '@fontsource/inter/latin-500.css';
+import '@fontsource/inter/latin-600.css';
+import '@fontsource/inter/latin-700.css';
+import '@fontsource/inter/latin-800.css';
+import '@fontsource/outfit/latin-400.css';
+import '@fontsource/outfit/latin-500.css';
+import '@fontsource/outfit/latin-600.css';
+import '@fontsource/outfit/latin-700.css';
+import '@fontsource/jetbrains-mono/latin-400.css';
+import '@fontsource/jetbrains-mono/latin-600.css';
+import '@fontsource/fira-code/latin-400.css';
+import '@fontsource/fira-code/latin-500.css';
+import '@fontsource/fira-code/latin-600.css';
+import '@fontsource/fira-code/latin-700.css';
 import App from './App.jsx';
 import './index.css';
 
@@ -9,6 +28,8 @@ import './index.css';
 // GLOBAL API INTERCEPTOR
 // =====================================================================
 const originalFetch = window.fetch;
+const API_TIMEOUT_READ_MS = 12000;
+const API_TIMEOUT_WRITE_MS = 30000;
 
 window.fetch = async (...args) => {
   let url = "";
@@ -35,8 +56,29 @@ window.fetch = async (...args) => {
     args[1] = config;
   }
 
+  // 2b. Bounded API calls.
+  // A "connected but dead" network (captive portal, lie-fi, backend down)
+  // leaves fetch() pending for minutes, and every page that awaits an /api
+  // call before rendering (Profile, Dashboard, Learning Path...) sat on its
+  // spinner the whole time. Give every /api request a deadline so the
+  // offline/IndexedDB fallback each page already has actually gets a chance
+  // to run. Calls that bring their own AbortSignal keep their own timing.
+  let timedOut = false;
+  let timer = null;
+  if (url.includes('/api')) {
+    const init = args[1] || {};
+    const reqMethod = String(init.method || (args[0] && args[0].method) || 'GET').toUpperCase();
+    const callerSignal = init.signal || (args[0] && typeof args[0] === 'object' ? args[0].signal : null);
+    if (!callerSignal && typeof AbortController !== 'undefined') {
+      const controller = new AbortController();
+      timer = setTimeout(() => { timedOut = true; controller.abort(); }, reqMethod === 'GET' ? API_TIMEOUT_READ_MS : API_TIMEOUT_WRITE_MS);
+      args[1] = { ...init, signal: controller.signal };
+    }
+  }
+
   try {
     const response = await originalFetch.apply(window, args);
+    if (timer) clearTimeout(timer);
 
     // 3. Handle Expired Sessions
     // ONLY trigger if the request was not a login/signup attempt
@@ -70,6 +112,12 @@ window.fetch = async (...args) => {
 
     return response;
   } catch (error) {
+    if (timer) clearTimeout(timer);
+    if (timedOut) {
+      // Surface our own deadline as an ordinary network failure (not an
+      // AbortError) so callers treat it like "offline" instead of ignoring it.
+      throw new TypeError('Network request timed out');
+    }
     // 4. Suppress Expected Abort Errors
     // Do NOT log AbortErrors to prevent console spam
     if (error.name === 'AbortError' || error.code === 20) {

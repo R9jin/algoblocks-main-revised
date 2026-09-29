@@ -17,6 +17,7 @@ import UserHeader from "../components/UserHeader";
 import curriculumIndex from "../data/curriculumIndex";
 import { clearLocalUserData, progressDB } from "../db";
 import "../styles/UserHomePage.css";
+import { fetchStaticJson } from "../utils/staticJsonCache";
 
 const allLessons = curriculumIndex.flatMap((module) =>
   module.lessons.map((lesson, lessonIndex) => ({
@@ -182,11 +183,8 @@ export default function UserHomePage() {
 
         if (nextStatus.lessonPath) {
           try {
-            const response = await fetch(`/data${nextStatus.lessonPath}`);
-            if (response.ok) {
-              const lesson = await response.json();
-              nextStatus.estimatedTime = lesson.estimatedTime || nextStatus.estimatedTime;
-            }
+            const lesson = await fetchStaticJson(`/data${nextStatus.lessonPath}`, { preferLocal: true });
+            nextStatus.estimatedTime = lesson.estimatedTime || nextStatus.estimatedTime;
           } catch (error) {
             console.warn("Could not load lesson estimate:", error);
           }
