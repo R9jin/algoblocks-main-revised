@@ -17,6 +17,7 @@ import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
 import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
 import WorkspaceHeader from "../components/WorkspaceHeader.jsx";
 import { projectsDB, templatesDB } from "../db.js";
+import { fetchStaticJson, warmStaticJson } from "../utils/staticJsonCache";
 import "../styles/MainApp.css";
 
 import { FiActivity, FiChevronLeft, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
@@ -141,7 +142,7 @@ export default function MainApp() {
   
   const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
-  const { worker, isEngineReady, resetWorker, progress: engineProgress } = usePyodide();
+  const { worker, isEngineReady, resetWorker, progress: engineProgress, engineError } = usePyodide();
 
   const initialTabsStateRef = useRef(null);
   if (initialTabsStateRef.current === null) initialTabsStateRef.current = getInitialTabsState(location.state);
@@ -509,18 +510,32 @@ export default function MainApp() {
       if (navigator && navigator.onLine && API_BASE) {
         try {
           const headers = getAuthHeaders();
+          // A cloud copy must never overwrite a local copy that has edits
+          // the server hasn't received yet (saved while offline). The old
+          // code looked the record up by the server's row number ("_id"),
+          // never found it, and replaced the unsynced local work with the
+          // stale cloud version every time this ran online.
+          const mergeCloud = async (db, keyName, cloudItem) => {
+            const key = cloudItem[keyName] || cloudItem._id;
+            if (!key) return;
+            const local = await db.get(key).catch(() => null);
+            const localUnsynced = local && !local.isSynced && !local.synced;
+            const localNewer = local && (local.updatedAt || local.timestamp || 0) > (cloudItem.updatedAt || cloudItem.timestamp || 0);
+            if (localUnsynced && localNewer) return;
+            await db.setItem(key, { ...cloudItem, [keyName]: key, synced: true, isSynced: true });
+          };
           const pRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
           if (pRes.ok) {
             const pData = await pRes.json().catch(()=>({}));
             for (const cp of pData.projects || pData || []) {
-              if (cp.owner_id === user.email || cp.userId === user.email) await projectsDB.setItem(cp.projectId || cp._id, { ...cp, projectId: cp.projectId || cp._id, synced: true, isSynced: true });
+              if (cp.owner_id === user.email || cp.userId === user.email) await mergeCloud(projectsDB, "projectId", cp);
             }
           }
           const tRes = await fetch(`${API_BASE}/api/templates?userId=${encodeURIComponent(user.email)}`, { headers });
           if (tRes.ok) {
             const tData = await tRes.json().catch(()=>({}));
             for (const ct of tData.templates || tData || []) {
-              if (ct.owner_id === user.email || ct.userId === user.email) await templatesDB.setItem(ct.templateId || ct._id, { ...ct, templateId: ct.templateId || ct._id, synced: true, isSynced: true });
+              if (ct.owner_id === user.email || ct.userId === user.email) await mergeCloud(templatesDB, "templateId", ct);
             }
           }
         } catch (e) { console.warn("MainApp templates cloud sync degraded offline:", e); }
@@ -530,7 +545,11 @@ export default function MainApp() {
       await projectsDB.iterate((value) => {
         if (value.owner_id === user.email || value.userId === user.email) {
           customItems.push({
-            _id: value._id, title: value.title || value.name || "Untitled Project",
+            // IndexedDB's key is projectId. "_id" is the server's row
+            // number for cloud-pulled records (and can be missing), so it
+            // is NOT a stable identity: loading, re-saving and deleting a
+            // project by it hit the wrong record or none at all.
+            _id: value.projectId || value._id, title: value.title || value.name || "Untitled Project",
             description: value.description || "Saved Project", category: "My Projects",
             isSystem: false, saveType: "project", data: value.data || value.workspace?.blocklyJson, synced: value.synced || value.isSynced,
           });
@@ -539,7 +558,7 @@ export default function MainApp() {
       await templatesDB.iterate((value) => {
         if (value.owner_id === user.email || value.userId === user.email) {
           customItems.push({
-            _id: value._id, title: value.title || value.name || "Untitled Template",
+            _id: value.templateId || value._id, title: value.title || value.name || "Untitled Template",
             description: value.description || "Custom template", category: value.category || "Custom Templates",
             isSystem: false, saveType: "template", data: value.data || value.workspace?.blocklyJson, synced: value.synced || value.isSynced,
           });
@@ -552,6 +571,12 @@ export default function MainApp() {
   };
 
   useEffect(() => { fetchTemplates(); }, []);
+
+  // Keep a local copy of every built-in template so they still open when
+  // the service worker can't answer (see utils/staticJsonCache.js).
+  useEffect(() => {
+    warmStaticJson(SIDEBAR_TEMPLATES.map((t) => `/templates/${t.path}.json`));
+  }, []);
 
   const createNewTab = () => {
     const newTab = createInitialTab();
@@ -575,9 +600,8 @@ export default function MainApp() {
     try {
       let json;
       if (item.isSystem) {
-        const response = await fetch(`/templates/${item.path}.json`);
-        if (!response.ok) throw new Error("Template not found");
-        json = await response.json();
+        // Network -> service-worker precache -> Cache Storage -> IndexedDB.
+        json = await fetchStaticJson(`/templates/${item.path}.json`);
       } else { json = item.data; }
 
       const isClean = activeTab.title === "Untitled Project" && !activeTab.blocklyJson;
@@ -605,7 +629,15 @@ export default function MainApp() {
         setTabs((prev) => [...prev, { id: targetId, viewMode: "workspace", ...loadedState }]);
         setActiveTabId(targetId);
       }
-    } catch (error) { showToast("Failed to load template", "error"); }
+    } catch (error) {
+      console.warn("Template load failed:", error);
+      showToast(
+        item.isSystem
+          ? "This template isn't available offline yet. Open it once while online and it will be saved for offline use."
+          : "Failed to load template",
+        "error"
+      );
+    }
   };
 
   const loadConfirm = (item) => {
@@ -682,7 +714,7 @@ export default function MainApp() {
     const hasErrors = activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0;
     if (hasErrors) { showToast("Cannot sync to blocks. Please fix Python syntax errors first.", "error"); return; }
     if (!isEngineReady) {
-      showToast(engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment.", "error");
+      showToast(engineError || (engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment."), "error");
       return;
     }
     if (workspaceRefs.current[activeTabId] && activeTab.pythonCode) {
@@ -731,7 +763,7 @@ export default function MainApp() {
   const handleRunCode = async () => {
     if (isEvaluating) return;
     if (!isEngineReady) {
-      showToast(engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment.", "error");
+      showToast(engineError || (engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment."), "error");
       return;
     }
     if (!activeTab.pythonCode || activeTab.pythonCode.trim() === "" || activeTab.pythonCode === "# Drag blocks to generate Python code") {

@@ -1,5 +1,6 @@
 // frontend/src/components/PythonCodeEditor.jsx
 import Editor from "@monaco-editor/react";
+import "../utils/monacoSetup"; // bundled Monaco -- no CDN, works offline
 import { handleEditorWillMount } from "../utils/asymptoticParser.jsx";
 import FloatingErrorDropdown from "./FloatingErrorDropdown.jsx";
 

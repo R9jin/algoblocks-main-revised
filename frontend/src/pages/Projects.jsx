@@ -92,13 +92,25 @@ export default function Projects() {
 
             for (const cp of cloudProjects) {
               if (cp.owner_id === user.email || cp.userId === user.email) {
-                const existingLocal = await projectsDB.getItem(cp._id || cp.projectId);
-                await projectsDB.setItem(cp._id || cp.projectId, { 
-                  ...existingLocal, 
-                  ...cp, 
-                  synced: true, 
-                  isSynced: true, 
-                  updatedAt: normalizeEpoch(cp.updatedAt || cp.updated_at || cp.timestamp) 
+                // IndexedDB is keyed by projectId. "_id" is only the
+                // server's row number, so looking the local copy up by it
+                // never found anything and the cloud version silently
+                // replaced projects that were edited offline.
+                const key = cp.projectId || cp._id;
+                if (!key) continue;
+                const existingLocal = await projectsDB.getItem(key);
+                const cloudUpdated = normalizeEpoch(cp.updatedAt || cp.updated_at || cp.timestamp);
+                const localUnsynced = existingLocal && !existingLocal.isSynced && !existingLocal.synced;
+                const localNewer = existingLocal && normalizeEpoch(existingLocal.updatedAt || existingLocal.timestamp) > cloudUpdated;
+                if (localUnsynced && localNewer) continue; // keep the offline edits; they sync up next
+
+                await projectsDB.setItem(key, {
+                  ...existingLocal,
+                  ...cp,
+                  projectId: key,
+                  synced: true,
+                  isSynced: true,
+                  updatedAt: cloudUpdated
                 });
               }
             }

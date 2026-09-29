@@ -29,6 +29,8 @@
 // sign-out; only an explicit restartEngine() call (used for runaway
 // user-code recovery in MainApp/ActivityApp) replaces it.
 
+import { ensurePyodideCached, whenIdle } from "../utils/offlineReadiness";
+
 const INITIAL_PROGRESS = { stage: "Preparing Python engine...", percent: 0 };
 
 let started = false;
@@ -57,10 +59,18 @@ function attachListeners(instance) {
         const { type } = event.data || {};
         if (type === "ENGINE_READY") {
             setState({ progress: { stage: "Ready", percent: 100 }, isEngineReady: true, engineError: null });
+            // Engine is up (so the download is finished and cannot be raced):
+            // make sure the runtime is really stored for offline use.
+            whenIdle(() => { ensurePyodideCached(); });
         } else if (type === "ENGINE_PROGRESS") {
             setState({ progress: { stage: event.data.stage, percent: event.data.percent } });
         } else if (type === "ENGINE_ERROR") {
-            setState({ engineError: event.data.message || "Failed to load the Python engine." });
+            const offline = typeof navigator !== "undefined" && !navigator.onLine;
+            setState({
+                engineError: offline
+                    ? "The Python engine hasn't been saved for offline use on this device yet. Reconnect once and it will finish downloading automatically."
+                    : (event.data.message || "Failed to load the Python engine."),
+            });
         }
     });
 }
@@ -103,4 +113,13 @@ export function getState() {
 export function subscribe(listener) {
     listeners.add(listener);
     return () => listeners.delete(listener);
+}
+
+// A failed start used to be permanent for the whole tab: `started` stays true
+// so nothing ever tried again, and the workspace kept saying the engine was
+// "still loading". Retry automatically the moment the connection returns.
+if (typeof window !== "undefined") {
+    window.addEventListener("online", () => {
+        if (started && !state.isEngineReady && state.engineError) restartEngine();
+    });
 }
