@@ -9,7 +9,7 @@
 //
 //   TSR            = tests passed / tests total                    (dashboard TSR)
 //   Functional TSR = functional passed / functional total          (TSR inside AES)
-//   Weights        = look up each Big-O string in 'AES-ROG Reference'
+//   Weights        = look up each Big-O string in the 'AES-ROG Reference' lookup table
 //   Time ratio     = MIN(1, target time weight  / actual time weight)
 //   Space ratio    = MIN(1, target space weight / actual space weight)
 //   Efficiency     = (time ratio + space ratio) / 2
@@ -136,15 +136,46 @@ const DEFINITIONS = [
 // formulas' ranges and the sheet itself can never disagree.
 const TABLE_HEADER_ROW = DEFINITIONS.length + 5;
 const TABLE_FIRST_ROW = TABLE_HEADER_ROW + 1;
-const TABLE_LAST_ROW = TABLE_FIRST_ROW + WEIGHT_TABLE.length - 1;
-const refRange = (col) => `'${REF_SHEET}'!$${col}$${TABLE_FIRST_ROW}:$${col}$${TABLE_LAST_ROW}`;
-const PRIORITY_RANGE = refRange("A");
-const PATTERN_RANGE = refRange("B");
-const WEIGHT_RANGE = refRange("C");
 
-export function addAesRogReferenceSheet(workbook) {
+// ---- Big-O lookup table ------------------------------------------------------
+// The Submissions sheet used to find each weight with an array formula
+// (SUMPRODUCT(MIN(priority + (1 - ISNUMBER(FIND(patternRange, text))) * 1000))).
+// Excel does not evaluate that the way LibreOffice does: on "Enable Editing" /
+// full recalculation every FIND missed, every weight fell back to 6, and the
+// cohort Avg ROG jumped from +16.9 to +22.0 while the file showed +16.9 before.
+//
+// Now the pattern search runs ONCE per distinct Big-O text, in a small table on
+// the reference sheet, using nothing but scalar IF / FIND (no array evaluation
+// anywhere). Each Submissions cell is then a plain exact-match INDEX / MATCH
+// into that table, which behaves identically in Excel, LibreOffice and Sheets.
+const KEY_COL = "G";
+const KEY_WEIGHT_COL = "H";
+
+/** The text exactly as the Excel formula sees it: LOWER(SUBSTITUTE(text, " ", "")). */
+const bigOKey = (v) => (v === null || v === undefined ? "" : String(v).toLowerCase().replace(/ /g, ""));
+
+const BIGO_FIELDS = ["target_time", "target_space", "latest_time", "latest_space", "baseline_time", "baseline_space"];
+
+/**
+ * Collects every distinct Big-O text in the data and fixes where the lookup
+ * table will sit. Call once, BEFORE building the Submissions rows, and pass the
+ * result to buildSubmissionRow (ctx.bigO) and addAesRogReferenceSheet.
+ */
+export function prepareBigOLookup(rawSubs) {
+  const set = new Set();
+  (rawSubs || []).forEach((s) => BIGO_FIELDS.forEach((f) => {
+    const k = bigOKey(s?.[f]);
+    if (k) set.add(k);
+  }));
+  const keys = [...set].sort();
+  const last = TABLE_FIRST_ROW + Math.max(keys.length, 1) - 1;
+  const range = (col) => `'${REF_SHEET}'!$${col}$${TABLE_FIRST_ROW}:$${col}$${last}`;
+  return { keys, keyRange: range(KEY_COL), weightRange: range(KEY_WEIGHT_COL) };
+}
+
+export function addAesRogReferenceSheet(workbook, bigO = { keys: [] }) {
   const sheet = workbook.addWorksheet(REF_SHEET);
-  sheet.columns = [{ width: 34 }, { width: 24 }, { width: 12 }, { width: 16 }, { width: 60 }];
+  sheet.columns = [{ width: 34 }, { width: 24 }, { width: 12 }, { width: 16 }, { width: 60 }, { width: 4 }, { width: 34 }, { width: 14 }];
 
   const title = sheet.getCell("A1");
   title.value = "How AES and ROG are calculated in this workbook";
@@ -170,7 +201,7 @@ export function addAesRogReferenceSheet(workbook) {
     cell.alignment = { wrapText: true, vertical: "middle" };
   });
   sheet.getCell(`E${TABLE_HEADER_ROW}`).value =
-    `Weight lookup: the first row whose text appears in the Big-O string wins; no match gives ${DEFAULT_WEIGHT}.`;
+    `Weight rule: the first row (top to bottom) whose text appears in the Big-O string wins; no match gives ${DEFAULT_WEIGHT}. The result for each distinct Big-O text is listed in the lookup table to the right (columns G:H).`;
   sheet.getCell(`E${TABLE_HEADER_ROW}`).alignment = { wrapText: true };
 
   WEIGHT_TABLE.forEach(([pattern, weight, cls], i) => {
@@ -182,17 +213,51 @@ export function addAesRogReferenceSheet(workbook) {
     sheet.getCell(`C${r}`).value = weight;
     sheet.getCell(`D${r}`).value = cls;
   });
+
+  // Lookup table read by the Submissions sheet: one row per distinct Big-O text.
+  // Each weight is a chain of scalar IF(ISNUMBER(FIND(pattern, text)), weight, ...)
+  // tests over the priority table on the left, top to bottom, so the FIRST
+  // matching pattern wins -- no array evaluation involved.
+  sheet.getCell(`G${TABLE_HEADER_ROW - 1}`).value =
+    "Lookup table used by the Submissions sheet: one row per distinct Big-O text found in the data. To use a new Big-O text, add a row with its lower-case, no-space form and copy the weight formula down.";
+  sheet.getCell(`G${TABLE_HEADER_ROW - 1}`).font = { italic: true, size: 9 };
+  ["Big-O text (lower-case, no spaces)", "Weight (calculated)"].forEach((h, i) => {
+    const cell = sheet.getCell(TABLE_HEADER_ROW, 7 + i);
+    cell.value = h;
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF5A1398" } };
+    cell.alignment = { wrapText: true, vertical: "middle" };
+  });
+  (bigO.keys || []).forEach((key, i) => {
+    const r = TABLE_FIRST_ROW + i;
+    const keyCell = `$${KEY_COL}${r}`;
+    const chain = WEIGHT_TABLE.reduceRight(
+      (rest, _row, j) => `IF(ISNUMBER(FIND($B$${TABLE_FIRST_ROW + j},${keyCell})),$C$${TABLE_FIRST_ROW + j},${rest})`,
+      String(DEFAULT_WEIGHT)
+    );
+    sheet.getCell(`${KEY_COL}${r}`).value = key;
+    sheet.getCell(`${KEY_COL}${r}`).numFmt = "@";
+    sheet.getCell(`${KEY_WEIGHT_COL}${r}`).value = {
+      formula: chain,
+      result: getComplexityWeight(key, DEFAULT_WEIGHT) || DEFAULT_WEIGHT,
+    };
+  });
   return sheet;
 }
 
 /**
- * Formula turning a Big-O text cell into its weight, via the reference table.
- * Blank cell -> "" (so a missing input is not silently treated as weight 6).
+ * Formula turning a Big-O text cell into its weight: an exact-match lookup into
+ * the table on the reference sheet. Blank cell -> "" (so a missing input is not
+ * silently treated as weight 6); a text that is not in the table also gives ""
+ * (the AES then falls back to the recorded value) instead of a wrong number.
+ *
+ * MATCH treats * ? ~ as wildcards, and Big-O texts contain "*" (n*m), so those
+ * characters are escaped with ~ first.
  */
-function weightFormula(cell) {
-  const text = `LOWER(SUBSTITUTE(${cell}," ",""))`;
-  const idx = `SUMPRODUCT(MIN(${PRIORITY_RANGE}+(1-ISNUMBER(FIND(${PATTERN_RANGE},${text})))*1000))`;
-  return `IF(LEN(${cell})=0,"",IF(${idx}>1000,${DEFAULT_WEIGHT},INDEX(${WEIGHT_RANGE},${idx})))`;
+function weightFormula(cell, bigO) {
+  const key = `LOWER(SUBSTITUTE(${cell}," ",""))`;
+  const escaped = `SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(${key},"~","~~"),"*","~*"),"?","~?")`;
+  return `IF(LEN(${cell})=0,"",IFERROR(INDEX(${bigO.weightRange},MATCH(${escaped},${bigO.keyRange},0)),""))`;
 }
 
 const isNum = (v) => typeof v === "number" && Number.isFinite(v);
@@ -252,7 +317,8 @@ export function computeWorkings(s) {
 /**
  * One Submissions-sheet row as { key: value | { formula, result } }.
  * `sub` is the sheetRefs() object for this sheet (for local cell addresses),
- * `ctx` supplies moduleTitle(), the roster set and the Respondents ranges.
+ * `ctx` supplies moduleTitle(), the roster set, the Respondents ranges and
+ * `bigO` (from prepareBigOLookup).
  */
 export function buildSubmissionRow(s, i, sub, ctx) {
   const c = (key) => sub.localCell(key, i);
@@ -286,10 +352,10 @@ export function buildSubmissionRow(s, i, sub, ctx) {
     latTime: s.latest_time ?? "",
     latSpace: s.latest_space ?? "",
 
-    wTgtTime: f(weightFormula(c("tgtTime")), w.wTT),
-    wTgtSpace: f(weightFormula(c("tgtSpace")), w.wTS),
-    wLatTime: f(weightFormula(c("latTime")), w.wLT),
-    wLatSpace: f(weightFormula(c("latSpace")), w.wLS),
+    wTgtTime: f(weightFormula(c("tgtTime"), ctx.bigO), w.wTT),
+    wTgtSpace: f(weightFormula(c("tgtSpace"), ctx.bigO), w.wTS),
+    wLatTime: f(weightFormula(c("latTime"), ctx.bigO), w.wLT),
+    wLatSpace: f(weightFormula(c("latSpace"), ctx.bigO), w.wLS),
 
     timeRatio: f(`IF(AND(ISNUMBER(${c("wTgtTime")}),ISNUMBER(${c("wLatTime")})),MIN(1,${c("wTgtTime")}/${c("wLatTime")}),"")`, w.timeRatio),
     spaceRatio: f(`IF(AND(ISNUMBER(${c("wTgtSpace")}),ISNUMBER(${c("wLatSpace")})),MIN(1,${c("wTgtSpace")}/${c("wLatSpace")}),"")`, w.spaceRatio),
@@ -306,8 +372,8 @@ export function buildSubmissionRow(s, i, sub, ctx) {
 
     basTime: s.baseline_time ?? "",
     basSpace: s.baseline_space ?? "",
-    wBasTime: f(weightFormula(c("basTime")), w.wBT),
-    wBasSpace: f(weightFormula(c("basSpace")), w.wBS),
+    wBasTime: f(weightFormula(c("basTime"), ctx.bigO), w.wBT),
+    wBasSpace: f(weightFormula(c("basSpace"), ctx.bigO), w.wBS),
     basTimeRatio: f(`IF(AND(${isOpt},ISNUMBER(${c("wTgtTime")}),ISNUMBER(${c("wBasTime")})),MIN(1,${c("wTgtTime")}/${c("wBasTime")}),"")`, w.basTimeRatio),
     basSpaceRatio: f(`IF(AND(${isOpt},ISNUMBER(${c("wTgtSpace")}),ISNUMBER(${c("wBasSpace")})),MIN(1,${c("wTgtSpace")}/${c("wBasSpace")}),"")`, w.basSpaceRatio),
     basEff: f(`IF(AND(ISNUMBER(${c("basTimeRatio")}),ISNUMBER(${c("basSpaceRatio")})),(${c("basTimeRatio")}+${c("basSpaceRatio")})/2,"")`, w.basEff),

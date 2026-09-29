@@ -250,3 +250,56 @@ recalculated in LibreOffice (85,547 formulas, 0 errors):
 * Avg AES 91.78 and Avg ROG +16.86 (n' = 459), identical to the 09-25 export.
 * Per-row Final AES, ROG counted / eligible, counted-as-passed and TSR match the
   09-25 export on every row.
+
+---
+
+# Fix: Avg ROG changed from +16.9 to +22.0 when Excel recalculated
+
+## Symptom
+
+The Learning Impact workbook opened showing Avg ROG **+16.9** (the cached value
+written by the exporter). After pressing **Enable Editing** (or otherwise
+letting Excel do its full recalculation -- the workbook is flagged
+`fullCalcOnLoad`) the same cell showed **+22.0**. LibreOffice recalculated to
++16.9, so the checks in the sections above never saw it.
+
+## Cause
+
+The four/six Big-O weight columns on `Submissions` located the matching pattern
+with an array formula:
+
+```
+SUMPRODUCT(MIN(priority + (1 - ISNUMBER(FIND(patternRange, text))) * 1000))
+```
+
+Excel did not evaluate that as an array, so no pattern was ever found and every
+Big-O text got the "no match" default weight of 6. Every time/space ratio became
+1, efficiency became 1, and Latest AES became `INT(Functional TSR x 100)` --
+ignoring how slow the learner's code actually was. Final AES went up, the
+recorded Baseline AES did not, so ROG went up.
+
+Reproduced exactly on the 2026-09-29 export (3,055 submissions): forcing every
+weight to 6 gives Avg ROG +22.0 with n' = 459; the intended chain gives +16.86.
+
+## Fix
+
+* `submissionWorkings.js`: the pattern search now runs **once per distinct
+  Big-O text** in a lookup table on `AES-ROG Reference` (columns G:H), using only
+  scalar `IF(ISNUMBER(FIND(pattern, text)), weight, ...)`. Each Submissions
+  weight cell is a plain exact-match `INDEX/MATCH` into that table (`* ? ~`
+  escaped, because Big-O texts contain `*`). No formula in the workbook depends
+  on array evaluation any more.
+* `AdminUserManagement.jsx`: builds the lookup (`prepareBigOLookup`) before the
+  Submissions rows and passes it to `buildSubmissionRow` and
+  `addAesRogReferenceSheet`.
+
+A Big-O text that is not in the table gives a blank weight (AES then falls back
+to the recorded value) rather than a silently wrong number.
+
+## Verification
+
+Rebuilt the Submissions sheet from the real 3,055 rows with the patched module
+and recalculated in LibreOffice: 85,552 formulas, 0 errors, Avg TSR 78.16, Avg
+AES 91.78, Avg ROG +16.9 (n' = 459), and all 137,213 populated cells equal the
+original export. Excel itself was not available here; the new formulas use only
+scalar functions available since Excel 2007.

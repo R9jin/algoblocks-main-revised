@@ -6,7 +6,7 @@ import ExcelJS from "exceljs";
 import { addTableSheet, addKeyValueSheet, downloadWorkbook, colLetter, excelStringLiteral, sheetRefs, OPEN_LAST_ROW } from "../utils/excelReport";
 import { addRegressionSheets, drawRegressionPdfSection } from "../utils/regressionReport";
 import {
-  SUB_COLUMNS, SUB_KEYS, addAesRogReferenceSheet, buildSubmissionRow,
+  SUB_COLUMNS, SUB_KEYS, addAesRogReferenceSheet, buildSubmissionRow, prepareBigOLookup,
   styleSubmissionHeaders, reconciliationCounts,
 } from "../utils/submissionWorkings";
 import { anonymizeOverview } from "../utils/anonymize";
@@ -1374,6 +1374,8 @@ const AdminUserManagement = () => {
     // recalculated AES / ROG sits beside the value the app recorded, with a
     // check column, so a panelist can click any cell and trace it.
     if (hasRawSubs) {
+      // Distinct Big-O texts -> weight lookup table (see submissionWorkings.js).
+      const bigO = prepareBigOLookup(rawSubs);
       const subSheet = addTableSheet(
         workbook,
         SUB_SHEET,
@@ -1383,12 +1385,13 @@ const AdminUserManagement = () => {
             moduleTitle,
             rosterIds,
             respEmailRange: resp.range("email"),
+            bigO,
           })
         ),
         { headerColor: "5A1398" }
       );
       styleSubmissionHeaders(subSheet);
-      addAesRogReferenceSheet(workbook);
+      addAesRogReferenceSheet(workbook, bigO);
     }
 
     // ----- Learning Impact Model (simple regression) --------------------
