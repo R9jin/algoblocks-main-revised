@@ -2075,7 +2075,7 @@ th, .admin-activity-table th, .full-report-table th, .eval-dataset-table th,
 
 /* Ensure text contrast */
 h1, h2, h3, h4, .analytics-card-value, .admin-metric-value, .eval-metric-value {
-  color: #828282 !important;
+  color: #5d5d5e !important;
 }
 
 
