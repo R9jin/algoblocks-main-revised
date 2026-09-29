@@ -36,10 +36,10 @@ const TIER_PRESETS = {
 // they're kept as separate presets (rather than one generic label) because
 // what actually got unlocked is different: passing enough lesson activities
 // unlocks the next lesson, while passing enough optimization challenges
-// unlocks the module quiz.
+// clears the module's challenge requirement.
 const MILESTONE_PRESETS = {
   lessonUnlocked: { Icon: FiUnlock, label: "Lesson Unlocked!", accent: "#34d399" },
-  optimizationUnlocked: { Icon: FiUnlock, label: "Quiz Unlocked!", accent: "#34d399" },
+  optimizationUnlocked: { Icon: FiUnlock, label: "Challenges Cleared!", accent: "#34d399" },
   sectionCompleted: { Icon: GiPodiumWinner, label: "Section Completed!", accent: "#f7b733" },
   // Shown once, on the comprehensive course post-test -- the biggest
   // milestone in the app, so it reuses the trophy rather than the podium

@@ -5,7 +5,6 @@ import {
   FiCheckCircle,
   FiChevronDown,
   FiCircle,
-  FiClipboard,
   FiDatabase,
   FiEye,
   FiFilter,
@@ -240,20 +239,6 @@ export default function LearningPath() {
     return null;
   };
 
-  const getQuizData = (moduleId) => {
-    const modClean = String(moduleId).toLowerCase().replace(/[-_ ]/g, ''); 
-    const targetQuizKeys = [`${modClean}assessment`, `${modClean}quiz`, `${modClean}test`, modClean, `${modClean}postassessment`];
-    
-    for (const [k, v] of Object.entries(assessments || {})) {
-      // FIX: Added String() wrapper for crash prevention 
-      const kc = String(k).toLowerCase().replace(/[-_ ]/g, '');
-      if (targetQuizKeys.includes(kc)) {
-        return v;
-      }
-    }
-    return null;
-  };
-
   const preTestData = findMilestoneData(['pretest', 'coursepretest']);
   const postTestData = findMilestoneData(['posttest', 'courseposttest']);
 
@@ -262,17 +247,6 @@ export default function LearningPath() {
   
   const isGlobalPostTestDone = postTestData !== null;
   const globalPostTestScore = postTestData?.score !== undefined ? Math.round(postTestData.score) : null;
-
-  const hasPostAssessment = (moduleId) => {
-    const quizData = getQuizData(moduleId);
-    if (!quizData) return false;
-    return quizData.passed || quizData.completed || (quizData.score !== undefined && quizData.score >= 50);
-  };
-
-  const getAssessmentScore = (moduleId) => {
-    const quizData = getQuizData(moduleId);
-    return quizData?.score !== undefined ? Math.round(quizData.score) : null;
-  };
 
   const isModuleComplete = (moduleId) => {
     if (isLoadingCurriculum) return false;
@@ -344,8 +318,6 @@ export default function LearningPath() {
          }
       }
 
-      const postComplete = hasPostAssessment(module.moduleId);
-      if (!postComplete && !isAdmin) isNextLocked = true;
     }
     return lockMap;
   };
@@ -353,7 +325,7 @@ export default function LearningPath() {
   const lockMap = buildLockMap();
 
   const isCurriculumComplete = curriculumIndex.every((module) => {
-    return isModuleComplete(module.moduleId) && hasPostAssessment(module.moduleId);
+    return isModuleComplete(module.moduleId);
   });
   const isGlobalPostTestUnlocked = isAdmin || isCurriculumComplete;
 
@@ -376,8 +348,6 @@ export default function LearningPath() {
       const optimizations = modActs.optimizations || [];
       const hasOptimizations = optimizations.length > 0;
       const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
-      const moduleComplete = isModuleComplete(module.moduleId);
-      const postComplete = hasPostAssessment(module.moduleId);
 
       let areLessonsCompleteForOpts = true;
       for (const lesson of module.lessons) {
@@ -390,11 +360,6 @@ export default function LearningPath() {
       if (hasOptimizations) {
         state[`opt:${module.moduleId}`] = isAdmin ? false : (lockMap[lastLessonId] || !areLessonsCompleteForOpts);
       }
-
-      const optMinReqForQuiz = hasOptimizations ? getMinReq(module.moduleId, optimizations, true) : 0;
-      const completedOptCountForQuiz = optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length;
-      const optsMeetMinForQuiz = !hasOptimizations || completedOptCountForQuiz >= optMinReqForQuiz;
-      state[`quiz:${module.moduleId}`] = isAdmin ? false : (!moduleComplete || !optsMeetMinForQuiz) && !postComplete;
 
       state[`module:${module.moduleId}`] = isAdmin ? false : lockMap[module.lessons[0]?.lessonId];
     }
@@ -459,8 +424,8 @@ export default function LearningPath() {
             </div>
             <h2 style={{ margin: 0 }}>Sign up to access the Learning Path</h2>
             <p style={{ margin: 0, color: "#94a3b8" }}>
-              Guest sessions don't save progress, so lessons, activities, and quiz
-              results can't be tracked here. Create a free account to unlock the
+              Guest sessions don't save progress, so lessons and activities
+              can't be tracked here. Create a free account to unlock the
               full curriculum and keep your progress across visits.
             </p>
             <div style={{ display: "flex", gap: "12px" }}>
@@ -537,9 +502,6 @@ export default function LearningPath() {
             const IconComponent = iconConfig?.icon || FiUsers;
             const isExpanded = expandedModules.has(module.moduleId);
 
-            const moduleComplete = isModuleComplete(module.moduleId);
-            const postComplete = hasPostAssessment(module.moduleId);
-            const postScore = getAssessmentScore(module.moduleId);
 
             const optimizations = activitiesData[module.moduleId]?.optimizations || [];
             const hasOptimizations = optimizations.length > 0;
@@ -554,13 +516,8 @@ export default function LearningPath() {
             }
 
             const optimizationsLocked = isAdmin ? false : lockMap[lastLessonId] || !AreLessonsCompleteForOpts;
-            const optMinReqForQuiz = hasOptimizations ? getMinReq(module.moduleId, optimizations, true) : 0;
-            const completedOptCountForQuiz = optimizations.filter(o => checkActivityDone(module.moduleId, o.id)).length;
-            const optsMeetMinForQuiz = !hasOptimizations || completedOptCountForQuiz >= optMinReqForQuiz;
-            const postAssessmentLocked = isAdmin ? false : (!moduleComplete || !optsMeetMinForQuiz) && !postComplete;
             const isModuleCompletelyLocked = isAdmin ? false : lockMap[module.lessons[0]?.lessonId];
             const moduleJustUnlocked = animatingKeys.has(`module:${module.moduleId}`);
-            const quizJustUnlocked = animatingKeys.has(`quiz:${module.moduleId}`);
 
             return (
               <div key={module.moduleId}>
@@ -723,44 +680,6 @@ export default function LearningPath() {
                        );
                     })()}
 
-                    <div className={`assessment-row post ${postComplete ? "done" : postAssessmentLocked ? "locked" : "pending"}`}>
-                      <div className="assessment-row-left">
-                        <FiClipboard size={16} />
-                        <span className="assessment-row-label">Quiz</span>
-                        {postScore !== null && <span className="assessment-score-badge post">{postScore}%</span>}
-                        {postAssessmentLocked && <span className="assessment-gate-note">(Complete all lessons and optimizations first)</span>}
-                      </div>
-                      <div className="assessment-row-right">
-                        {quizJustUnlocked ? (
-                          <UnlockIcon locked={false} justUnlocked size={16} resolvedIcon={null} />
-                        ) : postAssessmentLocked ? (
-                          <FiLock color="#bdbdbd" size={16} />
-                        ) : postComplete ? (
-                          <>
-                            <FiCheckCircle color="#22c55e" size={16} />
-                            <button
-                              className="btn-assessment view-results"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/assessment/${module.moduleId}/post`);
-                              }}
-                            >
-                              View Results
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            className="btn-assessment start post"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/assessment/${module.moduleId}/post`);
-                            }}
-                          >
-                            Take Quiz
-                          </button>
-                        )}
-                      </div>
-                    </div>
                   </div>
                   </div>
                 )}
@@ -784,7 +703,7 @@ export default function LearningPath() {
                   <h3 className="module-card-title" style={{ margin: "0 0 8px 0", color: !isGlobalPostTestUnlocked ? "#64748b" : "" }}>Comprehensive Course Post-Test</h3>
                   <p className="module-card-description" style={{ margin: 0, color: "#94a3b8" }}>
                     {!isGlobalPostTestUnlocked 
-                      ? "Complete all modules and their respective quizzes to unlock the final exam." 
+                      ? "Complete all modules to unlock the final exam." 
                       : "The final challenge! Prove your mastery of all concepts covered in the curriculum."}
                   </p>
                 </div>

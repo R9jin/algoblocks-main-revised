@@ -9,7 +9,6 @@ import {
   FiChevronRight,
   FiChevronUp,
   FiCircle,
-  FiClipboard,
   FiClock,
   FiLock,
   FiTarget,
@@ -592,17 +591,6 @@ export default function LessonViewer() {
     return () => { cancelled = true; };
   }, [moduleId, lessonId]);
 
-  // BUG FIX: the old hasPostAssessment did an EXACT string match --
-  // assessments[`${mId}_post_assessment`] !== undefined -- against whatever
-  // key format the assessments store happens to use. LearningPath.jsx
-  // never relied on that exact format; it normalizes keys (strips
-  // -/_/space, lowercases) and matches against several plausible variants.
-  // Whenever a module's real key didn't happen to match the strict format
-  // here, this page saw the post-test as "not done" even though Learning
-  // Path -- and the server -- correctly considered it complete. Because
-  // locking is sequential (buildLockMap below), one such mismatch locked
-  // every module after it, which is exactly the "modules 3-6 locked"
-  // symptom. This now mirrors LearningPath.jsx's getQuizData exactly.
   const checkActivityDone = (mId, actId) => {
     const sub = submissions[mId]?.[actId];
     if (!sub) return false;
@@ -626,19 +614,6 @@ export default function LessonViewer() {
     return activities.length;
   };
 
-  const getQuizData = (mId) => {
-    const modClean = String(mId).toLowerCase().replace(/[-_ ]/g, "");
-    const targetQuizKeys = [`${modClean}assessment`, `${modClean}quiz`, `${modClean}test`, modClean, `${modClean}postassessment`];
-
-    for (const [k, v] of Object.entries(assessments || {})) {
-      const kc = String(k).toLowerCase().replace(/[-_ ]/g, "");
-      if (targetQuizKeys.includes(kc)) {
-        return v;
-      }
-    }
-    return null;
-  };
-
   const findMilestoneData = (keywords) => {
     const cleanKws = keywords.map((k) => String(k).toLowerCase().replace(/[-_ ]/g, ""));
     for (const [k, v] of Object.entries(assessments || {})) {
@@ -650,41 +625,6 @@ export default function LessonViewer() {
       }
     }
     return null;
-  };
-
-  const hasPostAssessment = (mId) => {
-    const quizData = getQuizData(mId);
-    if (!quizData) return false;
-    return quizData.passed || quizData.completed || (quizData.score !== undefined && quizData.score >= 50);
-  };
-
-  const isModuleComplete = (mId) => {
-    const module = curriculumIndex.find((m) => m.moduleId === mId);
-    if (!module) return false;
-
-    const modActs = activitiesData[mId] || {};
-    if (Object.keys(modActs).length === 0) return false;
-
-    const lessonsDone = module.lessons.every((lesson) => {
-      const lessonNum = lesson.lessonId.split("-")[2];
-      const activities = modActs[`lesson_${lessonNum}`] || [];
-      if (activities.length === 0) return (userProgress[lesson.lessonId] || 0) >= 1;
-
-      const minReq = getMinReq(mId, activities, false);
-      const completedCount = activities.filter((a) => checkActivityDone(mId, a.id)).length;
-      return completedCount >= minReq;
-    });
-
-    if (!lessonsDone) return false;
-
-    const optimizations = modActs.optimizations || [];
-    if (optimizations.length > 0) {
-      const optMinReq = getMinReq(mId, optimizations, true);
-      const completedOptCount = optimizations.filter((o) => checkActivityDone(mId, o.id)).length;
-      if (completedOptCount < optMinReq) return false;
-    }
-
-    return true;
   };
 
   const buildLockMap = () => {
@@ -723,8 +663,6 @@ export default function LessonViewer() {
         }
       }
 
-      const postComplete = hasPostAssessment(module.moduleId);
-      if (!postComplete && !isAdmin) isNextLocked = true;
     }
     return lockMap;
   };
@@ -747,8 +685,6 @@ export default function LessonViewer() {
       const optimizations = activitiesData[module.moduleId]?.optimizations || [];
       const hasOptimizations = optimizations.length > 0;
       const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
-      const modComplete = isModuleComplete(module.moduleId);
-      const postComplete = hasPostAssessment(module.moduleId);
 
       if (hasOptimizations) {
         state[`opt:${module.moduleId}`] = isAdmin
@@ -756,7 +692,6 @@ export default function LessonViewer() {
           : lockMap[lastLessonId] || (userProgress[lastLessonId] || 0) < 1;
       }
 
-      state[`quiz:${module.moduleId}`] = !(isAdmin || modComplete || postComplete);
     }
     return state;
   };
@@ -840,15 +775,12 @@ export default function LessonViewer() {
           {curriculumIndex.map((module) => {
             const modNumber = module.moduleId.split("-").pop();
             const isExpanded = expandedModules.has(module.moduleId);
-            const modComplete = isModuleComplete(module.moduleId);
-            const postComplete = hasPostAssessment(module.moduleId);
 
             const optimizations = activitiesData[module.moduleId]?.optimizations || [];
             const hasOptimizations = optimizations.length > 0;
             const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
 
             const optimizationsLocked = isAdmin ? false : lockMap[lastLessonId] || (userProgress[lastLessonId] || 0) < 1;
-            const postAssessmentUnlocked = isAdmin || modComplete || postComplete;
 
             return (
               <div key={module.moduleId} className="module-group">
@@ -933,33 +865,6 @@ export default function LessonViewer() {
                       );
                     })()}
 
-                    {(() => {
-                      const quizJustUnlocked = animatingKeys.has(`quiz:${module.moduleId}`);
-                      return (
-                        <div
-                          onClick={() => {
-                            if (postAssessmentUnlocked) navigate(`/assessment/${module.moduleId}/post`);
-                          }}
-                          className={quizJustUnlocked ? "row-just-unlocked" : ""}
-                          style={{
-                            display: "flex", alignItems: "center", gap: "10px", padding: "10px 15px", paddingLeft: "45px",
-                            cursor: postAssessmentUnlocked ? "pointer" : "not-allowed", opacity: postAssessmentUnlocked ? 1 : 0.5,
-                            color: postComplete ? "#22c55e" : "#2b005c", fontSize: "0.85rem", fontWeight: "bold", backgroundColor: "rgba(0,0,0,0.02)",
-                          }}
-                        >
-                          <FiClipboard size={14} />
-                          <span>Post-Assessment Quiz</span>
-                          <span style={{ marginLeft: "auto" }}>
-                            <UnlockIcon
-                              locked={!postAssessmentUnlocked}
-                              justUnlocked={quizJustUnlocked}
-                              size={14}
-                              resolvedIcon={postComplete ? <FiCheckCircle size={14} color="#22c55e" /> : <FiCircle size={14} color="#7c5cff" />}
-                            />
-                          </span>
-                        </div>
-                      );
-                    })()}
                   </div>
                 )}
               </div>
