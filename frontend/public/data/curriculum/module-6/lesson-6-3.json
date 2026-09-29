@@ -140,7 +140,6 @@
               "note": "Safety checks prune huge branches immediately -- most of the raw N! search space is never actually visited.",
               "line": 5,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -151,7 +150,6 @@
               "note": "Safety checks prune huge branches immediately -- most of the raw N! search space is never actually visited.",
               "line": 4,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -162,7 +160,6 @@
               "note": "Safety checks prune huge branches immediately -- most of the raw N! search space is never actually visited.",
               "line": 4,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -173,7 +170,6 @@
               "note": "Safety checks prune huge branches immediately -- most of the raw N! search space is never actually visited.",
               "line": 5,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             }
           ],
@@ -187,7 +183,50 @@
             "            if solve_queens(row + 1, cols):",
             "                return True",
             "    return False"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n!)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n!)",
+              "space": "O(n)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(n)",
+            "formula": "Grows linearly with n",
+            "note": "`cols` holds one column per row, and the recursion is at most N frames deep."
+          }
         }
       ]
     },

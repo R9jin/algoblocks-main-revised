@@ -1,4 +1,6 @@
 // frontend/src/components/tracePlayer/ComplexityLedger.jsx
+import { formatComplexity } from "../../utils/formatters";
+//
 //
 // Replaces the old "Complexity" tab. This is NOT a separate view you
 // switch to -- it sits beside the trace stage at all times and builds
@@ -64,8 +66,28 @@
 // (`latest.spaceBigO` / `latest.spaceFormula`) for the same reason the
 // time summary already is -- it's the one number that has to account for
 // the whole trace at once, not just one line.
-export default function ComplexityLedger({ codeLines = [], steps = [], index = 0 }) {
+export default function ComplexityLedger({
+  codeLines = [],
+  steps = [],
+  index = 0,
+  lineComplexity = null,
+  overallSpace = null,
+}) {
   const hasCode = codeLines.length > 0;
+
+  // Per-line Big-O table (trace.lineComplexity), parallel to codeLines:
+  // `[{ time: "O(n)", space: "O(1)" } | null, ...]`. It is generated from
+  // the real complexity analyzer (see frontend/scripts/build_line_complexity.py)
+  // so each row reads the same nesting/recursion-aware class the workspace's
+  // analyzer would print for that line -- the `for` header is O(n), a body
+  // line inside a nested loop is O(n^2), the recursive return is O(2^n).
+  // When present it is the single source of truth for the Big-O badges; a
+  // step's own `localBigO` is only a fallback for traces without a table.
+  // `lineComplexity` is NOT a per-visit cost -- it is that line's class across
+  // the whole run, which is why it can sit beside an Ops count that is still
+  // climbing.
+  const tableTime = (key) => (hasCode && lineComplexity ? lineComplexity[key]?.time : undefined);
+  const tableSpace = (key) => (hasCode && lineComplexity ? lineComplexity[key]?.space : undefined);
 
   const rows = hasCode
     ? codeLines.map((text, i) => ({ key: i, label: String(i + 1), text }))
@@ -120,9 +142,9 @@ export default function ComplexityLedger({ codeLines = [], steps = [], index = 0
       // not "assume growth".
       statsByKey[key] = {
         ops: prev.ops + (c.lineOps ?? 1),
-        localBigO: c.localBigO ?? prev.localBigO ?? "O(1)",
+        localBigO: tableTime(key) ?? c.localBigO ?? prev.localBigO ?? "O(1)",
         spaceOps: prev.spaceOps + (c.spaceOps ?? 0),
-        localSpaceBigO: c.localSpaceBigO ?? prev.localSpaceBigO ?? "O(1)",
+        localSpaceBigO: tableSpace(key) ?? c.localSpaceBigO ?? prev.localSpaceBigO ?? "O(1)",
       };
     }
     latest = c;
@@ -217,15 +239,20 @@ export default function ComplexityLedger({ codeLines = [], steps = [], index = 0
       // real exception -- stack frames for a RECURSIVE def -- needs
       // authored per-step data (see the SPACE COLUMN note up top), so it's
       // intentionally not modeled here rather than guessed.
+      // When the trace ships an analyzer-generated table, its class wins over
+      // the loop-idiom guesses below (those remain only as a fallback for
+      // traces without a table).
       statsByKey[i] = isDef
-        ? { ops: 1, localBigO: "O(1)", spaceOps: 0, localSpaceBigO: "O(1)", inferred: true } // entered once per call
+        ? { ops: 1, localBigO: tableTime(i) ?? "O(1)", spaceOps: 0, localSpaceBigO: tableSpace(i) ?? "O(1)", inferred: true } // entered once per call
         : {
             ops: Math.max(...childOps),
-            localBigO: isLoop
-              ? (isNarrowingSearchLoop(i) ? "O(log n)" : isFixedIterationLoop(text) ? "O(1)" : "O(n)")
-              : childLocalBigO || "O(1)",
+            localBigO:
+              tableTime(i) ??
+              (isLoop
+                ? (isNarrowingSearchLoop(i) ? "O(log n)" : isFixedIterationLoop(text) ? "O(1)" : "O(n)")
+                : childLocalBigO || "O(1)"),
             spaceOps: 0,
-            localSpaceBigO: "O(1)",
+            localSpaceBigO: tableSpace(i) ?? "O(1)",
             inferred: true,
           };
     }
@@ -275,7 +302,13 @@ export default function ComplexityLedger({ codeLines = [], steps = [], index = 0
         // unconditionally alongside a busy parent doesn't imply the line
         // itself allocates anything -- so it gets the same conservative
         // 0/O(1) default as everywhere else backfill touches space.
-        statsByKey[i] = { ops: parentStat.ops, localBigO: "O(1)", spaceOps: 0, localSpaceBigO: "O(1)", inferred: true };
+        statsByKey[i] = {
+          ops: parentStat.ops,
+          localBigO: tableTime(i) ?? "O(1)",
+          spaceOps: 0,
+          localSpaceBigO: tableSpace(i) ?? "O(1)",
+          inferred: true,
+        };
       }
     }
   }
@@ -333,8 +366,12 @@ export default function ComplexityLedger({ codeLines = [], steps = [], index = 0
     return r !== null && (max === null || r > max) ? r : max;
   }, null);
   const overallRank = rankOf(latest?.bigO);
+  // The note below says "no single line reaches <overall>", so it only makes
+  // sense when the overall badge is HIGHER than every reached row. A row that
+  // exceeds a scoped badge ("O(n) after sorting", "O(n) this pass") is not
+  // the situation the note describes, so it must not fire there.
   const reconciles =
-    maxReachedRank === null || overallRank === null || maxReachedRank === overallRank;
+    maxReachedRank === null || overallRank === null || maxReachedRank >= overallRank;
 
   if (!rows.length || !latest) {
     return (
@@ -343,6 +380,13 @@ export default function ComplexityLedger({ codeLines = [], steps = [], index = 0
       </div>
     );
   }
+
+  // Overall space is one number for the whole trace, so it lives once on the
+  // trace (`overallSpace`) instead of being copied onto every step; a step can
+  // still override it with its own spaceBigO/spaceFormula/spaceNote.
+  const spaceBigO = latest.spaceBigO ?? overallSpace?.bigO;
+  const spaceFormula = latest.spaceFormula ?? overallSpace?.formula;
+  const spaceNote = latest.spaceNote ?? overallSpace?.note;
 
   const activeKeys = hasCode ? linesOf(steps[index]) : [index];
 
@@ -358,6 +402,10 @@ export default function ComplexityLedger({ codeLines = [], steps = [], index = 0
 
       <div className="complexity-ledger-body" role="table">
         {rows.map((row) => {
+          // A blank separator line between two functions has nothing to
+          // analyze; rendering it would leave a permanent "--" row that looks
+          // like a line the trace never reached.
+          if (hasCode && !row.text.trim()) return null;
           const stat = statsByKey[row.key];
           const reached = !!stat;
           const isActive = reached && activeKeys.includes(row.key);
@@ -383,7 +431,9 @@ export default function ComplexityLedger({ codeLines = [], steps = [], index = 0
                       {stat.inferred && <span className="complexity-ledger-inferred-mark">~</span>}
                       {stat.ops}
                     </span>
-                    {stat.localBigO && <span className="complexity-ledger-badge local">{stat.localBigO}</span>}
+                    {stat.localBigO && (
+                      <span className="complexity-ledger-badge local">{formatComplexity(stat.localBigO)}</span>
+                    )}
                   </>
                 ) : (
                   "\u2013"
@@ -399,9 +449,15 @@ export default function ComplexityLedger({ codeLines = [], steps = [], index = 0
               >
                 {reached ? (
                   <>
-                    <span className="complexity-ledger-metric-ops">{stat.spaceOps}</span>
+                    {/* The count is "new persistent space this visit added". Showing 0
+                        beside an O(n) badge reads as a contradiction (the line IS what
+                        allocates, the trace just didn't author a per-visit count), so
+                        the count only shows when it is real or the class is O(1). */}
+                    {(stat.spaceOps > 0 || stat.localSpaceBigO === "O(1)") && (
+                      <span className="complexity-ledger-metric-ops">{stat.spaceOps}</span>
+                    )}
                     {stat.localSpaceBigO && (
-                      <span className="complexity-ledger-badge space">{stat.localSpaceBigO}</span>
+                      <span className="complexity-ledger-badge space">{formatComplexity(stat.localSpaceBigO)}</span>
                     )}
                   </>
                 ) : (
@@ -415,7 +471,7 @@ export default function ComplexityLedger({ codeLines = [], steps = [], index = 0
 
       <div className="complexity-ledger-summary">
         <span className="complexity-ledger-summary-label">Time {"\u2014"} {latest.caseLabel || "Overall (worst case)"}</span>
-        <span className="complexity-ledger-badge global">{latest.bigO || "\u2014"}</span>
+        <span className="complexity-ledger-badge global">{formatComplexity(latest.bigO) || "\u2014"}</span>
         {latest.formula && <span className="complexity-ledger-summary-formula">{latest.formula}</span>}
       </div>
       {latest.note && <div className="complexity-ledger-note">{latest.note}</div>}
@@ -428,16 +484,16 @@ export default function ComplexityLedger({ codeLines = [], steps = [], index = 0
 
       <div className="complexity-ledger-summary complexity-ledger-summary-space">
         <span className="complexity-ledger-summary-label">Space {"\u2014"} Overall (auxiliary)</span>
-        {latest.spaceBigO ? (
+        {spaceBigO ? (
           <>
-            <span className="complexity-ledger-badge global space">{latest.spaceBigO}</span>
-            {latest.spaceFormula && <span className="complexity-ledger-summary-formula">{latest.spaceFormula}</span>}
+            <span className="complexity-ledger-badge global space">{formatComplexity(spaceBigO)}</span>
+            {spaceFormula && <span className="complexity-ledger-summary-formula">{spaceFormula}</span>}
           </>
         ) : (
           <span className="complexity-ledger-summary-missing">not authored for this trace yet</span>
         )}
       </div>
-      {latest.spaceNote && <div className="complexity-ledger-note">{latest.spaceNote}</div>}
+      {spaceNote && <div className="complexity-ledger-note">{spaceNote}</div>}
     </div>
   );
 }

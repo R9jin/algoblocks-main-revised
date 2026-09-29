@@ -133,78 +133,71 @@
             {
               "opsSoFar": 1,
               "opsTotal": 7,
-              "bigO": "O(log n) depth",
+              "bigO": "O(n log n)",
               "formula": "1 of 7 calls made so far",
-              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "note": "The split makes O(log n) levels, and merging does O(n) work at each level, so the full sort is O(n log n). The stack itself only gets log n frames deep.",
               "line": 0,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
               "opsSoFar": 2,
               "opsTotal": 7,
-              "bigO": "O(log n) depth",
+              "bigO": "O(n log n)",
               "formula": "2 of 7 calls made so far",
-              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "note": "The split makes O(log n) levels, and merging does O(n) work at each level, so the full sort is O(n log n). The stack itself only gets log n frames deep.",
               "line": 4,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
               "opsSoFar": 3,
               "opsTotal": 7,
-              "bigO": "O(log n) depth",
+              "bigO": "O(n log n)",
               "formula": "3 of 7 calls made so far",
-              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "note": "The split makes O(log n) levels, and merging does O(n) work at each level, so the full sort is O(n log n). The stack itself only gets log n frames deep.",
               "line": 2,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
               "opsSoFar": 4,
               "opsTotal": 7,
-              "bigO": "O(log n) depth",
+              "bigO": "O(n log n)",
               "formula": "4 of 7 calls made so far",
-              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "note": "The split makes O(log n) levels, and merging does O(n) work at each level, so the full sort is O(n log n). The stack itself only gets log n frames deep.",
               "line": 6,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
               "opsSoFar": 5,
               "opsTotal": 7,
-              "bigO": "O(log n) depth",
+              "bigO": "O(n log n)",
               "formula": "5 of 7 calls made so far",
-              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "note": "The split makes O(log n) levels, and merging does O(n) work at each level, so the full sort is O(n log n). The stack itself only gets log n frames deep.",
               "line": 5,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
               "opsSoFar": 6,
               "opsTotal": 7,
-              "bigO": "O(log n) depth",
+              "bigO": "O(n log n)",
               "formula": "6 of 7 calls made so far",
-              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "note": "The split makes O(log n) levels, and merging does O(n) work at each level, so the full sort is O(n log n). The stack itself only gets log n frames deep.",
               "line": 2,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
               "opsSoFar": 7,
               "opsTotal": 7,
-              "bigO": "O(log n) depth",
+              "bigO": "O(n log n)",
               "formula": "7 of 7 calls made so far",
-              "note": "Splitting alone is O(log n) levels deep; combined with the O(n) merge work at each level, the full sort is O(n log n).",
+              "note": "The split makes O(log n) levels, and merging does O(n) work at each level, so the full sort is O(n log n). The stack itself only gets log n frames deep.",
               "line": 6,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             }
           ],
@@ -216,7 +209,42 @@
             "    left = merge_sort(arr[:mid])",
             "    right = merge_sort(arr[mid:])",
             "    return merge(left, right)"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n log n)",
+              "space": "O(n)"
+            },
+            {
+              "time": "O(n log n)",
+              "space": "O(n)"
+            },
+            {
+              "time": "O(n log n)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(n)",
+            "formula": "Grows linearly with n",
+            "note": "Slicing `arr[:mid]` / `arr[mid:]` copies elements; the stack is only O(log n) deep."
+          }
         }
       ]
     },

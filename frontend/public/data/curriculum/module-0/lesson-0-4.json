@@ -174,12 +174,11 @@
               "complexity": {
                 "opsSoFar": 1,
                 "opsTotal": 5,
-                "bigO": "O(1) space",
+                "bigO": "O(1)",
                 "formula": "1 of 5 stack frames alive so far",
-                "note": "Every call here happens exactly once, in a fixed chain -- the depth doesn't grow with any input, so the stack cost is constant.",
+                "note": "Four straight-line calls that each run exactly once -- nothing scales with an input.",
                 "line": 0,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 0
@@ -194,12 +193,11 @@
               "complexity": {
                 "opsSoFar": 2,
                 "opsTotal": 5,
-                "bigO": "O(1) space",
+                "bigO": "O(1)",
                 "formula": "2 of 5 stack frames alive so far",
-                "note": "Every call here happens exactly once, in a fixed chain -- the depth doesn't grow with any input, so the stack cost is constant.",
+                "note": "Four straight-line calls that each run exactly once -- nothing scales with an input.",
                 "line": 1,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 1
@@ -215,12 +213,11 @@
               "complexity": {
                 "opsSoFar": 3,
                 "opsTotal": 5,
-                "bigO": "O(1) space",
+                "bigO": "O(1)",
                 "formula": "3 of 5 stack frames alive so far",
-                "note": "Every call here happens exactly once, in a fixed chain -- the depth doesn't grow with any input, so the stack cost is constant.",
+                "note": "Four straight-line calls that each run exactly once -- nothing scales with an input.",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -239,12 +236,11 @@
               "complexity": {
                 "opsSoFar": 4,
                 "opsTotal": 5,
-                "bigO": "O(1) space",
+                "bigO": "O(1)",
                 "formula": "4 of 5 stack frames alive so far",
-                "note": "Every call here happens exactly once, in a fixed chain -- the depth doesn't grow with any input, so the stack cost is constant.",
+                "note": "Four straight-line calls that each run exactly once -- nothing scales with an input.",
                 "line": 8,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 8
@@ -258,12 +254,11 @@
               "complexity": {
                 "opsSoFar": 5,
                 "opsTotal": 5,
-                "bigO": "O(1) space",
+                "bigO": "O(1)",
                 "formula": "5 of 5 stack frames alive so far",
-                "note": "Every call here happens exactly once, in a fixed chain -- the depth doesn't grow with any input, so the stack cost is constant.",
+                "note": "Four straight-line calls that each run exactly once -- nothing scales with an input.",
                 "line": 5,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 5
@@ -279,7 +274,44 @@
             "",
             "def add(a, b):",
             "    return a + b"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            null,
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            null,
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(1)",
+            "formula": "Constant auxiliary space",
+            "note": "Every call happens once in a fixed chain, so the stack depth never grows with any input."
+          }
         }
       ]
     },

@@ -95,7 +95,6 @@
                 "note": "One pass is O(n); repeating this for every element is what makes the full sort O(n²).",
                 "line": 1,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 1
@@ -120,7 +119,6 @@
                 "note": "One pass is O(n); repeating this for every element is what makes the full sort O(n²).",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -145,7 +143,6 @@
                 "note": "One pass is O(n); repeating this for every element is what makes the full sort O(n²).",
                 "line": 3,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 3
@@ -170,7 +167,6 @@
                 "note": "One pass is O(n); repeating this for every element is what makes the full sort O(n²).",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -182,7 +178,33 @@
             "    for j in range(n - 1):",
             "        if arr[j] > arr[j + 1]:",
             "            arr[j], arr[j + 1] = arr[j + 1], arr[j]"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(1)",
+            "formula": "Constant auxiliary space"
+          }
         },
         {
           "kind": "array",
@@ -214,7 +236,6 @@
                 "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
                 "line": 2,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 2
@@ -245,7 +266,6 @@
                 "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
                 "line": 5,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 5
@@ -277,7 +297,6 @@
                 "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -309,7 +328,6 @@
                 "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
                 "line": 5,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 5
@@ -333,7 +351,6 @@
                 "note": "Finding the minimum takes one full O(n) scan; doing that n times gives O(n²) overall.",
                 "line": 6,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -347,7 +364,41 @@
             "        if arr[i] < arr[min_idx]:",
             "            min_idx = i",
             "    arr[0], arr[min_idx] = arr[min_idx], arr[0]"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(1)",
+            "formula": "Constant auxiliary space"
+          }
         }
       ]
     },

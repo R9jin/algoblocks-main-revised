@@ -113,7 +113,6 @@
                 "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
                 "line": 2,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 2
@@ -155,7 +154,6 @@
                 "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
                 "line": 6,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -197,7 +195,6 @@
                 "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -240,7 +237,6 @@
                 "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
                 "line": 6,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -283,7 +279,6 @@
                 "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
                 "line": 6,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -325,7 +320,6 @@
                 "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -368,7 +362,6 @@
                 "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
                 "line": 6,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -411,7 +404,6 @@
                 "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
                 "line": 6,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -453,7 +445,6 @@
                 "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
                 "line": 7,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 7
@@ -486,7 +477,6 @@
                 "note": "One partition pass touches every element once; quicksort repeats this across recursive calls for O(n log n) on average.",
                 "line": 8,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 8
@@ -502,7 +492,49 @@
             "            arr[i], arr[j] = arr[j], arr[i]",
             "    arr[i + 1], arr[high] = arr[high], arr[i + 1]",
             "    return i + 1"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(1)",
+            "formula": "Constant auxiliary space"
+          }
         }
       ]
     },
