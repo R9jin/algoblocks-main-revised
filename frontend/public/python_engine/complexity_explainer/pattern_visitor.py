@@ -209,15 +209,33 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                 if self._in_loop:
                     self.signals.membership_in_loop = True
                     self.signals.complexity_signals.membership_in_list = True
-                if isinstance(node.comparators[0], (ast.Name, ast.Attribute)):
+                # NOTE: a bare `x in container` is only a membership test. It is
+                # memoization only when it guards a cached return -- see visit_If.
+
+            # (two-pointer detection lives in visit_While: `i < n` on its own says nothing)
+
+        self.generic_visit(node)
+
+    _POINTER_NAMES = {"l", "r", "lo", "hi", "low", "high", "left", "right", "start", "end", "i", "j", "head", "tail", "begin", "front", "back"}
+
+    def visit_While(self, node: ast.While):
+        test = node.test
+        if isinstance(test, ast.Compare) and isinstance(test.ops[0], (ast.Lt, ast.LtE)):
+            a, b = test.left, test.comparators[0]
+            if isinstance(a, ast.Name) and isinstance(b, ast.Name) and a.id.lower() in self._POINTER_NAMES and b.id.lower() in self._POINTER_NAMES:
+                self.signals.paradigms.is_two_pointer = True
+        self.generic_visit(node)
+
+    def visit_If(self, node: ast.If):
+        # memoization shape:  if key in cache: return cache[key]
+        t = node.test
+        if isinstance(t, ast.Compare) and isinstance(t.ops[0], (ast.In, ast.NotIn)) and isinstance(t.ops[0], ast.In):
+            container = ast.dump(t.comparators[0])
+            for stmt in node.body[:1]:
+                if isinstance(stmt, ast.Return) and isinstance(stmt.value, ast.Subscript) and ast.dump(stmt.value.value) == container:
                     self.signals.has_memoization = True
                     self.signals.paradigms.is_memoization_check = True
                     self.signals.memory_signals.caches_results = True
-
-            if isinstance(op, (ast.Lt, ast.LtE)):
-                if isinstance(node.left, ast.Name) and isinstance(node.comparators[0], ast.Name):
-                    self.signals.paradigms.is_two_pointer = True
-
         self.generic_visit(node)
 
     def visit_BinOp(self, node: ast.BinOp):

@@ -1,86 +1,111 @@
 """
 Explanation Warnings
 
-Short-form bottleneck warnings and optimization praise strings shown
-alongside a line's badge, plus recurrence-relation display formatting.
+Short-form bottleneck warnings and optimization praise shown alongside a
+line's explanation, plus recurrence-relation display formatting.
+
+Each message answers the manuscript's three questions for a learner:
+  1. WHERE does the cost come from?  (this line is the worst-case construct)
+  2. WHY does it grow that way?      (the growth component behind it)
+  3. WHAT could I try?               (a concrete, family-specific next step)
+
+Headers match the ones the UI already styles: "Bottleneck Warning",
+"Space Bottleneck" and "Algorithmic Mastery".
 """
-import ast
-import random
-import re
-from typing import Any, Dict, List, Optional, Set
+from complexity_explainer.growth_insight import parse_complexity, growth_word
+
+
+def _fix_for(final: str, operation: str, is_time: bool) -> str:
+    """One concrete thing to try, chosen from the growth class."""
+    t = parse_complexity(final)
+    op = operation.lower()
+    if t is None:
+        return ""
+    # Only the construct that *does* the repeating gets a suggestion; repeating the
+    # same tip under every condition/assignment inside it would just be noise.
+    if not any(k in op for k in ("loop", "sort", "recur", "call", "comprehension", "allocation", "list", "expansion")):
+        return ""
+    if is_time:
+        if t.kind == "exp":
+            return "**Try this:** if the same subproblems repeat, save their answers (a dictionary or `functools.lru_cache`) -- memoization typically turns this into a polynomial or even linear cost."
+        if t.kind == "fact":
+            return "**Try this:** n! means trying every ordering. Prune impossible branches early (backtracking) or look for a greedy / dynamic-programming formulation."
+        if t.kind == "poly" and t.poly >= 2 and not t.log:
+            if "sort" in op:
+                return "**Try this:** sort once, outside the loop."
+            return "**Try this:** ask what the repeated work is *doing*. If it searches or matches, a `set`/`dict` lookup (O(1)) or sorting + two pointers can bring O(n^2) down to O(n) or O(n log n). If every cell or pair genuinely has to be visited (like adding two matrices), O(n^2) is already the best possible."
+        if t.kind == "poly" and t.poly >= 2 and t.log:
+            return "**Try this:** move the O(n log n) work (usually a sort) outside the loop that repeats it, so it's paid once instead of n times."
+        if t.kind == "poly" and t.poly == 1 and t.log:
+            return "**Try this:** O(n log n) is already the best a comparison sort can do -- the win is usually in *not sorting more than once*."
+        return ""
+    if t.kind == "exp" or t.kind == "fact":
+        return "**Try this:** reduce how many things are stored at once -- generate items one at a time (`yield`) instead of building all of them."
+    if t.kind == "poly" and t.poly >= 2:
+        return "**Try this:** check whether you need the whole table. Many DP tables only need the previous row, which cuts O(n^2) space to O(n)."
+    if t.kind == "poly" and t.poly == 1:
+        return "**Try this:** if you only need each item once, process it as a stream (`yield`, or a running total) instead of storing everything."
+    return ""
+
 
 class ExplanationWarnings:
     """Short-form bottleneck warnings/praise. Composed into
     EducationalInsightGenerator as `self.explanation_warnings`; reads shared
-    state via `self.generator`.
-    """
+    state via `self.generator`."""
 
     def __init__(self, generator):
         self.generator = generator
 
     def get_time_bottleneck_warning(self, operation: str, final_time: str) -> str:
         op_lower = operation.lower()
+        v = self.generator._v
+        head = "\n\n**Bottleneck Warning:** "
+        tail = _fix_for(final_time, operation, True)
+        tail = ("\n\n" + tail) if tail else ""
 
         if "loop" in op_lower:
-            return self.generator._v(
-                f"\n\n**Where the Time Goes:** The reason this ends up at {final_time} is simply how many times this {op_lower} repeats. That's the real bottleneck.",
+            body = v(
+                f"This {op_lower} is the worst-case construct: how many times it repeats (and what it repeats) is what sets the whole algorithm's `{final_time}`. Everything else is small next to it.",
+                f"Most of the running time is spent here. The repetition in this {op_lower} is the growth component that decides the overall `{final_time}`.",
             )
         elif "recur" in op_lower or "call" in op_lower:
-            return self.generator._v(
-                f"\n\n**Where the Time Goes:** This {op_lower} keeps solving overlapping subproblems from scratch instead of reusing earlier answers, which is what pushes the time up to {final_time}.",
-            )
+            body = f"This {op_lower} is the worst-case construct: it re-solves overlapping subproblems from scratch instead of reusing earlier answers, which is what pushes the time up to `{final_time}`."
         elif "comprehension" in op_lower:
-            return self.generator._v(
-                f"\n\n**Where the Time Goes:** Even though this {op_lower} fits on one line, it's still doing real iteration underneath -- that hidden looping is what sets the {final_time} cost.",
-            )
+            body = f"This {op_lower} looks short, but it is a loop in disguise -- that hidden iteration is what sets the `{final_time}` cost."
         elif "sort" in op_lower:
-            return self.generator._v(
-                f"\n\n**Where the Time Goes:** Sorting is inherently O(n log n) work. This {op_lower} is the main reason the algorithm can't run faster than {final_time}.",
-            )
+            body = f"Sorting is O(n log n) work by itself. This {op_lower} is the worst-case construct, and where it sits (inside a loop or not) decides whether the total is `{final_time}`."
         else:
-            return self.generator._v(
-                f"\n\n**Where the Time Goes:** Most of the actual work happens inside this {op_lower}, which is what decides the final {final_time} time complexity.",
-            )
+            body = f"This {op_lower} is the worst-case construct -- the growth of this one step is what decides the overall `{final_time}` time complexity."
+        return head + body + tail
 
     def get_space_bottleneck_warning(self, operation: str, final_space: str) -> str:
         op_lower = operation.lower()
+        head = "\n\n**Space Bottleneck:** "
+        tail = _fix_for(final_space, operation, False)
+        tail = ("\n\n" + tail) if tail else ""
 
         if "recur" in op_lower or "call" in op_lower:
-            return self.generator._v(
-                f"\n\n**Where the Memory Goes:** Every call inside this {op_lower} keeps its own frame on the stack until it finishes, which drives peak memory use up to {final_space}.",
-            )
+            body = f"Each unfinished call in this {op_lower} keeps its own frame on the stack, so peak memory grows with the recursion depth -- that's the `{final_space}`."
         elif "comprehension" in op_lower or "list" in op_lower or "assignment" in op_lower or "expansion" in op_lower:
-            return self.generator._v(
-                f"\n\n**Where the Memory Goes:** Rather than reusing existing memory, this {op_lower} builds a brand-new structure, which is what pushes memory use up to {final_space}.",
-            )
+            body = f"Instead of reusing memory, this {op_lower} builds a brand-new structure sized by the input -- the source of the `{final_space}`."
         elif "slice" in op_lower or "string" in op_lower or "concat" in op_lower:
-            return self.generator._v(
-                f"\n\n**Where the Memory Goes:** Slicing and string-building both copy data into new memory rather than reusing what's there, so this {op_lower} is what drives peak memory use to {final_space}.",
-            )
+            body = f"Slicing and string-building copy data into new memory rather than reusing what's there, so this {op_lower} drives peak memory to `{final_space}`."
         else:
-            return self.generator._v(
-                f"\n\n**Where the Memory Goes:** The new data this {op_lower} has to hold onto is what pushes total memory use up to {final_space}.",
-            )
+            body = f"The data this {op_lower} has to keep around at once is what sets total memory use to `{final_space}`."
+        return head + body + tail
 
     def get_time_optimization_praise(self, operation: str, global_time: str) -> str:
         time_lower = global_time.lower()
+        op = operation.lower()
+        head = "\n\n**Algorithmic Mastery:** "
 
         if "log" in time_lower:
-            return self.generator._v(
-                f"\n\n**Nice Work Here:** Cutting the problem in half at each step is a genuinely great optimization. This {operation.lower()} scales impressively well, landing at {global_time}.",
-            )
-        elif "√" in time_lower or "sqrt" in time_lower:
-            return self.generator._v(
-                f"\n\n**Nice Work Here:** Smart move -- only checking up to the square root avoids a huge number of unnecessary checks. This {operation.lower()} runs in a solid {global_time}.",
-            )
-        elif "1" in time_lower:
-            return self.generator._v(
-                f"\n\n**Nice Work Here:** About as efficient as it gets -- grabbing values directly by key or index means this {operation.lower()} runs in constant time, {global_time}.",
-            )
-        else:
-            return self.generator._v(
-                f"\n\n**Nice Work Here:** This {operation.lower()} is well structured, avoiding unnecessary repeated work and keeping the cost down to {global_time}.",
-            )
+            return head + f"Cutting the problem down at every step is one of the best optimizations there is. This {op} scales beautifully: `{global_time}` means even a billion items need only about 30 steps."
+        if "√" in time_lower or "sqrt" in time_lower:
+            return head + f"Only checking up to the square root avoids a huge number of pointless checks -- this {op} runs in `{global_time}`, far better than scanning everything."
+        if "1" in time_lower:
+            return head + f"Direct access by key or index means this {op} takes the same time whether the data has 10 items or 10 million: `{global_time}`."
+        return head + f"This {op} is well structured and avoids repeated work, keeping the cost at `{global_time}`."
 
     def _format_recurrence_relation(self, relation: str) -> str:
         return relation
