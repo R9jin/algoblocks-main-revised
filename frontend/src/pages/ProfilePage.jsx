@@ -27,6 +27,7 @@ import curriculumIndex from "../data/curriculumIndex";
 import { assessmentsDB, progressDB, submissionsDB } from "../db";
 import { isAdminUser } from "../utils/auth";
 import { fetchStaticJson } from "../utils/staticJsonCache";
+import { HIDE_MODULE_QUIZZES } from "../utils/constants";
 import "../styles/ProfilePage.css";
 
 /** ActivityMetrics — graphical widget card for per-activity stats shown in the profile. */
@@ -1060,7 +1061,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* STAGES 1-7: REPEATING MODULES -> LESSONS -> OPTIMIZATIONS -> QUIZZES */}
+              {/* STAGES 1-7: REPEATING MODULES -> LESSONS -> OPTIMIZATIONS -> QUIZZES (quizzes hidden via HIDE_MODULE_QUIZZES) */}
               {moduleMastery.map((mod) => {
                 const modNumber = mod.moduleId ? mod.moduleId.replace("module-", "") : "0";
                 const isComplete = mod.completed === mod.total && mod.total > 0;
@@ -1188,6 +1189,7 @@ export default function ProfilePage() {
                           </div>
                         )}
 
+                        {!HIDE_MODULE_QUIZZES && (
                         <div className={`lesson-block module-quiz-block ${mod.quiz && mod.quiz.isUnlocked ? '' : 'locked-block'}`}>
                           <div className="lesson-header">
                             <span className="lesson-title quiz-label">Module {modNumber} Verification Quiz</span>
@@ -1223,6 +1225,7 @@ export default function ProfilePage() {
                             </div>
                           </div>
                         </div>
+                        )}
 
                       </div>
                     )}
@@ -1247,7 +1250,7 @@ export default function ProfilePage() {
                           : (
                             <span className="locked-reason-span">
                               <FiLock className="inline-lock-icon" />
-                              Locked (Clear all Modules & Quizzes first)
+                              Locked (Clear all Modules {HIDE_MODULE_QUIZZES ? "" : "& Quizzes "}first)
                             </span>
                           )
                         }

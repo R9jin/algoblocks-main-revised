@@ -1936,7 +1936,7 @@ const AdminUserManagement = () => {
                                   <MetricTooltip
                                     title="Curriculum Progress Entries"
                                     formula="Count(Completed Milestones)"
-                                    desc="Total number of lessons, quizzes, and diagnostic assessments recorded as completed."
+                                    desc="Total number of lessons and diagnostic assessments recorded as completed."
                                   >
                                     Progress Entries
                                   </MetricTooltip>

@@ -75,7 +75,7 @@ export default function LearningPath() {
     steps: [
       { target: ".learning-path-header", title: "Curriculum overview", description: "See where you are in the course and what the page is built to guide you through." },
       { target: ".btn-assessment.start", title: "Start the pre-test", description: "Use the course diagnostic to unlock the curriculum when you are ready." },
-      { target: ".module-card-v2", title: "Explore modules", description: "Open a module to inspect lessons, activities, and post-assessments." },
+      { target: ".module-card-v2", title: "Explore modules", description: "Open a module to inspect lessons and activities." },
     ],
   };
 
