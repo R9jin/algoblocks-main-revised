@@ -1,5 +1,5 @@
 // frontend/src/components/tracePlayer/ComplexityLedger.jsx
-import { formatComplexity } from "../../utils/formatters";
+import { formatComplexity, toClosedFormBigO } from "../../utils/formatters";
 //
 //
 // Replaces the old "Complexity" tab. This is NOT a separate view you
@@ -432,7 +432,7 @@ export default function ComplexityLedger({
                       {stat.ops}
                     </span>
                     {stat.localBigO && (
-                      <span className="complexity-ledger-badge local">{formatComplexity(stat.localBigO)}</span>
+                      <span className="complexity-ledger-badge local">{formatComplexity(toClosedFormBigO(stat.localBigO))}</span>
                     )}
                   </>
                 ) : (
@@ -471,7 +471,7 @@ export default function ComplexityLedger({
 
       <div className="complexity-ledger-summary">
         <span className="complexity-ledger-summary-label">Time {"\u2014"} {latest.caseLabel || "Overall (worst case)"}</span>
-        <span className="complexity-ledger-badge global">{formatComplexity(latest.bigO) || "\u2014"}</span>
+        <span className="complexity-ledger-badge global">{formatComplexity(toClosedFormBigO(latest.bigO)) || "\u2014"}</span>
         {latest.formula && <span className="complexity-ledger-summary-formula">{latest.formula}</span>}
       </div>
       {latest.note && <div className="complexity-ledger-note">{latest.note}</div>}

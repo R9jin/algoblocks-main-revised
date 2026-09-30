@@ -1,6 +1,7 @@
 // frontend/src/utils/asymptoticParser.jsx
 import DOMPurify from "dompurify";
 import { useEffect, useRef, useState } from "react";
+import { toClosedFormBigO } from "./formatters";
 
 export const handleEditorWillMount = (monaco) => {
   monaco.editor.defineTheme("algoblocks-light", {
@@ -24,16 +25,61 @@ export const handleEditorWillMount = (monaco) => {
   });
 };
 
-export const getComplexityColor = (complexity) => {
-  const comp = String(complexity || "").toLowerCase();
-  if (comp.includes("o(1)")) return "#10B981";
-  if (comp.includes("log n") && !comp.includes("n log")) return "#0EA5E9";
-  if (comp.includes("o(n)") && !comp.includes("log")) return "#F59E0B";
-  if (comp.includes("n log n")) return "#F97316";
-  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*m")) return "#EF4444";
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#7928CA";
-  return "#64748B";
+// Growth class of a complexity string. Recurrences (T(n) = ...) are resolved
+// to their closed-form Big-O first, so a row is always coloured by what it
+// grows like, never by whichever substring happens to appear in the relation
+// (the old check painted "T(n) = 2T(n/2) + O(n)" as plain O(n)).
+export const getComplexityClass = (complexity) => {
+  const s = toClosedFormBigO(String(complexity || ""))
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/\u00B2/g, "^2")
+    .replace(/\u00B3/g, "^3")
+    .replace(/\u207F/g, "^n")
+    .replace(/\u221An/g, "sqrtn");
+  if (!s.includes("o(")) return "unknown";
+  if (s.includes("n!")) return "factorial";
+  if (/(\d|c)\^n|exponential/.test(s)) return "exponential";
+  const frac = s.match(/n\^(\d+\.\d+)/);
+  if (frac) {
+    const e = Number(frac[1]);
+    if (e > 2) return "polyHigh";
+    if (e > 1) return "nlogn"; // e.g. 3T(n/2)+O(n) = O(n^1.58): between n and n^2
+    return "sqrt";
+  }
+  const poly = s.match(/n\^(\d+)/);
+  if (poly) {
+    const degree = Number(poly[1]);
+    if (degree >= 3 || (degree === 2 && s.includes("log"))) return "polyHigh";
+    if (degree === 2) return "quadratic";
+  }
+  if (/cubic|quartic/.test(s)) return "polyHigh";
+  if (/n\*n|n\*m|m\*n/.test(s)) return "quadratic";
+  if (/nlog|n\*log/.test(s)) return "nlogn";
+  if (/v\+e|e\+v|n\+m|m\+n|o\(v\)|o\(e\)/.test(s)) return "graph";
+  if (/o\([a-z]\)/.test(s)) return "linear";
+  if (/sqrt|n\^0\.5/.test(s)) return "sqrt";
+  if (s.includes("log")) return "log";
+  if (/o\(1\)|constant/.test(s)) return "constant";
+  return "unknown";
 };
+
+export const COMPLEXITY_CLASS_COLORS = {
+  constant: "#10B981",
+  log: "#0EA5E9",
+  sqrt: "#14B8A6",
+  linear: "#F59E0B",
+  graph: "#D97706",
+  nlogn: "#F97316",
+  quadratic: "#EF4444",
+  polyHigh: "#BE123C",
+  exponential: "#7928CA",
+  factorial: "#C026D3",
+  unknown: "#64748B",
+};
+
+export const getComplexityColor = (complexity) =>
+  COMPLEXITY_CLASS_COLORS[getComplexityClass(complexity)] || COMPLEXITY_CLASS_COLORS.unknown;
 
 // Weight scale rebuilt to match the analyzer's actual recognized scope: it
 // reliably recognizes O(1), O(log n), O(sqrt n), O(n), O(V+E), O(n log n),
