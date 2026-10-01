@@ -13,6 +13,7 @@ import { formatComplexity, toClosedFormBigO } from "../../utils/formatters";
 import CallGraphVisualizer from "../CallGraphVisualizer.jsx";
 import ComplexityGraph from "../ComplexityGraph.jsx";
 import MemoryVisualizer from "../MemoryVisualizer.jsx";
+import PipelineReplay from "../PipelineReplay.jsx";
 import ScopeWarningModal from "../ScopeWarningModal.jsx";
 
 export default function ComplexityPanelContent({
@@ -26,6 +27,7 @@ export default function ComplexityPanelContent({
   analysisLabelStyle = null,
   analysisValStyle = null,
   extraBadges = null,
+  sourceCode = "",
 }) {
   const [expandedLines, setExpandedLines] = useState({});
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
@@ -86,6 +88,7 @@ export default function ComplexityPanelContent({
           <button onClick={() => { onComplexityTabChange("complexity"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "complexity" ? "active" : ""}`}>Complexity</button>
           <button onClick={() => { onComplexityTabChange("memory"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "memory" ? "active" : ""}`}>Memory Map</button>
           <button onClick={() => { onComplexityTabChange("callgraph"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "callgraph" ? "active" : ""}`}>Call Graph</button>
+          <button onClick={() => { onComplexityTabChange("pipeline"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "pipeline" ? "active" : ""}`}>Pipeline</button>
         </div>
         <div className="total-badge-group">
           {analysisBadgeStyle ? (
@@ -165,6 +168,10 @@ export default function ComplexityPanelContent({
       ) : activeComplexityTab === "memory" ? (
         <div className="memory-wrapper">
           <MemoryVisualizer analysisData={lines} currentStep={lines.length > 0 ? lines.length - 1 : 0} />
+        </div>
+      ) : activeComplexityTab === "pipeline" ? (
+        <div className="pipeline-wrapper" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          <PipelineReplay sourceCode={sourceCode} />
         </div>
       ) : activeComplexityTab === "callgraph" ? (
         <div className="callgraph-wrapper" style={{ height: "100%", overflow: "hidden" }}>

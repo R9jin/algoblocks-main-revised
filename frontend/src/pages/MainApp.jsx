@@ -1221,6 +1221,7 @@ export default function MainApp() {
           analysisResult={activeTab.analysisResult}
           analysisTime={activeTab.analysisTime}
           defaultWeight={0}
+          sourceCode={activeTab.pythonCode}
         />
       ),
     },

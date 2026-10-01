@@ -1890,6 +1890,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           analysisTime={analysisTime}
           defaultWeight={7}
           analysisTimeLabel="Analyzed In:"
+          sourceCode={generatedPython}
           analysisBadgeStyle={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
           analysisLabelStyle={{ color: '#64748B' }}
           analysisValStyle={{ color: '#0F172A' }}

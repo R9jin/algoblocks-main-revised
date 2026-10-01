@@ -213,6 +213,7 @@ const ENGINE_MODULE_FILES = [
   "complexity_analyzer/signature_recorder.py",
   "complexity_analyzer/ast_node_visitors.py",
   "complexity_analyzer/complexity_synthesizer.py",
+  "complexity_analyzer/pipeline_trace.py",
   "complexity_explainer/__init__.py",
   "complexity_explainer/complexity_explainer.py",
   "complexity_explainer/explanation_signals.py",
@@ -338,6 +339,7 @@ self.onmessage = async (e) => {
   // nothing to do with its actual cost.
   const CODE_LENGTH_LIMITS = {
     ANALYZE_CODE: 30000,
+    TRACE_PIPELINE: 30000,
     RUN_CODE: 30000,
     PYTHON_TO_BLOCKS: 60000,
   };
@@ -368,7 +370,7 @@ for _mod in (
     'complexity_analyzer.code_preprocessor', 'complexity_analyzer.call_graph_mapper',
     'complexity_analyzer.topological_sequencer', 'complexity_analyzer.complexity_heuristics',
     'complexity_analyzer.signature_recorder', 'complexity_analyzer.ast_node_visitors',
-    'complexity_analyzer.complexity_synthesizer',
+    'complexity_analyzer.complexity_synthesizer', 'complexity_analyzer.pipeline_trace',
     'complexity_explainer', 'complexity_explainer.complexity_explainer',
     'complexity_explainer.explanation_signals', 'complexity_explainer.growth_insight', 'complexity_explainer.pattern_evaluators',
     'complexity_explainer.pattern_visitor', 'complexity_explainer.variable_explanations',
@@ -465,6 +467,27 @@ output
       `);
       const resultData = JSON.parse(resultJsonStr);
       self.postMessage({ type: 'ANALYZE_RESULT', data: resultData, requestEpoch });
+    }
+
+    else if (type === 'TRACE_PIPELINE') {
+      // "Pipeline" tab: replay of the complexity analysis model. Observational
+      // only -- it never touches the result shown in the Complexity tab.
+      pyodide.setStdout({ batched: () => {} });
+      pyodide.setStderr({ batched: () => {} });
+      pyodide.globals.set("user_code", code);
+      const traceJsonStr = await pyodide.runPythonAsync(`
+import json, sys
+for _mod in ('complexity_analyzer.pipeline_trace',):
+    if _mod in sys.modules:
+        del sys.modules[_mod]
+try:
+    from complexity_analyzer.pipeline_trace import trace_pipeline
+    out = json.dumps(trace_pipeline(user_code))
+except Exception as e:
+    out = json.dumps({"status": "error", "message": f"{type(e).__name__}: {e}"})
+out
+      `);
+      self.postMessage({ type: 'TRACE_PIPELINE_RESULT', data: JSON.parse(traceJsonStr), requestEpoch });
     }
 
     else if (type === 'PYTHON_TO_BLOCKS') {
