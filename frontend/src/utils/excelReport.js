@@ -11,6 +11,8 @@
 // Kept deliberately generic (no admin/eval-specific field names) so both
 // pages can compose their own sheets out of plain "table" data.
 
+import { injectNativeCharts } from "./excelNativeChart";
+
 const BRAND_HEADER_FONT_COLOR = { argb: "FFFFFFFF" };
 
 /**
@@ -317,7 +319,9 @@ export async function downloadWorkbook(workbook, filename) {
   // that never calculate (previewers, Protected View); they must never be
   // what Excel keeps showing after a cell is edited or a row is removed.
   workbook.calcProperties = { ...(workbook.calcProperties || {}), fullCalcOnLoad: true };
-  const buffer = await workbook.xlsx.writeBuffer();
+  // Native (editable) charts registered with addScatterChart() are added to
+  // the zip here, because ExcelJS itself cannot author chart objects.
+  const buffer = await injectNativeCharts(workbook, await workbook.xlsx.writeBuffer());
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });

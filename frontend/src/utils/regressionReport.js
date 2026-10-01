@@ -9,7 +9,7 @@
 //     depend on the on-screen Recharts chart being mounted)
 //   - drawRegressionPdfSection(): the jsPDF/autoTable section
 //   - addRegressionSheets(): the "Regression Data" / "Regression Summary" sheets,
-//     plus the scatter plot embedded in the Regression Summary sheet
+//     plus a native, editable Excel scatter chart on the Regression Plot sheet
 //
 // All statistics come from the backend's `overview.regression` payload
 // (api/services/regression_service.py): X = average(z_TSR, z_AES, z_ROG) ---
@@ -21,6 +21,7 @@
 // recompute the same numbers.
 
 import { addTableSheet, addKeyValueSheet, colLetter, OPEN_LAST_ROW } from "./excelReport";
+import { addScatterChart } from "./excelNativeChart";
 
 // ---------------------------------------------------------------------------
 // Formatting
@@ -387,40 +388,37 @@ function sensitivityLabel(s) {
 }
 
 /**
- * Adds a "Regression Plot" sheet holding the scatter plot of the fitted
- * regression: one dot per respondent plus the fitted line. Axis labels are
- * deliberately just "System Interaction" (X) and "Learning Gain" (Y).
+ * Adds a "Regression Plot" sheet holding a NATIVE Excel scatter chart: one
+ * marker per respondent plus Excel's own linear trendline as the fitted line.
+ * Axis titles are deliberately just "System Interaction" (X) and
+ * "Learning Gain" (Y).
  *
- * ExcelJS cannot author native Excel charts, so the plot is drawn on an
- * offscreen canvas (the same renderer the PDF uses) and embedded as a PNG.
- * It shows the numbers as of export time; the statistics on the Summary sheet
- * remain live formulas. Skipped (silently) where no canvas exists.
+ * The chart reads X and Y straight from the Regression Data sheet, so in
+ * Excel it can be selected, restyled, retitled and re-pointed, and it moves
+ * when those cells change. It is registered here and written into the file by
+ * downloadWorkbook() (ExcelJS cannot author charts itself).
  */
-function addRegressionPlotSheet(workbook, reg) {
+function addRegressionPlotSheet(workbook, reg, dataRows) {
   const spec = buildScatterSpec(reg);
-  if (!spec || typeof document === "undefined") return;
-
-  const width = 760;
-  const height = 460;
-  const png = renderScatterPng(
-    {
-      ...spec,
-      title: "Learning Gain vs System Interaction",
-      xLabel: "System Interaction",
-      yLabel: "Learning Gain",
-      // one plain series: the PDF's orange "flagged" respondent needs a
-      // legend, which this sheet does not have
-      points: spec.points.map((p) => ({ ...p, influential: false })),
-    },
-    { width, height, scale: 2, lineWidth: 3, pointColor: "rgba(37,99,235,0.85)", pointRadius: 5 }
-  );
+  if (!spec) return;
 
   const sheet = workbook.addWorksheet(PLOT_SHEET);
   sheet.views = [{ showGridLines: false }];
-  // keep the whole plot on one printed page
   sheet.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 1 };
-  const imageId = workbook.addImage({ base64: png, extension: "png" });
-  sheet.addImage(imageId, { tl: { col: 0.3, row: 0.6 }, ext: { width, height } });
+
+  const last = dataRows + 1;
+  addScatterChart(workbook, {
+    sheetName: PLOT_SHEET,
+    title: "Learning Gain vs System Interaction",
+    xTitle: "System Interaction",
+    yTitle: "Learning Gain",
+    seriesName: "Respondents",
+    xRef: `'${DATA_SHEET}'!$J$2:$J$${last}`,
+    yRef: `'${DATA_SHEET}'!$K$2:$K$${last}`,
+    xValues: reg.respondents.map((r) => r.x),
+    yValues: reg.respondents.map((r) => r.y),
+    anchor: { col: 0, row: 1, widthPx: 760, heightPx: 460 },
+  });
 }
 
 /**
@@ -517,7 +515,7 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
     };
   });
 
-  addTableSheet(
+  const dataSheet = addTableSheet(
     workbook,
     DATA_SHEET,
     COLS.map(([key, header, width]) => ({
@@ -529,6 +527,11 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
     dataRows,
     { headerColor }
   );
+  // A dropped respondent has no Y. Leave the cell truly empty (not ""): an
+  // empty-text cell would be plotted as 0 by the native scatter chart.
+  rows.forEach((r, i) => {
+    if (r.y == null) dataSheet.getCell(`${col.y}${i + 2}`).value = null;
+  });
 
   // ----- Regression Summary --------------------------------------------------
   const X = dataAbs("x");
@@ -605,7 +608,7 @@ export function addRegressionSheets(workbook, reg, opts = {}) {
   }
 
   const sheet = addKeyValueSheet(workbook, SUMMARY_SHEET, sections, { headerColor });
-  addRegressionPlotSheet(workbook, reg);
+  addRegressionPlotSheet(workbook, reg, rows.length);
 
   // Merged narrative rows don't auto-fit their height in Excel; size them from
   // the text length (the two merged columns are ~110 characters wide).
