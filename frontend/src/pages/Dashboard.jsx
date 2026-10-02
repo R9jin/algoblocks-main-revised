@@ -527,7 +527,7 @@ export default function Dashboard() {
               {userTemplates.length === 0 ? (
                 <div className="bento-empty-state" style={{ padding: "30px", background: "rgba(255,255,255,0.02)", borderRadius: "12px", border: "1px dashed rgba(255,255,255,0.05)" }}>
                   <p>You haven't saved any custom templates yet.</p>
-                  <span style={{ fontSize: "0.85rem", color: "#888" }}>Build an algorithm in the workspace and save it as a template!</span>
+                  <span style={{ fontSize: "0.85rem", color: "#4B5563" }}>Build an algorithm in the workspace and save it as a template!</span>
                 </div>
               ) : (
                 <div className="bento-category-group">

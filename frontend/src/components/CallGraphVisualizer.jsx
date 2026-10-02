@@ -388,7 +388,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
             <span>{nodes.length} Executable Nodes</span>
           </div>
           {/* Inheriting the Emerald standard theme colors for the edges badge */}
-          <div className="nodes-badge" style={{ backgroundColor: '#ECFDF5', color: '#10B981', borderColor: '#A7F3D0' }}>
+          <div className="nodes-badge" style={{ backgroundColor: '#ECFDF5', color: '#047857', borderColor: '#6EE7B7' }}>
             <FaNetworkWired />
             <span>{totalEdges} Edges</span>
           </div>

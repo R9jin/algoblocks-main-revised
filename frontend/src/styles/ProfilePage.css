@@ -7,7 +7,7 @@
   --dark-bg: #1D0B30;
   
   --text-main: #1E293B;
-  --text-muted: #64748B;
+  --text-muted: #475569;
   
   --app-bg: #F4F7F9;
   --panel-bg: #FFFFFF;
@@ -752,7 +752,7 @@
 
 .complexity-badge {
   background: rgba(124, 92, 255, 0.1);
-  color: #7c5cff;
+  color: #5A1398;
   border: 1px solid rgba(124, 92, 255, 0.22);
 }
 
@@ -763,7 +763,7 @@
 }
 
 /* Per-cluster accent colours and tints */
-.score-cluster      .cluster-label { color: #7c5cff; }
+.score-cluster      .cluster-label { color: #5A1398; }
 .tests-cluster      .cluster-label { color: #3b82f6; }
 .complexity-cluster .cluster-label { color: #06b6d4; }
 .trend-cluster      .cluster-label { color: #22c55e; }
@@ -993,7 +993,7 @@
 
 .milestone-status.disabled {
   background: rgba(139, 92, 246, 0.1);
-  color: #dfd4ff;
+  color: #3B2A6B;
   border: 1px dashed rgba(139, 92, 246, 0.35);
 }
 
@@ -1039,7 +1039,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #f5f3ff;
+  color: #3B2A6B;
   font-size: 0.8125rem;
 }
 
@@ -1294,7 +1294,7 @@
   line-height: 1;
 }
 .bigo-time  .bigo-val { color: #0e7490; }
-.bigo-space .bigo-val { color: #7c5cff; }
+.bigo-space .bigo-val { color: #5A1398; }
 
 /* -- IMPROVEMENT panel ------------------------------------------ */
 .amc-improvement-panel {
@@ -1320,7 +1320,7 @@
 .impr-from {
   font-size: 0.70rem;
   font-weight: 700;
-  color: #64748b;
+  color: #475569;
   font-family: 'Fira Code', monospace;
   text-decoration: line-through;
   text-decoration-color: rgba(100, 116, 139, 0.50);

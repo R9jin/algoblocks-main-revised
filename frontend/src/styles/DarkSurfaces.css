@@ -1,0 +1,92 @@
+/* frontend/src/styles/DarkSurfaces.css
+   =====================================================================
+   TEXT COLOURS FOR DARK BACKGROUNDS -- one token per element
+   =====================================================================
+   Why this file exists:
+   Headings on dark surfaces (workspace header, call graph, memory map,
+   modal headers) were unreadable because bare `h1, h2, h3, h4 { color: ... }`
+   rules in AdminUserManagement / EvaluationSuite / AnalyzerRegressionCheck
+   leaked to every page. Those are now scoped to their own pages.
+
+   How to edit a colour:
+   Change ONE variable below. Every variable is used by exactly ONE
+   selector, so changing e.g. --dk-callgraph-title never touches the
+   workspace header, memory map or modals.
+
+   Imported LAST in index.jsx so it wins over component stylesheets.
+   Ratios are WCAG contrast vs. the surface (AA body text = 4.5, large = 3).
+   ===================================================================== */
+
+:root {
+  /* ---- Workspace header (gradient #1D0B30 -> #7928CA) ---- */
+  --dk-workspace-title:        #FFFFFF;   /* "Merge Sort" project title      */
+  --dk-workspace-back:         #E4D2FF;   /* "< Dashboard" link              */
+  --dk-workspace-toggle:       #E4D2FF;   /* inactive Blocks / Python toggle */
+  --dk-workspace-icon:         #E4D2FF;   /* export / import icons           */
+  --dk-run-btn-bg:             #047857;   /* "Run Code" button (white text)  */
+  --dk-run-btn-bg-hover:       #065F46;
+
+  /* ---- Dynamic Call Graph panel (#1D0B30 -> #7928CA) ---- */
+  --dk-callgraph-title:        #F5EEFF;   /* "Dynamic Call Graph" heading    */
+  --dk-callgraph-icon:         #C9A0FF;   /* header icon                     */
+  --dk-callgraph-empty:        #B8C2CC;   /* "no calls yet" empty state      */
+  --dk-callgraph-node-layer:   #B4BEC9;   /* small "layer" chip inside nodes */
+  --dk-callgraph-badge-text:   #5B1D99;   /* "N nodes" pill text             */
+  --dk-callgraph-bullet:       #94A3B8;   /* bullet dot inside hover tooltip */
+
+  /* ---- Stack & Heap memory map ---- */
+  --dk-memory-title:           #F5EEFF;   /* "Stack & Heap Memory Map"       */
+
+  /* ---- Modal headers on dark purple ---- */
+  --dk-glossary-title:         #FFFFFF;   /* Block Glossary modal title      */
+  --dk-bigo-title:             #FFFFFF;   /* Big-O modal title               */
+}
+
+/* ---------- Workspace header ---------- */
+.workspace-header-purple .wh-project-title {
+  color: var(--dk-workspace-title);
+}
+.workspace-header-purple .wh-back-btn,
+.workspace-header-purple .wh-back-btn span  { color: var(--dk-workspace-back); }
+.workspace-header-purple .wh-back-btn:hover { color: #FFFFFF; }
+.workspace-header-purple .wh-toggle-btn     { color: var(--dk-workspace-toggle); }
+.workspace-header-purple .wh-toggle-btn:hover,
+.workspace-header-purple .wh-toggle-btn.active { color: #FFFFFF; }
+.workspace-header-purple .wh-action-icon    { color: var(--dk-workspace-icon); }
+.workspace-header-purple .wh-action-icon:hover { color: #FFFFFF; }
+.workspace-header-purple .wh-btn-run:not(.running) { background: var(--dk-run-btn-bg); color: #FFFFFF; }
+.workspace-header-purple .wh-btn-run:not(.running):hover { background: var(--dk-run-btn-bg-hover); }
+
+/* ---------- Dynamic Call Graph ---------- */
+.callgraph-visualizer .header-title h3 {
+  color: var(--dk-callgraph-title);
+}
+.callgraph-visualizer .header-icon {
+  color: var(--dk-callgraph-icon);
+}
+.callgraph-visualizer .callgraph-empty {
+  color: var(--dk-callgraph-empty);
+}
+.callgraph-visualizer .cg-node-layer {
+  color: var(--dk-callgraph-node-layer);
+}
+.callgraph-visualizer .nodes-badge {
+  color: var(--dk-callgraph-badge-text);
+}
+:root:root .callgraph-hover-tooltip-entry::before {
+  color: var(--dk-callgraph-bullet);
+}
+
+/* ---------- Stack & Heap memory map ---------- */
+.memory-visualizer .header-title h3,
+.header-title h3.memory-title {
+  color: var(--dk-memory-title);
+}
+
+/* ---------- Modal headers ---------- */
+.block-glossary-modal-header h2 {
+  color: var(--dk-glossary-title);
+}
+.big-o-modal-header h2 {
+  color: var(--dk-bigo-title);
+}

@@ -9,14 +9,18 @@ export const handleEditorWillMount = (monaco) => {
     inherit: true,
     rules: [
       { token: "keyword", foreground: "7928CA", fontStyle: "bold" },
-      { token: "string", foreground: "10B981" },
-      { token: "comment", foreground: "94A3B8", fontStyle: "italic" },
-      { token: "number", foreground: "F59E0B" },
+      { token: "string", foreground: "047857" },
+      { token: "comment", foreground: "5B6B7F", fontStyle: "italic" },
+      { token: "number", foreground: "B45309" },
     ],
     colors: {
       "editor.background": "#F8FAFC",
       "editor.foreground": "#1E293B",
-      "editorLineNumber.foreground": "#CBD5E1",
+      "editorLineNumber.foreground": "#64748B",
+      "editorLineNumber.activeForeground": "#1E293B",
+      "editorBracketHighlight.foreground1": "#1E7A1E",
+      "editorBracketHighlight.foreground2": "#B45309",
+      "editorBracketHighlight.foreground3": "#6B21A8",
       "editor.lineHighlightBackground": "#F1F5F9",
       "editorCursor.foreground": "#7928CA",
       "editor.selectionBackground": "#E2E8F0",
@@ -65,17 +69,20 @@ export const getComplexityClass = (complexity) => {
 };
 
 export const COMPLEXITY_CLASS_COLORS = {
-  constant: "#10B981",
-  log: "#0EA5E9",
-  sqrt: "#14B8A6",
-  linear: "#F59E0B",
-  graph: "#D97706",
-  nlogn: "#F97316",
-  quadratic: "#EF4444",
+  // Every value is >= 4.5:1 on the light panel (#F8FAFC) because these are
+  // rendered as TEXT in the complexity table. The old, brighter hues
+  // (#10B981, #F59E0B, #F97316 ...) were only ~2:1 and read as washed-out.
+  constant: "#047857",
+  log: "#0369A1",
+  sqrt: "#0F766E",
+  linear: "#B45309",
+  graph: "#92400E",
+  nlogn: "#C2410C",
+  quadratic: "#B91C1C",
   polyHigh: "#BE123C",
   exponential: "#7928CA",
-  factorial: "#C026D3",
-  unknown: "#64748B",
+  factorial: "#A21CAF",
+  unknown: "#475569",
 };
 
 export const getComplexityColor = (complexity) =>

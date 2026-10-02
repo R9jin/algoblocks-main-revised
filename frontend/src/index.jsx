@@ -23,6 +23,9 @@ import '@fontsource/fira-code/latin-600.css';
 import '@fontsource/fira-code/latin-700.css';
 import App from './App.jsx';
 import './index.css';
+// Dark-surface text colours -- must stay last so it wins over component CSS.
+import './styles/DarkSurfaces.css';
+import './styles/LightSurfaces.css';
 
 // =====================================================================
 // GLOBAL API INTERCEPTOR

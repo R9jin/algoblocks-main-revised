@@ -14,7 +14,7 @@
 
   /* --- TEXT COLORS --- */
   --text-main: #1E293B;         /* Standard dark text for light mode */
-  --text-muted: #64748B;        /* Secondary text */
+  --text-muted: #475569;        /* Secondary text */
   --text-on-dark: #E9D8FD;      /* Soft lavender text (Fixes the "too contrast" pure white) */
   --text-on-dark-muted: #B388EB;/* Secondary text for dark mode */
 
