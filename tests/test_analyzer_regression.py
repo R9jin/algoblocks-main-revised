@@ -58,8 +58,7 @@ from complexity_analyzer.analyzer import analyze_source_code
 #
 # If you deliberately improve the analyzer OR edit the ground-truth
 # dataset again, re-run tests/generate_accuracy_report.py and raise/lower
-# these floors (and the identical copy in
-# api/analyzer_diagnostics/regression_check.py) to match the new baseline.
+# these floors to match the new baseline.
 # A floor that isn't recalibrated after the dataset changes stops meaning
 # anything -- it was exactly this staleness that let space accuracy sit at
 # a 38-point-too-generous floor (50%) after the true baseline moved to 88%.

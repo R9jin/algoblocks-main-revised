@@ -5,7 +5,7 @@
    Why this file exists:
    Headings on dark surfaces (workspace header, call graph, memory map,
    modal headers) were unreadable because bare `h1, h2, h3, h4 { color: ... }`
-   rules in AdminUserManagement / EvaluationSuite / AnalyzerRegressionCheck
+   rules in AdminUserManagement / EvaluationSuite
    leaked to every page. Those are now scoped to their own pages.
 
    How to edit a colour:

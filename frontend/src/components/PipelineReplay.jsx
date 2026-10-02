@@ -8,7 +8,8 @@
 // shown in the other Complexity tabs.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FiChevronLeft, FiChevronRight, FiPause, FiPlay, FiRotateCcw, FiAlertTriangle, FiCheck } from "react-icons/fi";
+import { createPortal } from "react-dom";
+import { FiChevronLeft, FiChevronRight, FiPause, FiPlay, FiRotateCcw, FiAlertTriangle, FiCheck, FiMaximize2, FiZoomIn, FiZoomOut, FiX } from "react-icons/fi";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { formatComplexity } from "../utils/formatters";
 import "../styles/PipelineReplay.css";
@@ -50,7 +51,7 @@ function deriveState(trace, events, cur) {
 
   const d = {
     revealTo: -1, node: null, line: null,
-    visited: new Set(),
+    visited: new Set(), visitSeq: [],
     cg: { nodes: [], edges: [], newestEdge: null, recursive: [], indirect: [], reachable: [], flagged: false },
     topo: { deps: null, clusters: null, order: null },
     sigs: {}, currentFunc: null, sigOrder: null,
@@ -130,11 +131,13 @@ function deriveState(trace, events, cur) {
     if (e.stage === stage) {
       if (e.kind === "start" && (stage === "signature" || stage === "synthesis")) {
         d.visited = new Set();
+        d.visitSeq = [];
         d.rows = new Map();
         d.cache = { hits: 0, misses: 0 };
       }
       if (e.kind === "visit" && e.node != null) {
         d.visited.add(e.node);
+        d.visitSeq.push({ node: e.node, depth: e.depth ?? 0 });
       }
       if (e.kind === "record" && e.row) {
         d.rows.set(e.row.line, { ...e.row, func: d.currentFunc, stage });
@@ -186,42 +189,305 @@ function SourcePane({ lines, activeLine }) {
   );
 }
 
-function AstTree({ nodes, upTo, activeNode, visited, stmtOnly }) {
+/* --------------------------- AST tree (graph) view --------------------------- */
+
+const T_ROW_H = 30, T_PILL_H = 22, T_PAD = 18, T_GAP = 46, T_CHAR_W = 6.6;
+
+const pillWidth = (r) => Math.max(76, Math.ceil(String(r.label || "").length * T_CHAR_W) + 18 + (r.line != null ? 26 : 0));
+
+// Lay the (visible) AST out as a left-to-right tree: x = depth, leaves take
+// consecutive rows, parents are centred on their children. Column widths follow
+// the widest label at that depth, so nothing is truncated or overlaps.
+function layoutTree(rows) {
+  const kids = new Map();
+  rows.forEach((r) => kids.set(r.id, []));
+  const roots = [];
+  rows.forEach((r) => {
+    if (r.vp >= 0 && kids.has(r.vp)) kids.get(r.vp).push(r.id);
+    else roots.push(r.id);
+  });
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const colW = [];
+  rows.forEach((r) => { colW[r.d] = Math.max(colW[r.d] || 0, pillWidth(r)); });
+  const colX = [];
+  let acc = T_PAD;
+  for (let d = 0; d < colW.length; d++) { colX[d] = acc; acc += (colW[d] || 0) + T_GAP; }
+  const pos = new Map();
+  let slot = 0;
+  const place = (id) => {
+    const r = byId.get(id);
+    const ch = kids.get(id);
+    let y;
+    if (!ch.length) y = slot++;
+    else {
+      const ys = ch.map(place);
+      y = (ys[0] + ys[ys.length - 1]) / 2;
+    }
+    pos.set(id, { x: colX[r.d], y: T_PAD + y * T_ROW_H + T_ROW_H / 2, w: pillWidth(r) });
+    return y;
+  };
+  roots.forEach(place);
+  return { pos, width: Math.max(acc - T_GAP + T_PAD, 120), height: T_PAD * 2 + Math.max(slot, 1) * T_ROW_H };
+}
+
+// Works out visit numbers (1 = first node entered) from the real DFS trace and
+// checks the defining property of depth-first order: once the traversal has left
+// a branch it never comes back into it.
+function analyzeVisitOrder(seq, nodes) {
+  const order = new Map();
+  let open = new Set();
+  const closed = new Set();
+  let violation = null;
+  (seq || []).forEach((v) => {
+    if (v.node == null || order.has(v.node)) return;
+    order.set(v.node, order.size + 1);
+    const anc = new Set();
+    for (let p = nodes[v.node]?.parent; p != null && p >= 0; p = nodes[p]?.parent) anc.add(p);
+    if (!violation) {
+      for (const a of anc) if (closed.has(a)) { violation = { node: v.node, branch: a }; break; }
+    }
+    const next = new Set([v.node]);
+    open.forEach((o) => { if (anc.has(o)) next.add(o); else closed.add(o); });
+    open = next;
+  });
+  return { order, violation };
+}
+
+function DepthStrip({ seq }) {
+  if (!seq || seq.length < 2) return null;
+  const W = 300, H = 30;
+  const maxD = Math.max(1, ...seq.map((v) => v.depth));
+  const ys = seq.map((v) => H - 3 - (v.depth / maxD) * (H - 6));
+  const pts = ys.map((y, i) => `${(i / (seq.length - 1)) * W},${y}`);
+  return (
+    <div className="pr-depth">
+      <span className="pr-depth-l" title="Recursion depth of the visitor at each visit, in order. Depth-first dives down a branch and climbs back (zig-zag); breadth-first would only ever step down level by level.">stack depth per visit</span>
+      <div className="pr-depth-box">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="pr-depth-svg">
+          <polyline points={pts.join(" ")} fill="none" />
+        </svg>
+        <span className="pr-depth-dot" style={{ left: "100%", top: `${(ys[ys.length - 1] / H) * 100}%` }} />
+      </div>
+    </div>
+  );
+}
+
+const ZOOM_MIN = 0.4, ZOOM_MAX = 2.5;
+const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+
+function AstTreeCanvas({ rows, activeNode, order, big }) {
+  const wrapRef = useRef(null);
+  const drag = useRef(null);
+  const [zoom, setZoom] = useState(1);
+  const [follow, setFollow] = useState(true);
+  const { pos, width, height } = useMemo(() => layoutTree(rows), [rows]);
+
+  const fit = useCallback(() => {
+    const w = wrapRef.current;
+    if (!w) return;
+    setZoom(clampZoom(Math.min((w.clientWidth - 8) / width, (w.clientHeight - 8) / height, 1.4)));
+    w.scrollLeft = 0; w.scrollTop = 0;
+  }, [width, height]);
+
+  // Fit once when the panel is opened (and when switching between inline/expanded).
+  useEffect(() => { fit(); /* eslint-disable-next-line */ }, [big]);
+
+  // Keep the active node in view (unless the user has panned away on purpose).
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    const p = activeNode != null ? pos.get(activeNode) : null;
+    if (!wrap || !p || !follow) return;
+    const x = p.x * zoom, y = p.y * zoom, w = p.w * zoom, m = 50;
+    if (x < wrap.scrollLeft + m) wrap.scrollLeft = Math.max(0, x - m);
+    else if (x + w > wrap.scrollLeft + wrap.clientWidth - m) wrap.scrollLeft = x + w - wrap.clientWidth + m;
+    if (y - m < wrap.scrollTop) wrap.scrollTop = Math.max(0, y - m * 2);
+    else if (y + m > wrap.scrollTop + wrap.clientHeight) wrap.scrollTop = y + m * 2 - wrap.clientHeight;
+  }, [activeNode, pos, zoom, follow]);
+
+  // Drag-to-pan + ctrl/cmd + wheel to zoom.
+  const onDown = (e) => {
+    if (e.button !== 0) return;
+    const w = wrapRef.current;
+    drag.current = { x: e.clientX, y: e.clientY, sl: w.scrollLeft, st: w.scrollTop };
+    w.classList.add("grabbing");
+  };
+  const onMove = (e) => {
+    const d = drag.current, w = wrapRef.current;
+    if (!d || !w) return;
+    w.scrollLeft = d.sl - (e.clientX - d.x);
+    w.scrollTop = d.st - (e.clientY - d.y);
+    setFollow(false);
+  };
+  const onUp = () => { drag.current = null; wrapRef.current?.classList.remove("grabbing"); };
+  useEffect(() => {
+    const w = wrapRef.current;
+    if (!w) return undefined;
+    const wheel = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      setZoom((z) => clampZoom(z * (e.deltaY < 0 ? 1.1 : 1 / 1.1)));
+    };
+    w.addEventListener("wheel", wheel, { passive: false });
+    return () => w.removeEventListener("wheel", wheel);
+  }, []);
+
+  if (!rows.length) return <div className="pr-empty">The tree appears here as the parser builds it.</div>;
+
+  return (
+    <div className="pr-tree-box">
+      <div className="pr-tree-tools">
+        <button type="button" className="pr-tool" onClick={() => setZoom((z) => clampZoom(z / 1.2))} title="Zoom out"><FiZoomOut size={13} /></button>
+        <span className="pr-tool-pct">{Math.round(zoom * 100)}%</span>
+        <button type="button" className="pr-tool" onClick={() => setZoom((z) => clampZoom(z * 1.2))} title="Zoom in"><FiZoomIn size={13} /></button>
+        <button type="button" className="pr-tool txt" onClick={() => { fit(); setFollow(true); }} title="Fit the whole tree in view">Fit</button>
+        <button type="button" className={`pr-tool txt ${follow ? "on" : ""}`} onClick={() => setFollow((f) => !f)} title="Auto-scroll to the node being visited">Follow</button>
+      </div>
+      <div className="pr-tree-wrap" ref={wrapRef} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}>
+        <svg className="pr-tree" width={width * zoom} height={height * zoom} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Abstract syntax tree">
+          <g>
+            {rows.map((r) => {
+              const a = pos.get(r.vp);
+              const b = pos.get(r.id);
+              if (!a || !b) return null;
+              const x1 = a.x + a.w, x2 = b.x, mx = (x1 + x2) / 2;
+              const cls = r.id === activeNode ? "active" : order?.has(r.id) ? "visited" : "";
+              return <path key={`e${r.id}`} className={`pr-tree-edge ${cls}`} d={`M${x1},${a.y} C${mx},${a.y} ${mx},${b.y} ${x2},${b.y}`} />;
+            })}
+          </g>
+          <g>
+            {rows.map((r) => {
+              const p = pos.get(r.id);
+              const n = order?.get(r.id);
+              const cls = `pr-tree-node ${r.id === activeNode ? "active" : ""} ${n ? "visited" : ""} ${r.stmt || r.is_traversal ? "stmt" : ""}`;
+              return (
+                <g key={r.id} className={cls} transform={`translate(${p.x},${p.y - T_PILL_H / 2})`}>
+                  <title>{`${r.type || r.label}${r.line != null ? ` (line ${r.line})` : ""}${n ? ` — visited #${n}` : ""}`}</title>
+                  <rect width={p.w} height={T_PILL_H} rx="6" />
+                  <text x={n ? 18 : 9} y={T_PILL_H / 2} dominantBaseline="central">{r.label}</text>
+                  {r.line != null && <text className="pr-tree-ln" x={p.w - 6} y={T_PILL_H / 2} textAnchor="end" dominantBaseline="central">{r.line}</text>}
+                  {n != null && (
+                    <g className="pr-tree-badge" transform={`translate(0,${T_PILL_H / 2})`}>
+                      <circle r="9" />
+                      <text textAnchor="middle" dominantBaseline="central">{n}</text>
+                    </g>
+                  )}
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function AstTree({ nodes, upTo, activeNode, visited, visitSeq, stmtOnly, view = "list", onView }) {
   const bodyRef = useRef(null);
+  const [expanded, setExpanded] = useState(false);
   const rows = useMemo(() => {
-    if (!stmtOnly) return (nodes || []).filter((n) => n.id <= upTo).map((n) => ({ ...n, d: n.depth }));
+    if (!stmtOnly) return (nodes || []).filter((n) => n.id <= upTo).map((n) => ({ ...n, d: n.depth, vp: n.parent }));
     const depthOf = {};
+    const anc = {}; // nearest visible ancestor-or-self
     const out = [];
     (nodes || []).forEach((n) => {
       const pd = n.parent >= 0 ? depthOf[n.parent] ?? 0 : -1;
       const isVis = n.stmt || n.is_traversal;
       depthOf[n.id] = isVis ? pd + 1 : pd;
-      if (isVis || n.parent < 0) out.push({ ...n, d: n.parent < 0 ? 0 : depthOf[n.id] });
+      anc[n.id] = isVis || n.parent < 0 ? n.id : anc[n.parent];
+      if (isVis || n.parent < 0) out.push({ ...n, d: n.parent < 0 ? 0 : depthOf[n.id], vp: n.parent >= 0 ? anc[n.parent] : -1 });
     });
     return out;
   }, [nodes, upTo, stmtOnly]);
 
+  const analysis = useMemo(() => (stmtOnly ? analyzeVisitOrder(visitSeq, nodes || []) : null), [stmtOnly, visitSeq, nodes]);
+  const order = analysis?.order;
+  const labelOf = (id) => nodes?.[id]?.label || `#${id}`;
+  const isTree = view === "tree";
+
   useEffect(() => {
+    if (isTree) return;
     const el = bodyRef.current?.querySelector(".pr-ast-row.active");
     if (el) scrollChildIntoContainer(bodyRef.current, el);
-  }, [activeNode, upTo]);
+  }, [activeNode, upTo, isTree]);
+
+  useEffect(() => {
+    if (!expanded) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") setExpanded(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expanded]);
+
+  useEffect(() => { if (!isTree) setExpanded(false); }, [isTree]);
+
+  const orderBar = isTree && stmtOnly && order && (
+    <div className="pr-order">
+      {order.size === 0 ? (
+        <span className="pr-muted">Numbers appear on nodes in the order the traversal enters them.</span>
+      ) : analysis.violation ? (
+        <span className="pr-order-bad">Not depth-first: re-entered {labelOf(analysis.violation.branch)} after leaving it.</span>
+      ) : (
+        <span className="pr-order-ok"><FiCheck size={11} /> Depth-first: {order.size} node{order.size === 1 ? "" : "s"} entered, and no branch was re-entered after being left.</span>
+      )}
+      <DepthStrip seq={visitSeq} />
+    </div>
+  );
+
+  const viewToggle = onView && (
+    <span className="pr-seg pr-seg-sm" role="group" aria-label="AST view">
+      <button type="button" className={view === "list" ? "on" : ""} onClick={() => onView("list")}>List</button>
+      <button type="button" className={view === "tree" ? "on" : ""} onClick={() => onView("tree")}>Tree</button>
+    </span>
+  );
+  const title = stmtOnly ? "AST traversal (statements & expressions)" : "Abstract Syntax Tree";
 
   return (
     <div className="pr-pane pr-ast">
-      <div className="pr-pane-title">{stmtOnly ? "AST traversal (statements & expressions)" : "Abstract Syntax Tree"}</div>
-      <div className="pr-pane-body" ref={bodyRef}>
-        {rows.map((n) => (
-          <div
-            key={n.id}
-            className={`pr-ast-row ${n.id === activeNode ? "active" : ""} ${visited?.has(n.id) ? "visited" : ""} ${n.stmt ? "stmt" : ""} ${n.is_traversal ? "traversal" : ""}`}
-            style={{ paddingLeft: 8 + n.d * 14 }}
-          >
-            <span className="pr-ast-type">{n.label}</span>
-            {n.line != null && <span className="pr-ast-line">L{n.line}</span>}
-          </div>
-        ))}
-        {rows.length === 0 && <div className="pr-empty">The tree appears here as the parser builds it.</div>}
+      <div className="pr-pane-title pr-ast-head">
+        <span>{title}</span>
+        <span className="pr-head-tools">
+          {isTree && (
+            <button type="button" className="pr-tool" onClick={() => setExpanded(true)} title="Expand to a large view" aria-label="Expand tree"><FiMaximize2 size={13} /></button>
+          )}
+          {viewToggle}
+        </span>
       </div>
+      {isTree && !expanded && orderBar}
+      <div className={`pr-pane-body ${isTree ? "tree" : ""}`} ref={bodyRef}>
+        {isTree ? (
+          expanded ? <div className="pr-empty">Shown in the expanded view.</div> : <AstTreeCanvas rows={rows} activeNode={activeNode} order={order} big={false} />
+        ) : (
+          <>
+            {rows.map((n) => (
+              <div
+                key={n.id}
+                className={`pr-ast-row ${n.id === activeNode ? "active" : ""} ${visited?.has(n.id) ? "visited" : ""} ${n.stmt ? "stmt" : ""} ${n.is_traversal ? "traversal" : ""}`}
+                style={{ paddingLeft: 8 + n.d * 14 }}
+              >
+                {order?.has(n.id) && <span className="pr-ast-ord">{order.get(n.id)}</span>}
+                <span className="pr-ast-type">{n.label}</span>
+                {n.line != null && <span className="pr-ast-line">L{n.line}</span>}
+              </div>
+            ))}
+            {rows.length === 0 && <div className="pr-empty">The tree appears here as the parser builds it.</div>}
+          </>
+        )}
+      </div>
+      {expanded && createPortal(
+        <div className="pr-overlay" role="dialog" aria-modal="true" aria-label="Expanded AST tree" onMouseDown={(e) => { if (e.target === e.currentTarget) setExpanded(false); }}>
+          <div className="pr-overlay-card">
+            <div className="pr-pane-title pr-ast-head">
+              <span>{title}</span>
+              <span className="pr-head-tools">
+                {viewToggle}
+                <button type="button" className="pr-tool" onClick={() => setExpanded(false)} title="Close (Esc)" aria-label="Close expanded tree"><FiX size={14} /></button>
+              </span>
+            </div>
+            {orderBar}
+            <div className="pr-pane-body tree"><AstTreeCanvas rows={rows} activeNode={activeNode} order={order} big /></div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -576,6 +842,7 @@ export default function PipelineReplay({ sourceCode }) {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [detail, setDetail] = useState("key"); // key | all
+  const [astView, setAstView] = useState("list"); // list | tree
   const epochRef = useRef(0);
 
   const code = (sourceCode || "").trim();
@@ -719,14 +986,14 @@ export default function PipelineReplay({ sourceCode }) {
           </div>
         );
       }
-      return <AstTree nodes={trace.ast} upTo={derived.revealTo} activeNode={derived.node} visited={null} stmtOnly={false} />;
+      return <AstTree nodes={trace.ast} upTo={derived.revealTo} activeNode={derived.node} visited={null} visitSeq={null} stmtOnly={false} view={astView} onView={setAstView} />;
     }
     if (cur.stage === "callgraph") return <CallGraphScene cg={derived.cg} />;
     if (cur.stage === "topo") return <TopoScene topo={derived.topo} />;
     if (traversal) {
       return (
-        <div className="pr-split">
-          <AstTree nodes={trace.ast} upTo={Infinity} activeNode={derived.node} visited={derived.visited} stmtOnly />
+        <div className={`pr-split ${astView === "tree" ? "wide" : ""}`}>
+          <AstTree nodes={trace.ast} upTo={Infinity} activeNode={derived.node} visited={derived.visited} visitSeq={derived.visitSeq} stmtOnly view={astView} onView={setAstView} />
           <div className="pr-col">
             {cur.stage === "signature" && (
               <SignatureTable sigs={derived.sigs} order={derived.sigOrder} currentFunc={derived.currentFunc} />

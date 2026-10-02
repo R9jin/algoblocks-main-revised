@@ -73,7 +73,7 @@ class TopologicalSequencer:
             for m in cluster:
                 group_of[m] = gid
 
-        # Condense into a DAG of clusters, then Kahn's algorithm ordered so
+        # Condense into a DAG of clusters, then order them so
         # that a cluster with no unresolved dependencies (i.e. it calls
         # nothing outside itself that hasn't already been placed) comes
         # first -- this is what guarantees callees precede callers.
@@ -116,7 +116,7 @@ class TopologicalSequencer:
             rec.emit('topo', 'clusters', clusters=[sorted(groups[g]) for g in range(n_groups)],
                      msg="Grouped mutually recursive functions into single clusters.")
             rec.emit('topo', 'order', order=list(self.topological_order),
-                     msg="Kahn's algorithm placed every callee before its callers.")
+                     msg="Ordered the functions so every callee comes before its callers.")
 
     def visit_functions_topologically(self):
         """
