@@ -348,6 +348,7 @@ self.onmessage = async (e) => {
     const errorMsg = `Code payload too large. Maximum allowed is ${maxLen} characters.`;
     if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg }, requestEpoch });
     else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: errorMsg } });
+    else if (type === 'TRACE_PIPELINE') self.postMessage({ type: 'TRACE_PIPELINE_RESULT', data: { status: 'error', message: errorMsg }, requestEpoch });
     else self.postMessage({ type: 'ERROR', data: errorMsg });
     return;
   }
@@ -915,6 +916,7 @@ json.dumps(res)
     // exactly the code path most likely to hit an edge case the inner
     // Python try/except didn't anticipate.
     else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: err.message || 'Failed to convert Python code to blocks.' } });
+    else if (type === 'TRACE_PIPELINE') self.postMessage({ type: 'TRACE_PIPELINE_RESULT', data: { status: 'error', message: err.message || 'Pipeline trace failed.' }, requestEpoch });
     else self.postMessage({ type: 'ERROR', data: err.message });
   }
 };

@@ -37,7 +37,7 @@ class CallGraphMapper:
         if rec: rec.emit('callgraph', 'start', msg="Queue seeded with the module root; walking the AST breadth-first.")
         while queue:
             current_node, current_func = queue.popleft()  
-            if isinstance(current_node, ast.FunctionDef):
+            if isinstance(current_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 self.analyzer.symbol_table[current_node.name] = current_node  
                 self.analyzer.reachable_funcs.add(current_node.name) 
                 current_func = current_node.name  
@@ -84,8 +84,8 @@ class CallGraphMapper:
         if rec:
             rec.emit('callgraph', 'flags',
                      reachable=sorted(self.analyzer.reachable_funcs),
-                     recursive=sorted(k for k in self.analyzer.custom_functions),
-                     indirect=sorted(self.analyzer.indirect_recursive_funcs),
+                     recursive=sorted(k for k in self.analyzer.custom_functions if k != '__main__'),
+                     indirect=sorted(k for k in self.analyzer.indirect_recursive_funcs if k != '__main__'),
                      msg="Reachability swept from __main__; recursion/cycle flags set.")
         self.analyzer.topological_sequencer.compute_topological_order()
 
@@ -111,7 +111,7 @@ class CallGraphMapper:
         rec_calls = 0
         has_grid_checks = False
         
-        if isinstance(node, ast.FunctionDef):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             for child in safe_walk(node):
                 if isinstance(child, ast.While):
                     for sub in safe_walk(child):

@@ -30,14 +30,20 @@ class CallGraphMapper:
             'print', 'len', 'range', 'int', 'str', 'float', 'enumerate', 'zip', 'map', 'filter', 'list', 'set', 'dict', 'tuple', 'bool', 'type', 'isinstance', 'abs', 'round', 'floor', 'ceil'
         })
         
+        # Optional observer for the "Pipeline" tab replay (see
+        # pipeline_trace.py). None during normal analysis/benchmarks, so
+        # these hooks are purely observational and never change results.
+        rec = getattr(self.analyzer, 'pipeline_recorder', None)
+        if rec: rec.emit('callgraph', 'start', msg="Queue seeded with the module root; walking the AST breadth-first.")
         while queue:
             current_node, current_func = queue.popleft()  
-            if isinstance(current_node, ast.FunctionDef):
+            if isinstance(current_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 self.analyzer.symbol_table[current_node.name] = current_node  
                 self.analyzer.reachable_funcs.add(current_node.name) 
                 current_func = current_node.name  
                 if current_func not in self.analyzer.call_graph:
                     self.analyzer.call_graph[current_func] = []  
+                if rec: rec.emit('callgraph', 'func', name=current_func, line=getattr(current_node, 'lineno', -1), msg=f"Dequeued def {current_func}() -> added to the symbol table and call graph.")
             elif isinstance(current_node, ast.Call):
                 called_func = None
                 if isinstance(current_node.func, ast.Name):
@@ -52,6 +58,7 @@ class CallGraphMapper:
                     hits = self.analyzer.trace_data.get("line_hits", {}).get(line_num, 0)
                     if not any(e['target'] == called_func and e['line'] == line_num for e in self.analyzer.call_graph[caller]):
                         self.analyzer.call_graph[caller].append({'target': called_func, 'line': line_num, 'hits': hits})
+                        if rec: rec.emit('callgraph', 'edge', src=caller, dst=called_func, line=line_num, msg=f"Found call on line {line_num}: {caller} -> {called_func}.")
             
             for child in ast.iter_child_nodes(current_node):
                 if isinstance(child, ast.AST):
@@ -74,6 +81,12 @@ class CallGraphMapper:
             if any(e['target'] == func_name for e in edges): 
                 self.analyzer.custom_functions[func_name] = "T(n)"  
         self.detect_indirect_recursion()
+        if rec:
+            rec.emit('callgraph', 'flags',
+                     reachable=sorted(self.analyzer.reachable_funcs),
+                     recursive=sorted(k for k in self.analyzer.custom_functions if k != '__main__'),
+                     indirect=sorted(k for k in self.analyzer.indirect_recursive_funcs if k != '__main__'),
+                     msg="Reachability swept from __main__; recursion/cycle flags set.")
         self.analyzer.topological_sequencer.compute_topological_order()
 
     def detect_indirect_recursion(self):
@@ -98,7 +111,7 @@ class CallGraphMapper:
         rec_calls = 0
         has_grid_checks = False
         
-        if isinstance(node, ast.FunctionDef):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             for child in safe_walk(node):
                 if isinstance(child, ast.While):
                     for sub in safe_walk(child):

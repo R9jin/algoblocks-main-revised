@@ -1,13 +1,13 @@
 {
   "metric": "expected_overall_time vs analyzer 'total'",
-  "n": 266,
-  "correct": 220,
-  "accuracy": 0.8271,
+  "n": 278,
+  "correct": 232,
+  "accuracy": 0.8345,
   "floor": 0.7,
   "mismatches": [
     {
       "id": "algo_n2_002",
-      "name": "Python3 program to replace all 'O's with",
+      "name": "Flood Fill: Replace Surrounded 'O's with 'X's",
       "source_file": "ground_truth_chunk_01.json",
       "expected": "O(n^2)",
       "predicted": "O(2^n)",
@@ -15,7 +15,7 @@
     },
     {
       "id": "algo_n_045",
-      "name": "Function to print common strings",
+      "name": "Find Common Strings with Minimum Index Sum",
       "source_file": "ground_truth_chunk_05.json",
       "expected": "O(n^2)",
       "predicted": "O(n)",
@@ -23,7 +23,7 @@
     },
     {
       "id": "algo_n_052",
-      "name": "Python3 program for the above approach",
+      "name": "Check if All Cells of a Grid Are Visited (Spiral Traversal Simulation)",
       "source_file": "ground_truth_chunk_06.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -31,7 +31,7 @@
     },
     {
       "id": "algo_n_057",
-      "name": "Python program to count all",
+      "name": "Count Words Occurring Exactly Twice",
       "source_file": "ground_truth_chunk_06.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -39,7 +39,7 @@
     },
     {
       "id": "algo_n2_058",
-      "name": "function to mirror characters of a string",
+      "name": "Mirror Characters of a String After Position K",
       "source_file": "ground_truth_chunk_06.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -47,7 +47,7 @@
     },
     {
       "id": "algo_n_059",
-      "name": "Python3 program to find shortest",
+      "name": "Find the Shortest Unsorted Subarray",
       "source_file": "ground_truth_chunk_06.json",
       "expected": "O(n log n)",
       "predicted": "O(n)",
@@ -55,7 +55,7 @@
     },
     {
       "id": "algo_n_066",
-      "name": "Python3 program Find concatenated string",
+      "name": "Concatenate the Uncommon Characters of Two Strings",
       "source_file": "ground_truth_chunk_07.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -63,7 +63,7 @@
     },
     {
       "id": "algo_n2_067",
-      "name": "Algorithm Snippet",
+      "name": "Count Inversions Using Heap Sort",
       "source_file": "ground_truth_chunk_07.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -71,7 +71,7 @@
     },
     {
       "id": "algo_n_069",
-      "name": "Python 3 program to find LCS",
+      "name": "Longest Common Subsequence with Permutations Allowed",
       "source_file": "ground_truth_chunk_07.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -79,7 +79,7 @@
     },
     {
       "id": "algo_n_070",
-      "name": "Algorithm Snippet",
+      "name": "Maximize Sum of i*arr[i] via Array Rotation",
       "source_file": "ground_truth_chunk_07.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -87,7 +87,7 @@
     },
     {
       "id": "algo_n2_083",
-      "name": "Python 3 program to print n-th",
+      "name": "Generate Recaman's Sequence",
       "source_file": "ground_truth_chunk_09.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -95,7 +95,7 @@
     },
     {
       "id": "algo_nlogn_087",
-      "name": "Python program to find median of matrix",
+      "name": "Find the Median of a Row-Wise Sorted Matrix (Binary Search)",
       "source_file": "ground_truth_chunk_09.json",
       "expected": "O(n^2)",
       "predicted": "O(n log n)",
@@ -103,7 +103,7 @@
     },
     {
       "id": "algo_nlogn_090",
-      "name": "Python3 code to make a permutation",
+      "name": "Minimum Changes to Make a Permutation of 1..N",
       "source_file": "ground_truth_chunk_09.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -111,7 +111,7 @@
     },
     {
       "id": "algo_n_092",
-      "name": "Python3 Program to reverse an equation",
+      "name": "Reverse the Word Order in an Equation",
       "source_file": "ground_truth_chunk_10.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -119,7 +119,7 @@
     },
     {
       "id": "algo_n2_093",
-      "name": "Python3 program to check whether given",
+      "name": "Check if a Matrix Is a Toeplitz Matrix",
       "source_file": "ground_truth_chunk_10.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -127,7 +127,7 @@
     },
     {
       "id": "algo_n_102",
-      "name": "python program to find position",
+      "name": "Find the Position of a Number in a Sequence of 4s and 7s",
       "source_file": "ground_truth_chunk_11.json",
       "expected": "O(log n)",
       "predicted": "O(n)",
@@ -135,7 +135,7 @@
     },
     {
       "id": "algo_n2_104",
-      "name": "Python3 program to find distance of nearest",
+      "name": "Distance to the Nearest 1 in a Binary Matrix (Multi-Source BFS)",
       "source_file": "ground_truth_chunk_11.json",
       "expected": "O(n^2)",
       "predicted": "O(V+E)",
@@ -143,7 +143,7 @@
     },
     {
       "id": "algo_n_123",
-      "name": "An efficient Python3 program to find",
+      "name": "Maximum of Minimums of All Window Sizes (Stack-Based)",
       "source_file": "ground_truth_chunk_13.json",
       "expected": "O(n^2)",
       "predicted": "O(n)",
@@ -151,7 +151,7 @@
     },
     {
       "id": "algo_n2_124",
-      "name": "Python 3 program to split an alphanumeric",
+      "name": "Split an Alphanumeric String into Letters and Digits",
       "source_file": "ground_truth_chunk_13.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -159,7 +159,7 @@
     },
     {
       "id": "algo_n_128",
-      "name": "Algorithm Snippet",
+      "name": "Reverse a Queue (Recursive)",
       "source_file": "ground_truth_chunk_13.json",
       "expected": "O(n^2)",
       "predicted": "O(n)",
@@ -167,7 +167,7 @@
     },
     {
       "id": "algo_n2_130",
-      "name": "Python program to check if a given string is a rotation",
+      "name": "Check if a String Is a Rotation of a Palindrome",
       "source_file": "ground_truth_chunk_13.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -175,7 +175,7 @@
     },
     {
       "id": "algo_n2_135",
-      "name": "Python3 program to find difficulty",
+      "name": "Compute the Difficulty Score of a Sentence",
       "source_file": "ground_truth_chunk_14.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -183,7 +183,7 @@
     },
     {
       "id": "algo_logn_145",
-      "name": "Python3 program to convert fractional",
+      "name": "Convert a Fractional Decimal to Binary",
       "source_file": "ground_truth_chunk_15.json",
       "expected": "O(log n)",
       "predicted": "O(n)",
@@ -191,7 +191,7 @@
     },
     {
       "id": "algo_n2_148",
-      "name": "Python3 program to find the longest path in a matrix",
+      "name": "Longest Increasing Path in a Matrix (DFS + Memoization)",
       "source_file": "ground_truth_chunk_15.json",
       "expected": "O(V+E)",
       "predicted": "O(n^2)",
@@ -199,7 +199,7 @@
     },
     {
       "id": "algo_n_149",
-      "name": "Python3 program Count total number of",
+      "name": "Count Subarrays with the Same Distinct-Element Count as the Array",
       "source_file": "ground_truth_chunk_15.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -207,7 +207,7 @@
     },
     {
       "id": "algo_n3_156",
-      "name": "Python3 program to find smallest possible",
+      "name": "Minimum Length of a String After Reducing Pairs of Distinct Characters (Memoized Recursion)",
       "source_file": "ground_truth_chunk_16.json",
       "expected": "O(n^2)",
       "predicted": "O(2^n)",
@@ -215,7 +215,7 @@
     },
     {
       "id": "algo_nlogn_160",
-      "name": "python3 program to find med in",
+      "name": "Running Median of a Stream (Two Heaps)",
       "source_file": "ground_truth_chunk_16.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -223,7 +223,7 @@
     },
     {
       "id": "algo_n2_161",
-      "name": "code contributed by mahee96",
+      "name": "Insertion Sort with Swaps Across Two Lists",
       "source_file": "ground_truth_chunk_17.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -231,7 +231,7 @@
     },
     {
       "id": "algo_n_162",
-      "name": "Python3 program to reverse string",
+      "name": "Reverse Each Word's Letters Based on Word Count",
       "source_file": "ground_truth_chunk_17.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -239,7 +239,7 @@
     },
     {
       "id": "algo_n2_166",
-      "name": "Python3 program to replace c1 with c2",
+      "name": "Swap Occurrences of Two Characters in a String",
       "source_file": "ground_truth_chunk_17.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -247,7 +247,7 @@
     },
     {
       "id": "algo_nlogn_170",
-      "name": "Python implementation of Binary Indexed Tree",
+      "name": "Binary Indexed Tree (Fenwick Tree) for Prefix Sums",
       "source_file": "ground_truth_chunk_17.json",
       "expected": "O(n)",
       "predicted": "O(n log n)",
@@ -255,7 +255,7 @@
     },
     {
       "id": "algo_n2_176",
-      "name": "Python 3 program to counts Palindromic",
+      "name": "Count Palindromic Subsequences in a String (Recursion)",
       "source_file": "ground_truth_chunk_18.json",
       "expected": "O(n^2)",
       "predicted": "O(n)",
@@ -263,7 +263,7 @@
     },
     {
       "id": "algo_n_186",
-      "name": "Python3 code for Find the two repeating",
+      "name": "Find the Two Repeating Elements Using Sum and Product",
       "source_file": "ground_truth_chunk_19.json",
       "expected": "O(n^2)",
       "predicted": "O(n)",
@@ -271,7 +271,7 @@
     },
     {
       "id": "algo_n_189",
-      "name": "Python program to find",
+      "name": "Check if a Corner String Is Present at Matrix Corners",
       "source_file": "ground_truth_chunk_19.json",
       "expected": "O(1)",
       "predicted": "O(n)",
@@ -279,7 +279,7 @@
     },
     {
       "id": "algo_n_215",
-      "name": "Python3 program for range minimum",
+      "name": "Largest Rectangle in a Histogram via Segment Tree RMQ",
       "source_file": "ground_truth_chunk_22.json",
       "expected": "O(n^2)",
       "predicted": "O(2^n)",
@@ -287,7 +287,7 @@
     },
     {
       "id": "algo_n2_216",
-      "name": "Python program to determine minimum number",
+      "name": "Minimum Rotations to Get the Same String Back",
       "source_file": "ground_truth_chunk_22.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -295,7 +295,7 @@
     },
     {
       "id": "algo_n_227",
-      "name": "Function to print common strings",
+      "name": "Find Common Strings with Minimum Index Sum",
       "source_file": "ground_truth_chunk_23.json",
       "expected": "O(n^2)",
       "predicted": "O(n)",
@@ -303,7 +303,7 @@
     },
     {
       "id": "algo_n_242",
-      "name": "Python3 code for the above approach",
+      "name": "Largest Rectangle Area in a Histogram (Stack)",
       "source_file": "ground_truth_chunk_25.json",
       "expected": "O(n^2)",
       "predicted": "O(n)",
@@ -311,7 +311,7 @@
     },
     {
       "id": "algo_n2_244",
-      "name": "Python 3 program to determine minimum",
+      "name": "Minimum Rotations to Get the Same String Back",
       "source_file": "ground_truth_chunk_25.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -319,7 +319,7 @@
     },
     {
       "id": "algo_n_249",
-      "name": "Algorithm Snippet",
+      "name": "Print the N Most Frequent Elements (Hash Map)",
       "source_file": "ground_truth_chunk_25.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -327,7 +327,7 @@
     },
     {
       "id": "algo_n_250",
-      "name": "Algorithm Snippet",
+      "name": "Next Frequency Greater Element (Stack)",
       "source_file": "ground_truth_chunk_25.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -335,7 +335,7 @@
     },
     {
       "id": "algo_n2_255",
-      "name": "Python3 program to convert a",
+      "name": "Convert a Sentence to Alternating Case (gOOGLE cASE)",
       "source_file": "ground_truth_chunk_26.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -343,7 +343,7 @@
     },
     {
       "id": "algo_n_258",
-      "name": "Python program to count number",
+      "name": "Count Zeroes in a Sorted Binary Matrix",
       "source_file": "ground_truth_chunk_26.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -351,7 +351,7 @@
     },
     {
       "id": "algo_n_264",
-      "name": "Python3 implementation to count",
+      "name": "Count Subarrays with Equal 0s and 1s",
       "source_file": "ground_truth_chunk_27.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -359,7 +359,7 @@
     },
     {
       "id": "algo_n2_268",
-      "name": "Python 3 program for finding maximum",
+      "name": "Largest Rectangle Area in a Histogram (Brute Force)",
       "source_file": "ground_truth_chunk_27.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -367,7 +367,7 @@
     },
     {
       "id": "algo_n_283",
-      "name": "Algorithm Snippet",
+      "name": "Sliding Window Maximum Using Two Stacks",
       "source_file": "ground_truth_chunk_29.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",

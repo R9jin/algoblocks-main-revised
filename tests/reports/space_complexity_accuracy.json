@@ -1,29 +1,21 @@
 {
   "metric": "expected_overall_space vs analyzer 'space_total'",
-  "n": 266,
-  "correct": 250,
-  "accuracy": 0.9398,
+  "n": 278,
+  "correct": 264,
+  "accuracy": 0.9496,
   "floor": 0.8,
   "mismatches": [
     {
       "id": "algo_n2_002",
-      "name": "Python3 program to replace all 'O's with",
+      "name": "Flood Fill: Replace Surrounded 'O's with 'X's",
       "source_file": "ground_truth_chunk_01.json",
       "expected": "O(V+E)",
       "predicted": "O(n)",
       "analyzer_status": "success"
     },
     {
-      "id": "algo_2n_003",
-      "name": "Python program to print all distinct",
-      "source_file": "ground_truth_chunk_01.json",
-      "expected": "O(n!)",
-      "predicted": "O(n^2)",
-      "analyzer_status": "success"
-    },
-    {
       "id": "algo_n_070",
-      "name": "Algorithm Snippet",
+      "name": "Maximize Sum of i*arr[i] via Array Rotation",
       "source_file": "ground_truth_chunk_07.json",
       "expected": "O(1)",
       "predicted": "O(n)",
@@ -31,7 +23,7 @@
     },
     {
       "id": "algo_n2_072",
-      "name": "Python 3 program to check",
+      "name": "Check if a Matrix Is Skew-Symmetric",
       "source_file": "ground_truth_chunk_08.json",
       "expected": "O(n^2)",
       "predicted": "O(1)",
@@ -39,7 +31,7 @@
     },
     {
       "id": "algo_n2_077",
-      "name": "Python 3 program to find the maximum",
+      "name": "Maximum Sum Hourglass Pattern in a Matrix",
       "source_file": "ground_truth_chunk_08.json",
       "expected": "O(1)",
       "predicted": "O(n)",
@@ -47,7 +39,7 @@
     },
     {
       "id": "algo_n_086",
-      "name": "Python3 program to count the number less",
+      "name": "Count Numbers Below N Whose Permutations Are All at Least N",
       "source_file": "ground_truth_chunk_09.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -55,7 +47,7 @@
     },
     {
       "id": "algo_n2_135",
-      "name": "Python3 program to find difficulty",
+      "name": "Compute the Difficulty Score of a Sentence",
       "source_file": "ground_truth_chunk_14.json",
       "expected": "O(1)",
       "predicted": "O(n)",
@@ -63,7 +55,7 @@
     },
     {
       "id": "algo_n2_141",
-      "name": "Python3 program to shift k",
+      "name": "Shift the First K Elements of Each Matrix Row",
       "source_file": "ground_truth_chunk_15.json",
       "expected": "O(1)",
       "predicted": "O(n^2)",
@@ -71,7 +63,7 @@
     },
     {
       "id": "algo_n2_161",
-      "name": "code contributed by mahee96",
+      "name": "Insertion Sort with Swaps Across Two Lists",
       "source_file": "ground_truth_chunk_17.json",
       "expected": "O(1)",
       "predicted": "O(n)",
@@ -79,7 +71,7 @@
     },
     {
       "id": "algo_n2_205",
-      "name": "Python program to find unique element in matrix",
+      "name": "Find the Unique Element in a Matrix (Hashing)",
       "source_file": "ground_truth_chunk_21.json",
       "expected": "O(n^2)",
       "predicted": "O(n)",
@@ -87,23 +79,15 @@
     },
     {
       "id": "algo_n2_207",
-      "name": "Python 3 program to find a common element",
+      "name": "Find a Common Element in All Rows of a Sorted Matrix",
       "source_file": "ground_truth_chunk_21.json",
       "expected": "O(1)",
       "predicted": "O(n)",
       "analyzer_status": "success"
     },
     {
-      "id": "algo_n2_212",
-      "name": "Python3 program to print all palindromic",
-      "source_file": "ground_truth_chunk_22.json",
-      "expected": "O(n!)",
-      "predicted": "O(n)",
-      "analyzer_status": "success"
-    },
-    {
       "id": "algo_n_252",
-      "name": "Optimized Python3 program",
+      "name": "Check if Two Strings Are K-Anagrams (Optimized)",
       "source_file": "ground_truth_chunk_26.json",
       "expected": "O(n)",
       "predicted": "O(1)",
@@ -111,7 +95,7 @@
     },
     {
       "id": "algo_n_253",
-      "name": "Python3 program to find all distinct characters",
+      "name": "Print All Distinct Characters in a String",
       "source_file": "ground_truth_chunk_26.json",
       "expected": "O(1)",
       "predicted": "O(n)",
@@ -119,7 +103,7 @@
     },
     {
       "id": "algo_n_267",
-      "name": "Python3 program to check two n-ary trees are mirror.",
+      "name": "Check if Two N-ary Trees Are Mirror Images",
       "source_file": "ground_truth_chunk_27.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
@@ -127,7 +111,7 @@
     },
     {
       "id": "algo_n2_275",
-      "name": "A Python3 program to find all symmetric",
+      "name": "Find All Symmetric Pairs in an Array of Pairs",
       "source_file": "ground_truth_chunk_28.json",
       "expected": "O(n)",
       "predicted": "O(1)",
