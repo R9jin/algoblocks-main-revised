@@ -205,14 +205,14 @@
    --------------------------------------------------------------------- */
 :root[data-theme="dark"] .blocklySvg,
 :root[data-theme="dark"] .blocklyMainBackground {
-  background-color: #1B1030 !important;
+  background-color: #2B1B4A !important;
 }
 :root[data-theme="dark"] .blocklyMainBackground {
-  fill: #1B1030 !important;
+  fill: #2B1B4A !important;
 }
 :root[data-theme="dark"] .blocklyGridPattern line,
 :root[data-theme="dark"] .blocklyGrid line {
-  stroke: #3B2762 !important;
+  stroke: #4A3578 !important;
 }
 :root[data-theme="dark"] .blocklyToolboxDiv,
 :root[data-theme="dark"] .blocklyToolbox {

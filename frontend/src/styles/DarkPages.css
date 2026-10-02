@@ -1337,3 +1337,46 @@
 :root[data-theme="dark"] svg [stroke="#94a3b8"] {
   stroke: #8F82B5;
 }
+
+/* ---------------------------------------------------------------------
+   13. SCOPED GLASS TOKENS  (fixes the light-grey cards in dark mode)
+   Dashboard.css and LearningPath.css re-declare the --glass-* tokens on
+   .bento-dashboard-layout / .learning-path-container with white values.
+   A token set on the element itself beats the one on <html>, so the dark
+   values in DarkTheme.css never reached the cards (white @ 55-85% over a
+   dark page = light grey). Re-declare them here at the same scope, with
+   enough specificity to also beat the prefers-reduced-transparency block.
+   --------------------------------------------------------------------- */
+:root[data-theme="dark"] .bento-dashboard-layout,
+:root[data-theme="dark"] .learning-path-container {
+  --glass-surface:        rgba(36, 21, 62, 0.62);
+  --glass-surface-strong: rgba(36, 21, 62, 0.82);
+  --glass-surface-soft:   rgba(36, 21, 62, 0.48);
+  --glass-border:         rgba(255, 255, 255, 0.12);
+  --glass-shadow:         0 8px 32px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.30);
+  --glass-highlight:      inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+/* Opaque fallback used when backdrop-filter is unsupported (Dashboard.css s.9) */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-theme="dark"] .bento-hero-card,
+  :root[data-theme="dark"] .bento-learning-card,
+  :root[data-theme="dark"] .bento-template-card,
+  :root[data-theme="dark"] .bento-resource-card,
+  :root[data-theme="dark"] .bento-faq-item,
+  :root[data-theme="dark"] .bento-recent-card {
+    background: #211337;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   14. ACCURACY OVERVIEW -- scope note + class chips used light-mode purple
+   (the note was !important, so it needs !important here too)
+   --------------------------------------------------------------------- */
+:root[data-theme="dark"] .acc-scope-note { color: #D3BFFF !important; }
+:root[data-theme="dark"] .acc-scope-note strong { color: #F5F3FF; }
+:root[data-theme="dark"] .acc-scope-badge {
+  color: #E9DDFF;
+  background: rgba(167, 120, 255, 0.16);
+  border-color: rgba(167, 120, 255, 0.40);
+}
+:root[data-theme="dark"] .acc-section-head p strong { color: #E9DDFF; }
