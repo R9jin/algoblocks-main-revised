@@ -28,6 +28,9 @@ import './styles/DarkSurfaces.css';
 import './styles/LightSurfaces.css';
 // Dark theme palette (active only under <html data-theme="dark">) -- keep last.
 import './styles/DarkTheme.css';
+// Dark theme coverage for every page / the code workspace (same gate: data-theme="dark").
+import './styles/DarkPages.css';
+import './styles/DarkWorkspace.css';
 import { initTheme } from './utils/theme';
 
 initTheme();

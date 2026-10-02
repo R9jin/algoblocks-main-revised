@@ -3,6 +3,7 @@ import Editor from "@monaco-editor/react";
 import "../utils/monacoSetup"; // bundled Monaco -- no CDN, works offline
 import { handleEditorWillMount } from "../utils/asymptoticParser.jsx";
 import FloatingErrorDropdown from "./FloatingErrorDropdown.jsx";
+import useResolvedTheme from "../hooks/useResolvedTheme";
 
 export default function PythonCodeEditor({
   viewMode = "workspace",
@@ -15,6 +16,7 @@ export default function PythonCodeEditor({
   onMountEditor
 }) {
   const hasSyntaxErrors = syntaxErrors && syntaxErrors.length > 0;
+  const editorTheme = useResolvedTheme() === "dark" ? "algoblocks-dark" : "algoblocks-light";
 
   return (
     <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"}>
@@ -42,7 +44,7 @@ export default function PythonCodeEditor({
         <Editor
           height="100%"
           language="python"
-          theme="algoblocks-light"
+          theme={editorTheme}
           beforeMount={handleEditorWillMount}
           onMount={onMountEditor}
           value={pythonCode}

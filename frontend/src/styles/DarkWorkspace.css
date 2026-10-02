@@ -1,0 +1,1186 @@
+/* frontend/src/styles/DarkWorkspace.css
+   =====================================================================
+   DARK THEME -- code workspace, Blockly / Monaco surroundings, trace
+   player, pipeline replay, admin dashboard / user management, evaluation
+   suite and analyzer regression check.
+   =====================================================================
+   Active only under <html data-theme="dark">. Imported after DarkPages.css.
+   Same readability palette as DarkPages.css:
+     headings #F5F3FF . body #D5CCEE . muted #B6A9D8 . brand #C4B5FD
+     ok #6EE7B7 . info #7DD3FC / #93C5FD . warn #FCD34D . danger #FCA5A5
+   Status chips keep their meaning (green / amber / red / blue / purple) but
+   move from pastel-fill + dark-text to translucent-fill + light-text.
+   ===================================================================== */
+/* ---------------------------------------------------------------------
+   1. WORKSPACE (MainApp.css / WorkspaceShared.css / ActivityApp.css)
+   --------------------------------------------------------------------- */
+:root[data-theme="dark"] .templates-sidebar {
+  background-color: #1A0F2E;
+  background-image: radial-gradient(ellipse 280px 220px at 10% 0%,   rgba(124, 58, 237, 0.26), transparent 70%), radial-gradient(ellipse 220px 180px at 90% 100%, rgba(79, 70, 229, 0.20), transparent 70%);
+  border-right-color: #3B2762;
+  box-shadow: none;
+}
+:root[data-theme="dark"] .sidebar-search {
+  border-bottom-color: #3B2762;
+  background: rgba(255, 255, 255, 0.04);
+}
+:root[data-theme="dark"] .sidebar-category-header {
+  color: #D3BFFF;
+  text-shadow: none;
+}
+:root[data-theme="dark"] .sidebar-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.30);
+}
+:root[data-theme="dark"] .sidebar-card:hover {
+  border-color: rgba(167, 139, 250, 0.6);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+:root[data-theme="dark"] .sidebar-card h4 {
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .sidebar-card p {
+  color: #B6A9D8;
+}
+:root[data-theme="dark"] .sidebar-edit-btn-polished:hover {
+  color: #E9DDFF;
+  border-color: rgba(167, 139, 250, 0.4);
+}
+:root[data-theme="dark"] .sidebar-delete-btn-polished:hover {
+  color: #FCA5A5;
+  background: rgba(239, 68, 68, 0.18);
+}
+:root[data-theme="dark"] .panel-resizer-handle {
+  background: #4B3A7C;
+}
+:root[data-theme="dark"] .panel-close-btn:hover {
+  color: #FCA5A5;
+  background: rgba(239, 68, 68, 0.20);
+}
+:root[data-theme="dark"] .python-sync-btn.disabled {
+  color: #B6A9D8;
+}
+:root[data-theme="dark"] .tab-btn.active {
+  color: #E9DDFF;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="dark"] .complexity-row:hover,
+:root[data-theme="dark"] .complexity-row.expanded {
+  background: rgba(167, 120, 255, 0.14) !important;
+}
+:root[data-theme="dark"] .overall-main-title {
+  color: #D3BFFF;
+  border-bottom-color: #3B2762;
+}
+:root[data-theme="dark"] .overall-sub-title {
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .nlg-math-badge {
+  color: #E9DDFF;
+  background: rgba(167, 120, 255, 0.18);
+  border-color: rgba(167, 120, 255, 0.4);
+}
+:root[data-theme="dark"] .nlg-deadcode .nlg-block-title {
+  color: #A99DCB;
+}
+:root[data-theme="dark"] .nlg-global .nlg-block-title {
+  color: #C4B5FD;
+}
+:root[data-theme="dark"] .nlg-local .nlg-block-title {
+  color: #7DD3FC;
+}
+:root[data-theme="dark"] .nlg-educational .nlg-block-title {
+  color: #FCD34D;
+}
+:root[data-theme="dark"] .nlg-bottleneck .nlg-block-title {
+  color: #FCA5A5;
+}
+:root[data-theme="dark"] .nlg-mastery .nlg-block-title {
+  color: #6EE7B7;
+}
+:root[data-theme="dark"] .nlg-profiler .nlg-block-title {
+  color: #F9A8D4;
+}
+:root[data-theme="dark"] .efficient-badge {
+  background-color: rgba(16, 185, 129, 0.16);
+  color: #6EE7B7;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+:root[data-theme="dark"] .badge-custom-polished {
+  color: #6EE7B7;
+  background: rgba(16, 185, 129, 0.16);
+}
+:root[data-theme="dark"] .total-time-badge {
+  color: #6EE7B7;
+}
+:root[data-theme="dark"] .total-space-badge {
+  color: #7DD3FC;
+}
+:root[data-theme="dark"] .console-table-override td.active-hits {
+  color: #6EE7B7;
+}
+:root[data-theme="dark"] .error-dropdown-header {
+  background-color: rgba(239, 68, 68, 0.14);
+}
+:root[data-theme="dark"] .error-dropdown-header strong {
+  color: #FCA5A5;
+}
+:root[data-theme="dark"] .error-dropdown-menu {
+  box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.45);
+}
+:root[data-theme="dark"] .error-dropdown-list::-webkit-scrollbar-thumb {
+  background: #4B3A7C;
+}
+:root[data-theme="dark"] .error-dropdown-item {
+  border-bottom-color: #3B2762;
+}
+:root[data-theme="dark"] .error-fix {
+  color: #6EE7B7;
+  background-color: rgba(16, 185, 129, 0.14);
+}
+:root[data-theme="dark"] .error-fix strong {
+  color: #A7F3D0;
+}
+/* save-project modal */
+:root[data-theme="dark"] .save-modal-content {
+  background: linear-gradient(145deg, rgba(42, 26, 71, 0.96) 0%, rgba(30, 16, 52, 0.96) 100%);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 28px 56px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: #EDE9FE;
+}
+:root[data-theme="dark"] .save-modal-title {
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .save-modal-label {
+  color: #B6A9D8;
+}
+:root[data-theme="dark"] .save-modal-input,
+:root[data-theme="dark"] .save-modal-textarea {
+  border-color: rgba(255, 255, 255, 0.20);
+  color: #F5F3FF;
+  background: rgba(255, 255, 255, 0.06);
+}
+:root[data-theme="dark"] .save-modal-input:focus,
+:root[data-theme="dark"] .save-modal-textarea:focus {
+  border-color: #A78BFA;
+  background: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.28);
+}
+:root[data-theme="dark"] .save-modal-cancel-btn {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  color: #D5CCEE;
+}
+:root[data-theme="dark"] .save-modal-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #FFFFFF;
+}
+/* test-case / activity badges */
+:root[data-theme="dark"] .difficulty-badge.beginner {
+  color: #6EE7B7;
+}
+:root[data-theme="dark"] .difficulty-badge.advanced {
+  color: #FCA5A5;
+}
+:root[data-theme="dark"] .test-case-card.passing .test-case-title,
+:root[data-theme="dark"] .test-case-card.passing .test-case-chevron,
+:root[data-theme="dark"] .rog-badge,
+:root[data-theme="dark"] .rog-badge .total-label {
+  color: #6EE7B7;
+}
+:root[data-theme="dark"] .test-case-card.failing .test-case-title,
+:root[data-theme="dark"] .test-case-card.failing .test-case-chevron {
+  color: #FCA5A5;
+}
+:root[data-theme="dark"] .activity-blocks-hint-icon,
+:root[data-theme="dark"] .activity-blocks-hint-label {
+  color: #C4B5FD;
+}
+/* ---------------------------------------------------------------------
+   2. BLOCKLY (block canvas, toolbox, flyout, menus)
+   The app never styled these; Blockly paints them from its theme, so the
+   canvas stayed white in dark mode. These use !important because Blockly
+   writes the colours as inline styles / fill attributes.
+   --------------------------------------------------------------------- */
+:root[data-theme="dark"] .blocklySvg,
+:root[data-theme="dark"] .blocklyMainBackground {
+  background-color: #1B1030 !important;
+}
+:root[data-theme="dark"] .blocklyMainBackground {
+  fill: #1B1030 !important;
+}
+:root[data-theme="dark"] .blocklyGridPattern line,
+:root[data-theme="dark"] .blocklyGrid line {
+  stroke: #3B2762 !important;
+}
+:root[data-theme="dark"] .blocklyToolboxDiv,
+:root[data-theme="dark"] .blocklyToolbox {
+  background-color: #1D1033 !important;
+  color: #E4DDF7 !important;
+  border-color: #3B2762 !important;
+}
+:root[data-theme="dark"] .blocklyToolboxCategoryLabel,
+:root[data-theme="dark"] .blocklyTreeLabel {
+  color: #E4DDF7 !important;
+}
+:root[data-theme="dark"] .blocklyToolboxSelected .blocklyToolboxCategoryLabel,
+:root[data-theme="dark"] .blocklyToolboxSelected .blocklyTreeLabel {
+  color: #FFFFFF !important;
+}
+:root[data-theme="dark"] .blocklyToolboxCategory:not(.blocklyToolboxSelected):hover {
+  background-color: rgba(167, 120, 255, 0.16) !important;
+}
+:root[data-theme="dark"] .blocklyFlyoutBackground {
+  fill: #261542 !important;
+  fill-opacity: 0.96 !important;
+}
+:root[data-theme="dark"] .blocklyFlyoutLabelText {
+  fill: #E4DDF7 !important;
+}
+:root[data-theme="dark"] .blocklyScrollbarHandle {
+  fill: #A78BFA !important;
+}
+:root[data-theme="dark"] .blocklyDropDownDiv,
+:root[data-theme="dark"] .blocklyWidgetDiv .blocklyMenu,
+:root[data-theme="dark"] .blocklyContextMenu,
+:root[data-theme="dark"] .blocklyMenu {
+  background: #261542 !important;
+  border: 1px solid #4B3A7C !important;
+  color: #EDE9FE !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55) !important;
+}
+:root[data-theme="dark"] .blocklyMenuItem,
+:root[data-theme="dark"] .blocklyMenuItemContent {
+  color: #EDE9FE !important;
+}
+:root[data-theme="dark"] .blocklyMenuItemHighlight,
+:root[data-theme="dark"] .blocklyMenuItem:hover {
+  background: rgba(167, 120, 255, 0.24) !important;
+}
+:root[data-theme="dark"] .blocklyMenuItemDisabled,
+:root[data-theme="dark"] .blocklyMenuItemDisabled .blocklyMenuItemContent {
+  color: #8F82B5 !important;
+}
+:root[data-theme="dark"] .blocklyTooltipDiv {
+  background: #261542 !important;
+  color: #EDE9FE !important;
+  border-color: #4B3A7C !important;
+}
+:root[data-theme="dark"] .blocklyHtmlInput {
+  background: #FFFFFF !important;
+  color: #1E293B !important;
+}
+:root[data-theme="dark"] .blocklyMinimap,
+:root[data-theme="dark"] .blockly-ws-search {
+  background: #261542 !important;
+  border-color: #4B3A7C !important;
+  color: #EDE9FE !important;
+}
+:root[data-theme="dark"] .blockly-ws-search input {
+  background: #1A0F2E !important;
+  color: #F5F3FF !important;
+  border-color: #4B3A7C !important;
+}
+/* ---------------------------------------------------------------------
+   3. MONACO CONTAINER (the editor theme itself is "algoblocks-dark" in JS)
+   --------------------------------------------------------------------- */
+:root[data-theme="dark"] .editor-wrapper,
+:root[data-theme="dark"] .python-view .editor-wrapper {
+  background: #150A24;
+}
+:root[data-theme="dark"] .monaco-editor .suggest-widget,
+:root[data-theme="dark"] .monaco-editor .monaco-hover {
+  border-color: #4B3A7C;
+}
+/* ---------------------------------------------------------------------
+   4. CALL GRAPH / MEMORY MAP (CallGraphVisualizer.css)
+   --------------------------------------------------------------------- */
+:root[data-theme="dark"] .callgraph-canvas-container {
+  background-color: #150A24 !important;
+}
+:root[data-theme="dark"] .callgraph-empty {
+  color: #B8C2CC;
+}
+:root[data-theme="dark"] .nodes-badge {
+  background-color: rgba(167, 120, 255, 0.22);
+  color: #E9DDFF;
+  border-color: rgba(167, 120, 255, 0.5);
+}
+:root[data-theme="dark"] .callgraph-visualizer .nodes-badge {
+  color: #E9DDFF;
+}
+/* ---------------------------------------------------------------------
+   5. PIPELINE REPLAY (PipelineReplay.css)
+   --------------------------------------------------------------------- */
+:root[data-theme="dark"] .pr-state.err,
+:root[data-theme="dark"] .pr-chip.warn,
+:root[data-theme="dark"] .pr-badge.warn,
+:root[data-theme="dark"] .pr-error-card,
+:root[data-theme="dark"] .pr-order-bad {
+  color: #FCA5A5;
+}
+:root[data-theme="dark"] .pr-stage.done,
+:root[data-theme="dark"] .pr-ast-row.visited,
+:root[data-theme="dark"] .pr-order-ok,
+:root[data-theme="dark"] .pr-badge.time,
+:root[data-theme="dark"] .pr-table td.r.mono:not(.sp) {
+  color: #6EE7B7;
+}
+:root[data-theme="dark"] .pr-badge.space,
+:root[data-theme="dark"] .pr-table td.sp {
+  color: #7DD3FC;
+}
+/* ---------------------------------------------------------------------
+   6. TRACE PLAYER (tracePlayer/StepTracePlayer.css)
+   --------------------------------------------------------------------- */
+:root[data-theme="dark"] .trace-panel figcaption strong,
+:root[data-theme="dark"] .callstack-trace-heading,
+:root[data-theme="dark"] .recursion-tree-trace-legend-title,
+:root[data-theme="dark"] .complexity-ledger-title,
+:root[data-theme="dark"] .complexity-ledger-line code,
+:root[data-theme="dark"] .complexity-ledger-metric-ops,
+:root[data-theme="dark"] .complexity-ledger-metric-space .complexity-ledger-metric-ops,
+:root[data-theme="dark"] .complexity-ledger-summary-formula,
+:root[data-theme="dark"] .callstack-trace-cache-value {
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .trace-panel figcaption span,
+:root[data-theme="dark"] .trace-player-step-count,
+:root[data-theme="dark"] .array-trace-legend-item,
+:root[data-theme="dark"] .callstack-trace-cache-key,
+:root[data-theme="dark"] .recursion-tree-trace-legend-row,
+:root[data-theme="dark"] .complexity-ledger-summary-label,
+:root[data-theme="dark"] .complexity-ledger-note,
+:root[data-theme="dark"] .callstack-trace-card {
+  color: #B6A9D8;
+}
+:root[data-theme="dark"] .trace-player-caption,
+:root[data-theme="dark"] .callstack-trace-card.top {
+  color: #E9DDFF;
+}
+:root[data-theme="dark"] .trace-player-stage,
+:root[data-theme="dark"] .complexity-ledger {
+  background: #1A0F2E;
+  border-color: #3B2762;
+}
+:root[data-theme="dark"] .trace-player-controls button {
+  border-color: #4B3A7C;
+  background: #2A1A47;
+  color: #E9DDFF;
+}
+:root[data-theme="dark"] .trace-player-controls button:hover:not(:disabled) {
+  background: #3A2562;
+}
+:root[data-theme="dark"] .trace-player-dot {
+  background: #4B3A7C;
+}
+:root[data-theme="dark"] .array-trace-pointer,
+:root[data-theme="dark"] .recursion-tree-trace-legend-row.repeat {
+  color: #FDBA74;
+}
+:root[data-theme="dark"] .array-trace-cell {
+  background: #2A1A47;
+  border-color: #4B3A7C;
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .array-trace-cell.role-compare,
+:root[data-theme="dark"] .array-trace-cell.role-scanning {
+  background: rgba(14, 165, 233, 0.24);
+}
+:root[data-theme="dark"] .array-trace-cell.role-swap,
+:root[data-theme="dark"] .array-trace-cell.role-candidate,
+:root[data-theme="dark"] .array-trace-cell.role-minCandidate {
+  background: rgba(245, 158, 11, 0.24);
+}
+:root[data-theme="dark"] .array-trace-cell.role-found {
+  background: rgba(34, 197, 94, 0.24);
+}
+:root[data-theme="dark"] .array-trace-cell.role-sorted {
+  background: rgba(167, 120, 255, 0.24);
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .array-trace-cell.role-eliminated {
+  border-color: #3B2762;
+  background: #1A0F2E;
+  color: #8F82B5;
+}
+:root[data-theme="dark"] .array-trace-legend-item.role-eliminated .array-trace-legend-swatch {
+  background: #3B2762;
+}
+:root[data-theme="dark"] .callstack-trace-card,
+:root[data-theme="dark"] .callstack-trace-cache-entry {
+  background: #2A1A47;
+  border-color: #4B3A7C;
+}
+:root[data-theme="dark"] .callstack-trace-card.top {
+  background: rgba(167, 120, 255, 0.22);
+}
+:root[data-theme="dark"] .callstack-trace-cache-entry.hit {
+  background: rgba(14, 165, 233, 0.20);
+}
+:root[data-theme="dark"] .callstack-trace-cache-entry.store {
+  background: rgba(34, 197, 94, 0.20);
+}
+:root[data-theme="dark"] .callstack-trace-note.hit-note {
+  color: #7DD3FC;
+  background: rgba(14, 165, 233, 0.18);
+}
+:root[data-theme="dark"] .callstack-trace-note.store-note {
+  color: #6EE7B7;
+  background: rgba(34, 197, 94, 0.18);
+}
+:root[data-theme="dark"] .recursion-tree-trace-legend {
+  background: #211337;
+  border-color: #3B2762;
+}
+:root[data-theme="dark"] .code-pane-line-no {
+  color: #A99DCB;
+}
+:root[data-theme="dark"] .complexity-ledger-row.reached {
+  background: #211337;
+}
+:root[data-theme="dark"] .complexity-ledger-row.active {
+  background: rgba(167, 120, 255, 0.20);
+}
+:root[data-theme="dark"] .complexity-ledger-badge.local {
+  background: rgba(14, 165, 233, 0.20);
+  color: #7DD3FC;
+}
+:root[data-theme="dark"] .complexity-ledger-badge.space {
+  background: rgba(16, 185, 129, 0.20);
+  color: #6EE7B7;
+}
+:root[data-theme="dark"] .complexity-ledger-summary {
+  border-top-color: #4B3A7C;
+}
+:root[data-theme="dark"] .complexity-ledger-note-mismatch {
+  color: #FCD34D;
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+/* ---------------------------------------------------------------------
+   7. ADMIN + EVALUATION: GLASS SURFACES (the !important blocks that are
+      repeated at the bottom of EvaluationSuite / AdminUserManagement /
+      AnalyzerRegressionCheck)
+   --------------------------------------------------------------------- */
+:root[data-theme="dark"] .eval-suite-container,
+:root[data-theme="dark"] .admin-page-wrapper,
+:root[data-theme="dark"] .admin-page-container {
+  color: #E4DDF7;
+}
+:root[data-theme="dark"] .admin-metric-card,
+:root[data-theme="dark"] .analytics-card,
+:root[data-theme="dark"] .admin-activity-panel,
+:root[data-theme="dark"] .user-management-panel,
+:root[data-theme="dark"] .respondent-picker-card,
+:root[data-theme="dark"] .full-report-card,
+:root[data-theme="dark"] .eval-metric-panel,
+:root[data-theme="dark"] .eval-result-card,
+:root[data-theme="dark"] .eval-dataset-card,
+:root[data-theme="dark"] .ast-modal-content,
+:root[data-theme="dark"] .eval-modal-content,
+:root[data-theme="dark"] .arc-panel,
+:root[data-theme="dark"] .admin-analytics-dashboard,
+:root[data-theme="dark"] .eval-page-toolbar,
+:root[data-theme="dark"] .metric-hover-popover,
+:root[data-theme="dark"] .metric-tooltip-popup {
+  background-color: var(--dk-glass-bg) !important;
+  background-image: var(--dk-glass-image) !important;
+  border: var(--dk-glass-border) !important;
+  box-shadow: var(--dk-glass-shadow) !important;
+  color: #E4DDF7;
+}
+:root[data-theme="dark"] .eval-metric-panel,
+:root[data-theme="dark"] .eval-stat-card,
+:root[data-theme="dark"] .analytics-card {
+  background-color: var(--dk-glass-bg-2) !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+:root[data-theme="dark"] .eval-suite-container .admin-analytics-dashboard,
+:root[data-theme="dark"] .admin-page-container .admin-analytics-dashboard {
+  background-color: rgba(33, 19, 55, 0.55) !important;
+}
+:root[data-theme="dark"] .admin-table-container,
+:root[data-theme="dark"] .admin-modal-card,
+:root[data-theme="dark"] .admin-activity-dropdown-body,
+:root[data-theme="dark"] .metric-card-info,
+:root[data-theme="dark"] .metric-interactive-box,
+:root[data-theme="dark"] .sandbox-live-commentary,
+:root[data-theme="dark"] .eval-filter-navbar,
+:root[data-theme="dark"] .line-checks-dropdown-box,
+:root[data-theme="dark"] .eval-code-preview,
+:root[data-theme="dark"] .eval-explanation-box,
+:root[data-theme="dark"] .eval-report-card,
+:root[data-theme="dark"] .eval-dataset-selector-box,
+:root[data-theme="dark"] .admin-message-box,
+:root[data-theme="dark"] .admin-metrics-panel,
+:root[data-theme="dark"] .arc-explainer,
+:root[data-theme="dark"] .arc-overall-row,
+:root[data-theme="dark"] .arc-code-block,
+:root[data-theme="dark"] .eval-sklearn-container {
+  background-color: var(--dk-glass-bg-2) !important;
+  background-image: none !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+}
+:root[data-theme="dark"] .sklearn-table-box,
+:root[data-theme="dark"] .eval-table-container,
+:root[data-theme="dark"] .eval-report-table {
+  background-color: rgba(33, 19, 55, 0.70) !important;
+  background-image: none !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+}
+:root[data-theme="dark"] .admin-activity-table-wrap {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  background-image: none !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.10) !important;
+}
+:root[data-theme="dark"] .admin-search-bar,
+:root[data-theme="dark"] .admin-checkbox-toggle,
+:root[data-theme="dark"] .respondent-picker-list,
+:root[data-theme="dark"] .eval-tab-button,
+:root[data-theme="dark"] .ast-node-card,
+:root[data-theme="dark"] .eval-log-viewer {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+:root[data-theme="dark"] .admin-search-input,
+:root[data-theme="dark"] .admin-filter-select,
+:root[data-theme="dark"] .admin-modal-prompt-input,
+:root[data-theme="dark"] .admin-activity-module-select,
+:root[data-theme="dark"] .line-count-pill,
+:root[data-theme="dark"] .eval-btn-cancel,
+:root[data-theme="dark"] .admin-btn-cancel {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.20) !important;
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .admin-search-input::placeholder {
+  color: #9B8EC4;
+}
+:root[data-theme="dark"] th,
+:root[data-theme="dark"] .admin-activity-table th,
+:root[data-theme="dark"] .full-report-table th,
+:root[data-theme="dark"] .eval-dataset-table th,
+:root[data-theme="dark"] .eval-result-card-header,
+:root[data-theme="dark"] .eval-dataset-header,
+:root[data-theme="dark"] .eval-modal-header,
+:root[data-theme="dark"] .ast-modal-header,
+:root[data-theme="dark"] .dropdown-line-table th {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+:root[data-theme="dark"] .eval-suite-container .modal-overlay,
+:root[data-theme="dark"] .admin-page-wrapper .modal-overlay {
+  background-color: rgba(6, 3, 18, 0.72) !important;
+}
+:root[data-theme="dark"] .eval-table tr:hover td,
+:root[data-theme="dark"] .sklearn-table tr:hover td,
+:root[data-theme="dark"] .eval-report-table tbody tr:hover td {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+:root[data-theme="dark"] .admin-metric-card:hover,
+:root[data-theme="dark"] .analytics-card:hover,
+:root[data-theme="dark"] .eval-result-card:hover {
+  border-color: rgba(167, 139, 250, 0.5) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
+}
+/* headings / big numbers that the page CSS forces with !important */
+:root[data-theme="dark"] .admin-page-wrapper :is(h1, h2, h3, h4),
+:root[data-theme="dark"] .admin-page-container :is(h1, h2, h3, h4),
+:root[data-theme="dark"] .eval-suite-container :is(h1, h2, h3, h4),
+:root[data-theme="dark"] .arc-panel :is(h1, h2, h3, h4),
+:root[data-theme="dark"] .admin-header-left h1,
+:root[data-theme="dark"] .eval-page-title,
+:root[data-theme="dark"] .analytics-card h3,
+:root[data-theme="dark"] .admin-metric-card h3,
+:root[data-theme="dark"] .analytics-card-value,
+:root[data-theme="dark"] .admin-metric-value,
+:root[data-theme="dark"] .eval-metric-value {
+  color: #F5F3FF !important;
+}
+/* ---------------------------------------------------------------------
+   8. ADMIN DASHBOARD + USER MANAGEMENT TEXT / CHIPS
+   --------------------------------------------------------------------- */
+:root[data-theme="dark"] .admin-header-left p,
+:root[data-theme="dark"] .admin-dash-section-intro p,
+:root[data-theme="dark"] .analytics-card-label,
+:root[data-theme="dark"] .analytics-scope-indicator,
+:root[data-theme="dark"] .metric-pill-label,
+:root[data-theme="dark"] .admin-user-current-status,
+:root[data-theme="dark"] .admin-modal-body,
+:root[data-theme="dark"] .admin-activity-filter-group label,
+:root[data-theme="dark"] .admin-activity-filter-stats,
+:root[data-theme="dark"] .admin-activity-toggle-right,
+:root[data-theme="dark"] .admin-search-icon,
+:root[data-theme="dark"] .admin-full-report-hint,
+:root[data-theme="dark"] .full-report-meta p,
+:root[data-theme="dark"] .full-report-table tbody tr th,
+:root[data-theme="dark"] .full-report-table.wide thead th,
+:root[data-theme="dark"] .lim-exclusions,
+:root[data-theme="dark"] .lim-note,
+:root[data-theme="dark"] .lim-phase,
+:root[data-theme="dark"] .lim-table thead th,
+:root[data-theme="dark"] .lim-change-row td,
+:root[data-theme="dark"] .admin-user-email,
+:root[data-theme="dark"] .admin-table td {
+  color: #B6A9D8;
+}
+:root[data-theme="dark"] .admin-dash-section-intro h2,
+:root[data-theme="dark"] .analytics-dashboard-header h2,
+:root[data-theme="dark"] .admin-user-name,
+:root[data-theme="dark"] .admin-modal-title,
+:root[data-theme="dark"] .metric-pill-value,
+:root[data-theme="dark"] .admin-activity-toggle-title,
+:root[data-theme="dark"] .respondent-picker-name,
+:root[data-theme="dark"] .lim-scatter figcaption,
+:root[data-theme="dark"] .full-report-meta h1 {
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .full-report-section > p,
+:root[data-theme="dark"] .lim-inclusion,
+:root[data-theme="dark"] .lim-interpretation p,
+:root[data-theme="dark"] .lim-tooltip {
+  color: #D5CCEE;
+}
+:root[data-theme="dark"] .admin-table th,
+:root[data-theme="dark"] .admin-activity-table th {
+  color: #C4B5FD;
+  border-bottom-color: #3B2762;
+}
+:root[data-theme="dark"] .admin-table td,
+:root[data-theme="dark"] .admin-activity-table th,
+:root[data-theme="dark"] .admin-activity-table td,
+:root[data-theme="dark"] .full-report-table th,
+:root[data-theme="dark"] .full-report-table td {
+  border-bottom-color: #3B2762;
+}
+:root[data-theme="dark"] .admin-table tr:hover td {
+  background: rgba(255, 255, 255, 0.05);
+}
+:root[data-theme="dark"] .admin-metrics-row td {
+  background: rgba(255, 255, 255, 0.03);
+}
+:root[data-theme="dark"] .admin-toolbar,
+:root[data-theme="dark"] .admin-table-container,
+:root[data-theme="dark"] .admin-modal-header,
+:root[data-theme="dark"] .admin-modal-footer,
+:root[data-theme="dark"] .admin-analytics-dashboard,
+:root[data-theme="dark"] .admin-metrics-panel,
+:root[data-theme="dark"] .admin-metric-pill,
+:root[data-theme="dark"] .admin-activity-dropdown-toggle,
+:root[data-theme="dark"] .admin-activity-dropdown-body,
+:root[data-theme="dark"] .admin-activity-filter-bar,
+:root[data-theme="dark"] .admin-activity-table-wrap,
+:root[data-theme="dark"] .respondent-picker-list,
+:root[data-theme="dark"] .admin-full-report-trigger,
+:root[data-theme="dark"] .lim-collapsible,
+:root[data-theme="dark"] .lim-scatter,
+:root[data-theme="dark"] .lim-phase,
+:root[data-theme="dark"] .lim-tooltip,
+:root[data-theme="dark"] .lim-toggle {
+  border-color: #3B2762;
+}
+:root[data-theme="dark"] .admin-modal-footer {
+  background: rgba(255, 255, 255, 0.03);
+  border-top-color: #3B2762;
+}
+:root[data-theme="dark"] .admin-metrics-panel {
+  border-top-color: #3B2762;
+  border-bottom-color: #3B2762;
+}
+:root[data-theme="dark"] .admin-full-report-trigger {
+  border-top-color: #3B2762;
+}
+:root[data-theme="dark"] .admin-activity-dropdown-toggle {
+  background: rgba(255, 255, 255, 0.04);
+}
+:root[data-theme="dark"] .admin-activity-dropdown-toggle:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+:root[data-theme="dark"] .admin-btn-cancel {
+  color: #E4DDF7;
+}
+:root[data-theme="dark"] .admin-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #FFFFFF;
+}
+:root[data-theme="dark"] .admin-modal-close:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: #FFFFFF;
+}
+:root[data-theme="dark"] .admin-modal-header.danger .admin-modal-title {
+  color: #FCA5A5;
+}
+:root[data-theme="dark"] .admin-loading-state,
+:root[data-theme="dark"] .admin-metrics-loading,
+:root[data-theme="dark"] .admin-activity-toggle-icon,
+:root[data-theme="dark"] .admin-activity-toggle-hint,
+:root[data-theme="dark"] .analytics-scope-reset,
+:root[data-theme="dark"] .respondent-picker-link,
+:root[data-theme="dark"] .admin-checkbox-toggle,
+:root[data-theme="dark"] .admin-refresh-btn.small.outline,
+:root[data-theme="dark"] .admin-metrics-toggle-btn,
+:root[data-theme="dark"] .full-report-section h2,
+:root[data-theme="dark"] .lim-toggle {
+  color: #C4B5FD;
+}
+:root[data-theme="dark"] .admin-checkbox-toggle:hover,
+:root[data-theme="dark"] .admin-refresh-btn.small.outline:hover,
+:root[data-theme="dark"] .admin-metrics-toggle-btn:hover,
+:root[data-theme="dark"] .admin-metrics-toggle-btn.expanded,
+:root[data-theme="dark"] .lim-toggle:hover {
+  background: rgba(167, 120, 255, 0.20);
+}
+:root[data-theme="dark"] .admin-metrics-toggle-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #3B2762;
+}
+:root[data-theme="dark"] .respondent-picker-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+:root[data-theme="dark"] .respondent-picker-scope-note {
+  background: rgba(167, 120, 255, 0.14);
+  color: #E9DDFF;
+  border-color: rgba(167, 120, 255, 0.35);
+}
+:root[data-theme="dark"] .admin-activity-module-select,
+:root[data-theme="dark"] .admin-activity-table-wrap {
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .admin-activity-table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(167, 120, 255, 0.35);
+}
+:root[data-theme="dark"] .admin-module-chip {
+  background: rgba(167, 120, 255, 0.18);
+  color: #E9DDFF;
+}
+:root[data-theme="dark"] .admin-complexity-code {
+  background: rgba(255, 255, 255, 0.08);
+  color: #E4DDF7;
+}
+:root[data-theme="dark"] .badge-admin,
+:root[data-theme="dark"] .metric-info-badge,
+:root[data-theme="dark"] .admin-activity-count-badge,
+:root[data-theme="dark"] .lim-phase-num,
+:root[data-theme="dark"] .analytics-card-icon.aes,
+:root[data-theme="dark"] .analytics-card-icon.cohend {
+  background: rgba(167, 120, 255, 0.20);
+  color: #E9DDFF;
+}
+:root[data-theme="dark"] .lim-phase.is-modelled {
+  background: rgba(167, 120, 255, 0.16);
+  color: #E9DDFF;
+}
+:root[data-theme="dark"] .badge-user {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93C5FD;
+}
+:root[data-theme="dark"] .badge-active,
+:root[data-theme="dark"] .analytics-card-icon.tsr,
+:root[data-theme="dark"] .admin-activity-passed-badge,
+:root[data-theme="dark"] .lim-badge.is-significant {
+  background: rgba(16, 185, 129, 0.16);
+  color: #6EE7B7;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+:root[data-theme="dark"] .badge-suspended,
+:root[data-theme="dark"] .analytics-card-icon.ttest {
+  background: rgba(239, 68, 68, 0.16);
+  color: #FCA5A5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+:root[data-theme="dark"] .analytics-card-icon.rog,
+:root[data-theme="dark"] .analytics-card-icon.hakesg,
+:root[data-theme="dark"] .lim-tooltip-flag,
+:root[data-theme="dark"] .lim-limitations svg {
+  background: rgba(249, 115, 22, 0.16);
+  color: #FDBA74;
+}
+:root[data-theme="dark"] .lim-limitations svg {
+  background: transparent;
+}
+:root[data-theme="dark"] .analytics-card-icon.count {
+  background: rgba(14, 165, 233, 0.18);
+  color: #7DD3FC;
+}
+:root[data-theme="dark"] .analytics-card-icon.mean {
+  background: rgba(234, 179, 8, 0.16);
+  color: #FDE047;
+}
+:root[data-theme="dark"] .analytics-card-icon.sd,
+:root[data-theme="dark"] .lim-badge.is-neutral {
+  background: rgba(255, 255, 255, 0.08);
+  color: #D5CCEE;
+}
+:root[data-theme="dark"] .lim-limitations li {
+  border-color: rgba(249, 115, 22, 0.4);
+  background: rgba(249, 115, 22, 0.10);
+  color: #FED7AA;
+}
+:root[data-theme="dark"] .lim-tooltip {
+  background: #261542;
+}
+:root[data-theme="dark"] .admin-message-box.error {
+  color: #FCA5A5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+:root[data-theme="dark"] .admin-action-btn {
+  background: rgba(255, 255, 255, 0.06);
+}
+:root[data-theme="dark"] .admin-action-btn.suspend {
+  color: #FCD34D;
+}
+:root[data-theme="dark"] .admin-action-btn.suspend:hover {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+:root[data-theme="dark"] .admin-action-btn.activate {
+  color: #6EE7B7;
+}
+:root[data-theme="dark"] .admin-action-btn.activate:hover {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.45);
+}
+:root[data-theme="dark"] .admin-action-btn.delete {
+  color: #FCA5A5;
+}
+:root[data-theme="dark"] .admin-action-btn.delete:hover {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+:root[data-theme="dark"] .status-text.active,
+:root[data-theme="dark"] .activity-status.passed {
+  color: #6EE7B7;
+}
+:root[data-theme="dark"] .status-text.suspended,
+:root[data-theme="dark"] .activity-status.failed {
+  color: #FCA5A5;
+}
+:root[data-theme="dark"] .activity-status.draft {
+  color: #FCD34D;
+}
+/* ---------------------------------------------------------------------
+   9. EVALUATION SUITE (EvaluationSuite.css)
+   --------------------------------------------------------------------- */
+:root[data-theme="dark"] .eval-page-subtitle,
+:root[data-theme="dark"] .eval-dataset-subtitle,
+:root[data-theme="dark"] .eval-status-label,
+:root[data-theme="dark"] .eval-status-label-sm,
+:root[data-theme="dark"] .eval-stat-title,
+:root[data-theme="dark"] .eval-metric-stat-name,
+:root[data-theme="dark"] .eval-sklearn-subtitle,
+:root[data-theme="dark"] .sklearn-table th,
+:root[data-theme="dark"] .sklearn-empty-note,
+:root[data-theme="dark"] .sklearn-empty-note strong,
+:root[data-theme="dark"] .interactive-box-subtitle,
+:root[data-theme="dark"] .slider-group label,
+:root[data-theme="dark"] .sandbox-stat span,
+:root[data-theme="dark"] .sandbox-live-commentary,
+:root[data-theme="dark"] .eval-filter-label,
+:root[data-theme="dark"] .filter-all-idle,
+:root[data-theme="dark"] .eval-table-header,
+:root[data-theme="dark"] .cell-category,
+:root[data-theme="dark"] .eval-btn-inspect,
+:root[data-theme="dark"] .eval-empty-state,
+:root[data-theme="dark"] .eval-pagination-range,
+:root[data-theme="dark"] .dbh-sub,
+:root[data-theme="dark"] .line-count-pill,
+:root[data-theme="dark"] .dropdown-line-table th,
+:root[data-theme="dark"] .op-pill,
+:root[data-theme="dark"] .comp-exp strong,
+:root[data-theme="dark"] .comp-neutral,
+:root[data-theme="dark"] .dbf-verdict,
+:root[data-theme="dark"] .dbf-metric-item,
+:root[data-theme="dark"] .eval-section-label,
+:root[data-theme="dark"] .eval-full-report-hint,
+:root[data-theme="dark"] .eval-report-meta p,
+:root[data-theme="dark"] .eval-report-close,
+:root[data-theme="dark"] .eval-report-table tbody tr th,
+:root[data-theme="dark"] .eval-report-table.wide thead th,
+:root[data-theme="dark"] .metric-formula,
+:root[data-theme="dark"] .eval-run-disabled {
+  color: #B6A9D8;
+}
+:root[data-theme="dark"] .eval-dataset-title,
+:root[data-theme="dark"] .eval-metric-panel-head,
+:root[data-theme="dark"] .eval-metric-ring-percent,
+:root[data-theme="dark"] .eval-metric-stat-num,
+:root[data-theme="dark"] .val-standard,
+:root[data-theme="dark"] .eval-sklearn-title,
+:root[data-theme="dark"] .sklearn-table th:first-child,
+:root[data-theme="dark"] .sklearn-table td:first-child,
+:root[data-theme="dark"] .sklearn-table-title,
+:root[data-theme="dark"] .metric-pct,
+:root[data-theme="dark"] .tr-weighted td,
+:root[data-theme="dark"] .metric-desc strong,
+:root[data-theme="dark"] .interactive-box-title,
+:root[data-theme="dark"] .sandbox-stat strong,
+:root[data-theme="dark"] .cell-algo-name,
+:root[data-theme="dark"] .dbh-left strong,
+:root[data-theme="dark"] .line-td-code code,
+:root[data-theme="dark"] .eval-modal-title,
+:root[data-theme="dark"] .eval-code-preview,
+:root[data-theme="dark"] .eval-report-title h3,
+:root[data-theme="dark"] .eval-report-meta h1,
+:root[data-theme="dark"] .metric-hover-legend .legend-value,
+:root[data-theme="dark"] .eval-btn-close-sm:hover,
+:root[data-theme="dark"] .eval-btn-dropdown:hover,
+:root[data-theme="dark"] .dataset-btn:hover:not(:disabled),
+:root[data-theme="dark"] .filter-all-idle:hover {
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .sklearn-table td,
+:root[data-theme="dark"] .eval-table td,
+:root[data-theme="dark"] .dropdown-line-table td,
+:root[data-theme="dark"] .metric-desc,
+:root[data-theme="dark"] .metric-hover-legend li,
+:root[data-theme="dark"] .td-support-count strong,
+:root[data-theme="dark"] .eval-explanation-box,
+:root[data-theme="dark"] .eval-report-section > p,
+:root[data-theme="dark"] .eval-btn-dropdown,
+:root[data-theme="dark"] .eval-page-arrow,
+:root[data-theme="dark"] .eval-page-num {
+  color: #D5CCEE;
+}
+:root[data-theme="dark"] .eval-scope-notice-icon,
+:root[data-theme="dark"] .eval-status-target,
+:root[data-theme="dark"] .td-class-code,
+:root[data-theme="dark"] .eval-btn-metrics-help,
+:root[data-theme="dark"] .dbh-icon,
+:root[data-theme="dark"] .sandbox-live-commentary svg,
+:root[data-theme="dark"] .metric-hover-popover-header,
+:root[data-theme="dark"] .metric-hover-wrapper:hover .stat-hover-hint-icon,
+:root[data-theme="dark"] .eval-report-title,
+:root[data-theme="dark"] .eval-report-section h2 {
+  color: #C4B5FD !important;
+}
+:root[data-theme="dark"] .eval-scope-notice {
+  background-color: rgba(167, 120, 255, 0.12);
+  border-color: rgba(167, 120, 255, 0.35);
+}
+:root[data-theme="dark"] .eval-scope-notice-title {
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .eval-scope-notice-text {
+  color: #D5CCEE;
+}
+:root[data-theme="dark"] .eval-scope-notice-text code {
+  background-color: rgba(167, 120, 255, 0.22);
+  color: #E9DDFF;
+}
+:root[data-theme="dark"] .eval-scope-badge {
+  background-color: color-mix(in srgb, var(--badge-color) 22%, #211337);
+  border-color: color-mix(in srgb, var(--badge-color) 55%, #211337);
+  color: color-mix(in srgb, var(--badge-color) 45%, #FFFFFF);
+}
+:root[data-theme="dark"] .eval-vm-ready {
+  color: #6EE7B7;
+  background-color: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+:root[data-theme="dark"] .eval-vm-booting {
+  color: #FCD34D;
+  background-color: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+:root[data-theme="dark"] .eval-progress-track {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+:root[data-theme="dark"] .val-success,
+:root[data-theme="dark"] .eval-metric-stat-dot-pass,
+:root[data-theme="dark"] .verdict-pass,
+:root[data-theme="dark"] .eval-metric-num-pass {
+  color: #6EE7B7;
+}
+:root[data-theme="dark"] .val-danger,
+:root[data-theme="dark"] .eval-metric-stat-dot-fail,
+:root[data-theme="dark"] .verdict-fail,
+:root[data-theme="dark"] .eval-metric-num-fail {
+  color: #FCA5A5;
+}
+:root[data-theme="dark"] .eval-metric-panel,
+:root[data-theme="dark"] .eval-stat-card,
+:root[data-theme="dark"] .metric-hover-popover,
+:root[data-theme="dark"] .eval-sklearn-container,
+:root[data-theme="dark"] .metric-card-info,
+:root[data-theme="dark"] .eval-table-container,
+:root[data-theme="dark"] .eval-filter-navbar,
+:root[data-theme="dark"] .eval-pagination,
+:root[data-theme="dark"] .eval-sklearn-header,
+:root[data-theme="dark"] .eval-modal-header,
+:root[data-theme="dark"] .eval-report-header,
+:root[data-theme="dark"] .eval-full-report-trigger,
+:root[data-theme="dark"] .eval-code-preview,
+:root[data-theme="dark"] .eval-explanation-box,
+:root[data-theme="dark"] .sandbox-live-commentary,
+:root[data-theme="dark"] .dual-comp-badge,
+:root[data-theme="dark"] .dbf-metric-item strong,
+:root[data-theme="dark"] .line-td-code code,
+:root[data-theme="dark"] .eval-page-toolbar,
+:root[data-theme="dark"] .eval-status-banner {
+  border-color: #3B2762;
+}
+:root[data-theme="dark"] .eval-metric-stat-row-muted {
+  border-top-color: #3B2762;
+}
+:root[data-theme="dark"] .metric-hover-popover-header {
+  border-bottom-color: #3B2762;
+}
+:root[data-theme="dark"] .eval-btn-metrics-help {
+  border-color: rgba(167, 139, 250, 0.45);
+}
+:root[data-theme="dark"] .sklearn-table th,
+:root[data-theme="dark"] .sklearn-table td,
+:root[data-theme="dark"] .eval-table td,
+:root[data-theme="dark"] .dropdown-line-table th,
+:root[data-theme="dark"] .dropdown-line-table td,
+:root[data-theme="dark"] .eval-report-table th,
+:root[data-theme="dark"] .eval-report-table td {
+  border-bottom-color: #3B2762;
+}
+:root[data-theme="dark"] .eval-report-table.wide thead th {
+  border-bottom-color: #4B3A7C;
+}
+:root[data-theme="dark"] .sklearn-table-title,
+:root[data-theme="dark"] .dataset-btn,
+:root[data-theme="dark"] .sandbox-stat,
+:root[data-theme="dark"] .op-pill,
+:root[data-theme="dark"] .metric-formula,
+:root[data-theme="dark"] .dropdown-box-header,
+:root[data-theme="dark"] .eval-table-header,
+:root[data-theme="dark"] .tr-weighted td {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+:root[data-theme="dark"] .tr-empty-class td,
+:root[data-theme="dark"] .line-tr-fail td {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+:root[data-theme="dark"] .line-tr-fail td {
+  background-color: rgba(239, 68, 68, 0.08);
+}
+:root[data-theme="dark"] .dataset-btn:hover:not(:disabled),
+:root[data-theme="dark"] .eval-btn-dropdown:hover,
+:root[data-theme="dark"] .filter-all-idle:hover,
+:root[data-theme="dark"] .eval-page-arrow:hover:not(:disabled),
+:root[data-theme="dark"] .eval-page-num:hover:not(.eval-page-num-active),
+:root[data-theme="dark"] .eval-report-close:hover {
+  background: rgba(255, 255, 255, 0.10);
+}
+:root[data-theme="dark"] .eval-btn-dropdown.active-dropdown {
+  background-color: rgba(167, 120, 255, 0.22);
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .eval-page-arrow,
+:root[data-theme="dark"] .eval-page-num {
+  border-color: #4B3A7C;
+}
+:root[data-theme="dark"] .f1-excellent,
+:root[data-theme="dark"] .filter-pass-idle,
+:root[data-theme="dark"] .code-badge-pred-pass,
+:root[data-theme="dark"] .comp-pass {
+  background-color: rgba(16, 185, 129, 0.16);
+  color: #6EE7B7;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+:root[data-theme="dark"] .f1-good {
+  background-color: rgba(59, 130, 246, 0.18);
+  color: #93C5FD;
+}
+:root[data-theme="dark"] .f1-warning,
+:root[data-theme="dark"] .code-badge-gt,
+:root[data-theme="dark"] .eval-modal-badge-gt {
+  background-color: rgba(245, 158, 11, 0.16);
+  color: #FCD34D;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+:root[data-theme="dark"] .f1-poor,
+:root[data-theme="dark"] .filter-fail-idle,
+:root[data-theme="dark"] .code-badge-pred-fail,
+:root[data-theme="dark"] .comp-fail {
+  background-color: rgba(239, 68, 68, 0.16);
+  color: #FCA5A5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+:root[data-theme="dark"] .filter-pass-idle:hover {
+  background-color: rgba(16, 185, 129, 0.28);
+}
+:root[data-theme="dark"] .filter-fail-idle:hover {
+  background-color: rgba(239, 68, 68, 0.28);
+}
+:root[data-theme="dark"] .btn-dropdown-error {
+  background-color: rgba(239, 68, 68, 0.16) !important;
+  color: #FCA5A5 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+:root[data-theme="dark"] .btn-dropdown-error:hover {
+  background-color: rgba(239, 68, 68, 0.28) !important;
+  color: #FECACA !important;
+}
+/* ---------------------------------------------------------------------
+   10. ANALYZER REGRESSION CHECK (AnalyzerRegressionCheck.css)
+   --------------------------------------------------------------------- */
+:root[data-theme="dark"] .arc-intro,
+:root[data-theme="dark"] .arc-explainer-row p,
+:root[data-theme="dark"] .arc-mismatch-table th,
+:root[data-theme="dark"] .arc-code-block-sub {
+  color: #B6A9D8;
+}
+:root[data-theme="dark"] .arc-meta,
+:root[data-theme="dark"] .arc-metric-sub,
+:root[data-theme="dark"] .arc-per-class-note,
+:root[data-theme="dark"] .arc-help-btn {
+  color: #A99DCB;
+}
+:root[data-theme="dark"] .arc-overall-label,
+:root[data-theme="dark"] .arc-per-class h3,
+:root[data-theme="dark"] .arc-explainer-row strong,
+:root[data-theme="dark"] .arc-code-block-header strong,
+:root[data-theme="dark"] .arc-code-pre code {
+  color: #F5F3FF;
+}
+:root[data-theme="dark"] .arc-mismatch-toggle,
+:root[data-theme="dark"] .arc-inline-help,
+:root[data-theme="dark"] .arc-code-block-icon {
+  color: #C4B5FD;
+}
+:root[data-theme="dark"] .arc-inline-help:hover,
+:root[data-theme="dark"] .arc-help-btn:hover {
+  color: #FFFFFF;
+  background: rgba(167, 120, 255, 0.18);
+}
+:root[data-theme="dark"] .arc-badge-pass {
+  background: rgba(16, 185, 129, 0.16);
+  color: #6EE7B7;
+}
+:root[data-theme="dark"] .arc-badge-fail {
+  background: rgba(239, 68, 68, 0.16);
+  color: #FCA5A5;
+}
+:root[data-theme="dark"] .arc-mismatch-table th,
+:root[data-theme="dark"] .arc-mismatch-table td,
+:root[data-theme="dark"] .arc-mismatch-table-wrap {
+  border-color: #3B2762;
+  border-bottom-color: #3B2762;
+}
+:root[data-theme="dark"] .arc-code-toggle {
+  background: rgba(167, 120, 255, 0.16);
+  color: #E9DDFF;
+  border-color: rgba(167, 120, 255, 0.4);
+}
+:root[data-theme="dark"] .arc-code-toggle:hover {
+  background: rgba(167, 120, 255, 0.30);
+}
+:root[data-theme="dark"] .arc-row-expanded {
+  background: rgba(255, 255, 255, 0.04);
+}
+:root[data-theme="dark"] .arc-code-row td {
+  background: #1A0F2E;
+  border-bottom: 2px solid #3B2762 !important;
+}
+:root[data-theme="dark"] .arc-code-block-header {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+:root[data-theme="dark"] .arc-code-pre {
+  background-color: #150A24;
+}

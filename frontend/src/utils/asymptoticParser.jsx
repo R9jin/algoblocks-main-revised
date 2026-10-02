@@ -27,6 +27,41 @@ export const handleEditorWillMount = (monaco) => {
       "editor.inactiveSelectionBackground": "#F1F5F9",
     },
   });
+
+  // Dark counterpart, picked in PythonCodeEditor when <html data-theme="dark">.
+  // Every foreground below is >= 4.5:1 on the #150A24 editor background.
+  monaco.editor.defineTheme("algoblocks-dark", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "keyword", foreground: "C4B5FD", fontStyle: "bold" },
+      { token: "string", foreground: "6EE7B7" },
+      { token: "comment", foreground: "9B8EC4", fontStyle: "italic" },
+      { token: "number", foreground: "FDBA74" },
+    ],
+    colors: {
+      "editor.background": "#150A24",
+      "editor.foreground": "#E4DDF7",
+      "editorLineNumber.foreground": "#9B8EC4",
+      "editorLineNumber.activeForeground": "#F5F3FF",
+      "editorBracketHighlight.foreground1": "#86EFAC",
+      "editorBracketHighlight.foreground2": "#FDBA74",
+      "editorBracketHighlight.foreground3": "#D8B4FE",
+      "editor.lineHighlightBackground": "#211337",
+      "editorCursor.foreground": "#D3BFFF",
+      "editor.selectionBackground": "#4B3A7C",
+      "editor.inactiveSelectionBackground": "#2F1E50",
+      "editorWidget.background": "#211337",
+      "editorWidget.border": "#4B3A7C",
+      "editorSuggestWidget.background": "#211337",
+      "editorSuggestWidget.border": "#4B3A7C",
+      "editorSuggestWidget.selectedBackground": "#3A2562",
+      "editorHoverWidget.background": "#211337",
+      "editorHoverWidget.border": "#4B3A7C",
+      "scrollbarSlider.background": "#A78BFA44",
+      "scrollbarSlider.hoverBackground": "#A78BFA77",
+    },
+  });
 };
 
 // Growth class of a complexity string. Recurrences (T(n) = ...) are resolved
