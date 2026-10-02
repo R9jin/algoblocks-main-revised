@@ -26,6 +26,11 @@ import './index.css';
 // Dark-surface text colours -- must stay last so it wins over component CSS.
 import './styles/DarkSurfaces.css';
 import './styles/LightSurfaces.css';
+// Dark theme palette (active only under <html data-theme="dark">) -- keep last.
+import './styles/DarkTheme.css';
+import { initTheme } from './utils/theme';
+
+initTheme();
 
 // =====================================================================
 // GLOBAL API INTERCEPTOR
