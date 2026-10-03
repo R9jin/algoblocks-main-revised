@@ -222,6 +222,7 @@ const ENGINE_MODULE_FILES = [
   "complexity_explainer/pattern_visitor.py",
   "complexity_explainer/variable_explanations.py",
   "complexity_explainer/insight_gatherers.py",
+  "complexity_explainer/line_insights.py",
   "complexity_explainer/overall_narrative.py",
   "complexity_explainer/explanation_warnings.py",
   "complexity_explainer/insight_generator.py",
@@ -375,7 +376,7 @@ for _mod in (
     'complexity_explainer', 'complexity_explainer.complexity_explainer',
     'complexity_explainer.explanation_signals', 'complexity_explainer.growth_insight', 'complexity_explainer.pattern_evaluators',
     'complexity_explainer.pattern_visitor', 'complexity_explainer.variable_explanations',
-    'complexity_explainer.insight_gatherers', 'complexity_explainer.overall_narrative',
+    'complexity_explainer.insight_gatherers', 'complexity_explainer.line_insights', 'complexity_explainer.overall_narrative',
     'complexity_explainer.explanation_warnings', 'complexity_explainer.insight_generator',
     'dynamic_tracer', 'scope_detector',
 ):

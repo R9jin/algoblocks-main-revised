@@ -494,11 +494,25 @@ class ASTNodeVisitor(ast.NodeVisitor):
             self.analyzer._details[start_idx]["global_space"] = "O(1)"
             self.analyzer._details[start_idx]["weight"] = 1
             self.analyzer._details[start_idx]["time_explanation"] = "Function declaration."
+            self.analyzer._details[start_idx]["space_explanation"] = "O(1) memory overhead."
             if func_dead_reason:
                 self.analyzer._details[start_idx]["dead_kind"] = func_dead_reason["kind"]
                 self.analyzer._details[start_idx]["dead_reason"] = func_dead_reason["reason"]
                 self.analyzer._details[start_idx]["time_explanation"] = "Function declaration. " + func_dead_reason["reason"]
-            self.analyzer._details[start_idx]["space_explanation"] = "O(1) memory overhead."
+            # Teach what the definition means instead of a one-line stub. Any failure
+            # here must fall back to the plain text above, never break the analysis.
+            try:
+                nlg = getattr(self.analyzer, "nlg_engine", None)
+                if nlg is not None and hasattr(nlg, "generate_definition_explanations"):
+                    t_exp, s_exp = nlg.generate_definition_explanations(
+                        node,
+                        dead_reason=func_dead_reason["reason"] if func_dead_reason else None,
+                        code_snippet=self.analyzer._details[start_idx].get("lineOfCode", ""),
+                    )
+                    self.analyzer._details[start_idx]["time_explanation"] = t_exp
+                    self.analyzer._details[start_idx]["space_explanation"] = s_exp
+            except Exception:
+                pass
 
         if not is_dead:
             self.analyzer.max_exp, self.analyzer.max_graph_ve = max(prev_data[5], self.analyzer.max_exp), max(prev_data[6], self.analyzer.max_graph_ve)

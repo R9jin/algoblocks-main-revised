@@ -518,6 +518,11 @@ body {
 .nlg-local { border-left-color: #0EA5E9; background: rgba(14, 165, 233, 0.05); } .nlg-local .nlg-block-title { color: #0EA5E9; }
 .nlg-global { border-left-color: #7928CA; background: rgba(121, 40, 202, 0.05); } .nlg-global .nlg-block-title { color: #7928CA; }
 .nlg-educational { border-left-color: #F59E0B; background: rgba(245, 158, 11, 0.05); } .nlg-educational .nlg-block-title { color: #F59E0B; }
+/* Educational Insight holds several separate notes: give each its own lead-in rhythm */
+.nlg-educational .nlg-block-content p { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px dashed rgba(245, 158, 11, 0.28); }
+.nlg-educational .nlg-block-content p:last-child { padding-bottom: 0; margin-bottom: 0; border-bottom: none; }
+.nlg-educational .nlg-block-content p > strong:first-child { color: #B45309; }
+:root[data-theme="dark"] .nlg-educational .nlg-block-content p > strong:first-child { color: #FBBF24; }
 .nlg-bottleneck { border-left-color: #EF4444; background: rgba(239, 68, 68, 0.05); } .nlg-bottleneck .nlg-block-title { color: #EF4444; }
 .nlg-mastery { border-left-color: #10B981; background: rgba(16, 185, 129, 0.05); } .nlg-mastery .nlg-block-title { color: #10B981; }
 .nlg-profiler { border-left-color: #EC4899; background: rgba(236, 72, 153, 0.05); } .nlg-profiler .nlg-block-title { color: #EC4899; }
