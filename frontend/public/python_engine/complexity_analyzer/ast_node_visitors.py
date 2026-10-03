@@ -35,8 +35,21 @@ class ASTNodeVisitor(ast.NodeVisitor):
     def _block_is_terminal(self, body):
         return any(self._is_terminal(stmt) for stmt in body)
 
+    @staticmethod
+    def _unreachable_reason(term):
+        line = getattr(term, 'lineno', None)
+        where = f" on line {line}" if line else ""
+        if isinstance(term, ast.Return): what, why = "return", "the function has already returned"
+        elif isinstance(term, ast.Break): what, why = "break", "the loop has already been exited"
+        elif isinstance(term, ast.Continue): what, why = "continue", "execution has already jumped to the next iteration"
+        elif isinstance(term, ast.Raise): what, why = "raise", "an exception has already been raised"
+        else: what, why = "if/else", "every branch above already exits"
+        return {"kind": "unreachable",
+                "reason": f"Unreachable: it comes after the `{what}`{where}, so {why} and this line can never run."}
+
     def _visit_block(self, body):
         hit_terminal = False
+        terminal_item = None
         for item in body:
             # BUG FIX: `body` is not guaranteed to be a list of AST nodes --
             # e.g. `ast.Global`/`ast.Nonlocal`.names is a list of plain
@@ -56,13 +69,19 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 continue
             if hit_terminal:
                 prev_dead = self.analyzer.in_dead_code
+                prev_reason = getattr(self.analyzer, 'dead_reason', None)
                 self.analyzer.in_dead_code = True
+                # Keep the outermost reason if we're already inside a dead region.
+                if not prev_dead:
+                    self.analyzer.dead_reason = self._unreachable_reason(terminal_item)
                 self.visit(item)
                 self.analyzer.in_dead_code = prev_dead
+                self.analyzer.dead_reason = prev_reason
             else:
                 self.visit(item)
                 if self._is_terminal(item):
                     hit_terminal = True
+                    terminal_item = item
 
     def generic_visit(self, node):
         for field, value in ast.iter_fields(node):
@@ -213,8 +232,16 @@ class ASTNodeVisitor(ast.NodeVisitor):
             start_idx = found_idx
         
         prev_dead = self.analyzer.in_dead_code; self.analyzer.in_dead_code = is_dead or prev_dead
+        prev_reason = getattr(self.analyzer, 'dead_reason', None)
+        func_dead_reason = None
+        if is_dead and not prev_dead:
+            func_dead_reason = getattr(self.analyzer, 'dead_func_reasons', {}).get(node.name) or {
+                "kind": "uncalled_function",
+                "reason": f"`{node.name}()` is never called, so its body never runs and is left out of the complexity total."}
+            self.analyzer.dead_reason = func_dead_reason
         self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1
         self.analyzer.in_dead_code = prev_dead
+        self.analyzer.dead_reason = prev_reason
         
         does_linear_work = self.analyzer.max_poly_str != "O(1)" or self.analyzer.has_slicing
         if not does_linear_work:
@@ -467,6 +494,10 @@ class ASTNodeVisitor(ast.NodeVisitor):
             self.analyzer._details[start_idx]["global_space"] = "O(1)"
             self.analyzer._details[start_idx]["weight"] = 1
             self.analyzer._details[start_idx]["time_explanation"] = "Function declaration."
+            if func_dead_reason:
+                self.analyzer._details[start_idx]["dead_kind"] = func_dead_reason["kind"]
+                self.analyzer._details[start_idx]["dead_reason"] = func_dead_reason["reason"]
+                self.analyzer._details[start_idx]["time_explanation"] = "Function declaration. " + func_dead_reason["reason"]
             self.analyzer._details[start_idx]["space_explanation"] = "O(1) memory overhead."
 
         if not is_dead:
@@ -500,12 +531,15 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 
         if is_main_block and len(self.analyzer.custom_functions) > 0:
             prev_dead = getattr(self.analyzer, 'in_dead_code', False)
+            prev_reason = getattr(self.analyzer, 'dead_reason', None)
             self.analyzer.in_dead_code = True
+            self.analyzer.dead_reason = {"kind": "main_guard", "reason": "Driver block: `if __name__ == \"__main__\":` only runs the functions defined above, so it is excluded from their complexity instead of being counted twice."}
             self.analyzer.signature_recorder.record_line(node, time_override="Dead Code", space_override="O(1)")
             self.analyzer.current_depth += 1
             self._visit_block(node.body)
             self.analyzer.current_depth -= 1
             self.analyzer.in_dead_code = prev_dead
+            self.analyzer.dead_reason = prev_reason
             return
             
         self.analyzer.signature_recorder.record_line(node, time_override=None, space_override=None)

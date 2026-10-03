@@ -1184,3 +1184,6 @@
 :root[data-theme="dark"] .arc-code-pre {
   background-color: #150A24;
 }
+:root[data-theme="dark"] .dead-badge { background-color: rgba(148,163,184,.14); color: #CBD5E1; border-color: rgba(148,163,184,.5); }
+:root[data-theme="dark"] .dead-reason-callout { background: rgba(148,163,184,.1); border-left-color: #94A3B8; color: #CBD5E1; }
+:root[data-theme="dark"] .dead-reason-callout strong { color: #E2E8F0; }

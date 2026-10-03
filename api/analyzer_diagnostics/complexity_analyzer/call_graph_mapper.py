@@ -25,6 +25,19 @@ class CallGraphMapper:
         
         self.analyzer.call_graph = {'__main__': []}
         self.analyzer.reachable_funcs = set()
+        # Every def seen in the module, reachable or not. Kept separate from
+        # `reachable_funcs` on purpose: previously each def was added to the
+        # reachable set the moment it was dequeued, so the sweep below was
+        # seeded with *every* function and nothing could ever be flagged
+        # dead -- an uncalled O(n^2) helper still inflated the overall badge.
+        defined_funcs = set()
+        # Names a scope merely *mentions* without calling (callbacks such as
+        # `sorted(xs, key=helper)`, `map(helper, xs)`, `obj.method` handed
+        # around). They keep a function alive but are not call-graph edges,
+        # so recursion detection and the topological order stay unchanged.
+        refs = {}
+        # Functions the interpreter can reach without an explicit call site.
+        implicit_roots = set()
         
         ignore_set = set(self.analyzer.builtin_complexities.keys()).union({
             'print', 'len', 'range', 'int', 'str', 'float', 'enumerate', 'zip', 'map', 'filter', 'list', 'set', 'dict', 'tuple', 'bool', 'type', 'isinstance', 'abs', 'round', 'floor', 'ceil'
@@ -39,11 +52,17 @@ class CallGraphMapper:
             current_node, current_func = queue.popleft()  
             if isinstance(current_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 self.analyzer.symbol_table[current_node.name] = current_node  
-                self.analyzer.reachable_funcs.add(current_node.name) 
+                defined_funcs.add(current_node.name)
+                if self._is_implicitly_invoked(current_node):
+                    implicit_roots.add(current_node.name)
                 current_func = current_node.name  
                 if current_func not in self.analyzer.call_graph:
                     self.analyzer.call_graph[current_func] = []  
                 if rec: rec.emit('callgraph', 'func', name=current_func, line=getattr(current_node, 'lineno', -1), msg=f"Dequeued def {current_func}() -> added to the symbol table and call graph.")
+            elif isinstance(current_node, ast.Name) and isinstance(current_node.ctx, ast.Load):
+                refs.setdefault(current_func if current_func else '__main__', set()).add(current_node.id)
+            elif isinstance(current_node, ast.Attribute) and isinstance(current_node.ctx, ast.Load):
+                refs.setdefault(current_func if current_func else '__main__', set()).add(current_node.attr)
             elif isinstance(current_node, ast.Call):
                 called_func = None
                 if isinstance(current_node.func, ast.Name):
@@ -64,18 +83,54 @@ class CallGraphMapper:
                 if isinstance(child, ast.AST):
                     queue.append((child, current_func))
         
-        reach_queue = deque(['__main__'])  
-        reach_queue.extend(list(self.analyzer.reachable_funcs)) 
-        visited = set(['__main__']).union(self.analyzer.reachable_funcs)
-        
+        # Reachability sweep: start from the entry point (top-level script
+        # code, i.e. `__main__`) plus anything the interpreter invokes
+        # implicitly, and follow call edges and callback references. A def
+        # that nothing live ever reaches is dead code and must not count
+        # toward the program's complexity.
+        def callees(node):
+            out = {e['target'] for e in self.analyzer.call_graph.get(node, [])}
+            out |= (refs.get(node, set()) & defined_funcs)
+            return out
+
+        entry_targets = callees('__main__') & defined_funcs
+        # A snippet that is only definitions (no driver code calling anything
+        # it defines) has no entry point to prune against: the learner wants
+        # that function analysed, so keep every def live in that case instead
+        # of reporting the whole program as dead.
+        has_entry_point = bool(entry_targets)
+        if has_entry_point:
+            roots = set(entry_targets) | implicit_roots
+        else:
+            roots = set(defined_funcs)
+
+        visited = set(roots)
+        reach_queue = deque(roots)
         while reach_queue:
             curr = reach_queue.popleft()
-            for edge_info in self.analyzer.call_graph.get(curr, []):  
-                neighbor = edge_info['target']
+            for neighbor in callees(curr):
                 if neighbor not in visited:
                     visited.add(neighbor)
-                    self.analyzer.reachable_funcs.add(neighbor)  
                     reach_queue.append(neighbor)
+        self.analyzer.defined_funcs = set(defined_funcs)
+        self.analyzer.reachable_funcs = visited & defined_funcs
+        self.analyzer.dead_funcs = defined_funcs - self.analyzer.reachable_funcs
+        self.analyzer.has_entry_point = has_entry_point
+        reasons = {}
+        for fn in self.analyzer.dead_funcs:
+            callers = sorted({c for c, edges in self.analyzer.call_graph.items()
+                              if c != fn and c != '__main__' and any(e['target'] == fn for e in edges)} & self.analyzer.dead_funcs)
+            if callers:
+                names = ", ".join(f"`{c}()`" for c in callers)
+                reasons[fn] = {"kind": "uncalled_function",
+                               "reason": f"`{fn}()` is only called from dead code ({names}), which never runs, so `{fn}()` never runs either and is left out of the total."}
+            else:
+                reasons[fn] = {"kind": "uncalled_function",
+                               "reason": f"`{fn}()` is never called, so its body never runs and is left out of the complexity total."}
+        self.analyzer.dead_func_reasons = reasons
+        # Functions that are only called from a dead one never run either;
+        # `visited` already excludes them because dead functions are never
+        # roots, so nothing more to propagate here.
         
         for func_name, edges in self.analyzer.call_graph.items():
             if any(e['target'] == func_name for e in edges): 
@@ -84,10 +139,29 @@ class CallGraphMapper:
         if rec:
             rec.emit('callgraph', 'flags',
                      reachable=sorted(self.analyzer.reachable_funcs),
+                     dead=sorted(self.analyzer.dead_funcs),
+                     entry=bool(self.analyzer.has_entry_point),
                      recursive=sorted(k for k in self.analyzer.custom_functions if k != '__main__'),
                      indirect=sorted(k for k in self.analyzer.indirect_recursive_funcs if k != '__main__'),
-                     msg="Reachability swept from __main__; recursion/cycle flags set.")
+                     msg=(("Reachability swept from __main__; " + (f"{len(self.analyzer.dead_funcs)} uncalled function(s) flagged as dead code and excluded from the total; " if self.analyzer.dead_funcs else "every function is reachable; ") + "recursion/cycle flags set.")
+                          if self.analyzer.has_entry_point else
+                          "No driver code calls the defined functions, so every function is analysed as a library entry point; recursion/cycle flags set."))
         self.analyzer.topological_sequencer.compute_topological_order()
+
+    @staticmethod
+    def _is_implicitly_invoked(func_node):
+        """Defs the runtime calls without an explicit call site: dunder
+        methods (`__init__`, `__str__`, `__iter__`...) and property-style
+        accessors. They count as live entry points, never as dead code."""
+        name = func_node.name
+        if name.startswith('__') and name.endswith('__'):
+            return True
+        for dec in getattr(func_node, 'decorator_list', []):
+            target = dec.func if isinstance(dec, ast.Call) else dec
+            dname = target.attr if isinstance(target, ast.Attribute) else getattr(target, 'id', '')
+            if dname in ('property', 'cached_property', 'setter', 'getter', 'deleter'):
+                return True
+        return False
 
     def detect_indirect_recursion(self):
         indirect_graph = {u: {v['target'] for v in edges if v['target'] != u} for u, edges in self.analyzer.call_graph.items()}

@@ -1,6 +1,6 @@
 # Complexity Analyzer -- Ground Truth Accuracy Report
 
-Generated from `../frontend/public/data/evaluation/processed` (278 labeled samples).
+Generated from `frontend/public/data/evaluation/processed` (278 labeled samples).
 
 ## Overall accuracy
 

@@ -149,6 +149,7 @@ def _line_snapshot(entry):
         "local_time": entry.get("local_time"), "global_time": entry.get("global_time"),
         "local_space": entry.get("local_space"), "global_space": entry.get("global_space"),
         "indent": entry.get("indent", 0),
+        "dead_kind": entry.get("dead_kind"), "dead_reason": entry.get("dead_reason"),
     }
 
 
@@ -310,19 +311,24 @@ def trace_pipeline(source_code):
         # Stage: Dependency-Ordered Signature Pass (DFS)
         # ------------------------------------------------------------------
         order = list(getattr(analyzer.topological_sequencer, 'topological_order', []))
-        rec.emit('signature', 'start', order=order,
-                 msg="Visiting function bodies in topological order so callees are resolved before callers.")
+        dead_funcs = set(getattr(analyzer, 'dead_funcs', set()))
+        rec.emit('signature', 'start', order=order, dead=sorted(dead_funcs),
+                 msg="Visiting function bodies in topological order so callees are resolved before callers."
+                     + (f" Dead code ({', '.join(sorted(dead_funcs))}) is visited but scored O(1)." if dead_funcs else ""))
         for name in order:
             node = analyzer.symbol_table.get(name)
             if node is None:
                 continue
             rec.emit('signature', 'func_begin', name=name, line=getattr(node, 'lineno', None),
-                     msg=f"Begin signature for {name}().")
+                     dead=name in dead_funcs,
+                     msg=f"Begin signature for {name}()." + (" Never called -> dead code." if name in dead_funcs else ""))
             visitor.visit(node)
             sig = analyzer.custom_functions.get(name)
             space = analyzer.custom_space.get(name)
             rec.emit('signature', 'func_end', name=name, signature=sig, space=space,
-                     msg=f"Signature for {name}(): time {sig or 'O(1)'}, space {space or 'O(1)'}.")
+                     dead=name in dead_funcs,
+                     msg=(f"{name}() is dead code: excluded from the program total." if name in dead_funcs
+                          else f"Signature for {name}(): time {sig or 'O(1)'}, space {space or 'O(1)'}."))
         analyzer.reset_state()
         state["depth"] = 0
 
@@ -409,6 +415,7 @@ def trace_pipeline(source_code):
                 "total": total, "space_total": space_total, "lines": rows,
                 "call_graph": getattr(analyzer, 'call_graph', {}),
                 "symbol_table": sorted(analyzer.symbol_table.keys()),
+                "dead_funcs": sorted(getattr(analyzer, 'dead_funcs', set())),
                 "signatures": {k: v for k, v in analyzer.custom_functions.items()},
                 "explanation_chars": len(overall_exp or ""),
             },

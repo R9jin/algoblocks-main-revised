@@ -219,13 +219,14 @@ export default function DockedBottomPanel({
                       const isBottleneck = actualBottleneckIndices.includes(i);
                       const timeColor = getComplexityColor(timeComplexity);
                       const spaceColor = getComplexityColor(spaceComplexity);
+                      const isDead = !!line.dead_reason || line.operation === "Dead Code";
                       const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, "");
                       const isEfficient = !isBottleneck && (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && !compStripped.includes("nlogn");
 
                       return (
                         <React.Fragment key={i}>
                           <tr
-                            className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""}`}
+                            className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""} ${isDead ? "dead-row" : ""}`}
                             onClick={() => toggleLine(i)}
                             style={{ borderLeftColor: isBottleneck ? "#EF4444" : isEfficient ? "#10B981" : expandedLines[i] ? timeColor : "transparent", }}
                           >
@@ -234,6 +235,7 @@ export default function DockedBottomPanel({
                               {line.operation || "-"}
                               {isBottleneck && <span className="bottleneck-badge">Bottleneck</span>}
                               {isEfficient && <span className="efficient-badge">Efficient</span>}
+                              {isDead && <span className="dead-badge" title={line.dead_reason || "This code never runs, so it is not counted."}>Dead code</span>}
                             </td>
                             <td className="complexity-cell" style={{ color: timeColor }}>{formatComplexity(timeComplexity)}</td>
                             <td className="complexity-cell" style={{ color: spaceColor }}>
@@ -243,6 +245,11 @@ export default function DockedBottomPanel({
                           {expandedLines[i] && (
                             <tr className="explanation-row">
                               <td colSpan="4">
+                                {isDead && (
+                                  <div className="dead-reason-callout">
+                                    <strong>Why is this dead code?</strong> {line.dead_reason || "This code never runs, so it is not counted."}
+                                  </div>
+                                )}
                                 <div className="explanation-grid" style={{ borderLeftColor: timeColor }}>
                                   <div className="explanation-section">
                                     <div className="explanation-icon-wrapper" style={{ color: timeColor }}><FiInfo size={20} /></div>

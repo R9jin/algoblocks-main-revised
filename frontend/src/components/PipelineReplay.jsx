@@ -113,7 +113,7 @@ function deriveState(trace, events, cur) {
   const d = {
     revealTo: -1, node: null, line: null,
     visited: new Set(), visitSeq: [],
-    cg: { nodes: [], edges: [], newestEdge: null, recursive: [], indirect: [], reachable: [], flagged: false },
+    cg: { nodes: [], edges: [], newestEdge: null, recursive: [], indirect: [], reachable: [], dead: [], entry: true, flagged: false },
     topo: { deps: null, clusters: null, order: null },
     sigs: {}, currentFunc: null, sigOrder: null,
     rows: new Map(), cache: { hits: 0, misses: 0 }, lastCache: null,
@@ -150,6 +150,8 @@ function deriveState(trace, events, cur) {
         d.cg.recursive = (e.recursive || []).filter((k) => k !== "__main__" && userSymbols.has(k));
         d.cg.indirect = (e.indirect || []).filter((k) => k !== "__main__" && userSymbols.has(k));
         d.cg.reachable = (e.reachable || []).filter((k) => userSymbols.has(k));
+        d.cg.dead = (e.dead || []).filter((k) => k !== "__main__" && userSymbols.has(k));
+        d.cg.entry = e.entry !== false;
         d.cg.flagged = true;
         break;
       case "deps":
@@ -169,7 +171,7 @@ function deriveState(trace, events, cur) {
         d.currentFunc = e.name;
         break;
       case "func_end":
-        d.sigs[e.name] = { signature: e.signature, space: e.space };
+        d.sigs[e.name] = { signature: e.signature, space: e.space, dead: !!e.dead };
         d.currentFunc = null;
         break;
       case "resolve":
@@ -659,13 +661,15 @@ function CallGraphScene({ cg }) {
               const o = geo[nm];
               if (!o) return null;
               const rec = cg.flagged && nm !== "__main__" && cg.recursive.includes(nm);
+              const dead = cg.flagged && nm !== "__main__" && cg.dead.includes(nm);
               return (
                 <g key={nm}>
-                  <title>{nm === "__main__" ? "main (module level)" : nm}</title>
+                  <title>{nm === "__main__" ? "main (module level)" : dead ? `${nm} (dead code: never called, excluded from the total)` : nm}</title>
                   <rect x={o.x - o.hw} y={o.y - o.hh} width={o.hw * 2} height={o.hh * 2} rx={o.hh}
-                    fill={nm === "__main__" ? "#EEF2FF" : "#F5F3FF"}
-                    stroke={rec ? "#EF4444" : "#7928CA"} strokeWidth={rec ? 3 : 1.6} />
-                  <text x={o.x} y={o.y + 3.8} textAnchor="middle" className="pr-cg-label">{labelOf(nm)}</text>
+                    fill={dead ? "#F1F5F9" : nm === "__main__" ? "#EEF2FF" : "#F5F3FF"}
+                    stroke={dead ? "#94A3B8" : rec ? "#EF4444" : "#7928CA"} strokeWidth={rec && !dead ? 3 : 1.6}
+                    strokeDasharray={dead ? "4 3" : undefined} />
+                  <text x={o.x} y={o.y + 3.8} textAnchor="middle" className="pr-cg-label" opacity={dead ? 0.55 : 1}>{labelOf(nm)}</text>
                 </g>
               );
             })}
@@ -679,6 +683,14 @@ function CallGraphScene({ cg }) {
         {cg.flagged && (
           <div className="pr-chip-row">
             <span className="pr-chip">Reachable: {cg.reachable.length}</span>
+            <span className={`pr-chip ${cg.dead.length ? "dead" : ""}`} title="Functions no live code ever calls. They are scored O(1) and excluded from the program total.">
+              Dead code: {cg.dead.length ? cg.dead.join(", ") : "none"}
+            </span>
+            {!cg.entry && cg.nodes.length > 1 && (
+              <span className="pr-chip muted" title="Nothing at module level calls the defined functions, so every function is analysed as an entry point.">
+                No driver code: all functions analysed
+              </span>
+            )}
             <span className={`pr-chip ${cg.recursive.filter((n) => n !== "__main__").length ? "warn" : ""}`}>
               Recursive: {cg.recursive.filter((n) => n !== "__main__").length ? cg.recursive.filter((n) => n !== "__main__").join(", ") : "none"}
             </span>
@@ -763,9 +775,13 @@ function Ledger({ rows, activeLine, title, showFunc }) {
           </thead>
           <tbody>
             {list.map((r) => (
-              <tr key={r.line} className={`pr-led-row ${activeLine === r.line ? "active" : ""}`}>
+              <tr key={r.line} className={`pr-led-row ${activeLine === r.line ? "active" : ""} ${r.dead_reason ? "dead" : ""}`}>
                 <td>{r.line}</td>
-                <td className="op"><code>{r.code}</code><span className="pr-op">{r.operation}</span></td>
+                <td className="op">
+                  <code>{r.code}</code><span className="pr-op">{r.operation}</span>
+                  {r.dead_reason && <span className="pr-dead-tag" title={r.dead_reason}>Dead code</span>}
+                  {r.dead_reason && <div className="pr-dead-why">{r.dead_reason}</div>}
+                </td>
                 {showFunc && <td>{r.func || "main"}</td>}
                 <td className="r mono">{formatComplexity(r.global_time || "O(1)")}</td>
                 <td className="r mono sp">{formatComplexity(r.global_space || "O(1)")}</td>
@@ -785,9 +801,11 @@ function SignatureTable({ sigs, order, currentFunc }) {
     <div className="pr-block pr-sigs">
       <div className="pr-block-h">Signature table (memoized)</div>
       {names.map((n) => (
-        <div key={n} className={`pr-sig-row ${currentFunc === n ? "now" : ""}`}>
+        <div key={n} className={`pr-sig-row ${currentFunc === n ? "now" : ""} ${sigs[n]?.dead ? "dead" : ""}`}>
           <b>{n === "__main__" ? "main" : n}()</b>
-          {sigs[n] ? (
+          {sigs[n]?.dead ? (
+            <span className="mono">dead code · excluded from total</span>
+          ) : sigs[n] ? (
             <span className="mono">
               {formatComplexity(sigs[n].signature || "O(1)")} · space {formatComplexity(sigs[n].space || "O(1)")}
             </span>

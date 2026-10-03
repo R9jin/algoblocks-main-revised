@@ -196,11 +196,12 @@ export default function ComplexityPanelContent({
                 const spaceColor = getComplexityColor(spaceComplexity);
                 const timeClass = getComplexityClass(timeComplexity);
                 const isEfficient = !isBottleneck && (timeClass === "log" || timeClass === "sqrt");
+                const isDead = !!line.dead_reason || line.operation === "Dead Code";
 
                 return (
                   <React.Fragment key={i}>
                     <tr
-                      className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""}`}
+                      className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""} ${isDead ? "dead-row" : ""}`}
                       onClick={() => toggleLine(i)}
                       style={{ borderLeftColor: isBottleneck ? "#EF4444" : isEfficient ? "#10B981" : expandedLines[i] ? timeColor : "transparent" }}
                     >
@@ -209,6 +210,7 @@ export default function ComplexityPanelContent({
                         {line.operation || "-"}
                         {isBottleneck && <span className="bottleneck-badge">Bottleneck</span>}
                         {isEfficient && <span className="efficient-badge">Efficient</span>}
+                        {isDead && <span className="dead-badge" title={line.dead_reason || "This code never runs, so it is not counted."}>Dead code</span>}
                       </td>
                       <td className="complexity-cell" style={{ color: timeColor }} title={timeRaw !== timeComplexity ? `Recurrence: ${timeRaw}` : undefined}>{formatComplexity(timeComplexity)}</td>
                       <td className="complexity-cell" style={{ color: spaceColor }}>
@@ -218,6 +220,11 @@ export default function ComplexityPanelContent({
                     {expandedLines[i] && (
                       <tr className="explanation-row">
                         <td colSpan="4">
+                          {isDead && (
+                            <div className="dead-reason-callout">
+                              <strong>Why is this dead code?</strong> {line.dead_reason || "This code never runs, so it is not counted."}
+                            </div>
+                          )}
                           <div className="explanation-grid" style={{ borderLeftColor: timeColor }}>
                             <div className="explanation-section">
                               <div className="explanation-icon-wrapper" style={{ color: timeColor }}><FiInfo size={20} /></div>

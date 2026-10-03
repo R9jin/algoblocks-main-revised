@@ -82,6 +82,9 @@
 .pr-chip.strong { background: rgba(121,40,202,.12); color: var(--pr-purple); border-color: rgba(121,40,202,.3); }
 .pr-chip.warn { background: rgba(239,68,68,.1); color: #B91C1C; border-color: rgba(239,68,68,.3); }
 .pr-chip.warn.small { font-size: 0.65rem; padding: 1px 6px; }
+.pr-chip.dead { background: rgba(100,116,139,.12); color: #475569; border-color: rgba(100,116,139,.35); border-style: dashed; }
+.pr-sig-row.dead { opacity: 0.6; }
+.pr-sig-row.dead b { text-decoration: line-through; }
 .pr-chip.muted { opacity: 0.75; font-size: 0.68rem; font-weight: 500; }
 .pr-chip.big { font-size: 0.95rem; padding: 3px 14px; }
 .pr-block { background: var(--card-bg, var(--pr-panel, #fff)); border: 1px solid var(--pr-border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; animation: pr-in .3s ease; }
@@ -207,3 +210,8 @@
 .pr-root .gutter-vertical:hover::after, .pr-root .gutter-vertical:active::after { width: 72px; }
 /* while dragging, keep text selection and iframe/svg pointer events from fighting the drag */
 .pr-root .pr-panes > .pr-pane, .pr-root .pr-panes > .pr-scene, .pr-root .pr-panes > .pr-col-top { min-width: 0; min-height: 0; }
+
+.pr-led-row.dead code { opacity: 0.6; text-decoration: line-through; text-decoration-color: rgba(100,116,139,.55); }
+.pr-led-row.dead .mono { opacity: 0.6; }
+.pr-dead-tag { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; border: 1px dashed #94A3B8; background: rgba(100,116,139,.12); color: #475569; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; cursor: help; }
+.pr-dead-why { margin-top: 2px; font-size: 0.68rem; line-height: 1.35; color: var(--pr-muted); font-style: italic; white-space: normal; }

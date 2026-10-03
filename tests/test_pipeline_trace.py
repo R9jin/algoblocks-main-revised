@@ -158,3 +158,136 @@ step(10)
     flags = next(e for e in traced["events"] if e.get("stage") == "callgraph" and e.get("kind") == "flags")
     assert "__main__" not in flags["recursive"]
     assert "__main__" not in flags["indirect"]
+
+
+# --------------------------------------------------------------------------
+# Dead code: functions nothing live calls must not count toward the total.
+# --------------------------------------------------------------------------
+
+DEAD_HELPER = """
+def helper(arr):
+    total = 0
+    for i in arr:
+        for j in arr:
+            total += i * j
+    return total
+
+def used(arr):
+    s = 0
+    for x in arr:
+        s += x
+    return s
+
+data = [1, 2, 3]
+print(used(data))
+"""
+
+
+def test_uncalled_function_is_excluded_from_total():
+    res = analyze_source_code(DEAD_HELPER)
+    assert res["total"] == "O(n)"  # not O(n^2) from the dead helper()
+
+
+def test_dead_function_lines_are_marked_dead():
+    res = analyze_source_code(DEAD_HELPER.lstrip("\n"))
+    ops = {l["lineno"]: l["operation"] for l in res["lines"]}
+    # helper() body = lines 2-6 (line 1 is its `def`, which just records the declaration)
+    assert all(ops[n] == "Dead Code" for n in range(2, 7))
+    assert ops[9] != "Dead Code"  # used() body stays live
+
+
+def test_function_called_only_by_dead_function_is_dead():
+    code = DEAD_HELPER + "\ndef a(x):\n    return b(x)\n\ndef b(x):\n    for i in x:\n        for j in x:\n            pass\n"
+    assert analyze_source_code(code)["total"] == "O(n)"
+
+
+def test_transitively_called_function_stays_live():
+    code = """
+def inner(arr):
+    for i in arr:
+        for j in arr:
+            pass
+
+def outer(arr):
+    inner(arr)
+
+outer([1, 2, 3])
+"""
+    assert analyze_source_code(code)["total"] == "O(n^2)"
+
+
+def test_callback_reference_keeps_function_live():
+    code = """
+def slow_key(x):
+    s = 0
+    for i in range(x):
+        for j in range(x):
+            s += 1
+    return s
+
+def run(xs):
+    return sorted(xs, key=slow_key)
+
+run([3, 1, 2])
+"""
+    res = analyze_source_code(code)
+    ops = {l["lineno"]: l["operation"] for l in res["lines"]}
+    assert ops[3] != "Dead Code"
+
+
+def test_definitions_only_snippet_is_still_analysed():
+    code = "def f(arr):\n    for i in arr:\n        for j in arr:\n            pass\n"
+    assert analyze_source_code(code)["total"] == "O(n^2)"
+
+
+def test_pipeline_trace_reports_dead_funcs_and_matches_analyzer():
+    traced = trace_pipeline(DEAD_HELPER)
+    assert traced["status"] == "success"
+    assert traced["final"]["dead_funcs"] == ["helper"]
+    assert traced["final"]["total"] == analyze_source_code(DEAD_HELPER)["total"] == "O(n)"
+    flags = [e for e in traced["events"] if e.get("stage") == "callgraph" and e.get("kind") == "flags"][0]
+    assert flags["dead"] == ["helper"]
+    assert "helper" not in flags["reachable"]
+
+
+# --------------------------------------------------------------------------
+# Dead-code signifier: every dead line carries a kind + human-readable reason.
+# --------------------------------------------------------------------------
+
+def _by_line(res):
+    return {l["lineno"]: l for l in res["lines"]}
+
+
+def test_unreachable_after_return_has_reason():
+    code = "def f(xs):\n    return xs\n    print('never')\n\nf([1])\n"
+    row = _by_line(analyze_source_code(code))[3]
+    assert row["operation"] == "Dead Code"
+    assert row["dead_kind"] == "unreachable"
+    assert "return" in row["dead_reason"] and "line 2" in row["dead_reason"]
+
+
+def test_uncalled_function_lines_carry_reason_including_def_line():
+    rows = _by_line(analyze_source_code(DEAD_HELPER.lstrip("\n")))
+    for n in range(1, 7):  # def line + body
+        assert rows[n]["dead_kind"] == "uncalled_function", n
+        assert "never called" in rows[n]["dead_reason"]
+    assert "dead_reason" not in rows[9]
+
+
+def test_function_only_called_by_dead_function_explains_chain():
+    code = DEAD_HELPER.lstrip("\n") + "\ndef a(x):\n    return b(x)\n\ndef b(x):\n    return x\n"
+    rows = _by_line(analyze_source_code(code))
+    b_def = max(n for n, r in rows.items() if r["lineOfCode"].strip().startswith("def b"))
+    assert "only called from dead code" in rows[b_def]["dead_reason"]
+
+
+def test_live_lines_have_no_dead_fields():
+    res = analyze_source_code("def f(a):\n    return a\n\nf(1)\n")
+    assert all("dead_reason" not in l for l in res["lines"])
+
+
+def test_pipeline_ledger_rows_include_dead_reason():
+    traced = trace_pipeline(DEAD_HELPER.lstrip("\n"))
+    recon = [e for e in traced["events"] if e.get("stage") == "synthesis" and e.get("kind") == "reconcile"][0]
+    dead_rows = [r for r in recon["rows"] if r.get("dead_reason")]
+    assert dead_rows and all("never called" in r["dead_reason"] for r in dead_rows)
