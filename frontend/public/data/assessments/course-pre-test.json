@@ -1,497 +1,525 @@
 {
   "moduleId": "course-pre-test",
-  "moduleTitle": "Comprehensive Algorithmic Foundations Pre-Test",
-  "description": "This diagnostic assessment evaluates your baseline knowledge across all topics in AlgoBlocks, from basic logic to advanced algorithm optimization. Don't worry if you don't know all the answers yet—this helps track your learning growth!",
+  "moduleTitle": "Big-O and Execution Tracing Pre-Test",
+  "description": "This diagnostic assessment measures your baseline understanding of Big-O notation and your ability to trace how code executes, across all AlgoBlocks topics. Don't worry if you don't know all the answers yet. This helps track your learning growth!",
   "questions": [
     {
       "id": "pre_sequential_execution",
       "module": 0,
       "concept": "sequential_execution",
-      "question": "If a program contains a sequential list of 'print' blocks without any loops or conditionals, how will the computer execute them?",
+      "type": "code",
+      "code": "a = 4\nb = 9\na = a * 2\nb = b - a\nprint(a, b)",
+      "question": "Trace these statements from top to bottom. What is printed, and what is the cost?",
       "options": [
-        "From top to bottom, completely processing each instruction before moving to the next.",
-        "Simultaneously across multiple threads, executing all connected blocks at the exact same time.",
-        "From bottom to top, prioritizing the final output calculation before evaluating the earlier variables.",
-        "In a randomized sequence determined dynamically by the operating system's background resource allocator."
+        "8 1: each statement runs once, in order, so the total cost is O(1)",
+        "4 5: a is not changed by a * 2, and the total cost is O(1)",
+        "8 5: b is computed with the old value of a, and the total cost is O(1)",
+        "8 1: each statement runs once, but the total cost is O(n)"
       ],
       "answer": 0,
-      "explanation": "Sequential execution follows a strict top-to-bottom evaluation model, processing one instruction completely before moving to the next."
+      "explanation": "Top to bottom: a becomes 8, then b = 9 - 8 = 1. Each line runs once and does constant work, so the cost does not depend on n: O(1). Using the old value of a would give the wrong b."
     },
     {
       "id": "pre_workspace_python_panel",
       "module": 0,
       "concept": "workspace_python_panel",
-      "question": "What is the primary advantage of using a visual, block-based programming environment when learning algorithms?",
-      "options": [
-        "It automatically optimizes the Big-O time complexity to ensure maximum efficiency during runtime execution.",
-        "It forces programs to bypass standard compilers, translating directly into highly optimized machine code.",
-        "It reduces the cognitive load of memorizing exact syntax, allowing learners to focus purely on core logic.",
-        "It eliminates the need for variable declarations and dynamic memory management across all operating systems."
-      ],
+      "question": "The Python panel shows code with one for-loop over a list of n items. The body of the loop has 3 constant-time statements. What complexity does the analyzer report?",
+      "options": ["O(1)", "O(3)", "O(n)", "O(n³)"],
       "answer": 2,
-      "explanation": "Visual programming removes the barrier of syntax errors (like missing semicolons), allowing learners to focus entirely on algorithmic reasoning and control flow."
+      "explanation": "The loop runs n times and each pass does a fixed amount of work. 3n steps simplify to O(n) because Big-O drops constant factors."
     },
     {
       "id": "pre_variable_purpose",
       "module": 0,
       "concept": "variable_purpose",
-      "question": "What is the purpose of a 'Variable' in computer programming?",
+      "type": "code",
+      "code": "count = 0\nfor i in range(5):\n    count = count + 3\nprint(count)",
+      "question": "Trace the variable count through the loop. What is printed, and what is the cost?",
       "options": [
-        "To permanently archive structural data to the physical hard drive for long-term database retrieval.",
-        "To execute complex mathematical equations automatically without requiring manual operator intervention.",
-        "To continuously repeat a specific block of instructions until a predefined threshold condition is met.",
-        "To act as a labeled storage container in memory that holds temporary information during execution."
+        "5: count stores how many passes ran, and the time is O(n) with O(1) extra space",
+        "3: count is reset on every pass, and the time is O(n) with O(1) extra space",
+        "15: count is updated once per pass, but it needs O(n) extra space",
+        "15: count is updated once per pass, so the time is O(n) with O(1) extra space"
       ],
       "answer": 3,
-      "explanation": "Variables are the memory of a program, storing values (like numbers or text) that can be read or changed while the algorithm runs."
+      "explanation": "count goes 0 → 3 → 6 → 9 → 12 → 15. One loop of n passes is O(n) time, and a single variable is O(1) extra space."
     },
     {
       "id": "pre_function_purpose",
       "module": 0,
       "concept": "function_purpose",
-      "question": "Why would a programmer wrap a sequence of blocks inside a reusable 'Function' rather than repeating them everywhere they're needed?",
-      "options": [
-        "Functions automatically convert all Big-O time complexity down to O(1) regardless of the logic inside.",
-        "Functions let you define a piece of logic once and call it wherever needed, keeping the program organized and avoiding repetition.",
-        "Functions force the program to permanently store all local variables on the hard drive between calls.",
-        "Functions exist only to slow down execution so learners can trace bugs one step at a time."
-      ],
+      "question": "A function that scans a whole list of n items is called once on every pass of a loop that runs n times. What is the overall time complexity?",
+      "options": ["O(n)", "O(n²)", "O(log n)", "O(n + n)"],
       "answer": 1,
-      "explanation": "Functions bundle a specific sequence of logic into a reusable block, preventing massive code repetition and keeping programs modular and readable."
+      "explanation": "n passes × O(n) work per call = O(n²). Calls inside a loop multiply their cost by the number of passes."
     },
     {
       "id": "pre_loop_structure",
       "module": 0,
       "concept": "loop_structure",
-      "question": "Which programming structure is used to execute a specific sequence of blocks repeatedly?",
+      "type": "code",
+      "code": "ops = 0\nfor i in range(5):\n    for j in range(i):\n        ops += 1\nprint(ops)",
+      "question": "Trace the nested loop. What is printed, and how does the work grow with n?",
       "options": [
-        "A dynamically allocated Variable",
-        "An iterative Loop structure",
-        "A conditional If/Else statement",
-        "A static Array collection"
+        "5: only the outer loop is counted, so O(n)",
+        "10: the inner loop runs 0+1+2+3+4 times, which is n(n−1)/2, so O(n²)",
+        "25: the inner loop always runs 5 times, so O(n²)",
+        "10: the inner loop runs 0+1+2+3+4 times, but that grows as O(n)"
       ],
       "answer": 1,
-      "explanation": "Loops are the engines of repetition. They run connected blocks multiple times, either for a set count or while a condition remains true."
+      "explanation": "The inner loop runs i times: 0 + 1 + 2 + 3 + 4 = 10. In general this is n(n−1)/2, which has an n² term, so the class is O(n²)."
     },
     {
       "id": "pre_zero_indexing",
       "module": 1,
       "concept": "zero_indexing",
-      "question": "In computer science, counting positions inside an Array (List) usually starts at what number?",
+      "type": "code",
+      "code": "arr = [10, 20, 30, 40, 50]\nprint(arr[0] + arr[len(arr) - 1])",
+      "question": "Trace the index reads. What is printed, and what is the cost?",
       "options": [
-        "Index 1, representing the first physical location.",
-        "Index -1, representing a dynamically sized list.",
-        "Index 0, representing the starting memory offset.",
-        "It strictly depends on the total length of the array."
+        "30: it adds the first and the middle items, and the cost is O(1)",
+        "60: indexes 0 and 4 are read, but each lookup scans the list so O(n)",
+        "60: indexes 0 and 4 are read directly, so the cost is O(1)",
+        "150: it adds every item, so the cost is O(n)"
       ],
       "answer": 2,
-      "explanation": "Zero-based indexing is a crucial concept. The first item in an array is always located at index 0."
+      "explanation": "len(arr) - 1 is 4, so the code adds arr[0] = 10 and arr[4] = 50 = 60. Reading an item by index jumps straight to it, so each read is O(1) regardless of list size."
     },
     {
       "id": "pre_in_place_ops",
       "module": 1,
       "concept": "in_place_ops",
-      "question": "What does it mean for an algorithm to operate 'in-place'?",
+      "question": "When we say an algorithm sorts a list in place, what does that tell us about its space complexity?",
       "options": [
-        "It executes completely within a single procedural function without calling other outside functions.",
-        "It strictly requires the algorithm to run locally on a physical machine rather than a cloud server.",
-        "It systematically saves all active variables directly to the local hard drive to prevent data loss.",
-        "It modifies the original data structure directly, requiring zero extra scaling auxiliary memory."
+        "It uses O(n) extra memory for a copy of the list",
+        "It uses O(log n) extra memory for a hash table",
+        "It uses no memory at all",
+        "It uses O(1) extra memory besides the input list itself"
       ],
       "answer": 3,
-      "explanation": "In-place algorithms achieve O(1) Space Complexity by manipulating existing structures rather than allocating new arrays."
+      "explanation": "In-place means the data is rearranged inside the original list using only a few extra variables, so the auxiliary space is constant: O(1)."
     },
     {
       "id": "pre_hash_set_advantage",
       "module": 1,
       "concept": "hash_set_advantage",
-      "question": "What is the primary performance advantage of using a Hash Set over a standard List?",
+      "question": "Why is checking x in my_set O(1) on average, while checking x in my_list is O(n)?",
       "options": [
-        "Hash Sets maintain a perfectly sorted internal order automatically, speeding up retrieval.",
-        "Checking if an item exists inside a Set takes instant O(1) time, avoiding nested loops.",
-        "Hash Sets compress the stored data, requiring significantly less computer memory than Lists.",
-        "Hash Sets can hold an infinite amount of dynamic data without ever triggering a resize."
+        "A set keeps its items sorted, so it can skip most of them",
+        "A set uses hashing to jump to the item's location, while a list may need to scan every item",
+        "A list stores its items in reverse order, which makes it slower",
+        "Both are O(n); the set is only faster in memory"
       ],
       "answer": 1,
-      "explanation": "Hash Sets use mathematical hash tables to verify membership instantly (O(1)), completely eliminating the need for slow O(n) array searches."
+      "explanation": "Hashing maps a value directly to a location, so an average lookup takes constant time. A list has no such shortcut and may compare against all n items."
     },
     {
       "id": "pre_o1_empty_check",
       "module": 1,
       "concept": "o1_empty_check",
-      "question": "Why is checking if a List is empty (e.g., length == 0) considered an O(1) operation?",
+      "question": "Why is checking len(arr) == 0 an O(1) operation?",
       "options": [
-        "The computer dynamically guesses the length based on the initial variable allocation size.",
-        "It solely evaluates a pre-tracked integer property of the structure, avoiding any array loops.",
-        "An empty list requires zero memory, allowing the processor to bypass the compilation phase.",
-        "The zero index is always mathematically the smallest accessible memory block in the system."
+        "It sorts the list first and looks at the first item",
+        "The list stores its length, so the check reads one value without scanning the items",
+        "It scans the list but stops after two items",
+        "It is O(n), because every item must be counted"
       ],
       "answer": 1,
-      "explanation": "Checking emptiness does not require looking at elements; it simply reads the length metadata variable, making it an instant lookup."
+      "explanation": "A Python list keeps its size stored, so len() simply reads that value. The time does not depend on how many items are in the list."
     },
     {
       "id": "pre_amortized_append",
       "module": 1,
       "concept": "amortized_append",
-      "question": "Adding an item to the end of a dynamic list (appending) is generally extremely fast, but occasionally triggers an expensive memory resize. How is this mathematically classified?",
+      "type": "code",
+      "code": "arr = []\nfor i in range(6):\n    arr.append(i * 2)\nprint(arr)",
+      "question": "Trace the loop. What is printed, and what is the cost of n appends?",
       "options": [
-        "O(1) Amortized Time, because the expensive resize averages out across many fast insertions.",
-        "O(n²) Quadratic Time, because appending elements inside an array requires a nested loop.",
-        "O(n) Linear Time, because the computer must always copy the entire list for every single item.",
-        "O(log n) Logarithmic Time, because the array's capacity is divided in half to save system RAM."
+        "[0, 2, 4, 6, 8, 10]: each append is O(1) amortized, so n appends cost O(n) in total",
+        "[2, 4, 6, 8, 10, 12]: i starts at 1, and n appends cost O(n) in total",
+        "[0, 2, 4, 6, 8]: range(6) stops at 4, and n appends cost O(n) in total",
+        "[0, 2, 4, 6, 8, 10]: every append recopies the list, so n appends always cost O(n²)"
       ],
       "answer": 0,
-      "explanation": "Because the O(n) resize happens very rarely, the average cost per insertion remains flat. This is called Amortized Analysis."
+      "explanation": "i runs 0..5, so the list is [0, 2, 4, 6, 8, 10]. An occasional resize is spread over many cheap appends, so each append is O(1) amortized and n appends cost O(n)."
     },
     {
       "id": "pre_linear_search_worst_case",
       "module": 2,
       "concept": "linear_search_worst_case",
-      "question": "If a Linear Search is looking for a target that is NOT in the array, how many items must it check?",
+      "type": "code",
+      "code": "arr = [4, 8, 15, 16, 23]\ntarget = 23\nsteps = 0\nfor x in arr:\n    steps += 1\n    if x == target:\n        break\nprint(steps)",
+      "question": "Trace the search. What is printed, and which case is this?",
       "options": [
-        "It only needs to check exactly half of the items before mathematically deducing the absence.",
-        "It inspects only the first and last items, assuming the array is already sorted properly.",
-        "It checks zero items, as the compiler automatically throws an error for missing variables.",
-        "It is forced to check every single item in the entire array, resulting in O(n) execution time."
+        "1: the target is found immediately: the best case, O(1)",
+        "4: the loop stops one item early, and this is the average case, O(n)",
+        "5: all items are checked, but the worst case is O(log n)",
+        "5: the target is the last item, so all n items are checked: the worst case, O(n)"
       ],
       "answer": 3,
-      "explanation": "The worst-case scenario for Linear Search occurs when the item is missing; it is forced to check all 'n' items, yielding O(n) time."
+      "explanation": "The loop checks 4, 8, 15, 16 and finally 23 at the fifth step. Checking every item is the worst case of linear search: O(n)."
     },
     {
       "id": "pre_bubble_sort",
       "module": 2,
       "concept": "bubble_sort",
-      "question": "How does Bubble Sort organize data?",
+      "type": "code",
+      "code": "arr = [3, 2, 1]\nswaps = 0\nfor i in range(len(arr)):\n    for j in range(len(arr) - 1 - i):\n        if arr[j] > arr[j + 1]:\n            arr[j], arr[j + 1] = arr[j + 1], arr[j]\n            swaps += 1\nprint(arr, swaps)",
+      "question": "The list is in reverse order. What is printed, and what does it show about bubble sort?",
       "options": [
-        "By dividing the array directly in half and sorting the left side completely before the right.",
-        "By repeatedly swapping adjacent elements that are out of order until the largest reach the end.",
-        "By creating a highly optimized background hash map to track the positions of all array values.",
-        "By scanning for the absolute smallest item and instantly placing it at the front of the collection."
+        "[1, 2, 3] 2: it needs n − 1 swaps, so the worst case is O(n)",
+        "[1, 2, 3] 3: a reversed list needs n(n−1)/2 swaps, so the worst case is O(n²)",
+        "[3, 2, 1] 0: no swaps are needed, so the worst case is O(1)",
+        "[1, 2, 3] 3: it needs n(n−1)/2 swaps, but the worst case is O(n)"
       ],
       "answer": 1,
-      "explanation": "Bubble Sort relies on adjacent neighbor swapping. This requires an O(n²) nested loop structure."
+      "explanation": "Every pair is out of order: 3 > 2, 3 > 1, 2 > 1, so 3 swaps = 3·2/2. In general n(n−1)/2 swaps give O(n²)."
     },
     {
       "id": "pre_brute_force_drawback",
       "module": 2,
       "concept": "brute_force_drawback",
-      "question": "A Brute Force algorithm is guaranteed to eventually find the correct answer by trying every possibility. What's the catch?",
+      "question": "What is the main drawback of a brute-force strategy as the input grows?",
       "options": [
-        "It requires the input data to be perfectly sorted before it can begin running at all.",
-        "It typically scales at an Exponential or Factorial rate, making it impractical for large inputs.",
-        "It cannot be implemented using visual, block-based programming environments.",
-        "It consumes almost no memory but takes an unpredictable amount of disk space."
+        "It can never find the correct answer",
+        "It tries every candidate, so the cost can grow very fast (quadratic, factorial or exponential)",
+        "It always needs more memory than any other strategy",
+        "It only works if the input is already sorted"
       ],
       "answer": 1,
-      "explanation": "Because brute force checks every conceivable combination, its scaling behavior makes it computationally impossible for large inputs."
+      "explanation": "Brute force is simple and correct, but because it checks all possibilities its running time often explodes as n grows."
     },
     {
       "id": "pre_big_omega",
       "module": 2,
       "concept": "big_omega",
-      "question": "Which mathematical notation is used to describe the absolute BEST-case scenario (the lower bound) of an algorithm?",
+      "question": "An algorithm is described as Ω(n) and O(n²). What does this tell you?",
       "options": [
-        "Big-O (O), which evaluates the strict average execution time.",
-        "Big-Theta (Θ), which measures the exact memory constraints.",
-        "Big-Omega (Ω), which describes the minimum resources needed.",
-        "Big-Alpha (α), which represents the most scalable performance."
+        "Its running time is exactly n² for every input",
+        "Its running time is at most linear",
+        "Its running time grows at least linearly and at most quadratically",
+        "Its running time is constant for the best input"
       ],
       "answer": 2,
-      "explanation": "Big-Omega (Ω) describes the minimum possible resources an algorithm will require in the most favorable data arrangement."
+      "explanation": "Big-Omega is a lower bound and Big-O is an upper bound. Together they sandwich the growth between linear and quadratic."
     },
     {
       "id": "pre_string_concat_trap",
       "module": 2,
       "concept": "string_concat_trap",
-      "question": "Why is adding characters to an immutable String inside a loop considered a massive performance trap?",
+      "type": "code",
+      "code": "s = \"\"\nfor i in range(4):\n    s += \"ab\"\nprint(s, len(s))",
+      "question": "Trace the loop. What is printed, and why can this pattern become costly?",
       "options": [
-        "Immutable strings automatically consume more background memory than standard numerical variables.",
-        "The computer must allocate a brand new string and copy all characters over on every single iteration.",
-        "Standard iterative loops are incapable of processing text data without utilizing advanced dictionaries.",
-        "It causes the Complexity Analyzer to miscalculate the bounds and crash the programming environment."
+        "abab 4: only two passes run, and each += is always O(1)",
+        "abababab 8: strings are immutable, so each += may recopy the string, up to O(n²) in total",
+        "abababab 8: += changes the string in place, so the loop is O(log n)",
+        "ab 2: the string is replaced each time, so the loop is O(1)"
       ],
       "answer": 1,
-      "explanation": "Repeatedly concatenating immutable strings forces geometric memory expansion, resulting in a disastrous O(n²) Time Complexity."
+      "explanation": "Four passes add \"ab\" each time: \"abababab\", length 8. Strings cannot be changed in place, so each += can copy all existing characters, and n appends can add up to O(n²) copying."
     },
     {
       "id": "pre_binary_search_prereq",
       "module": 3,
       "concept": "binary_search_prereq",
-      "question": "What is the strict prerequisite for using Binary Search on a dataset?",
+      "question": "What must be true about the data before binary search can be used?",
       "options": [
-        "The dataset must contain exclusively positive integers without any special characters.",
-        "The dataset must be smaller than exactly 10,000 items to prevent a memory overflow.",
-        "The dataset must have absolutely no duplicate values stored within its memory blocks.",
-        "The dataset must be perfectly sorted to allow the algorithm to accurately discard halves."
+        "The data must have no duplicates",
+        "The data must have an even length",
+        "The data must be stored in a hash table",
+        "The data must be sorted"
       ],
       "answer": 3,
-      "explanation": "Binary Search relies on knowing which half of the data to discard. If the data is not sorted, the algorithm completely fails."
+      "explanation": "Binary search discards half of the items by comparing with the middle one. That only works when the items are in order."
     },
     {
       "id": "pre_binary_search_complexity",
       "module": 3,
       "concept": "binary_search_complexity",
-      "question": "What is the Time Complexity of a Binary Search?",
+      "type": "code",
+      "code": "arr = [1, 3, 5, 7, 9, 11, 13]\ntarget = 11\nlo, hi = 0, len(arr) - 1\nprobes = []\nwhile lo <= hi:\n    mid = (lo + hi) // 2\n    probes.append(arr[mid])\n    if arr[mid] == target:\n        break\n    elif arr[mid] < target:\n        lo = mid + 1\n    else:\n        hi = mid - 1\nprint(probes)",
+      "question": "Trace the binary search. Which values are probed, and what does that show about its complexity?",
       "options": [
-        "O(log n), because it continuously cuts the problem size in half at every step.",
-        "O(n²), because it relies on two nested pointers to evaluate the left and right sides.",
-        "O(n), because it must eventually check every single item in the worst-case scenario.",
-        "O(1), because knowing the midpoint allows the computer to find the answer instantly."
+        "[7, 11]: the range is halved on each probe, so O(log n)",
+        "[1, 3, 5, 7, 9, 11]: items are checked one by one, so O(n)",
+        "[7, 9, 11]: the probe moves one item at a time, so O(n)",
+        "[7, 11]: the range is halved on each probe, but it is O(n)"
       ],
       "answer": 0,
-      "explanation": "Because Binary Search cuts the problem size in half at every step, it achieves highly scalable O(log n) Logarithmic Time."
+      "explanation": "mid = 3 → 7 < 11, so lo = 4. Then mid = 5 → 11 is found. Two probes instead of six, because each probe halves the range: O(log n)."
     },
     {
       "id": "pre_merge_sort_dc",
       "module": 3,
       "concept": "merge_sort_dc",
-      "question": "Which of the following sorting algorithms utilizes a 'Divide and Conquer' strategy to achieve an optimal O(n log n) worst-case time?",
+      "type": "code",
+      "code": "left = [2, 5, 9]\nright = [1, 6, 8]\ni = j = 0\nmerged = []\ncomparisons = 0\nwhile i < len(left) and j < len(right):\n    comparisons += 1\n    if left[i] <= right[j]:\n        merged.append(left[i])\n        i += 1\n    else:\n        merged.append(right[j])\n        j += 1\nmerged += left[i:] + right[j:]\nprint(merged, comparisons)",
+      "question": "Trace this merge step of merge sort. What is printed?",
       "options": [
-        "Bubble Sort, which heavily relies on continuous adjacent neighbor swapping.",
-        "Selection Sort, which iteratively finds the absolute minimum remaining value.",
-        "Merge Sort, which recursively halves the array and merges it back together.",
-        "Insertion Sort, which builds the final sorted array one element at a time."
+        "[1, 2, 5, 6, 8, 9] 6: every item is compared once, so merge sort is O(n²)",
+        "[2, 5, 9, 1, 6, 8] 5: the lists are joined without comparing, so merge sort is O(n)",
+        "[1, 2, 5, 6, 8, 9] 5: merging is one pass, about n work per level, which gives O(n log n) overall",
+        "[1, 2, 5, 6, 8, 9] 3: only the first three items are compared, so merge sort is O(log n)"
       ],
       "answer": 2,
-      "explanation": "Merge Sort recursively divides the array into halves (log n) and then merges them back together linearly (n), achieving O(n log n)."
+      "explanation": "Comparisons: 2>1, 2≤6, 5≤6, 9>6, 9>8 = 5. Then the leftover 9 is appended without a comparison. Merging costs about n per level and there are about log n levels: O(n log n)."
     },
     {
       "id": "pre_quick_sort_pivot",
       "module": 3,
       "concept": "quick_sort_pivot",
-      "question": "In Quick Sort, elements are partitioned around a chosen 'Pivot' value. What does this pivot actually do?",
+      "question": "What are the typical average-case and worst-case time complexities of quick sort?",
       "options": [
-        "It permanently marks the exact middle index of the original, unsorted array.",
-        "It separates the array so smaller elements move to one side and larger elements to the other.",
-        "It functions as a unique key for building an internal hash table of the elements.",
-        "It counts how many recursive calls have been made so far."
+        "Average O(n); worst case O(n log n)",
+        "Average O(n log n); worst case O(n²)",
+        "Average O(n²); worst case O(n²)",
+        "Average O(log n); worst case O(n)"
       ],
       "answer": 1,
-      "explanation": "The Pivot is the anchor point. Quick Sort recursively organizes the array by pushing smaller elements to one side and larger elements to the other."
+      "explanation": "Good pivots split the list evenly (about log n levels of n work). Repeatedly bad pivots give n levels of n work, which is O(n²)."
     },
     {
       "id": "pre_recursion_base_case",
       "module": 3,
       "concept": "recursion_base_case",
-      "question": "What is the most critical component required in any recursive algorithm to prevent an infinite loop?",
+      "type": "code",
+      "code": "def f(n):\n    if n <= 1:\n        return 1\n    return f(n // 2) + 1\nprint(f(8))",
+      "question": "Trace the recursion. What is printed, and what is the time complexity of f(n)?",
       "options": [
-        "A defined Base Case to halt further execution.",
-        "A standard For Loop to iterate through variables.",
-        "A Global Variable to track the total memory used.",
-        "A secure Try/Catch Block to prevent fatal errors."
+        "4: n halves on each call, so the depth is about log₂ n and the time is O(log n)",
+        "8: there is one call for each unit of n, so the time is O(n)",
+        "3: the base case adds nothing, and the time is O(log n)",
+        "4: n halves on each call, but there are two calls each time, so O(n)"
       ],
       "answer": 0,
-      "explanation": "The Base Case acts as the stopping condition. Once triggered, the Call Stack stops building and begins popping frames in reverse order."
+      "explanation": "f(8) → f(4) → f(2) → f(1). f(1) returns 1 and the three returns add 1 each: 4. Halving gives about log₂ n calls: O(log n)."
     },
     {
       "id": "pre_greedy_definition",
       "module": 4,
       "concept": "greedy_definition",
-      "question": "How would you describe the core strategy of a 'Greedy' algorithm?",
+      "question": "What is the defining idea of a greedy algorithm, and why is it usually efficient?",
       "options": [
-        "It explores every possible combination recursively before selecting the best overall answer.",
-        "It always picks the locally best option available right now, hoping it leads to the best overall result.",
-        "It sorts data only when absolutely no other option remains available.",
-        "It stores every previous decision in a table to avoid recalculating them."
+        "It tries all choices and keeps the best, so it is exhaustive",
+        "It takes the locally best choice at each step and never revisits it, so it avoids exploring many alternatives",
+        "It stores every subproblem result in a table, so it never repeats work",
+        "It splits the input in half and merges the answers, so it is always O(log n)"
       ],
       "answer": 1,
-      "explanation": "Greedy algorithms don't look ahead. They simply pick the best immediate option available at that exact moment."
+      "explanation": "Greedy commits to the best-looking choice now and never backtracks. Not exploring alternatives is what keeps it fast."
     },
     {
       "id": "pre_activity_selection",
       "module": 4,
       "concept": "activity_selection",
-      "question": "You're scheduling activities in one room and want to fit as many non-overlapping activities as possible. Which greedy rule maximizes the count?",
+      "type": "code",
+      "code": "acts = [(1, 3), (2, 5), (4, 6), (5, 8)]\nacts.sort(key=lambda a: a[1])\nlast = 0\nchosen = []\nfor s, e in acts:\n    if s >= last:\n        chosen.append((s, e))\n        last = e\nprint(chosen)",
+      "question": "Trace the activity selection. Which activities are chosen, and what is the total cost?",
       "options": [
-        "Always pick the activity that starts earliest in the day.",
-        "Always pick the activity that lasts the longest.",
-        "Always pick the activity that ends earliest, freeing the room soonest.",
-        "Always pick the activity that starts latest in the day."
+        "[(1, 3), (2, 5), (4, 6)]: overlapping activities are kept, so O(n log n)",
+        "[(1, 3), (5, 8)]: the last activity is always chosen, so O(n)",
+        "[(1, 3), (4, 6)]: an O(n log n) sort followed by an O(n) pass gives O(n log n)",
+        "[(1, 3), (4, 6)]: an O(n log n) sort followed by an O(n) pass gives O(n²)"
       ],
       "answer": 2,
-      "explanation": "Picking the activity that ends the earliest frees up your schedule as soon as possible, leaving the maximum remaining time for subsequent activities."
+      "explanation": "Sorted by finish: (1,3), (2,5), (4,6), (5,8). Take (1,3); skip (2,5) because 2 < 3; take (4,6); skip (5,8) because 5 < 6. Sort O(n log n) + pass O(n) = O(n log n)."
     },
     {
       "id": "pre_greedy_failure_case",
       "module": 4,
       "concept": "greedy_failure_case",
-      "question": "In which scenario does a straightforward greedy approach fail to guarantee the optimal answer?",
+      "type": "code",
+      "code": "coins = [4, 3, 1]\namount = 6\ncount = 0\nfor c in coins:\n    while amount >= c:\n        amount -= c\n        count += 1\nprint(count)",
+      "question": "Trace the greedy coin choice. What is printed, and what does it show?",
       "options": [
-        "Activity Selection, because sorting the schedule always crashes the algorithm.",
-        "0/1 Knapsack, because items can't be split into fractions, so a greedy choice can lock out a better combination.",
-        "Any problem where the input list happens to already be sorted.",
-        "Fractional Knapsack, because greedy strategies never work with partial items."
+        "2: greedy takes 3+3, so greedy is always optimal",
+        "3: greedy takes 4+1+1, but 3+3 needs only 2 coins, so greedy is not always optimal",
+        "3: greedy takes 3+3+0, so greedy is optimal here",
+        "6: greedy uses six 1-coins, so greedy is optimal only for 1-coins"
       ],
       "answer": 1,
-      "explanation": "Because 0/1 items are indivisible, making a greedy choice might prevent you from taking a highly valuable combination of smaller items later."
+      "explanation": "Greedy takes 4 first (2 left), then 1 and 1: count 3. The optimal is 3 + 3 = 2 coins, so the locally best choice missed the global optimum."
     },
     {
       "id": "pre_greedy_complexity_bottleneck",
       "module": 4,
       "concept": "greedy_complexity_bottleneck",
-      "question": "Greedy algorithms often need their input sorted before making choices. What does this typically make the time-complexity bottleneck?",
+      "question": "In many greedy algorithms the selection loop is O(n), yet the total is O(n log n). Which step is the usual bottleneck?",
       "options": [
-        "O(1), because the greedy choice happens instantly without any processing.",
-        "O(2^n), because greedy choices double the memory demands with each step.",
-        "O(n log n), because the required sorting step usually dominates the runtime.",
-        "O(n³), because greedy validation demands triple-nested procedural loops."
+        "Printing the final answer",
+        "Declaring the variables",
+        "Sorting the input before the greedy pass",
+        "Checking whether n is positive"
       ],
       "answer": 2,
-      "explanation": "Because greedy choices almost always rely on picking the 'best' item from a sorted list, the O(n log n) sorting step is usually the computational bottleneck."
+      "explanation": "Greedy algorithms often need sorted data, and sorting costs O(n log n), which dominates the linear pass."
     },
     {
       "id": "pre_coin_change_greedy_choice",
       "module": 4,
       "concept": "coin_change_greedy_choice",
-      "question": "Using the fewest coins to make change with a greedy approach, which coin should you pick at each step?",
+      "type": "code",
+      "code": "coins = [25, 10, 5, 1]\namount = 41\nused = []\nfor c in coins:\n    while amount >= c:\n        amount -= c\n        used.append(c)\nprint(used)",
+      "question": "Trace the greedy coin selection. What is printed?",
       "options": [
-        "The smallest available coin, to make many small adjustments.",
-        "The largest coin value that doesn't exceed the remaining amount still owed.",
-        "Whichever coin denomination appears first in the input list.",
-        "The coin closest in value to the average of all available denominations."
+        "[10, 10, 10, 10, 1]: it always takes the smallest coin that fits",
+        "[25, 10, 5, 1]: it always takes the largest coin that still fits, a locally best choice",
+        "[25, 10, 5]: it stops before the last 1 is taken",
+        "[25, 5, 5, 5, 1]: it takes the same coin until the amount is zero"
       ],
       "answer": 1,
-      "explanation": "Greedy Coin Change repeatedly takes the largest denomination that still fits the remaining amount, minimizing the remaining balance at every step."
+      "explanation": "41 → take 25 (16) → take 10 (6) → take 5 (1) → take 1 (0). The greedy choice is the largest coin that still fits."
     },
     {
       "id": "pre_dp_prerequisite_properties",
       "module": 5,
       "concept": "dp_prerequisite_properties",
-      "question": "What core characteristic must a problem have to be efficiently solved using Dynamic Programming?",
+      "question": "Which two properties make a problem suitable for dynamic programming?",
       "options": [
-        "The problem must require sorting large amounts of textual string data quickly.",
-        "The problem must contain deeply Overlapping Subproblems and Optimal Substructure.",
-        "The problem must be mathematically solvable in strict O(1) Constant Time.",
-        "The problem must utilize Greedy methodologies without requiring variable tracking."
+        "Sorted input and unique elements",
+        "Overlapping subproblems and optimal substructure",
+        "A greedy choice and a sorted list",
+        "Constant-time lookups and no recursion"
       ],
       "answer": 1,
-      "explanation": "Dynamic Programming works by solving repeating, overlapping subproblems only once and saving the answer."
+      "explanation": "DP pays off when subproblems repeat (overlapping) and the best overall answer is built from best answers to smaller subproblems (optimal substructure)."
     },
     {
       "id": "pre_memoization",
       "module": 5,
       "concept": "memoization",
-      "question": "What is 'Memoization' in algorithmic optimization?",
+      "type": "code",
+      "code": "calls = 0\nmemo = {}\ndef fib(n):\n    global calls\n    calls += 1\n    if n <= 1:\n        return n\n    if n in memo:\n        return memo[n]\n    memo[n] = fib(n - 1) + fib(n - 2)\n    return memo[n]\nprint(fib(5), calls)",
+      "question": "Trace this memoized Fibonacci. What is printed (the value and the number of calls), and what is the time complexity?",
       "options": [
-        "Writing robust inline comments to clearly document the purpose of complex recursive logic.",
-        "Deleting outdated and unused variables mid-execution to forcefully free up system RAM.",
-        "Pre-sorting an array using an O(n log n) algorithm before attempting to perform a search.",
-        "Caching the results of expensive recursive function calls so they are never recalculated."
+        "5 15: every subproblem is recomputed, so the calls grow as O(2ⁿ)",
+        "8 9: fib(5) is 8, and the calls grow linearly: O(n)",
+        "5 5: only one call is made per value, so the time is O(log n)",
+        "5 9: each subproblem is solved once, so the calls grow linearly: O(n)"
       ],
       "answer": 3,
-      "explanation": "Memoization trades Space for Time by storing computed results in a dictionary, instantly dropping exponential O(2^n) logic down to O(n)."
+      "explanation": "fib(5) = 5. With the memo, 9 calls are made (a plain recursive fib(5) makes 15). Each fib(k) is computed once, so the work grows linearly: O(n)."
     },
     {
       "id": "pre_dp_vs_dc",
       "module": 5,
       "concept": "dp_vs_dc",
-      "question": "What is the main difference between 'Divide and Conquer' algorithms (like Merge Sort) and 'Dynamic Programming'?",
+      "question": "What is the key difference between dynamic programming and divide and conquer in how they treat subproblems?",
       "options": [
-        "Dynamic Programming strictly uses For loops, whereas Divide and Conquer only uses While loops.",
-        "Divide and Conquer splits data into independent halves; DP deals with heavily repeating subproblems.",
-        "Divide and Conquer is universally faster than DP regardless of the specific algorithm or data scale.",
-        "Dynamic Programming relies on Hash Maps, while Divide and Conquer relies entirely on local Arrays."
+        "DP never uses recursion; divide and conquer always does",
+        "DP reuses overlapping subproblems; divide and conquer usually solves independent subproblems",
+        "Divide and conquer reuses stored results; DP does not",
+        "DP is always O(n log n); divide and conquer is always O(n²)"
       ],
       "answer": 1,
-      "explanation": "Divide and Conquer splits a dataset into distinct, separate halves. DP deals with recursive trees that recalculate the exact same state repeatedly."
+      "explanation": "Merge sort's two halves are independent. DP problems like Fibonacci or knapsack revisit the same subproblems, so storing results saves work."
     },
     {
       "id": "pre_knapsack_space_optimization",
       "module": 5,
       "concept": "knapsack_space_optimization",
-      "question": "In the advanced Knapsack problem, how do engineers optimize Space Complexity from O(N*W) to O(W)?",
+      "type": "code",
+      "code": "weights = [2, 3]\nvalues = [3, 4]\nW = 5\ndp = [0] * (W + 1)\nfor i in range(len(weights)):\n    for w in range(W, weights[i] - 1, -1):\n        dp[w] = max(dp[w], dp[w - weights[i]] + values[i])\nprint(dp)",
+      "question": "Trace this one-dimensional 0/1 knapsack. What does dp print, and what are the costs?",
       "options": [
-        "By heavily compressing the 2D DP matrix using advanced file-zipping algorithms.",
-        "By completely ignoring the item weights and exclusively prioritizing the total profit values.",
-        "By collapsing the 2D Dynamic Programming matrix into a single 1D array to save memory.",
-        "By utilizing an intentionally infinite loop that breaks only when the absolute max is found."
+        "[0, 0, 3, 3, 3, 3]: only the first item is used, so O(W) space with O(n·W) time",
+        "[0, 0, 3, 4, 7, 7]: the inner loop runs upward, so O(n·W) space",
+        "[0, 0, 3, 4, 4, 7]: one array of size W+1 gives O(W) space with O(n·W) time",
+        "[0, 0, 3, 4, 4, 7]: one array of size W+1 gives O(n·W) space with O(W) time"
       ],
       "answer": 2,
-      "explanation": "Because each row in the 2D DP table only looks at the row directly above it, you can overwrite a single 1D array, drastically saving memory."
+      "explanation": "After item 1 (w2, v3): [0,0,3,3,3,3]. After item 2 (w3, v4): dp[5] = max(3, dp[2] + 4) = 7, dp[4] = 4, dp[3] = 4 → [0,0,3,4,4,7]. Reusing one array gives O(W) space and O(n·W) time."
     },
     {
       "id": "pre_knapsack_01_meaning",
       "module": 5,
       "concept": "knapsack_01_meaning",
-      "question": "The 0/1 Knapsack Problem is a classic example of evaluating combinations. What does the '0/1' mean?",
+      "question": "What does the 0/1 in the 0/1 knapsack problem mean, and how many item subsets does brute force check?",
       "options": [
-        "You must explicitly take an item fully or leave it entirely; you cannot break it into fractions.",
-        "The algorithmic system is strictly constrained to executing within exactly 0 or 1 seconds.",
-        "The final calculated weights of the provided items must equal exactly 0 or 1 pounds total.",
-        "The programmatic implementation exclusively utilizes low-level binary mathematics to run."
+        "Each item is taken whole or not at all, so brute force checks 2ⁿ subsets",
+        "Each item can be split into parts, so brute force checks n subsets",
+        "Each item can be taken many times, so brute force checks n² subsets",
+        "Only items of weight 0 or 1 are allowed, so brute force checks 2 subsets"
       ],
       "answer": 0,
-      "explanation": "The 0/1 constraint means items are indivisible. You must make a discrete mathematical choice to include or exclude the entire item."
+      "explanation": "In 0/1 knapsack every item is either included (1) or excluded (0). With n items there are 2ⁿ possible subsets, which is why brute force is exponential."
     },
     {
       "id": "pre_backtracking_vs_brute_force",
       "module": 6,
       "concept": "backtracking_vs_brute_force",
-      "question": "How is a Backtracking algorithm smarter than a pure Brute Force search?",
+      "question": "How does backtracking differ from plain brute force in its running cost?",
       "options": [
-        "It guarantees execution in flat O(1) time no matter the input size.",
-        "It abandons a path as soon as a rule is broken, instead of blindly finishing it out.",
-        "It never uses recursion, relying only on iterative loops.",
-        "It uses a First-In, First-Out queue in place of the usual recursive call stack."
+        "It always has a better worst-case Big-O than brute force",
+        "It abandons a partial solution as soon as it cannot work, pruning large parts of the search",
+        "It never explores more than one branch",
+        "It sorts the candidates so it can use binary search"
       ],
       "answer": 1,
-      "explanation": "Backtracking is an 'intelligent' brute force. The moment a partial solution becomes invalid, it abandons that entire branch immediately."
+      "explanation": "Backtracking prunes: once a partial choice breaks a constraint it stops exploring that branch. The worst case can still be exponential, but it often does far less work."
     },
     {
       "id": "pre_decision_tree_visualization",
       "module": 6,
       "concept": "decision_tree_visualization",
-      "question": "What structure is commonly used to visualize all the choices a Backtracking algorithm could make at each step?",
+      "type": "code",
+      "code": "count = 0\ndef go(depth):\n    global count\n    if depth == 3:\n        count += 1\n        return\n    for c in \"ab\":\n        go(depth + 1)\ngo(0)\nprint(count)",
+      "question": "Trace this decision tree (2 choices per level, depth 3). What is printed, and how does it grow?",
       "options": [
-        "A Linked Structural List",
-        "A State-Space Decision Tree",
-        "An Advanced 2D Grid Matrix",
-        "A Dynamic Hash Map Cache"
+        "6: the tree has 2 × 3 leaves, so linear growth in the depth",
+        "8: branching factor 2 and depth 3 give 2³ leaves, so O(2ⁿ) growth in the depth",
+        "3: only one leaf is counted per level, so O(n)",
+        "8: branching factor 2 and depth 3 give 2³ leaves, but it grows as O(n²)"
       ],
       "answer": 1,
-      "explanation": "The State-Space Tree represents all possible decisions. The algorithm traverses this tree via Depth-First Search (DFS) until it finds a valid leaf node."
+      "explanation": "Each level doubles the number of paths: 2 × 2 × 2 = 8 leaves. With b choices per level and depth d there are b^d leaves, which is exponential in d."
     },
     {
       "id": "pre_nqueens_conflict_handling",
       "module": 6,
       "concept": "nqueens_conflict_handling",
-      "question": "While solving N-Queens, the algorithm places a queen and discovers it's under attack. What does it do next?",
+      "type": "code",
+      "code": "cols = [1, 3]\ndef safe(row, col):\n    for r in range(row):\n        c = cols[r]\n        if c == col or abs(c - col) == row - r:\n            return False\n    return True\nprint([c for c in range(4) if safe(2, c)])",
+      "question": "Queens are in rows 0 and 1 (columns 1 and 3). Trace the safety check for row 2. What is printed?",
       "options": [
-        "It builds an entirely new board instance to test alternate placements from scratch.",
-        "It leaves the queen in place and simply moves on to evaluate the next remaining row.",
-        "It removes that queen and backtracks to try a different column in the same row.",
-        "It immediately stops and throws an error to prevent data fragmentation."
+        "[0, 1]: only the same column is checked, so columns 0 and 1 are safe",
+        "[2]: only diagonals are checked, so column 2 is safe",
+        "[0]: columns 1, 2 and 3 are attacked by a column or a diagonal, so only column 0 is safe",
+        "[0, 2]: the diagonal check is skipped for the last row, so columns 0 and 2 are safe"
       ],
       "answer": 2,
-      "explanation": "This is the essence of backtracking: stepping back to try an alternative placement when a failure condition, like an attacked queen, is met."
+      "explanation": "Column 1 shares a column with the row-0 queen. Column 2 is on a diagonal of the row-1 queen (column 3). Column 3 shares a column with the row-1 queen. Only column 0 survives. Each check scans earlier rows, so it costs O(n)."
     },
     {
       "id": "pre_undo_pop_step",
       "module": 6,
       "concept": "undo_pop_step",
-      "question": "After a recursive backtracking call returns, what critical programmatic step usually comes right after it?",
+      "type": "code",
+      "code": "result = []\ndef backtrack(path, remaining):\n    if not remaining:\n        result.append(path[:])\n        return\n    for x in remaining:\n        path.append(x)\n        backtrack(path, [y for y in remaining if y != x])\n        path.pop()\nbacktrack([], [1, 2, 3])\nprint(result[:3], len(result))",
+      "question": "Trace this permutation generator. What is printed?",
       "options": [
-        "Popping the choice that was just explored off the list, so the next sibling branch starts clean.",
-        "Returning the final algorithmic answer immediately to collapse the whole search tree.",
-        "Re-sorting the remaining array elements to guarantee optimal execution speed.",
-        "Printing the current partial solution to establish a baseline visual checkpoint."
+        "[[1, 2, 3], [1, 3, 2], [2, 1, 3]] 6: pop() undoes each choice, and there are 3! results",
+        "[[1, 2, 3], [2, 1, 3], [3, 1, 2]] 6: the first item changes before the others",
+        "[[1, 2, 3], [1, 3, 2], [2, 1, 3]] 3: only three permutations exist",
+        "[[1, 2, 3], [1, 3, 2], [2, 3, 1]] 6: the order of the first items is different"
       ],
       "answer": 0,
-      "explanation": "Because memory persists, if you append an item to explore a path, you MUST pop it off afterwards so the next sibling path starts with a clean slate."
+      "explanation": "The first leaf is [1,2,3]. pop() removes 3, then 2, and the next choices give [1,3,2]. After the 1-branch is done, the search starts with 2: [2,1,3]. There are 3! = 6 permutations."
     },
     {
       "id": "pre_worst_case_factorial",
       "module": 6,
       "concept": "worst_case_factorial",
-      "question": "Even with heavy pruning, what is the typical worst-case Time Complexity for advanced combinatorial Backtracking problems like N-Queens?",
+      "question": "How many permutations of 10 distinct items exist, and what does that say about generating them all?",
       "options": [
-        "O(n²), making it surprisingly fast on any standard data.",
-        "O(n log n), allowing it to properly rival standard sorts.",
-        "O(N!) Factorial Time, strictly limiting it to tiny inputs.",
-        "O(1), executing instantly by heavily utilizing Hash Maps."
+        "10² = 100, so it is a quadratic task",
+        "2¹⁰ = 1,024, so it is exponential but stays small",
+        "10! = 3,628,800, so generating all of them is O(n!) and becomes impractical quickly",
+        "10 × log 10 ≈ 33, so it is a fast task"
       ],
       "answer": 2,
-      "explanation": "Because Backtracking must evaluate permutations of placement, the worst-case ceiling remains Factorial, making it strictly limited to very small datasets."
+      "explanation": "There are n! orderings of n distinct items. Factorial growth outpaces even exponential growth, so exhaustive generation is only feasible for small n."
     }
   ]
 }
