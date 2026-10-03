@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
     LuActivity,
+    LuGitBranch,
     LuFolder,
     LuGauge,
     LuLayoutDashboard,
@@ -137,6 +138,15 @@ export default function UserHeader({ user, onLogoutClick, tour, tourPageId }) {
                       role="menuitem"
                     >
                       <LuActivity size={18} aria-hidden="true" /> Analyzer Benchmark
+                    </button>
+                    <button 
+                      type="button" 
+                      className="user-dd-item" 
+                      style={{ color: "#8b5cf6", fontWeight: "bold" }}
+                      onClick={() => { setOpen(false); navigate("/admin/pipeline"); }} 
+                      role="menuitem"
+                    >
+                      <LuGitBranch size={18} aria-hidden="true" /> Pipeline View
                     </button>
                   </>
                 )}

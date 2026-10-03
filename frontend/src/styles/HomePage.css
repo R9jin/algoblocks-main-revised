@@ -1039,3 +1039,10 @@
 .auth-glow {
   display: none !important; /* Hide old dark mode glows */
 }
+
+/* Homepage wordmark. The colour used to be an inline style in Header.jsx,
+   which always beat the dark-theme rule, so ALGOBLOCKS stayed near-black on a
+   dark background. Scoped here so DashboardHeader.css's .logo-text (loaded
+   later on other pages) can't recolour it either. */
+.public-homepage .logo-text { color: #222222; }
+:root[data-theme="dark"] .public-homepage .logo-text { color: #E9DDFF; }

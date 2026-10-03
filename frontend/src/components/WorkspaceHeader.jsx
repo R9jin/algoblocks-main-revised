@@ -14,6 +14,7 @@ export default function WorkspaceHeader({
   currentProjectTitle,
   isEvaluating,
   isGuest,
+  hideSave = false,
   tour,
   tourPageId,
   isEngineReady = true,
@@ -72,7 +73,7 @@ export default function WorkspaceHeader({
           </div>
         )}
 
-        {!isGuest && (
+        {!isGuest && !hideSave && (
           <button className="wh-btn-save" type="button" onClick={handleSaveToDB}>
             <FiSave size={16} /> <span>Save</span>
           </button>

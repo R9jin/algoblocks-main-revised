@@ -11,6 +11,7 @@ import BlockGlossaryModal from "../components/BlockGlossaryModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import DockableWorkspace from "../components/DockableWorkspace.jsx";
+import PipelineReplay from "../components/PipelineReplay.jsx";
 import ComplexityPanelContent from "../components/panelContent/ComplexityPanelContent.jsx";
 import ConsolePanelContent from "../components/panelContent/ConsolePanelContent.jsx";
 import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
@@ -19,6 +20,7 @@ import WorkspaceHeader from "../components/WorkspaceHeader.jsx";
 import { projectsDB, templatesDB } from "../db.js";
 import { fetchStaticJson, warmStaticJson } from "../utils/staticJsonCache";
 import "../styles/MainApp.css";
+import "../styles/PipelineMode.css";
 
 import { FiActivity, FiChevronLeft, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
 import { usePyodide } from "../context/PyodideContext.jsx";
@@ -111,8 +113,8 @@ const createInitialTab = (locState = null) => {
 // emergency snapshot wins over a blank tab, but never overrides an
 // explicit incoming projectToLoad (the user asked to open something
 // specific -- that intent shouldn't be silently replaced by an old draft).
-const getInitialTabsState = (locState = null) => {
-  if (!locState?.projectToLoad) {
+const getInitialTabsState = (locState = null, skipRecovery = false) => {
+  if (!locState?.projectToLoad && !skipRecovery) {
     const user = getUser();
     const snapshot = readEmergencyTabsSnapshot(user?.email);
     if (snapshot && Array.isArray(snapshot.tabs) && snapshot.tabs.length > 0) {
@@ -134,7 +136,14 @@ const getInitialTabsState = (locState = null) => {
 const MAX_PROJECTS_PER_USER = 20;
 const MAX_TEMPLATES_PER_USER = 20;
 
-export default function MainApp() {
+// pipelineMode: the admin-only "Pipeline View" page (/admin/pipeline) renders
+// this same workspace -- templates sidebar, tabs, blocks/python, console,
+// complexity panels, Big-O reference, block explorer -- and adds the full
+// Pipeline replay underneath it. Everything user-centred is switched off in
+// that mode: no Save / project + template storage, no cloud pull of the
+// admin's own items, no emergency localStorage snapshot, no unsaved-changes
+// prompts. It exists so panelists can watch the Complexity Analysis Model run.
+export default function MainApp({ pipelineMode = false }) {
   const location = useLocation();
   const navigate = useNavigate();
   const navigationContext = React.useContext(NavigationContext);
@@ -145,7 +154,7 @@ export default function MainApp() {
   const { worker, isEngineReady, resetWorker, progress: engineProgress, engineError } = usePyodide();
 
   const initialTabsStateRef = useRef(null);
-  if (initialTabsStateRef.current === null) initialTabsStateRef.current = getInitialTabsState(location.state);
+  if (initialTabsStateRef.current === null) initialTabsStateRef.current = getInitialTabsState(location.state, pipelineMode);
 
   const [tabs, setTabs] = useState(() => initialTabsStateRef.current.tabs);
   const [activeTabId, setActiveTabId] = useState(() => initialTabsStateRef.current.activeTabId);
@@ -292,6 +301,7 @@ export default function MainApp() {
   };
 
   const emergencySaveNow = () => {
+    if (pipelineMode) return;
     try {
       const user = getUser();
       const key = emergencyTabsKey(user?.email);
@@ -342,7 +352,7 @@ export default function MainApp() {
   }, []);
 
   useEffect(() => {
-    if (!navigator || !navigator.block) return;
+    if (pipelineMode || !navigator || !navigator.block) return;
     const unblock = navigator.block((tx) => {
       const hasUnsavedChanges = latestTabsRef.current.some((t) => t.isDirty === true);
       if (hasUnsavedChanges && !isNavigatingAwayRef.current) setLeaveModal({ isOpen: true, tx, targetPath: null });
@@ -352,6 +362,7 @@ export default function MainApp() {
   }, [navigator]);
 
   useEffect(() => {
+    if (pipelineMode) return undefined;
     const handleBeforeUnload = (e) => {
       emergencySaveNow();
       const hasUnsavedChanges = latestTabsRef.current.some((t) => t.isDirty === true);
@@ -503,6 +514,9 @@ export default function MainApp() {
 
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map((t) => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
+    // Pipeline mode: the full built-in template library only; never pull or
+    // list the signed-in account's own saved projects/templates.
+    if (pipelineMode) { setAllTemplates(baseTemplates); return; }
     try {
       const user = getUser();
       if (!user) { setAllTemplates(baseTemplates); return; }
@@ -878,7 +892,7 @@ export default function MainApp() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) { e.preventDefault(); openSaveModalRef.current(); }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) { e.preventDefault(); if (!pipelineMode) openSaveModalRef.current(); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -1221,14 +1235,13 @@ export default function MainApp() {
           analysisResult={activeTab.analysisResult}
           analysisTime={activeTab.analysisTime}
           defaultWeight={0}
-          sourceCode={activeTab.pythonCode}
         />
       ),
     },
   ];
 
   return (
-    <div className="workspace-app-container">
+    <div className={`workspace-app-container${pipelineMode ? " pipeline-mode" : ""}`}>
       <ConfirmModal isOpen={leaveModal.isOpen} title="Unsaved Changes" message="You have unsaved changes in your workspace. Are you sure you want to leave? All unsaved progress will be lost." confirmText="Leave Workspace" cancelText="Stay" isDanger={true} onCancel={cancelLeaveSite} onConfirm={confirmLeaveSite} />
       <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} isDanger={modalConfig.isDanger} onCancel={closeModal} onConfirm={modalConfig.onConfirmAction} />
 
@@ -1316,9 +1329,20 @@ export default function MainApp() {
         isEvaluating={isEvaluating} 
         isAdmin={isAdmin}
         isGuest={isGuest}
-        tour={workspaceTour}
-        tourPageId="workspace"
+        hideSave={pipelineMode}
+        tour={pipelineMode ? undefined : workspaceTour}
+        tourPageId={pipelineMode ? "admin-pipeline" : "workspace"}
       />
+
+      {pipelineMode && (
+        <div className="pm-section-bar">
+          <span className="pm-step-badge">1</span>
+          <div>
+            <strong>Workspace</strong>
+            <span>Input to the model. Build blocks, write Python, or load any template. Run it and read the Console and Complexity panels as usual.</span>
+          </div>
+        </div>
+      )}
 
       <Split className={`workspace-split ${!isSidebarVisible ? "sidebar-hidden" : ""}`} sizes={[20, 80]} minSize={[isSidebarVisible ? 250 : 0, 400]} gutterSize={8}>
         <aside className="templates-sidebar">
@@ -1378,7 +1402,7 @@ export default function MainApp() {
             <div className="editor-container">
               <DockableWorkspace
                 ref={dockRef}
-                layoutKey="mainapp-workspace"
+                layoutKey={pipelineMode ? "admin-pipeline-workspace" : "mainapp-workspace"}
                 panels={dockPanels}
                 defaultLayout={DEFAULT_DOCK_LAYOUT}
                 onLayoutChange={({ openPanelIds: ids }) => setOpenPanelIds(ids)}
@@ -1401,6 +1425,20 @@ export default function MainApp() {
           </WorkspaceFooterBar>
         </main>
       </Split>
+      {pipelineMode && (
+        <section className="pm-pipeline-section" aria-label="Pipeline view">
+          <div className="pm-section-bar">
+            <span className="pm-step-badge">2</span>
+            <div>
+              <strong>Pipeline View</strong>
+              <span>The same analysis replayed stage by stage, following the Complexity Analysis Model. It follows the code in the active workspace tab above.</span>
+            </div>
+          </div>
+          <div className="pm-pipeline-frame">
+            <PipelineReplay sourceCode={activeTab.pythonCode} />
+          </div>
+        </section>
+      )}
       <BigOModal isOpen={isBigOModalOpen} onClose={() => setIsBigOModalOpen(false)} />
       <BlockGlossaryModal isOpen={isBlockGlossaryOpen} onClose={() => setIsBlockGlossaryOpen(false)} />
     </div>

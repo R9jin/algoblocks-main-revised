@@ -292,7 +292,6 @@ export default function LessonBlockPlayground({ example, runner, caption }) {
               analysisTime={analysisTime}
               defaultWeight={7}
               analysisTimeLabel="Analyzed In:"
-              sourceCode={pythonCode}
             />
           )}
         </div>
