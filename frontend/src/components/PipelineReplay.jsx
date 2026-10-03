@@ -9,10 +9,71 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiChevronLeft, FiChevronRight, FiPause, FiPlay, FiRotateCcw, FiAlertTriangle, FiCheck, FiMaximize2, FiZoomIn, FiZoomOut, FiX } from "react-icons/fi";
+import Split from "react-split";
+import { FiChevronLeft, FiChevronRight, FiPause, FiPlay, FiRotateCcw, FiAlertTriangle, FiCheck, FiMaximize2, FiZoomIn, FiZoomOut, FiX, FiLayout } from "react-icons/fi";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { formatComplexity } from "../utils/formatters";
 import "../styles/PipelineReplay.css";
+
+/* ------------------------- resizable panel layout ------------------------- */
+// Same react-split gutters the main workspace uses. Sizes are remembered per
+// panel group (localStorage) so a layout the user dragged into place survives
+// stage changes and reloads; "Reset layout" restores the defaults.
+const LAYOUT_KEY = "algoblocks.pipeline.layout.v1";
+function readLayout() {
+  try { return JSON.parse(window.localStorage.getItem(LAYOUT_KEY) || "{}") || {}; } catch { return {}; }
+}
+function usePaneLayout() {
+  const store = useRef(null);
+  if (store.current === null) store.current = readLayout();
+  const [epoch, setEpoch] = useState(0);
+  const get = useCallback((id, fallback) => {
+    const v = store.current[id];
+    return Array.isArray(v) && v.length === fallback.length && v.every((n) => Number.isFinite(n)) ? v : fallback;
+  }, []);
+  const set = useCallback((id, sizes) => {
+    store.current = { ...store.current, [id]: sizes };
+    try { window.localStorage.setItem(LAYOUT_KEY, JSON.stringify(store.current)); } catch { /* storage unavailable: layout just isn't remembered */ }
+  }, []);
+  const reset = useCallback(() => {
+    store.current = {};
+    try { window.localStorage.removeItem(LAYOUT_KEY); } catch { /* ignore */ }
+    setEpoch((e) => e + 1);
+  }, []);
+  return useMemo(() => ({ get, set, reset, epoch }), [get, set, reset, epoch]);
+}
+function useNarrow(maxWidth = 820) {
+  const query = `(max-width: ${maxWidth}px)`;
+  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const on = () => setNarrow(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, [query]);
+  return narrow;
+}
+// A group of panes separated by draggable gutters. On narrow screens the panes
+// simply stack (a drag handle is useless there).
+function Panes({ id, layout, direction = "horizontal", sizes, min, className = "", children }) {
+  const narrow = useNarrow();
+  if (narrow) return <div className={`${className} pr-stacked`}>{children}</div>;
+  return (
+    <Split
+      key={`${id}:${layout.epoch}`}
+      className={`${className} pr-panes pr-panes-${direction}`}
+      direction={direction}
+      sizes={layout.get(id, sizes)}
+      minSize={min}
+      gutterSize={10}
+      snapOffset={0}
+      onDragEnd={(next) => layout.set(id, next)}
+    >
+      {children}
+    </Split>
+  );
+}
 
 const STAGES = [
   { id: "init", label: "Initialization", sub: "Code Ingestion & Parsing", out: "Validated AST" },
@@ -493,87 +554,123 @@ function AstTree({ nodes, upTo, activeNode, visited, visitSeq, stmtOnly, view = 
 }
 
 function CallGraphScene({ cg }) {
-  const W = 420, H = 250, cx = W / 2, cy = H / 2;
   const names = cg.nodes;
-  const pos = useMemo(() => {
-    const p = {};
+  // Node text. Full function names are always shown -- the old fixed 19px circles
+  // chopped anything past 7 characters ("tower_…", "move_d…"). Each node is now a
+  // pill whose width is measured from its own label.
+  const labelOf = (nm) => (nm === "__main__" ? "main" : nm);
+  const FONT = 10.5, CHAR_W = FONT * 0.62, HH = 14, PAD_X = 14;
+
+  const layout = useMemo(() => {
     const n = names.length;
-    const r = Math.min(88, 28 + n * 14);
-    names.forEach((nm, i) => {
-      const a = (2 * Math.PI * i) / Math.max(n, 1) - Math.PI / 2;
-      p[nm] = n === 1 ? { x: cx, y: cy } : { x: cx + r * 1.35 * Math.cos(a), y: cy + r * 0.85 * Math.sin(a) };
+    const box = {};
+    names.forEach((nm) => {
+      box[nm] = { hw: Math.max(24, (labelOf(nm).length * CHAR_W) / 2 + PAD_X), hh: HH };
     });
-    return p;
-  }, [names, cx, cy]);
+    const place = (rx, ry) => {
+      const g = {};
+      names.forEach((nm, i) => {
+        const ang = (2 * Math.PI * i) / Math.max(n, 1) - Math.PI / 2;
+        g[nm] = { ...box[nm], x: rx * Math.cos(ang), y: ry * Math.sin(ang), ox: n === 1 ? 0 : Math.cos(ang), oy: n === 1 ? -1 : Math.sin(ang) };
+      });
+      return g;
+    };
+    const overlaps = (g) => {
+      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+        const A = g[names[i]], B = g[names[j]];
+        if (Math.abs(A.x - B.x) < A.hw + B.hw + 18 && Math.abs(A.y - B.y) < A.hh + B.hh + 26) return true;
+      }
+      return false;
+    };
+    // Grow the ring until no two pills touch, so long names never collide.
+    let rx = n <= 1 ? 0 : 70 + n * 18, ry = n <= 1 ? 0 : 52 + n * 12;
+    let g = place(rx, ry);
+    for (let k = 0; k < 80 && overlaps(g); k++) { rx *= 1.08; ry *= 1.08; g = place(rx, ry); }
+    // viewBox hugs the drawing (+ room for self-loops) instead of a fixed 420x250,
+    // so wide labels are never clipped by the SVG edge.
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    names.forEach((nm) => {
+      const o = g[nm], loop = 46;
+      const down = o.oy > 0.15;
+      x0 = Math.min(x0, o.x - o.hw - 16); x1 = Math.max(x1, o.x + o.hw + 16);
+      y0 = Math.min(y0, o.y - o.hh - (down ? 0 : loop)); y1 = Math.max(y1, o.y + o.hh + (down ? loop : 0));
+    });
+    const M = 20;
+    if (!isFinite(x0)) { x0 = -100; x1 = 100; y0 = -60; y1 = 60; }
+    return { g, vb: { x: x0 - M, y: y0 - M, w: x1 - x0 + 2 * M, h: y1 - y0 + 2 * M } };
+  }, [names]);
+  const { g: geo, vb } = layout;
+
+  // Point where a ray leaving the node centre in direction (ux, uy) crosses its pill outline.
+  const rim = (o, ux, uy) => {
+    const t = Math.min(o.hw / Math.max(Math.abs(ux), 1e-6), o.hh / Math.max(Math.abs(uy), 1e-6)) + 2;
+    return { x: o.x + ux * t, y: o.y + uy * t };
+  };
+  // One arrow per caller->callee pair (repeated calls drew identical overlapping arrows).
+  const edges = useMemo(() => {
+    const seen = new Set();
+    return cg.edges.filter((e) => { const k = `${e.src}\u0000${e.dst}`; if (seen.has(k)) return false; seen.add(k); return true; });
+  }, [cg.edges]);
+  const isHot = (e) => !!cg.newestEdge && cg.newestEdge.src === e.src && cg.newestEdge.dst === e.dst;
 
   return (
     <div className="pr-pane pr-scene-pane">
       <div className="pr-pane-title">Call graph (BFS)</div>
       <div className="pr-pane-body pr-center">
-        <svg viewBox={`0 0 ${W} ${H}`} className="pr-cg-svg">
-          <defs>
-            <marker id="pr-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8" />
-            </marker>
-            <marker id="pr-arrow-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#7928CA" />
-            </marker>
-          </defs>
-          {cg.edges.map((e, i) => {
-            const a = pos[e.src], b = pos[e.dst];
-            if (!a || !b) return null;
-            const hot = cg.newestEdge === e;
-            if (e.src === e.dst) {
-              const loopUp = a.y > 65;
-              const y1 = loopUp ? a.y - 18 : a.y + 18;
-              const yCtrl = loopUp ? Math.max(8, a.y - 46) : a.y + 46;
+        {names.length > 0 && (
+          <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} className="pr-cg-svg" style={{ maxWidth: vb.w * 1.7 }} role="img" aria-label="Call graph">
+            <defs>
+              <marker id="pr-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#64748B" />
+              </marker>
+              <marker id="pr-arrow-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#7928CA" />
+              </marker>
+            </defs>
+            {edges.map((e, i) => {
+              const a = geo[e.src], b = geo[e.dst];
+              if (!a || !b) return null;
+              const hot = isHot(e);
+              const stroke = hot ? "#7928CA" : "#64748B";
+              const arrow = `url(#${hot ? "pr-arrow-hot" : "pr-arrow"})`;
+              if (e.src === e.dst) {
+                // Self-call: a loop leaving the top edge (nodes in the upper half) or the
+                // bottom edge (lower half), i.e. away from the middle of the graph so it
+                // can't run into arrows arriving from other nodes.
+                const dir = a.oy > 0.15 ? 1 : -1;
+                const yEdge = a.y + dir * (a.hh + 1);
+                const yTip = a.y + dir * (a.hh + 40);
+                return (
+                  <path key={i} d={`M ${a.x - 12} ${yEdge} C ${a.x - 34} ${yTip}, ${a.x + 34} ${yTip}, ${a.x + 12} ${yEdge + dir * 3}`}
+                    fill="none" stroke={stroke} strokeWidth={hot ? 2.2 : 1.4} markerEnd={arrow} />
+                );
+              }
+              const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+              const ux = dx / len, uy = dy / len;
+              const s0 = rim(a, ux, uy), e0 = rim(b, -ux, -uy);
+              const bend = 14;
+              const mx = (a.x + b.x) / 2 - uy * bend, my = (a.y + b.y) / 2 + ux * bend;
               return (
-                <path
-                  key={i}
-                  d={`M ${a.x - 10} ${y1} C ${a.x - 36} ${yCtrl}, ${a.x + 36} ${yCtrl}, ${a.x + 10} ${y1}`}
-                  fill="none"
-                  stroke={hot ? "#7928CA" : "#94a3b8"}
-                  strokeWidth={hot ? 2.2 : 1.4}
-                  markerEnd={`url(#${hot ? "pr-arrow-hot" : "pr-arrow"})`}
-                />
+                <path key={i} d={`M ${s0.x} ${s0.y} Q ${mx} ${my} ${e0.x} ${e0.y}`}
+                  fill="none" stroke={stroke} strokeWidth={hot ? 2.2 : 1.4} markerEnd={arrow} />
               );
-            }
-            const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
-            const ux = dx / len, uy = dy / len;
-            const bend = 14;
-            const mx = (a.x + b.x) / 2 - uy * bend, my = (a.y + b.y) / 2 + ux * bend;
-            return (
-              <path
-                key={i}
-                d={`M ${a.x + ux * 20} ${a.y + uy * 20} Q ${mx} ${my} ${b.x - ux * 22} ${b.y - uy * 22}`}
-                fill="none"
-                stroke={hot ? "#7928CA" : "#94a3b8"}
-                strokeWidth={hot ? 2.2 : 1.4}
-                markerEnd={`url(#${hot ? "pr-arrow-hot" : "pr-arrow"})`}
-              />
-            );
-          })}
-          {names.map((nm) => {
-            const p = pos[nm];
-            if (!p) return null;
-            const rec = cg.flagged && nm !== "__main__" && cg.recursive.includes(nm);
-            return (
-              <g key={nm}>
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={19}
-                  fill={nm === "__main__" ? "#EEF2FF" : "#F5F3FF"}
-                  stroke={rec ? "#EF4444" : "#7928CA"}
-                  strokeWidth={rec ? 3 : 1.6}
-                />
-                <text x={p.x} y={p.y + 4} textAnchor="middle" className="pr-cg-label">
-                  {nm === "__main__" ? "main" : nm.length > 7 ? nm.slice(0, 6) + "…" : nm}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+            })}
+            {names.map((nm) => {
+              const o = geo[nm];
+              if (!o) return null;
+              const rec = cg.flagged && nm !== "__main__" && cg.recursive.includes(nm);
+              return (
+                <g key={nm}>
+                  <title>{nm === "__main__" ? "main (module level)" : nm}</title>
+                  <rect x={o.x - o.hw} y={o.y - o.hh} width={o.hw * 2} height={o.hh * 2} rx={o.hh}
+                    fill={nm === "__main__" ? "#EEF2FF" : "#F5F3FF"}
+                    stroke={rec ? "#EF4444" : "#7928CA"} strokeWidth={rec ? 3 : 1.6} />
+                  <text x={o.x} y={o.y + 3.8} textAnchor="middle" className="pr-cg-label">{labelOf(nm)}</text>
+                </g>
+              );
+            })}
+          </svg>
+        )}
         {names.length === 0 && (
           <div className="pr-empty">
             {cg.flagged ? "No functions defined in this program (pure script execution)." : "Functions and calls appear as the BFS discovers them."}
@@ -935,6 +1032,7 @@ export default function PipelineReplay({ sourceCode }) {
     }
   }, [events]);
 
+  const layout = usePaneLayout();
   const derived = useMemo(() => (trace ? deriveState(trace, allEvents, cur) : null), [trace, allEvents, cur]);
 
   /* ---- guard states ---- */
@@ -992,30 +1090,45 @@ export default function PipelineReplay({ sourceCode }) {
     if (cur.stage === "topo") return <TopoScene topo={derived.topo} />;
     if (traversal) {
       return (
-        <div className={`pr-split ${astView === "tree" ? "wide" : ""}`}>
+        <Panes
+          id={astView === "tree" ? "split-tree" : "split-list"}
+          layout={layout}
+          className="pr-split"
+          sizes={astView === "tree" ? [62, 38] : [38, 62]}
+          min={[220, 240]}
+        >
           <AstTree nodes={trace.ast} upTo={Infinity} activeNode={derived.node} visited={derived.visited} visitSeq={derived.visitSeq} stmtOnly view={astView} onView={setAstView} />
-          <div className="pr-col">
-            {cur.stage === "signature" && (
-              <SignatureTable sigs={derived.sigs} order={derived.sigOrder} currentFunc={derived.currentFunc} />
-            )}
-            {cur.stage === "synthesis" && (
-              <div className="pr-block pr-cache">
-                <div className="pr-block-h">Loop re-classification cache</div>
-                <div className="pr-chip-row">
-                  <span className="pr-chip">Computed: {derived.cache.misses}</span>
-                  <span className="pr-chip strong">Cache hits: {derived.cache.hits}</span>
+          <Panes
+            id={cur.stage === "signature" ? "col-signature" : "col-synthesis"}
+            layout={layout}
+            direction="vertical"
+            className="pr-col"
+            sizes={cur.stage === "signature" ? [30, 70] : [22, 78]}
+            min={[60, 120]}
+          >
+            <div className="pr-col-top">
+              {cur.stage === "signature" && (
+                <SignatureTable sigs={derived.sigs} order={derived.sigOrder} currentFunc={derived.currentFunc} />
+              )}
+              {cur.stage === "synthesis" && (
+                <div className="pr-block pr-cache">
+                  <div className="pr-block-h">Loop re-classification cache</div>
+                  <div className="pr-chip-row">
+                    <span className="pr-chip">Computed: {derived.cache.misses}</span>
+                    <span className="pr-chip strong">Cache hits: {derived.cache.hits}</span>
+                  </div>
+                  {detail === "key" && <div className="pr-muted small">Switch to “Every step” to watch each cache lookup.</div>}
                 </div>
-                {detail === "key" && <div className="pr-muted small">Switch to “Every step” to watch each cache lookup.</div>}
-              </div>
-            )}
+              )}
+            </div>
             <Ledger
               rows={derived.rows}
               activeLine={derived.line}
               title={cur.stage === "signature" ? "Rule applications (signature pass)" : "Per-line local/global weights"}
               showFunc={cur.stage === "signature"}
             />
-          </div>
-        </div>
+          </Panes>
+        </Panes>
       );
     }
     if (cur.stage === "master") return <MasterScene items={derived.master} symbolCount={trace?.final?.symbol_table?.length ?? 0} />;
@@ -1052,10 +1165,10 @@ export default function PipelineReplay({ sourceCode }) {
         {trace.truncated && <span className="pr-chip warn" title="Event budget reached: some per-node steps were not recorded">events trimmed</span>}
       </div>
 
-      <div className="pr-main">
+      <Panes id="main" layout={layout} className="pr-main" sizes={[32, 68]} min={[160, 320]}>
         <SourcePane lines={trace.source} activeLine={derived.line} />
         <div className="pr-scene">{scene}</div>
-      </div>
+      </Panes>
 
       <div className="pr-caption" aria-live="polite">
         <span className="pr-caption-stage">{stageDef.label}</span>
@@ -1085,6 +1198,7 @@ export default function PipelineReplay({ sourceCode }) {
             {SPEEDS.map((s) => <option key={s} value={s}>{s}×</option>)}
           </select>
         </label>
+        <button type="button" className="pr-btn" onClick={layout.reset} title="Reset panel sizes to the default layout" aria-label="Reset panel layout"><FiLayout /></button>
         <div className="pr-seg" role="group" aria-label="Detail level">
           <button type="button" className={detail === "key" ? "on" : ""} onClick={() => changeDetail("key")}>Key steps</button>
           <button type="button" className={detail === "all" ? "on" : ""} onClick={() => changeDetail("all")}>Every step</button>

@@ -90,8 +90,13 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
 
   const graphSignature = JSON.stringify(callGraph);
 
-  const NODE_W = 180;
+  const NODE_W = 180;   // minimum node width
   const NODE_H = 60;
+  // Nodes grow to fit their full function name. A fixed 180px box let long names
+  // (e.g. calculate_fibonacci_with_memoization()) spill out past both edges and
+  // collide with edge labels. 14px bold Consolas is ~8.6px per character.
+  const labelFor = (id) => (id === "__main__" ? "Main Program" : `${id}()`);
+  const widthOf = (id) => Math.max(NODE_W, Math.ceil(labelFor(id).length * 8.6) + 44);
 
   // Layout Engine
   const { nodes, edges, layoutWidth, layoutHeight } = useMemo(() => {
@@ -134,7 +139,8 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
     });
 
     const Y_SPACING = 160;
-    const MIN_X_SPACING = 280; 
+    const widest = rawNodes.reduce((m, id) => Math.max(m, widthOf(id)), NODE_W);
+    const MIN_X_SPACING = Math.max(280, widest + 110);
 
     let maxNodesInLayer = 0;
     Object.values(layers).forEach(layerNodes => {
@@ -511,13 +517,15 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
               let pathData = "";
               let labelX, labelY;
 
+              const halfS = widthOf(source) / 2, halfT = widthOf(target) / 2;
               if (isSelf) {
-                pathData = `M ${sx + NODE_W/2},${sy - 15} C ${sx + NODE_W/2 + 60},${sy - 50} ${sx + NODE_W/2 + 60},${sy + 50} ${sx + NODE_W/2},${sy + 15}`;
-                labelX = sx + NODE_W/2 + 60;
+                pathData = `M ${sx + halfS},${sy - 15} C ${sx + halfS + 60},${sy - 50} ${sx + halfS + 60},${sy + 50} ${sx + halfS},${sy + 15}`;
+                labelX = sx + halfS + 60;
                 labelY = sy;
               } else if (isBack) {
-                pathData = `M ${sx - NODE_W/2},${sy} C ${sx - NODE_W/2 - 80},${sy} ${tx - NODE_W/2 - 80},${ty} ${tx - NODE_W/2},${ty}`;
-                labelX = (sx + tx) / 2 - NODE_W/2 - 60;
+                const left = Math.max(halfS, halfT);
+                pathData = `M ${sx - halfS},${sy} C ${sx - left - 80},${sy} ${tx - left - 80},${ty} ${tx - halfT},${ty}`;
+                labelX = (sx + tx) / 2 - left - 60;
                 labelY = (sy + ty) / 2;
               } else {
                 const midY = (sy + ty) / 2;
@@ -616,7 +624,8 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
               }
 
               // Short label drawn inside the node box on the canvas.
-              const nodeLabelText = isMain ? "Main Program" : `${node.id}()`;
+              const nodeLabelText = labelFor(node.id);
+              const nodeW = widthOf(node.id);
               // Fuller, unambiguous title shown in the hover tooltip -- makes
               // clear which specific function is being inspected.
               const tooltipTitle = isMain
@@ -636,9 +645,9 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
                   style={{ cursor: 'help' }}
                 >
                   <rect
-                    x={-NODE_W/2} 
+                    x={-nodeW/2} 
                     y={-NODE_H/2} 
-                    width={NODE_W} 
+                    width={nodeW} 
                     height={NODE_H} 
                     rx="8"
                     fill={bgColor}
