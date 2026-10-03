@@ -27,8 +27,8 @@ from typing import List, Tuple
 
 from complexity_explainer.explanation_signals import PatternSignals
 
-MAX_TIME_INSIGHTS = 6
-MAX_SPACE_INSIGHTS = 5
+MAX_TIME_INSIGHTS = 3
+MAX_SPACE_INSIGHTS = 2
 
 # If a line-specific note already teaches a topic, the older generic signal note on
 # the same topic is dropped instead of being said twice.
@@ -61,6 +61,31 @@ def _topics(text: str) -> set:
     return {k for k, rx in _TOPIC_PATTERNS.items() if rx.search(low)}
 
 
+def _brief(text: str, max_sentences: int = 2) -> str:
+    """Keep the first `max_sentences` sentences of a note (idea + reason).
+
+    Splits only on sentence-ending punctuation that is outside `code`, followed by a
+    space and the start of a new sentence, so `O(n log n).` or `a[i]. x` stay intact.
+    Notes containing lists/line breaks are left alone."""
+    if "\n" in text:
+        return text
+    parts, buf, in_code = [], [], False
+    for i, ch in enumerate(text):
+        buf.append(ch)
+        if ch == "`":
+            in_code = not in_code
+        elif (not in_code and ch in ".!?" and i + 1 < len(text) and text[i + 1] == " "
+              and i + 2 < len(text) and (text[i + 2].isupper() or text[i + 2] in "*`(")
+              and not "".join(buf[-4:]).lower().endswith(("e.g.", "i.e."))):
+            parts.append("".join(buf).strip())
+            buf = []
+    if buf:
+        parts.append("".join(buf).strip())
+    if len(parts) <= max_sentences:
+        return text
+    return " ".join(parts[:max_sentences])
+
+
 class InsightGatherers:
     """Bottleneck/insight collection. Composed into EducationalInsightGenerator
     as `self.insight_gatherers`; reads shared state via `self.generator`."""
@@ -72,7 +97,9 @@ class InsightGatherers:
     def _top(candidates: List[Tuple[int, str]], limit: int) -> List[str]:
         # stable sort: priority first, original discovery order preserved within a tier
         ordered = sorted(enumerate(candidates), key=lambda x: (x[1][0], x[0]))
-        return [text for _, (_, text) in ordered][:limit]
+        # traps (priority 0) keep their full "what to do instead" advice; everything
+        # else is trimmed to idea + reason so the panel stays short and readable
+        return [(text if pri == 0 else _brief(text)) for _, (pri, text) in ordered][:limit]
 
     @staticmethod
     def _merge(line_notes: List[Tuple[int, str]], signal_notes: List[Tuple[int, str]]) -> List[Tuple[int, str]]:

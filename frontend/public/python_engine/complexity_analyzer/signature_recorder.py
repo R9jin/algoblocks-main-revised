@@ -342,7 +342,9 @@ class SignatureRecorder:
             elif isinstance(func_obj, ast.Attribute):
                 builtin_desc = self.analyzer.builtin_complexities.get(func_obj.attr, {}).get('desc')
 
-        if builtin_desc and not is_dead:
+        # The line-specific sentence from the narrator already says what the line does;
+        # the canned built-in description is only a fallback for when there is none.
+        if builtin_desc and not is_dead and not (time_exp or "").strip():
             if builtin_desc not in time_exp:
                 time_exp = builtin_desc + ("\n\n" + time_exp if time_exp and time_exp != "Function call." else "")
 

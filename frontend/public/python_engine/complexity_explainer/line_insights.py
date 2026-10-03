@@ -33,7 +33,7 @@ from complexity_explainer.growth_insight import (
 
 Note = Tuple[int, str]
 
-# Rough speed of CPython for simple bytecode-level steps. Only used for
+# Very rough speed of a typical computer for simple steps. Only used for
 # "reality check" intuition -- deliberately round, never presented as a benchmark.
 STRICT = False  # tests flip this on so teaching-text bugs raise instead of being swallowed
 
@@ -671,7 +671,7 @@ class LineInsights:
             if isinstance(value.slice, ast.Slice):
                 out.append((1, f"**A slice makes a copy:** `{_src(value, 30)}` builds a brand-new list/string containing the selected items. Its cost is proportional to how many items it copies (k), not O(1). Pass index bounds instead of slicing when this sits in a loop or a recursion."))
             else:
-                out.append((1, f"**Reading by position:** `{_src(value, 30)}` jumps straight to the item -- Python computes the memory address from the index, so it is O(1) whether the list has 10 items or 10 million. (On a dict the same syntax hashes the key: O(1) on average.)"))
+                out.append((1, f"**Reading by position:** `{_src(value, 30)}` jumps straight to the item -- the position tells it exactly where to look, so it is O(1) whether the list has 10 items or 10 million. (On a dict the same syntax hashes the key: O(1) on average.)"))
         elif isinstance(value, ast.BinOp) and isinstance(value.op, ast.Add) and (self._looks_list(value.left) or self._looks_list(value.right)):
             out.append((0, f"**`+` on lists copies both:** `{_src(value, 35)}` builds a *new* list holding the items of both operands -- O(len(a) + len(b)) time and memory. Inside a loop, `x = x + [item]` re-copies the growing list every pass (n x n total); `x.append(item)` adds in O(1) and is the fix."))
         elif isinstance(value, ast.BinOp) and isinstance(value.op, ast.Mult) and (isinstance(value.left, (ast.List, ast.Constant)) or isinstance(value.right, (ast.List, ast.Constant))) and (isinstance(value.left, ast.List) or isinstance(value.right, ast.List)):
@@ -894,7 +894,7 @@ class LineInsights:
         if nested:
             out.append((1, f"**A nested comprehension is a nested loop:** with {len(gens)} `for` clauses ({iters}) the expression runs once for every *combination* -- the clauses multiply, exactly like loops nested inside each other."))
         else:
-            out.append((1, f"**A comprehension is a loop in disguise:** it visits every item of {iters} once and evaluates the expression each time -- same O(n) work as the equivalent `for` loop, just compact (and usually a bit faster, because the looping happens inside the interpreter)."))
+            out.append((1, f"**A comprehension is a loop in disguise:** it visits every item of {iters} once and evaluates the expression each time -- same O(n) work as the equivalent `for` loop, just written in one line."))
         if filt:
             out.append((2, "**The filter does not skip the visiting:** an `if` at the end only decides which results are *kept*. Every source item is still examined, so the time follows the size of the source, not of the result."))
         if kind == "generator":
@@ -972,24 +972,24 @@ class LineInsights:
             return []
         if is_constant(t):
             return [(2, self.generator._v(
-                "**Reality check:** constant time means the cost does not depend on input size at all -- a million-item input and a ten-item input take the same number of steps here. That is the best class there is, and the reason hash lookups and index reads are prized.",
-                "**Scale intuition:** feed this line 10 items or 10 billion and it does the same handful of operations. That flat curve is what you are always hoping for when you replace a scan with an index, a hash lookup, or a running total.",
-                "**What O(1) buys you:** the step count stays put as n grows, so this line will never be the reason a large input feels slow. Look further down the list for the lines whose cost climbs with n.",
+                "**Why O(1) is great:** a ten-item input and a million-item input take the same number of steps here, so this line is never what makes a big input slow.",
+                "**Scale check:** with 10 items or 10 billion, this line does the same few operations. Look at the lines whose cost grows with n instead.",
+                "**What O(1) means:** the number of steps stays the same as n grows, so this line is never the slow part.",
             ))]
         n_ok = _feasible_n(t)
         if t.kind in ("exp", "fact"):
             n_txt = f"only up to about n = {n_ok}" if n_ok else "only for tiny n"
             big = 40 if t.kind == "exp" else 20
             secs = evaluate(t, big) / OPS_PER_SECOND
-            return [(2, f"**Reality check:** CPython runs very roughly 10 million simple steps per second. At `{global_t}` that budget lasts {n_txt}; by n = {big} the work is about {_fmt(evaluate(t, big))} steps -- {_fmt_time(secs)}. Explosive growth cannot be fixed with faster hardware, only with a better algorithm (e.g. caching or pruning).")]
+            return [(2, f"**How big can n get?** A computer does very roughly 10 million simple steps per second. At `{global_t}` that only lasts {n_txt}; at n = {big} it needs about {_fmt(evaluate(t, big))} steps ({_fmt_time(secs)}). A faster computer will not fix this -- a better algorithm will (e.g. saving answers or skipping dead ends).")]
         ref = 100_000 if (t.kind == "poly" and t.poly >= 2) else 1_000_000
         steps = evaluate(t, ref)
         secs = steps / OPS_PER_SECOND
         limit_txt = f"stays within about a second up to roughly n = {n_ok:,}" if n_ok else "is fast at any size you would realistically use"
         return [(2, self.generator._v(
-            f"**Reality check:** CPython runs very roughly 10 million simple steps per second, so `{global_t}` {limit_txt}. At n = {ref:,} it is about {_fmt(steps)} steps -- {_fmt_time(secs)}. (A rough yardstick for intuition, not a benchmark.)",
-            f"**What this means for real inputs:** with Python doing about 10 million simple steps a second, `{global_t}` {limit_txt}. Push n to {ref:,} and you are looking at about {_fmt(steps)} steps -- {_fmt_time(secs)}.",
-            f"**Will it be fast enough?** Rule of thumb: ~10 million basic steps per second in CPython. For `{global_t}` that {limit_txt}; at n = {ref:,} expect about {_fmt(steps)} steps, or {_fmt_time(secs)}.",
+            f"**How big can n get?** A computer does very roughly 10 million simple steps per second, so `{global_t}` {limit_txt}. At n = {ref:,} that is about {_fmt(steps)} steps ({_fmt_time(secs)}). This is a rough guide, not a benchmark.",
+            f"**What this means for real inputs:** at about 10 million simple steps a second, `{global_t}` {limit_txt}. At n = {ref:,} expect about {_fmt(steps)} steps ({_fmt_time(secs)}).",
+            f"**Will it be fast enough?** Rule of thumb: about 10 million basic steps per second. For `{global_t}` that {limit_txt}; at n = {ref:,} expect about {_fmt(steps)} steps, or {_fmt_time(secs)}.",
         ))]
 
     # ==================================================================

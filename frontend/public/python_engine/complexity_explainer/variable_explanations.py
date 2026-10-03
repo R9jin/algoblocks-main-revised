@@ -11,6 +11,7 @@ import re
 from typing import Any, Dict, List, Optional, Set
 
 from complexity_explainer.explanation_signals import BigOInfo, MemorySignals, ComplexitySignals, AlgorithmicParadigms, PatternSignals
+from complexity_explainer.statement_narrator import StatementNarrator
 from complexity_explainer.growth_insight import (
     parse_complexity, is_constant, scaling_line, doubling_effect, context_factor, growth_word,
 )
@@ -154,9 +155,53 @@ class VariableExplanations:
     # -------------------------------------------------------------------
     # Line intro: "what is this line doing?"
     # -------------------------------------------------------------------
+    # one short plain-words hint per recognised technique, appended after the
+    # line-specific sentence (so the sentence itself always comes from the code)
+    _PARADIGM_HINTS = (
+        ("is_halving", "Cutting the problem in half like this is what makes a search O(log n)."),
+        ("is_two_pointer", "Two positions closing in on each other is the two-pointer technique."),
+        ("is_kadane", "Keeping a running best value like this is the idea behind Kadane's algorithm."),
+        ("is_priority_queue", "A heap always keeps the smallest (or largest) item ready to take."),
+        ("is_tabulation_setup", "Building the table first is dynamic-programming tabulation."),
+        ("is_fibonacci_sequence", "Sliding two values forward together is the Fibonacci pattern."),
+        ("is_brian_kernighan", "Clearing the lowest set bit each time is Brian Kernighan's bit trick."),
+        ("is_combinatorics", "Counts like this (factorials, permutations) grow extremely fast."),
+        ("is_euclidean_distance", "A straight-line distance needs a square root."),
+        ("is_union_find", "This is a Union-Find (disjoint set) step: it checks whether two items share a group."),
+    )
+
+    def _narrate_line(self, node: ast.AST) -> Optional[str]:
+        """The syntax-reading sentence for this line, or None if there is nothing specific to say."""
+        gen = self.generator
+        line_no = getattr(node, "lineno", -1)
+        try:
+            stmt, _extra = gen.line_insights._resolve_stmt(node, line_no)
+        except Exception:
+            stmt = node
+        shape = gen.shape
+        fname = shape.enclosing_function(line_no)
+        try:
+            recursive = list(shape.recursion_facts()["recursive"].keys())
+        except Exception:
+            recursive = []
+        params = []
+        for f in shape._func_nodes:
+            if f.name == fname:
+                params = [a.arg for a in f.args.args + f.args.kwonlyargs]
+                break
+        narrator = StatementNarrator(pick=gen._v, function_name=fname, recursive_funcs=recursive, params=params)
+        return narrator.narrate(stmt)
+
     def _build_action_intro(self, node: ast.AST, code_snippet: str, sig: PatternSignals) -> str:
         ref = f"`{code_snippet}`" if code_snippet else "this line"
 
+        # 1) read the line's own syntax and say what it does, in plain words
+        narrated = self._narrate_line(node)
+        if narrated and not (sig.has_docstring or sig.has_comment_block):
+            hint = next((txt for attr, txt in self._PARADIGM_HINTS if getattr(sig.paradigms, attr, False)), "")
+            return f"{narrated} {hint}".strip()
+
+        # 2) otherwise fall back to the older construct-level wording
         if sig.paradigms.is_halving:
             return self.generator._v(
                 f"{ref} cuts the problem in half. That halving is the whole reason logarithmic algorithms are so fast.",
@@ -409,8 +454,7 @@ class VariableExplanations:
         # compound statement that merely *contains* an amortized call.
         if sig.complexity_signals.amortized_operation and not compound:
             return self.generator._v(
-                "On its own, this is O(1) on average. Every once in a while it needs a little extra work behind the scenes (like resizing a list), but spread out over many calls, it still averages out to constant time.",
-                "This is what's called \"amortized O(1)\": almost always instant, with the occasional slightly-more-expensive call balancing out over time.",
+                "On its own, this line is O(1) on average: usually instant, with an occasional slower call that evens out over many calls.",
             )
 
         if isinstance(node, ast.If):
@@ -423,25 +467,25 @@ class VariableExplanations:
 
         if family == "constant":
             return self.generator._v(
-                "By itself, this line is O(1) -- it does a fixed amount of work no matter how big the input is.",
-                "On its own, this is a constant-time step: one operation, done once.",
+                "On its own, this line is O(1): one quick step, no matter how big the input is.",
+                "On its own, this line is O(1): it does the same small amount of work every time.",
             )
         elif family == "linear":
             return self.generator._v(
-                f"On its own, this line is {local_info.raw} -- it has to touch every item in whatever it's working with.",
-                f"By itself, this step costs {local_info.raw}: the work grows one-to-one with the size of the data.",
+                f"On its own, this line is {local_info.raw}: it looks at every item once.",
+                f"On its own, this line is {local_info.raw}: twice as much data means about twice the work.",
             )
         elif family == "logarithmic":
             return self.generator._v(
-                f"By itself, this step is {local_info.raw} -- it cuts down the amount of work it has left with each step, so it stays fast even on large inputs.",
-                f"On its own, this runs in {local_info.raw}, since it keeps shrinking the problem instead of checking everything.",
+                f"On its own, this line is {local_info.raw}: each step throws away part of the work, so it stays fast on big inputs.",
+                f"On its own, this line is {local_info.raw}: it keeps shrinking the problem instead of checking everything.",
             )
         elif family == "linearithmic":
-            return f"On its own, this step costs {local_info.raw} -- a full pass over the data combined with about log n levels of splitting or comparing, the signature of efficient sorting."
+            return f"On its own, this line is {local_info.raw}: a full pass over the data, repeated about log n times (the cost of an efficient sort)."
         elif family == "polynomial":
             return self.generator._v(
-                f"On its own, this step is {local_info.raw} -- it repeats work in a nested way, so the cost grows faster than just linear.",
-                f"By itself, this line costs {local_info.raw}. That usually means one loop is doing repeated work for every step of another loop.",
+                f"On its own, this line is {local_info.raw}: it repeats work inside work, so the cost grows faster than linear.",
+                f"On its own, this line is {local_info.raw}: usually one loop running fully for every step of another loop.",
             )
         elif "placeholder" in local_info.raw or local_info.raw.startswith("T("):
             calls = self._recursive_calls_on_line(node, line_no)
@@ -459,7 +503,7 @@ class VariableExplanations:
 
         if sig.has_docstring or sig.has_comment_block:
             return self.generator._v(
-                "Documentation doesn't use any memory while the program runs, so this is O(1).",
+                "Comments don't use memory while the program runs, so this is O(1).",
             )
 
         if sig.memory_signals.inplace_swap and not self._is_compound(node):

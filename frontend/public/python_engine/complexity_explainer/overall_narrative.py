@@ -20,6 +20,7 @@ from complexity_explainer.explanation_signals import BigOInfo, PatternSignals
 from complexity_explainer.growth_insight import (
     parse_complexity, is_constant, scaling_line, doubling_effect, growth_word,
 )
+from complexity_explainer import paradigm_detector
 
 _HIERARCHY = ["1", "log min", "log", "sqrt", "n", "m", "V", "V + E", "n log n", "n^2", "n * m", "n^3", "2^n", "3^n", "n!", "n * n!"]
 
@@ -55,8 +56,15 @@ class OverallNarrative:
         static_note = self._static_only_note()
         summary = self._build_complexity_summary(t_info, s_info, sig, final_time, final_space, dominant)
 
+        try:
+            approach = paradigm_detector.describe(paradigm_detector.detect(gen.shape.tree))
+        except Exception:
+            approach = ""
+        approach_md = ("#### Type of Algorithm\n" + approach + "\n\n") if approach else ""
+
         md = (
             "### Overall Complexity Analysis\n\n"
+            + approach_md +
             "#### Overall Time Complexity\n"
             f"{time_narrative}\n\n"
             "**Working Through the Math**\n"
