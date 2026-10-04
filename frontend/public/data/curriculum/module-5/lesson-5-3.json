@@ -94,7 +94,6 @@
                 "note": "Greedy only takes one pass -- fast, but as the surrounding lesson shows, not always correct for Knapsack.",
                 "line": 5,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 5
@@ -125,7 +124,6 @@
                 "note": "Greedy only takes one pass -- fast, but as the surrounding lesson shows, not always correct for Knapsack.",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -160,7 +158,6 @@
                 "note": "Greedy only takes one pass -- fast, but as the surrounding lesson shows, not always correct for Knapsack.",
                 "line": 7,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 7
@@ -175,7 +172,45 @@
             "            capacity -= item.weight",
             "            total_value += item.value",
             "    return total_value"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(1)",
+            "formula": "Constant auxiliary space"
+          }
         }
       ]
     },

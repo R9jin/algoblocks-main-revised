@@ -1,0 +1,65 @@
+/* frontend/src/styles/PipelineMode.css
+ * MainApp rendered with pipelineMode (admin /admin/pipeline): the normal
+ * workspace on top, the full-width Pipeline replay underneath. */
+
+.workspace-app-container.pipeline-mode {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+
+/* Fixed-height stage so Blockly / Monaco / the dock can size themselves. */
+.pipeline-mode .workspace-split {
+  flex: none;
+  height: 92vh;
+  min-height: 560px;
+}
+
+.pm-section-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  background: var(--panel-bg, #fff);
+  border-bottom: 1px solid rgba(90, 19, 152, 0.18);
+  color: var(--text-main, #241b52);
+}
+
+.pm-section-bar > div { display: flex; flex-direction: column; min-width: 0; }
+.pm-section-bar strong { font-size: 1.05rem; font-weight: 800; }
+.pm-section-bar span:not(.pm-step-badge) { font-size: 0.85rem; opacity: 0.75; line-height: 1.4; }
+
+.pm-step-badge {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #5a1398, #8b5cf6);
+}
+
+/* Full browser width, same as the workspace above -- the AST tree and the
+   stage scene need the room. */
+.pm-pipeline-section {
+  width: 100%;
+  margin-top: 8px;
+  border-top: 3px solid #8b5cf6;
+  background: var(--app-bg);
+}
+
+.pm-pipeline-frame {
+  width: 100%;
+  height: 96vh;
+  min-height: 680px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (max-width: 720px) {
+  .pipeline-mode .workspace-split { height: 85vh; }
+  .pm-pipeline-frame { height: 90vh; min-height: 560px; }
+}

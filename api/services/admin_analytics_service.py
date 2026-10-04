@@ -208,6 +208,10 @@ def _submission_raw_row(email: str, sub: Any) -> Dict[str, Any]:
             "email": email, "moduleId": None, "activityId": None, "type": None,
             "status": None, "code_unchanged": False, "tsr_passed": None,
             "tsr_total": None, "final_aes": None, "rog": None,
+            "initial_aes": None, "latest_aes": None,
+            "target_time": None, "target_space": None,
+            "baseline_time": None, "baseline_space": None,
+            "latest_time": None, "latest_space": None,
             "functional_passed": 0, "functional_total": 0,
             "complexity_passed": 0, "complexity_total": 0,
             "hidden_passed": 0, "hidden_total": 0, "timestamp": None,
@@ -230,6 +234,12 @@ def _submission_raw_row(email: str, sub: Any) -> Dict[str, Any]:
     if not _is_optimization_submission(sub):
         rog = None
 
+    def _num_or_none(value: Any) -> Optional[float]:
+        return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+    def _text_or_none(value: Any) -> Optional[str]:
+        return value if isinstance(value, str) and value.strip() else None
+
     return {
         "email": email,
         "moduleId": sub.get("moduleId") or "unknown",
@@ -244,6 +254,20 @@ def _submission_raw_row(email: str, sub: Any) -> Dict[str, Any]:
         "tsr_total": total if counts else None,
         "final_aes": final_aes,
         "rog": rog,
+        # Raw inputs of the AES / ROG formulas, exactly as the learner's last
+        # evaluation stored them. The Excel report recomputes AES and ROG from
+        # these with real cell formulas (AES = floor(TSR x efficiency x 100),
+        # efficiency = mean of the time and space ratios, ROG = final AES -
+        # baseline AES), then reconciles the result against final_aes / rog
+        # above. Nothing here is derived; each is a stored observation.
+        "initial_aes": _num_or_none(sub.get("initial_aes")),
+        "latest_aes": _num_or_none(sub.get("latest_aes")),
+        "target_time": _text_or_none(sub.get("target_complexity")),
+        "target_space": _text_or_none(sub.get("target_space_complexity")),
+        "baseline_time": _text_or_none(sub.get("baseline_actual_complexity")),
+        "baseline_space": _text_or_none(sub.get("baseline_actual_space_complexity")),
+        "latest_time": _text_or_none(sub.get("latest_actual_complexity")),
+        "latest_space": _text_or_none(sub.get("latest_actual_space_complexity")),
         "functional_passed": breakdown["functional"]["passed"],
         "functional_total": breakdown["functional"]["total"],
         "complexity_passed": breakdown["complexity"]["passed"],

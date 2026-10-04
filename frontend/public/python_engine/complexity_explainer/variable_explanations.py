@@ -11,6 +11,10 @@ import re
 from typing import Any, Dict, List, Optional, Set
 
 from complexity_explainer.explanation_signals import BigOInfo, MemorySignals, ComplexitySignals, AlgorithmicParadigms, PatternSignals
+from complexity_explainer.statement_narrator import StatementNarrator
+from complexity_explainer.growth_insight import (
+    parse_complexity, is_constant, scaling_line, doubling_effect, context_factor, growth_word,
+)
 
 class VariableExplanations:
     """Per-line, per-variable NLG. Composed into EducationalInsightGenerator
@@ -122,7 +126,10 @@ class VariableExplanations:
 
         if c == "o(1)" or "amortized" in c:
             family = "constant"
-        elif "n log n" in c:
+        elif "n^" in c or "n²" in c or "n³" in c or "n * m" in c or "n^d" in c:
+            # polynomial first: "n^2 log n" contains "log" but is NOT logarithmic
+            family = "polynomial"
+        elif "n log n" in c or "n * log n" in c:
             family = "linearithmic"
         elif "log" in c:
             family = "logarithmic"
@@ -148,9 +155,73 @@ class VariableExplanations:
     # -------------------------------------------------------------------
     # Line intro: "what is this line doing?"
     # -------------------------------------------------------------------
+    # one short plain-words hint per recognised technique, appended after the
+    # line-specific sentence (so the sentence itself always comes from the code)
+    _PARADIGM_HINTS = (
+        ("is_halving", "Cutting the problem in half like this is what makes a search O(log n)."),
+        ("is_two_pointer", "Two positions closing in on each other is the two-pointer technique."),
+        ("is_kadane", "Keeping a running best value like this is the idea behind Kadane's algorithm."),
+        ("is_priority_queue", "A heap always keeps the smallest (or largest) item ready to take."),
+        ("is_tabulation_setup", "Building the table first is dynamic-programming tabulation."),
+        ("is_fibonacci_sequence", "Sliding two values forward together is the Fibonacci pattern."),
+        ("is_brian_kernighan", "Clearing the lowest set bit each time is Brian Kernighan's bit trick."),
+        ("is_combinatorics", "Counts like this (factorials, permutations) grow extremely fast."),
+        ("is_euclidean_distance", "A straight-line distance needs a square root."),
+        ("is_union_find", "This is a Union-Find (disjoint set) step: it checks whether two items share a group."),
+    )
+
+    def _narrate_line(self, node: ast.AST) -> Optional[str]:
+        """The syntax-reading sentence for this line, or None if there is nothing specific to say."""
+        gen = self.generator
+        line_no = getattr(node, "lineno", -1)
+        try:
+            stmt, _extra = gen.line_insights._resolve_stmt(node, line_no)
+        except Exception:
+            stmt = node
+        shape = gen.shape
+        fname = shape.enclosing_function(line_no)
+        try:
+            recursive = list(shape.recursion_facts()["recursive"].keys())
+        except Exception:
+            recursive = []
+        params = []
+        for f in shape._func_nodes:
+            if f.name == fname:
+                params = [a.arg for a in f.args.args + f.args.kwonlyargs]
+                break
+        narrator = StatementNarrator(pick=gen._v, function_name=fname, recursive_funcs=recursive, params=params)
+        return narrator.narrate(stmt)
+
+    def _key_line_note(self, line_no: int) -> str:
+        """If this line is one of the lines that made the whole program look like a
+        known approach (brute force, DP, backtracking...), say so, in plain words."""
+        gen = self.generator
+        try:
+            from complexity_explainer import paradigm_detector
+            shape = gen.shape
+            cache = gen.__dict__.setdefault("_paradigm_cache", {})
+            key = (id(shape), id(shape.tree))
+            if key not in cache:
+                cache.clear()
+                cache[key] = paradigm_detector.detect(shape.tree)
+            top = cache[key][:1]
+            if top and line_no in top[0].lines:
+                return f"This is a key line of the {top[0].name.split(' (')[0].lower()} approach used in this code."
+        except Exception:
+            pass
+        return ""
+
     def _build_action_intro(self, node: ast.AST, code_snippet: str, sig: PatternSignals) -> str:
         ref = f"`{code_snippet}`" if code_snippet else "this line"
 
+        # 1) read the line's own syntax and say what it does, in plain words
+        narrated = self._narrate_line(node)
+        if narrated and not (sig.has_docstring or sig.has_comment_block):
+            hint = next((txt for attr, txt in self._PARADIGM_HINTS if getattr(sig.paradigms, attr, False)), "")
+            key = self._key_line_note(getattr(node, "lineno", -1))
+            return " ".join(x for x in (narrated, hint, key) if x).strip()
+
+        # 2) otherwise fall back to the older construct-level wording
         if sig.paradigms.is_halving:
             return self.generator._v(
                 f"{ref} cuts the problem in half. That halving is the whole reason logarithmic algorithms are so fast.",
@@ -298,10 +369,91 @@ class VariableExplanations:
         return self.generator._v(f"{ref} performs a step in the algorithm.")
 
     # -------------------------------------------------------------------
+    # Helpers shared by the local/global builders below
+    # -------------------------------------------------------------------
+    _COMPOUND = (ast.For, ast.AsyncFor, ast.While, ast.If, ast.With, ast.AsyncWith, ast.Try, ast.FunctionDef, ast.AsyncFunctionDef)
+
+    def _is_compound(self, node) -> bool:
+        return isinstance(node, self._COMPOUND)
+
+    def _own_loop(self, node, line_no):
+        """LoopInfo for the loop that starts on this very line, if any."""
+        if not isinstance(node, (ast.For, ast.AsyncFor, ast.While)):
+            return None
+        for lp in self.generator.shape.enclosing_loops(line_no, include_self=True):
+            if lp.lineno == line_no:
+                return lp
+        return None
+
+    @staticmethod
+    def _loop_word(n: int) -> str:
+        return {1: "one loop", 2: "two nested loops", 3: "three nested loops"}.get(n, f"{n} nested loops")
+
+    @staticmethod
+    def _repeat_verb(n: int) -> str:
+        return "repeats" if n == 1 else "repeat"
+
+    def _tracer_ran(self) -> bool:
+        """True only when the test run actually executed *body* lines. If the
+        learner's functions were never called, per-line 'did not run' notes would
+        just be noise on every line, so they are skipped."""
+        td = getattr(self.generator.ctx, "trace_data", None) or {}
+        hits = td.get("line_hits") or {}
+        def_lines = {f.lineno for f in self.generator.shape._func_nodes}
+        return any(h > 0 and ln not in def_lines for ln, h in hits.items())
+
+    def _build_observed_note(self, node, hits: int, is_dead: bool) -> str:
+        """Ties the static result to what actually happened in the learner's
+        last test run (the manuscript's frequency-count feature)."""
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) or is_dead:
+            return ""
+        if hits > 0:
+            return self.generator._v(
+                f"\n\n*Profiler verified* this line ran {hits} time(s) in your last test run. "
+                f"That count is real data behind the Big-O: run it again with a bigger input and watch how quickly the number grows.",
+                f"\n\n*Profiler verified* this line executed {hits} time(s) during your last test run -- its frequency count. "
+                f"Try a larger input: how this number grows is exactly what the Big-O describes.",
+            )
+        if self._tracer_ran():
+            return (
+                "\n\n*Profiler verified* this line did not run in your last test (the function may never be called, or its branch wasn't taken). "
+                "The analysis is static -- it never executes your code -- so the worst-case cost still counts."
+            )
+        return ""
+
+    def _recursive_calls_on_line(self, node, line_no):
+        """[(call_text, how_it_shrinks)] for calls to the enclosing function on this line."""
+        fn = self.generator.shape.enclosing_function(line_no)
+        if not fn or node is None:
+            return []
+        out = []
+        for n in ast.walk(node):
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == fn:
+                try:
+                    txt = ast.unparse(n)
+                except Exception:
+                    txt = f"{fn}(...)"
+                shrink = ""
+                for a in n.args[:1]:
+                    try:
+                        a_txt = ast.unparse(a).replace(" ", "")
+                    except Exception:
+                        a_txt = ""
+                    if re.fullmatch(r"\w+-\d+", a_txt):
+                        shrink = f"the problem shrinks by {a_txt.split('-')[1]}"
+                    elif re.fullmatch(r"\w+(//|/)2", a_txt):
+                        shrink = "the problem is cut in half"
+                    elif "[" in a_txt and ":" in a_txt:
+                        shrink = "it works on a slice, a smaller piece of the data"
+                out.append((txt, shrink))
+        return out
+
+    # -------------------------------------------------------------------
     # Local time / space: "what does this line cost on its own?"
     # -------------------------------------------------------------------
-    def _build_local_time_explanation(self, local_info: BigOInfo, sig: PatternSignals) -> str:
+    def _build_local_time_explanation(self, local_info: BigOInfo, sig: PatternSignals, node=None, line_no: int = -1) -> str:
         family = local_info.family
+        compound = self._is_compound(node)
 
         if sig.has_docstring or sig.has_comment_block:
             return self.generator._v(
@@ -309,48 +461,72 @@ class VariableExplanations:
                 "Comments and docstrings never execute as code, so there's zero runtime cost here.",
             )
 
-        if sig.complexity_signals.amortized_operation:
+        # A loop line: say how often *this* loop repeats, using the learner's own bound.
+        own = self._own_loop(node, line_no)
+        if own is not None:
+            if own.scales:
+                return (f"This loop {own.bound}. The loop header is cheap on its own; what matters is that it makes "
+                        f"everything indented under it run that many times.")
+            return (f"This loop {own.bound}. Because that count doesn't grow with the input the way a full scan does, "
+                    f"the loop repeats its body far fewer times than n.")
+
+        # amortized wording only makes sense for the operation itself, not for a
+        # compound statement that merely *contains* an amortized call.
+        if sig.complexity_signals.amortized_operation and not compound:
             return self.generator._v(
-                "On its own, this is O(1) on average. Every once in a while it needs a little extra work behind the scenes (like resizing a list), but spread out over many calls, it still averages out to constant time.",
-                "This is what's called \"amortized O(1)\": almost always instant, with the occasional slightly-more-expensive call balancing out over time.",
+                "On its own, this line is O(1) on average: usually instant, with an occasional slower call that evens out over many calls.",
             )
+
+        if isinstance(node, ast.If):
+            base = f"This is the *test* of the `if`: evaluating it costs {local_info.raw}."
+            if family == "linear":
+                base += " That means the test itself has to look through the data, not just compare two values."
+            elif family == "constant":
+                base += " Comparing a couple of values takes the same time no matter how much data there is."
+            return base + " The code inside each branch is costed on its own lines."
 
         if family == "constant":
             return self.generator._v(
-                "By itself, this line is O(1) -- it does a fixed amount of work no matter how big the input is.",
-                "On its own, this is a constant-time step: one operation, done once.",
+                "On its own, this line is O(1): one quick step, no matter how big the input is.",
+                "On its own, this line is O(1): it does the same small amount of work every time.",
             )
         elif family == "linear":
             return self.generator._v(
-                f"On its own, this line is {local_info.raw} -- it has to touch every item in whatever it's working with.",
-                f"By itself, this step costs {local_info.raw}: the work grows one-to-one with the size of the data.",
+                f"On its own, this line is {local_info.raw}: it looks at every item once.",
+                f"On its own, this line is {local_info.raw}: twice as much data means about twice the work.",
             )
         elif family == "logarithmic":
             return self.generator._v(
-                f"By itself, this step is {local_info.raw} -- it cuts down the amount of work it has left with each step, so it stays fast even on large inputs.",
-                f"On its own, this runs in {local_info.raw}, since it keeps shrinking the problem instead of checking everything.",
+                f"On its own, this line is {local_info.raw}: each step throws away part of the work, so it stays fast on big inputs.",
+                f"On its own, this line is {local_info.raw}: it keeps shrinking the problem instead of checking everything.",
             )
+        elif family == "linearithmic":
+            return f"On its own, this line is {local_info.raw}: a full pass over the data, repeated about log n times (the cost of an efficient sort)."
         elif family == "polynomial":
             return self.generator._v(
-                f"On its own, this step is {local_info.raw} -- it repeats work in a nested way, so the cost grows faster than just linear.",
-                f"By itself, this line costs {local_info.raw}. That usually means one loop is doing repeated work for every step of another loop.",
+                f"On its own, this line is {local_info.raw}: it repeats work inside work, so the cost grows faster than linear.",
+                f"On its own, this line is {local_info.raw}: usually one loop running fully for every step of another loop.",
             )
         elif "placeholder" in local_info.raw or local_info.raw.startswith("T("):
-            return self.generator._v(
-                "This is a recursive call, so its exact cost depends on how deep and how wide the recursion tree ends up being -- we can't pin down a single number just from this line alone.",
-            )
+            calls = self._recursive_calls_on_line(node, line_no)
+            head = ""
+            if calls:
+                listing = "; ".join(f"`{c}`" + (f" ({sh})" if sh else "") for c, sh in calls)
+                head = (f"This line makes a recursive call, {listing}. " if len(calls) == 1
+                        else f"This line calls the function itself {len(calls)} times: {listing}. ")
+            return head + "Its exact cost depends on how deep and how wide the recursion tree ends up being -- the recurrence relation for the whole function settles it, and that is worked out in the overall analysis."
 
         return f"On its own, this line costs {local_info.raw}."
 
-    def _build_local_space_explanation(self, local_info: BigOInfo, sig: PatternSignals) -> str:
+    def _build_local_space_explanation(self, local_info: BigOInfo, sig: PatternSignals, node=None) -> str:
         family = local_info.family
 
         if sig.has_docstring or sig.has_comment_block:
             return self.generator._v(
-                "Documentation doesn't use any memory while the program runs, so this is O(1).",
+                "Comments don't use memory while the program runs, so this is O(1).",
             )
 
-        if sig.memory_signals.inplace_swap:
+        if sig.memory_signals.inplace_swap and not self._is_compound(node):
             return self.generator._v(
                 "Since this just swaps values that already exist, it needs zero extra memory -- O(1).",
             )
@@ -378,76 +554,130 @@ class VariableExplanations:
     # Global time / space: "what does this line cost once you factor in
     # everything around it (loops, recursion)?"
     # -------------------------------------------------------------------
-    def _build_global_time_explanation(self, local_info: BigOInfo, global_info: BigOInfo, sig: PatternSignals) -> str:
+    def _loop_bullets(self, loops) -> str:
+        rows = []
+        for lp in loops:
+            rows.append(f"- line {lp.lineno}, `{lp.header}` -- it {lp.bound}")
+        return "\n".join(rows)
+
+    def _build_global_time_explanation(self, local_info: BigOInfo, global_info: BigOInfo, sig: PatternSignals, node=None, line_no: int = -1) -> str:
+        gen = self.generator
         if sig.has_docstring or sig.has_comment_block:
-            return self.generator._v(
-                "It doesn't affect the algorithm's overall speed at all -- documentation never runs.",
-            )
+            return gen._v("It doesn't affect the algorithm's overall speed at all -- documentation never runs.")
 
-        if local_info.raw == global_info.raw:
-            return self.generator._v(
-                f"This is the most expensive part of the whole algorithm, so it's actually what sets the overall time complexity: {global_info.raw}.",
-                f"There's nothing more expensive happening elsewhere, so this line alone decides the total time complexity: {global_info.raw}.",
-            )
+        loc, glo = local_info.raw, global_info.raw
+        enclosing = gen.shape.enclosing_loops(line_no)
+        scaling = [lp for lp in enclosing if lp.scales]
+        halving = [lp for lp in enclosing if (not lp.scales) and "log n" in lp.bound]
+        parts = []
 
-        if global_info.family == "polynomial" and local_info.family in ["linear", "constant"]:
-            if sig.nested_loops:
-                return self.generator._v(
-                    f"But since this sits inside nested loops, it doesn't just run once -- it runs once for every combination of outer and inner steps. That's what pushes the overall time up to {global_info.raw}.",
-                    f"On its own it's cheap, but nested loops mean it fires over and over -- so the total cost climbs to {global_info.raw}.",
+        # ---- 1. how the surrounding structure turns "local" into "global" ----
+        factor = context_factor(loc, glo)
+        same = loc.replace(" ", "") == glo.replace(" ", "")
+
+        if global_info.family in ("exponential", "recursive_branching", "super_exponential", "factorial") and sig.has_recursion:
+            fn_name = gen.shape.enclosing_function(line_no)
+            k = gen.shape.recursion_facts()["recursive"].get(fn_name, 0)
+            k_txt = f"{k} more calls" if k >= 2 else "several more calls"
+            if sig.has_memoization:
+                parts.append(
+                    f"Without a cache this recursion would branch into {k_txt.replace(' more', '')} at every level. Because results are saved and reused, "
+                    f"each distinct subproblem is only solved once, so the work is (number of distinct subproblems) x (work per subproblem) = `{glo}`."
                 )
-            return self.generator._v(
-                f"Because this gets repeated so many times overall, the total time adds up to {global_info.raw}.",
+            else:
+                parts.append(gen._v(
+                    f"Each call here spawns {k_txt}, and none of them remember earlier answers, so the same subproblems are solved again and again. "
+                    f"The number of calls multiplies at every level of the recursion -- that's how the total reaches `{glo}`.",
+                    f"The recursion splits into {k_txt} per call without saving results, so the call tree keeps widening at every level, "
+                    f"which is what pushes the total up to `{glo}`.",
+                ))
+        elif same and not enclosing:
+            own = self._own_loop(node, line_no)
+            if own is not None and own.scales:
+                parts.append(f"Nothing repeats this loop, so it contributes `{glo}`. Any loop nested inside it will multiply on top of that.")
+            elif loc in ("O(1)",):
+                parts.append("This step costs the same no matter what surrounds it: it isn't repeated by any loop, so it stays `O(1)`.")
+            else:
+                parts.append(f"Nothing around this line repeats it, so its total cost is its own cost: `{glo}`.")
+        elif factor and factor["text"] != "1" and (scaling or halving):
+            n_loops = len(scaling) + len(halving)
+            times = factor["text"]
+            parts.append(gen._v(
+                f"On its own this step costs `{loc}`, but it sits inside {self._loop_word(n_loops)} that {self._repeat_verb(n_loops)} it about `{times}` times. "
+                f"So the total is `{loc}` x `{times}` = `{glo}`.",
+                f"A `{loc}` step that runs inside {self._loop_word(n_loops)} gets repeated about `{times}` times -- "
+                f"`{loc}` x `{times}` = `{glo}` in total.",
+            ))
+            parts.append("The loops around it:\n" + self._loop_bullets(scaling + halving))
+        elif factor and factor["text"] != "1":
+            parts.append(
+                f"The cost grows from `{loc}` to `{glo}` because of the surrounding structure: what happens around this line repeats it about `{factor['text']}` times."
             )
-
-        if global_info.family in ["exponential", "recursive_branching", "super_exponential"]:
-            if sig.has_recursion:
-                return self.generator._v(
-                    f"Each recursive call here spawns more calls, and that branching multiplies fast -- the total blows up to {global_info.raw}.",
-                    f"Because the recursion keeps splitting into more calls without saving previous answers, the work roughly doubles at each level, landing at {global_info.raw} overall.",
+        elif same and enclosing and scaling:
+            refs = ", ".join(f"`{lp.header}` (line {lp.lineno})" for lp in scaling[:3])
+            ms = sig.memory_signals
+            has_trap = ms.string_concatenation_in_loop or ms.geometric_capacity_growth or ms.creates_new_list_from_concat or ms.performs_slicing
+            if is_constant(parse_complexity(loc)) and has_trap:
+                parts.append(f"This line runs once per pass of {refs}. The engine charges each pass `{glo}`, but read the note below: this kind of line can cost more than it looks.")
+            elif is_constant(parse_complexity(loc)):
+                parts.append(f"This line runs once per pass of {refs}. Each pass costs only `{glo}`, so it stays cheap.")
+            else:
+                parts.append(
+                    f"This line runs once per pass of {refs}, and every pass pays its `{glo}` cost again. "
+                    f"A step that looks like a single line can hide a whole loop's worth of work -- this is exactly the kind of line to watch."
                 )
-            return self.generator._v(f"The way this is structured causes the number of operations to explode combinatorially, bringing the total up to {global_info.raw}.")
-
-        if global_info.family == "linear" and local_info.family == "constant":
-            if sig.loop_depth > 0:
-                return self.generator._v(
-                    f"This O(1) step runs once per loop iteration, so across the whole loop it adds up to {global_info.raw}.",
-                    f"One cheap step, repeated for every item in the loop -- that's how you get {global_info.raw} overall.",
-                )
-
-        if global_info.family == "linearithmic" and local_info.family in ["constant", "linear"]:
-            return self.generator._v(
-                f"Combined with the sorting or divide-and-conquer logic around it, the total cost works out to {global_info.raw}.",
+        elif same and enclosing:
+            # loops enclose it but none scale with the input
+            parts.append(
+                f"It does sit inside a loop, but that loop repeats a fixed number of times (or halves the work), so the total stays `{glo}`."
             )
+        else:
+            # the two strings can't be compared safely (e.g. recurrences); be honest about it
+            if enclosing:
+                parts.append(
+                    f"This line runs inside {self._loop_word(len(enclosing))} that {self._repeat_verb(len(enclosing))} it. Taking all of that into account, the engine reports `{glo}` for this line."
+                )
+                parts.append("The loops around it:\n" + self._loop_bullets(enclosing))
+            else:
+                parts.append(f"Once you account for everything happening around it, this line's contribution to the overall time complexity is `{glo}`.")
 
-        return self.generator._v(f"Once you account for everything happening around it, this line's contribution to the overall time complexity is {global_info.raw}.")
+        # ---- 2. what that means in practice ----
+        sc = scaling_line(glo)
+        if sc:
+            parts.append(sc + " " + doubling_effect(glo))
+        return "\n\n".join(parts)
 
-    def _build_global_space_explanation(self, local_info: BigOInfo, global_info: BigOInfo, sig: PatternSignals) -> str:
+    def _build_global_space_explanation(self, local_info: BigOInfo, global_info: BigOInfo, sig: PatternSignals, node=None, line_no: int = -1, global_raw: str = "") -> str:
+        gen = self.generator
         if sig.has_docstring or sig.has_comment_block:
-            return self.generator._v("Comments don't take up any runtime memory, so they don't affect the overall space complexity at all.")
+            return gen._v("Comments don't take up any runtime memory, so they don't affect the overall space complexity at all.")
 
-        if local_info.raw == global_info.raw:
-            return self.generator._v(
-                f"This is the single biggest memory user in the whole algorithm, so it defines the overall space complexity: {global_info.raw}.",
-            )
+        loc, glo = local_info.raw, global_info.raw
+        same = loc.replace(" ", "") == glo.replace(" ", "")
+        fn = gen.shape.enclosing_function(line_no)
+        parts = []
 
-        if global_info.family == "linear" and local_info.family == "constant":
+        if same:
+            if loc == "O(1)":
+                parts.append("Only a fixed number of variables are involved here, so this line never adds memory that grows with the input.")
+            else:
+                parts.append(f"This is where the memory grows: nothing around it multiplies it further, so its total is `{glo}`.")
+        elif global_info.family == "linear" and local_info.family == "constant":
             if sig.has_recursion:
-                return self.generator._v(
-                    f"Because this function calls itself, each call adds another O(1) frame to the call stack. Stack them all up and you get {global_info.raw} overall.",
-                    f"Every recursive call keeps its own small frame on the stack -- add them all together and the total memory reaches {global_info.raw}.",
-                )
-            return self.generator._v(
-                f"On its own it's cheap, but the data being built up across the whole run adds up to {global_info.raw} overall.",
-            )
+                who = f"`{fn}()`" if fn else "this function"
+                parts.append(gen._v(
+                    f"Every call to {who} that is still waiting keeps its own small frame on the call stack. If the recursion goes n levels deep, "
+                    f"that's n frames x O(1) each = `{glo}`.",
+                    f"Each unfinished recursive call keeps its frame in memory until it returns -- n levels deep means `{glo}` of stack.",
+                ))
+            else:
+                parts.append(f"This line adds only O(1) by itself, but the structure it feeds keeps growing as the loop runs, reaching `{glo}` overall.")
+        elif global_info.family == "polynomial" and local_info.family in ("linear", "constant"):
+            parts.append(f"Repeated across the surrounding loops, this builds a dense multi-layered structure -- peak memory reaches `{glo}`.")
+        else:
+            parts.append(f"Counting the peak memory held at once across the whole run, this line's space contribution is `{glo}`.")
 
-        if global_info.family == "polynomial" and local_info.family in ["linear", "constant"]:
-            return self.generator._v(
-                f"The surrounding logic ends up building a dense, multi-layered structure, pushing peak memory use to {global_info.raw}.",
-            )
-
-        return self.generator._v(f"Once you factor in the peak memory used across the whole run, the overall space complexity comes out to {global_info.raw}.")
-
-    # -------------------------------------------------------------------
-    # Educational asides: extra tips, warnings, and "did you know" notes
-    # -------------------------------------------------------------------
+        sc = scaling_line(glo, unit="memory cells")
+        if sc:
+            parts.append(sc + " " + doubling_effect(glo).replace("work", "memory"))
+        return "\n\n".join(parts)

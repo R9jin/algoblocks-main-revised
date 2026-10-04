@@ -30,7 +30,7 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7F57F9, #E058FB);
+  background: linear-gradient(135deg, #6B44F0, #A62BC4);
   color: #FFFFFF;
   font-weight: bold;
   font-size: 1.1rem;
@@ -84,7 +84,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7F57F9, #E058FB);
+  background: linear-gradient(135deg, #6B44F0, #A62BC4);
   color: #FFFFFF;
   font-weight: bold;
   font-size: 1.5rem;
@@ -102,7 +102,7 @@
 }
 
 .user-email {
-  color: #A396B8;
+  color: #475569;
   font-size: 0.85rem;
   text-align: center;
   word-break: break-all;
@@ -116,7 +116,7 @@
   padding: 0.75rem 1.25rem;
   background: transparent;
   border: none;
-  color: #E0E0E0;
+  color: #000000;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -126,7 +126,7 @@
 
 .user-dd-item:hover {
   background: rgba(255, 255, 255, 0.05);
-  color: #FFFFFF;
+  color: #d900ff;
 }
 
 .user-dd-divider {

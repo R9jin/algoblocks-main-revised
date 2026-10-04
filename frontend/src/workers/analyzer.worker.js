@@ -213,13 +213,18 @@ const ENGINE_MODULE_FILES = [
   "complexity_analyzer/signature_recorder.py",
   "complexity_analyzer/ast_node_visitors.py",
   "complexity_analyzer/complexity_synthesizer.py",
+  "complexity_analyzer/pipeline_trace.py",
   "complexity_explainer/__init__.py",
   "complexity_explainer/complexity_explainer.py",
   "complexity_explainer/explanation_signals.py",
+  "complexity_explainer/growth_insight.py",
   "complexity_explainer/pattern_evaluators.py",
   "complexity_explainer/pattern_visitor.py",
+  "complexity_explainer/statement_narrator.py",
+  "complexity_explainer/paradigm_detector.py",
   "complexity_explainer/variable_explanations.py",
   "complexity_explainer/insight_gatherers.py",
+  "complexity_explainer/line_insights.py",
   "complexity_explainer/overall_narrative.py",
   "complexity_explainer/explanation_warnings.py",
   "complexity_explainer/insight_generator.py",
@@ -337,6 +342,7 @@ self.onmessage = async (e) => {
   // nothing to do with its actual cost.
   const CODE_LENGTH_LIMITS = {
     ANALYZE_CODE: 30000,
+    TRACE_PIPELINE: 30000,
     RUN_CODE: 30000,
     PYTHON_TO_BLOCKS: 60000,
   };
@@ -345,6 +351,7 @@ self.onmessage = async (e) => {
     const errorMsg = `Code payload too large. Maximum allowed is ${maxLen} characters.`;
     if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg }, requestEpoch });
     else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: errorMsg } });
+    else if (type === 'TRACE_PIPELINE') self.postMessage({ type: 'TRACE_PIPELINE_RESULT', data: { status: 'error', message: errorMsg }, requestEpoch });
     else self.postMessage({ type: 'ERROR', data: errorMsg });
     return;
   }
@@ -367,11 +374,12 @@ for _mod in (
     'complexity_analyzer.code_preprocessor', 'complexity_analyzer.call_graph_mapper',
     'complexity_analyzer.topological_sequencer', 'complexity_analyzer.complexity_heuristics',
     'complexity_analyzer.signature_recorder', 'complexity_analyzer.ast_node_visitors',
-    'complexity_analyzer.complexity_synthesizer',
+    'complexity_analyzer.complexity_synthesizer', 'complexity_analyzer.pipeline_trace',
     'complexity_explainer', 'complexity_explainer.complexity_explainer',
-    'complexity_explainer.explanation_signals', 'complexity_explainer.pattern_evaluators',
-    'complexity_explainer.pattern_visitor', 'complexity_explainer.variable_explanations',
-    'complexity_explainer.insight_gatherers', 'complexity_explainer.overall_narrative',
+    'complexity_explainer.explanation_signals', 'complexity_explainer.growth_insight', 'complexity_explainer.pattern_evaluators',
+    'complexity_explainer.pattern_visitor', 'complexity_explainer.statement_narrator',
+    'complexity_explainer.paradigm_detector', 'complexity_explainer.variable_explanations',
+    'complexity_explainer.insight_gatherers', 'complexity_explainer.line_insights', 'complexity_explainer.overall_narrative',
     'complexity_explainer.explanation_warnings', 'complexity_explainer.insight_generator',
     'dynamic_tracer', 'scope_detector',
 ):
@@ -464,6 +472,27 @@ output
       `);
       const resultData = JSON.parse(resultJsonStr);
       self.postMessage({ type: 'ANALYZE_RESULT', data: resultData, requestEpoch });
+    }
+
+    else if (type === 'TRACE_PIPELINE') {
+      // "Pipeline" tab: replay of the complexity analysis model. Observational
+      // only -- it never touches the result shown in the Complexity tab.
+      pyodide.setStdout({ batched: () => {} });
+      pyodide.setStderr({ batched: () => {} });
+      pyodide.globals.set("user_code", code);
+      const traceJsonStr = await pyodide.runPythonAsync(`
+import json, sys
+for _mod in ('complexity_analyzer.pipeline_trace',):
+    if _mod in sys.modules:
+        del sys.modules[_mod]
+try:
+    from complexity_analyzer.pipeline_trace import trace_pipeline
+    out = json.dumps(trace_pipeline(user_code))
+except Exception as e:
+    out = json.dumps({"status": "error", "message": f"{type(e).__name__}: {e}"})
+out
+      `);
+      self.postMessage({ type: 'TRACE_PIPELINE_RESULT', data: JSON.parse(traceJsonStr), requestEpoch });
     }
 
     else if (type === 'PYTHON_TO_BLOCKS') {
@@ -891,6 +920,7 @@ json.dumps(res)
     // exactly the code path most likely to hit an edge case the inner
     // Python try/except didn't anticipate.
     else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: err.message || 'Failed to convert Python code to blocks.' } });
+    else if (type === 'TRACE_PIPELINE') self.postMessage({ type: 'TRACE_PIPELINE_RESULT', data: { status: 'error', message: err.message || 'Pipeline trace failed.' }, requestEpoch });
     else self.postMessage({ type: 'ERROR', data: err.message });
   }
 };

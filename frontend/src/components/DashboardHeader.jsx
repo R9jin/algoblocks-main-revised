@@ -1,6 +1,6 @@
 // frontend/src/components/DashboardHeader.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LuActivity, LuFolder, LuGauge, LuLayoutDashboard, LuLogOut, LuRefreshCw, LuUser, LuUsers } from "react-icons/lu";
+import { LuActivity, LuFolder, LuGauge, LuGitBranch, LuLayoutDashboard, LuLogOut, LuRefreshCw, LuUser, LuUsers } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/DashboardHeader.css";
 import { stopBackgroundSync, syncManager } from "../utils/syncManager";
@@ -201,6 +201,15 @@ export default function DashboardHeader({
                       role="menuitem"
                     >
                       <LuActivity size={18} aria-hidden="true" /> Dataset Testing
+                    </button>
+                    <button 
+                      type="button" 
+                      className="user-dd-item" 
+                      style={{ color: "#8b5cf6", fontWeight: "bold" }}
+                      onClick={() => { setOpen(false); navigate("/admin/pipeline"); }} 
+                      role="menuitem"
+                    >
+                      <LuGitBranch size={18} aria-hidden="true" /> Pipeline View
                     </button>
                     <button 
                       type="button" 

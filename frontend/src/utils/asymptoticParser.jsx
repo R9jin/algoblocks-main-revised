@@ -1,6 +1,7 @@
 // frontend/src/utils/asymptoticParser.jsx
 import DOMPurify from "dompurify";
 import { useEffect, useRef, useState } from "react";
+import { toClosedFormBigO } from "./formatters";
 
 export const handleEditorWillMount = (monaco) => {
   monaco.editor.defineTheme("algoblocks-light", {
@@ -8,32 +9,119 @@ export const handleEditorWillMount = (monaco) => {
     inherit: true,
     rules: [
       { token: "keyword", foreground: "7928CA", fontStyle: "bold" },
-      { token: "string", foreground: "10B981" },
-      { token: "comment", foreground: "94A3B8", fontStyle: "italic" },
-      { token: "number", foreground: "F59E0B" },
+      { token: "string", foreground: "047857" },
+      { token: "comment", foreground: "5B6B7F", fontStyle: "italic" },
+      { token: "number", foreground: "B45309" },
     ],
     colors: {
       "editor.background": "#F8FAFC",
       "editor.foreground": "#1E293B",
-      "editorLineNumber.foreground": "#CBD5E1",
+      "editorLineNumber.foreground": "#64748B",
+      "editorLineNumber.activeForeground": "#1E293B",
+      "editorBracketHighlight.foreground1": "#1E7A1E",
+      "editorBracketHighlight.foreground2": "#B45309",
+      "editorBracketHighlight.foreground3": "#6B21A8",
       "editor.lineHighlightBackground": "#F1F5F9",
       "editorCursor.foreground": "#7928CA",
       "editor.selectionBackground": "#E2E8F0",
       "editor.inactiveSelectionBackground": "#F1F5F9",
     },
   });
+
+  // Dark counterpart, picked in PythonCodeEditor when <html data-theme="dark">.
+  // Every foreground below is >= 4.5:1 on the #150A24 editor background.
+  monaco.editor.defineTheme("algoblocks-dark", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "keyword", foreground: "C4B5FD", fontStyle: "bold" },
+      { token: "string", foreground: "6EE7B7" },
+      { token: "comment", foreground: "9B8EC4", fontStyle: "italic" },
+      { token: "number", foreground: "FDBA74" },
+    ],
+    colors: {
+      "editor.background": "#150A24",
+      "editor.foreground": "#E4DDF7",
+      "editorLineNumber.foreground": "#9B8EC4",
+      "editorLineNumber.activeForeground": "#F5F3FF",
+      "editorBracketHighlight.foreground1": "#86EFAC",
+      "editorBracketHighlight.foreground2": "#FDBA74",
+      "editorBracketHighlight.foreground3": "#D8B4FE",
+      "editor.lineHighlightBackground": "#211337",
+      "editorCursor.foreground": "#D3BFFF",
+      "editor.selectionBackground": "#4B3A7C",
+      "editor.inactiveSelectionBackground": "#2F1E50",
+      "editorWidget.background": "#211337",
+      "editorWidget.border": "#4B3A7C",
+      "editorSuggestWidget.background": "#211337",
+      "editorSuggestWidget.border": "#4B3A7C",
+      "editorSuggestWidget.selectedBackground": "#3A2562",
+      "editorHoverWidget.background": "#211337",
+      "editorHoverWidget.border": "#4B3A7C",
+      "scrollbarSlider.background": "#A78BFA44",
+      "scrollbarSlider.hoverBackground": "#A78BFA77",
+    },
+  });
 };
 
-export const getComplexityColor = (complexity) => {
-  const comp = String(complexity || "").toLowerCase();
-  if (comp.includes("o(1)")) return "#10B981";
-  if (comp.includes("log n") && !comp.includes("n log")) return "#0EA5E9";
-  if (comp.includes("o(n)") && !comp.includes("log")) return "#F59E0B";
-  if (comp.includes("n log n")) return "#F97316";
-  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*m")) return "#EF4444";
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#7928CA";
-  return "#64748B";
+// Growth class of a complexity string. Recurrences (T(n) = ...) are resolved
+// to their closed-form Big-O first, so a row is always coloured by what it
+// grows like, never by whichever substring happens to appear in the relation
+// (the old check painted "T(n) = 2T(n/2) + O(n)" as plain O(n)).
+export const getComplexityClass = (complexity) => {
+  const s = toClosedFormBigO(String(complexity || ""))
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/\u00B2/g, "^2")
+    .replace(/\u00B3/g, "^3")
+    .replace(/\u207F/g, "^n")
+    .replace(/\u221An/g, "sqrtn");
+  if (!s.includes("o(")) return "unknown";
+  if (s.includes("n!")) return "factorial";
+  if (/(\d|c)\^n|exponential/.test(s)) return "exponential";
+  const frac = s.match(/n\^(\d+\.\d+)/);
+  if (frac) {
+    const e = Number(frac[1]);
+    if (e > 2) return "polyHigh";
+    if (e > 1) return "nlogn"; // e.g. 3T(n/2)+O(n) = O(n^1.58): between n and n^2
+    return "sqrt";
+  }
+  const poly = s.match(/n\^(\d+)/);
+  if (poly) {
+    const degree = Number(poly[1]);
+    if (degree >= 3 || (degree === 2 && s.includes("log"))) return "polyHigh";
+    if (degree === 2) return "quadratic";
+  }
+  if (/cubic|quartic/.test(s)) return "polyHigh";
+  if (/n\*n|n\*m|m\*n/.test(s)) return "quadratic";
+  if (/nlog|n\*log/.test(s)) return "nlogn";
+  if (/v\+e|e\+v|n\+m|m\+n|o\(v\)|o\(e\)/.test(s)) return "graph";
+  if (/o\([a-z]\)/.test(s)) return "linear";
+  if (/sqrt|n\^0\.5/.test(s)) return "sqrt";
+  if (s.includes("log")) return "log";
+  if (/o\(1\)|constant/.test(s)) return "constant";
+  return "unknown";
 };
+
+export const COMPLEXITY_CLASS_COLORS = {
+  // Every value is >= 4.5:1 on the light panel (#F8FAFC) because these are
+  // rendered as TEXT in the complexity table. The old, brighter hues
+  // (#10B981, #F59E0B, #F97316 ...) were only ~2:1 and read as washed-out.
+  constant: "#047857",
+  log: "#0369A1",
+  sqrt: "#0F766E",
+  linear: "#B45309",
+  graph: "#92400E",
+  nlogn: "#C2410C",
+  quadratic: "#B91C1C",
+  polyHigh: "#BE123C",
+  exponential: "#7928CA",
+  factorial: "#A21CAF",
+  unknown: "#475569",
+};
+
+export const getComplexityColor = (complexity) =>
+  COMPLEXITY_CLASS_COLORS[getComplexityClass(complexity)] || COMPLEXITY_CLASS_COLORS.unknown;
 
 // Weight scale rebuilt to match the analyzer's actual recognized scope: it
 // reliably recognizes O(1), O(log n), O(sqrt n), O(n), O(V+E), O(n log n),

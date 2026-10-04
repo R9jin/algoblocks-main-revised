@@ -187,7 +187,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 0,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -198,7 +197,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 3,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -209,7 +207,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 3,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -220,7 +217,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 3,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -231,7 +227,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 2,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -242,7 +237,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 2,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -253,7 +247,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 2,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -264,7 +257,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 3,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -275,7 +267,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 2,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -286,7 +277,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 2,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -297,7 +287,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 3,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -308,7 +297,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 3,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -319,7 +307,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 2,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -330,7 +317,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 2,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -341,7 +327,6 @@
               "note": "No memoization yet -- the same subproblems get recomputed from scratch every time they're needed.",
               "line": 2,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             }
           ],
@@ -350,7 +335,29 @@
             "    if n <= 1:",
             "        return n",
             "    return fib(n - 1) + fib(n - 2)"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(2^n)",
+              "space": "O(n)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(n)",
+            "formula": "Grows linearly with n"
+          }
         }
       ]
     },
@@ -406,7 +413,6 @@
                   3
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 1
@@ -429,7 +435,6 @@
                   3
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 1
@@ -453,7 +458,6 @@
                   3
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 1
@@ -478,7 +482,6 @@
                   3
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 1
@@ -512,7 +515,6 @@
                   8
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 7
@@ -547,7 +549,6 @@
                   8
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 7
@@ -580,7 +581,6 @@
                   8
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 7
@@ -619,7 +619,6 @@
                   8
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 7
@@ -658,7 +657,6 @@
                   8
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 7
@@ -696,7 +694,6 @@
                   8
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 7
@@ -712,7 +709,49 @@
             "        result = fib(n - 1, memo) + fib(n - 2, memo)",
             "    memo[n] = result",
             "    return memo[n]"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(n)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(n)",
+            "formula": "Grows linearly with n"
+          }
         }
       ]
     },

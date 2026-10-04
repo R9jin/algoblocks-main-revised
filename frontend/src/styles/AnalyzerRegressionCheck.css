@@ -384,8 +384,13 @@ th, .admin-activity-table th, .full-report-table th, .eval-dataset-table th,
   border-color: rgba(255, 255, 255, 0.5) !important;
 }
 
-/* Ensure text contrast */
-h1, h2, h3, h4, .analytics-card-value, .admin-metric-value, .eval-metric-value {
+/* Ensure text contrast -- scoped (was a global h1-h4 rule that leaked into
+   dark surfaces on every page). */
+.admin-page-wrapper :is(h1, h2, h3, h4),
+.admin-page-container :is(h1, h2, h3, h4),
+.eval-suite-container :is(h1, h2, h3, h4),
+.arc-panel :is(h1, h2, h3, h4),
+.analytics-card-value, .admin-metric-value, .eval-metric-value {
   color: #1a1a2e !important;
 }
 

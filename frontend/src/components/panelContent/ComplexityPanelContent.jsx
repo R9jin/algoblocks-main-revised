@@ -8,8 +8,8 @@
 import DOMPurify from "dompurify";
 import React, { useState } from "react";
 import { FiChevronDown, FiInfo } from "react-icons/fi";
-import { formatExplanation, getComplexityColor, getComplexityWeight, parseMarkdown } from "../../utils/asymptoticParser.jsx";
-import { formatComplexity } from "../../utils/formatters";
+import { formatExplanation, getComplexityClass, getComplexityColor, getComplexityWeight, parseMarkdown } from "../../utils/asymptoticParser.jsx";
+import { formatComplexity, toClosedFormBigO } from "../../utils/formatters";
 import CallGraphVisualizer from "../CallGraphVisualizer.jsx";
 import ComplexityGraph from "../ComplexityGraph.jsx";
 import MemoryVisualizer from "../MemoryVisualizer.jsx";
@@ -65,7 +65,10 @@ export default function ComplexityPanelContent({
   let maxWeight = 0;
   let bottleneckIndices = [];
   lines.forEach((line, index) => {
-    const weight = getComplexityWeight(line.time || "O(1)", defaultWeight);
+    const resolvedTime = toClosedFormBigO(line.time || "O(1)");
+    // n^3 and n^2 log n have no tier in getComplexityWeight (it is shared with
+    // the grading code), so rank them here just above O(n^2) for highlighting.
+    const weight = getComplexityClass(resolvedTime) === "polyHigh" ? 7.5 : getComplexityWeight(resolvedTime, defaultWeight);
     if (weight > maxWeight) {
       maxWeight = weight;
       bottleneckIndices = [index];
@@ -180,21 +183,25 @@ export default function ComplexityPanelContent({
             </thead>
             <tbody>
               {lines.map((line, i) => {
-                const timeComplexity = line.time || "O(1)";
-                const spaceComplexity = line.space || "O(1)";
+                // Call-site rows carry the raw recurrence (e.g. "T(n) = T(n/2) + O(1)");
+                // show the closed-form Big-O the analyzer resolves it to.
+                const timeRaw = line.time || "O(1)";
+                const timeComplexity = toClosedFormBigO(timeRaw);
+                const spaceComplexity = toClosedFormBigO(line.space || "O(1)");
                 let timeExp = line.time_explanation ?? "Not available.";
                 let spaceExp = line.space_explanation ?? "Not available.";
 
                 const isBottleneck = actualBottleneckIndices.includes(i);
                 const timeColor = getComplexityColor(timeComplexity);
                 const spaceColor = getComplexityColor(spaceComplexity);
-                const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, "");
-                const isEfficient = !isBottleneck && (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && !compStripped.includes("nlogn");
+                const timeClass = getComplexityClass(timeComplexity);
+                const isEfficient = !isBottleneck && (timeClass === "log" || timeClass === "sqrt");
+                const isDead = !!line.dead_reason || line.operation === "Dead Code";
 
                 return (
                   <React.Fragment key={i}>
                     <tr
-                      className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""}`}
+                      className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""} ${isDead ? "dead-row" : ""}`}
                       onClick={() => toggleLine(i)}
                       style={{ borderLeftColor: isBottleneck ? "#EF4444" : isEfficient ? "#10B981" : expandedLines[i] ? timeColor : "transparent" }}
                     >
@@ -203,8 +210,9 @@ export default function ComplexityPanelContent({
                         {line.operation || "-"}
                         {isBottleneck && <span className="bottleneck-badge">Bottleneck</span>}
                         {isEfficient && <span className="efficient-badge">Efficient</span>}
+                        {isDead && <span className="dead-badge" title={line.dead_reason || "This code never runs, so it is not counted."}>Dead code</span>}
                       </td>
-                      <td className="complexity-cell" style={{ color: timeColor }}>{formatComplexity(timeComplexity)}</td>
+                      <td className="complexity-cell" style={{ color: timeColor }} title={timeRaw !== timeComplexity ? `Recurrence: ${timeRaw}` : undefined}>{formatComplexity(timeComplexity)}</td>
                       <td className="complexity-cell" style={{ color: spaceColor }}>
                         {formatComplexity(spaceComplexity)} <FiChevronDown className={`dropdown-chevron ${expandedLines[i] ? "open" : ""}`} />
                       </td>
@@ -212,6 +220,11 @@ export default function ComplexityPanelContent({
                     {expandedLines[i] && (
                       <tr className="explanation-row">
                         <td colSpan="4">
+                          {isDead && (
+                            <div className="dead-reason-callout">
+                              <strong>Why is this dead code?</strong> {line.dead_reason || "This code never runs, so it is not counted."}
+                            </div>
+                          )}
                           <div className="explanation-grid" style={{ borderLeftColor: timeColor }}>
                             <div className="explanation-section">
                               <div className="explanation-icon-wrapper" style={{ color: timeColor }}><FiInfo size={20} /></div>

@@ -144,7 +144,6 @@
                   7
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -194,7 +193,6 @@
                   7
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -245,7 +243,6 @@
                   7
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -297,7 +294,6 @@
                   7
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -346,7 +342,6 @@
                   2
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 1
@@ -395,7 +390,6 @@
                   8
                 ],
                 "lineOps": 4,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 8
@@ -412,7 +406,53 @@
             "            if solve_maze(grid, nr, nc, visited):",
             "                return True",
             "    return False"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(V+E)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(V+E)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(V+E)",
+            "formula": ""
+          }
         }
       ]
     },

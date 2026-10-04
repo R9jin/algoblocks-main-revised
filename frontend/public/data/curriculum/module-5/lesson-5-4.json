@@ -172,7 +172,6 @@
                 "note": "Every cell in the n×m matrix is computed exactly once, using only cells already filled.",
                 "line": 6,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -224,7 +223,6 @@
                 "note": "Every cell in the n×m matrix is computed exactly once, using only cells already filled.",
                 "line": 8,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 8
@@ -275,7 +273,6 @@
                 "note": "Every cell in the n×m matrix is computed exactly once, using only cells already filled.",
                 "line": 6,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -292,7 +289,54 @@
             "            else:",
             "                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])",
             "    return dp[n][m]"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n × m)",
+              "space": "O(n × m)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n × m)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n × m)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n × m)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n × m)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n × m)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(n × m)",
+            "formula": "Grows with n × m",
+            "note": "The dp table has (n+1) x (m+1) cells."
+          }
         }
       ]
     },

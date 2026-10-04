@@ -188,6 +188,33 @@
             "  count = count - 1",
             "END"
           ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(1)",
+            "formula": "Constant auxiliary space",
+            "note": "Only `count` is stored, and it is reused every pass."
+          },
           "steps": [
             {
               "activeLine": 0,

@@ -126,7 +126,6 @@
                   7
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -180,7 +179,6 @@
                   9
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -237,7 +235,6 @@
                   7
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -292,7 +289,6 @@
                 "note": "Each comparison halves the remaining search space.",
                 "line": 5,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 5
@@ -310,7 +306,57 @@
             "        else:",
             "            hi = mid - 1",
             "    return -1"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(1)",
+            "formula": "Constant auxiliary space"
+          }
         },
         {
           "kind": "array",
@@ -355,7 +401,6 @@
                   7
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -401,7 +446,6 @@
                   9
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -449,7 +493,6 @@
                   9
                 ],
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -490,7 +533,6 @@
                 "note": "Even the worst case -- target not present -- only takes log n comparisons.",
                 "line": 10,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 10
@@ -508,7 +550,57 @@
             "        else:",
             "            hi = mid - 1",
             "    return -1"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(log n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(1)",
+            "formula": "Constant auxiliary space"
+          }
         }
       ]
     },

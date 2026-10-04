@@ -465,6 +465,9 @@ class ComplexityAnalyzer:
         self.indirect_recursive_funcs = getattr(self, 'indirect_recursive_funcs', set()) 
         
         self.in_dead_code = False
+        # Why the current region is dead: {"kind": ..., "reason": ...}.
+        # Set wherever in_dead_code is raised; copied onto each line entry.
+        self.dead_reason = None
         self.in_graph_context = False        
         self.has_recursion_in_loop = False  
         self.has_factorial_branching = False

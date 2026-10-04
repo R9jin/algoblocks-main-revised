@@ -40,6 +40,8 @@ export default function LessonTracePanel({ trace }) {
         <StepTracePlayer
           steps={trace.steps}
           codeLines={trace.codeLines}
+          lineComplexity={trace.lineComplexity}
+          overallSpace={trace.overallSpace}
           caption={(step) => step.caption}
           renderFrame={(step) =>
             Object.keys(step.variables || {}).length ? (
@@ -57,6 +59,8 @@ export default function LessonTracePanel({ trace }) {
         <StepTracePlayer
           steps={trace.steps}
           codeLines={trace.codeLines}
+          lineComplexity={trace.lineComplexity}
+          overallSpace={trace.overallSpace}
           caption={(step) => step.caption}
           renderFrame={(step) => (
             <MatrixTraceFrame matrix={step.matrix} roles={step.roles} pointers={step.pointers} />
@@ -72,6 +76,8 @@ export default function LessonTracePanel({ trace }) {
         <StepTracePlayer
           steps={trace.steps}
           codeLines={trace.codeLines}
+          lineComplexity={trace.lineComplexity}
+          overallSpace={trace.overallSpace}
           caption={(step) => step.caption}
           renderFrame={(step) => (
             <ArrayTraceFrame array={step.array} roles={step.roles} pointers={step.pointers} />
@@ -87,6 +93,8 @@ export default function LessonTracePanel({ trace }) {
         <StepTracePlayer
           steps={trace.steps}
           codeLines={trace.codeLines}
+          lineComplexity={trace.lineComplexity}
+          overallSpace={trace.overallSpace}
           caption={(step) => step.caption}
           renderFrame={(step) => (
             <CallStackTraceFrame
@@ -112,6 +120,8 @@ export default function LessonTracePanel({ trace }) {
         <StepTracePlayer
           steps={steps}
           codeLines={trace.codeLines}
+          lineComplexity={trace.lineComplexity}
+          overallSpace={trace.overallSpace}
           caption={(step) => step.caption}
           renderFrame={(step, index) => (
             <RecursionTreeTraceFrame nodes={trace.nodes} currentStep={index + 1} />

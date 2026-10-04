@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FaCompressArrowsAlt, FaCubes, FaNetworkWired, FaProjectDiagram, FaSearchMinus, FaSearchPlus } from 'react-icons/fa';
 import '../styles/CallGraphVisualizer.css';
+import useResolvedTheme from '../hooks/useResolvedTheme';
 
 const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
+  const isDark = useResolvedTheme() === 'dark';
   const containerRef = useRef(null);
   const svgRef = useRef(null);
   const [containerSize, setContainerSize] = useState({ width: 800, height: 600 });
@@ -43,12 +45,22 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
   }, []);
 
   // Theme Colors
-  const themePurple = "#7928CA";
-  const themeRed = "#EF4444";
-  const themeSlateDark = "#1E293B";
-  const themeSlateMuted = "#64748B";
-  const themeSlateBorder = "#CBD5E1";
-  const themeEdge = "#94A3B8";
+  // Light palette is the original; the dark one keeps every text/stroke >= 4.5:1
+  // (text) / 3:1 (strokes) against the #150A24 canvas (see styles/DarkWorkspace.css).
+  const themePurple = isDark ? "#A78BFA" : "#7928CA";
+  const themeRed = isDark ? "#F87171" : "#EF4444";
+  const themeSlateDark = isDark ? "#F5F3FF" : "#1E293B";
+  const themeSlateMuted = isDark ? "#B6A9D8" : "#64748B";
+  const themeSlateBorder = isDark ? "#4B3A7C" : "#CBD5E1";
+  const themeEdge = isDark ? "#8F82B5" : "#94A3B8";
+  const nodeFill = isDark ? "#2A1A47" : "#FFFFFF";
+  const mainNodeFill = isDark ? "#3A2562" : "#FAF5FF";
+  const mainNodeText = isDark ? "#E9DDFF" : "#4C1D95";
+  const externalNodeFill = isDark ? "#211337" : "#F1F5F9";
+  const edgeBadgeStyle = isDark
+    ? { backgroundColor: 'rgba(16, 185, 129, 0.16)', color: '#6EE7B7', borderColor: 'rgba(16, 185, 129, 0.45)' }
+    : { backgroundColor: '#ECFDF5', color: '#047857', borderColor: '#6EE7B7' };
+  const controlBtnStyle = makeControlBtnStyle(isDark);
 
   // Robustly extract the call graph and normalize it
   const extractCallGraph = () => {
@@ -78,8 +90,13 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
 
   const graphSignature = JSON.stringify(callGraph);
 
-  const NODE_W = 180;
+  const NODE_W = 180;   // minimum node width
   const NODE_H = 60;
+  // Nodes grow to fit their full function name. A fixed 180px box let long names
+  // (e.g. calculate_fibonacci_with_memoization()) spill out past both edges and
+  // collide with edge labels. 14px bold Consolas is ~8.6px per character.
+  const labelFor = (id) => (id === "__main__" ? "Main Program" : `${id}()`);
+  const widthOf = (id) => Math.max(NODE_W, Math.ceil(labelFor(id).length * 8.6) + 44);
 
   // Layout Engine
   const { nodes, edges, layoutWidth, layoutHeight } = useMemo(() => {
@@ -122,7 +139,8 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
     });
 
     const Y_SPACING = 160;
-    const MIN_X_SPACING = 280; 
+    const widest = rawNodes.reduce((m, id) => Math.max(m, widthOf(id)), NODE_W);
+    const MIN_X_SPACING = Math.max(280, widest + 110);
 
     let maxNodesInLayer = 0;
     Object.values(layers).forEach(layerNodes => {
@@ -388,7 +406,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
             <span>{nodes.length} Executable Nodes</span>
           </div>
           {/* Inheriting the Emerald standard theme colors for the edges badge */}
-          <div className="nodes-badge" style={{ backgroundColor: '#ECFDF5', color: '#10B981', borderColor: '#A7F3D0' }}>
+          <div className="nodes-badge" style={edgeBadgeStyle}>
             <FaNetworkWired />
             <span>{totalEdges} Edges</span>
           </div>
@@ -427,7 +445,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
           flexGrow: 1, 
           overflow: 'hidden', 
           position: 'relative',
-          backgroundColor: '#F8FAFC',
+          backgroundColor: isDark ? '#150A24' : '#F8FAFC',
           userSelect: 'none'
         }}
       >
@@ -499,13 +517,15 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
               let pathData = "";
               let labelX, labelY;
 
+              const halfS = widthOf(source) / 2, halfT = widthOf(target) / 2;
               if (isSelf) {
-                pathData = `M ${sx + NODE_W/2},${sy - 15} C ${sx + NODE_W/2 + 60},${sy - 50} ${sx + NODE_W/2 + 60},${sy + 50} ${sx + NODE_W/2},${sy + 15}`;
-                labelX = sx + NODE_W/2 + 60;
+                pathData = `M ${sx + halfS},${sy - 15} C ${sx + halfS + 60},${sy - 50} ${sx + halfS + 60},${sy + 50} ${sx + halfS},${sy + 15}`;
+                labelX = sx + halfS + 60;
                 labelY = sy;
               } else if (isBack) {
-                pathData = `M ${sx - NODE_W/2},${sy} C ${sx - NODE_W/2 - 80},${sy} ${tx - NODE_W/2 - 80},${ty} ${tx - NODE_W/2},${ty}`;
-                labelX = (sx + tx) / 2 - NODE_W/2 - 60;
+                const left = Math.max(halfS, halfT);
+                pathData = `M ${sx - halfS},${sy} C ${sx - left - 80},${sy} ${tx - left - 80},${ty} ${tx - halfT},${ty}`;
+                labelX = (sx + tx) / 2 - left - 60;
                 labelY = (sy + ty) / 2;
               } else {
                 const midY = (sy + ty) / 2;
@@ -560,7 +580,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
                       x="-45" y="-12" 
                       width="90" height="24" 
                       rx="12" 
-                      fill="#FFFFFF" 
+                      fill={nodeFill} 
                       stroke={isHighlighted ? themeRed : themeSlateBorder} 
                       strokeWidth="1" 
                       filter="url(#badge-shadow)"
@@ -582,18 +602,18 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
               const isExternal = node.isExternal;
 
               let strokeColor = themeSlateBorder;
-              let bgColor = "#FFFFFF";
+              let bgColor = nodeFill;
               let textColor = themeSlateDark;
               let strokeDasharray = "none";
               let strokeWidth = "2";
 
               if (isMain) {
                 strokeColor = themePurple;
-                bgColor = "#FAF5FF";
-                textColor = "#4C1D95";
+                bgColor = mainNodeFill;
+                textColor = mainNodeText;
               } else if (isExternal) {
                 strokeColor = themeEdge;
-                bgColor = "#F1F5F9";
+                bgColor = externalNodeFill;
                 strokeDasharray = "6,4";
                 textColor = themeSlateMuted;
               }
@@ -604,7 +624,8 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
               }
 
               // Short label drawn inside the node box on the canvas.
-              const nodeLabelText = isMain ? "Main Program" : `${node.id}()`;
+              const nodeLabelText = labelFor(node.id);
+              const nodeW = widthOf(node.id);
               // Fuller, unambiguous title shown in the hover tooltip -- makes
               // clear which specific function is being inspected.
               const tooltipTitle = isMain
@@ -624,9 +645,9 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
                   style={{ cursor: 'help' }}
                 >
                   <rect
-                    x={-NODE_W/2} 
+                    x={-nodeW/2} 
                     y={-NODE_H/2} 
-                    width={NODE_W} 
+                    width={nodeW} 
                     height={NODE_H} 
                     rx="8"
                     fill={bgColor}
@@ -652,17 +673,17 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
   );
 };
 
-const controlBtnStyle = {
+const makeControlBtnStyle = (isDark) => ({
   width: '36px', height: '36px',
-  backgroundColor: '#FFFFFF',
-  border: '1px solid #CBD5E1',
+  backgroundColor: isDark ? '#2A1A47' : '#FFFFFF',
+  border: isDark ? '1px solid #4B3A7C' : '1px solid #CBD5E1',
   borderRadius: '6px',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   cursor: 'pointer',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-  color: '#64748B',
+  boxShadow: isDark ? '0 2px 6px rgba(0,0,0,0.45)' : '0 2px 4px rgba(0,0,0,0.05)',
+  color: isDark ? '#D5CCEE' : '#64748B',
   fontSize: '14px',
   transition: 'all 0.2s ease'
-};
+});
 
 export default CallGraphVisualizer;

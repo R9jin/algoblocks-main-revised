@@ -1,7 +1,7 @@
 {
-  "n": 266,
+  "n": 278,
   "crashes": 3,
-  "rate": 0.0113,
+  "rate": 0.0108,
   "ceiling": 0.06,
   "crashed_entries": [
     {

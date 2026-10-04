@@ -106,7 +106,6 @@
                 "note": "Each step is one greedy choice -- no backtracking, no revisiting.",
                 "line": 3,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 3
@@ -136,7 +135,6 @@
                 "note": "Each step is one greedy choice -- no backtracking, no revisiting.",
                 "line": 3,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 3
@@ -148,7 +146,33 @@
             "        if amount >= coin:",
             "            amount -= coin",
             "    return amount"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(1)",
+            "formula": "Constant auxiliary space"
+          }
         }
       ]
     },

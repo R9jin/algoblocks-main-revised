@@ -11,10 +11,12 @@ import { startBackgroundSync, stopBackgroundSync } from "./utils/syncManager";
 import { isAdminUser } from "./utils/auth";
 import { prefetchGroundTruth } from "./utils/datasetCache";
 import { warmupRouteChunks } from "./utils/routeWarmup";
+import { mirrorStaticContentToIndexedDb, whenIdle, whenServiceWorkerReady } from "./utils/offlineReadiness";
 
 // Lazy load ALL pages to prevent circular dependency crashes and reduce the initial load payload
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminUserManagement = lazy(() => import('./pages/AdminUserManagement'));
+const AdminPipelineView = lazy(() => import('./pages/AdminPipelineView'));
 const AccuracyOverview = lazy(() => import('./pages/AccuracyOverview'));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const EvaluationSuite = lazy(() => import("./pages/EvaluationSuite"));
@@ -139,6 +141,10 @@ function App() {
     if (isValidUser) {
       prefetchGroundTruth().catch(() => {});
       warmupRouteChunks().catch(() => {});
+      // Second, independent offline copy of every lesson / activity /
+      // template file (IndexedDB), made once the service worker has
+      // finished installing and the browser is idle.
+      whenServiceWorkerReady().then(() => whenIdle(() => { mirrorStaticContentToIndexedDb(); }, 8000));
     }
   }, [isValidUser]);
 
@@ -226,6 +232,7 @@ function App() {
           */}
           <Route path="/admin/users" element={<AdminOnlyRoute><AdminUserManagement /></AdminOnlyRoute>} />
           <Route path="/admin/evaluation-suite" element={<AdminOnlyRoute><EvaluationSuite /></AdminOnlyRoute>} />
+          <Route path="/admin/pipeline" element={<AdminOnlyRoute><AdminPipelineView /></AdminOnlyRoute>} />
 
           {/* Catch-all route: prevents a completely blank screen if the user lands on an invalid 404 path */}
           <Route path="*" element={<Navigate to="/" replace />} />

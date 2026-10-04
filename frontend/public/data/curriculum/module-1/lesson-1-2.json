@@ -224,7 +224,6 @@
                 "note": "Work scales directly with input size -- one unit of work per element.",
                 "line": 2,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 2
@@ -253,7 +252,6 @@
                 "note": "Work scales directly with input size -- one unit of work per element.",
                 "line": 2,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 2
@@ -282,7 +280,6 @@
                 "note": "Work scales directly with input size -- one unit of work per element.",
                 "line": 2,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 2
@@ -292,7 +289,25 @@
             "def process(arr):",
             "    for i in range(len(arr)):",
             "        do_work(arr[i])"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(1)",
+            "formula": "Constant auxiliary space"
+          }
         }
       ]
     },

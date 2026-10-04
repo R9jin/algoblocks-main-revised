@@ -98,12 +98,11 @@
               "complexity": {
                 "opsSoFar": 1,
                 "opsTotal": 5,
-                "bigO": "O(log n) depth",
+                "bigO": "O(n)",
                 "formula": "1 of 5 stack frames deep so far",
-                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "note": "Both halves get solved, so the total work is O(n) -- but each call halves the problem, so the stack only ever gets log n frames deep (see Space).",
                 "line": 0,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 0
@@ -118,12 +117,11 @@
               "complexity": {
                 "opsSoFar": 2,
                 "opsTotal": 5,
-                "bigO": "O(log n) depth",
+                "bigO": "O(n)",
                 "formula": "2 of 5 stack frames deep so far",
-                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "note": "Both halves get solved, so the total work is O(n) -- but each call halves the problem, so the stack only ever gets log n frames deep (see Space).",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -139,12 +137,11 @@
               "complexity": {
                 "opsSoFar": 3,
                 "opsTotal": 5,
-                "bigO": "O(log n) depth",
+                "bigO": "O(n)",
                 "formula": "3 of 5 stack frames deep so far",
-                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "note": "Both halves get solved, so the total work is O(n) -- but each call halves the problem, so the stack only ever gets log n frames deep (see Space).",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -159,12 +156,11 @@
               "complexity": {
                 "opsSoFar": 4,
                 "opsTotal": 5,
-                "bigO": "O(log n) depth",
+                "bigO": "O(n)",
                 "formula": "4 of 5 stack frames deep so far",
-                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "note": "Both halves get solved, so the total work is O(n) -- but each call halves the problem, so the stack only ever gets log n frames deep (see Space).",
                 "line": 2,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 2
@@ -179,12 +175,11 @@
               "complexity": {
                 "opsSoFar": 5,
                 "opsTotal": 5,
-                "bigO": "O(log n) depth",
+                "bigO": "O(n)",
                 "formula": "5 of 5 stack frames deep so far",
-                "note": "Each call halves the problem, so the stack only ever gets log n frames deep.",
+                "note": "Both halves get solved, so the total work is O(n) -- but each call halves the problem, so the stack only ever gets log n frames deep (see Space).",
                 "line": 5,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 5
@@ -198,7 +193,42 @@
             "    left = solve(lo, mid)",
             "    right = solve(mid + 1, hi)",
             "    return combine(left, right)"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(log n)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(log n)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(log n)",
+            "formula": "Grows with log n",
+            "note": "Depth of the call stack: each call halves the range."
+          }
         }
       ]
     },

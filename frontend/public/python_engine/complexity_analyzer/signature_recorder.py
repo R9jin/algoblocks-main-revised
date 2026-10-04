@@ -342,7 +342,9 @@ class SignatureRecorder:
             elif isinstance(func_obj, ast.Attribute):
                 builtin_desc = self.analyzer.builtin_complexities.get(func_obj.attr, {}).get('desc')
 
-        if builtin_desc and not is_dead:
+        # The line-specific sentence from the narrator already says what the line does;
+        # the canned built-in description is only a fallback for when there is none.
+        if builtin_desc and not is_dead and not (time_exp or "").strip():
             if builtin_desc not in time_exp:
                 time_exp = builtin_desc + ("\n\n" + time_exp if time_exp and time_exp != "Function call." else "")
 
@@ -356,6 +358,12 @@ class SignatureRecorder:
             "time_explanation": time_exp, "space_explanation": space_exp,
             "hits": hits, "memory_state": mem_state
         }
+        if is_dead:
+            dr = getattr(self.analyzer, 'dead_reason', None) or {"kind": "unreachable", "reason": "This code is never executed, so it is not counted toward the complexity."}
+            entry["dead_kind"] = dr["kind"]
+            entry["dead_reason"] = dr["reason"]
+            entry["time_explanation"] = dr["reason"] + " It does not add to the program's time complexity."
+            entry["space_explanation"] = dr["reason"] + " It does not add to the program's space complexity."
         
         if self.analyzer._details and self.analyzer._details[-1]["lineno"] == line_num:
             prev_w = self.analyzer._details[-1].get("weight", -1)

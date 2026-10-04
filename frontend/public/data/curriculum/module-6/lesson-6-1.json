@@ -159,7 +159,6 @@
               "note": "Generating all subsets means the search tree has 2ⁿ leaves in the worst case.",
               "line": 0,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -170,7 +169,6 @@
               "note": "Generating all subsets means the search tree has 2ⁿ leaves in the worst case.",
               "line": 4,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -181,7 +179,6 @@
               "note": "Generating all subsets means the search tree has 2ⁿ leaves in the worst case.",
               "line": 8,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -192,7 +189,6 @@
               "note": "Generating all subsets means the search tree has 2ⁿ leaves in the worst case.",
               "line": 4,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -203,7 +199,6 @@
               "note": "Generating all subsets means the search tree has 2ⁿ leaves in the worst case.",
               "line": 2,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             }
           ],
@@ -218,7 +213,53 @@
             "            return result",
             "        path.pop()",
             "    return None"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(2^n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(2^n)",
+              "space": "O(n)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(n)",
+            "formula": "Grows linearly with n"
+          }
         }
       ]
     },

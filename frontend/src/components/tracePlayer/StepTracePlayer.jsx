@@ -23,6 +23,8 @@ export default function StepTracePlayer({
   renderFrame,
   caption,
   codeLines = [],
+  lineComplexity = null,
+  overallSpace = null,
   intervalMs = 1400,
 }) {
   const [index, setIndex] = useState(0);
@@ -73,7 +75,13 @@ export default function StepTracePlayer({
 
         {hasComplexity && (
           <div className="trace-player-side">
-            <ComplexityLedger codeLines={codeLines} steps={steps} index={index} />
+            <ComplexityLedger
+              codeLines={codeLines}
+              steps={steps}
+              index={index}
+              lineComplexity={lineComplexity}
+              overallSpace={overallSpace}
+            />
           </div>
         )}
       </div>

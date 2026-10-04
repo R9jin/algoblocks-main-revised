@@ -1444,7 +1444,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (Array.isArray(optimizations) && optimizations.length > 0) {
       return { path: `/activity/${module.moduleId}/${optimizations[0].id}`, label: "Take Optimization Activity" };
     }
-    return { path: `/assessment/${module.moduleId}/post`, label: "Take Quiz" };
+    return { path: "/learning-path", label: "Back to Learning Path" };
   };
 
   // MODAL FIX (broken "next step" for optimizations): resolveNextStepAfterLesson()
@@ -1460,7 +1460,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   // there directly without going through the lesson-chain lookup at all.
   const resolveNextStepAfterActivity = (kind) => {
     if (kind === "optimization") {
-      return { path: `/assessment/${moduleId}/post`, label: "Take Quiz" };
+      return { path: "/learning-path", label: "Back to Learning Path" };
     }
     return resolveNextStepAfterLesson();
   };
@@ -1576,7 +1576,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             milestone: canCelebrateMilestone ? "sectionCompleted" : null,
             milestoneNote: canCelebrateMilestone
               ? (isOptimization
-                  ? "You've finished every optimization challenge here — return to the learning path to take the module quiz."
+                  ? "You've finished every optimization challenge here — return to the learning path to continue."
                   : "You've finished every activity here — return to the learning path to explore the next topic.")
               : null,
           },

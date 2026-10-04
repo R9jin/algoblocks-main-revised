@@ -356,6 +356,12 @@ class SignatureRecorder:
             "time_explanation": time_exp, "space_explanation": space_exp,
             "hits": hits, "memory_state": mem_state
         }
+        if is_dead:
+            dr = getattr(self.analyzer, 'dead_reason', None) or {"kind": "unreachable", "reason": "This code is never executed, so it is not counted toward the complexity."}
+            entry["dead_kind"] = dr["kind"]
+            entry["dead_reason"] = dr["reason"]
+            entry["time_explanation"] = dr["reason"] + " It does not add to the program's time complexity."
+            entry["space_explanation"] = dr["reason"] + " It does not add to the program's space complexity."
         
         if self.analyzer._details and self.analyzer._details[-1]["lineno"] == line_num:
             prev_w = self.analyzer._details[-1].get("weight", -1)

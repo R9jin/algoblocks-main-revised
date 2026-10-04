@@ -146,7 +146,6 @@
                 "note": "Brute force checks every possible pair -- n × n combinations.",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -181,7 +180,6 @@
                 "note": "Brute force checks every possible pair -- n × n combinations.",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -216,7 +214,6 @@
                 "note": "Brute force checks every possible pair -- n × n combinations.",
                 "line": 5,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 5
@@ -230,7 +227,41 @@
             "            if arr[i] + arr[j] == target:",
             "                return True",
             "    return False"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n^2)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n^2)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(1)",
+            "formula": "Constant auxiliary space"
+          }
         }
       ]
     },
@@ -299,7 +330,6 @@
               "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
               "line": 0,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -310,7 +340,6 @@
               "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
               "line": 6,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -321,7 +350,6 @@
               "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
               "line": 1,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -332,7 +360,6 @@
               "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
               "line": 1,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -343,7 +370,6 @@
               "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
               "line": 4,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             },
             {
@@ -354,7 +380,6 @@
               "note": "Still exponential in the worst case, but pruning cuts off whole branches early instead of exploring them fully.",
               "line": 6,
               "lineOps": 1,
-              "localBigO": "O(1)",
               "caseLabel": "Overall (worst case)"
             }
           ],
@@ -368,7 +393,49 @@
             "        path.append(choice)",
             "        backtrack(path, remaining(choices, choice))",
             "        path.pop()"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(2^n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(2^n)",
+              "space": "O(n)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(n)",
+            "formula": "Grows linearly with n"
+          }
         }
       ]
     },

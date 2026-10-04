@@ -112,7 +112,6 @@
                 "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
                 "line": 3,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 3
@@ -142,7 +141,6 @@
                 "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -172,7 +170,6 @@
                 "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
                 "line": 3,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 3
@@ -202,7 +199,6 @@
                 "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -232,7 +228,6 @@
                 "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
                 "line": 3,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 3
@@ -262,7 +257,6 @@
                 "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
                 "line": 4,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 4
@@ -292,7 +286,6 @@
                 "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
                 "line": 3,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 3
@@ -320,7 +313,6 @@
                 "note": "One greedy decision per coin taken -- n here is small (number of denominations × coins used), not the amount itself.",
                 "line": 6,
                 "lineOps": 1,
-                "localBigO": "O(1)",
                 "caseLabel": "Overall (worst case)"
               },
               "activeLine": 6
@@ -334,7 +326,42 @@
             "            amount -= coin",
             "            result.append(coin)",
             "    return result"
-          ]
+          ],
+          "lineComplexity": [
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(1)"
+            },
+            {
+              "time": "O(n)",
+              "space": "O(n)"
+            },
+            {
+              "time": "O(1)",
+              "space": "O(1)"
+            }
+          ],
+          "overallSpace": {
+            "bigO": "O(n)",
+            "formula": "Grows linearly with n",
+            "note": "`result` grows by one entry per coin taken."
+          }
         }
       ]
     },
