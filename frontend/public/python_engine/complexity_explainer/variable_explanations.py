@@ -200,11 +200,13 @@ class VariableExplanations:
             from complexity_explainer import paradigm_detector
             shape = gen.shape
             cache = gen.__dict__.setdefault("_paradigm_cache", {})
-            key = (id(shape), id(shape.tree))
-            if key not in cache:
-                cache.clear()
-                cache[key] = paradigm_detector.detect(shape.tree)
-            top = cache[key][:1]
+            # Hold a reference to the tree itself and compare by identity: keying on
+            # id() alone can match a stale entry once a freed tree's address is reused.
+            entry = cache.get("entry")
+            if entry is None or entry[0] is not shape.tree:
+                entry = (shape.tree, paradigm_detector.detect(shape.tree))
+                cache["entry"] = entry
+            top = entry[1][:1]
             if top and line_no in top[0].lines:
                 return f"This is a key line of the {top[0].name.split(' (')[0].lower()} approach used in this code."
         except Exception:

@@ -415,6 +415,7 @@ class ComplexityAnalyzer:
             'pvariance', 'quantiles', 'correlation', 'covariance', 'linear_regression',
         }
         self.aliases = {}
+        self.explain = True
         if SemanticNLGEngine:
             self.nlg_engine = SemanticNLGEngine(self)
             
@@ -483,7 +484,7 @@ class ComplexityAnalyzer:
 
     @property
     def details(self):
-        if not getattr(self, '_bottlenecks_applied', False) and len(self._details) > 0 and SemanticNLGEngine:
+        if not getattr(self, '_bottlenecks_applied', False) and len(self._details) > 0 and SemanticNLGEngine and getattr(self, 'explain', True):
             self.signature_recorder._apply_bottlenecks()
             self._bottlenecks_applied = True
         return self._details
@@ -590,7 +591,10 @@ def _finalize_line_output(details):
     return finalized
 
 
-def analyze_source_code(source_code):
+def analyze_source_code(source_code, explain=True):
+    """explain=False skips every educational-insight step (per-line explanations,
+    bottleneck/praise notes, overall narrative). Complexity results are unaffected;
+    the dataset benchmark uses it because it only scores the predicted values."""
     import time
     start_time = time.perf_counter()
     
@@ -608,6 +612,7 @@ def analyze_source_code(source_code):
                 pass 
         
         analyzer = ComplexityAnalyzer(source_code, trace_data)
+        analyzer.explain = bool(explain)
 
         # Scan for module-level literal-int/float constants (see comment on
         # `module_int_constants` in __init__) so loop-bound / allocation-size
@@ -645,7 +650,10 @@ def analyze_source_code(source_code):
         # references.
         analyzer.ast_visitor.visit(tree)
 
-        overall_exp = analyzer.complexity_synthesizer.get_overall_explanation(tree)
+        if explain:
+            overall_exp = analyzer.complexity_synthesizer.get_overall_explanation(tree)
+        else:
+            overall_exp = ""  # educational insights skipped (explain=False)
 
         results = {
             "status": "success",

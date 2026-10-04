@@ -316,7 +316,7 @@ async function initPyodide() {
   return await pyodidePromise;
 }
 
-self.onmessage = async (e) => {
+const handleWorkerMessage = async (e) => {
   const { type, code, data, requestEpoch } = e.data;
 
   if (type === 'INPUT_RESPONSE') {
@@ -650,7 +650,7 @@ else:
 
 try:
     from complexity_analyzer.analyzer import analyze_source_code
-    res = analyze_source_code(user_code)
+    res = analyze_source_code(user_code, explain=False)  # benchmark scores values only; skip educational insights
 except Exception as err:
     res = {"status": "error", "total": "ERROR", "space_total": "ERROR", "lines": [], "overall_explanation": f"AST Parse crash: {str(err)}"}
 
@@ -923,4 +923,53 @@ json.dumps(res)
     else if (type === 'TRACE_PIPELINE') self.postMessage({ type: 'TRACE_PIPELINE_RESULT', data: { status: 'error', message: err.message || 'Pipeline trace failed.' }, requestEpoch });
     else self.postMessage({ type: 'ERROR', data: err.message });
   }
+};
+
+// ---------------------------------------------------------------------------
+// MESSAGE SERIALIZATION (benchmark-accuracy fix)
+//
+// Every handler above `await`s Pyodide, and they all share ONE interpreter and
+// ONE set of Python globals (`user_code`) plus the `sys.modules` entries that
+// ANALYZE_CODE deletes and re-imports. When two jobs overlapped -- typically
+// the Accuracy Overview page's background RUN_BENCHMARK_SUITE running at the
+// same time as the Evaluation Suite's, or an editor ANALYZE_CODE arriving
+// mid-benchmark -- one job overwrote `user_code` while the other was still
+// waiting to read it. The analyzer then silently analysed ANOTHER algorithm's
+// source (the report showed `algo_n_001` scored with `countRotations`'
+// statements, shifted by a constant number of rows), and accuracy collapsed
+// from ~87% to ~49% even though the analyzer itself was unchanged. The
+// explainer additions made each analysis slower, which widened the overlap
+// window and exposed the race.
+//
+// Fix: run jobs strictly one at a time, and never start a second benchmark
+// while one is already running (its BENCHMARK_PROGRESS / BENCHMARK_COMPLETE
+// messages are broadcast to every listener anyway, so a second requester
+// simply receives the same result).
+// ---------------------------------------------------------------------------
+let jobQueue = Promise.resolve();
+let benchmarkRunning = false;
+
+self.onmessage = (e) => {
+  const type = e.data && e.data.type;
+
+  // Must stay immediate: INPUT_RESPONSE unblocks a RUN_CODE job that is
+  // waiting on input() (queueing it would deadlock), and INIT_ENGINE is
+  // idempotent (it just awaits the shared init promise).
+  if (type === 'INPUT_RESPONSE' || type === 'INIT_ENGINE') {
+    return handleWorkerMessage(e);
+  }
+
+  if (type === 'RUN_BENCHMARK_SUITE') {
+    if (benchmarkRunning) return;
+    benchmarkRunning = true;
+    jobQueue = jobQueue
+      .then(() => handleWorkerMessage(e))
+      .catch((err) => console.error('Benchmark job failed:', err))
+      .finally(() => { benchmarkRunning = false; });
+    return;
+  }
+
+  jobQueue = jobQueue
+    .then(() => handleWorkerMessage(e))
+    .catch((err) => console.error('Worker job failed:', err));
 };
