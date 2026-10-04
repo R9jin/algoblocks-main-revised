@@ -28,6 +28,7 @@ class Match:
     why: List[str] = field(default_factory=list)   # evidence, from the learner's code
     tip: str = ""                     # one plain sentence: the usual next step
     score: int = 0
+    lines: List[int] = field(default_factory=list)  # source lines that triggered the verdict
 
 
 def _src(n, limit: int = 40) -> str:
@@ -421,7 +422,210 @@ def _scan(f: _Facts) -> Optional[Match]:
     return None
 
 
-_RULES = (_dp_memo, _dp_table, _backtracking, _divide_conquer, _binary_search, _graph_traversal,
+
+# =====================================================================
+# additional rules (v2)
+# =====================================================================
+def _loop_of(f: _Facts, node):
+    for lp in f.loops:
+        if node is not lp and any(n is node for n in ast.walk(lp)):
+            return lp
+    return None
+
+
+def _kadane(f: _Facts) -> Optional[Match]:
+    for lp in f.loops:
+        cur = best = None
+        for a in ast.walk(lp):
+            if isinstance(a, ast.Assign) and len(a.targets) == 1 and isinstance(a.targets[0], ast.Name) \
+                    and isinstance(a.value, ast.Call) and _name(a.value.func) == "max" and len(a.value.args) == 2:
+                tgt = a.targets[0].id
+                names = {n.id for arg in a.value.args for n in ast.walk(arg) if isinstance(n, ast.Name)}
+                adds = any(isinstance(x, ast.BinOp) and isinstance(x.op, ast.Add) for arg in a.value.args for x in ast.walk(arg))
+                if tgt in names and adds:
+                    cur = cur or a
+                elif tgt in names:
+                    best = best or a
+        if cur is not None and best is not None:
+            return Match(
+                "Kadane's algorithm (best running sum)",
+                "It walks through the data once, deciding at each item whether to extend the current running sum or start fresh, and remembers the best sum seen.",
+                [f"{_line(cur)}: `{_src(cur, 46)}` extends or restarts the running sum, and {_line(best)}: `{_src(best, 46)}` keeps the best one."],
+                "One pass with two variables means O(n) time and O(1) memory.",
+                score=88, lines=[cur.lineno, best.lineno])
+    return None
+
+
+def _prefix_sum(f: _Facts) -> Optional[Match]:
+    for n in ast.walk(f.tree):
+        if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Subscript) \
+                and isinstance(n.value, ast.BinOp) and isinstance(n.value.op, ast.Add):
+            base = _src(n.targets[0].value)
+            if any(k in base.lower() for k in ("pre", "cum", "run", "sums")) and \
+                    any(isinstance(x, ast.Subscript) and _src(x.value) == base for x in ast.walk(n.value)):
+                return Match(
+                    "Prefix sums (running totals prepared in advance)",
+                    "It builds a table where each slot holds the total of everything before it, so the sum of any range can be found with one subtraction.",
+                    [f"{_line(n)}: `{_src(n, 46)}` adds the next item onto the total already stored in `{base}`."],
+                    "Build once in O(n); after that each range sum costs O(1).",
+                    score=93, lines=[n.lineno])
+    for c in f.calls:
+        if _name(c.func) == "accumulate":
+            return Match("Prefix sums (running totals prepared in advance)",
+                         "It builds the running total of every position in one go.",
+                         [f"{_line(c)}: `{_src(c, 40)}` produces the running totals."],
+                         "Build once in O(n); after that each range sum costs O(1).", score=93, lines=[c.lineno])
+    return None
+
+
+def _sliding_window(f: _Facts) -> Optional[Match]:
+    for lp in f.loops:
+        adds, subs = {}, {}
+        for a in ast.walk(lp):
+            if isinstance(a, ast.AugAssign) and isinstance(a.target, ast.Name) and isinstance(a.value, ast.Subscript):
+                (adds if isinstance(a.op, ast.Add) else subs if isinstance(a.op, ast.Sub) else {}).setdefault(a.target.id, a)
+        shared = [k for k in adds if k in subs]
+        if shared:
+            k = shared[0]
+            return Match(
+                "Sliding window (fixed size)",
+                "It keeps a window over the data: each step adds the item that enters the window and removes the item that leaves, instead of re-adding everything.",
+                [f"{_line(adds[k])}: `{_src(adds[k], 40)}` adds the new item and {_line(subs[k])}: `{_src(subs[k], 40)}` removes the old one."],
+                "Updating by one add and one remove is O(1) per step, so the whole scan is O(n).",
+                score=86, lines=[adds[k].lineno, subs[k].lineno])
+    for lp in f.loops:
+        if isinstance(lp, (ast.For, ast.AsyncFor)):
+            for inner in ast.walk(lp):
+                if isinstance(inner, ast.While) and inner is not lp:
+                    moves = [a for a in ast.walk(inner) if isinstance(a, ast.AugAssign) and isinstance(a.target, ast.Name)
+                             and a.target.id in ("left", "start", "l", "lo", "i", "begin") and isinstance(a.op, ast.Add)]
+                    if moves:
+                        return Match(
+                            "Sliding window (grows and shrinks)",
+                            "One end of the window moves forward every step, and the other end catches up only when the window becomes invalid.",
+                            [f"{_line(inner)}: `while {_src(inner.test, 40)}` moves the left end in {_line(moves[0])} while the outer loop moves the right end."],
+                            "Each end only moves forward, so each item enters and leaves at most once: O(n) overall, even though a loop sits inside a loop.",
+                            score=84, lines=[inner.lineno, moves[0].lineno])
+    return None
+
+
+def _rolling_dp(f: _Facts) -> Optional[Match]:
+    for lp in f.loops:
+        for a in ast.walk(lp):
+            if isinstance(a, ast.Assign) and len(a.targets) == 1 and isinstance(a.targets[0], ast.Tuple) \
+                    and isinstance(a.value, ast.Tuple) and len(a.targets[0].elts) == 2 \
+                    and all(isinstance(t, ast.Name) for t in a.targets[0].elts):
+                t0, t1 = [t.id for t in a.targets[0].elts]
+                v0, v1 = a.value.elts
+                if isinstance(v0, ast.Name) and v0.id == t1 and any(isinstance(x, ast.Name) and x.id in (t0, t1) for x in ast.walk(v1)) \
+                        and isinstance(v1, ast.BinOp):
+                    return Match(
+                        "Dynamic programming (rolling variables)",
+                        "Each new answer depends only on the last couple of answers, so it keeps just those few values instead of a whole table.",
+                        [f"{_line(a)}: `{_src(a, 46)}` slides the two stored answers forward."],
+                        "Keeping only what you need makes this O(n) time with O(1) memory.",
+                        score=89, lines=[a.lineno])
+    return None
+
+
+def _hash_lookup(f: _Facts) -> Optional[Match]:
+    if not f.loops:
+        return None
+    for fn in (list(f.funcs.values()) or [f.tree]):
+        stores = {}
+        for a in ast.walk(fn):
+            if isinstance(a, ast.Assign) and len(a.targets) == 1 and isinstance(a.targets[0], ast.Name):
+                v = a.value
+                if isinstance(v, (ast.Dict, ast.Set)) or (isinstance(v, ast.Call) and _name(v.func) in ("set", "dict", "Counter", "defaultdict")):
+                    stores[a.targets[0].id] = a
+        for lp in [l for l in f.loops if any(n is l for n in ast.walk(fn))]:
+            for c in ast.walk(lp):
+                if isinstance(c, ast.Compare) and any(isinstance(o, (ast.In, ast.NotIn)) for o in c.ops):
+                    for comp in c.comparators:
+                        nm = _name(comp)
+                        if nm in stores:
+                            written = any(
+                                (isinstance(w, ast.Assign) and any(isinstance(t, ast.Subscript) and _src(t.value) == nm for t in w.targets)) or
+                                (isinstance(w, ast.Call) and isinstance(w.func, ast.Attribute) and w.func.attr == "add" and _src(w.func.value) == nm)
+                                for w in ast.walk(lp))
+                            if written:
+                                return Match(
+                                    "Hash table lookup (remember what you have seen)",
+                                    "It stores items in a dictionary or set as it goes, so asking \"have I seen this before?\" takes one step instead of a search through everything.",
+                                    [f"{_line(c)}: `{_src(c, 40)}` asks `{nm}` a yes/no question while the loop keeps filling `{nm}`."],
+                                    "A set or dictionary lookup is O(1) on average, so this usually turns an O(n^2) pair search into O(n).",
+                                    score=76, lines=[c.lineno])
+    for fn in (list(f.funcs.values()) or [f.tree]):
+        for a in ast.walk(fn):
+            if isinstance(a, ast.Assign) and len(a.targets) == 1 and isinstance(a.targets[0], ast.Subscript) \
+                    and isinstance(a.value, ast.BinOp) and isinstance(a.value.op, ast.Add) and _is_int(a.value.right, 1) \
+                    and isinstance(a.value.left, ast.Call) and _name(a.value.left.func) == "get" \
+                    and any(isinstance(l, _LOOPS) and any(n is a for n in ast.walk(l)) for l in f.loops):
+                return Match(
+                    "Counting with a dictionary (frequency table)",
+                    "It counts how often each value appears by keeping one counter per value in a dictionary.",
+                    [f"{_line(a)}: `{_src(a, 46)}` adds one to the counter for this value."],
+                    "One pass with O(1) dictionary updates gives O(n) time.",
+                    score=72, lines=[a.lineno])
+    for c in f.calls:
+        if _name(c.func) == "Counter" and f.loops == [] and not f.self_calls:
+            return Match("Counting with a dictionary (frequency table)",
+                         "It counts how often each value appears by keeping one counter per value.",
+                         [f"{_line(c)}: `{_src(c, 40)}` builds the frequency table in one pass."],
+                         "Building the table is one pass: O(n).", score=70, lines=[c.lineno])
+    return None
+
+
+def _union_find(f: _Facts) -> Optional[Match]:
+    for fname, fn in f.funcs.items():
+        if fname.lower() in ("find", "find_root", "get_root", "root") and any(
+                isinstance(n, ast.Name) and n.id.lower() in ("parent", "parents", "root", "par", "p") for n in ast.walk(fn)):
+            return Match(
+                "Union-Find (disjoint sets)",
+                "It tracks which items belong to the same group by pointing each item toward a group leader, and merges groups by joining leaders.",
+                [f"`{fname}` follows parent links to reach the leader of a group."],
+                "With path compression and union by rank each operation is almost O(1).",
+                score=83, lines=[fn.lineno])
+    return None
+
+
+def _bit_tricks(f: _Facts) -> Optional[Match]:
+    for a in ast.walk(f.tree):
+        if isinstance(a, ast.AugAssign) and isinstance(a.op, ast.BitAnd) and isinstance(a.target, ast.Name) \
+                and isinstance(a.value, ast.BinOp) and isinstance(a.value.op, ast.Sub) \
+                and isinstance(a.value.left, ast.Name) and a.value.left.id == a.target.id and _is_int(a.value.right, 1):
+            return Match(
+                "Bit manipulation (clear the lowest 1-bit)",
+                "Each pass removes exactly one 1-bit from the number, so the loop runs once per 1-bit instead of once per bit.",
+                [f"{_line(a)}: `{_src(a, 40)}` wipes out the lowest set bit (Brian Kernighan's trick)."],
+                "The loop runs at most as many times as the number has bits: O(log n).",
+                score=82, lines=[a.lineno])
+    ops = [n for n in ast.walk(f.tree) if isinstance(n, (ast.BinOp, ast.AugAssign))
+           and isinstance(n.op, (ast.BitAnd, ast.BitXor, ast.BitOr, ast.LShift, ast.RShift))]
+    if len(ops) >= 2:
+        return Match(
+            "Bit manipulation",
+            "It works directly on the binary digits of numbers (AND, OR, XOR, shifts) instead of using ordinary arithmetic.",
+            [f"{_line(ops[0])}: `{_src(ops[0], 40)}` and {len(ops) - 1} other bit operation(s)."],
+            "Bit operations are O(1) per number, so loops over the bits cost O(log n) for a value n.",
+            score=66, lines=[ops[0].lineno])
+    return None
+
+
+def _quick_partition(f: _Facts) -> Optional[Match]:
+    for fname, calls in f.self_calls.items():
+        fn = f.funcs[fname]
+        if len(calls) >= 2 and not f.memo_names and any(isinstance(n, ast.Name) and n.id.lower() in ("pivot", "p") for n in ast.walk(fn)):
+            piv = next(n for n in ast.walk(fn) if isinstance(n, ast.Name) and n.id.lower() in ("pivot", "p"))
+            return Match(
+                "Divide and conquer (partition around a pivot)",
+                "It picks a pivot, splits the items into smaller-than-pivot and bigger-than-pivot groups, and solves each group by calling itself.",
+                [f"`{fname}` uses `{piv.id}` ({_line(piv)}) to split the data, then calls itself {len(calls)} times on the parts."],
+                "If the pivot splits the data evenly it is O(n log n); a bad pivot every time degrades to O(n^2).",
+                score=87, lines=[piv.lineno])
+    return None
+
+_RULES = (_prefix_sum, _kadane, _rolling_dp, _quick_partition, _sliding_window, _union_find, _hash_lookup, _bit_tricks, _dp_memo, _dp_table, _backtracking, _divide_conquer, _binary_search, _graph_traversal,
           _two_pointers, _elementary_sort, _brute_force, _greedy, _scan)
 
 
@@ -440,6 +644,10 @@ def detect(tree: Optional[ast.AST]) -> List[Match]:
             m = None
         if m is not None:
             found.append(m)
+    for m in found:
+        if not m.lines:
+            import re as _re
+            m.lines = sorted({int(x) for w in m.why for x in _re.findall(r"line (\d+)", w)})
     found.sort(key=lambda m: -m.score)
     # a table fill and a memo are both DP: keep one
     out: List[Match] = []

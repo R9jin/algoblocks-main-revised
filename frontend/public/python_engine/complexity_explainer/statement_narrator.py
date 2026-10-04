@@ -60,6 +60,13 @@ _ROLES = {
     "cache": "the saved answers", "visited": "the set of places already seen",
     "seen": "the set of items already seen", "stack": "the stack", "queue": "the queue",
     "n": "the input size", "size": "the size",
+    "window": "the current window", "start": "the start position", "end": "the end position",
+    "prefix": "the running totals", "freq": "the frequency table", "counts": "the frequency table",
+    "parent": "the group-leader links", "graph": "the graph", "adj": "the neighbour lists",
+    "neighbor": "a neighbouring node", "node": "the current node", "u": "the current node", "v": "a neighbouring node",
+    "path": "the choices made so far", "used": "which items are already used",
+    "max_sum": "the best sum so far", "cur_sum": "the running sum", "curr_sum": "the running sum",
+    "steps": "the step counter", "depth": "how deep we are",
 }
 
 
@@ -94,7 +101,9 @@ class StatementNarrator:
     """
 
     def __init__(self, pick: Optional[Callable[..., str]] = None, function_name: Optional[str] = None,
-                 recursive_funcs: Sequence[str] = (), params: Sequence[str] = ()):
+                 recursive_funcs: Sequence[str] = (), params: Sequence[str] = (),
+                 source_lines: Sequence[str] = ()):
+        self.source_lines = list(source_lines or [])
         self.pick = pick or (lambda *opts: opts[0])
         self.function_name = function_name
         self.recursive_funcs = set(recursive_funcs or ())
@@ -141,6 +150,9 @@ class StatementNarrator:
             return self._comp_phrase(e)
         if isinstance(e, ast.JoinedStr):
             return "a formatted piece of text"
+        if isinstance(e, ast.Lambda):
+            args = ", ".join(f"`{a.arg}`" for a in e.args.args) or "no inputs"
+            return f"a tiny function of {args} that gives back {self.phrase(e.body)}"
         return _code(e)
 
     @staticmethod
@@ -227,6 +239,15 @@ class StatementNarrator:
                 return f"the items of {self.phrase(args[0]) if args else 'a list'} glued into one string"
             if m == "split":
                 return f"{owner} broken into pieces"
+            if m in ("upper", "lower", "strip", "title") and not args:
+                word = {"upper": "in capitals", "lower": "in lower case", "strip": "without surrounding spaces", "title": "in title case"}[m]
+                return f"{owner} {word}"
+            if m == "replace" and len(args) >= 2:
+                return f"{owner} with every {self.phrase(args[0])} replaced by {self.phrase(args[1])}"
+            if m in ("startswith", "endswith") and args:
+                return f"whether {owner} {'starts' if m == 'startswith' else 'ends'} with {self.phrase(args[0])}"
+            if m == "isdigit" and not args:
+                return f"whether {owner} is made only of digits"
             if m == "count" and args:
                 return f"how many times {self.phrase(args[0])} appears in {owner}"
             if m == "index" and args:
@@ -244,6 +265,9 @@ class StatementNarrator:
             return f"half of {self.phrase(l)}"
         if isinstance(op, ast.Mult) and _is_int_const(r, 2):
             return f"double {self.phrase(l)}"
+        if isinstance(op, ast.Sub) and _is_int_const(r, 1) and isinstance(l, ast.Call) and isinstance(l.func, ast.Name) \
+                and l.func.id == "len" and len(l.args) == 1:
+            return f"the last position of {self.phrase(l.args[0])}"
         if isinstance(op, ast.Mod):
             return f"the remainder when {self.phrase(l)} is divided by {self.phrase(r)}"
         if isinstance(op, ast.Pow):
@@ -281,9 +305,13 @@ class StatementNarrator:
                 ast.DictComp: "dictionary"}[type(e)]
         gen = e.generators[0]
         src = self._iter_phrase(gen.iter, gen.target)
-        has_filter = bool(gen.ifs)
-        tail = " that pass a filter" if has_filter else ""
-        return f"a new {kind} built by going through {src}{tail}"
+        if isinstance(e, ast.DictComp):
+            item = f"{self.phrase(e.key)} -> {self.phrase(e.value)}"
+        else:
+            item = self.phrase(e.elt)
+        keep = f", keeping only the ones where {self.condition(gen.ifs[0])}" if gen.ifs else ""
+        more = " (with another loop inside it)" if len(e.generators) > 1 else ""
+        return f"a new {kind} made by going through {src}{more}{keep}, collecting {item} for each"
 
     # ==================================================================
     # loops / iteration phrases
@@ -308,6 +336,9 @@ class StatementNarrator:
             return f"every value of {self.phrase(it.func.value)}"
         if isinstance(it, ast.Call) and isinstance(it.func, ast.Attribute) and it.func.attr == "keys":
             return f"every key of {self.phrase(it.func.value)}"
+        if isinstance(it, ast.Subscript) and isinstance(it.value, ast.Name) \
+                and it.value.id.lower() in ("graph", "adj", "g", "adjacency", "neighbors", "neighbours", "edges"):
+            return f"every neighbour of {self.phrase(it.slice)} (each node it connects to in `{it.value.id}`)"
         if isinstance(it, ast.Subscript):
             return f"every item of {self.phrase(it)}"
         if isinstance(it, ast.Name):
@@ -339,7 +370,18 @@ class StatementNarrator:
             left = t.left
             for op, right in zip(t.ops, t.comparators):
                 word = _CMP_WORDS.get(type(op), "is compared with")
-                if isinstance(op, (ast.Is, ast.IsNot)) and _is_const(right, None):
+                empty = self._emptiness(left, op, right)
+                if empty:
+                    parts.append(empty)
+                elif isinstance(op, (ast.In, ast.NotIn)) and isinstance(right, ast.Name) \
+                        and right.id.lower() in ("visited", "seen", "done", "explored"):
+                    verb = "has already been" if isinstance(op, ast.In) else "has not been"
+                    parts.append(f"{self.phrase(left)} {verb} visited (it {'is' if isinstance(op, ast.In) else 'is not'} in `{right.id}`)")
+                elif isinstance(op, (ast.In, ast.NotIn)) and isinstance(right, ast.Name) \
+                        and right.id.lower() in ("memo", "cache", "lookup", "saved", "computed"):
+                    verb = "is already saved" if isinstance(op, ast.In) else "has not been saved yet"
+                    parts.append(f"the answer for {self.phrase(left)} {verb} in `{right.id}`")
+                elif isinstance(op, (ast.Is, ast.IsNot)) and _is_const(right, None):
                     parts.append(f"{self.phrase(left)} {'is' if isinstance(op, ast.Is) else 'is not'} `None`")
                 elif isinstance(op, (ast.Eq, ast.NotEq)) and _is_int_const(right, 0) and isinstance(left, ast.BinOp) and isinstance(left.op, ast.Mod):
                     divisor = self.phrase(left.right)
@@ -363,6 +405,25 @@ class StatementNarrator:
         if isinstance(t, ast.Call):
             return f"{self.phrase(t)} is true"
         return f"{_code(t)} is true"
+
+    def _emptiness(self, left, op, right) -> Optional[str]:
+        """`len(x) == 0`, `len(x) > 0`, `x == []` ... said as 'x is empty'."""
+        if isinstance(left, ast.Call) and isinstance(left.func, ast.Name) and left.func.id == "len" and left.args \
+                and _is_int_const(right):
+            who = self.phrase(left.args[0])
+            n = right.value
+            if isinstance(op, ast.Eq) and n == 0:
+                return f"{who} is empty"
+            if (isinstance(op, ast.Gt) and n == 0) or (isinstance(op, ast.NotEq) and n == 0) or (isinstance(op, ast.GtE) and n == 1):
+                return f"{who} is not empty"
+            if (isinstance(op, ast.LtE) and n == 1) or (isinstance(op, ast.Lt) and n == 2):
+                return f"{who} has at most one item"
+            if isinstance(op, ast.Lt) and n == 1:
+                return f"{who} is empty"
+            return None
+        if isinstance(op, (ast.Eq, ast.NotEq)) and isinstance(right, (ast.List, ast.Dict, ast.Tuple)) and not getattr(right, "elts", getattr(right, "keys", [1])):
+            return f"{self.phrase(left)} {'is' if isinstance(op, ast.Eq) else 'is not'} empty"
+        return None
 
     # ==================================================================
     # statements -> one sentence
@@ -402,6 +463,27 @@ class StatementNarrator:
         if isinstance(node, ast.ImportFrom):
             names = ", ".join(f"`{a.name}`" for a in node.names)
             return f"Brings in {names} from `{node.module}` so it can be used directly."
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            params = ", ".join(f"`{a.arg}`" for a in node.args.args + node.args.kwonlyargs) or "no inputs"
+            return f"Defines the function `{node.name}` that takes {params}. Nothing inside runs until it is called."
+        if isinstance(node, ast.ClassDef):
+            return f"Defines the class `{node.name}`, a blueprint for objects."
+        if isinstance(node, (ast.Global, ast.Nonlocal)):
+            names = ", ".join(f"`{n}`" for n in node.names)
+            return f"Says that {names} means the variable from outside this function, not a new local one."
+        if isinstance(node, ast.Delete):
+            return "Removes " + ", ".join(self.phrase(t) for t in node.targets) + "."
+        if isinstance(node, ast.Assert):
+            return f"Checks that {self.condition(node.test)}, and stops the program with an error if not."
+        if isinstance(node, ast.Raise):
+            return "Stops the function with an error" + (f": {_code(node.exc, 40)}." if node.exc is not None else ".")
+        if isinstance(node, ast.Try):
+            return "Tries the indented code; if it causes an error, the `except` part runs instead of the program crashing."
+        if isinstance(node, (ast.With, ast.AsyncWith)):
+            what = ", ".join(_code(i.context_expr, 30) for i in node.items)
+            return f"Opens {what} for the block below and closes it automatically afterwards."
+        if isinstance(node, ast.Lambda):
+            return "Defines a tiny unnamed function for quick one-off use."
         # expression nodes the analyzer sometimes hands over
         if isinstance(node, ast.Call):
             return self._expr(node)
@@ -462,6 +544,18 @@ class StatementNarrator:
         if isinstance(value, ast.BinOp) and isinstance(value.left, ast.Name) and value.left.id == name:
             return self._update_phrase(name, value.op, value.right)
 
+        # best = max(best, x)  /  smallest = min(smallest, x)
+        if isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id in ("min", "max") \
+                and len(value.args) == 2 and any(isinstance(a, ast.Name) and a.id == name for a in value.args):
+            other = next(a for a in value.args if not (isinstance(a, ast.Name) and a.id == name))
+            word = "larger" if value.func.id == "max" else "smaller"
+            return f"Keeps the {word} of `{name}` and {self.phrase(other)} in `{name}`, so `{name}` always holds the {'largest' if value.func.id == 'max' else 'smallest'} value seen so far."
+        # cur = max(x, cur + x)  (restart-or-extend, as in Kadane)
+        if isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id in ("min", "max") \
+                and len(value.args) == 2 and any(isinstance(n, ast.Name) and n.id == name for a in value.args if isinstance(a, ast.BinOp) for n in ast.walk(a)):
+            return f"Chooses the {'better' if value.func.id == 'max' else 'smaller'} of two options for `{name}`: {_code(value, 44)}."
+        if isinstance(value, ast.JoinedStr):
+            return f"Builds a piece of text from {_code(value, 40)} and keeps it in `{name}`."
         # x = y + 1  /  x = y - 1  (moving a boundary or position)
         if isinstance(value, ast.BinOp) and isinstance(value.op, (ast.Add, ast.Sub)) \
                 and isinstance(value.left, ast.Name) and _is_int_const(value.right, 1):
@@ -518,12 +612,14 @@ class StatementNarrator:
                 return f"Counts how many items {self.phrase(value.args[0])} has and keeps that in `{name}`."
             if fn in ("min", "max"):
                 return f"Keeps {self.phrase(value)} in {keep}."
+        if isinstance(value, ast.Name):
+            return f"Copies the current value of `{value.id}` into {keep}."
         if isinstance(value, ast.Subscript):
             return f"Reads {self.phrase(value)} and keeps it in {keep}."
         if isinstance(value, ast.Call):
             return f"Runs {_code(value)} and keeps what it gives back in {keep}."
         if isinstance(value, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
-            return f"Builds {self.phrase(value)} and keeps it in `{name}`."
+            return f"Builds `{name}` as {self.phrase(value)}."
         if isinstance(value, (ast.Compare, ast.BoolOp)):
             return f"Works out {self.phrase(value)}, giving `True` or `False`, and keeps it in `{name}`."
         if isinstance(value, ast.IfExp):
@@ -536,6 +632,11 @@ class StatementNarrator:
         idx = _code(tgt.slice)
         reads_same = self._reads_container(value, base_name)
 
+        # frequency count:  d[k] = d.get(k, 0) + 1
+        if isinstance(value, ast.BinOp) and isinstance(value.op, ast.Add) and _is_int_const(value.right, 1) \
+                and isinstance(value.left, ast.Call) and isinstance(value.left.func, ast.Attribute) \
+                and value.left.func.attr == "get" and _src(value.left.func.value) == base_name:
+            return f"Counts one more occurrence of {self.phrase(tgt.slice)} in `{base_name}` (starting from 0 if it has not been seen)."
         # cache save:  memo[n] = result
         if isinstance(tgt.value, ast.Name) and tgt.value.id.lower() in ("memo", "cache", "seen", "lookup"):
             return (f"Saves {self.phrase(value)} in `{tgt.value.id}` under key {idx}, "
@@ -600,6 +701,9 @@ class StatementNarrator:
         if isinstance(tgt, ast.Name):
             return self._update_phrase(tgt.id, node.op, node.value)
         # container[i] += x
+        if isinstance(tgt, ast.Subscript) and isinstance(node.op, ast.Add) and _is_int_const(node.value, 1) \
+                and isinstance(tgt.value, ast.Name) and tgt.value.id.lower() in ("count", "counts", "cnt", "freq", "frequency", "counter", "hist", "tally"):
+            return f"Counts one more occurrence of {self.phrase(tgt.slice)} in `{tgt.value.id}`."
         what = self.phrase(tgt)
         v = self.phrase(node.value)
         if isinstance(node.op, ast.Add):
@@ -652,6 +756,8 @@ class StatementNarrator:
     def _expr(self, v) -> Optional[str]:
         if isinstance(v, ast.Constant) and isinstance(v.value, str):
             return None  # docstring: handled by the caller
+        if isinstance(v, (ast.Yield, ast.YieldFrom)):
+            return f"Hands {self.phrase(v.value) if v.value is not None else 'a value'} to the caller and pauses until it asks for the next one."
         if isinstance(v, ast.Await):
             v = v.value
         if not isinstance(v, ast.Call):
@@ -737,13 +843,22 @@ class StatementNarrator:
     def _if(self, node: ast.If) -> str:
         cond = self.condition(node.test)
         returns = self._body_returns_early(node.body)
-        if self.function_name in self.recursive_funcs and returns and self._is_base_case_test(node.test):
+        lead = "Otherwise, checks" if self._is_elif(node) else "Checks"
+        if self.function_name in self.recursive_funcs and returns and self._is_base_case_test(node.test) and lead == "Checks":
             tail = "If so, the function stops here: this is the stopping case (base case) of the recursion."
         elif returns:
             tail = "If so, the function ends right there."
         else:
             tail = "If so, the indented lines run; if not, they are skipped."
-        return f"Checks whether {cond}. {tail}"
+        return f"{lead} whether {cond}. {tail}"
+
+    def _is_elif(self, node) -> bool:
+        if getattr(node, "_is_elif", False):
+            return True
+        ln = getattr(node, "lineno", 0)
+        if 1 <= ln <= len(self.source_lines):
+            return self.source_lines[ln - 1].lstrip().startswith("elif ")
+        return False
 
     @staticmethod
     def _body_returns_early(body) -> bool:
@@ -779,3 +894,87 @@ class StatementNarrator:
         if isinstance(t, ast.Constant) and t.value is True:
             return "Repeats the lines below forever, until a `break` or `return` inside stops it."
         return f"Keeps repeating the lines below for as long as {self.condition(t)}."
+
+
+# ======================================================================
+# step-by-step walkthrough of a whole program
+# ======================================================================
+_SKIP = (ast.Import, ast.ImportFrom, ast.Pass, ast.Global, ast.Nonlocal)
+
+
+def _is_docstring(n) -> bool:
+    return isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant) and isinstance(n.value.value, str)
+
+
+def _main_body(tree: ast.AST):
+    """(function_node_or_None, statements). The entry point is the function nobody else calls,
+    preferring the one with the most loops/recursion; a script with no functions uses module code."""
+    funcs = [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+    if not funcs:
+        return None, [n for n in getattr(tree, "body", []) if not isinstance(n, _SKIP)]
+    called = set()
+    for fn in funcs:
+        for c in ast.walk(fn):
+            if isinstance(c, ast.Call) and isinstance(c.func, ast.Name) and c.func.id != fn.name:
+                called.add(c.func.id)
+    roots = [f for f in funcs if f.name not in called] or funcs
+
+    def weight(fn):
+        return sum(isinstance(n, (ast.For, ast.While, ast.AsyncFor)) for n in ast.walk(fn)) * 3 + len(fn.body)
+    top = max(roots, key=weight)
+    return top, list(top.body)
+
+
+def walkthrough(tree: Optional[ast.AST], pick: Optional[Callable[..., str]] = None, max_items: int = 10) -> str:
+    """Markdown bullet list: what the main function does, in order, in plain words."""
+    if tree is None:
+        return ""
+    try:
+        fn, body = _main_body(tree)
+        recursive = set()
+        for f in ast.walk(tree):
+            if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if any(isinstance(c, ast.Call) and isinstance(c.func, ast.Name) and c.func.id == f.name for c in ast.walk(f)):
+                    recursive.add(f.name)
+        name = fn.name if fn is not None else None
+        params = [a.arg for a in (fn.args.args + fn.args.kwonlyargs)] if fn is not None else []
+        nar = StatementNarrator(pick=pick, function_name=name, recursive_funcs=recursive, params=params)
+
+        items, total = [], 0
+
+        def emit(stmt, depth):
+            nonlocal total
+            if isinstance(stmt, _SKIP) or _is_docstring(stmt):
+                return
+            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                return
+            sentence = nar.narrate(stmt)
+            if not sentence:
+                return
+            total += 1
+            if len(items) < max_items:
+                lead = "\u21b3 " * depth
+                items.append(f"- {lead}Line {stmt.lineno}: {sentence}")
+
+        def walk(stmts, depth):
+            for st in stmts:
+                emit(st, depth)
+                if depth < 2 and isinstance(st, (ast.For, ast.AsyncFor, ast.While)):
+                    walk(st.body, depth + 1)
+                elif depth < 2 and isinstance(st, ast.If):
+                    walk(st.body, depth + 1)
+                    if st.orelse and not (len(st.orelse) == 1 and isinstance(st.orelse[0], ast.If)):
+                        walk(st.orelse, depth + 1)
+                    elif st.orelse:
+                        walk(st.orelse, depth)
+
+        walk(body, 0)
+        if not items:
+            return ""
+        more = total - len(items)
+        if more > 0:
+            items.append(f"- ...and {more} more line(s); click any line to see its own explanation.")
+        title = f"`{name}`" if name else "the program"
+        return f"Reading {title} from top to bottom:\n" + "\n".join(items)
+    except Exception:
+        return ""

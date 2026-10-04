@@ -21,6 +21,7 @@ from complexity_explainer.growth_insight import (
     parse_complexity, is_constant, scaling_line, doubling_effect, growth_word,
 )
 from complexity_explainer import paradigm_detector
+from complexity_explainer.statement_narrator import walkthrough
 
 _HIERARCHY = ["1", "log min", "log", "sqrt", "n", "m", "V", "V + E", "n log n", "n^2", "n * m", "n^3", "2^n", "3^n", "n!", "n * n!"]
 
@@ -61,6 +62,11 @@ class OverallNarrative:
         except Exception:
             approach = ""
         approach_md = ("#### Type of Algorithm\n" + approach + "\n\n") if approach else ""
+        try:
+            steps_txt = walkthrough(gen.shape.tree, pick=gen._v)
+        except Exception:
+            steps_txt = ""
+        approach_md += ("#### How the Code Works\n" + steps_txt + "\n\n") if steps_txt else ""
 
         md = (
             "### Overall Complexity Analysis\n\n"

@@ -192,6 +192,25 @@ class VariableExplanations:
         narrator = StatementNarrator(pick=gen._v, function_name=fname, recursive_funcs=recursive, params=params)
         return narrator.narrate(stmt)
 
+    def _key_line_note(self, line_no: int) -> str:
+        """If this line is one of the lines that made the whole program look like a
+        known approach (brute force, DP, backtracking...), say so, in plain words."""
+        gen = self.generator
+        try:
+            from complexity_explainer import paradigm_detector
+            shape = gen.shape
+            cache = gen.__dict__.setdefault("_paradigm_cache", {})
+            key = (id(shape), id(shape.tree))
+            if key not in cache:
+                cache.clear()
+                cache[key] = paradigm_detector.detect(shape.tree)
+            top = cache[key][:1]
+            if top and line_no in top[0].lines:
+                return f"This is a key line of the {top[0].name.split(' (')[0].lower()} approach used in this code."
+        except Exception:
+            pass
+        return ""
+
     def _build_action_intro(self, node: ast.AST, code_snippet: str, sig: PatternSignals) -> str:
         ref = f"`{code_snippet}`" if code_snippet else "this line"
 
@@ -199,7 +218,8 @@ class VariableExplanations:
         narrated = self._narrate_line(node)
         if narrated and not (sig.has_docstring or sig.has_comment_block):
             hint = next((txt for attr, txt in self._PARADIGM_HINTS if getattr(sig.paradigms, attr, False)), "")
-            return f"{narrated} {hint}".strip()
+            key = self._key_line_note(getattr(node, "lineno", -1))
+            return " ".join(x for x in (narrated, hint, key) if x).strip()
 
         # 2) otherwise fall back to the older construct-level wording
         if sig.paradigms.is_halving:
