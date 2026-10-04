@@ -326,7 +326,7 @@ class SignatureRecorder:
                         mem_state[var_name] = dict(var_data)
         
         time_exp, space_exp = "", ""        
-        if SemanticNLGEngine:
+        if SemanticNLGEngine and getattr(self.analyzer, 'explain', True):
             for var_name, var_data in mem_state.items():
                 var_data["explanation"] = self.analyzer.nlg_engine.generate_variable_explanation(var_name, var_data, self.analyzer.var_types.get(var_name))
 
