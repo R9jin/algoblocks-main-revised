@@ -418,14 +418,16 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const initialCounts = {};
         (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
         setLineExecutions((prev) => ({ ...prev, ...initialCounts }));
-        const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
+        // Only genuine errors (e.g. NameError) are flagged `blocking`; "possible bug" lint
+        // warnings share this list but must not hide the complexity result.
+        const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: err.blocking === true, isNameError: /^NameError/.test(err.message || "") }));
         setSyntaxErrors(runtimeErrors);
       } else {
         if (data.multiple_errors && data.multiple_errors.length > 0) {
-          const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
+          const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: true }));
           setSyntaxErrors(mappedErrors);
         } else {
-          setSyntaxErrors([{ line: data.line, message: data.message, fix: translatePythonError(data.message) }]);
+          setSyntaxErrors([{ line: data.line, message: data.message, fix: translatePythonError(data.message), blocking: true }]);
         }
       }
     } else if (type === "RUN_RESULT") {
@@ -1263,7 +1265,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       setConsoleOutput("Error: No code to execute."); focusDockPanel("console"); setConsoleTab("output"); return;
     }
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); setIsEvaluating(true); setLineExecutions({});
-    focusDockPanel("console"); setConsoleTab("output"); setConsoleOutput((prev) => prev + "\n> Running the program...\n");
+    focusDockPanel("console"); setConsoleTab("output");
+    // Fresh console on every run (IDE-style) instead of appending to old output.
+    setConsoleOutput("> Running the program...\n");
 
     outputCountRef.current = 0; pendingOutputRef.current = ""; runtimeErrorTextRef.current = "";
     runTimeoutRef.current = setTimeout(() => {
@@ -1928,6 +1932,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           analysisResult={analysisResult}
           analysisTime={analysisTime}
           defaultWeight={7}
+          hasErrors={(syntaxErrors || []).some((e) => e.blocking)}
           analysisTimeLabel="Analyzed In:"
           analysisBadgeStyle={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
           analysisLabelStyle={{ color: '#64748B' }}

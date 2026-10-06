@@ -26,13 +26,17 @@ export default function ComplexityPanelContent({
   analysisLabelStyle = null,
   analysisValStyle = null,
   extraBadges = null,
+  // True while the code has syntax/runtime errors. A complexity result for
+  // code that cannot run would be misleading, so no Big-O is shown until
+  // the errors are fixed.
+  hasErrors = false,
 }) {
   const [expandedLines, setExpandedLines] = useState({});
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
 
   const lines = analysisResult?.lines || [];
-  const safeTotal = analysisResult?.total || "O(1)";
-  const safeSpaceTotal = analysisResult?.space_total || "O(1)";
+  const safeTotal = hasErrors ? "—" : (analysisResult?.total || "O(1)");
+  const safeSpaceTotal = hasErrors ? "—" : (analysisResult?.space_total || "O(1)");
   const safeExplanation = analysisResult?.overall_explanation || "";
 
   // Which libraries in the code the analyzer has no (or only partial) cost
@@ -148,7 +152,12 @@ export default function ComplexityPanelContent({
         </ul>
       )}
 
-      {scopeGateActive ? (
+      {hasErrors ? (
+        <div className="empty-analysis-state error-gate-placeholder">
+          <FiInfo size={28} />
+          <p>The complexity can't be calculated yet because the code has errors. Fix the highlighted errors and the Big-O result will appear here.</p>
+        </div>
+      ) : scopeGateActive ? (
         <div className="empty-analysis-state scope-gate-placeholder">
           <FiInfo size={28} />
           <p>This code uses libraries the analyzer can't fully reason about, so the results below may be inaccurate.</p>

@@ -1007,6 +1007,19 @@ class ASTNodeVisitor(ast.NodeVisitor):
                         s_ov = "O(V+E)" if getattr(self.analyzer, 'in_graph_context', False) else b['space']
                         if f_id == 'sorted':
                             self.analyzer.has_unbounded_sort_call = True
+                        # sum()/min()/max() over a fixed-size iterable -- a short
+                        # literal list/tuple/set or range(<constants>) -- always
+                        # does the same, bounded amount of work: O(1), not O(n).
+                        # (Same rule list()/set() already use for constant ranges.)
+                        if f_id in ('sum', 'min', 'max') and len(getattr(node, 'args', [])) == 1:
+                            _it = node.args[0]
+                            _fixed = False
+                            if isinstance(_it, (ast.List, ast.Tuple, ast.Set)) and len(getattr(_it, 'elts', [])) <= 100:
+                                _fixed = True
+                            elif isinstance(_it, ast.Call) and getattr(getattr(_it, 'func', None), 'id', '') == 'range' and getattr(_it, 'args', []):
+                                _fixed = all(self.analyzer.complexity_heuristics._is_constant_expr(_a) for _a in _it.args)
+                            if _fixed:
+                                t_ov = "O(1)"
                     self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=f_id.capitalize())
             elif f_id == 'print':
                 is_linear = any(self.analyzer.complexity_heuristics._is_linear_type(arg) for arg in getattr(node, 'args', []))

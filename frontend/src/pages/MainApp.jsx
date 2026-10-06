@@ -57,6 +57,10 @@ const SIDEBAR_TEMPLATES = [
   { name: "Fibonacci (Recursive)", path: "recursive/recursive_fibonacci", desc: "Generates Fibonacci sequence recursively.", category: "Recursive" },
   { name: "Permutation (Recursive)", path: "recursive/recursive_permutation", desc: "Generates all permutations of a string.", category: "Recursive" },
   { name: "Tower of Hanoi (Recursive)", path: "recursive/recursive_tower_of_hanoi", desc: "Moves disks following rules.", category: "Recursive" },
+  { name: "BFS (Undirected Graph)", path: "graph/bfs_undirected", desc: "Level-by-level traversal; edges go both ways.", category: "Graph" },
+  { name: "BFS (Directed Graph)", path: "graph/bfs_directed", desc: "Level-by-level traversal; edges go one way.", category: "Graph" },
+  { name: "DFS (Undirected Graph)", path: "graph/dfs_undirected", desc: "Recursive depth-first traversal; edges go both ways.", category: "Graph" },
+  { name: "DFS (Directed Graph)", path: "graph/dfs_directed", desc: "Recursive depth-first traversal; edges go one way.", category: "Graph" },
 ];
 
 const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -420,7 +424,9 @@ export default function MainApp({ pipelineMode = false }) {
         if (data.status === "success") {
           const initialCounts = {};
           (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-          const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
+          // Only genuine errors (e.g. NameError) are flagged `blocking`; "possible bug" lint
+          // warnings share this list but must not hide the complexity result.
+          const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: err.blocking === true, isNameError: /^NameError/.test(err.message || "") }));
           updateTab(targetId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: {
@@ -438,10 +444,10 @@ export default function MainApp({ pipelineMode = false }) {
           });
         } else {
           if (data.multiple_errors && data.multiple_errors.length > 0) {
-            const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
+            const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: true }));
             updateTab(targetId, { syntaxErrors: mappedErrors });
           } else {
-            updateTab(targetId, { syntaxErrors: [{ line: data.line, message: data.message, fix: translatePythonError(data.message) }] });
+            updateTab(targetId, { syntaxErrors: [{ line: data.line, message: data.message, fix: translatePythonError(data.message), blocking: true }] });
           }
         }
       } else if (type === "RUN_RESULT") {
@@ -741,7 +747,9 @@ export default function MainApp({ pipelineMode = false }) {
   // "Sync to Blocks" button keeps the full, visible flow.
   const syncToBlocks = async (silent = false) => {
     if (isSyncingToBlocks) return;
-    const hasErrors = activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0;
+    // A NameError (undefined variable) still converts to blocks fine; only real
+    // syntax problems should stop the sync.
+    const hasErrors = activeTab.syntaxErrors && activeTab.syntaxErrors.some((e) => !e.isNameError);
     if (hasErrors) { if (!silent) showToast("Cannot sync to blocks. Please fix Python syntax errors first.", "error"); return; }
     if (!isEngineReady) {
       if (!silent) showToast(engineError || (engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment."), "error");
@@ -789,7 +797,7 @@ export default function MainApp({ pipelineMode = false }) {
     if (!activeTab.isEditingCode || isSyncingToBlocks || !isEngineReady) return;
     const code = activeTab.pythonCode;
     if (!code || !code.trim() || code === "# Drag blocks to generate Python code") return;
-    if (activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0) return;
+    if (activeTab.syntaxErrors && activeTab.syntaxErrors.some((e) => !e.isNameError)) return;
     if (lastAutoSyncTextRef.current[activeTabId] === code) return;
     const bj = activeTab.blocklyJson;
     const noBlocksYet = !bj || Object.keys(bj).length === 0 || (bj.blocks && bj.blocks.blocks && bj.blocks.blocks.length === 0);
@@ -830,7 +838,10 @@ export default function MainApp({ pipelineMode = false }) {
     }
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
     setIsEvaluating(true); updateTab(activeTabId, { lineExecutions: {} });
-    focusDockPanel("console"); setConsoleTab("output"); setConsoleOutput((prev) => prev + "\n> Running the program...\n");
+    focusDockPanel("console"); setConsoleTab("output");
+    // Each run starts with a fresh console (like an IDE), so the learner never
+    // has to press Clear and old output never gets mixed with the new run.
+    setConsoleOutput("> Running the program...\n");
 
     outputCountRef.current = 0; pendingOutputRef.current = ""; runtimeErrorTextRef.current = "";
     renderIntervalRef.current = setInterval(() => {
@@ -1281,6 +1292,7 @@ export default function MainApp({ pipelineMode = false }) {
           analysisResult={activeTab.analysisResult}
           analysisTime={activeTab.analysisTime}
           defaultWeight={0}
+          hasErrors={(activeTab.syntaxErrors || []).some((e) => e.blocking)}
         />
       ),
     },

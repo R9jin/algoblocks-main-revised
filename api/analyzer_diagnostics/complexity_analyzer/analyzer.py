@@ -35,6 +35,7 @@ sys.setrecursionlimit(2000)
 from complexity_analyzer.code_preprocessor import (
     extract_constant,
     find_script_literal_name_locs,
+    script_literal_loop_note,
     _name_hints_memo_or_graph,
     _detect_factorial_branching,
     preprocess_source,
@@ -57,6 +58,12 @@ try:
     from logic_lint import detect_logic_issues
 except ImportError:
     def detect_logic_issues(source_code, tree=None):
+        return []
+
+try:
+    from scope_detector import detect_name_errors
+except ImportError:
+    def detect_name_errors(source_code, tree=None, limit=10):
         return []
 
 try:
@@ -648,6 +655,9 @@ def analyze_source_code(source_code):
         analyzer.ast_visitor.visit(tree)
 
         overall_exp = analyzer.complexity_synthesizer.get_overall_explanation(tree)
+        _lit_note = script_literal_loop_note(tree, getattr(analyzer, 'script_literal_locs', set()))
+        if _lit_note:
+            overall_exp = ((overall_exp or '') + '\n\n' + _lit_note).strip()
 
         results = {
             "status": "success",
@@ -666,6 +676,8 @@ def analyze_source_code(source_code):
             # upstream of this (syntax check, Pyodide traceback) ever has
             # a chance to catch them.
             "logic_warnings": detect_logic_issues(source_code, tree),
+            # Names that are read but never defined (NameError at run time).
+            "name_errors": detect_name_errors(source_code, tree),
         }
     except Exception as e:
         print(f"[AST CRASH FALLBACK TRIGGERED]: {e}")

@@ -457,6 +457,10 @@ try:
         # catch these, so surface them through the same error list the
         # popup on the right already renders.
         output_dict["multiple_errors"] = list(output_dict["logic_warnings"])
+    # Names that are read but never defined: Python parses this fine and only
+    # fails when run, so report it here (flagged blocking) next to any other findings.
+    if isinstance(output_dict, dict) and output_dict.get("status") != "error" and output_dict.get("name_errors"):
+        output_dict["multiple_errors"] = list(output_dict.get("multiple_errors") or []) + list(output_dict["name_errors"])
     output = json.dumps(output_dict)
 except Exception as e:
     custom_errs = gather_custom_lint_errors(user_code)

@@ -337,3 +337,42 @@ def find_script_literal_name_locs(tree):
             walk_script_scope(child)
     walk_script_scope(tree)
     return locs
+
+
+def script_literal_loop_note(tree, locs):
+    """
+    Teaching hint for loops bounded by a script-level literal (`n = 3` then
+    `range(n)`): they count as O(1), which surprises learners who think of
+    `n` as "the input size". Returns one sentence naming the fixed variable(s)
+    and what would make the loop O(n) instead, or "" when it doesn't apply.
+    """
+    if not locs:
+        return ""
+    values = {}
+    for stmt in getattr(tree, 'body', []):
+        if (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1
+                and isinstance(stmt.targets[0], ast.Name)
+                and isinstance(stmt.value, ast.Constant)):
+            values[stmt.targets[0].id] = stmt.value.value
+
+    used = []
+    def header_names(expr):
+        for n in ast.walk(expr):
+            if isinstance(n, ast.Name) and (n.lineno, n.col_offset) in locs and n.id not in used:
+                used.append(n.id)
+    def walk_scope(node):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
+                continue
+            if isinstance(child, ast.For):
+                header_names(child.iter)
+            elif isinstance(child, ast.While):
+                header_names(child.test)
+            walk_scope(child)
+    walk_scope(tree)
+    if not used:
+        return ""
+    shown = ", ".join(f"{n} = {values.get(n)}" for n in used[:3])
+    return (f"Note: {shown} is a fixed value in this script, so the loop always runs the same "
+            f"number of times and counts as O(1). If {used[0]} came from input() or a function "
+            f"parameter, it could grow with the input and the loop would be O(n).")

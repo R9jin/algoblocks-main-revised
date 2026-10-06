@@ -289,3 +289,81 @@ def detect_scope_issues(source_code, tree=None):
         return []
 
     return warnings
+
+
+# ---------------------------------------------------------------------------
+# Undefined-name detection (NameError before the code is even run)
+# ---------------------------------------------------------------------------
+import builtins as _builtins
+
+_ALWAYS_DEFINED = {
+    "__name__", "__file__", "__doc__", "__builtins__", "__package__",
+    "__spec__", "__loader__", "__debug__",
+}
+
+
+def detect_name_errors(source_code, tree=None, limit=10):
+    """
+    Names that are read but never bound anywhere in the program -- a typo, a
+    forgotten variable, or a call to a function that doesn't exist. Python
+    parses such code fine and only fails when it runs, so without this the
+    analyzer happily reports a complexity for code that can't work.
+
+    Deliberately conservative, because a hit hides the complexity result:
+    scope-insensitive (a name counts as defined if it is bound *anywhere* in
+    the file, in any scope), and it bows out entirely when the program uses
+    `from x import *`, `exec`, `eval`, `globals()` or `locals()`, which can
+    create names this check cannot see.
+
+    Returns [{"line": int, "message": "NameError: ...", "blocking": True}].
+    """
+    try:
+        if tree is None:
+            tree = ast.parse(source_code)
+    except Exception:
+        return []
+
+    bound = set(dir(_builtins)) | _ALWAYS_DEFINED
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            bound.add(node.id)
+        elif isinstance(node, ast.arg):
+            bound.add(node.arg)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            bound.add(node.name)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                if alias.name == "*":
+                    return []
+                bound.add((alias.asname or alias.name).split(".")[0])
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            bound.update(node.names)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            bound.add(node.name)
+        elif isinstance(node, ast.MatchAs) if hasattr(ast, "MatchAs") else False:
+            if node.name:
+                bound.add(node.name)
+        elif hasattr(ast, "MatchStar") and isinstance(node, ast.MatchStar):
+            if node.name:
+                bound.add(node.name)
+        elif hasattr(ast, "MatchMapping") and isinstance(node, ast.MatchMapping):
+            if node.rest:
+                bound.add(node.rest)
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
+                and node.func.id in ("exec", "eval", "globals", "locals", "vars", "setattr"):
+            return []
+
+    errors, seen = [], set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id not in bound:
+            key = (node.id, node.lineno)
+            if key in seen:
+                continue
+            seen.add(key)
+            errors.append({
+                "line": node.lineno,
+                "message": f"NameError: name '{node.id}' is not defined",
+                "blocking": True,
+            })
+    errors.sort(key=lambda e: e["line"])
+    return errors[:limit]
