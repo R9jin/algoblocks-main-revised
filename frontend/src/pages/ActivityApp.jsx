@@ -1181,37 +1181,76 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     }
   };
 
-  const handleSyncToBlocks = async () => {
-    if (workspaceRef.current && generatedPython) {
-      if (isSyncingBlocks) return;
-      if (!isEngineReady) {
+  // Always points at the newest Python text so an in-flight conversion can
+  // tell whether the learner kept typing while it was running.
+  const generatedPythonRef = useRef(generatedPython);
+  generatedPythonRef.current = generatedPython;
+  // The last text an automatic sync already tried, so a snippet that can't
+  // be auto-converted (scope warnings, unparseable) isn't retried in a loop.
+  const lastAutoSyncTextRef = useRef(null);
+
+  // Python -> Blocks. `silent` is the automatic mode that runs while the
+  // learner types: no panel switching, no toast, no modal, no error popup.
+  // The manual "Sync to Blocks" button still uses the full, visible flow.
+  const syncToBlocks = async (silent = false) => {
+    if (!workspaceRef.current || !generatedPython) return;
+    if (isSyncingBlocks) return;
+    if (!isEngineReady) {
+      if (!silent) {
         setConsoleOutput(`Still preparing the Python engine${engineProgress?.stage ? ` (${engineProgress.stage})` : ""}. Please wait a moment and try again.`);
         focusDockPanel("console"); setConsoleTab("output");
-        return;
       }
-      // Bring the Blocks panel into view *before* the conversion starts.
-      // loadFromPython() below may pop open the ScopeWarningModal
-      // (rendered inside BlocklyWorkspace) when it detects unsupported or
-      // partially-supported libraries, and pause for the user's decision --
-      // if that dock panel isn't visible/focused when it appears, the
-      // whole sync looks permanently stuck even though it's just waiting
-      // on a confirmation the user can't see.
-      focusDockPanel("blockly");
-      setIsSyncingBlocks(true);
-      try {
-        await workspaceRef.current.loadFromPython(sanitizePythonCode(generatedPython));
-        loadTimeRef.current = Date.now(); // Reset protection timer
-        setIsEditingCode(false); 
+      return;
+    }
+    const snapshot = generatedPython;
+    if (silent) lastAutoSyncTextRef.current = snapshot;
+    // Bring the Blocks panel into view *before* the conversion starts.
+    // loadFromPython() below may pop open the ScopeWarningModal
+    // (rendered inside BlocklyWorkspace) when it detects unsupported or
+    // partially-supported libraries, and pause for the user's decision --
+    // if that dock panel isn't visible/focused when it appears, the
+    // whole sync looks permanently stuck even though it's just waiting
+    // on a confirmation the user can't see.
+    if (!silent) focusDockPanel("blockly");
+    setIsSyncingBlocks(true);
+    try {
+      const result = await workspaceRef.current.loadFromPython(sanitizePythonCode(snapshot), { silent });
+      if (result?.skipped) return;
+      loadTimeRef.current = Date.now(); // Reset protection timer
+      // If the learner typed more while this ran, stay "dirty" so the
+      // auto-sync effect converts the newer text too.
+      if (generatedPythonRef.current === snapshot) setIsEditingCode(false);
+      if (!silent) {
         setViewMode("workspace");
         focusDockPanel("blockly");
         showToast("Python code successfully converted into blocks!", "success");
-      } catch (e) {
-        setModalConfig({ isOpen: true, title: "Sync Error", message: e?.message || "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
-      } finally {
-        setIsSyncingBlocks(false);
       }
+    } catch (e) {
+      // Automatic attempts fail quietly (e.g. half-typed code); syntax
+      // problems are already surfaced by the analyzer's error list.
+      if (!silent) setModalConfig({ isOpen: true, title: "Sync Error", message: e?.message || "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
+    } finally {
+      setIsSyncingBlocks(false);
     }
   };
+
+  const handleSyncToBlocks = () => syncToBlocks(false);
+
+  // Automatic Python -> Blocks sync. Blocks -> Python already happens on
+  // every block edit; this makes the other direction match, so editing the
+  // Python (e.g. deleting "n = 3") is reflected in the blocks without
+  // pressing "Sync to Blocks". Waits for a typing pause and valid syntax.
+  const syncToBlocksRef = useRef(syncToBlocks);
+  syncToBlocksRef.current = syncToBlocks;
+  useEffect(() => {
+    if (!isReadyRef.current || isUnmountingRef.current || isResettingRef.current) return;
+    if (!isEditingCode || isSyncingBlocks || !isEngineReady) return;
+    if (!generatedPython || !generatedPython.trim() || generatedPython === "# Drag blocks to generate Python code") return;
+    if (syntaxErrors && syntaxErrors.length > 0) return;
+    if (lastAutoSyncTextRef.current === generatedPython) return;
+    const timeoutId = setTimeout(() => { syncToBlocksRef.current(true); }, 1200);
+    return () => clearTimeout(timeoutId);
+  }, [generatedPython, isEditingCode, isSyncingBlocks, isEngineReady, syntaxErrors]);
 
   const handleActivityRun = async () => {
     if (isEvaluating) return;

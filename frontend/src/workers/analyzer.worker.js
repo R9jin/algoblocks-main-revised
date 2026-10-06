@@ -575,17 +575,25 @@ try:
     transformer = AsyncInputTransformer()
     transformed = transformer.visit(tree)
     ast.fix_missing_locations(transformed)
+    # Every run gets its OWN fresh namespace. Running user code inside this
+    # worker's persistent globals() meant variables from a previous run
+    # (e.g. an earlier "n = 3") were still defined on the next run, so code
+    # whose declaration had since been deleted still "worked" instead of
+    # raising NameError. It also let user variables named json/ast/traceback
+    # clobber this harness. A fresh dict makes each run behave like a clean
+    # python3 script.
+    user_ns = {"__name__": "__main__", "__builtins__": builtins, "custom_input_async": custom_input_async}
     try:
         if transformer.has_input:
             compiled_code = compile(transformed, "<user_code>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
             sys.settrace(dyn_profiler.trace_lines)
-            coro = eval(compiled_code, globals())
+            coro = eval(compiled_code, user_ns)
             if coro is not None:
                 await coro
         else:
             compiled_code = compile(transformed, "<user_code>", "exec")
             sys.settrace(dyn_profiler.trace_lines)
-            exec(compiled_code, globals())
+            exec(compiled_code, user_ns)
     finally:
         sys.settrace(None)
         globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))

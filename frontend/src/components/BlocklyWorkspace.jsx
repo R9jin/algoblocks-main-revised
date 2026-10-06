@@ -591,6 +591,83 @@ export const toolbox = {
   ]
 };
 
+// ---------------------------------------------------------------------------
+// Overlap protection
+//
+// Two sources of hidden blocks used to exist:
+//  1. The Python->Blocks converter (blockly_ast.py) stacks top-level groups
+//     using an *estimated* height (get_chain_height). Real rendered heights
+//     differ (wrapped fields, multiline raw blocks, nested C-shapes), so a
+//     group could land on top of the next one and hide it from the learner.
+//  2. A learner could drop one top-level stack directly on top of another.
+//
+// Both are fixed using the REAL measured bounding boxes Blockly computes
+// after render: relayoutTopBlocks() restacks every top-level group
+// vertically with a fixed gap, and nudgeOutOfOverlap() moves just a dropped
+// group to the nearest free spot below whatever it landed on.
+// ---------------------------------------------------------------------------
+const BLOCK_GAP = 30;
+
+const topLevelBlocks = (ws) => ws.getTopBlocks(false).filter((b) => !b.isInsertionMarker?.());
+
+const rectsOverlap = (a, b, pad = 0) =>
+  a.left < b.right + pad && a.right > b.left - pad && a.top < b.bottom + pad && a.bottom > b.top - pad;
+
+const hasTopLevelOverlap = (ws) => {
+  const rects = topLevelBlocks(ws).map((b) => b.getBoundingRectangle());
+  for (let i = 0; i < rects.length; i++)
+    for (let j = i + 1; j < rects.length; j++)
+      if (rectsOverlap(rects[i], rects[j])) return true;
+  return false;
+};
+
+// Restack every top-level group in a single column, in current reading order
+// (top-to-bottom, then left-to-right), using measured heights.
+export const relayoutTopBlocks = (ws) => {
+  if (!ws) return;
+  const blocks = topLevelBlocks(ws).sort((a, b) => {
+    const pa = a.getRelativeToSurfaceXY(), pb = b.getRelativeToSurfaceXY();
+    return pa.y - pb.y || pa.x - pb.x;
+  });
+  if (blocks.length < 2) return;
+  // If the panel is hidden/unrendered, sizes read back as 0 and restacking
+  // would just pile everything up -- leave the layout alone in that case.
+  if (blocks.every((b) => !b.getHeightWidth().height)) return;
+  const startX = Math.min(...blocks.map((b) => b.getRelativeToSurfaceXY().x));
+  let y = Math.min(...blocks.map((b) => b.getRelativeToSurfaceXY().y));
+  const prevGroup = Blockly.Events.getGroup();
+  Blockly.Events.setGroup(true);
+  try {
+    for (const b of blocks) {
+      const pos = b.getRelativeToSurfaceXY();
+      b.moveBy(startX - pos.x, y - pos.y);
+      y += b.getHeightWidth().height + BLOCK_GAP;
+    }
+  } finally {
+    Blockly.Events.setGroup(prevGroup || false);
+  }
+};
+
+// Only restack when something actually overlaps, so a learner's own saved
+// arrangement is left alone whenever it is already fine.
+export const fixOverlapsIfAny = (ws) => {
+  if (!ws) return;
+  try { if (hasTopLevelOverlap(ws)) relayoutTopBlocks(ws); } catch (e) { /* layout is best-effort */ }
+};
+
+// Move one top-level group straight down past anything it overlaps.
+const nudgeOutOfOverlap = (ws, block) => {
+  if (!block || block.disposed || block.getParent()) return;
+  const others = topLevelBlocks(ws).filter((b) => b.id !== block.id);
+  for (let guard = 0; guard < 25; guard++) {
+    const mine = block.getBoundingRectangle();
+    const hit = others.find((o) => rectsOverlap(mine, o.getBoundingRectangle()));
+    if (!hit) return;
+    const target = hit.getBoundingRectangle().bottom + BLOCK_GAP;
+    block.moveBy(0, target - mine.top);
+  }
+};
+
 const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson }, ref) => {
   const blocklyDiv = useRef(null);
   const workspace = useRef(null);
@@ -677,10 +754,14 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     }
 
     setTimeout(() => {
-      // Only now -- once this load's own delivery below has run -- is it
-      // safe to let the generic listener react to future real edits again.
-      suppressAutoChangeRef.current = false;
-      if (!workspace.current) return;
+      if (!workspace.current) { suppressAutoChangeRef.current = false; return; }
+      // Relayout BEFORE reading the code/JSON back so the delivered JSON has
+      // the corrected positions. Blockly queues the resulting move events
+      // asynchronously, so keep the generic listener muted a moment longer
+      // (released below) or those events would trigger a second, stale
+      // delivery on top of this one.
+      fixOverlapsIfAny(workspace.current);
+      setTimeout(() => { suppressAutoChangeRef.current = false; }, 50);
       const code = pythonGenerator.workspaceToCode(workspace.current);
       const currentJson = Blockly.serialization.workspaces.save(workspace.current);
 
@@ -729,15 +810,22 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     setTheme: (themeName) => {
       if (workspace.current) workspace.current.setTheme(themeName === "dark" ? DarkTheme : pastelTheme);
     },
-    loadFromPython: async (pythonCode) => {
-      if (!workspace.current || !pythonCode) return;
+    // `silent` is used by the automatic Python->Blocks sync that runs while the
+    // learner types. It must never interrupt them, so instead of opening the
+    // scope-warning modal it simply skips (the manual "Sync to Blocks" button
+    // still shows the modal). Resolves { skipped: true } when nothing was
+    // loaded, otherwise { synced: true }.
+    loadFromPython: async (pythonCode, { silent = false } = {}) => {
+      if (!workspace.current || !pythonCode) return { skipped: true };
       const cleanCode = sanitizePythonCode(pythonCode);
       const data = await convertPythonToBlocks(cleanCode);
       if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
+      if (!workspace.current) return { skipped: true };
 
         if (Array.isArray(data.scope_warnings) && data.scope_warnings.length > 0) {
+          if (silent) return { skipped: true, reason: "scope_warnings" };
           const proceed = await confirmScopeWarnings(data.scope_warnings);
-          if (!proceed) return;
+          if (!proceed) return { skipped: true, reason: "cancelled" };
         }
 
         // Cancel any pending debounced delivery from an edit just before
@@ -776,14 +864,20 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
           setTimeout(() => {
             // Only re-arm the generic listener once this sync's own
             // delivery (below) has actually happened.
-            suppressAutoChangeRef.current = false;
+            fixOverlapsIfAny(workspace.current);
+            // Same as executeLoad: let the queued move events from the
+            // relayout flush while still muted, then re-arm the listener.
+            setTimeout(() => { suppressAutoChangeRef.current = false; }, 50);
             if (workspace.current && onChangeRef.current) {
               onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonCode);
             }
             resolve();
           }, 100);
         });
+        return { synced: true };
     },
+    // Exposed so a "Tidy up" control or caller can force a clean layout.
+    arrangeBlocks: () => { if (workspace.current) relayoutTopBlocks(workspace.current); },
     resize: () => { if (workspace.current) { Blockly.svgResize(workspace.current); workspace.current.markFocused(); } }
   }));
 
@@ -844,6 +938,17 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       }
 
       registerCustomPythonGenerators();
+
+      // After a learner finishes dragging a top-level stack, make sure it
+      // didn't land on top of (and hide) another stack.
+      workspace.current.addChangeListener((event) => {
+        if (event.type !== Blockly.Events.BLOCK_DRAG || event.isStart || suppressAutoChangeRef.current) return;
+        const ws = workspace.current;
+        const dragged = ws && event.blockId ? ws.getBlockById(event.blockId) : null;
+        if (!dragged) return;
+        // Wait a tick so Blockly has finished connecting/bumping the block.
+        setTimeout(() => { if (workspace.current === ws) nudgeOutOfOverlap(ws, dragged.getRootBlock?.() || dragged); }, 0);
+      });
 
       workspace.current.addChangeListener((event) => {
         if (event.isUiEvent) return;

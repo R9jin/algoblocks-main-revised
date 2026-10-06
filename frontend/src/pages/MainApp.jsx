@@ -723,15 +723,34 @@ export default function MainApp({ pipelineMode = false }) {
     }
   }, [activeTab.pythonCode, activeTab.isEditingCode, isOnline, activeTabId, isEngineReady]);
 
-  const handleSyncToBlocks = async () => {
+  // Always points at the newest tab state so an in-flight conversion can
+  // tell whether the learner kept typing while it was running.
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  // Last text per tab that an automatic sync already tried, so a snippet
+  // that can't be auto-converted isn't retried in a loop.
+  const lastAutoSyncTextRef = useRef({});
+  // The text the learner most recently typed in the Python editor, per tab.
+  // Auto-sync only fires for text typed this session (or when there are no
+  // blocks yet), so just OPENING a saved project never silently rebuilds its
+  // saved blocks from the Python text.
+  const typedPythonRef = useRef({});
+
+  // Python -> Blocks. `silent` is the automatic mode that runs while the
+  // learner types: no panel switching, no toast, no modal. The manual
+  // "Sync to Blocks" button keeps the full, visible flow.
+  const syncToBlocks = async (silent = false) => {
     if (isSyncingToBlocks) return;
     const hasErrors = activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0;
-    if (hasErrors) { showToast("Cannot sync to blocks. Please fix Python syntax errors first.", "error"); return; }
+    if (hasErrors) { if (!silent) showToast("Cannot sync to blocks. Please fix Python syntax errors first.", "error"); return; }
     if (!isEngineReady) {
-      showToast(engineError || (engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment."), "error");
+      if (!silent) showToast(engineError || (engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment."), "error");
       return;
     }
-    if (workspaceRefs.current[activeTabId] && activeTab.pythonCode) {
+    const tabId = activeTabId;
+    if (workspaceRefs.current[tabId] && activeTab.pythonCode) {
+      const snapshot = activeTab.pythonCode;
+      if (silent) lastAutoSyncTextRef.current[tabId] = snapshot;
       // Bring the Blocks panel into view *before* the conversion starts,
       // not after it succeeds. If unsupported/partially-supported
       // libraries are detected, loadFromPython() below pops open the
@@ -741,17 +760,43 @@ export default function MainApp({ pipelineMode = false }) {
       // hidden dock region and the whole sync looks permanently "stuck"
       // even though it's just waiting on a confirmation the user can't
       // see or click.
-      focusDockPanel("blockly");
+      if (!silent) focusDockPanel("blockly");
       setIsSyncingToBlocks(true);
       try {
-        const cleanCode = sanitizePythonCode(activeTab.pythonCode);
-        await workspaceRefs.current[activeTabId].loadFromPython(cleanCode);
-        updateTab(activeTabId, { isEditingCode: false, viewMode: "workspace" });
-        showToast("Code successfully synced to Blocks", "success");
-      } catch (e) { showToast(`Sync Failed: ${e.message}`, "error"); }
+        const cleanCode = sanitizePythonCode(snapshot);
+        const result = await workspaceRefs.current[tabId].loadFromPython(cleanCode, { silent });
+        if (result?.skipped) return;
+        // If the learner typed more while this ran, stay "dirty" so the
+        // auto-sync effect converts the newer text too.
+        const stillCurrent = activeTabRef.current?.id !== tabId || activeTabRef.current?.pythonCode === snapshot;
+        updateTab(tabId, stillCurrent ? (silent ? { isEditingCode: false } : { isEditingCode: false, viewMode: "workspace" }) : {});
+        if (!silent) showToast("Code successfully synced to Blocks", "success");
+      } catch (e) { if (!silent) showToast(`Sync Failed: ${e.message}`, "error"); }
       finally { setIsSyncingToBlocks(false); }
     }
   };
+
+  const handleSyncToBlocks = () => syncToBlocks(false);
+
+  // Automatic Python -> Blocks sync (Blocks -> Python already happens on
+  // every block edit). Editing the Python -- e.g. deleting "n = 3" -- is now
+  // reflected in the blocks after a short typing pause, with no need to
+  // press "Sync to Blocks". Applies to the Main app and, because the admin
+  // Pipeline page renders this same component, to that page as well.
+  const syncToBlocksRef = useRef(syncToBlocks);
+  syncToBlocksRef.current = syncToBlocks;
+  useEffect(() => {
+    if (!activeTab.isEditingCode || isSyncingToBlocks || !isEngineReady) return;
+    const code = activeTab.pythonCode;
+    if (!code || !code.trim() || code === "# Drag blocks to generate Python code") return;
+    if (activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0) return;
+    if (lastAutoSyncTextRef.current[activeTabId] === code) return;
+    const bj = activeTab.blocklyJson;
+    const noBlocksYet = !bj || Object.keys(bj).length === 0 || (bj.blocks && bj.blocks.blocks && bj.blocks.blocks.length === 0);
+    if (typedPythonRef.current[activeTabId] !== code && !noBlocksYet) return;
+    const timeoutId = setTimeout(() => { syncToBlocksRef.current(true); }, 1200);
+    return () => clearTimeout(timeoutId);
+  }, [activeTab.pythonCode, activeTab.isEditingCode, activeTab.syntaxErrors, activeTabId, isSyncingToBlocks, isEngineReady]);
 
   const handleClear = () => {
     setModalConfig({
@@ -1197,6 +1242,7 @@ export default function MainApp({ pipelineMode = false }) {
           isSyncingToBlocks={isSyncingToBlocks}
           onChangeCode={(value) => {
             const cleanValue = sanitizePythonCode(value);
+            typedPythonRef.current[activeTabId] = cleanValue;
             updateTab(activeTabId, { pythonCode: cleanValue, isEditingCode: true, syntaxErrors: [], isDirty: true });
           }}
           onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
