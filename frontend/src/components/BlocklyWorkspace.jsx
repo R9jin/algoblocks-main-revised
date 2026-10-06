@@ -950,6 +950,51 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         setTimeout(() => { if (workspace.current === ws) nudgeOutOfOverlap(ws, dragged.getRootBlock?.() || dragged); }, 0);
       });
 
+      // Unused-block warning: a plain value block (number, text, math, comparison,
+      // variable, list...) that isn't plugged into anything produces no Python at all,
+      // so it just clutters the workspace and confuses the learner. Show Blockly's own
+      // warning icon on it. Limited to side-effect-free block types so a loose call that
+      // really does run is never mislabeled.
+      const LOOSE_BLOCK_TYPES = new Set([
+        "math_number", "math_arithmetic", "math_single", "math_round", "math_modulo",
+        "logic_boolean", "logic_compare", "logic_operation", "logic_negate",
+        "text", "text_join", "variables_get", "lists_create_with",
+      ]);
+      const looseWarnedIds = new Set();
+      let flaggingLoose = false;
+      const flagLooseBlocks = () => {
+        const ws = workspace.current;
+        if (!ws || flaggingLoose) return;
+        flaggingLoose = true;
+        try {
+          const stillLoose = new Set();
+          ws.getTopBlocks(false).forEach((b) => {
+            if (b.outputConnection && !b.getParent() && LOOSE_BLOCK_TYPES.has(b.type)) {
+              stillLoose.add(b.id);
+              if (!looseWarnedIds.has(b.id)) {
+                b.setWarningText("This block isn't connected to anything, so it does nothing. Plug it into another block, or delete it.");
+                looseWarnedIds.add(b.id);
+              }
+            }
+          });
+          [...looseWarnedIds].forEach((id) => {
+            if (stillLoose.has(id)) return;
+            const b = ws.getBlockById(id);
+            if (b) b.setWarningText(null);
+            looseWarnedIds.delete(id);
+          });
+        } catch (e) { /* warnings are cosmetic; never break the workspace over them */ }
+        flaggingLoose = false;
+      };
+      let looseTimer = null;
+      workspace.current.addChangeListener((event) => {
+        const t = event.type;
+        if (t !== Blockly.Events.BLOCK_MOVE && t !== Blockly.Events.BLOCK_CREATE
+            && t !== Blockly.Events.BLOCK_DELETE && t !== Blockly.Events.FINISHED_LOADING) return;
+        if (looseTimer) clearTimeout(looseTimer);
+        looseTimer = setTimeout(flagLooseBlocks, 150);
+      });
+
       workspace.current.addChangeListener((event) => {
         if (event.isUiEvent) return;
         // Muted while executeLoad/clear()/loadFromPython own delivery of a

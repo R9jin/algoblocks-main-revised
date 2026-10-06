@@ -467,9 +467,27 @@ export default function MainApp({ pipelineMode = false }) {
         // line -- not whatever fragment happened to arrive first.
         let hintBlock = "";
         if (runtimeErrorTextRef.current.trim()) {
-          const hint = translatePythonError(extractErrorSummaryLine(runtimeErrorTextRef.current));
+          const crashText = runtimeErrorTextRef.current;
+          const summary = extractErrorSummaryLine(crashText);
+          const hint = translatePythonError(summary);
           if (hint) hintBlock = `\n${hint}\n`;
           runtimeErrorTextRef.current = "";
+          // Mark the crashing line in the editor and tell the Complexity panel the
+          // run failed. The last <user_code> frame in the traceback is the user's own
+          // line (earlier frames can be helper functions).
+          const frames = [...crashText.matchAll(/File "<user_code>", line (\d+)/g)];
+          const crashLine = frames.length ? Number(frames[frames.length - 1][1]) : null;
+          if (crashLine && summary) {
+            const crashEntry = { line: crashLine, message: summary, fix: hint || translatePythonError(summary), blocking: false, isRuntimeCrash: true, isNameError: /^NameError/.test(summary) };
+            const crashTabId = analyzingTabId.current;
+            setTabs((prev) => prev.map((t) => {
+              if (t.id !== crashTabId) return t;
+              const existing = t.syntaxErrors || [];
+              // Already caught before the run (e.g. an undefined name): keep that entry as is.
+              if (existing.some((e) => e.line === crashLine && e.message === summary)) return t;
+              return { ...t, syntaxErrors: [...existing.filter((e) => !e.isRuntimeCrash), crashEntry] };
+            }));
+          }
         }
         setConsoleOutput((prev) => prev + flushed + resultData + hintBlock + "\n> Program finished.\n");
         if (counts) updateTab(analyzingTabId.current, { lineExecutions: counts });
@@ -763,7 +781,7 @@ export default function MainApp({ pipelineMode = false }) {
     if (isSyncingToBlocks) return;
     // A NameError (undefined variable) still converts to blocks fine; only real
     // syntax problems should stop the sync.
-    const hasErrors = activeTab.syntaxErrors && activeTab.syntaxErrors.some((e) => !e.isNameError);
+    const hasErrors = activeTab.syntaxErrors && activeTab.syntaxErrors.some((e) => !e.isNameError && !e.isRuntimeCrash);
     if (hasErrors) { if (!silent) showToast("Cannot sync to blocks. Please fix Python syntax errors first.", "error"); return; }
     if (!isEngineReady) {
       if (!silent) showToast(engineError || (engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment."), "error");
@@ -811,7 +829,7 @@ export default function MainApp({ pipelineMode = false }) {
     if (!activeTab.isEditingCode || isSyncingToBlocks || !isEngineReady) return;
     const code = activeTab.pythonCode;
     if (!code || !code.trim() || code === "# Drag blocks to generate Python code") return;
-    if (activeTab.syntaxErrors && activeTab.syntaxErrors.some((e) => !e.isNameError)) return;
+    if (activeTab.syntaxErrors && activeTab.syntaxErrors.some((e) => !e.isNameError && !e.isRuntimeCrash)) return;
     if (lastAutoSyncTextRef.current[activeTabId] === code) return;
     const bj = activeTab.blocklyJson;
     const noBlocksYet = !bj || Object.keys(bj).length === 0 || (bj.blocks && bj.blocks.blocks && bj.blocks.blocks.length === 0);
@@ -880,6 +898,8 @@ export default function MainApp({ pipelineMode = false }) {
     // Each run starts with a fresh console (like an IDE), so the learner never
     // has to press Clear and old output never gets mixed with the new run.
     setConsoleOutput("> Running the program...\n");
+    // A new run replaces the previous run's crash marker.
+    setTabs((prev) => prev.map((t) => (t.id === activeTabId ? { ...t, syntaxErrors: (t.syntaxErrors || []).filter((e) => !e.isRuntimeCrash) } : t)));
 
     outputCountRef.current = 0; pendingOutputRef.current = ""; runtimeErrorTextRef.current = "";
     renderIntervalRef.current = setInterval(() => {
@@ -1334,6 +1354,7 @@ export default function MainApp({ pipelineMode = false }) {
           analysisTime={activeTab.analysisTime}
           defaultWeight={0}
           hasErrors={(activeTab.syntaxErrors || []).some((e) => e.blocking)}
+          runtimeCrash={(activeTab.syntaxErrors || []).find((e) => e.isRuntimeCrash) || null}
         />
       ),
     },
@@ -1535,7 +1556,7 @@ export default function MainApp({ pipelineMode = false }) {
             </div>
           </div>
           <div className="pm-pipeline-frame">
-            <PipelineReplay sourceCode={activeTab.pythonCode} />
+            <PipelineReplay sourceCode={activeTab.pythonCode} blockingErrors={(activeTab.syntaxErrors || []).filter((e) => e.blocking)} runtimeCrash={(activeTab.syntaxErrors || []).find((e) => e.isRuntimeCrash) || null} />
           </div>
         </section>
       )}

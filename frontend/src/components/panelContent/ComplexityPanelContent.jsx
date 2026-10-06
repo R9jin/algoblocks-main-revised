@@ -30,6 +30,10 @@ export default function ComplexityPanelContent({
   // code that cannot run would be misleading, so no Big-O is shown until
   // the errors are fixed.
   hasErrors = false,
+  // { line, message } when the last Run crashed with a Python error (e.g.
+  // ZeroDivisionError). The complexity is still a valid static reading of the
+  // code, but the learner should know it didn't run to completion.
+  runtimeCrash = null,
 }) {
   const [expandedLines, setExpandedLines] = useState({});
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
@@ -152,6 +156,14 @@ export default function ComplexityPanelContent({
         </ul>
       )}
 
+      {!hasErrors && runtimeCrash && (
+        <div className="runtime-crash-note" role="alert" style={{ margin: "8px 12px", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--warning, #d97706)", background: "var(--warning-bg, rgba(217,119,6,0.10))", fontSize: "0.85rem", lineHeight: 1.45 }}>
+          <strong>This code stopped with an error when it ran</strong>
+          {runtimeCrash.line ? ` (line ${runtimeCrash.line})` : ""}: {runtimeCrash.message}.
+          {" "}The complexity below is a static estimate of the code as written, not proof that it runs correctly.
+        </div>
+      )}
+
       {hasErrors ? (
         <div className="empty-analysis-state error-gate-placeholder">
           <FiInfo size={28} />
@@ -265,6 +277,18 @@ export default function ComplexityPanelContent({
             </tbody>
           </table>
         </div>
+      )}
+
+      {!hasErrors && (
+        <details className="complexity-legend" style={{ margin: "10px 12px", fontSize: "0.82rem", lineHeight: 1.5 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 600 }}>Legend: how range(), sum() and fixed values are counted</summary>
+          <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+            <li><code>range(n)</code> gives 0, 1, ..., n-1, so it takes <strong>n steps</strong>. <code>range(a, b)</code> takes b - a steps. <code>range(10)</code> is always 10 steps, which is <strong>O(1)</strong>.</li>
+            <li><code>sum(items)</code> adds every item once, so it takes as many steps as there are items: <strong>O(n)</strong>. <code>sum(range(n))</code> is O(n); <code>sum(range(10))</code> and <code>sum([1, 2, 3])</code> are O(1).</li>
+            <li>A name set once to a number (<code>n = 3</code>) is a <strong>fixed value</strong>, so loops over it are O(1). A name that comes from <code>input()</code> or a function parameter can grow, so loops over it are O(n).</li>
+            <li>Big-O counts how much <em>work</em> the code does as the input grows, not what it prints. Two programs with the same output can have different Big-O (a loop that adds 1 to n is O(n); the formula <code>n*(n+1)//2</code> is O(1)).</li>
+          </ul>
+        </details>
       )}
 
       <ScopeWarningModal

@@ -892,7 +892,7 @@ function EfficiencyScene({ eff }) {
   );
 }
 
-function ResultScene({ final, status, result, fallbackReason }) {
+function ResultScene({ final, status, result, fallbackReason, runtimeCrash = null }) {
   return (
     <div className="pr-pane pr-scene-pane">
       <div className="pr-pane-title">Structured static complexity result</div>
@@ -908,6 +908,15 @@ function ResultScene({ final, status, result, fallbackReason }) {
             <div>
               <b>Static Model Fallback Triggered</b>
               <p>{fallbackReason || "Complex or non-standard syntax required fallback to the regex heuristic analyzer."}</p>
+            </div>
+          </div>
+        )}
+        {runtimeCrash && (
+          <div className="pr-error-card" style={{ marginTop: 10, marginBottom: 10 }}>
+            <FiAlertTriangle size={20} />
+            <div>
+              <b>The code stopped with an error when it ran</b>
+              <p>{runtimeCrash.line ? `Line ${runtimeCrash.line}: ` : ""}{runtimeCrash.message}. The result below is a static estimate of the code as written, not proof that it runs correctly.</p>
             </div>
           </div>
         )}
@@ -938,6 +947,15 @@ function ResultScene({ final, status, result, fallbackReason }) {
           </>
         )}
         {!result && status === "success" && <div className="pr-empty">Assembling the result object…</div>}
+        <details className="pr-block" style={{ marginTop: 12, fontSize: "0.82rem", lineHeight: 1.5 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 600 }}>Legend: how range(), sum() and fixed values are counted</summary>
+          <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+            <li><code>range(n)</code> gives 0, 1, ..., n-1, so it takes <b>n steps</b>. <code>range(a, b)</code> takes b - a steps. <code>range(10)</code> is always 10 steps, which is <b>O(1)</b>.</li>
+            <li><code>sum(items)</code> adds every item once: <b>O(n)</b>. <code>sum(range(n))</code> is O(n); <code>sum(range(10))</code> and <code>sum([1, 2, 3])</code> are O(1).</li>
+            <li>A name set once to a number (<code>n = 3</code>) is a <b>fixed value</b>, so loops over it are O(1). A name that comes from <code>input()</code> or a function parameter can grow, so loops over it are O(n).</li>
+            <li>Big-O counts how much <i>work</i> the code does as the input grows, not what it prints.</li>
+          </ul>
+        </details>
       </div>
     </div>
   );
@@ -945,7 +963,7 @@ function ResultScene({ final, status, result, fallbackReason }) {
 
 /* --------------------------------- main ---------------------------------- */
 
-export default function PipelineReplay({ sourceCode }) {
+export default function PipelineReplay({ sourceCode, blockingErrors = [], runtimeCrash = null }) {
   const pyodide = usePyodide();
   const worker = pyodide?.worker || null;
   const ready = !!pyodide?.isEngineReady;
@@ -1060,6 +1078,19 @@ export default function PipelineReplay({ sourceCode }) {
   if (!ready) {
     return <div className="pr-root"><div className="pr-state">The Python engine is still loading…</div></div>;
   }
+  // Code with errors (syntax error, undefined name) has no valid complexity result, so the
+  // replay doesn't present one -- same rule as the Complexity tab.
+  if (blockingErrors.length > 0) {
+    const first = blockingErrors[0];
+    return (
+      <div className="pr-root">
+        <div className="pr-state err">
+          <FiAlertTriangle /> The analysis model can't produce a valid result while the code has errors
+          {first.line ? ` (line ${first.line})` : ""}: {first.message}. Fix the errors and the replay will run.
+        </div>
+      </div>
+    );
+  }
   if (loadState === "error") {
     return <div className="pr-root"><div className="pr-state err"><FiAlertTriangle /> {errMsg}</div></div>;
   }
@@ -1151,7 +1182,7 @@ export default function PipelineReplay({ sourceCode }) {
     }
     if (cur.stage === "master") return <MasterScene items={derived.master} symbolCount={trace?.final?.symbol_table?.length ?? 0} />;
     if (cur.stage === "efficiency") return <EfficiencyScene eff={derived.eff} />;
-    return <ResultScene final={trace.final} status={trace.status} result={derived.result || (isFallback ? cur : null)} fallbackReason={trace.fallback_reason} />;
+    return <ResultScene final={trace.final} status={trace.status} result={derived.result || (isFallback ? cur : null)} runtimeCrash={runtimeCrash} fallbackReason={trace.fallback_reason} />;
   })();
 
   return (

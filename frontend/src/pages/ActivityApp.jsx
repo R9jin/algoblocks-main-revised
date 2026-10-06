@@ -460,9 +460,24 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         // as they streamed in.
         let hintBlock = "";
         if (runtimeErrorTextRef.current.trim()) {
-          const hint = translatePythonError(extractErrorSummaryLine(runtimeErrorTextRef.current));
+          const crashText = runtimeErrorTextRef.current;
+          const summary = extractErrorSummaryLine(crashText);
+          const hint = translatePythonError(summary);
           if (hint) hintBlock = `\n${hint}\n`;
           runtimeErrorTextRef.current = "";
+          // Mark the crashing line in the editor and tell the Complexity panel the run
+          // failed. The last <user_code> frame is the learner's own line.
+          const frames = [...crashText.matchAll(/File "<user_code>", line (\d+)/g)];
+          const crashLine = frames.length ? Number(frames[frames.length - 1][1]) : null;
+          if (crashLine && summary) {
+            const crashEntry = { line: crashLine, message: summary, fix: hint || translatePythonError(summary), blocking: false, isRuntimeCrash: true, isNameError: /^NameError/.test(summary) };
+            setSyntaxErrors((prev) => {
+              const existing = prev || [];
+              // Already caught before the run (e.g. an undefined name): keep that entry as is.
+              if (existing.some((e) => e.line === crashLine && e.message === summary)) return existing;
+              return [...existing.filter((e) => !e.isRuntimeCrash), crashEntry];
+            });
+          }
         }
 
         setConsoleOutput((prev) => prev + finalOutput + hintBlock + "\n> Program finished." + notice + "\n");
@@ -1252,7 +1267,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (!isReadyRef.current || isUnmountingRef.current || isResettingRef.current) return;
     if (!isEditingCode || isSyncingBlocks || !isEngineReady) return;
     if (!generatedPython || !generatedPython.trim() || generatedPython === "# Drag blocks to generate Python code") return;
-    if (syntaxErrors && syntaxErrors.length > 0) return;
+    // A NameError / run-time crash still converts to blocks fine; only real syntax problems stop the sync.
+    if (syntaxErrors && syntaxErrors.some((e) => !e.isNameError && !e.isRuntimeCrash)) return;
     if (lastAutoSyncTextRef.current === generatedPython) return;
     const timeoutId = setTimeout(() => { syncToBlocksRef.current(true); }, 1200);
     return () => clearTimeout(timeoutId);
@@ -1272,6 +1288,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     focusDockPanel("console"); setConsoleTab("output");
     // Fresh console on every run (IDE-style) instead of appending to old output.
     setConsoleOutput("> Running the program...\n");
+    // A new run replaces the previous run's crash marker.
+    setSyntaxErrors((prev) => (prev || []).filter((e) => !e.isRuntimeCrash));
 
     outputCountRef.current = 0; pendingOutputRef.current = ""; runtimeErrorTextRef.current = "";
     runTimeoutRef.current = setTimeout(() => {
@@ -1959,6 +1977,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           analysisTime={analysisTime}
           defaultWeight={7}
           hasErrors={(syntaxErrors || []).some((e) => e.blocking)}
+          runtimeCrash={(syntaxErrors || []).find((e) => e.isRuntimeCrash) || null}
           analysisTimeLabel="Analyzed In:"
           analysisBadgeStyle={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
           analysisLabelStyle={{ color: '#64748B' }}
