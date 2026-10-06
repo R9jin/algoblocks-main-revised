@@ -34,6 +34,7 @@ sys.setrecursionlimit(2000)
 
 from complexity_analyzer.code_preprocessor import (
     extract_constant,
+    find_script_literal_name_locs,
     _name_hints_memo_or_graph,
     _detect_factorial_branching,
     preprocess_source,
@@ -631,6 +632,7 @@ def analyze_source_code(source_code, explain=True):
                 for target in stmt.targets:
                     if isinstance(target, ast.Name) and target.id not in param_names:
                         analyzer.module_int_constants.add(target.id)
+        analyzer.script_literal_locs = find_script_literal_name_locs(tree)
 
         analyzer.call_graph_mapper.bfs_first_pass(tree)
 

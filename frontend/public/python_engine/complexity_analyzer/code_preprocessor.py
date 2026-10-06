@@ -277,3 +277,63 @@ def safe_walk(node):
                             todo.append(item)
                 elif isinstance(value, ast.AST):
                     todo.append(value)
+
+
+def find_script_literal_name_locs(tree):
+    """
+    Source locations (lineno, col_offset) of every `ast.Name` *load* that sits
+    at module (script) level and refers to a name which is bound exactly once
+    in the whole module, by a plain top-level `name = <int/float literal>`,
+    and is never rebound anywhere else (no augmented assignment, loop target,
+    parameter, import, `global`, def/class, comprehension target, ...).
+
+    Such a name is a true compile-time constant for the script, so
+    `n = 3` / `for i in range(n)` really is O(1). Loops inside functions are
+    deliberately NOT covered: there a short name like `n` conventionally
+    stands for a scalable input size (the benchmark's convention), so it
+    stays symbolic.
+    """
+    literal_assigns = {}
+    for stmt in getattr(tree, 'body', []):
+        if (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1
+                and isinstance(stmt.targets[0], ast.Name)
+                and isinstance(stmt.value, ast.Constant)
+                and isinstance(stmt.value.value, (int, float))
+                and not isinstance(stmt.value.value, bool)):
+            literal_assigns.setdefault(stmt.targets[0].id, []).append(stmt.targets[0])
+
+    bind_count = {}
+    def bump(name):
+        bind_count[name] = bind_count.get(name, 0) + 1
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            bump(node.id)
+        elif isinstance(node, ast.arg):
+            bump(node.arg)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            bump(node.name)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            for a in node.names:
+                bump((a.asname or a.name).split('.')[0])
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            for n in node.names:
+                bump(n); bump(n)  # any global/nonlocal declaration disqualifies
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            bump(node.name)
+        elif isinstance(node, ast.NamedExpr) and isinstance(node.target, ast.Name):
+            bump(node.target.id)
+
+    constants = {n for n, tg in literal_assigns.items() if len(tg) == 1 and bind_count.get(n, 0) == 1}
+    if not constants:
+        return set()
+
+    locs = set()
+    def walk_script_scope(node):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
+                continue
+            if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Load) and child.id in constants:
+                locs.add((child.lineno, child.col_offset))
+            walk_script_scope(child)
+    walk_script_scope(tree)
+    return locs

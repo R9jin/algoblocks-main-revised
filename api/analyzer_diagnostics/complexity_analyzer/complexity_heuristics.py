@@ -79,6 +79,8 @@ class ComplexityHeuristics:
             if isinstance(expr_node, (ast.Constant, getattr(ast, 'Num', type(None)), getattr(ast, 'Str', type(None)))):
                 return True
             if isinstance(expr_node, ast.Name):
+                if (getattr(expr_node, 'lineno', None), getattr(expr_node, 'col_offset', None)) in getattr(self.analyzer, 'script_literal_locs', ()):
+                    return True
                 # A variable already known to be derived from math.sqrt(...)
                 # (see variable_complexities in ast_node_visitors.py) scales
                 # with the input, no matter what it's named -- e.g.
