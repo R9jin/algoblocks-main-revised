@@ -23,7 +23,10 @@ import ast
 import re
 import sys
 
-from complexity_analyzer.code_preprocessor import preprocess_source
+from complexity_analyzer.code_preprocessor import (
+    find_script_literal_name_locs,
+    preprocess_source,
+)
 from complexity_analyzer.analyzer import (
     ComplexityAnalyzer,
     fallback_analyzer,

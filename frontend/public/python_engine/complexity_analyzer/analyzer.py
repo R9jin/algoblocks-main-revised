@@ -659,13 +659,12 @@ def analyze_source_code(source_code, explain=True):
         # references.
         analyzer.ast_visitor.visit(tree)
 
+        overall_exp = ""  # stays empty when explain=False (educational insights skipped)
         if explain:
             overall_exp = analyzer.complexity_synthesizer.get_overall_explanation(tree)
         _lit_note = script_literal_loop_note(tree, getattr(analyzer, 'script_literal_locs', set()))
         if _lit_note:
             overall_exp = ((overall_exp or '') + '\n\n' + _lit_note).strip()
-        else:
-            overall_exp = ""  # educational insights skipped (explain=False)
 
         results = {
             "status": "success",

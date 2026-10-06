@@ -226,6 +226,12 @@ export default function MainApp({ pipelineMode = false }) {
   const workerRef = useRef(null);
   const runTimeoutRef = useRef(null);
   const renderIntervalRef = useRef(null);
+  // Every run gets an id. Messages from a run the user already stopped carry an old
+  // id and are ignored, so they can never leak into the next run's console.
+  const runIdRef = useRef(0);
+  // Set when Run is pressed while a CPU-bound program is running: that run can only be
+  // killed by restarting the engine, so the new run starts once the engine is ready.
+  const pendingRerunRef = useRef(false);
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   // Accumulates raw stderr text for the run currently in flight. Pyodide
@@ -418,7 +424,9 @@ export default function MainApp({ pipelineMode = false }) {
   const initWorker = () => {
     if (!workerRef.current) return;
     workerRef.current.onmessage = (event) => {
-      const { type, data, counts } = event.data;
+      const { type, data, counts, runId } = event.data;
+      if ((type === "OUTPUT" || type === "ERROR" || type === "INPUT_REQUEST" || type === "RUN_RESULT")
+          && runId !== undefined && runId !== runIdRef.current) return;
       if (type === "ANALYZE_RESULT") {
         const targetId = analyzingTabId.current;
         if (data.status === "success") {
@@ -503,6 +511,12 @@ export default function MainApp({ pipelineMode = false }) {
   };
 
   useEffect(() => { if (worker) { workerRef.current = worker; initWorker(); } }, [worker]);
+
+  // Run pressed during a busy-loop run: start the fresh run as soon as the engine is back.
+  useEffect(() => {
+    if (isEngineReady && pendingRerunRef.current) { pendingRerunRef.current = false; handleRunCode(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEngineReady]);
 
   useEffect(() => {
     const handleOnline = () => { setIsOnline(true); showToast("Connection restored.", "success"); };
@@ -827,8 +841,32 @@ export default function MainApp({ pipelineMode = false }) {
     });
   };
 
+  // Manual stop. While the program waits at input() the worker is idle, so STOP_RUN ends it
+  // instantly and the engine stays loaded. A program stuck in a busy loop cannot hear any
+  // message, so that case restarts the engine (same recovery as the infinite-loop timeout).
+  // Returns true when the engine had to be restarted.
+  const stopExecution = ({ silent = false } = {}) => {
+    clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+    const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+    runIdRef.current += 1;
+    const graceful = isWaitingForInput && !!workerRef.current;
+    if (graceful) workerRef.current.postMessage({ type: "STOP_RUN" });
+    else resetWorker();
+    if (!silent) setConsoleOutput((prev) => prev + flushed + (graceful ? "^C" : "") + "\n> Program stopped.\n");
+    setIsEvaluating(false); setIsWaitingForInput(false); setUserInput(""); outputCountRef.current = 0;
+    return !graceful;
+  };
+
   const handleRunCode = async () => {
-    if (isEvaluating) return;
+    // Run is never locked (like an IDE): pressing it mid-run stops that run and starts again.
+    if (isEvaluating) {
+      const engineRestarting = stopExecution({ silent: true });
+      if (engineRestarting) {
+        pendingRerunRef.current = true;
+        setConsoleOutput("> Stopping the program and restarting the engine...\n");
+        return;
+      }
+    }
     if (!isEngineReady) {
       showToast(engineError || (engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment."), "error");
       return;
@@ -849,7 +887,8 @@ export default function MainApp({ pipelineMode = false }) {
     }, 100);
 
     const safePayload = sanitizePythonCode(activeTab.pythonCode);
-    workerRef.current.postMessage({ type: "RUN_CODE", code: safePayload });
+    const runId = ++runIdRef.current;
+    workerRef.current.postMessage({ type: "RUN_CODE", code: safePayload, runId });
 
     runTimeoutRef.current = setTimeout(() => {
       resetWorker();
@@ -1275,6 +1314,8 @@ export default function MainApp({ pipelineMode = false }) {
           userInput={userInput}
           setUserInput={setUserInput}
           onSendInput={handleSendInput}
+          isEvaluating={isEvaluating}
+          onStopRun={() => stopExecution()}
           pythonCode={activeTab.pythonCode}
           lineExecutions={activeTab.lineExecutions}
         />
@@ -1385,6 +1426,7 @@ export default function MainApp({ pipelineMode = false }) {
         engineProgress={engineProgress}
         handleUpdateDB={openSaveModal} 
         isEvaluating={isEvaluating} 
+        onStopRun={() => stopExecution()}
         isAdmin={isAdmin}
         isGuest={isGuest}
         hideSave={pipelineMode}

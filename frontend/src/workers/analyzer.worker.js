@@ -5,6 +5,11 @@ let pyodide = null;
 let pyodidePromise = null; 
 
 let inputResolve = null;
+// Manual Stop support. STOP_RUN resolves a pending input() with this sentinel;
+// the Python-side input wrapper turns it into KeyboardInterrupt, so the program
+// ends cleanly and the engine stays loaded (no restart needed).
+const STOP_SENTINEL = "\u0000__ALGOBLOCKS_STOP__\u0000";
+let runStopped = false;
 function strictBigONormalizer(raw) {
   if (!raw) return "O(1)";
   let s = String(raw).toLowerCase().trim().replace(/\s+/g, "");
@@ -317,7 +322,13 @@ async function initPyodide() {
 }
 
 const handleWorkerMessage = async (e) => {
-  const { type, code, data, requestEpoch } = e.data;
+  const { type, code, data, requestEpoch, runId } = e.data;
+
+  if (type === 'STOP_RUN') {
+    runStopped = true;
+    if (inputResolve) { inputResolve(STOP_SENTINEL); inputResolve = null; }
+    return;
+  }
 
   if (type === 'INPUT_RESPONSE') {
     if (inputResolve) { inputResolve(data); inputResolve = null; }
@@ -522,21 +533,28 @@ output
     }
 
     else if (type === 'RUN_CODE') {
-      pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" }) });
-      pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" }) });
+      // runId tags every message of this run so the UI can ignore late messages
+      // from a run the user already stopped.
+      runStopped = false;
+      pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n", runId }) });
+      pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n", runId }) });
       pyodide.globals.set("custom_input_sync", (prompt) => {
         const safePrompt = prompt === undefined ? "" : String(prompt);
-        if (safePrompt) self.postMessage({ type: 'OUTPUT', data: safePrompt });
-        self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: "" } });
+        if (safePrompt) self.postMessage({ type: 'OUTPUT', data: safePrompt, runId });
+        self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: "" }, runId });
         const simulated = " [Simulated Input - Nested function limitation]";
-        self.postMessage({ type: 'OUTPUT', data: simulated + "\n" });
+        self.postMessage({ type: 'OUTPUT', data: simulated + "\n", runId });
         return simulated;
       });
+      pyodide.globals.set("stop_sentinel", STOP_SENTINEL);
       pyodide.globals.set("custom_input_async", async (prompt) => {
+        // Already stopped: every further input() ends the program immediately
+        // instead of waiting for text nobody will type.
+        if (runStopped) return STOP_SENTINEL;
         return new Promise((resolve) => {
           inputResolve = (value) => { resolve(value); };
           const safePrompt = prompt === undefined ? "" : String(prompt);
-          self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: safePrompt } });
+          self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: safePrompt }, runId });
         });
       });
       pyodide.globals.set("user_code", code);
@@ -559,6 +577,12 @@ class LineExecutionProfiler:
             self.hits[frame.f_lineno] += 1
         return self.trace_lines
 
+async def __ab_input__(prompt=""):
+    value = await custom_input_async(prompt)
+    if value == stop_sentinel:
+        raise KeyboardInterrupt("Program stopped by user")
+    return value
+
 class AsyncInputTransformer(ast.NodeTransformer):
     def __init__(self):
         self.has_input = False
@@ -566,7 +590,7 @@ class AsyncInputTransformer(ast.NodeTransformer):
         self.generic_visit(node)
         if isinstance(node.func, ast.Name) and node.func.id == 'input':
             self.has_input = True
-            new_func = ast.Name(id='custom_input_async', ctx=ast.Load())
+            new_func = ast.Name(id='__ab_input__', ctx=ast.Load())
             new_call = ast.Call(func=new_func, args=node.args, keywords=node.keywords)
             return ast.copy_location(ast.Await(value=new_call), node)
         return node
@@ -586,7 +610,7 @@ try:
     # raising NameError. It also let user variables named json/ast/traceback
     # clobber this harness. A fresh dict makes each run behave like a clean
     # python3 script.
-    user_ns = {"__name__": "__main__", "__builtins__": builtins, "custom_input_async": custom_input_async}
+    user_ns = {"__name__": "__main__", "__builtins__": builtins, "custom_input_async": custom_input_async, "__ab_input__": __ab_input__}
     try:
         if transformer.has_input:
             compiled_code = compile(transformed, "<user_code>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
@@ -601,12 +625,14 @@ try:
     finally:
         sys.settrace(None)
         globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
+except KeyboardInterrupt:
+    pass  # stopped by the user (Stop button / Ctrl+C): end quietly, no traceback
 except Exception:
     print(traceback.format_exc(), file=sys.stderr)
       `);
       const countsStr = pyodide.globals.get("run_hits_json");
       const counts = countsStr ? JSON.parse(countsStr) : {};
-      self.postMessage({ type: 'RUN_RESULT', data: "", counts });
+      self.postMessage({ type: 'RUN_RESULT', data: "", counts, runId });
     }
 
     else if (type === 'RUN_BENCHMARK_SUITE') {
@@ -967,7 +993,7 @@ self.onmessage = (e) => {
   // Must stay immediate: INPUT_RESPONSE unblocks a RUN_CODE job that is
   // waiting on input() (queueing it would deadlock), and INIT_ENGINE is
   // idempotent (it just awaits the shared init promise).
-  if (type === 'INPUT_RESPONSE' || type === 'INIT_ENGINE') {
+  if (type === 'INPUT_RESPONSE' || type === 'INIT_ENGINE' || type === 'STOP_RUN') {
     return handleWorkerMessage(e);
   }
 

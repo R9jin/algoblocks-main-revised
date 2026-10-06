@@ -6,7 +6,8 @@
 // nothing visually changes.
 
 import { useEffect, useRef } from "react";
-import { FiChevronRight } from "react-icons/fi";
+import { FiChevronRight, FiSquare } from "react-icons/fi";
+import { focusWithoutScroll, scrollToEndWithin } from "../../utils/scrollWithin";
 
 export default function ConsolePanelContent({
   consoleTab,
@@ -17,6 +18,8 @@ export default function ConsolePanelContent({
   userInput,
   setUserInput,
   onSendInput,
+  isEvaluating = false,
+  onStopRun,
   pythonCode,
   lineExecutions,
 }) {
@@ -24,7 +27,7 @@ export default function ConsolePanelContent({
 
   useEffect(() => {
     if (consoleEndRef.current && consoleTab === "output") {
-      consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
+      scrollToEndWithin(consoleEndRef.current);
     }
   }, [consoleOutput, isWaitingForInput, consoleTab]);
 
@@ -39,7 +42,14 @@ export default function ConsolePanelContent({
           <button onClick={() => onConsoleTabChange("executions")} className={`tab-btn ${consoleTab === "executions" ? "active" : ""}`}>Line Executions</button>
         </div>
         {consoleTab === "output" && (
-          <button className="clear-console-btn" onClick={onClearConsole}>Clear</button>
+          <div className="console-toolbar-actions">
+            {isEvaluating && onStopRun && (
+              <button className="stop-console-btn" type="button" onClick={onStopRun} title="Stop the running program (Ctrl+C while typing input)">
+                <FiSquare size={11} fill="currentColor" /> Stop
+              </button>
+            )}
+            <button className="clear-console-btn" onClick={onClearConsole}>Clear</button>
+          </div>
         )}
       </div>
       <div className="console-view-area">
@@ -50,10 +60,16 @@ export default function ConsolePanelContent({
               <div className="console-input-line">
                 <span className="console-cursor"><FiChevronRight size={14} /></span>
                 <input
-                  autoFocus
+                  ref={focusWithoutScroll}
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
-                  onKeyDown={onSendInput}
+                  onKeyDown={(e) => {
+                    // Terminal convention: Ctrl+C (no text selected) stops the program.
+                    if (onStopRun && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c" && !window.getSelection().toString()) {
+                      e.preventDefault(); onStopRun(); return;
+                    }
+                    onSendInput(e);
+                  }}
                   className="console-input-field"
                   placeholder="Type here and press Enter..."
                 />

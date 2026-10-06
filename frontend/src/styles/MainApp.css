@@ -136,6 +136,10 @@ body {
 .wh-btn-run:disabled { cursor: not-allowed; }
 .wh-btn-run:disabled:hover { transform: none; }
 
+/* Run stays clickable mid-run (restarts the program); Stop sits beside it. */
+.wh-btn-stop { display: inline-flex; align-items: center; gap: 8px; margin-left: 8px; padding: 8px 16px; border: 0; border-radius: 8px; background: #EF4444; color: #fff; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: 0.2s; }
+.wh-btn-stop:hover { background: #DC2626; transform: translateY(-1px); }
+
 .engine-loading-spinner {
   width: 12px;
   height: 12px;
@@ -466,6 +470,10 @@ body {
 .console-input-field { background: transparent; border: none; outline: none; color: #F472B6; flex: 1; font-family: inherit; font-size: 13px; padding: 0; }
 .clear-console-btn { background-color: var(--app-bg); color: #EF4444; border: 1px solid var(--border-light); border-radius: 6px; padding: 6px 14px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: 0.2s; }
 .clear-console-btn:hover { background-color: #FEE2E2; border-color: #FECACA;}
+
+.console-toolbar-actions { display: flex; align-items: center; gap: 8px; }
+.stop-console-btn { display: inline-flex; align-items: center; gap: 6px; background-color: #EF4444; color: #fff; border: 1px solid #DC2626; border-radius: 6px; padding: 6px 14px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: 0.2s; }
+.stop-console-btn:hover { background-color: #DC2626; }
 
 .console-table-override th.line-num-th { width: 60px; text-align: center; }
 .console-table-override th.hits-th { width: 100px; text-align: center; }

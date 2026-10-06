@@ -126,6 +126,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const workerMessageHandler = useRef(null);
   const runTimeoutRef = useRef(null);
   const renderIntervalRef = useRef(null);
+  // Id of the current plain run; messages from a run the user stopped are ignored.
+  const runIdRef = useRef(0);
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   // See runtimeErrorTextRef in MainApp.jsx for the full rationale: Pyodide
@@ -355,7 +357,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   }, []);
 
   workerMessageHandler.current = (event) => {
-    const { type, data, counts, requestEpoch } = event.data;
+    const { type, data, counts, requestEpoch, runId } = event.data;
+    if ((type === "OUTPUT" || type === "ERROR" || type === "INPUT_REQUEST" || type === "RUN_RESULT")
+        && runId !== undefined && runId !== runIdRef.current) return;
     if (type === "ANALYZE_RESULT") {
       // Drop responses to an ANALYZE_CODE request we no longer care about --
       // e.g. one still in flight for the pre-restart code when the user hits
@@ -1276,7 +1280,27 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       setIsEvaluating(false); setIsWaitingForInput(false);
     }, 10000);
 
-    workerRef.current?.postMessage({ type: "RUN_CODE", code: sanitizePythonCode(generatedPython) });
+    const runId = ++runIdRef.current;
+    workerRef.current?.postMessage({ type: "RUN_CODE", code: sanitizePythonCode(generatedPython), runId });
+  };
+
+  // Manual stop. Waiting at input(): instant, engine stays loaded. Otherwise (busy loop, or a
+  // test-case run) the worker is restarted -- the same recovery the 10s timeout already uses.
+  const handleStopRun = () => {
+    clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+    const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+    runIdRef.current += 1;
+    const graceful = isWaitingForInput && !testResolveRef.current && !!workerRef.current;
+    if (graceful) workerRef.current.postMessage({ type: "STOP_RUN" });
+    else {
+      resetWorker();
+      if (testRejectRef.current) {
+        testRejectRef.current(new Error("Stopped by user."));
+        testResolveRef.current = null; testRejectRef.current = null;
+      }
+    }
+    setConsoleOutput((prev) => prev + flushed + (graceful ? "^C" : "") + "\n> Program stopped.\n");
+    setIsEvaluating(false); setIsWaitingForInput(false); setUserInput(""); outputCountRef.current = 0;
   };
 
   const handleSendInput = (e) => {
@@ -1915,6 +1939,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           userInput={userInput}
           setUserInput={setUserInput}
           onSendInput={handleSendInput}
+          isEvaluating={isEvaluating}
+          onStopRun={handleStopRun}
           pythonCode={generatedPython}
           lineExecutions={lineExecutions}
         />
