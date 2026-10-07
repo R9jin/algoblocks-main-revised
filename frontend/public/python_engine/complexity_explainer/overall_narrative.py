@@ -20,6 +20,7 @@ from complexity_explainer.explanation_signals import BigOInfo, PatternSignals
 from complexity_explainer.growth_insight import (
     parse_complexity, is_constant, scaling_line, doubling_effect, growth_word,
 )
+from complexity_explainer.notation_insight import notation_card, reduce_tip, classify_notation
 from complexity_explainer import paradigm_detector
 from complexity_explainer.statement_narrator import walkthrough
 
@@ -58,7 +59,7 @@ class OverallNarrative:
         summary = self._build_complexity_summary(t_info, s_info, sig, final_time, final_space, dominant)
 
         try:
-            approach = paradigm_detector.describe(paradigm_detector.detect(gen.shape.tree))
+            approach = paradigm_detector.describe(paradigm_detector.detect(gen.shape.tree, final_time))
         except Exception:
             approach = ""
         approach_md = ("#### Type of Algorithm\n" + approach + "\n\n") if approach else ""
@@ -268,7 +269,7 @@ class OverallNarrative:
         rows = "\n".join(f"- `{lp.header}` (line {lp.lineno}) -- it {lp.bound}" for lp in scaling + halving)
         return (
             f"**Step 1: Find the loops that repeat the busiest line**\nThe costliest line is {self._cite(d)}. These loops all repeat it:\n{rows}\n\n"
-            f"**Step 2: Multiply their repetitions**\nLoops multiply because each pass of an outer loop runs the whole inner loop again:\n`T(n) = {' x '.join(pieces)} x O(1)`\n"
+            f"**Step 2: Multiply their repetitions**\nLoops multiply because each pass of an outer loop runs the whole inner loop again:\n`T(n) = {' x '.join(pieces)} x {local_txt}`\n"
         )
 
     def _solve_iterative_manually(self, valid_ops: List[str], final_complexity: str, prefix: str, is_time: bool = True, dominant: Optional[List[Dict]] = None) -> str:
@@ -400,7 +401,7 @@ class OverallNarrative:
             out.append(f"This algorithm runs in `{raw}` -- the standard cost of visiting every node (V) and checking every edge (E) once, as in BFS or DFS.")
             out.append("You can't do much better if the whole graph must be explored, because every node and edge has to be looked at at least once. " + worst)
         elif family == "polynomial" and (depth >= 2 or (sig.nested_loops)):
-            nested = [lp for lp in scaling][:3]
+            nested = [lp for lp in scaling][:6]
             names = ", ".join(f"`{lp.header}` (line {lp.lineno})" for lp in nested)
             out.append(f"This algorithm runs in `{raw}`. The bottleneck is nested loops: {names}. For every pass of an outer loop, the inner loop runs completely, so the repetitions multiply.")
             out.append("Small extras outside the loops are tiny next to how often the innermost body repeats. " + worst)
@@ -428,6 +429,11 @@ class OverallNarrative:
         else:
             out.append(f"This algorithm runs in `{raw}`. Nothing in it repeats work in proportion to the input.")
             out.append("Every step is a fixed-cost operation -- assignments, lookups, simple math -- so it takes the same time for 10 items or 10 million.")
+
+        # what the notation itself means (cubic and beyond, log factors, bases, n^n ...)
+        card = notation_card(raw)
+        if card:
+            out.append(card)
 
         # worst-case caveat, tied to the learner's real early exits
         if (sig.has_early_exits or sig.has_continue) and not is_constant(parse_complexity(raw)):
@@ -461,17 +467,29 @@ class OverallNarrative:
             out.append(f"Memory use here is `{raw}`: only a handful of fixed variables are used, no matter the input size.")
             out.append("No list, dictionary or other structure grows with the input, so the footprint is identical for a dozen items or a million.")
         elif family == "linear":
-            if sig.has_recursion:
+            halving_rec = sig.has_recursion and bool(getattr(getattr(sig, "paradigms", None), "is_halving", False))
+            if halving_rec:
+                out.append(f"Memory use here is `{raw}`. The recursion itself is only about log n calls deep, so the call stack is small; the `{raw}` comes from the new lists the code builds along the way (slices, merged or copied results), which together hold about n items.")
+            elif sig.has_recursion:
                 out.append(f"Memory use here is `{raw}`, mainly from the recursive call stack: every call still waiting to finish keeps its own small frame in memory, and the chain is about n calls deep.")
             else:
                 out.append(f"Memory use here is `{raw}`, growing directly with the input -- something (a list, dict, set or string) is being built with one entry per input item.")
-            if sig.has_recursion:
+            if halving_rec:
+                out.append("Doubling the input adds only one more level of recursion, but it doubles the size of the temporary lists, so the memory doubles.")
+            elif sig.has_recursion:
                 out.append("Doubling the input doubles the deepest chain of calls, and so the stack memory. Python also caps recursion depth (about 1000 calls by default), so a large enough n raises `RecursionError` before memory runs out.")
             else:
                 out.append("Single variables barely matter; the memory cost is the data structure holding the new information." + observed)
         elif family == "polynomial":
-            out.append(f"Memory use jumps to `{raw}`. That usually means a 2D structure -- a grid, matrix or DP table -- with about n x n cells, far more than a flat list.")
-            out.append("Doubling the input roughly quadruples the memory, so large inputs can exhaust memory much sooner than they exhaust patience." + observed)
+            import re as _re
+            _m = _re.search(r"n\^(\d+)", raw)
+            _k = int(_m.group(1)) if _m else 2
+            if _k >= 3:
+                out.append(f"Memory use jumps to `{raw}`. That usually means a {_k}-dimensional structure -- a 3D grid or a nested table -- with about {' x '.join(['n'] * _k)} cells, far more than a flat list or a 2D grid.")
+                out.append(f"Doubling the input multiplies the memory by about {2 ** _k}, so large inputs can exhaust memory much sooner than they exhaust patience." + observed)
+            else:
+                out.append(f"Memory use jumps to `{raw}`. That usually means a 2D structure -- a grid, matrix or DP table -- with about n x n cells, far more than a flat list.")
+                out.append("Doubling the input roughly quadruples the memory, so large inputs can exhaust memory much sooner than they exhaust patience." + observed)
         elif family == "graph":
             out.append(f"Memory use here is `{raw}` -- typically a visited set plus a queue/stack, or a structure storing distance or parent for every node.")
             out.append("That's normal for graph traversal: you must remember something about every node you've visited." + observed)
@@ -505,6 +523,9 @@ class OverallNarrative:
             tips.append("**Keep a running total/max** in a variable instead of re-scanning with `sum()`/`max()` on every pass.")
         if ms.performs_slicing and (sig.has_recursion or sig.loop_depth > 0):
             tips.append("**Pass indices instead of slices** so you stop copying sub-lists.")
+        _np = classify_notation(t_info.raw)
+        if not tips and _np and (_np.kind in ("polylog", "loglog", "multi") or (_np.kind == "poly" and _np.degree >= 3)) and reduce_tip(t_info.raw):
+            tips.append("**" + _np.name.capitalize() + ".** " + reduce_tip(t_info.raw))
         if not tips and t_info.family == "polynomial" and self.generator.shape.max_loop_depth >= 2:
             tips.append("**Ask what the inner loop is doing.** If it is searching or matching, a set/dict lookup, or sorting first and using two pointers, can often reduce O(n^2) to O(n) or O(n log n). If every cell or pair really must be visited (like adding two matrices), O(n^2) is already optimal -- not every quadratic algorithm can be improved.")
         if not tips and s_info.family == "polynomial":

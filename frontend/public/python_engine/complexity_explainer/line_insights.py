@@ -30,6 +30,7 @@ from typing import Dict, List, Optional, Set, Tuple
 from complexity_explainer.growth_insight import (
     parse_complexity, is_constant, evaluate, _fmt, Term,
 )
+from complexity_explainer.notation_insight import meaning_line
 
 Note = Tuple[int, str]
 
@@ -344,7 +345,7 @@ class LineInsights:
             if depends:
                 out.append((1, f"**A shrinking (or growing) inner loop:** this loop's range uses a variable from the loop around it, so it does NOT repeat the same number of times on every outer pass. Adding up (n-1) + (n-2) + ... + 1 gives n(n-1)/2, about n^2 / 2 steps. Big-O drops the 1/2 and calls it O(n^2) -- but in real time it is roughly half as slow as a full n x n grid."))
             else:
-                out.append((1, f"**Nested loops multiply:** this loop restarts from scratch on every pass of the {len(outer)} loop(s) around it. If the outer loop makes A passes and this one makes B, the body runs A x B times -- never A + B. That multiplication is where O(n^2) and O(n^3) come from."))
+                out.append((1, f"**Nested loops multiply:** this loop restarts from scratch on every pass of the {len(outer)} loop(s) around it. If the outer loop makes A passes and this one makes B, the body runs A x B times -- never A + B. That multiplication is where O(n^2), O(n^3), O(n^4) ... come from: the exponent is how many loops are stacked. Here {len(outer) + 1} loops are stacked, so if each one runs about n times, the body repeats about n^{len(outer) + 1} times."))
 
         # --- worst case ----------------------------------------------------------
         if any(isinstance(x, (ast.Break, ast.Return)) for s in node.body for x in ast.walk(s)):
@@ -967,6 +968,13 @@ class LineInsights:
         return out
 
     def _reality_check(self, local_t: str, global_t: str, line_no: int) -> List[Note]:
+        notes = self._reality_check_core(local_t, global_t, line_no)
+        mean = meaning_line(global_t)
+        if mean:
+            notes = [(2, mean)] + list(notes)
+        return notes
+
+    def _reality_check_core(self, local_t: str, global_t: str, line_no: int) -> List[Note]:
         t = parse_complexity(global_t)
         if t is None:
             return []

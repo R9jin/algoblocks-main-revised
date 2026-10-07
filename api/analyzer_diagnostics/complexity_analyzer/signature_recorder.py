@@ -8,6 +8,7 @@ analysis model (local/global time+space weights, bottleneck
 propagation, and per-line result recording).
 """
 import ast
+import re
 
 try:
     from complexity_explainer.complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
@@ -31,6 +32,10 @@ class SignatureRecorder:
         w = 0
         if "n!" in complexity_str: w = 150
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: w = 100
+        elif re.search(r"n\^(\d+)", complexity_str) and int(re.search(r"n\^(\d+)", complexity_str).group(1)) >= 3:
+            _k = int(re.search(r"n\^(\d+)", complexity_str).group(1))
+            w = min(20 + 6 * (_k - 2), 90) + (1 if "log n" in complexity_str else 0)
+        elif "n^2 log n" in complexity_str or "n² log n" in complexity_str: w = 25
         elif "n^2" in complexity_str or "n²" in complexity_str: w = 20
         elif "n log n" in complexity_str: w = 15
         elif "V+E" in complexity_str or "V" in complexity_str: w = 12
@@ -48,6 +53,7 @@ class SignatureRecorder:
         s_w = 0
         if "n!" in complexity_str: s_w = 5
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: s_w = 4
+        elif re.search(r"n\^([3-9]|\d\d+)", complexity_str): s_w = 2.5
         elif "n^2" in complexity_str or "n²" in complexity_str: s_w = 2
         elif "V+E" in complexity_str or "V" in complexity_str: s_w = 3
         # Same substring-ordering fix as _get_weight above: "sqrt n" and
@@ -98,7 +104,13 @@ class SignatureRecorder:
             n_count = len(poly_dims) if poly_dims else 0
             
             if n_count >= 2:
-                return "O(n^2)"
+                # A log factor survives the multiplication: n loops over an
+                # O(n log n) step (e.g. sorted() inside a loop) is O(n^2 log n),
+                # not O(n^2).
+                # n_count is the number of nested growing dimensions: 3 nested loops
+                # over n is O(n^3), 4 is O(n^4), and so on.
+                base = "n^2" if n_count == 2 else f"n^{n_count}"
+                return f"O({base} log n)" if log > 0 else f"O({base})"
             elif n_count == 1:
                 if log > 0:
                     return "O(n log n)"
@@ -186,10 +198,11 @@ class SignatureRecorder:
                 elif "O(log n)" in time_override: node_log = 1
                 elif "O(sqrt n)" in time_override: node_sqrt = 1
                 elif "O(n * m)" in time_override: node_dims.extend(['n', 'm'])
-                elif "O(n^5)" in time_override: node_dims.extend(['n', 'n'])
-                elif "O(n^4)" in time_override: node_dims.extend(['n', 'n'])
-                elif "O(n^3)" in time_override or "n³" in time_override: node_dims.extend(['n', 'n'])
-                elif "O(n^2)" in time_override or "n²" in time_override: node_dims.extend(['n', 'n'])
+                elif re.search(r"n\^(\d+)", time_override) or "n²" in time_override or "n³" in time_override:
+                    _m = re.search(r"n\^(\d+)", time_override)
+                    _k = int(_m.group(1)) if _m else (3 if "n³" in time_override else 2)
+                    node_dims.extend(['n'] * _k)
+                    if "log n" in time_override: node_log = 1
                 elif "O(3^n)" in time_override: self.analyzer.max_exp = 1 
                 elif "O(2^n)" in time_override or "2ⁿ" in time_override: self.analyzer.max_exp = 1
                 elif "O(n!)" in time_override or "n!" in time_override: self.analyzer.max_fact = 1

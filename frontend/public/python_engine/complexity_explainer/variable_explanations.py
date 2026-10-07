@@ -15,6 +15,7 @@ from complexity_explainer.statement_narrator import StatementNarrator
 from complexity_explainer.growth_insight import (
     parse_complexity, is_constant, scaling_line, doubling_effect, context_factor, growth_word,
 )
+from complexity_explainer.notation_insight import short_local_phrase, meaning_line, classify_notation
 
 class VariableExplanations:
     """Per-line, per-variable NLG. Composed into EducationalInsightGenerator
@@ -122,27 +123,27 @@ class VariableExplanations:
 
     def _classify_big_o(self, complexity_str: str) -> BigOInfo:
         c = complexity_str.lower()
+        cn = re.sub(r"\s+", "", c).replace("\u00b2", "^2").replace("\u00b3", "^3").replace("\u207f", "^n")
         family = "unknown"
 
         if c == "o(1)" or "amortized" in c:
             family = "constant"
-        elif "n^" in c or "n²" in c or "n³" in c or "n * m" in c or "n^d" in c:
+        elif "n^n" in cn:
+            family = "super_exponential"
+        elif "n!" in cn:
+            family = "factorial"
+        elif re.search(r"(\d+|c|k)\^n", cn) or "c(" in c:
+            # 2^n, 3^n, c^n -- checked before the polynomial test so O(3^n) is never read as linear
+            family = "exponential"
+        elif "n^" in cn or "n * m" in c or "n^d" in cn:
             # polynomial first: "n^2 log n" contains "log" but is NOT logarithmic
             family = "polynomial"
-        elif "n log n" in c or "n * log n" in c:
+        elif "n log n" in c or "n * log n" in c or re.search(r"nlog", cn):
             family = "linearithmic"
         elif "log" in c:
             family = "logarithmic"
-        elif "√" in c or "sqrt" in c:
+        elif "\u221a" in c or "sqrt" in c:
             family = "root"
-        elif "n!" in c:
-            family = "factorial"
-        elif "n^n" in c:
-            family = "super_exponential"
-        elif "2^n" in c or "c(" in c or "2ⁿ" in c:
-            family = "exponential"
-        elif "n^2" in c or "n²" in c or "n^3" in c or "n³" in c or "n * m" in c or "n^d" in c:
-            family = "polynomial"
         elif "v + e" in c or "v" in c:
             family = "graph"
         elif "n" in c:
@@ -504,6 +505,8 @@ class VariableExplanations:
             )
         elif family == "linearithmic":
             return f"On its own, this line is {local_info.raw}: a full pass over the data, repeated about log n times (the cost of an efficient sort)."
+        elif family == "polynomial" and short_local_phrase(local_info.raw):
+            return short_local_phrase(local_info.raw)
         elif family == "polynomial":
             return self.generator._v(
                 f"On its own, this line is {local_info.raw}: it repeats work inside work, so the cost grows faster than linear.",
@@ -643,7 +646,12 @@ class VariableExplanations:
             else:
                 parts.append(f"Once you account for everything happening around it, this line's contribution to the overall time complexity is `{glo}`.")
 
-        # ---- 2. what that means in practice ----
+        # ---- 2. what the notation itself means (cubic and beyond, log factors, bases...) ----
+        mean = meaning_line(glo)
+        if mean:
+            parts.append(mean)
+
+        # ---- 3. what that means in practice ----
         sc = scaling_line(glo)
         if sc:
             parts.append(sc + " " + doubling_effect(glo))
@@ -676,6 +684,9 @@ class VariableExplanations:
                 parts.append(f"This line adds only O(1) by itself, but the structure it feeds keeps growing as the loop runs, reaching `{glo}` overall.")
         elif global_info.family == "polynomial" and local_info.family in ("linear", "constant"):
             parts.append(f"Repeated across the surrounding loops, this builds a dense multi-layered structure -- peak memory reaches `{glo}`.")
+            _np = classify_notation(glo)
+            if _np and _np.kind == "poly" and _np.degree >= 3:
+                parts.append(f"The exponent is the number of dimensions: {_np.degree} nested levels of size n hold about {' x '.join(['n'] * _np.degree)} cells at once.")
         else:
             parts.append(f"Counting the peak memory held at once across the whole run, this line's space contribution is `{glo}`.")
 

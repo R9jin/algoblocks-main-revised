@@ -17,6 +17,26 @@ except ImportError:
     ComprehensiveASTVisitor = None
 
 
+def _alloc_dims(node):
+    """How many input-sized dimensions a nested list allocation has:
+    [[0]*n for _ in range(n)] -> 2, [[[0]*n for _ in range(n)] for _ in range(n)] -> 3.
+    Fixed small sizes (range(3), [0]*10) don't count."""
+    def small(x):
+        return isinstance(x, ast.Constant) and isinstance(x.value, int) and not isinstance(x.value, bool) and x.value <= 100
+    if isinstance(node, ast.ListComp):
+        n = 0
+        for g in node.generators:
+            it = g.iter
+            if isinstance(it, ast.Call) and getattr(it.func, 'id', '') == 'range' and len(it.args) == 1 and small(it.args[0]):
+                continue
+            n += 1
+        return n + _alloc_dims(node.elt)
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mult):
+        for lst, mult in ((node.left, node.right), (node.right, node.left)):
+            if isinstance(lst, ast.List):
+                return (0 if small(mult) else 1) + (_alloc_dims(lst.elts[0]) if lst.elts else 0)
+    return 0
+
 class ASTNodeVisitor(ast.NodeVisitor):
     """Dependency-Ordered Signature Pass (traversal half). A standalone
     ast.NodeVisitor composed into ComplexityAnalyzer as `self.ast_visitor`;
@@ -317,7 +337,9 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 else:
                     is_quicksort = False
                     for child in safe_walk(node):
-                        if isinstance(child, ast.Name) and any(x in child.id.lower() for x in ['pivot', 'pi']):
+                        # 'pivot' only: the old bare 'pi' substring also matched pick/mapping/spiral/api,
+                        # which matters now that this branch reports the O(n^2) worst case.
+                        if isinstance(child, ast.Name) and 'pivot' in child.id.lower():
                             is_quicksort = True
                             break
                     if not is_quicksort and 'quick' in node.name.lower():
@@ -348,7 +370,11 @@ class ASTNodeVisitor(ast.NodeVisitor):
                         else:
                             relation = "T(n) = 2T(n/2) + O(1)"
                     elif is_quicksort:
-                        relation = "T(n) = 2T(n/2) + O(n)"
+                        # Worst case only: when the pivot is always the smallest or
+                        # largest item (e.g. already-sorted input with a first/last
+                        # pivot) one side is empty, so the recursion is n levels deep
+                        # with O(n) partition work per level: O(n^2) time, O(n) stack.
+                        relation = "T(n) = T(n-1) + O(n)"
                     elif (self.analyzer.has_partitioning and not self.analyzer.has_division):
                         relation = "T(n) = T(n-1) + O(n)"
                     elif (self.analyzer.has_division or self.analyzer.has_partitioning) and does_linear_work:
@@ -1204,8 +1230,9 @@ class ASTNodeVisitor(ast.NodeVisitor):
                             is_constant_size = True
                             
                 if is_nested or (len(active_loops) > 0 and isinstance(node.targets[0], ast.Subscript)):
-                    self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
-                    self.analyzer.signature_recorder.record_line(node, time_override="O(n^2)", space_override="O(n^2)", custom_op="2D Array Allocation")
+                    _k = max(2, _alloc_dims(node.value))
+                    self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)  # weight scale: 2 = polynomial; the exact degree travels in the O(n^k) text
+                    self.analyzer.signature_recorder.record_line(node, time_override=f"O(n^{_k})", space_override=f"O(n^{_k})", custom_op="2D Array Allocation" if _k == 2 else f"{_k}D Array Allocation")
                     self.generic_visit(node)
                     return
                 elif is_constant_size:
@@ -1420,8 +1447,9 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     elif isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List): is_nested = True
                 
                 if is_nested:
-                    t_ov, s_ov = "O(n^2)", "O(n^2)"
-                    custom_op = "Return 2D Comprehension"
+                    _k = max(2, _alloc_dims(node.value))
+                    t_ov, s_ov = f"O(n^{_k})", f"O(n^{_k})"
+                    custom_op = "Return 2D Comprehension" if _k == 2 else f"Return {_k}D Comprehension"
                 else:
                     t_ov, s_ov = "O(n)", "O(n)"
                     custom_op = f"Return {type(node.value).__name__.replace('Comp', ' Comprehension')}"

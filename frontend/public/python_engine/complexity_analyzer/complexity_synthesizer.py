@@ -44,6 +44,13 @@ class ComplexitySynthesizer:
         if "n!" in all_comps: return "O(n!)"
         if "2^n" in all_comps or "2ⁿ" in all_comps: return "O(2^n)"
         if "V+E" in all_comps or "o(v+e)" in all_comps: return "O(V+E)"
+        # polynomial degree 3 and up (n^3, n^4, ... optionally times log n): highest degree wins
+        _poly = re.findall(r"n\^(\d+)( log n)?", all_comps)
+        _poly = [(int(k), bool(lg)) for k, lg in _poly if int(k) >= 3]
+        if _poly:
+            _k, _lg = max(_poly)
+            return f"O(n^{_k} log n)" if _lg else f"O(n^{_k})"
+        if "n^2 log n" in all_comps or "n² log n" in all_comps: return "O(n^2 log n)"
         if "n^2" in all_comps or "n²" in all_comps: return "O(n^2)"
         if "n log n" in all_comps or (re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) and not (getattr(self.analyzer, 'sqrt_bounded_sort_call', False) and not getattr(self.analyzer, 'has_unbounded_sort_call', False))) or 'heappush' in raw_code: return "O(n log n)"
         # NOTE: O(n) must be checked before O(sqrt n) / O(log n). A function
@@ -76,6 +83,8 @@ class ComplexitySynthesizer:
         
         if "n!" in all_spaces: return "O(n!)"
         if "2^n" in all_spaces or "2ⁿ" in all_spaces: return "O(2^n)"
+        _sp = [int(k) for k in re.findall(r"n\^(\d+)", all_spaces) if int(k) >= 3]
+        if _sp: return f"O(n^{max(_sp)})"
         if "n^2" in all_spaces or "n²" in all_spaces: return "O(n^2)"
         if "V+E" in all_spaces or "O(V)" in all_spaces: return "O(V+E)"
         if "O(n)" in all_spaces: return "O(n)"

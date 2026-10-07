@@ -195,6 +195,13 @@ def growth_word(complexity: str) -> str:
         return "linear"
     if t.poly == 1 and t.log:
         return "near-linear"
+    if t.log:
+        return "polynomial with a log factor"
+    names = {2: "quadratic", 3: "cubic", 4: "quartic"}
+    if float(t.poly).is_integer() and int(t.poly) in names:
+        return names[int(t.poly)]
+    if t.poly >= 5:
+        return "high-degree polynomial"
     return "polynomial"
 
 
@@ -241,6 +248,43 @@ class LoopInfo:
     bound: str                # human description of how often it repeats
     scales: bool = True       # False for constant / halving loops
 
+def live_tree(tree):
+    """Drop functions that nothing ever calls.
+
+    The complexity engine leaves a function that is never called out of the total
+    ("`fib()` is never called, so its body never runs"). The explanation must follow the
+    same rule, otherwise an unused recursive helper still makes the narrative say the
+    program is recursive, brute force, and so on. If the file only defines functions and
+    never calls any, everything stays (nothing is "unused" yet).
+    """
+    if not isinstance(tree, ast.Module):
+        return tree
+    funcs = {n.name: n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    if not funcs:
+        return tree
+
+    def used(nodes):
+        names = set()
+        for node in nodes:
+            for n in ast.walk(node):
+                if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load) and n.id in funcs:
+                    names.add(n.id)
+        return names
+
+    top = [n for n in tree.body if not (isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)))]
+    roots = used(top)
+    if not roots:
+        return tree
+    live, stack = set(), list(roots)
+    while stack:
+        name = stack.pop()
+        if name in live:
+            continue
+        live.add(name)
+        stack.extend(used([funcs[name]]) - live)
+    body = [n for n in tree.body if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) or n.name in live]
+    return ast.Module(body=body, type_ignores=[])
+
 
 @dataclass
 class ProgramShape:
@@ -255,7 +299,7 @@ class ProgramShape:
         shape = ProgramShape()
         try:
             src = "\n".join(source_lines or [])
-            shape.tree = ast.parse(src)
+            shape.tree = live_tree(ast.parse(src))
         except Exception:
             return shape
         for node in ast.walk(shape.tree):
