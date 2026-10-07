@@ -818,6 +818,23 @@ export default function MainApp({ pipelineMode = false }) {
 
   const handleSyncToBlocks = () => syncToBlocks(false);
 
+  // Line Executions -> Python editor: bring the Python panel forward and select
+  // the clicked line. The panel may still be mounting, so wait a tick before
+  // touching the editor.
+  const jumpToPythonLine = (line) => {
+    updateTab(activeTabId, { viewMode: "python" });
+    focusDockPanel("python");
+    setTimeout(() => {
+      const editor = editorRef.current; const monaco = monacoRef.current;
+      const model = editor?.getModel?.();
+      if (!editor || !monaco || !model) return;
+      const ln = Math.min(Math.max(1, line), model.getLineCount());
+      editor.revealLineInCenter(ln);
+      editor.setSelection(new monaco.Range(ln, 1, ln, model.getLineMaxColumn(ln)));
+      editor.focus();
+    }, 120);
+  };
+
   // Automatic Python -> Blocks sync (Blocks -> Python already happens on
   // every block edit). Editing the Python -- e.g. deleting "n = 3" -- is now
   // reflected in the blocks after a short typing pause, with no need to
@@ -889,7 +906,15 @@ export default function MainApp({ pipelineMode = false }) {
       showToast(engineError || (engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment."), "error");
       return;
     }
-    if (!activeTab.pythonCode || activeTab.pythonCode.trim() === "" || activeTab.pythonCode === "# Drag blocks to generate Python code") {
+    // Clean up unused (unplugged) value blocks first; they do nothing and can
+    // leave stray lines in the generated Python. When the blocks are the source
+    // of truth, run the freshly regenerated code, since the tab state only
+    // catches up after Blockly's debounced onChange.
+    const cleaned = workspaceRefs.current[activeTabId]?.removeUnusedBlocks?.();
+    const codeToRun = (cleaned?.removed && !activeTab.isEditingCode && typeof cleaned.code === "string")
+      ? cleaned.code.trim()
+      : activeTab.pythonCode;
+    if (!codeToRun || codeToRun.trim() === "" || codeToRun === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute."); focusDockPanel("console"); setConsoleTab("output"); return;
     }
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
@@ -906,7 +931,7 @@ export default function MainApp({ pipelineMode = false }) {
       if (pendingOutputRef.current) { setConsoleOutput((prev) => prev + pendingOutputRef.current); pendingOutputRef.current = ""; }
     }, 100);
 
-    const safePayload = sanitizePythonCode(activeTab.pythonCode);
+    const safePayload = sanitizePythonCode(codeToRun);
     const runId = ++runIdRef.current;
     workerRef.current.postMessage({ type: "RUN_CODE", code: safePayload, runId });
 
@@ -1338,6 +1363,8 @@ export default function MainApp({ pipelineMode = false }) {
           onStopRun={() => stopExecution()}
           pythonCode={activeTab.pythonCode}
           lineExecutions={activeTab.lineExecutions}
+          totalComplexity={(activeTab.syntaxErrors || []).some((e) => e.blocking) ? null : (activeTab.analysisResult?.total || null)}
+          onJumpToLine={jumpToPythonLine}
         />
       ),
     },

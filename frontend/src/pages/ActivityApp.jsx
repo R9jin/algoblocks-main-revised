@@ -1257,6 +1257,23 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const handleSyncToBlocks = () => syncToBlocks(false);
 
+  // Line Executions -> Python editor: bring the Python panel forward and select
+  // the clicked line. The panel may still be mounting, so wait a tick before
+  // touching the editor.
+  const jumpToPythonLine = (line) => {
+    setViewMode("python");
+    focusDockPanel("python");
+    setTimeout(() => {
+      const editor = editorRef.current; const monaco = monacoRef.current;
+      const model = editor?.getModel?.();
+      if (!editor || !monaco || !model) return;
+      const ln = Math.min(Math.max(1, line), model.getLineCount());
+      editor.revealLineInCenter(ln);
+      editor.setSelection(new monaco.Range(ln, 1, ln, model.getLineMaxColumn(ln)));
+      editor.focus();
+    }, 120);
+  };
+
   // Automatic Python -> Blocks sync. Blocks -> Python already happens on
   // every block edit; this makes the other direction match, so editing the
   // Python (e.g. deleting "n = 3") is reflected in the blocks without
@@ -1281,7 +1298,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       focusDockPanel("console"); setConsoleTab("output");
       return;
     }
-    if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
+    // Clean up unused (unplugged) value blocks first; they do nothing and can
+    // leave stray lines in the generated Python. When the blocks are the source
+    // of truth, run the freshly regenerated code, since state only catches up
+    // after Blockly's debounced onChange.
+    const cleaned = workspaceRef.current?.removeUnusedBlocks?.();
+    const codeToRun = (cleaned?.removed && !isEditingCode && typeof cleaned.code === "string")
+      ? cleaned.code.trim()
+      : generatedPython;
+    if (!codeToRun || codeToRun.trim() === "" || codeToRun === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute."); focusDockPanel("console"); setConsoleTab("output"); return;
     }
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); setIsEvaluating(true); setLineExecutions({});
@@ -1299,7 +1324,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     }, 10000);
 
     const runId = ++runIdRef.current;
-    workerRef.current?.postMessage({ type: "RUN_CODE", code: sanitizePythonCode(generatedPython), runId });
+    workerRef.current?.postMessage({ type: "RUN_CODE", code: sanitizePythonCode(codeToRun), runId });
   };
 
   // Manual stop. Waiting at input(): instant, engine stays loaded. Otherwise (busy loop, or a
@@ -1961,6 +1986,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           onStopRun={handleStopRun}
           pythonCode={generatedPython}
           lineExecutions={lineExecutions}
+          totalComplexity={(syntaxErrors || []).some((e) => e.blocking) ? null : (analysisResult?.total || null)}
+          onJumpToLine={jumpToPythonLine}
         />
       ),
     },

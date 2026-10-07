@@ -13,6 +13,7 @@ import "blockly/blocks";
 import * as En from "blockly/msg/en";
 import { pythonGenerator } from "blockly/python";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { FiTrash2 } from "react-icons/fi";
 import { convertPythonToBlocks } from "../workers/analyzerInstance";
 import FloatingErrorDropdown from "./FloatingErrorDropdown.jsx";
 import ScopeWarningModal from "./ScopeWarningModal.jsx";
@@ -668,6 +669,32 @@ const nudgeOutOfOverlap = (ws, block) => {
   }
 };
 
+// ---------------------------------------------------------------------------
+// Unused ("loose") blocks
+//
+// A value block (number, text, variable, comparison, list...) that is not
+// plugged into anything does no useful work, so it only clutters the canvas
+// and confuses the learner. Only side-effect-free value types qualify, and
+// every block inside the loose group must qualify too, so a loose group that
+// contains a function call (which would really run) is never touched.
+// Standalone statement blocks (e.g. a lone print) still run, so they are
+// never counted as unused.
+// ---------------------------------------------------------------------------
+const LOOSE_BLOCK_TYPES = new Set([
+  "math_number", "math_arithmetic", "math_single", "math_round", "math_modulo",
+  "logic_boolean", "logic_compare", "logic_operation", "logic_negate",
+  "text", "text_join", "variables_get", "lists_create_with",
+]);
+
+const realDescendants = (b) => b.getDescendants(false).filter((d) => !d.isShadow?.());
+
+const findUnusedBlocks = (ws) =>
+  ws.getTopBlocks(false).filter((b) =>
+    !b.isInsertionMarker?.() && !!b.outputConnection && !b.getParent() &&
+    realDescendants(b).every((d) => LOOSE_BLOCK_TYPES.has(d.type)));
+
+const countBlocks = (blocks) => blocks.reduce((n, b) => n + realDescendants(b).length, 0);
+
 const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson }, ref) => {
   const blocklyDiv = useRef(null);
   const workspace = useRef(null);
@@ -713,6 +740,65 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     }
   };
 
+  // Unused-block cleanup state. `unusedCount` drives the floating
+  // "Remove unused blocks" button; `notice` is the "Removed N unused blocks.
+  // Undo" message, which keeps the removed blocks (as JSON) so Undo can put
+  // them back exactly where they were.
+  const [unusedCount, setUnusedCount] = useState(0);
+  const [notice, setNotice] = useState(null);
+  const noticeTimerRef = useRef(null);
+
+  const dismissNotice = () => {
+    if (noticeTimerRef.current) { clearTimeout(noticeTimerRef.current); noticeTimerRef.current = null; }
+    setNotice(null);
+  };
+
+  const showNotice = (message, saved) => {
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    setNotice({ message, saved });
+    noticeTimerRef.current = setTimeout(() => { noticeTimerRef.current = null; setNotice(null); }, 20000);
+  };
+
+  // Removes every unused block. Returns { removed, code }: `code` is the
+  // freshly generated Python for the cleaned workspace, so a caller that is
+  // about to run the blocks' code can use it right away instead of waiting
+  // for the debounced onChange to deliver it.
+  const removeUnusedNow = () => {
+    const ws = workspace.current;
+    if (!ws) return { removed: 0 };
+    const loose = findUnusedBlocks(ws);
+    if (!loose.length) return { removed: 0 };
+    const removed = countBlocks(loose);
+    const saved = loose.map((b) => Blockly.serialization.blocks.save(b, { addCoordinates: true }));
+    const prevGroup = Blockly.Events.getGroup();
+    Blockly.Events.setGroup(true);
+    try { loose.forEach((b) => b.dispose(false)); } finally { Blockly.Events.setGroup(prevGroup || false); }
+    setUnusedCount(0);
+    showNotice(`Removed ${removed} unused block${removed === 1 ? "" : "s"}.`, saved);
+    let code;
+    try { code = pythonGenerator.workspaceToCode(ws); } catch (e) { code = undefined; }
+    return { removed, code };
+  };
+
+  const undoRemoval = () => {
+    const ws = workspace.current;
+    const saved = notice?.saved;
+    dismissNotice();
+    if (!ws || !saved) return;
+    const prevGroup = Blockly.Events.getGroup();
+    Blockly.Events.setGroup(true);
+    try {
+      saved.forEach((json) => {
+        try {
+          const rest = { ...json };
+          delete rest.id; // fresh id: the old one may be reused
+          const blk = Blockly.serialization.blocks.append(rest, ws);
+          nudgeOutOfOverlap(ws, blk);
+        } catch (e) { console.warn("Could not restore a removed block:", e); }
+      });
+    } finally { Blockly.Events.setGroup(prevGroup || false); }
+  };
+
   const executeLoad = (json, preservePythonCode) => {
     if (!workspace.current) return;
 
@@ -727,6 +813,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     // suppressAutoChangeRef above for why that's a problem on its own.
     if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
     suppressAutoChangeRef.current = true;
+    dismissNotice(); // stale Undo must never restore blocks into a different workspace
 
     try {
       Blockly.Events.setGroup(true); 
@@ -785,6 +872,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       // calling this, so no replacement delivery is needed here.
       if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
       suppressAutoChangeRef.current = true;
+      dismissNotice();
       Blockly.Events.setGroup(true);
       try { workspace.current.clear(); } finally {
         Blockly.Events.setGroup(false);
@@ -839,6 +927,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         // dropping the isUnsynced=false this call already established.
         if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
         suppressAutoChangeRef.current = true;
+        dismissNotice();
 
         try { 
           Blockly.Events.setGroup(true);
@@ -878,6 +967,9 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     },
     // Exposed so a "Tidy up" control or caller can force a clean layout.
     arrangeBlocks: () => { if (workspace.current) relayoutTopBlocks(workspace.current); },
+    // Removes unused (loose, do-nothing) value blocks. Used when the program
+    // is run and by the "Remove unused blocks" button. Returns { removed, code }.
+    removeUnusedBlocks: () => removeUnusedNow(),
     resize: () => { if (workspace.current) { Blockly.svgResize(workspace.current); workspace.current.markFocused(); } }
   }));
 
@@ -955,11 +1047,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       // so it just clutters the workspace and confuses the learner. Show Blockly's own
       // warning icon on it. Limited to side-effect-free block types so a loose call that
       // really does run is never mislabeled.
-      const LOOSE_BLOCK_TYPES = new Set([
-        "math_number", "math_arithmetic", "math_single", "math_round", "math_modulo",
-        "logic_boolean", "logic_compare", "logic_operation", "logic_negate",
-        "text", "text_join", "variables_get", "lists_create_with",
-      ]);
       const looseWarnedIds = new Set();
       let flaggingLoose = false;
       const flagLooseBlocks = () => {
@@ -967,14 +1054,12 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         if (!ws || flaggingLoose) return;
         flaggingLoose = true;
         try {
-          const stillLoose = new Set();
-          ws.getTopBlocks(false).forEach((b) => {
-            if (b.outputConnection && !b.getParent() && LOOSE_BLOCK_TYPES.has(b.type)) {
-              stillLoose.add(b.id);
-              if (!looseWarnedIds.has(b.id)) {
-                b.setWarningText("This block isn't connected to anything, so it does nothing. Plug it into another block, or delete it.");
-                looseWarnedIds.add(b.id);
-              }
+          const loose = findUnusedBlocks(ws);
+          const stillLoose = new Set(loose.map((b) => b.id));
+          loose.forEach((b) => {
+            if (!looseWarnedIds.has(b.id)) {
+              b.setWarningText("This block isn't connected to anything, so it does nothing. Plug it into another block, or remove it with \"Remove unused blocks\". It is also cleaned up when you run the program.");
+              looseWarnedIds.add(b.id);
             }
           });
           [...looseWarnedIds].forEach((id) => {
@@ -983,6 +1068,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
             if (b) b.setWarningText(null);
             looseWarnedIds.delete(id);
           });
+          setUnusedCount(countBlocks(loose));
         } catch (e) { /* warnings are cosmetic; never break the workspace over them */ }
         flaggingLoose = false;
       };
@@ -1035,6 +1121,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       // timeout swallows the resulting exception silently, but the intent
       // was never for it to fire at all once this instance is gone.
       if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
+      if (noticeTimerRef.current) { clearTimeout(noticeTimerRef.current); noticeTimerRef.current = null; }
       try { [searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin].forEach(p => p?.dispose && p.dispose()); } catch (e) {}
       if (workspace.current) { workspace.current.dispose(); workspace.current = null; }
       if (blocklyDiv.current?.resizeObserver) blocklyDiv.current.resizeObserver.disconnect();
@@ -1044,6 +1131,49 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={blocklyDiv} style={{ height: "100%", width: "100%" }} />
+      {unusedCount > 0 && (
+        <button
+          type="button"
+          onClick={() => removeUnusedNow()}
+          title="Delete value blocks that aren't plugged into anything. They do nothing, and you can undo this."
+          style={{
+            position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", zIndex: 40,
+            display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", border: "none",
+            borderRadius: 18, background: "#7c3aed", color: "#fff", fontSize: "0.82rem", fontWeight: 600,
+            cursor: "pointer", boxShadow: "0 4px 14px rgba(124, 58, 237, 0.35)",
+          }}
+        >
+          <FiTrash2 size={14} /> Remove unused blocks ({unusedCount})
+        </button>
+      )}
+      {notice && (
+        <div
+          role="status"
+          style={{
+            position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", zIndex: 60,
+            display: "flex", alignItems: "center", gap: 12, padding: "9px 14px", borderRadius: 10,
+            background: "rgba(30, 30, 44, 0.96)", color: "#fff", fontSize: "0.85rem",
+            boxShadow: "0 6px 20px rgba(0, 0, 0, 0.3)", maxWidth: "90%",
+          }}
+        >
+          <span>{notice.message}</span>
+          <button
+            type="button"
+            onClick={undoRemoval}
+            style={{ background: "none", border: "none", color: "#c4b5fd", fontWeight: 700, cursor: "pointer", padding: 0, fontSize: "0.85rem" }}
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            onClick={dismissNotice}
+            aria-label="Dismiss"
+            style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", padding: 0, fontSize: "1.1rem", lineHeight: 1 }}
+          >
+            ×
+          </button>
+        </div>
+      )}
       <FloatingErrorDropdown syntaxErrors={syntaxErrors} />
       <ScopeWarningModal
         isOpen={scopeWarningState.isOpen}

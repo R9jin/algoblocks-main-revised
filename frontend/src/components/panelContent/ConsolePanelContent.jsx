@@ -8,6 +8,7 @@
 import { useEffect, useRef } from "react";
 import { FiChevronRight, FiSquare } from "react-icons/fi";
 import { focusWithoutScroll, scrollToEndWithin } from "../../utils/scrollWithin";
+import LineExecutionsView from "./LineExecutionsView.jsx";
 
 export default function ConsolePanelContent({
   consoleTab,
@@ -22,6 +23,11 @@ export default function ConsolePanelContent({
   onStopRun,
   pythonCode,
   lineExecutions,
+  // Overall Big-O of the program (null while the code has errors), shown next
+  // to the hot spot in the Line Executions tab.
+  totalComplexity = null,
+  // (lineNumber) => void: jumps to that line in the Python editor.
+  onJumpToLine = null,
 }) {
   const consoleEndRef = useRef(null);
 
@@ -30,9 +36,6 @@ export default function ConsolePanelContent({
       scrollToEndWithin(consoleEndRef.current);
     }
   }, [consoleOutput, isWaitingForInput, consoleTab]);
-
-  const pythonLines = (pythonCode || "").split("\n");
-  const maxExecutions = Math.max(0, ...Object.values(lineExecutions || {}));
 
   return (
     <div className="console-content-wrapper">
@@ -78,35 +81,12 @@ export default function ConsolePanelContent({
             <div ref={consoleEndRef} />
           </div>
         ) : (
-          <div className="complexity-table-wrapper console-table-override">
-            <table className="complexity-table">
-              <thead>
-                <tr>
-                  <th className="line-num-th">Line</th>
-                  <th>Source Code</th>
-                  <th className="hits-th">Hits</th>
-                  <th className="freq-th">Frequency</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pythonLines.map((lineText, idx) => {
-                  const hits = (lineExecutions || {})[idx + 1] || 0;
-                  return (
-                    <tr key={idx} className={hits > 0 ? "row-has-hits" : ""}>
-                      <td className="line-num-td">{idx + 1}</td>
-                      <td className="source-code-td">{lineText || " "}</td>
-                      <td className={`hits-td ${hits > 0 ? "active-hits" : ""}`}>{hits > 0 ? hits : "-"}</td>
-                      <td className="freq-td">
-                        {hits > 0 && maxExecutions > 0 && (
-                          <div className={`freq-bar ${hits === maxExecutions ? "max-freq" : ""}`} style={{ width: `${(hits / maxExecutions) * 100}%` }} title={`${Math.round((hits / maxExecutions) * 100)}%`} />
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <LineExecutionsView
+            pythonCode={pythonCode}
+            lineExecutions={lineExecutions}
+            totalComplexity={totalComplexity}
+            onJumpToLine={onJumpToLine}
+          />
         )}
       </div>
     </div>
