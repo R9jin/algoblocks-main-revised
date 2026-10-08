@@ -63,7 +63,7 @@ from complexity_analyzer.analyzer import analyze_source_code
 # anything -- it was exactly this staleness that let space accuracy sit at
 # a 38-point-too-generous floor (50%) after the true baseline moved to 88%.
 # ---------------------------------------------------------------------------
-MIN_TIME_ACCURACY = 0.70
+MIN_TIME_ACCURACY = 0.80
 MIN_SPACE_ACCURACY = 0.80
 MAX_CRASH_FALLBACK_RATE = 0.06
 

@@ -1,7 +1,7 @@
 {
-  "n": 278,
-  "crashes": 3,
-  "rate": 0.0108,
+  "n": 259,
+  "crashes": 2,
+  "rate": 0.0077,
   "ceiling": 0.06,
   "crashed_entries": [
     {
@@ -13,11 +13,6 @@
       "id": "algo_n2_141",
       "source_file": "ground_truth_chunk_15.json",
       "error": "SyntaxError: unexpected character after line continuation character (<unknown>, line 10)"
-    },
-    {
-      "id": "algo_n_172",
-      "source_file": "ground_truth_chunk_18.json",
-      "error": "SyntaxError: expected ':' (<unknown>, line 57)"
     }
   ]
 }

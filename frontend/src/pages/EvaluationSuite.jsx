@@ -43,7 +43,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import { usePyodide } from "../context/PyodideContext";
-import { prefetchGroundTruth } from "../utils/datasetCache";
+import { prefetchGroundTruth, ACTIVE_DATASET_PATH } from "../utils/datasetCache";
 import "../styles/EvaluationSuite.css";
 
 // Stable color palette for Big-O complexity classes so the same class always
@@ -384,7 +384,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     setStatusText("Loading ground-truth dataset...");
     const gauntletPayload = await prefetchGroundTruth();
     if (!gauntletPayload || gauntletPayload.length === 0) {
-      alert("Critical Failure: Could not load the ground-truth chunks. Ensure ground_truth_chunk_01.json (and onward) exist inside /public/data/evaluation/processed/");
+      alert("Critical Failure: Could not load the ground-truth chunks. Ensure ground_truth_chunk_01.json (and onward) exist inside /public" + ACTIVE_DATASET_PATH);
       setIsLoading(false);
       setStatusText("Dataset assembly failed.");
       return;

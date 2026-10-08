@@ -158,7 +158,7 @@ function PurposeExplainer({ open, onClose }) {
         <p>
           Every ground-truth sample has one label for its <em>whole</em> function
           --  e.g. "this entire snippet is O(n) time, O(1) space." This panel
-          re-runs the analyzer over all 266 samples and checks whether that
+          re-runs the analyzer over all samples and checks whether that
           single whole-snippet label still matches, then compares the result
           against a fixed minimum (the "floor" shown on each card). If
           accuracy falls below the floor, the card shows FAIL.
@@ -248,7 +248,7 @@ export default function AnalyzerRegressionCheck() {
       <p className="arc-intro">
         Automated <strong>pass/fail</strong> check, not an exploratory benchmark:
         confirms the analyzer's <strong>whole-snippet ("overall")</strong> accuracy
-        across all {report?.dataset_size ?? "266"} ground-truth samples hasn't
+        across all {report?.dataset_size ?? "259"} ground-truth samples hasn't
         dropped below a fixed minimum since the last check.{" "}
         <button type="button" className="arc-inline-help" onClick={() => setShowExplainer(true)}>
           What does "overall" mean here?
