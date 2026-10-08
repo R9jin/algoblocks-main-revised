@@ -947,15 +947,6 @@ function ResultScene({ final, status, result, fallbackReason, runtimeCrash = nul
           </>
         )}
         {!result && status === "success" && <div className="pr-empty">Assembling the result object…</div>}
-        <details className="pr-block" style={{ marginTop: 12, fontSize: "0.82rem", lineHeight: 1.5 }}>
-          <summary style={{ cursor: "pointer", fontWeight: 600 }}>Legend: how range(), sum() and fixed values are counted</summary>
-          <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
-            <li><code>range(n)</code> gives 0, 1, ..., n-1, so it takes <b>n steps</b>. <code>range(a, b)</code> takes b - a steps. <code>range(10)</code> is always 10 steps, which is <b>O(1)</b>.</li>
-            <li><code>sum(items)</code> adds every item once: <b>O(n)</b>. <code>sum(range(n))</code> is O(n); <code>sum(range(10))</code> and <code>sum([1, 2, 3])</code> are O(1).</li>
-            <li>A name set once to a number (<code>n = 3</code>) is a <b>fixed value</b>, so loops over it are O(1). A name that comes from <code>input()</code> or a function parameter can grow, so loops over it are O(n).</li>
-            <li>Big-O counts how much <i>work</i> the code does as the input grows, not what it prints.</li>
-          </ul>
-        </details>
       </div>
     </div>
   );

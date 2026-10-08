@@ -462,7 +462,8 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     self.analyzer._details[i]["global_space"] = "O(1)" 
                     
                 if is_placeholder and "T(placeholder)" in str(self.analyzer._details[i].get("time_explanation", "")) and SemanticNLGEngine:
-                    formatted_rel = self.analyzer.nlg_engine._format_recurrence_relation(relation)
+                    with self.analyzer.explain_clock():
+                        formatted_rel = self.analyzer.nlg_engine._format_recurrence_relation(relation)
                     self.analyzer._details[i]["time_explanation"] = self.analyzer._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
 
         if self.analyzer.recursive_calls_count > 0 or self.analyzer.has_recursion_in_loop or is_indirect or is_segment_tree_query:
@@ -530,11 +531,12 @@ class ASTNodeVisitor(ast.NodeVisitor):
             try:
                 nlg = getattr(self.analyzer, "nlg_engine", None)
                 if nlg is not None and hasattr(nlg, "generate_definition_explanations"):
-                    t_exp, s_exp = nlg.generate_definition_explanations(
-                        node,
-                        dead_reason=func_dead_reason["reason"] if func_dead_reason else None,
-                        code_snippet=self.analyzer._details[start_idx].get("lineOfCode", ""),
-                    )
+                    with self.analyzer.explain_clock():
+                        t_exp, s_exp = nlg.generate_definition_explanations(
+                            node,
+                            dead_reason=func_dead_reason["reason"] if func_dead_reason else None,
+                            code_snippet=self.analyzer._details[start_idx].get("lineOfCode", ""),
+                        )
                     self.analyzer._details[start_idx]["time_explanation"] = t_exp
                     self.analyzer._details[start_idx]["space_explanation"] = s_exp
             except Exception:

@@ -340,12 +340,13 @@ class SignatureRecorder:
         
         time_exp, space_exp = "", ""        
         if SemanticNLGEngine and getattr(self.analyzer, 'explain', True):
-            for var_name, var_data in mem_state.items():
-                var_data["explanation"] = self.analyzer.nlg_engine.generate_variable_explanation(var_name, var_data, self.analyzer.var_types.get(var_name))
+            with self.analyzer.explain_clock():
+                for var_name, var_data in mem_state.items():
+                    var_data["explanation"] = self.analyzer.nlg_engine.generate_variable_explanation(var_name, var_data, self.analyzer.var_types.get(var_name))
 
-            time_exp, space_exp = self.analyzer.nlg_engine.generate_explanations(
-                node, local_t, global_t, local_s, global_s, is_dead, line_text, hits, mem_state
-            )
+                time_exp, space_exp = self.analyzer.nlg_engine.generate_explanations(
+                    node, local_t, global_t, local_s, global_s, is_dead, line_text, hits, mem_state
+                )
 
         builtin_desc = None
         if isinstance(node, ast.Call):

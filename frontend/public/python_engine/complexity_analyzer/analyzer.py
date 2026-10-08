@@ -26,6 +26,7 @@ pipeline-stage class.
 import ast
 import re
 import time
+from contextlib import contextmanager
 from collections import deque, Counter
 import sys
 
@@ -424,9 +425,31 @@ class ComplexityAnalyzer:
         }
         self.aliases = {}
         self.explain = True
+        # Time spent building educational insights (per-line explanations,
+        # bottleneck notes, the overall narrative). Tracked separately so the
+        # reported "analysis time" measures the complexity analysis itself,
+        # the same thing the dataset benchmark measures with explain=False.
+        self._explain_seconds = 0.0
+        self._explain_depth = 0
         if SemanticNLGEngine:
             self.nlg_engine = SemanticNLGEngine(self)
-            
+
+    @contextmanager
+    def explain_clock(self):
+        """Counts the time spent inside the block as explanation time. Nested
+        use is safe: only the outermost block is counted, so time is never
+        subtracted twice."""
+        if self._explain_depth > 0:
+            yield
+            return
+        self._explain_depth += 1
+        t0 = time.perf_counter()
+        try:
+            yield
+        finally:
+            self._explain_seconds += time.perf_counter() - t0
+            self._explain_depth -= 1
+
     def reset_state(self):
         # Cleared here (not just at __init__) because some cached
         # classifiers read self.variable_complexities / self.loop_depth,
@@ -493,7 +516,8 @@ class ComplexityAnalyzer:
     @property
     def details(self):
         if not getattr(self, '_bottlenecks_applied', False) and len(self._details) > 0 and SemanticNLGEngine and getattr(self, 'explain', True):
-            self.signature_recorder._apply_bottlenecks()
+            with self.explain_clock():
+                self.signature_recorder._apply_bottlenecks()
             self._bottlenecks_applied = True
         return self._details
 
@@ -605,6 +629,7 @@ def analyze_source_code(source_code, explain=True):
     the dataset benchmark uses it because it only scores the predicted values."""
     import time
     start_time = time.perf_counter()
+    analyzer = None  # set once the analyzer exists; read for the explanation time below
     
     source_code = preprocess_source(source_code)
     
@@ -661,7 +686,8 @@ def analyze_source_code(source_code, explain=True):
 
         overall_exp = ""  # stays empty when explain=False (educational insights skipped)
         if explain:
-            overall_exp = analyzer.complexity_synthesizer.get_overall_explanation(tree)
+            with analyzer.explain_clock():
+                overall_exp = analyzer.complexity_synthesizer.get_overall_explanation(tree)
         _lit_note = script_literal_loop_note(tree, getattr(analyzer, 'script_literal_locs', set()))
         if _lit_note:
             overall_exp = ((overall_exp or '') + '\n\n' + _lit_note).strip()
@@ -702,6 +728,13 @@ def analyze_source_code(source_code, explain=True):
         results.setdefault("scope_warnings", [])
         results.setdefault("logic_warnings", [])
     end_time = time.perf_counter()
-    results["analysis_time_ms"] = (end_time - start_time) * 1000
+    total_ms = (end_time - start_time) * 1000
+    # Educational insights are built inside the same pass, but they are not part
+    # of working out the complexity, so they are reported separately. This makes
+    # "analysis_time_ms" comparable to the dataset benchmark (explain=False).
+    explain_ms = (getattr(analyzer, "_explain_seconds", 0.0) or 0.0) * 1000
+    results["analysis_time_ms"] = max(0.0, total_ms - explain_ms)
+    results["explanation_time_ms"] = explain_ms
+    results["total_time_ms"] = total_ms
     
     return results

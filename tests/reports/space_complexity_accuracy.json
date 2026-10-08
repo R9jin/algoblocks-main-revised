@@ -1,8 +1,8 @@
 {
   "metric": "expected_overall_space vs analyzer 'space_total'",
   "n": 278,
-  "correct": 264,
-  "accuracy": 0.9496,
+  "correct": 263,
+  "accuracy": 0.946,
   "floor": 0.8,
   "mismatches": [
     {
@@ -11,6 +11,14 @@
       "source_file": "ground_truth_chunk_01.json",
       "expected": "O(V+E)",
       "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_028",
+      "name": "Count Strings of N Characters with Limited 'b' and 'c' Counts (DP)",
+      "source_file": "ground_truth_chunk_03.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^3)",
       "analyzer_status": "success"
     },
     {

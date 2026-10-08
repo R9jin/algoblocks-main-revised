@@ -185,7 +185,7 @@ export default function ComplexityPanelContent({
         </div>
       ) : activeComplexityTab === "memory" ? (
         <div className="memory-wrapper">
-          <MemoryVisualizer analysisData={lines} currentStep={lines.length > 0 ? lines.length - 1 : 0} />
+          <MemoryVisualizer analysisData={lines} currentStep={lines.length > 0 ? lines.length - 1 : 0} spaceComplexity={safeSpaceTotal !== "—" ? safeSpaceTotal : null} />
         </div>
       ) : activeComplexityTab === "callgraph" ? (
         <div className="callgraph-wrapper" style={{ height: "100%", overflow: "hidden" }}>
@@ -277,18 +277,6 @@ export default function ComplexityPanelContent({
             </tbody>
           </table>
         </div>
-      )}
-
-      {!hasErrors && (
-        <details className="complexity-legend" style={{ margin: "10px 12px", fontSize: "0.82rem", lineHeight: 1.5 }}>
-          <summary style={{ cursor: "pointer", fontWeight: 600 }}>Legend: how range(), sum() and fixed values are counted</summary>
-          <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
-            <li><code>range(n)</code> gives 0, 1, ..., n-1, so it takes <strong>n steps</strong>. <code>range(a, b)</code> takes b - a steps. <code>range(10)</code> is always 10 steps, which is <strong>O(1)</strong>.</li>
-            <li><code>sum(items)</code> adds every item once, so it takes as many steps as there are items: <strong>O(n)</strong>. <code>sum(range(n))</code> is O(n); <code>sum(range(10))</code> and <code>sum([1, 2, 3])</code> are O(1).</li>
-            <li>A name set once to a number (<code>n = 3</code>) is a <strong>fixed value</strong>, so loops over it are O(1). A name that comes from <code>input()</code> or a function parameter can grow, so loops over it are O(n).</li>
-            <li>Big-O counts how much <em>work</em> the code does as the input grows, not what it prints. Two programs with the same output can have different Big-O (a loop that adds 1 to n is O(n); the formula <code>n*(n+1)//2</code> is O(1)).</li>
-          </ul>
-        </details>
       )}
 
       <ScopeWarningModal

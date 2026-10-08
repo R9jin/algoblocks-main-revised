@@ -1,8 +1,8 @@
 {
   "metric": "expected_overall_time vs analyzer 'total'",
   "n": 278,
-  "correct": 232,
-  "accuracy": 0.8345,
+  "correct": 223,
+  "accuracy": 0.8022,
   "floor": 0.7,
   "mismatches": [
     {
@@ -14,11 +14,43 @@
       "analyzer_status": "success"
     },
     {
+      "id": "algo_n3_018",
+      "name": "Maximize a Number by Swapping Digits (Brute Force)",
+      "source_file": "ground_truth_chunk_02.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^3 log n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_028",
+      "name": "Count Strings of N Characters with Limited 'b' and 'c' Counts (DP)",
+      "source_file": "ground_truth_chunk_03.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^3)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_043",
+      "name": "Split a Numeric String into an Increasing Sequence",
+      "source_file": "ground_truth_chunk_05.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^3)",
+      "analyzer_status": "success"
+    },
+    {
       "id": "algo_n_045",
       "name": "Find Common Strings with Minimum Index Sum",
       "source_file": "ground_truth_chunk_05.json",
       "expected": "O(n^2)",
       "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_050",
+      "name": "Check if All Rows of a Matrix Are Rotations of Each Other",
+      "source_file": "ground_truth_chunk_05.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^3)",
       "analyzer_status": "success"
     },
     {
@@ -66,7 +98,7 @@
       "name": "Count Inversions Using Heap Sort",
       "source_file": "ground_truth_chunk_07.json",
       "expected": "O(n)",
-      "predicted": "O(n^2)",
+      "predicted": "O(n^2 log n)",
       "analyzer_status": "success"
     },
     {
@@ -94,6 +126,14 @@
       "analyzer_status": "success"
     },
     {
+      "id": "algo_n2_084",
+      "name": "Find All-Zero Rectangles in a Binary Matrix",
+      "source_file": "ground_truth_chunk_09.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^4)",
+      "analyzer_status": "success"
+    },
+    {
       "id": "algo_nlogn_087",
       "name": "Find the Median of a Row-Wise Sorted Matrix (Binary Search)",
       "source_file": "ground_truth_chunk_09.json",
@@ -106,7 +146,7 @@
       "name": "Minimum Changes to Make a Permutation of 1..N",
       "source_file": "ground_truth_chunk_09.json",
       "expected": "O(n)",
-      "predicted": "O(n^2)",
+      "predicted": "O(n^3)",
       "analyzer_status": "success"
     },
     {
@@ -194,7 +234,7 @@
       "name": "Longest Increasing Path in a Matrix (DFS + Memoization)",
       "source_file": "ground_truth_chunk_15.json",
       "expected": "O(V+E)",
-      "predicted": "O(n^2)",
+      "predicted": "O(n^3)",
       "analyzer_status": "success"
     },
     {
@@ -218,7 +258,7 @@
       "name": "Running Median of a Stream (Two Heaps)",
       "source_file": "ground_truth_chunk_16.json",
       "expected": "O(n)",
-      "predicted": "O(n^2)",
+      "predicted": "O(n^2 log n)",
       "analyzer_status": "success"
     },
     {
@@ -262,6 +302,14 @@
       "analyzer_status": "success"
     },
     {
+      "id": "algo_n3_177",
+      "name": "Count Triplets with a Given Sum (Brute Force)",
+      "source_file": "ground_truth_chunk_18.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^3)",
+      "analyzer_status": "success"
+    },
+    {
       "id": "algo_n_186",
       "name": "Find the Two Repeating Elements Using Sum and Product",
       "source_file": "ground_truth_chunk_19.json",
@@ -299,6 +347,22 @@
       "source_file": "ground_truth_chunk_23.json",
       "expected": "O(n^2)",
       "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_234",
+      "name": "Count Substrings with the Same First and Last Character",
+      "source_file": "ground_truth_chunk_24.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^3)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n3_235",
+      "name": "Count Ways to Get a Palindrome by Removing One Character",
+      "source_file": "ground_truth_chunk_24.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^3)",
       "analyzer_status": "success"
     },
     {
@@ -363,6 +427,14 @@
       "source_file": "ground_truth_chunk_27.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_282",
+      "name": "Find Unique Triplets Summing to a Given Value",
+      "source_file": "ground_truth_chunk_29.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^3)",
       "analyzer_status": "success"
     },
     {

@@ -50,7 +50,11 @@ class ExecutionSnapshot:
             profile[name] = {
                 "type": var_type,
                 "size": size,
-                "preview": preview
+                "preview": preview,
+                # Object identity within this run. Lets the Memory Map show that
+                # two names (e.g. b = a) point at the SAME object. Only ever
+                # compared for equality; it is not a stable value across runs.
+                "id": id(val)
             }
         return profile
 
