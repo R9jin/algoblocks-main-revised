@@ -155,6 +155,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 if isinstance(comp, ast.Name):
                     t = self.analyzer.var_types.get(comp.id)
                     if t in ['set', 'dict']: is_hash_map = True
+                    elif t in ['list', 'tuple', 'str']: pass  # known sequence: `x in seen` is O(n) even if the name is 'seen'/'visited'
                     # Whole-token match only -- a raw substring check here
                     # would false-positive on names like "dataset", "subset",
                     # "offset", "reset" (all contain "set"), incorrectly
@@ -336,6 +337,28 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     relation = "O(V+E)"
                 else:
                     is_quicksort = False
+                    # Structural form: two sequential self-calls on the two sides of a computed split index
+                    # (f(a, lo, p - 1); f(a, p + 1, hi)). Both sides always run, unlike binary-search
+                    # recursion where the two calls sit in different if/else branches.
+                    if not is_quicksort:
+                        _self = [c for c in safe_walk(node) if isinstance(c, ast.Call) and isinstance(c.func, ast.Name) and c.func.id == node.name]
+                        _minus, _plus = {}, {}
+                        for _c in _self:
+                            for _a in _c.args:
+                                if isinstance(_a, ast.BinOp) and isinstance(_a.left, ast.Name) and isinstance(_a.right, ast.Constant) and _a.right.value == 1:
+                                    if isinstance(_a.op, ast.Sub): _minus.setdefault(_a.left.id, []).append(_c)
+                                    elif isinstance(_a.op, ast.Add): _plus.setdefault(_a.left.id, []).append(_c)
+                        def _same_block(c1, c2):
+                            for _n in safe_walk(node):
+                                for _f in ('body', 'orelse', 'finalbody'):
+                                    _lst = getattr(_n, _f, None)
+                                    if isinstance(_lst, list):
+                                        _hit = [st for st in _lst if any(x is c1 or x is c2 for x in ast.walk(st))]
+                                        if len(_hit) >= 2: return True
+                            return False
+                        for _name in set(_minus) & set(_plus):
+                            if any(_same_block(a, b) for a in _minus[_name] for b in _plus[_name] if a is not b):
+                                is_quicksort = True
                     for child in safe_walk(node):
                         # 'pivot' only: the old bare 'pi' substring also matched pick/mapping/spiral/api,
                         # which matters now that this branch reports the O(n^2) worst case.
@@ -646,6 +669,8 @@ class ASTNodeVisitor(ast.NodeVisitor):
     def visit_For(self, node):
         iter_name = self.analyzer.complexity_heuristics._get_iterable_name(node.iter)
         dim = self.analyzer.complexity_heuristics._register_and_get_dim(iter_name)
+        if (getattr(node, 'lineno', None), getattr(node, 'col_offset', None)) in getattr(self.analyzer, 'm_dim_for_locs', ()):
+            dim = 'm'  # walks the inside of the enclosing loop's current row: columns, a separate size
         target_name = node.target.id if isinstance(node.target, ast.Name) else None
         
         is_const = self.analyzer.complexity_heuristics._is_constant_loop(node)
@@ -1063,7 +1088,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             if func_node.attr == 'pop':
                 is_dict = isinstance(getattr(func_node, 'value', None), ast.Name) and self.analyzer.var_types.get(func_node.value.id) == 'dict'
                 if len(getattr(node, 'args', [])) > 0:
-                    if is_dict: self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from Dictionary (Worst-Case)")
+                    if is_dict: self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from Dictionary")
                     else: self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from specific index")
                 else:
                     self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from end / set")
@@ -1071,7 +1096,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop Left (Deque)")
             elif func_node.attr == 'remove':
                 is_set = isinstance(getattr(func_node, 'value', None), ast.Name) and self.analyzer.var_types.get(func_node.value.id) == 'set'
-                if is_set: self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from Set (Worst-Case)")
+                if is_set: self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Remove from Set")
                 else: self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from List")
             elif func_node.attr == 'copy':
                 curr_f = self.analyzer.current_function_name or ""
@@ -1373,7 +1398,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
         active_loops = [d for d in self.analyzer.loop_stack if d != '1']
         if isinstance(node.target, ast.Name) and self.analyzer.var_types.get(node.target.id) == 'str' and isinstance(node.op, ast.Add):
             if len(active_loops) > 0:
-                self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Build")
+                self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="String Build (copies the string)")
                 return 
 
         for child in safe_walk(node.value):
@@ -1401,7 +1426,10 @@ class ASTNodeVisitor(ast.NodeVisitor):
             return
 
         if isinstance(node.op, (ast.Add, ast.Mult)):
-            if self.analyzer.complexity_heuristics._is_linear_type(node.left) or self.analyzer.complexity_heuristics._is_linear_type(node.right):
+            _str_repeat = isinstance(node.op, ast.Mult) and (
+                (isinstance(node.left, ast.Constant) and isinstance(node.left.value, str) and not self.analyzer.complexity_heuristics._is_constant_expr(node.right)) or
+                (isinstance(node.right, ast.Constant) and isinstance(node.right.value, str) and not self.analyzer.complexity_heuristics._is_constant_expr(node.left)))
+            if _str_repeat or self.analyzer.complexity_heuristics._is_linear_type(node.left) or self.analyzer.complexity_heuristics._is_linear_type(node.right):
                 # `[literal] * k` (or `k * [literal]`) is only genuinely O(n)
                 # when k scales with input. visit_Assign already classifies
                 # this correctly using _is_constant_expr on the multiplier,

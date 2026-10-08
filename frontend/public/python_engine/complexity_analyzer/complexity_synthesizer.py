@@ -50,6 +50,16 @@ class ComplexitySynthesizer:
         if _poly:
             _k, _lg = max(_poly)
             return f"O(n^{_k} log n)" if _lg else f"O(n^{_k})"
+        # products of independent sizes, e.g. O(n * m) or O(n^2 * m) (only when no plain n^k beats them)
+        _prod = []
+        for _mt in re.finditer(r"O\(([a-zA-Z](?:\^\d+)?(?: \* [a-zA-Z](?:\^\d+)?)+)( log n)?\)", all_comps):
+            _deg = sum(int(x) if x else 1 for x in re.findall(r"[a-zA-Z](?:\^(\d+))?", _mt.group(1)))
+            _prod.append((_deg, bool(_mt.group(2)), _mt.group(0)))
+        if _prod:
+            _d, _l, _txt = max(_prod)
+            _plain2 = ("n^2" in all_comps or "n²" in all_comps)
+            if _d >= 3 or not _plain2:
+                return _txt
         if "n^2 log n" in all_comps or "n² log n" in all_comps: return "O(n^2 log n)"
         if "n^2" in all_comps or "n²" in all_comps: return "O(n^2)"
         if "n log n" in all_comps or (re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) and not (getattr(self.analyzer, 'sqrt_bounded_sort_call', False) and not getattr(self.analyzer, 'has_unbounded_sort_call', False))) or 'heappush' in raw_code: return "O(n log n)"
@@ -86,7 +96,10 @@ class ComplexitySynthesizer:
         _sp = [int(k) for k in re.findall(r"n\^(\d+)", all_spaces) if int(k) >= 3]
         if _sp: return f"O(n^{max(_sp)})"
         if "n^2" in all_spaces or "n²" in all_spaces: return "O(n^2)"
-        if "V+E" in all_spaces or "O(V)" in all_spaces: return "O(V+E)"
+        if "V+E" in all_spaces or "O(V)" in all_spaces:
+            # traversal bookkeeping alone is O(V); pushes that aren't marked, or building the
+            # adjacency lists, can reach O(V+E) (see graph_aux_space)
+            return "O(V)" if getattr(self.analyzer, 'graph_aux_space', "V+E") == "V" else "O(V+E)"
         if "O(n)" in all_spaces: return "O(n)"
         if "sqrt n" in all_spaces: return "O(sqrt n)"
         if "log n" in all_spaces: return "O(log n)"

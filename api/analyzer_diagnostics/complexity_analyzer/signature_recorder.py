@@ -32,6 +32,10 @@ class SignatureRecorder:
         w = 0
         if "n!" in complexity_str: w = 150
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: w = 100
+        elif re.search(r"\w(\^\d+)? \* \w", complexity_str):
+            # product of independent sizes, e.g. O(n * m): ranks like n^(sum of exponents)
+            _deg = sum(int(x) if x else 1 for x in re.findall(r"[a-zA-Z](?:\^(\d+))?", re.sub(r"log n|O\(|\)", "", complexity_str)))
+            w = (20 + 6 * (_deg - 2) if _deg >= 2 else 10) - 0.5
         elif re.search(r"n\^(\d+)", complexity_str) and int(re.search(r"n\^(\d+)", complexity_str).group(1)) >= 3:
             _k = int(re.search(r"n\^(\d+)", complexity_str).group(1))
             w = min(20 + 6 * (_k - 2), 90) + (1 if "log n" in complexity_str else 0)
@@ -104,6 +108,16 @@ class SignatureRecorder:
             n_count = len(poly_dims) if poly_dims else 0
             
             if n_count >= 2:
+                # Independent input sizes multiply, they don't collapse into n^2:
+                # `for i in range(n): for j in range(m)` is O(n * m) in the worst case.
+                _syms = {}
+                for _d in poly_dims:
+                    _d = _d if _d == 'm' else 'n'
+                    _syms[_d] = _syms.get(_d, 0) + 1
+                if len(_syms) >= 2:
+                    _parts = [(s_ if _syms[s_] == 1 else f"{s_}^{_syms[s_]}") for s_ in sorted(_syms, key=lambda x: (x != 'n', x))]
+                    _base = " * ".join(_parts)
+                    return f"O({_base} log n)" if log > 0 else f"O({_base})"
                 # A log factor survives the multiplication: n loops over an
                 # O(n log n) step (e.g. sorted() inside a loop) is O(n^2 log n),
                 # not O(n^2).
@@ -175,6 +189,8 @@ class SignatureRecorder:
                     else:
                         iter_name = self.analyzer.complexity_heuristics._get_iterable_name(node.iter)
                         dim = self.analyzer.complexity_heuristics._register_and_get_dim(iter_name)
+                        if (getattr(node, 'lineno', None), getattr(node, 'col_offset', None)) in getattr(self.analyzer, 'm_dim_for_locs', ()):
+                            dim = 'm'  # columns of the enclosing loop's current row
                         if dim: node_dims = [dim]
             elif isinstance(node, ast.While):
                 if getattr(self.analyzer, 'in_graph_context', False) and self.analyzer.call_graph_mapper._is_graph_while_loop(node): node_graph = 1

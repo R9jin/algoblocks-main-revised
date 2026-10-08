@@ -25,6 +25,8 @@ import sys
 
 from complexity_analyzer.code_preprocessor import (
     find_script_literal_name_locs,
+    find_element_dim_loops,
+    graph_aux_space,
     preprocess_source,
 )
 from complexity_analyzer.analyzer import (
@@ -232,6 +234,8 @@ def trace_pipeline(source_code):
                     if isinstance(target, ast.Name) and target.id not in param_names:
                         analyzer.module_int_constants.add(target.id)
         analyzer.script_literal_locs = find_script_literal_name_locs(tree)
+        analyzer.m_dim_for_locs = find_element_dim_loops(tree)
+        analyzer.graph_aux_space = graph_aux_space(tree)
 
         # ------------------------------------------------------------------
         # Stages: BFS Call Graph Mapper + Topological Sequencer (hooks inside)

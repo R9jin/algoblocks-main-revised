@@ -376,3 +376,94 @@ def script_literal_loop_note(tree, locs):
     return (f"Note: {shown} is a fixed value in this script, so the loop always runs the same "
             f"number of times and counts as O(1). If {used[0]} came from input() or a function "
             f"parameter, it could grow with the input and the loop would be O(n).")
+
+
+def find_element_dim_loops(tree):
+    """
+    Locations of `for` loops that walk the *inside* of the thing an enclosing loop is
+    currently on -- `for row in grid: for v in row` or `for i in range(n): for j in
+    range(len(grid[i]))`. Rows and columns are separate input sizes, so the nest costs
+    O(n * m) (rows x columns), not O(n^2).
+    """
+    locs = set()
+
+    def unwrap(it):
+        if isinstance(it, ast.Call) and getattr(it.func, 'id', '') == 'range' and it.args:
+            a = it.args[-1]
+            if isinstance(a, ast.Call) and getattr(a.func, 'id', '') == 'len' and a.args:
+                return a.args[0]
+            return None
+        return it
+
+    def visit(node, outers):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
+                visit(child, [])
+                continue
+            if isinstance(child, ast.For):
+                x = unwrap(child.iter)
+                if x is not None:
+                    for tgt, is_container in outers:
+                        if isinstance(x, ast.Name) and x.id == tgt and is_container:
+                            locs.add((child.lineno, child.col_offset))
+                        elif isinstance(x, ast.Subscript) and isinstance(x.slice, ast.Name) and x.slice.id == tgt:
+                            locs.add((child.lineno, child.col_offset))
+                tgt = child.target.id if isinstance(child.target, ast.Name) else None
+                is_container = not (isinstance(child.iter, ast.Call) and getattr(child.iter.func, 'id', '') == 'range')
+                visit(child, outers + [(tgt, is_container)])
+            else:
+                visit(child, outers)
+
+    visit(tree, [])
+    return locs
+
+
+def graph_aux_space(tree):
+    """
+    Worst-case AUXILIARY space of a graph traversal: "V" or "V+E".
+
+    The adjacency structure that is passed in is input, not extra space. Extra space is
+    the visited set plus the work list (queue / stack):
+      * every push is paired with marking that neighbour (`visited.add(nb)`, `seen[nb] = True`),
+        or the traversal is recursive -> each vertex is stored at most once -> O(V)
+      * a push WITHOUT marking (iterative DFS that marks on pop) can store one entry per
+        edge -> O(V+E)
+      * building the adjacency lists from an edge list (`g[u].append(v)`) -> O(V+E)
+    """
+    try:
+        for n in ast.walk(tree):
+            if (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr in ('append', 'add')
+                    and isinstance(n.func.value, ast.Subscript)):
+                return "V+E"                       # g[u].append(v): constructing the graph
+        for loop in ast.walk(tree):
+            if not isinstance(loop, ast.For):
+                continue
+            tgt = loop.target.id if isinstance(loop.target, ast.Name) else None
+            if not tgt or not isinstance(loop.iter, (ast.Subscript, ast.Attribute, ast.Call)):
+                continue
+            body_nodes = [x for st in loop.body for x in ast.walk(st)]
+            pushes = []
+            for x in body_nodes:
+                if (isinstance(x, ast.Call) and isinstance(x.func, ast.Attribute)
+                        and x.func.attr in ('append', 'appendleft', 'put', 'push', 'heappush')):
+                    names = {m.id for a in x.args for m in ast.walk(a) if isinstance(m, ast.Name)}
+                    if tgt in names:
+                        pushes.append(x)
+                elif (isinstance(x, ast.Call) and isinstance(x.func, ast.Attribute) and x.func.attr == 'extend'):
+                    pass
+            if not pushes:
+                continue
+            marked = False
+            for x in body_nodes:
+                if (isinstance(x, ast.Call) and isinstance(x.func, ast.Attribute) and x.func.attr == 'add'
+                        and any(isinstance(a, ast.Name) and a.id == tgt for a in x.args)):
+                    marked = True
+                if isinstance(x, ast.Assign):
+                    for t in x.targets:
+                        if isinstance(t, ast.Subscript) and isinstance(t.slice, ast.Name) and t.slice.id == tgt:
+                            marked = True
+            if not marked:
+                return "V+E"
+        return "V"
+    except Exception:
+        return "V+E"

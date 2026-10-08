@@ -154,7 +154,11 @@ class ComplexityHeuristics:
         key = ('_is_constant_loop', id(node))
         cache = self.analyzer._loop_classify_cache
         if key not in cache:
-            cache[key] = self._is_constant_loop_uncached(node)
+            # A loop whose body ends in an UNCONDITIONAL break/return (a direct statement of the
+            # body, not inside an `if`) can only ever run its first pass -- O(1), however large
+            # the range looks. (A conditional break still leaves the worst case at n passes.)
+            _once = isinstance(node, (ast.For, ast.While)) and any(isinstance(st, (ast.Break, ast.Return)) for st in node.body)
+            cache[key] = True if _once else self._is_constant_loop_uncached(node)
         return cache[key]
 
     def _is_sqrt_loop(self, node):
@@ -247,6 +251,28 @@ class ComplexityHeuristics:
         except Exception:
             return False
 
+    def _moves_monotonically(self, name, loop_node):
+        """True if `name` is only ever stepped by a constant inside this loop (p += 1, p -= 2,
+        p = p + 1): a pointer that moves one way."""
+        try:
+            seen = False
+            for st in safe_walk(loop_node):
+                if isinstance(st, ast.AugAssign) and isinstance(st.target, ast.Name) and st.target.id == name:
+                    if isinstance(st.op, (ast.Add, ast.Sub)) and isinstance(st.value, ast.Constant) and isinstance(st.value.value, int):
+                        seen = True
+                    else:
+                        return False
+                elif isinstance(st, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in st.targets):
+                    v = st.value
+                    if (isinstance(v, ast.BinOp) and isinstance(v.op, (ast.Add, ast.Sub)) and isinstance(v.left, ast.Name)
+                            and v.left.id == name and isinstance(v.right, ast.Constant) and isinstance(v.right.value, int)):
+                        seen = True
+                    else:
+                        return False
+            return seen
+        except Exception:
+            return False
+
     def _is_amortized_inner_loop(self, node):
         try:
             # FIX: Only apply amortized logic to truly nested inner loops.
@@ -276,7 +302,16 @@ class ComplexityHeuristics:
                             if self._pointer_reset_by_enclosing_loop(child.id, node):
                                 return False
                             return True
-                                    
+
+                # Structural form of the same idea, independent of variable names: the test
+                # reads a pointer that this loop only moves one way (`p += 1`) and that the
+                # enclosing loop never resets, so across ALL outer iterations the pointer can
+                # travel its range only once -- total work O(n), not outer x inner.
+                for child in safe_walk(node.test):
+                    if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Load):
+                        if self._moves_monotonically(child.id, node) and not self._pointer_reset_by_enclosing_loop(child.id, node):
+                            return True
+
             return False
         except Exception:
             return False

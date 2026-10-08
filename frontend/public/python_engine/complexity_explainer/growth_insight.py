@@ -191,6 +191,8 @@ def growth_word(complexity: str) -> str:
         return "sub-linear"
     if t.kind == "graph":
         return "linear in the graph size"
+    if t.kind == "multi":
+        return "the product of two input sizes"
     if t.poly == 1 and not t.log:
         return "linear"
     if t.poly == 1 and t.log:

@@ -36,6 +36,8 @@ sys.setrecursionlimit(2000)
 from complexity_analyzer.code_preprocessor import (
     extract_constant,
     find_script_literal_name_locs,
+    find_element_dim_loops,
+    graph_aux_space,
     script_literal_loop_note,
     _name_hints_memo_or_graph,
     _detect_factorial_branching,
@@ -102,7 +104,7 @@ class ComplexityAnalyzer:
         "O(n log n)": "O(n log n)", 
         "O(n^2)": "O(n^2)", 
         "O(V+E)": "O(V+E)", 
-        "O(n * m)": "O(n^2)",
+        "O(n * m)": "O(n * m)",
         "O(3^n)": "O(2^n)", 
         "O(2^n)": "O(2^n)", 
         "O(n * n!)": "O(n!)", 
@@ -190,7 +192,7 @@ class ComplexityAnalyzer:
             'items': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Returns dict items view.'},
             'range': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Creates mathematical range object.'},
             'clear': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Empties the container.'},
-            'get': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Looks up dictionary key. Evaluated as worst-case O(n) due to hash collisions.'},
+            'get': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Looks up a dictionary key. Hash lookups are counted as O(1), the same convention used for `in`, `add` and `d[key]`.'},
             'popleft': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Removes first element of deque.'},
 
             # -----------------------------------------------------------
@@ -665,6 +667,8 @@ def analyze_source_code(source_code, explain=True):
                     if isinstance(target, ast.Name) and target.id not in param_names:
                         analyzer.module_int_constants.add(target.id)
         analyzer.script_literal_locs = find_script_literal_name_locs(tree)
+        analyzer.m_dim_for_locs = find_element_dim_loops(tree)
+        analyzer.graph_aux_space = graph_aux_space(tree)
 
         analyzer.call_graph_mapper.bfs_first_pass(tree)
 
