@@ -66,8 +66,9 @@ from complexity_analyzer.analyzer import analyze_source_code
 # Oct 2026 recalibration (worst-case ground truth, 259 entries, exact match; 14 O(n!) records added later, 273 entries, now time 89.4% / space 86.4%): baseline
 # before the analyzer fixes was time 82.6% / space 82.6%; after: time 87.6% / space 88.8%.
 # Floors sit ~2 points under the new baseline.
-MIN_TIME_ACCURACY = 0.89
-MIN_SPACE_ACCURACY = 0.86
+# Oct 9 2026 (error-driven analyzer update): strict exact match now time 92.3% (252/273) / space 92.3% (252/273); floors raised to 90%.
+MIN_TIME_ACCURACY = 0.90
+MIN_SPACE_ACCURACY = 0.90
 MAX_CRASH_FALLBACK_RATE = 0.06
 
 ENTRIES = load_ground_truth()

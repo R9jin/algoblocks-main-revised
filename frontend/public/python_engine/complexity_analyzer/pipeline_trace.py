@@ -27,6 +27,7 @@ from complexity_analyzer.code_preprocessor import (
     find_script_literal_name_locs,
     find_element_dim_loops,
     graph_aux_space,
+    find_constant_sized_names,
     preprocess_source,
 )
 from complexity_analyzer.analyzer import (
@@ -236,6 +237,7 @@ def trace_pipeline(source_code):
         analyzer.script_literal_locs = find_script_literal_name_locs(tree)
         analyzer.m_dim_for_locs = find_element_dim_loops(tree)
         analyzer.graph_aux_space = graph_aux_space(tree)
+        analyzer.const_sized_names = find_constant_sized_names(tree, analyzer.complexity_heuristics._is_constant_expr)
 
         # ------------------------------------------------------------------
         # Stages: BFS Call Graph Mapper + Topological Sequencer (hooks inside)

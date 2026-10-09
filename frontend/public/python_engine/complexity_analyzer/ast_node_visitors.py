@@ -7,7 +7,7 @@ producing per-line complexity signatures -- the traversal half of the
 "Dependency-Ordered Signature Pass (DFS)" stage.
 """
 import ast
-from complexity_analyzer.code_preprocessor import safe_walk, extract_constant, _name_hints_memo_or_graph, _detect_factorial_branching
+from complexity_analyzer.code_preprocessor import safe_walk, extract_constant, _name_hints_memo_or_graph, _detect_factorial_branching, _factorial_recursion_space
 import re
 
 try:
@@ -17,12 +17,15 @@ except ImportError:
     ComprehensiveASTVisitor = None
 
 
-def _alloc_dims(node):
+def _alloc_dims(node, is_const=None):
     """How many input-sized dimensions a nested list allocation has:
     [[0]*n for _ in range(n)] -> 2, [[[0]*n for _ in range(n)] for _ in range(n)] -> 3.
     Fixed small sizes (range(3), [0]*10) don't count."""
     def small(x):
-        return isinstance(x, ast.Constant) and isinstance(x.value, int) and not isinstance(x.value, bool) and x.value <= 100
+        if isinstance(x, ast.Constant) and isinstance(x.value, int) and not isinstance(x.value, bool) and x.value <= 100:
+            return True
+        # a named constant (MAX = 50, MAX_CHAR = 256): a fixed-capacity dimension (benchmark rule 7)
+        return bool(is_const) and isinstance(x, ast.Name) and is_const(x)
     if isinstance(node, ast.ListComp):
         n = 0
         for g in node.generators:
@@ -30,11 +33,11 @@ def _alloc_dims(node):
             if isinstance(it, ast.Call) and getattr(it.func, 'id', '') == 'range' and len(it.args) == 1 and small(it.args[0]):
                 continue
             n += 1
-        return n + _alloc_dims(node.elt)
+        return n + _alloc_dims(node.elt, is_const)
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mult):
         for lst, mult in ((node.left, node.right), (node.right, node.left)):
             if isinstance(lst, ast.List):
-                return (0 if small(mult) else 1) + (_alloc_dims(lst.elts[0]) if lst.elts else 0)
+                return (0 if small(mult) else 1) + (_alloc_dims(lst.elts[0], is_const) if lst.elts else 0)
     return 0
 
 class ASTNodeVisitor(ast.NodeVisitor):
@@ -415,7 +418,12 @@ class ASTNodeVisitor(ast.NodeVisitor):
             
             if node.name not in self.analyzer.custom_space:
                 if not is_indirect:
-                    if self.analyzer.max_graph_ve > 0 or self.analyzer.in_graph_context or relation == "O(V+E)": 
+                    if "n * T(n-1)" in relation:
+                        # Permutation-style enumeration is decided by what it retains, before the
+                        # graph/weight shortcuts below (a `seen` set or a slice copy must not make
+                        # it look like a graph traversal or a plain O(n^2) routine).
+                        self.analyzer.custom_space[node.name] = _factorial_recursion_space(node)
+                    elif self.analyzer.max_graph_ve > 0 or self.analyzer.in_graph_context or relation == "O(V+E)": 
                         if self.analyzer.has_global_accumulation and 'adj' in "\n".join(self.analyzer.source_lines).lower():
                             self.analyzer.custom_space[node.name] = "O(V+E)"
                         else:
@@ -445,7 +453,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
                         # alive simultaneously", and mislabels that whole
                         # (much more common) tree-recursion class.
                         elif "n * T(n-1)" in relation or self.analyzer.max_fact > 0:
-                            self.analyzer.custom_space[node.name] = "O(n!)"
+                            self.analyzer.custom_space[node.name] = _factorial_recursion_space(node)
                         elif "T(n/2)" in relation or relation == "O(log n)":
                             if self.analyzer.max_space_weight >= 1:
                                 self.analyzer.custom_space[node.name] = "O(n)"
@@ -592,6 +600,25 @@ class ASTNodeVisitor(ast.NodeVisitor):
         self.analyzer.function_gcd_vars = None; self.analyzer.in_frequency_summation_depth = 0
         self.analyzer.has_recursion_in_loop = self.analyzer.has_slicing = self.analyzer.has_partitioning = self.analyzer.has_division = self.analyzer.has_global_accumulation = False
 
+    def _visit_exit_block(self, stmts):
+        """
+        Visit a branch body. When the branch ends in `return` and we are inside a loop, the branch can
+        run at most once per call (rule 2: a line that can run at most once is O(1)), so the enclosing
+        loops must not multiply its cost. The loop context is cleared while visiting it.
+        """
+        a = self.analyzer
+        if not (stmts and isinstance(stmts[-1], ast.Return) and getattr(a, 'loop_depth', 0) > 0):
+            return self._visit_block(stmts)
+        saved = (a.active_poly_dims, a.loop_stack, a.loop_stack_targets, a.loop_body_stack, a.loop_depth,
+                 getattr(a, 'log_loop_depth', 0), getattr(a, 'sqrt_loop_depth', 0))
+        a.active_poly_dims, a.loop_stack, a.loop_stack_targets, a.loop_body_stack = [], [], [], []
+        a.loop_depth, a.log_loop_depth, a.sqrt_loop_depth = 0, 0, 0
+        try:
+            return self._visit_block(stmts)
+        finally:
+            (a.active_poly_dims, a.loop_stack, a.loop_stack_targets, a.loop_body_stack, a.loop_depth,
+             a.log_loop_depth, a.sqrt_loop_depth) = saved
+
     def visit_If(self, node):
         is_main_block = False
         if isinstance(node.test, ast.Compare) and getattr(node.test.left, 'id', '') == '__name__':
@@ -627,7 +654,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
         self.analyzer.recursive_calls_count = 0
         self.analyzer.tree_traversal_calls = 0
         self.analyzer.current_depth += 1
-        self._visit_block(node.body)
+        self._visit_exit_block(node.body)
         self.analyzer.current_depth -= 1
         if_rec = self.analyzer.recursive_calls_count
         if_tree = self.analyzer.tree_traversal_calls
@@ -635,7 +662,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
         self.analyzer.recursive_calls_count = 0
         self.analyzer.tree_traversal_calls = 0
         self.analyzer.current_depth += 1
-        self._visit_block(getattr(node, 'orelse', []))
+        self._visit_exit_block(getattr(node, 'orelse', []))
         self.analyzer.current_depth -= 1
         else_rec = self.analyzer.recursive_calls_count
         else_tree = self.analyzer.tree_traversal_calls
@@ -1053,7 +1080,15 @@ class ASTNodeVisitor(ast.NodeVisitor):
                         arg0 = node.args[0]
                         if isinstance(arg0, ast.Name) and self.analyzer.variable_complexities.get(arg0.id) == "sqrt":
                             arg_is_sqrt_bounded = True
-                    if arg_is_sqrt_bounded:
+                    arg_is_const_sized = (f_id in ('sorted', 'list', 'set', 'dict') and bool(getattr(node, 'args', []))
+                                          and isinstance(node.args[0], ast.Name)
+                                          and node.args[0].id in getattr(self.analyzer, 'const_sized_names', ()))
+                    if arg_is_const_sized:
+                        # sorting/copying a fixed-size table (e.g. a 256-slot character table) is O(1)
+                        if f_id == 'sorted':
+                            self.analyzer.sqrt_bounded_sort_call = True   # stands the raw-text n log n check down
+                        t_ov, s_ov = "O(1)", "O(1)"
+                    elif arg_is_sqrt_bounded:
                         # See the matching check in visit_Return: the
                         # container being coerced/sorted here was only ever
                         # populated inside a sqrt(n)-bounded loop, so its
@@ -1291,8 +1326,23 @@ class ASTNodeVisitor(ast.NodeVisitor):
                         if len(gen.iter.args) == 1 and self.analyzer.complexity_heuristics._is_constant_expr(gen.iter.args[0]):
                             is_constant_size = True
                             
-                if is_nested or (len(active_loops) > 0 and isinstance(node.targets[0], ast.Subscript)):
-                    _k = max(2, _alloc_dims(node.value))
+                _const_dims = _alloc_dims(node.value, self.analyzer.complexity_heuristics._is_constant_expr)
+                # A named constant that other loops also iterate over (`for i in range(MAX)`) is the problem's
+                # dimension, not a spare capacity, so its table still scales with that dimension.
+                _cap_names = [g.iter.args[0].id for _c in ast.walk(node.value) if isinstance(_c, ast.ListComp)
+                              for g in _c.generators
+                              if isinstance(g.iter, ast.Call) and getattr(g.iter.func, 'id', '') == 'range'
+                              and len(g.iter.args) == 1 and isinstance(g.iter.args[0], ast.Name)]
+                _src = "\n".join(getattr(self.analyzer, 'source_lines', []))
+                _is_dimension = any(len(re.findall(r'range\(\s*' + re.escape(_nm) + r'\s*\)', _src)) > _cap_names.count(_nm)
+                                    for _nm in set(_cap_names))
+                if is_nested and _const_dims == 0 and _alloc_dims(node.value) > 0 and not _is_dimension and not isinstance(node.targets[0], ast.Subscript):
+                    # every dimension is a named fixed capacity (`[[0] * MAX for _ in range(MAX)]`)
+                    t_ov, s_ov = "O(1)", "O(1)"
+                    for _t in node.targets:
+                        if isinstance(_t, ast.Name): self.analyzer.constant_size_containers.add(_t.id)
+                elif is_nested or (len(active_loops) > 0 and isinstance(node.targets[0], ast.Subscript)):
+                    _k = max(2, _alloc_dims(node.value, self.analyzer.complexity_heuristics._is_constant_expr))
                     self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)  # weight scale: 2 = polynomial; the exact degree travels in the O(n^k) text
                     self.analyzer.signature_recorder.record_line(node, time_override=f"O(n^{_k})", space_override=f"O(n^{_k})", custom_op="2D Array Allocation" if _k == 2 else f"{_k}D Array Allocation")
                     self.generic_visit(node)
@@ -1412,6 +1462,23 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     for target in node.targets:
                         if isinstance(target, ast.Name): self.analyzer.variable_complexities[target.id] = "sqrt"
             
+        # `opsize = int(pow(2, n - 1))`, `total = 1 << n`, `limit = 2 ** n`: the variable holds a value that
+        # grows exponentially with the input, so a loop bounded by it runs an exponential number of times.
+        if isinstance(node.value, (ast.Call, ast.BinOp)):
+            for child in safe_walk(node.value):
+                exp_arg = None
+                if isinstance(child, ast.BinOp) and isinstance(child.op, ast.Pow) and extract_constant(child.left) == 2:
+                    exp_arg = child.right
+                elif isinstance(child, ast.BinOp) and isinstance(child.op, ast.LShift) and extract_constant(child.left) == 1:
+                    exp_arg = child.right
+                elif (isinstance(child, ast.Call) and getattr(getattr(child, 'func', None), 'id', '') == 'pow'
+                      and len(child.args) >= 2 and extract_constant(child.args[0]) == 2):
+                    exp_arg = child.args[1]
+                if exp_arg is not None and any(isinstance(m, ast.Name) for m in safe_walk(exp_arg)):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name): self.analyzer.variable_complexities[target.id] = "exponential"
+                    break
+
         self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=custom_op) 
         self.generic_visit(node)
 
@@ -1533,7 +1600,13 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     arg0 = node.value.args[0]
                     if isinstance(arg0, ast.Name) and self.analyzer.variable_complexities.get(arg0.id) == "sqrt":
                         arg_is_sqrt_bounded = True
-                if arg_is_sqrt_bounded:
+                _a0 = node.value.args[0] if getattr(node.value, 'args', []) else None
+                if isinstance(_a0, ast.Name) and _a0.id in getattr(self.analyzer, 'const_sized_names', ()):
+                    # a fixed-size table (alphabet-sized etc.): sorting/copying it is O(1)
+                    if func_id == 'sorted':
+                        self.analyzer.sqrt_bounded_sort_call = True
+                    t_ov, s_ov = "O(1)", "O(1)"
+                elif arg_is_sqrt_bounded:
                     # The container being sorted/coerced was only ever
                     # populated inside a sqrt(n)-bounded loop, so its size is
                     # O(sqrt n), not O(n) -- e.g. `return sorted(divisors)`

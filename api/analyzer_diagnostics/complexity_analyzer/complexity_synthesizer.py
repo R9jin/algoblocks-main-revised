@@ -99,7 +99,9 @@ class ComplexitySynthesizer:
         if "V+E" in all_spaces or "O(V)" in all_spaces:
             # traversal bookkeeping alone is O(V); pushes that aren't marked, or building the
             # adjacency lists, can reach O(V+E) (see graph_aux_space)
-            return "O(V)" if getattr(self.analyzer, 'graph_aux_space', "V+E") == "V" else "O(V+E)"
+            # Rule 9 of the benchmark conventions: work/space that is once-per-vertex is O(n) with n = V;
+            # only edge-proportional storage (building adjacency, push-without-mark) is O(V+E).
+            return "O(n)" if getattr(self.analyzer, 'graph_aux_space', "V+E") == "V" else "O(V+E)"
         if "O(n)" in all_spaces: return "O(n)"
         if "sqrt n" in all_spaces: return "O(sqrt n)"
         if "log n" in all_spaces: return "O(log n)"

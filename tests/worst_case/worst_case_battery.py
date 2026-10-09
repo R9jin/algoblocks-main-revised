@@ -56,7 +56,7 @@ B = [
 ("shared pointer inner while", "O(n)", None, L("def f(a, n):","    seen = set(a)","    nxt = 1","    for i in range(n):","        while nxt in seen:","            nxt += 1","    return nxt")),
 ("n x m loops", "O(n * m)", "O(1)", L("def f(n, m):","    for i in range(n):","        for j in range(m):","            pass")),
 ("grid rows x cols", "O(n * m)", None, L("def f(grid):","    c = 0","    for row in grid:","        for v in row:","            c += v","    return c")),
-("bfs adjacency", "O(V+E)", "O(V)", L("from collections import deque","def bfs(g, s):","    seen = {s}","    q = deque([s])","    while q:","        u = q.popleft()","        for v in g[u]:","            if v not in seen:","                seen.add(v)","                q.append(v)")),
+("bfs adjacency", "O(V+E)", "O(n)", L("from collections import deque","def bfs(g, s):","    seen = {s}","    q = deque([s])","    while q:","        u = q.popleft()","        for v in g[u]:","            if v not in seen:","                seen.add(v)","                q.append(v)")),
 ("gcd euclid", "O(log n)", "O(1)", L("def gcd(a, b):","    while b:","        a, b = b, a % b","    return a")),
 ("trial division prime", "O(sqrt n)", "O(1)", L("def prime(n):","    i = 2","    while i * i <= n:","        if n % i == 0:","            return False","        i += 1","    return True")),
 ("matrix multiply", "O(n^3)", "O(n^2)", L("def mm(A, B, n):","    C = [[0]*n for _ in range(n)]","    for i in range(n):","        for j in range(n):","            for k in range(n):","                C[i][j] += A[i][k] * B[k][j]","    return C")),
