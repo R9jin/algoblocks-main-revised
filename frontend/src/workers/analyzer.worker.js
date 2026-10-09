@@ -707,8 +707,9 @@ json.dumps(res)
           const rawExpectedTime = getGroundTruthTime(item);
           const rawExpectedSpace = getGroundTruthSpace(item);
           
-          const predictedTime = resultJs.total || "PARSE_FAIL";
-          const predictedSpace = resultJs.space_total || resultJs.space || "O(1)";
+          // A crashed parse reports total = null now; the regex guess lives in fallback_total so the benchmark numbers stay comparable.
+          const predictedTime = resultJs.total || resultJs.fallback_total || "PARSE_FAIL";
+          const predictedSpace = resultJs.space_total || resultJs.fallback_space_total || resultJs.space || "O(1)";
 
           const normExpTime = strictBigONormalizer(rawExpectedTime);
           const normPredTime = strictBigONormalizer(predictedTime);

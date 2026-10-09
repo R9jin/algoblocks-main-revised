@@ -166,7 +166,7 @@ def test_overall_time_complexity_accuracy():
     correct, mismatches = 0, []
     for entry in ENTRIES:
         result = _run_silently(entry["code"])
-        predicted = result.get("total")
+        predicted = result.get("total") or result.get("fallback_total")
         expected = entry["expected_overall_time"]
         if predicted == expected:
             correct += 1
@@ -205,7 +205,7 @@ def test_overall_space_complexity_accuracy():
     correct, mismatches = 0, []
     for entry in ENTRIES:
         result = _run_silently(entry["code"])
-        predicted = result.get("space_total")
+        predicted = result.get("space_total") or result.get("fallback_space_total")
         expected = entry["expected_overall_space"]
         if predicted == expected:
             correct += 1

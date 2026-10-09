@@ -424,7 +424,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         setLineExecutions((prev) => ({ ...prev, ...initialCounts }));
         // Only genuine errors (e.g. NameError) are flagged `blocking`; "possible bug" lint
         // warnings share this list but must not hide the complexity result.
-        const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: err.blocking === true, isNameError: /^NameError/.test(err.message || "") }));
+        const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: err.blocking === true, isNameError: /^(NameError|ZeroDivisionError|IndexError|TypeError|ValueError)\b/.test(err.message || "") }));
         setSyntaxErrors(runtimeErrors);
       } else {
         if (data.multiple_errors && data.multiple_errors.length > 0) {

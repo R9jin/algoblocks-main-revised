@@ -367,3 +367,270 @@ def detect_name_errors(source_code, tree=None, limit=10):
             })
     errors.sort(key=lambda e: e["line"])
     return errors[:limit]
+
+
+# ---------------------------------------------------------------------------
+# Static "this will crash when run" detection
+# ---------------------------------------------------------------------------
+# Name the Blockly generators emit for a value socket that has nothing plugged
+# into it. (See BlocklyWorkspace.jsx: emptySocket(). It used to be silently
+# replaced by a literal 0, which made a missing/undeclared `n` look like
+# `range(0)`.) Reading it raises NameError, so it is reported like any other
+# undefined name, just with a clearer hint on the front end.
+EMPTY_SOCKET_NAME = "__empty_socket__"
+
+_EXIT_CALLS = {"exit", "quit", "_exit"}
+_SAFE_SEQ_CONSUMERS = {
+    "len", "print", "sum", "max", "min", "sorted", "list", "tuple", "str",
+    "any", "all", "reversed", "enumerate", "set", "repr", "range",
+}
+
+
+def _is_exit_call(stmt):
+    if not isinstance(stmt, ast.Expr) or not isinstance(stmt.value, ast.Call):
+        return False
+    f = stmt.value.func
+    if isinstance(f, ast.Name):
+        return f.id in _EXIT_CALLS
+    return isinstance(f, ast.Attribute) and f.attr in _EXIT_CALLS
+
+
+def _top_level_never_returns(stmt):
+    """True when execution cannot continue past this top-level statement."""
+    if isinstance(stmt, ast.Raise) or _is_exit_call(stmt):
+        return True
+    if isinstance(stmt, ast.While) and isinstance(stmt.test, ast.Constant) and stmt.test.value:
+        # `while True:` with no break / return / raise / exit anywhere inside
+        for n in ast.walk(stmt):
+            if isinstance(n, (ast.Break, ast.Return, ast.Raise)):
+                return False
+            if isinstance(n, ast.Expr) and _is_exit_call(n):
+                return False
+        return True
+    return False
+
+
+def _build_parents(tree):
+    parents = {}
+    for node in ast.walk(tree):
+        for child in ast.iter_child_nodes(node):
+            parents[child] = node
+    return parents
+
+
+def _store_counts(tree):
+    """How many times each name is bound anywhere in the file. A name bound
+    exactly once to a literal always holds that literal when it is read."""
+    counts = {}
+
+    def bump(name, n=1):
+        counts[name] = counts.get(name, 0) + n
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            bump(node.id)
+        elif isinstance(node, ast.arg):
+            bump(node.arg, 2)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            bump(node.name, 2)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                bump((alias.asname or alias.name).split(".")[0], 2)
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            for nm in node.names:
+                bump(nm, 2)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            bump(node.name, 2)
+    return counts
+
+
+def _literal_kind(node):
+    """'int' | 'float' | 'str' | 'list' | 'tuple' for plain literals, else None."""
+    if isinstance(node, ast.Constant):
+        v = node.value
+        if isinstance(v, bool) or isinstance(v, int):
+            return "int"
+        if isinstance(v, float):
+            return "float"
+        if isinstance(v, str):
+            return "str"
+        return None
+    if isinstance(node, ast.JoinedStr):
+        return "str"
+    if isinstance(node, ast.List):
+        return "list"
+    if isinstance(node, ast.Tuple):
+        return "tuple"
+    return None
+
+
+def detect_static_runtime_errors(source_code, tree=None):
+    """
+    Errors Python only raises when the code RUNS, found while the learner is
+    still typing: `10 / 0`, `a[10]` on a 3-item list, `'a' + 1`, `int('abc')`.
+
+    Deliberately very conservative, because a hit hides the complexity result
+    (same contract as detect_name_errors):
+      - only straight-line, top-level statements are inspected (nothing inside
+        an if / loop / try / function, where a guard or handler may make the
+        line unreachable or intentional);
+      - sub-expressions that may not run (`and`/`or`, `x if c else y`,
+        lambdas, comprehensions) are skipped;
+      - a value is only trusted when it is a literal, or a name bound exactly
+        once in the whole file to a literal;
+      - sequence lengths are only trusted when the sequence is never mutated
+        (no methods called on it, no item assignment, not handed to a user
+        function);
+      - scanning stops at `exit()` / `raise` / an endless `while True`;
+      - only the FIRST problem is reported, because that is where the program
+        would really stop.
+
+    Returns [{"line", "message", "blocking": True}] (0 or 1 entries). Messages
+    use Python's own wording so errorTranslator.js explains them.
+    """
+    try:
+        if tree is None:
+            tree = ast.parse(source_code)
+    except Exception:
+        return []
+    try:
+        return _detect_static_runtime_errors(tree)
+    except Exception:
+        return []   # additive check: never take the analyzer down
+
+
+def _detect_static_runtime_errors(tree):
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
+                and node.func.id in ("exec", "eval", "globals", "locals", "vars", "setattr"):
+            return []
+        if isinstance(node, ast.ImportFrom) and any(a.name == "*" for a in node.names):
+            return []
+
+    parents = _build_parents(tree)
+    stores = _store_counts(tree)
+
+    consts = {}   # name -> literal node (bound exactly once)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 \
+                and isinstance(node.targets[0], ast.Name) \
+                and stores.get(node.targets[0].id) == 1 \
+                and _literal_kind(node.value) is not None:
+            consts[node.targets[0].id] = node.value
+
+    def resolve(node):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id in consts:
+            return consts[node.id]
+        return node
+
+    def kind_of(node):
+        return _literal_kind(resolve(node))
+
+    def seq_safe(name):
+        """Every read of `name` is a plain, non-mutating use."""
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Name) and n.id == name and isinstance(n.ctx, ast.Load):
+                p = parents.get(n)
+                if isinstance(p, ast.Subscript) and p.value is n and isinstance(p.ctx, ast.Load):
+                    continue
+                if isinstance(p, ast.Call) and n in p.args and isinstance(p.func, ast.Name) \
+                        and p.func.id in _SAFE_SEQ_CONSUMERS:
+                    continue
+                if isinstance(p, (ast.For, ast.Compare)) and getattr(p, "iter", None) is n:
+                    continue
+                if isinstance(p, ast.Compare):
+                    continue
+                return False
+        return True
+
+    def seq_len(node):
+        base = resolve(node)
+        if isinstance(node, ast.Name) and node.id in consts and not seq_safe(node.id):
+            return None, None
+        k = _literal_kind(base)
+        if k == "str":
+            if isinstance(base, ast.Constant):
+                return len(base.value), "string"
+            return None, None
+        if k in ("list", "tuple"):
+            if any(isinstance(e, ast.Starred) for e in base.elts):
+                return None, None
+            return len(base.elts), k
+        return None, None
+
+    def is_zero(node):
+        r = resolve(node)
+        return isinstance(r, ast.Constant) and not isinstance(r.value, (str, bytes)) \
+            and r.value is not None and r.value == 0
+
+    _OPSYM = {ast.Add: "+", ast.Sub: "-", ast.Mult: "*", ast.Div: "/",
+              ast.FloorDiv: "//", ast.Mod: "%", ast.Pow: "**"}
+
+    def check(node):
+        """Return a message if evaluating `node` itself is certain to raise."""
+        if isinstance(node, ast.BinOp):
+            lk, rk = kind_of(node.left), kind_of(node.right)
+            op = type(node.op)
+            if op in (ast.Div, ast.FloorDiv, ast.Mod) and is_zero(node.right) and lk != "str":
+                return "ZeroDivisionError: division by zero"
+            sym = _OPSYM.get(op)
+            if sym and lk and rk:
+                num = ("int", "float")
+                if op is ast.Add:
+                    if lk == "str" and rk in num:
+                        return f"TypeError: can only concatenate str (not \"{rk}\") to str"
+                    if lk in num and rk == "str":
+                        return f"TypeError: unsupported operand type(s) for +: '{lk}' and 'str'"
+                    if lk == "list" and rk in num + ("str",):
+                        return f"TypeError: can only concatenate list (not \"{rk}\") to list"
+                elif op is ast.Mult:
+                    if lk == "str" and rk == "str":
+                        return "TypeError: can't multiply sequence by non-int of type 'str'"
+                elif op is ast.Mod:
+                    pass   # str % x is string formatting
+                elif "str" in (lk, rk):
+                    return f"TypeError: unsupported operand type(s) for {sym}: '{lk}' and '{rk}'"
+        elif isinstance(node, ast.Subscript) and isinstance(node.ctx, ast.Load):
+            idx = node.slice
+            if isinstance(idx, ast.UnaryOp) and isinstance(idx.op, ast.USub) \
+                    and isinstance(idx.operand, ast.Constant) and isinstance(idx.operand.value, int):
+                ival = -idx.operand.value
+            elif isinstance(idx, ast.Constant) and type(idx.value) is int:
+                ival = idx.value
+            else:
+                return None
+            n, what = seq_len(node.value)
+            if n is not None and not (-n <= ival < n):
+                return f"IndexError: {what} index out of range"
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
+                and node.func.id == "int" and len(node.args) == 1 and not node.keywords:
+            r = resolve(node.args[0])
+            if isinstance(r, ast.Constant) and isinstance(r.value, str) and len(r.value) < 200:
+                try:
+                    int(r.value)
+                except ValueError:
+                    return f"ValueError: invalid literal for int() with base 10: {r.value!r}"
+        return None
+
+    def scan(node):
+        """First certain error in evaluation order, skipping maybe-not-run code."""
+        if isinstance(node, (ast.BoolOp, ast.IfExp, ast.Lambda, ast.ListComp, ast.SetComp,
+                             ast.DictComp, ast.GeneratorExp)):
+            return None
+        for child in ast.iter_child_nodes(node):
+            hit = scan(child)
+            if hit:
+                return hit
+        msg = check(node)
+        if msg:
+            return {"line": getattr(node, "lineno", 1), "message": msg, "blocking": True}
+        return None
+
+    for stmt in tree.body:
+        if isinstance(stmt, (ast.Expr, ast.Assign, ast.AugAssign, ast.AnnAssign)):
+            hit = scan(stmt)
+            if hit:
+                return [hit]
+        if _top_level_never_returns(stmt):
+            break
+    return []

@@ -434,7 +434,7 @@ export default function MainApp({ pipelineMode = false }) {
           (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           // Only genuine errors (e.g. NameError) are flagged `blocking`; "possible bug" lint
           // warnings share this list but must not hide the complexity result.
-          const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: err.blocking === true, isNameError: /^NameError/.test(err.message || "") }));
+          const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: err.blocking === true, isNameError: /^(NameError|ZeroDivisionError|IndexError|TypeError|ValueError)\b/.test(err.message || "") }));
           updateTab(targetId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: {

@@ -23,7 +23,13 @@ import ast
 import re
 import sys
 
-from complexity_analyzer.code_preprocessor import preprocess_source, find_script_literal_name_locs, find_element_dim_loops, graph_aux_space, find_constant_sized_names
+from complexity_analyzer.code_preprocessor import (
+    find_script_literal_name_locs,
+    find_element_dim_loops,
+    graph_aux_space,
+    find_constant_sized_names,
+    preprocess_source,
+)
 from complexity_analyzer.analyzer import (
     ComplexityAnalyzer,
     fallback_analyzer,

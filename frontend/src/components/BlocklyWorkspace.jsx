@@ -230,14 +230,41 @@ export function registerCustomPythonGenerators() {
 
   const getCode = (b, n, o = pythonGenerator.ORDER_NONE) => pythonGenerator.valueToCode(b, n, o);
 
+  // EMPTY SOCKETS MUST NOT BECOME 0.
+  // Blockly's stock generators, and ours, used to replace an empty value socket
+  // with a literal ("|| '0'"). So `for i in range(n)` whose `n` block was
+  // removed -- or never filled in because `n` was never declared -- silently
+  // turned into `range(0)` and "worked", even though nothing was declared.
+  // For operands where a made-up number changes the program's meaning, an
+  // empty socket now generates this name instead. It is not defined anywhere, so
+  // the analyzer reports "NameError" on that exact line (see scope_detector.py,
+  // EMPTY_SOCKET_NAME), the run stops with an explanation, and blockly_ast.py
+  // turns it back into an empty socket if the text is synced to blocks again.
+  const EMPTY_SOCKET = "__empty_socket__";
+  const needCode = (b, n, o = pythonGenerator.ORDER_NONE) => pythonGenerator.valueToCode(b, n, o) || EMPTY_SOCKET;
+  const makeStrictOperands = (type, inputNames) => {
+    const orig = pythonGenerator.forBlock[type];
+    if (typeof orig !== "function" || orig.__strictOperands) return;
+    const wrapped = function (block, gen) {
+      for (const name of inputNames) {
+        if (block.getInput(name) && !block.getInputTargetBlock(name)) return [EMPTY_SOCKET, pythonGenerator.ORDER_ATOMIC];
+      }
+      return orig.call(this, block, gen);
+    };
+    wrapped.__strictOperands = true;
+    pythonGenerator.forBlock[type] = wrapped;
+  };
+  makeStrictOperands("math_arithmetic", ["A", "B"]);
+  makeStrictOperands("logic_compare", ["A", "B"]);
+
   pythonGenerator.forBlock["math_change"] = function (block) {
     const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
-    const val = getCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC) || "0";
+    const val = needCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC);
     return `${v} += ${val}\n`;
   };
 
   pythonGenerator.forBlock["controls_repeat_ext"] = function (block) {
-    const repeats = getCode(block, "TIMES", pythonGenerator.ORDER_NONE) || "0";
+    const repeats = needCode(block, "TIMES", pythonGenerator.ORDER_NONE);
     const branch = pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS;
     return `for _ in range(${repeats}):\n${branch}`;
   };
@@ -251,14 +278,14 @@ export function registerCustomPythonGenerators() {
   pythonGenerator.forBlock["math_assignment"] = function (block) {
     const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
     const op = block.getFieldValue("OP");
-    const val = getCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC) || "0";
+    const val = needCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC);
     const sym = op === "MINUS" ? "-=" : op === "MULTIPLY" ? "*=" : op === "DIVIDE" ? "/=" : "+=";
     return `${v} ${sym} ${val}\n`;
   };
 
   pythonGenerator.forBlock["controls_for"] = function (block) {
     const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
-    const from = getCode(block, "FROM") || "0", to = getCode(block, "TO") || "0", step = getCode(block, "BY") || "1";
+    const from = needCode(block, "FROM"), to = needCode(block, "TO"), step = getCode(block, "BY") || "1";
     const rangeCode = step.trim() === "1" ? (from.trim() === "0" ? `range(${to})` : `range(${from}, ${to})`) : `range(${from}, ${to}, ${step})`;
     return `for ${v} in ${rangeCode}:\n${pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS}`;
   };
@@ -299,15 +326,15 @@ export function registerCustomPythonGenerators() {
   pythonGenerator.forBlock["procedure_return_value"] = b => `return ${getCode(b, "VALUE") || "None"}\n`;
   pythonGenerator.forBlock["custom_string_join"] = b => [`${getCode(b, "DELIMITER", pythonGenerator.ORDER_MEMBER) || "''"}.join(${getCode(b, "LIST") || "[]"})`, pythonGenerator.ORDER_FUNCTION_CALL];
   pythonGenerator.forBlock["string_to_list"] = b => [`list(${getCode(b, "STRING") || "''"})`, pythonGenerator.ORDER_FUNCTION_CALL];
-  pythonGenerator.forBlock["type_cast_int"] = b => [`int(${getCode(b, "VALUE") || "0"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+  pythonGenerator.forBlock["type_cast_int"] = b => [`int(${needCode(b, "VALUE")})`, pythonGenerator.ORDER_FUNCTION_CALL];
 
   pythonGenerator.forBlock["math_advanced_operators"] = function (block) {
     const opMap = { FLOOR_DIV: ["//", pythonGenerator.ORDER_MULTIPLICATIVE], POWER: ["**", pythonGenerator.ORDER_EXPONENTIATION], RSHIFT: [">>", pythonGenerator.ORDER_BITWISE_SHIFT], LSHIFT: ["<<", pythonGenerator.ORDER_BITWISE_SHIFT], BIT_AND: ["&", pythonGenerator.ORDER_BITWISE_AND], BIT_OR: ["|", pythonGenerator.ORDER_BITWISE_OR] };
     const [sym, order] = opMap[block.getFieldValue("OP")] || ["", pythonGenerator.ORDER_NONE];
-    return [`${getCode(block, "A", order) || "0"} ${sym} ${getCode(block, "B", order) || "0"}`, order];
+    return [`${needCode(block, "A", order)} ${sym} ${needCode(block, "B", order)}`, order];
   };
 
-  pythonGenerator.forBlock["math_min_max"] = b => [`${b.getFieldValue("OP") === "MAX" ? "max" : "min"}(${getCode(b, "A") || "0"}, ${getCode(b, "B") || "0"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+  pythonGenerator.forBlock["math_min_max"] = b => [`${b.getFieldValue("OP") === "MAX" ? "max" : "min"}(${needCode(b, "A")}, ${needCode(b, "B")})`, pythonGenerator.ORDER_FUNCTION_CALL];
   pythonGenerator.forBlock["comment_block"] = b => `# ${b.getFieldValue("TEXT") || ""}\n`;
   pythonGenerator.forBlock["multi_line_comment"] = b => `"""\n${b.getFieldValue("TEXT") || ""}\n"""\n`;
   pythonGenerator.forBlock["blank_line"] = () => `\n`;
@@ -354,7 +381,7 @@ export function registerCustomPythonGenerators() {
   pythonGenerator.forBlock["list_count"] = b => [`${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.count(${getCode(b, "ITEM") || "None"})`, pythonGenerator.ORDER_FUNCTION_CALL];
   pythonGenerator.forBlock["list_reverse"] = b => `${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.reverse()\n`;
   pythonGenerator.forBlock["list_clear"] = b => `${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.clear()\n`;
-  pythonGenerator.forBlock["list_range"] = b => [`list(range(${getCode(b, "START") || "0"}, ${getCode(b, "END") || "0"}))`, pythonGenerator.ORDER_FUNCTION_CALL];
+  pythonGenerator.forBlock["list_range"] = b => [`list(range(${needCode(b, "START")}, ${needCode(b, "END")}))`, pythonGenerator.ORDER_FUNCTION_CALL];
   pythonGenerator.forBlock["variable_swap"] = b => `${pythonGenerator.getVariableName(b.getFieldValue("VAR1"))}, ${pythonGenerator.getVariableName(b.getFieldValue("VAR2"))} = ${pythonGenerator.getVariableName(b.getFieldValue("VAR2"))}, ${pythonGenerator.getVariableName(b.getFieldValue("VAR1"))}\n`;
   pythonGenerator.forBlock["logic_in"] = b => [`${getCode(b, "ITEM", pythonGenerator.ORDER_RELATIONAL) || "None"} in ${getCode(b, "COLLECTION", pythonGenerator.ORDER_RELATIONAL) || "[]"}`, pythonGenerator.ORDER_RELATIONAL];
   pythonGenerator.forBlock["list_slice_advanced"] = b => [`${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}[${getCode(b, "START") || ""}:${getCode(b, "END") || ""}]`, pythonGenerator.ORDER_MEMBER];

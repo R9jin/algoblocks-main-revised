@@ -71,6 +71,12 @@ except ImportError:
         return []
 
 try:
+    from scope_detector import detect_static_runtime_errors
+except ImportError:
+    def detect_static_runtime_errors(source_code, tree=None):
+        return []
+
+try:
     from complexity_explainer.complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
 except ImportError:
     SemanticNLGEngine = None
@@ -725,11 +731,26 @@ def analyze_source_code(source_code, explain=True):
             # a chance to catch them.
             "logic_warnings": detect_logic_issues(source_code, tree),
             # Names that are read but never defined (NameError at run time).
-            "name_errors": detect_name_errors(source_code, tree),
+            # Plus errors that are certain to be raised when the code runs
+            # (`10 / 0`, `a[10]` on a 3-item list, `'a' + 1`, `int('abc')`).
+            # They share this list so the front end treats them exactly like
+            # a NameError: blocking, shown on the line, and the Python ->
+            # Blocks auto-sync keeps working.
+            "name_errors": detect_name_errors(source_code, tree)
+                           + detect_static_runtime_errors(source_code, tree),
         }
     except Exception as e:
         print(f"[AST CRASH FALLBACK TRIGGERED]: {e}")
         results = fallback_analyzer(source_code)
+        # The regex heuristic is a guess about code that did not even parse.
+        # Keep it available to the accuracy benchmarks as `fallback_total` /
+        # `fallback_space_total`, but do NOT present it as the answer: `total`
+        # / `space_total` are None so exports and reports can't pick up a
+        # made-up "O(n)" for broken code.
+        results["fallback_total"] = results.get("total")
+        results["fallback_space_total"] = results.get("space_total")
+        results["total"] = None
+        results["space_total"] = None
         # NOTE: fallback_analyzer() always reports status "success" (it still
         # provides a rough heuristic complexity guess), but a real failure
         # here (most commonly a SyntaxError) needs to be reported as an
