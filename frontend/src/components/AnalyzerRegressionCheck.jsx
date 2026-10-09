@@ -248,7 +248,7 @@ export default function AnalyzerRegressionCheck() {
       <p className="arc-intro">
         Automated <strong>pass/fail</strong> check, not an exploratory benchmark:
         confirms the analyzer's <strong>whole-snippet ("overall")</strong> accuracy
-        across all {report?.dataset_size ?? "259"} ground-truth samples hasn't
+        across all {report?.dataset_size ?? "273"} ground-truth samples hasn't
         dropped below a fixed minimum since the last check.{" "}
         <button type="button" className="arc-inline-help" onClick={() => setShowExplainer(true)}>
           What does "overall" mean here?

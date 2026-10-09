@@ -124,6 +124,50 @@ def _detect_factorial_branching(func_node):
         )
         return has_if and has_recursive_call
 
+    def enumerates_suffix_choices(for_node):
+        """
+        True for `for i in range(start, end): ... recurse(..., i + 1)` where `start` is one of the
+        function's own parameters: every level only looks at positions AFTER the one just chosen,
+        so the calls enumerate subsets / ways to cut the input -- 2^(n-1) of them -- not
+        orderings. (Placement backtracking such as N-Queens loops over ALL choices from a fixed
+        start, `range(n)`, which is why it is left to the factorial rule.)
+        """
+        it = for_node.iter
+        if not (isinstance(it, ast.Call) and getattr(getattr(it, 'func', None), 'id', '') == 'range' and len(it.args) >= 2):
+            return False
+        if not (isinstance(it.args[0], ast.Name) and it.args[0].id in param_names):
+            return False
+        loop_var = for_node.target.id if isinstance(for_node.target, ast.Name) else None
+        if not loop_var:
+            return False
+        for n in ast.walk(for_node):
+            if isinstance(n, ast.Call) and getattr(getattr(n, 'func', None), 'id', None) == func_name:
+                for a in list(n.args) + [k.value for k in n.keywords]:
+                    if (isinstance(a, ast.BinOp) and isinstance(a.op, ast.Add) and isinstance(a.left, ast.Name)
+                            and a.left.id == loop_var and isinstance(a.right, ast.Constant) and a.right.value == 1):
+                        return True
+        return False
+
+    def has_dedup_guard():
+        """
+        True when the function skips states it has already expanded: `if X not in S:` (or an
+        `if X in S: return`) together with `S.add(X)`. With that guard each distinct state is
+        expanded once, so the work is bounded by the number of distinct states (2^n subsets
+        here), however many orderings lead to them.
+        """
+        added = set()
+        for n in ast.walk(func_node):
+            if (isinstance(n, ast.Call) and getattr(getattr(n, 'func', None), 'attr', '') == 'add'
+                    and isinstance(getattr(n.func, 'value', None), ast.Name) and n.args and isinstance(n.args[0], ast.Name)):
+                added.add((n.func.value.id, n.args[0].id))
+        for n in ast.walk(func_node):
+            if isinstance(n, ast.If) and isinstance(n.test, ast.Compare) and len(n.test.ops) == 1 \
+                    and isinstance(n.test.ops[0], (ast.In, ast.NotIn)) and isinstance(n.test.left, ast.Name) \
+                    and isinstance(n.test.comparators[0], ast.Name):
+                if (n.test.comparators[0].id, n.test.left.id) in added:
+                    return True
+        return False
+
     def while_shrinks_and_recurses(while_node):
         """
         Bitmask/counter variant of the same placement-backtracking idiom,
@@ -195,7 +239,7 @@ def _detect_factorial_branching(func_node):
                                 has_shrink_op = True
                     if has_recursive_call and has_shrink_op:
                         return True
-                elif range_bound_is_plain_int(child) and has_guarded_recursive_call(child):
+                elif range_bound_is_plain_int(child) and has_guarded_recursive_call(child) and not enumerates_suffix_choices(child):
                     # Placement/board-backtracking idiom (N-Queens, Sudoku,
                     # permutation-by-index): `for choice in range(n): if
                     # <valid>: ... recurse(...)`. No literal list is
@@ -218,7 +262,7 @@ def _detect_factorial_branching(func_node):
         return False
 
     try:
-        return scan(func_node)
+        return scan(func_node) and not has_dedup_guard()
     except Exception:
         return False
 

@@ -26,6 +26,7 @@ pipeline-stage class.
 import ast
 import re
 import time
+from contextlib import contextmanager
 from collections import deque, Counter
 import sys
 
@@ -138,7 +139,7 @@ class ComplexityAnalyzer:
         # literal constants.
         self.module_int_constants = set()
         self.builtin_complexities = {
-            'sort': {'time': 'O(n log n)', 'space': 'O(1)', 'desc': 'Sorts the list in-place using the stable Timsort algorithm.'},
+            'sort': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Sorts the list in place with Timsort. Timsort is a merge-based sort that needs up to O(n) temporary space in the worst case, so the auxiliary space is O(n) even though no new list is returned.'},
             'sorted': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Creates and returns a completely new sorted list.'},
             'bisect': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Performs a binary search on a sorted sequence.'},
             'bisect_left': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Performs a binary search on a sorted sequence.'},
@@ -425,9 +426,32 @@ class ComplexityAnalyzer:
             'pvariance', 'quantiles', 'correlation', 'covariance', 'linear_regression',
         }
         self.aliases = {}
+        self.explain = True
+        # Time spent building educational insights (per-line explanations,
+        # bottleneck notes, the overall narrative). Tracked separately so the
+        # reported "analysis time" measures the complexity analysis itself,
+        # the same thing the dataset benchmark measures with explain=False.
+        self._explain_seconds = 0.0
+        self._explain_depth = 0
         if SemanticNLGEngine:
             self.nlg_engine = SemanticNLGEngine(self)
-            
+
+    @contextmanager
+    def explain_clock(self):
+        """Counts the time spent inside the block as explanation time. Nested
+        use is safe: only the outermost block is counted, so time is never
+        subtracted twice."""
+        if self._explain_depth > 0:
+            yield
+            return
+        self._explain_depth += 1
+        t0 = time.perf_counter()
+        try:
+            yield
+        finally:
+            self._explain_seconds += time.perf_counter() - t0
+            self._explain_depth -= 1
+
     def reset_state(self):
         # Cleared here (not just at __init__) because some cached
         # classifiers read self.variable_complexities / self.loop_depth,
@@ -439,6 +463,11 @@ class ComplexityAnalyzer:
         self.current_depth = 0           
         self.loop_depth = 0
         self.log_loop_depth = 0          
+        # Depth of enclosing loops whose body calls a log-cost routine (heappush, bisect, ...).
+        # Kept apart from log_loop_depth (loops that themselves run log n times) because the
+        # extra log factor belongs on the lines doing log-cost work, not on a sibling line in
+        # the same loop that already costs O(n): n x max(log n, n) is n^2, not n^2 log n.
+        self.call_log_depth = 0
         self.sqrt_loop_depth = 0
         self.graph_depth = 0             
         self.in_if_depth = 0
@@ -452,6 +481,10 @@ class ComplexityAnalyzer:
         self.active_gcd_vars = None
         self.function_gcd_vars = None
         self.var_types = {} 
+        # Names bound to a container whose length is a fixed constant (e.g. a 256-slot
+        # table, `[0] * 26`): operations whose cost depends on the container's length
+        # (sorting it, copying it) are O(1) for these, not O(n).
+        self.constant_size_containers = set()
         self.loop_body_stack = []
         
         self.max_complexity = 0          
@@ -493,8 +526,9 @@ class ComplexityAnalyzer:
 
     @property
     def details(self):
-        if not getattr(self, '_bottlenecks_applied', False) and len(self._details) > 0 and SemanticNLGEngine:
-            self.signature_recorder._apply_bottlenecks()
+        if not getattr(self, '_bottlenecks_applied', False) and len(self._details) > 0 and SemanticNLGEngine and getattr(self, 'explain', True):
+            with self.explain_clock():
+                self.signature_recorder._apply_bottlenecks()
             self._bottlenecks_applied = True
         return self._details
 
@@ -600,9 +634,13 @@ def _finalize_line_output(details):
     return finalized
 
 
-def analyze_source_code(source_code):
+def analyze_source_code(source_code, explain=True):
+    """explain=False skips every educational-insight step (per-line explanations,
+    bottleneck/praise notes, overall narrative). Complexity results are unaffected;
+    the dataset benchmark uses it because it only scores the predicted values."""
     import time
     start_time = time.perf_counter()
+    analyzer = None  # set once the analyzer exists; read for the explanation time below
     
     source_code = preprocess_source(source_code)
     
@@ -618,6 +656,7 @@ def analyze_source_code(source_code):
                 pass 
         
         analyzer = ComplexityAnalyzer(source_code, trace_data)
+        analyzer.explain = bool(explain)
 
         # Scan for module-level literal-int/float constants (see comment on
         # `module_int_constants` in __init__) so loop-bound / allocation-size
@@ -658,7 +697,10 @@ def analyze_source_code(source_code):
         # references.
         analyzer.ast_visitor.visit(tree)
 
-        overall_exp = analyzer.complexity_synthesizer.get_overall_explanation(tree)
+        overall_exp = ""  # stays empty when explain=False (educational insights skipped)
+        if explain:
+            with analyzer.explain_clock():
+                overall_exp = analyzer.complexity_synthesizer.get_overall_explanation(tree)
         _lit_note = script_literal_loop_note(tree, getattr(analyzer, 'script_literal_locs', set()))
         if _lit_note:
             overall_exp = ((overall_exp or '') + '\n\n' + _lit_note).strip()
@@ -699,6 +741,13 @@ def analyze_source_code(source_code):
         results.setdefault("scope_warnings", [])
         results.setdefault("logic_warnings", [])
     end_time = time.perf_counter()
-    results["analysis_time_ms"] = (end_time - start_time) * 1000
+    total_ms = (end_time - start_time) * 1000
+    # Educational insights are built inside the same pass, but they are not part
+    # of working out the complexity, so they are reported separately. This makes
+    # "analysis_time_ms" comparable to the dataset benchmark (explain=False).
+    explain_ms = (getattr(analyzer, "_explain_seconds", 0.0) or 0.0) * 1000
+    results["analysis_time_ms"] = max(0.0, total_ms - explain_ms)
+    results["explanation_time_ms"] = explain_ms
+    results["total_time_ms"] = total_ms
     
     return results

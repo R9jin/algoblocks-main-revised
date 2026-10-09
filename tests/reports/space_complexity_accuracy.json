@@ -1,9 +1,9 @@
 {
   "metric": "expected_overall_space vs analyzer 'space_total'",
-  "n": 259,
-  "correct": 214,
-  "accuracy": 0.8263,
-  "floor": 0.8,
+  "n": 273,
+  "correct": 236,
+  "accuracy": 0.8645,
+  "floor": 0.86,
   "mismatches": [
     {
       "id": "algo_n2_002",
@@ -18,7 +18,7 @@
       "name": "Print All Distinct Subsequences of a String",
       "source_file": "ground_truth_chunk_01.json",
       "expected": "O(2^n)",
-      "predicted": "O(n!)",
+      "predicted": "O(n^2)",
       "analyzer_status": "success"
     },
     {
@@ -27,14 +27,6 @@
       "source_file": "ground_truth_chunk_01.json",
       "expected": "O(1)",
       "predicted": "O(n)",
-      "analyzer_status": "success"
-    },
-    {
-      "id": "algo_nlogn_017",
-      "name": "Count Pairs with XOR Equal to 0 (Sorting)",
-      "source_file": "ground_truth_chunk_02.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
       "analyzer_status": "success"
     },
     {
@@ -62,22 +54,6 @@
       "analyzer_status": "error"
     },
     {
-      "id": "algo_n2_067",
-      "name": "Count Inversions Using Heap Sort",
-      "source_file": "ground_truth_chunk_07.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
-      "analyzer_status": "success"
-    },
-    {
-      "id": "algo_n_070",
-      "name": "Maximize Sum of i*arr[i] via Array Rotation",
-      "source_file": "ground_truth_chunk_07.json",
-      "expected": "O(1)",
-      "predicted": "O(n)",
-      "analyzer_status": "success"
-    },
-    {
       "id": "algo_n2_072",
       "name": "Check if a Matrix Is Skew-Symmetric",
       "source_file": "ground_truth_chunk_08.json",
@@ -102,35 +78,11 @@
       "analyzer_status": "success"
     },
     {
-      "id": "algo_nlogn_109",
-      "name": "Maximum Subarray Sum Excluding Certain Elements (Sort + Binary Search)",
-      "source_file": "ground_truth_chunk_11.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
-      "analyzer_status": "success"
-    },
-    {
       "id": "algo_n2_112",
       "name": "Shift and Merge Matrix Elements in a Direction (2048-Style)",
       "source_file": "ground_truth_chunk_12.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
-      "analyzer_status": "success"
-    },
-    {
-      "id": "algo_nlogn_116",
-      "name": "Count Pairs with Sum in a Given Range (Sorting + Binary Search)",
-      "source_file": "ground_truth_chunk_12.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
-      "analyzer_status": "success"
-    },
-    {
-      "id": "algo_n2_126",
-      "name": "Count Triangles Possible from an Array (Two Pointer)",
-      "source_file": "ground_truth_chunk_13.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
       "analyzer_status": "success"
     },
     {
@@ -158,35 +110,11 @@
       "analyzer_status": "error"
     },
     {
-      "id": "algo_n2_152",
-      "name": "Minimum Characters to Add at the Front to Make a String a Palindrome (Brute Force)",
-      "source_file": "ground_truth_chunk_16.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
-      "analyzer_status": "success"
-    },
-    {
       "id": "algo_n3_156",
       "name": "Minimum Length of a String After Reducing Pairs of Distinct Characters (Memoized Recursion)",
       "source_file": "ground_truth_chunk_16.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
-      "analyzer_status": "success"
-    },
-    {
-      "id": "algo_nlogn_158",
-      "name": "Find the Most Frequent Element in an Array (Sorting)",
-      "source_file": "ground_truth_chunk_16.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
-      "analyzer_status": "success"
-    },
-    {
-      "id": "algo_nlogn_160",
-      "name": "Running Median of a Stream (Two Heaps)",
-      "source_file": "ground_truth_chunk_16.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
       "analyzer_status": "success"
     },
     {
@@ -214,14 +142,6 @@
       "analyzer_status": "success"
     },
     {
-      "id": "algo_n2_182",
-      "name": "Minimum Subsets with All Distinct Elements (Sorting)",
-      "source_file": "ground_truth_chunk_19.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
-      "analyzer_status": "success"
-    },
-    {
       "id": "algo_n_201",
       "name": "Decimal Value of Binary Subarrays (Prefix Computation)",
       "source_file": "ground_truth_chunk_21.json",
@@ -238,35 +158,11 @@
       "analyzer_status": "success"
     },
     {
-      "id": "algo_nlogn_210",
-      "name": "Find Elements with at Least Two Greater Elements (Sorting)",
-      "source_file": "ground_truth_chunk_21.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
-      "analyzer_status": "success"
-    },
-    {
       "id": "algo_n2_212",
       "name": "Print All Palindromic Partitions of a String (Backtracking)",
       "source_file": "ground_truth_chunk_22.json",
       "expected": "O(2^n)",
-      "predicted": "O(n!)",
-      "analyzer_status": "success"
-    },
-    {
-      "id": "algo_nlogn_233",
-      "name": "Find the Smallest and Second Smallest Element (Sorting)",
-      "source_file": "ground_truth_chunk_24.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
-      "analyzer_status": "success"
-    },
-    {
-      "id": "algo_nlogn_239",
-      "name": "Two Sum Check Using Binary Search",
-      "source_file": "ground_truth_chunk_24.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
+      "predicted": "O(n)",
       "analyzer_status": "success"
     },
     {
@@ -286,14 +182,6 @@
       "analyzer_status": "success"
     },
     {
-      "id": "algo_nlogn_254",
-      "name": "Print an Array in Alternating Max-Min Order (Sorted)",
-      "source_file": "ground_truth_chunk_26.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
-      "analyzer_status": "success"
-    },
-    {
       "id": "algo_n_260",
       "name": "Find the Kth Character in a Run-Length Encoded String",
       "source_file": "ground_truth_chunk_26.json",
@@ -307,22 +195,6 @@
       "source_file": "ground_truth_chunk_27.json",
       "expected": "O(n)",
       "predicted": "O(n^2)",
-      "analyzer_status": "success"
-    },
-    {
-      "id": "algo_n2_269",
-      "name": "Longest Consecutive Subsequence (Priority Queue)",
-      "source_file": "ground_truth_chunk_27.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
-      "analyzer_status": "success"
-    },
-    {
-      "id": "algo_n_279",
-      "name": "Remove Vowels from a String (Regex)",
-      "source_file": "ground_truth_chunk_28.json",
-      "expected": "O(n)",
-      "predicted": "O(1)",
       "analyzer_status": "success"
     },
     {
@@ -363,6 +235,70 @@
       "source_file": "ground_truth_chunk_30.json",
       "expected": "O(n)",
       "predicted": "O(V)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nfact_299",
+      "name": "Print All Permutations of a String (Swap Backtracking)",
+      "source_file": "ground_truth_chunk_31.json",
+      "expected": "O(n)",
+      "predicted": "O(n!)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nfact_301",
+      "name": "Find All Permutations of a String by Removing One Character (Slicing)",
+      "source_file": "ground_truth_chunk_31.json",
+      "expected": "O(n!)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nfact_302",
+      "name": "Generate All Permutations Using Heap's Algorithm",
+      "source_file": "ground_truth_chunk_31.json",
+      "expected": "O(n)",
+      "predicted": "O(n!)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nfact_305",
+      "name": "Sort an Array by Trying Every Permutation Until It Is Sorted",
+      "source_file": "ground_truth_chunk_31.json",
+      "expected": "O(n)",
+      "predicted": "O(n!)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nfact_307",
+      "name": "Assignment Problem by Brute Force (Try Every Worker-to-Job Matching)",
+      "source_file": "ground_truth_chunk_32.json",
+      "expected": "O(n)",
+      "predicted": "O(n!)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nfact_308",
+      "name": "Generate All Permutations by Inserting Each Element into Every Position",
+      "source_file": "ground_truth_chunk_32.json",
+      "expected": "O(n!)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nfact_309",
+      "name": "Print All Distinct Permutations of a String with Repeated Characters",
+      "source_file": "ground_truth_chunk_32.json",
+      "expected": "O(n^2)",
+      "predicted": "O(V+E)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_nfact_312",
+      "name": "Print All Permutations by Passing the Remaining Characters (Slicing)",
+      "source_file": "ground_truth_chunk_32.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n!)",
       "analyzer_status": "success"
     }
   ]

@@ -13,7 +13,7 @@ analyzer's internals.
   - 5 hand-written **canonical cases** (one per major complexity shape:
     O(1), O(log n), O(n), O(n^2), O(2^n)) — a sanity net independent of the
     dataset.
-  - `test_analyzer_never_raises` — parametrized over all 259 ground-truth
+  - `test_analyzer_never_raises` — parametrized over all 273 ground-truth
     entries; asserts `analyze_source_code` always returns a result instead
     of throwing.
   - `test_overall_time_complexity_accuracy` / `test_overall_space_complexity_accuracy`

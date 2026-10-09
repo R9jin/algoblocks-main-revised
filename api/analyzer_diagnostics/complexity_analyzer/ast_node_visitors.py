@@ -282,7 +282,11 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     if does_linear_work: break
 
         is_indirect = node.name in self.analyzer.indirect_recursive_funcs
-        is_segment_tree_query = any(k in node.name.lower() for k in ['query', 'rmq', 'find']) and ('st' in node.name.lower() or 'segment' in node.name.lower() or 'tree' in node.name.lower())
+        # Whole-word match on the identifier's camelCase / snake_case parts. A raw substring
+        # test treated 'st' inside "Longest" / "first" / "list" as a segment-tree marker, so
+        # e.g. `findLongestConseqSubseq` was misread as an O(log n) tree query.
+        _name_words = {w.lower() for w in re.findall(r'[A-Z]?[a-z0-9]+|[A-Z]+(?![a-z])', node.name)}
+        is_segment_tree_query = bool(_name_words & {'query', 'rmq', 'find'}) and bool(_name_words & {'st', 'segment', 'tree'})
 
         is_2d_memo = False
         for child in safe_walk(node):
@@ -485,7 +489,8 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     self.analyzer._details[i]["global_space"] = "O(1)" 
                     
                 if is_placeholder and "T(placeholder)" in str(self.analyzer._details[i].get("time_explanation", "")) and SemanticNLGEngine:
-                    formatted_rel = self.analyzer.nlg_engine._format_recurrence_relation(relation)
+                    with self.analyzer.explain_clock():
+                        formatted_rel = self.analyzer.nlg_engine._format_recurrence_relation(relation)
                     self.analyzer._details[i]["time_explanation"] = self.analyzer._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
 
         if self.analyzer.recursive_calls_count > 0 or self.analyzer.has_recursion_in_loop or is_indirect or is_segment_tree_query:
@@ -543,11 +548,26 @@ class ASTNodeVisitor(ast.NodeVisitor):
             self.analyzer._details[start_idx]["global_space"] = "O(1)"
             self.analyzer._details[start_idx]["weight"] = 1
             self.analyzer._details[start_idx]["time_explanation"] = "Function declaration."
+            self.analyzer._details[start_idx]["space_explanation"] = "O(1) memory overhead."
             if func_dead_reason:
                 self.analyzer._details[start_idx]["dead_kind"] = func_dead_reason["kind"]
                 self.analyzer._details[start_idx]["dead_reason"] = func_dead_reason["reason"]
                 self.analyzer._details[start_idx]["time_explanation"] = "Function declaration. " + func_dead_reason["reason"]
-            self.analyzer._details[start_idx]["space_explanation"] = "O(1) memory overhead."
+            # Teach what the definition means instead of a one-line stub. Any failure
+            # here must fall back to the plain text above, never break the analysis.
+            try:
+                nlg = getattr(self.analyzer, "nlg_engine", None)
+                if nlg is not None and hasattr(nlg, "generate_definition_explanations"):
+                    with self.analyzer.explain_clock():
+                        t_exp, s_exp = nlg.generate_definition_explanations(
+                            node,
+                            dead_reason=func_dead_reason["reason"] if func_dead_reason else None,
+                            code_snippet=self.analyzer._details[start_idx].get("lineOfCode", ""),
+                        )
+                    self.analyzer._details[start_idx]["time_explanation"] = t_exp
+                    self.analyzer._details[start_idx]["space_explanation"] = s_exp
+            except Exception:
+                pass
 
         if not is_dead:
             self.analyzer.max_exp, self.analyzer.max_graph_ve = max(prev_data[5], self.analyzer.max_exp), max(prev_data[6], self.analyzer.max_graph_ve)
@@ -578,7 +598,12 @@ class ASTNodeVisitor(ast.NodeVisitor):
             if any(extract_constant(c) == '__main__' for c in getattr(node.test, 'comparators', [])):
                 is_main_block = True
                 
-        if is_main_block and len(self.analyzer.custom_functions) > 0:
+        # A guard block that is only a driver (build sample input, call the function, print)
+        # is excluded so the functions are not counted twice. When the block does real work
+        # itself -- its own `for`/`while` loop -- that work is part of the program's cost and
+        # has to be analysed like any other code, not hidden as "dead".
+        _main_has_loop = is_main_block and any(isinstance(_n, (ast.For, ast.While)) for _st in node.body for _n in ast.walk(_st))
+        if is_main_block and len(self.analyzer.custom_functions) > 0 and not _main_has_loop:
             prev_dead = getattr(self.analyzer, 'in_dead_code', False)
             prev_reason = getattr(self.analyzer, 'dead_reason', None)
             self.analyzer.in_dead_code = True
@@ -731,7 +756,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
         if getattr(self.analyzer, 'in_graph_context', False) and self.analyzer.call_graph_mapper._is_graph_for_loop(node):
             if not is_const and dim: 
                 self.analyzer.active_poly_dims.append(dim)
-            if has_log_call: self.analyzer.log_loop_depth += 1
+            if has_log_call: self.analyzer.call_log_depth += 1
             self.analyzer.loop_body_stack.append(node.body)
             self.analyzer.current_depth += 1
             for item in node.body:
@@ -748,7 +773,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             self.analyzer.loop_body_stack.pop()
             if not is_const and dim: 
                 self.analyzer.active_poly_dims.pop()
-            if has_log_call: self.analyzer.log_loop_depth -= 1
+            if has_log_call: self.analyzer.call_log_depth -= 1
             self.analyzer.loop_depth -= 1
             self.analyzer.loop_stack.pop()
             self.analyzer.loop_stack_targets.pop()
@@ -763,7 +788,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             elif dim:
                 self.analyzer.active_poly_dims.append(dim)
         
-        if has_log_call: self.analyzer.log_loop_depth += 1
+        if has_log_call: self.analyzer.call_log_depth += 1
         
         self.analyzer.loop_body_stack.append(node.body)
         self.analyzer.current_depth += 1
@@ -780,7 +805,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
         self._visit_block(getattr(node, 'orelse', []))
         self.analyzer.current_depth -= 1
         self.analyzer.loop_body_stack.pop()
-        if has_log_call: self.analyzer.log_loop_depth -= 1
+        if has_log_call: self.analyzer.call_log_depth -= 1
         self.analyzer.loop_depth -= 1
         self.analyzer.loop_stack.pop()
         self.analyzer.loop_stack_targets.pop()
@@ -812,7 +837,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             self.analyzer.signature_recorder.record_line(node, time_override="O(V+E)", space_override="O(1)")
             self.analyzer.graph_depth = getattr(self.analyzer, 'graph_depth', 0) + 1
             if hasattr(node, 'test'): self.visit(node.test)
-            if has_log_call: self.analyzer.log_loop_depth += 1
+            if has_log_call: self.analyzer.call_log_depth += 1
             self.analyzer.loop_body_stack.append(node.body)
             self.analyzer.current_depth += 1; 
             for child in node.body:
@@ -824,7 +849,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             self._visit_block(getattr(node, 'orelse', []))
             self.analyzer.current_depth -= 1
             self.analyzer.loop_body_stack.pop()
-            if has_log_call: self.analyzer.log_loop_depth -= 1
+            if has_log_call: self.analyzer.call_log_depth -= 1
             self.analyzer.loop_depth -= 1
             self.analyzer.loop_stack.pop()
             return
@@ -844,7 +869,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             
         if hasattr(node, 'test'): self.visit(node.test)
         
-        if has_log_call: self.analyzer.log_loop_depth += 1
+        if has_log_call: self.analyzer.call_log_depth += 1
         
         self.analyzer.loop_body_stack.append(node.body)
         self.analyzer.current_depth += 1; 
@@ -860,7 +885,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
         self._visit_block(getattr(node, 'orelse', []))
         self.analyzer.current_depth -= 1
         self.analyzer.loop_body_stack.pop()
-        if has_log_call: self.analyzer.log_loop_depth -= 1
+        if has_log_call: self.analyzer.call_log_depth -= 1
         self.analyzer.loop_depth -= 1
         self.analyzer.loop_stack.pop()
 
@@ -885,6 +910,12 @@ class ASTNodeVisitor(ast.NodeVisitor):
             is_accumulating = True
             self.analyzer.has_global_accumulation = True
             
+        # heappush(h, x) / insort(a, x) grow their first argument just like .append() does.
+        _fn_name = getattr(getattr(node, 'func', None), 'id', getattr(getattr(node, 'func', None), 'attr', ''))
+        if _fn_name in ('heappush', 'insort', 'insort_left', 'insort_right') and [d for d in self.analyzer.loop_stack if d != '1']:
+            self.analyzer.has_global_accumulation = True
+            self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 1)
+
         prev_acc = getattr(self.analyzer, 'in_accumulation_context', False)
         self.analyzer.in_accumulation_context = prev_acc or is_accumulating
         
@@ -983,7 +1014,11 @@ class ASTNodeVisitor(ast.NodeVisitor):
             if f_id == 'set2': f_id = 'set'
             f_id = self.analyzer.aliases.get(f_id, f_id)
             
-            if f_id in self.analyzer.builtin_complexities and (f_id in bare_builtins or f_id in getattr(self.analyzer, 'library_function_names', ())):
+            if (f_id in ('nlargest', 'nsmallest') and getattr(node, 'args', [])
+                    and isinstance(node.args[0], ast.Constant) and node.args[0].value == 1):
+                # k = 1 is just max()/min(): one pass over the data, not a full sort.
+                self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op=f_id.capitalize() + " (k=1)")
+            elif f_id in self.analyzer.builtin_complexities and (f_id in bare_builtins or f_id in getattr(self.analyzer, 'library_function_names', ())):
                 if f_id in ['set', 'list', 'dict', 'deque', 'tuple', 'defaultdict', 'Counter', 'OrderedDict']:
                     has_args = bool(getattr(node, 'args', []))
                     is_single_arg = False
@@ -1124,6 +1159,22 @@ class ASTNodeVisitor(ast.NodeVisitor):
             elif func_node.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'keys', 'values', 'items']:
                 b = self.analyzer.builtin_complexities.get(func_node.attr, {'time': 'O(n)', 'space': 'O(1)'})
                 self.analyzer.signature_recorder.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=func_node.attr.capitalize())
+            elif (func_node.attr in ('nlargest', 'nsmallest') and getattr(node, 'args', [])
+                  and isinstance(node.args[0], ast.Constant) and node.args[0].value == 1):
+                # k = 1 is just max()/min(): one pass over the data, not a full sort.
+                self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op=func_node.attr.capitalize() + " (k=1)")
+            elif (isinstance(getattr(func_node, 'value', None), ast.Name) and func_node.value.id == 're'
+                  and func_node.attr in ('sub', 'subn', 'findall', 'split', 'search', 'match', 'fullmatch', 'finditer')):
+                # A regex call reads the whole subject string; sub/subn/findall/split also build a
+                # result as long as the input, while search/match only report a position.
+                _builds = func_node.attr in ('sub', 'subn', 'findall', 'split', 'finditer')
+                self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)" if _builds else "O(1)", custom_op="Regex " + func_node.attr)
+            elif (func_node.attr in ('sort', 'reverse', 'index', 'count')
+                  and isinstance(getattr(func_node, 'value', None), ast.Name)
+                  and func_node.value.id in self.analyzer.constant_size_containers):
+                # The receiver has a fixed, input-independent length, so the work and the
+                # scratch space of sorting/scanning it is constant.
+                self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op=func_node.attr.capitalize() + " (Fixed-Size Container)")
             elif func_node.attr in self.analyzer.builtin_complexities:
                 b = self.analyzer.builtin_complexities[func_node.attr]
                 self.analyzer.signature_recorder.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=func_node.attr.capitalize())
@@ -1248,6 +1299,8 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     return
                 elif is_constant_size:
                     t_ov, s_ov = "O(1)", "O(1)"
+                    for _t in node.targets:
+                        if isinstance(_t, ast.Name): self.analyzer.constant_size_containers.add(_t.id)
                 else:
                     t_ov, s_ov = "O(n)", "O(n)"
             elif isinstance(node.value, (ast.SetComp, ast.DictComp)): 
@@ -1309,6 +1362,8 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 if is_fixed_const:
                     custom_op = "Fixed Container Allocation"
                     t_ov = "O(1)"; s_ov = "O(1)"
+                    for _t in node.targets:
+                        if isinstance(_t, ast.Name): self.analyzer.constant_size_containers.add(_t.id)
                 else:
                     if isinstance(mult_node, ast.BinOp) and isinstance(mult_node.op, ast.Mult):
                         if isinstance(mult_node.left, ast.Constant) or isinstance(mult_node.right, ast.Constant) or extract_constant(mult_node.left) or extract_constant(mult_node.right):

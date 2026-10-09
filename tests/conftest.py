@@ -16,7 +16,7 @@ TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(TESTS_DIR, ".."))
 
 ENGINE_ROOT = os.path.join(REPO_ROOT, "frontend", "public", "python_engine")
-# DATASET SWITCH: "processed" (259 cleaned) or "original_278" (278 original).
+# DATASET SWITCH: "processed" (273: 259 cleaned + 14 added O(n!)) or "original_278" (278 original).
 ACTIVE_DATASET = "processed"
 GROUND_TRUTH_DIR = os.path.join(
     REPO_ROOT, "frontend", "public", "data", "evaluation", ACTIVE_DATASET

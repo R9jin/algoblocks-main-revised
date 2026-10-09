@@ -4,7 +4,6 @@ import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { addTableSheet, addKeyValueSheet, downloadWorkbook, planKeyValueSheet, sheetRefs, excelCriterion } from "../utils/excelReport";
-import { buildEquivalencePairs } from "../utils/complexityMatch";
 import {
   FiActivity,
   FiArrowRight,
@@ -933,15 +932,14 @@ export default function EvaluationSuite({ embedded = false } = {}) {
   //   1. Raw observations -- "Full Algorithm Results" and "Line-Level
   //      Results" (one row per algorithm / per analyzed statement: the
   //      ground-truth label, the label the analyzer predicted, wall-clock
-  //      time, peak memory, the source snippet) plus the "Equivalence Rules"
-  //      sheet (which label pairs the analyzer treats as the same answer).
+  //      time, peak memory, the source snippet).
   //   2. Two run-level scalars that have no cell-range to be computed
   //      from (total wall-clock seconds, dataset name).
   //
   // The Yes/No columns -- "Time Correct", "Space Correct", "Time Match",
   // "Space Match", "Has Ground Truth" -- are formulas over the label cells
-  // beside them and the Equivalence Rules sheet, NOT pasted-in verdicts, so
-  // editing a label or a rule re-scores that row and everything downstream.
+  // beside them (strict exact match), NOT pasted-in verdicts, so editing a
+  // label re-scores that row and everything downstream.
   //
   // Every range points at a WHOLE COLUMN of the raw sheets, so rows that are
   // deleted, pasted in or added below the last one are all picked up.
@@ -1014,41 +1012,15 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
     const hasLines = lineRows.length > 0;
 
-    // ----- Equivalence Rules (raw, editable) ---------------------------
-    // The analyzer does not demand string equality: checkMatch() in
-    // utils/complexityMatch.js also accepts some different-looking pairs
-    // (e.g. expected O(1) / predicted O(n) for time). Those accepted pairs
-    // are written out here, one row each, and the Yes/No formulas below look
-    // a pair up in this sheet -- so the workbook applies exactly the rule the
-    // benchmark itself applied, and a reader can add or delete a row to see
-    // what a stricter or looser rule would do.
-    const RULES_SHEET = "Equivalence Rules";
-    const RULES_KEYS = ["metric", "expected", "predicted"];
-    const rules = sheetRefs(RULES_SHEET, RULES_KEYS, 0);
-    const labelUniverse = [
-      "O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n^2)", "O(n^3)", "O(2^n)", "O(3^n)",
-      "O(V + E)", "O(n * m)", "O(sqrt n)", "O(log min(a, b))",
-      ...details.flatMap((d) => [d.expectedTime, d.predictedTime, d.expectedSpace, d.predictedSpace]),
-      ...lineRows.flatMap((l) => [l.predTime, l.expTime, l.predSpace, l.expSpace]),
-      ...[processedTimeReport, processedSpaceReport, processedLineTimeReport, processedLineSpaceReport]
-        .flatMap((r) => Object.keys(r?.perClass || {})),
-    ];
-    const ruleRows = [
-      ...buildEquivalencePairs(labelUniverse, "time").map((p) => ({ metric: "Time", ...p })),
-      ...buildEquivalencePairs(labelUniverse, "space").map((p) => ({ metric: "Space", ...p })),
-    ];
+
 
     // "Does the predicted label count as matching the expected one?" as a
-    // cell formula -- the same four shortcuts checkMatch() starts with
-    // (either side blank, identical label, expected "-"), then the rules
-    // sheet. Excel's `=` is case-insensitive, like checkMatch's toLowerCase.
-    const matchFormula = (expCell, predCell, metric) => {
-      const rm = rules.bounded("metric");
-      const re = rules.bounded("expected");
-      const rp = rules.bounded("predicted");
-      return `IF(OR(${predCell}="",${expCell}="",${predCell}=${expCell},${expCell}="-",` +
-        `SUMPRODUCT((${rm}="${metric}")*(${re}=${expCell})*(${rp}=${predCell}))>0),"Yes","No")`;
-    };
+    // cell formula -- STRICT exact match, the same rule checkMatch() applies:
+    // nothing to grade against (expected blank or "-") passes, otherwise the
+    // two labels must be identical. Excel's `=` is case-insensitive, like
+    // checkMatch's toLowerCase. Different classes are never interchangeable.
+    const matchFormula = (expCell, predCell) =>
+      `IF(OR(${expCell}="",${expCell}="-",${predCell}=${expCell}),"Yes","No")`;
 
     // ----- Confusion counts, recomputed here for the cached values ------
     // Mirrors generateClassificationReport() in analyzer.worker.js. These
@@ -1125,9 +1097,9 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         };
       });
 
-      // Overall accuracy: the analyzer's own equivalence check, tallied
-      // straight off the raw sheet (NOT the diagonal of the matrix -- the
-      // check treats some classes as equivalent, which the matrix does not).
+      // Overall accuracy: the strict exact-match flags tallied
+      // straight off the raw sheet. Because matching is exact, this equals
+      // the diagonal of the matrix (sum of TP) divided by total support.
       const correctCount = gtOnly
         ? `COUNTIFS(${gtR},"Yes",${src.range(opts.matchKey)},"Yes")`
         : `COUNTIF(${src.range(opts.matchKey)},"Yes")`;
@@ -1292,8 +1264,8 @@ export default function EvaluationSuite({ embedded = false } = {}) {
     const values = {
       generated: new Date().toLocaleString(),
       dataset: reportScopeLabel,
-      howto: "Every figure is a formula over the raw sheets (Full Algorithm Results, Line-Level Results, " +
-        "Equivalence Rules). Edit a label, delete a row or add a row there and every sheet recalculates.",
+      howto: "Every figure is a formula over the raw sheets (Full Algorithm Results, Line-Level Results). " +
+        "Accuracy is strict exact match against the ground-truth class. Edit a label, delete a row or add a row there and every sheet recalculates.",
 
       tested: { formula: algo.count("id"), result: details.length },
       timePassed: { formula: `COUNTIF(${timeCorrectR},"Yes")`, result: results.timePassed },
@@ -1460,8 +1432,8 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         category: d.category || "--",
         expectedTime: d.expectedTime,
         predictedTime: d.predictedTime,
-        // Scored by formula from the two label cells on this row (and the
-        // Equivalence Rules sheet), so editing either label re-scores it.
+        // Scored by formula from the two label cells on this row , so
+        // editing either label re-scores it.
         isTimeCorrect: {
           formula: matchFormula(algo.localCell("expectedTime", i), algo.localCell("predictedTime", i), "Time"),
           result: d.isTimeCorrect ? "Yes" : "No",
@@ -1531,19 +1503,6 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         { headerColor }
       );
     }
-
-    // ----- Raw data: the label pairs the analyzer treats as matching -----
-    addTableSheet(
-      workbook,
-      RULES_SHEET,
-      [
-        { header: "Metric", key: "metric", width: 10 },
-        { header: "Expected", key: "expected", width: 22 },
-        { header: "Predicted (also counts as correct)", key: "predicted", width: 34 },
-      ],
-      ruleRows,
-      { headerColor }
-    );
 
     await downloadWorkbook(workbook, `AlgoBlocks-Benchmark-Report-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };

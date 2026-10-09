@@ -16,3 +16,9 @@ Labels in `processed/` were derived from the code alone, by writing down each lo
 10. **Scope.** A record is removed when any of its labels falls outside the nine notations (for example O(n^3), O(n^4) or a polylogarithmic bound; O(n x m) is not a reason, it becomes O(n^2) under rule 1) or when the code does not terminate on some inputs. Removed records are listed with the reason in the change log.
 11. **Syntax repair.** Eight records did not parse (else if, Python 2 print, sys.maxint). They were repaired mechanically (elif, print(...), maxsize) with no line numbers moved; the original code is kept in `dataset_original_code`.
 12. **Duplicates.** Records with byte-identical code are kept once (lowest id).
+
+## Addendum: added O(n!) records (algo_nfact_299 to algo_nfact_312)
+
+Processing relabeled the only two O(n!) records to O(2^n), which left one of the nine notations with no benchmark record. Fourteen genuine factorial programs were added to `processed/` (273 records in total). Their labels were derived from the code by hand under the rules above, with the line labels written next to the code in `tools/ground_truth/factorial_records_src.py`; no analyzer output was consulted. `tools/ground_truth/verify_factorial_records.py` runs each program under a line tracer for n = 5 to 8 as a sanity check on the growth of every labeled line. The records have no original label (`dataset_original_time` and `dataset_original_space` are null) and are not in `original_278/`.
+
+Each record enumerates (close to) all n! orderings in the worst case: swap backtracking, used-array backtracking, slicing, Heap's algorithm, iterative next-permutation, insertion, and brute-force TSP, permutation sort, derangement counting, assignment, Hamiltonian-path counting. Overall space is O(n) for the in-place ones, O(n^2) where each frame holds a slice, and O(n!) where all permutations are stored.

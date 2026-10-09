@@ -90,5 +90,744 @@
     ],
     "dataset_original_time": "O(sqrt n)",
     "dataset_original_space": "O(1)"
+  },
+  {
+    "id": "algo_nfact_299",
+    "name": "Print All Permutations of a String (Swap Backtracking)",
+    "code": "# Python program to print all permutations of a\n# string using backtracking (swap method)\n\ndef permute(a, l, r):\n    if l == r:\n        print(''.join(a))\n    else:\n        for i in range(l, r + 1):\n            a[l], a[i] = a[i], a[l]\n            permute(a, l + 1, r)\n            a[l], a[i] = a[i], a[l]\n\n# Driver code\nif __name__ == \"__main__\":\n    a = [\"A\", \"B\", \"C\"]\n    n = len(a)\n    permute(a, 0, n - 1)\n",
+    "expected_overall_time": "O(n!)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "time": "O(n!)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 8,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "time": "O(n!)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 11,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "time": "O(n!)",
+        "space": "O(n)"
+      }
+    ],
+    "dataset_original_time": null,
+    "dataset_original_space": null,
+    "gt_note": "n!=leaves, ~e*n! recursion nodes; each leaf joins n chars, absorbed into n!; space is the recursion depth n, nothing is stored",
+    "gt_added": "post-processing addition: genuine O(n!) records, labels derived from the code by hand"
+  },
+  {
+    "id": "algo_nfact_300",
+    "name": "Generate All Permutations of a List Using a Used Array",
+    "code": "# Python program to generate all permutations of a\n# list using backtracking with a \"used\" array\n\ndef backtrack(nums, path, used, res):\n    if len(path) == len(nums):\n        res.append(path[:])\n        return\n    for i in range(len(nums)):\n        if used[i]:\n            continue\n        used[i] = True\n        path.append(nums[i])\n        backtrack(nums, path, used, res)\n        path.pop()\n        used[i] = False\n\ndef permutations(nums):\n    res = []\n    used = [False] * len(nums)\n    backtrack(nums, [], used, res)\n    return res\n\n# Driver code\nif __name__ == \"__main__\":\n    nums = [1, 2, 3]\n    result = permutations(nums)\n    for p in result:\n        print(p)\n",
+    "expected_overall_time": "O(n!)",
+    "expected_overall_space": "O(n!)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "time": "O(n!)",
+        "space": "O(n!)"
+      },
+      {
+        "lineno": 7,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "time": "O(n!)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 13,
+        "time": "O(n!)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 14,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 20,
+        "time": "O(n!)",
+        "space": "O(n!)"
+      },
+      {
+        "lineno": 21,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 24,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 25,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 26,
+        "time": "O(n!)",
+        "space": "O(n!)"
+      },
+      {
+        "lineno": 27,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 28,
+        "time": "O(n!)",
+        "space": "O(1)"
+      }
+    ],
+    "dataset_original_time": null,
+    "dataset_original_space": null,
+    "gt_note": "n! leaves, each stores a copy of size n in res => n*n! cells, absorbed into n!; time ~e*n!*n absorbed",
+    "gt_added": "post-processing addition: genuine O(n!) records, labels derived from the code by hand"
+  },
+  {
+    "id": "algo_nfact_301",
+    "name": "Find All Permutations of a String by Removing One Character (Slicing)",
+    "code": "# Python program to find all permutations of a string\n# by fixing one character and permuting the rest\n\ndef permute(s):\n    if len(s) <= 1:\n        return [s]\n    result = []\n    for i in range(len(s)):\n        rest = s[:i] + s[i + 1:]\n        for p in permute(rest):\n            result.append(s[i] + p)\n    return result\n\n# Driver code\nif __name__ == \"__main__\":\n    for p in permute(\"abc\"):\n        print(p)\n",
+    "expected_overall_time": "O(n!)",
+    "expected_overall_space": "O(n!)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "time": "O(n!)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 10,
+        "time": "O(n!)",
+        "space": "O(n!)"
+      },
+      {
+        "lineno": 11,
+        "time": "O(n!)",
+        "space": "O(n!)"
+      },
+      {
+        "lineno": 12,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "time": "O(n!)",
+        "space": "O(n!)"
+      },
+      {
+        "lineno": 17,
+        "time": "O(n!)",
+        "space": "O(1)"
+      }
+    ],
+    "dataset_original_time": null,
+    "dataset_original_space": null,
+    "gt_note": "calls ~e*n!; each frame returns a list of all permutations of its suffix, so the top frame holds (n-1)! lists and the result holds n! strings of length n => n! space",
+    "gt_added": "post-processing addition: genuine O(n!) records, labels derived from the code by hand"
+  },
+  {
+    "id": "algo_nfact_302",
+    "name": "Generate All Permutations Using Heap's Algorithm",
+    "code": "# Python program to print all permutations of a list\n# using Heap's algorithm\n\ndef heap_permutation(a, size, n):\n    if size == 1:\n        print(a)\n        return\n    for i in range(size):\n        heap_permutation(a, size - 1, n)\n        if size % 2 == 1:\n            a[0], a[size - 1] = a[size - 1], a[0]\n        else:\n            a[i], a[size - 1] = a[size - 1], a[i]\n\n# Driver code\nif __name__ == \"__main__\":\n    a = [1, 2, 3]\n    n = len(a)\n    heap_permutation(a, n, n)\n",
+    "expected_overall_time": "O(n!)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "time": "O(n!)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 10,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "time": "O(n!)",
+        "space": "O(n)"
+      }
+    ],
+    "dataset_original_time": null,
+    "dataset_original_space": null,
+    "gt_note": "Heap's algorithm: T(n)=n*T(n-1)+O(n) => n! leaves and e*n! calls; array permuted in place, space is the recursion depth n",
+    "gt_added": "post-processing addition: genuine O(n!) records, labels derived from the code by hand"
+  },
+  {
+    "id": "algo_nfact_303",
+    "name": "Print All Permutations Using Iterative Next Permutation",
+    "code": "# Python program to print all permutations of a list\n# by repeatedly calling next_permutation\n\ndef next_permutation(a):\n    i = len(a) - 2\n    while i >= 0 and a[i] >= a[i + 1]:\n        i -= 1\n    if i < 0:\n        return False\n    j = len(a) - 1\n    while a[j] <= a[i]:\n        j -= 1\n    a[i], a[j] = a[j], a[i]\n    a[i + 1:] = reversed(a[i + 1:])\n    return True\n\n# Driver code\nif __name__ == \"__main__\":\n    a = [1, 2, 3, 4]\n    print(a)\n    while next_permutation(a):\n        print(a)\n",
+    "expected_overall_time": "O(n!)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "time": "O(n!)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 15,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 21,
+        "time": "O(n!)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 22,
+        "time": "O(n!)",
+        "space": "O(1)"
+      }
+    ],
+    "dataset_original_time": null,
+    "dataset_original_space": null,
+    "gt_note": "the loop calls next_permutation exactly n! times (once per distinct arrangement of distinct elements); each call costs O(n) at worst, absorbed into n!; the reversed slice is an O(n) temporary",
+    "gt_added": "post-processing addition: genuine O(n!) records, labels derived from the code by hand"
+  },
+  {
+    "id": "algo_nfact_304",
+    "name": "Travelling Salesman Problem by Brute Force over All Tours",
+    "code": "# Python program to solve the travelling salesman problem\n# by trying every possible tour (swap backtracking)\n\nINF = float(\"inf\")\n\ndef tsp(graph, path, l, r, best):\n    if l == r:\n        cost = 0\n        for k in range(r):\n            cost += graph[path[k]][path[k + 1]]\n        cost += graph[path[r]][path[0]]\n        return min(best, cost)\n    for i in range(l, r + 1):\n        path[l], path[i] = path[i], path[l]\n        best = tsp(graph, path, l + 1, r, best)\n        path[l], path[i] = path[i], path[l]\n    return best\n\n# Driver code\nif __name__ == \"__main__\":\n    graph = [[0, 10, 15, 20], [10, 0, 35, 25], [15, 35, 0, 30], [20, 25, 30, 0]]\n    path = [0, 1, 2, 3]\n    n = len(path)\n    print(tsp(graph, path, 1, n - 1, INF))\n",
+    "expected_overall_time": "O(n!)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "time": "O(n!)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 16,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 21,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 22,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 23,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 24,
+        "time": "O(n!)",
+        "space": "O(n)"
+      }
+    ],
+    "dataset_original_time": null,
+    "dataset_original_space": null,
+    "gt_note": "fixes city 0 and enumerates the (n-1)! tours by swapping; each tour is costed in O(n), absorbed into n!; space is the recursion depth",
+    "gt_added": "post-processing addition: genuine O(n!) records, labels derived from the code by hand"
+  },
+  {
+    "id": "algo_nfact_305",
+    "name": "Sort an Array by Trying Every Permutation Until It Is Sorted",
+    "code": "# Python program to sort an array by trying every\n# permutation until a sorted one is found\n\ndef is_sorted(a):\n    for i in range(len(a) - 1):\n        if a[i] > a[i + 1]:\n            return False\n    return True\n\ndef permutation_sort(a, l):\n    if l == len(a) - 1:\n        return is_sorted(a)\n    for i in range(l, len(a)):\n        a[l], a[i] = a[i], a[l]\n        if permutation_sort(a, l + 1):\n            return True\n        a[l], a[i] = a[i], a[l]\n    return False\n\n# Driver code\nif __name__ == \"__main__\":\n    a = [3, 1, 2]\n    permutation_sort(a, 0)\n    print(a)\n",
+    "expected_overall_time": "O(n!)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "time": "O(n!)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 16,
+        "time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 21,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 22,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 23,
+        "time": "O(n!)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 24,
+        "time": "O(1)",
+        "space": "O(1)"
+      }
+    ],
+    "dataset_original_time": null,
+    "dataset_original_space": null,
+    "gt_note": "worst case: the sorted arrangement is the last of the n! arrangements visited (the visit order is a bijection on inputs); every leaf runs an O(n) sortedness check; return True runs once per stack frame while unwinding",
+    "gt_added": "post-processing addition: genuine O(n!) records, labels derived from the code by hand"
+  },
+  {
+    "id": "algo_nfact_306",
+    "name": "Count Derangements of 0..n-1 by Brute Force Enumeration",
+    "code": "# Python program to count derangements of 0..n-1 by\n# generating every permutation and rejecting fixed points\n\ndef count_derangements(a, l, n):\n    if l == n:\n        for i in range(n):\n            if a[i] == i:\n                return 0\n        return 1\n    count = 0\n    for i in range(l, n):\n        a[l], a[i] = a[i], a[l]\n        count += count_derangements(a, l + 1, n)\n        a[l], a[i] = a[i], a[l]\n    return count\n\n# Driver code\nif __name__ == \"__main__\":\n    n = 5\n    a = list(range(n))\n    print(count_derangements(a, 0, n))\n",
+    "expected_overall_time": "O(n!)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "time": "O(n!)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 14,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "time": "O(n!)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 21,
+        "time": "O(n!)",
+        "space": "O(n)"
+      }
+    ],
+    "dataset_original_time": null,
+    "dataset_original_space": null,
+    "gt_note": "enumerates all n! permutations by swapping and checks fixed points at each leaf; the only input is the number n, so n is its value; list(range(n)) is O(n)",
+    "gt_added": "post-processing addition: genuine O(n!) records, labels derived from the code by hand"
   }
 ]

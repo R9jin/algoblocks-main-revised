@@ -18,7 +18,7 @@ import { datasetCacheDB } from "../db.js";
 // DATASET SWITCH -- the ONLY line you edit to change which dataset the
 // analyzer (Dataset Testing + Accuracy Overview) is validated against.
 //
-//   "processed"     -> /public/data/evaluation/processed/     (259 cleaned, worst-case labels)
+//   "processed"     -> /public/data/evaluation/processed/     (273 records: 259 cleaned + 14 added O(n!) records, worst-case labels)
 //   "original_278"  -> /public/data/evaluation/original_278/  (278 original labels)
 //
 // After changing it, save the file and hard-refresh the page (Ctrl+Shift+R).
@@ -28,7 +28,7 @@ const ACTIVE_DATASET = "processed";
 const CHUNK_URL = (n) => `/data/evaluation/${ACTIVE_DATASET}/ground_truth_chunk_${String(n).padStart(2, "0")}.json`;
 // The dataset name is part of the cache key, so switching ACTIVE_DATASET
 // never serves the other dataset's chunks out of IndexedDB.
-const CACHE_KEY = `ground_truth_chunks_v3_${ACTIVE_DATASET}`;
+const CACHE_KEY = `ground_truth_chunks_v4_${ACTIVE_DATASET}`;
 
 export const ACTIVE_DATASET_NAME = ACTIVE_DATASET;
 export const ACTIVE_DATASET_PATH = `/data/evaluation/${ACTIVE_DATASET}/`;

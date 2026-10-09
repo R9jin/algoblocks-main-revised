@@ -26,7 +26,7 @@ if _HERE not in sys.path:
 
 from complexity_analyzer.analyzer import analyze_source_code  # noqa: E402
 
-# DATASET SWITCH: "processed" (259 cleaned) or "original_278" (278 original).
+# DATASET SWITCH: "processed" (273: 259 cleaned + 14 added O(n!)) or "original_278" (278 original).
 # Both live as subfolders of api/analyzer_diagnostics/ground_truth/ because the
 # serverless function can only read files vendored inside api/.
 ACTIVE_DATASET = "processed"

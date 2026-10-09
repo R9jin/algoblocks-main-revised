@@ -139,7 +139,7 @@ class ComplexityAnalyzer:
         # literal constants.
         self.module_int_constants = set()
         self.builtin_complexities = {
-            'sort': {'time': 'O(n log n)', 'space': 'O(1)', 'desc': 'Sorts the list in-place using the stable Timsort algorithm.'},
+            'sort': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Sorts the list in place with Timsort. Timsort is a merge-based sort that needs up to O(n) temporary space in the worst case, so the auxiliary space is O(n) even though no new list is returned.'},
             'sorted': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Creates and returns a completely new sorted list.'},
             'bisect': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Performs a binary search on a sorted sequence.'},
             'bisect_left': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Performs a binary search on a sorted sequence.'},
@@ -463,6 +463,11 @@ class ComplexityAnalyzer:
         self.current_depth = 0           
         self.loop_depth = 0
         self.log_loop_depth = 0          
+        # Depth of enclosing loops whose body calls a log-cost routine (heappush, bisect, ...).
+        # Kept apart from log_loop_depth (loops that themselves run log n times) because the
+        # extra log factor belongs on the lines doing log-cost work, not on a sibling line in
+        # the same loop that already costs O(n): n x max(log n, n) is n^2, not n^2 log n.
+        self.call_log_depth = 0
         self.sqrt_loop_depth = 0
         self.graph_depth = 0             
         self.in_if_depth = 0
@@ -476,6 +481,10 @@ class ComplexityAnalyzer:
         self.active_gcd_vars = None
         self.function_gcd_vars = None
         self.var_types = {} 
+        # Names bound to a container whose length is a fixed constant (e.g. a 256-slot
+        # table, `[0] * 26`): operations whose cost depends on the container's length
+        # (sorting it, copying it) are O(1) for these, not O(n).
+        self.constant_size_containers = set()
         self.loop_body_stack = []
         
         self.max_complexity = 0          
