@@ -6,13 +6,13 @@
   --hub-purple-dark: #5631bd;
   --hub-purple-light: #9175d9;
   --hub-purple-soft: #f1edff;
-  --hub-gradient-primary: linear-gradient(135deg, #7F57F9, #E058FB);
+  --hub-gradient-primary: linear-gradient(135deg, #6B44F0, #A62BC4);
   --hub-gradient-progress: linear-gradient(90deg, #6841d9, #a075f1);
   
   /* Typography Colors */
   --hub-heading: #1e2635;
   --hub-text: #374151;
-  --hub-muted: #667085;
+  --hub-muted: #475467;
   
   /* UI Colors */
   --hub-border: #e6e1f1;

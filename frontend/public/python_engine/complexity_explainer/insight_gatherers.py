@@ -1,19 +1,90 @@
 """
 Insight Gatherers
 
-Collects the short "Educational Insight" notes shown under a line's
-explanation. Every candidate note carries a priority so a busy line shows the
-3 things most worth a learner's attention instead of a wall of trivia:
+Collects the "Educational Insight" notes shown under a line's explanation.
+
+Two sources feed each line:
+
+  * line_insights.py   -- notes built from the line's OWN construct (a `for`
+                          header, an `if` test, `s += x`, a `return`...), the
+                          loops/functions around it and the profiler's counts.
+                          Every line gets these, so no line is left unexplained.
+  * the signal notes   -- below: named patterns and traps (halving, memoization,
+                          `pop(0)`, string `+=` in a loop...).
+
+Every candidate carries a priority so a busy line still leads with what matters:
 
     0  performance trap -- says what is slow AND what to do instead
-    1  algorithmic pattern -- names the technique the code is using
-    2  background fact -- true and nice to know, but rarely the point
+    0.5 notation clarity -- which of several readings of the code Big-O uses (notation_clarity.py)
+    1  line-specific teaching / algorithmic pattern / evidence from the last run
+    2  background fact, rule of thumb, scale intuition
+
+Within a priority tier the line-specific notes come first, then the pattern
+notes, in discovery order (stable), so the same code always reads the same way.
 """
+import ast
+import re
 from typing import List, Tuple
 
 from complexity_explainer.explanation_signals import PatternSignals
 
-MAX_INSIGHTS = 3
+MAX_TIME_INSIGHTS = 3
+MAX_SPACE_INSIGHTS = 2
+
+# If a line-specific note already teaches a topic, the older generic signal note on
+# the same topic is dropped instead of being said twice.
+_TOPIC_PATTERNS = {
+    "membership": re.compile(r"`in`|in some_list|`x in"),
+    "pop0": re.compile(r"pop\(0\)"),
+    "aggregation": re.compile(r"`sum\(|sum\(\.\.\.\)|`sum\(\)`"),
+    "list_plus": re.compile(r"joining lists with `\+`|`\+` on lists|`\+` allocates|x = x \+ \["),
+    "str_plus": re.compile(r"strings (can't|cannot|are immutable)|immutable"),
+    "slicing": re.compile(r"slic"),
+    "generator": re.compile(r"`yield`|generator"),
+    "early_exit": re.compile(r"early return|`break`"),
+    "swap": re.compile(r"swap"),
+    "stack": re.compile(r"call stack|recursion limit|recursive call keeps"),
+    "memo": re.compile(r"memoiz"),
+    "halving": re.compile(r"halv|discards half|discard 50"),
+    "sorted_copy": re.compile(r"`sorted\(\)`"),
+    "join": re.compile(r"join\("),
+    "new_list": re.compile(r"new list|fresh block|reserves a (fresh )?block"),
+    "heap": re.compile(r"heap"),
+    "fstring": re.compile(r"f-string"),
+    "with_cleanup": re.compile(r"`with`"),
+    "try": re.compile(r"`try`|try/except"),
+    "walrus": re.compile(r"walrus"),
+}
+
+
+def _topics(text: str) -> set:
+    low = text.lower()
+    return {k for k, rx in _TOPIC_PATTERNS.items() if rx.search(low)}
+
+
+def _brief(text: str, max_sentences: int = 2) -> str:
+    """Keep the first `max_sentences` sentences of a note (idea + reason).
+
+    Splits only on sentence-ending punctuation that is outside `code`, followed by a
+    space and the start of a new sentence, so `O(n log n).` or `a[i]. x` stay intact.
+    Notes containing lists/line breaks are left alone."""
+    if "\n" in text:
+        return text
+    parts, buf, in_code = [], [], False
+    for i, ch in enumerate(text):
+        buf.append(ch)
+        if ch == "`":
+            in_code = not in_code
+        elif (not in_code and ch in ".!?" and i + 1 < len(text) and text[i + 1] == " "
+              and i + 2 < len(text) and (text[i + 2].isupper() or text[i + 2] in "*`(")
+              and not "".join(buf[-4:]).lower().endswith(("e.g.", "i.e."))):
+            parts.append("".join(buf).strip())
+            buf = []
+    if buf:
+        parts.append("".join(buf).strip())
+    if len(parts) <= max_sentences:
+        return text
+    return " ".join(parts[:max_sentences])
 
 
 class InsightGatherers:
@@ -24,12 +95,28 @@ class InsightGatherers:
         self.generator = generator
 
     @staticmethod
-    def _top(candidates: List[Tuple[int, str]]) -> List[str]:
+    def _top(candidates: List[Tuple[int, str]], limit: int) -> List[str]:
         # stable sort: priority first, original discovery order preserved within a tier
         ordered = sorted(enumerate(candidates), key=lambda x: (x[1][0], x[0]))
-        return [text for _, (_, text) in ordered][:MAX_INSIGHTS]
+        # traps (priority 0) keep their full "what to do instead" advice; everything
+        # else is trimmed to idea + reason so the panel stays short and readable
+        # (priority < 1 = traps and notation-clarity notes: keep their full explanation)
+        return [(text if pri < 1 else _brief(text)) for _, (pri, text) in ordered][:limit]
 
-    def _gather_time_insights(self, sig: PatternSignals, local_t: str, global_t: str = "") -> List[str]:
+    @staticmethod
+    def _merge(line_notes: List[Tuple[int, str]], signal_notes: List[Tuple[int, str]]) -> List[Tuple[int, str]]:
+        """Line-specific notes first; drop a signal note whose topic a line note already teaches."""
+        covered = set()
+        for _, text in line_notes:
+            covered |= _topics(text)
+        kept = [(pri, text) for pri, text in signal_notes if not (_topics(text) & covered)]
+        return list(line_notes) + kept
+
+    _FALLBACK_TIME = (2, "**The core idea:** a line's total cost is (work each time it runs) x (how many times it runs). The line itself decides the first factor; the loops and recursion around it decide the second.")
+    _FALLBACK_SPACE = (2, "**The core idea:** space complexity is the *peak* extra memory alive at once -- what the algorithm builds and keeps, not the total it ever touches.")
+
+    def _gather_time_insights(self, sig: PatternSignals, local_t: str, global_t: str = "",
+                              node=None, hits: int = 0, code_snippet: str = "") -> List[str]:
         v = self.generator._v
         c: List[Tuple[int, str]] = []
         cs, ms, pd = sig.complexity_signals, sig.memory_signals, sig.paradigms
@@ -62,7 +149,7 @@ class InsightGatherers:
                 "Halving is what gives O(log n): a billion items take only about 30 steps, because every step throws away half of what's left.",
                 "Why this is fast: every step discards 50% of the remaining problem, so even a huge input needs only a handful of steps (about 30 for a billion items).",
             )))
-        if pd.is_two_pointer:
+        if pd.is_two_pointer and not pd.is_halving:
             c.append((1, "Two pointers moving toward each other visit each element at most once, so this can replace a nested O(n^2) loop with a single O(n) pass."))
         if pd.is_kadane:
             c.append((1, "Kadane-style running best: instead of checking every possible subarray (O(n^2)), keep the best answer so far and update it in one O(n) pass."))
@@ -111,9 +198,16 @@ class InsightGatherers:
         if sig.uses_walrus:
             c.append((2, "The walrus operator (`:=`) assigns and uses a value in one expression, avoiding a repeated call or extra line."))
 
-        return self._top(c)
+        line_notes = []
+        if node is not None:
+            line_notes = self.generator.line_insights.time_notes(node, sig, local_t, global_t, hits, code_snippet)
+        merged = self._merge(line_notes, c) or [self._FALLBACK_TIME]
+        # a notation-clarity note earns one extra slot so it never pushes out the usual teaching
+        extra = 1 if any(0 < pri < 1 for pri, _ in merged) else 0
+        return self._top(merged, MAX_TIME_INSIGHTS + extra)
 
-    def _gather_space_insights(self, sig: PatternSignals, mem_state: dict) -> List[str]:
+    def _gather_space_insights(self, sig: PatternSignals, mem_state: dict,
+                               node=None, local_s: str = "", global_s: str = "", hits: int = 0) -> List[str]:
         v = self.generator._v
         c: List[Tuple[int, str]] = []
         ms = sig.memory_signals
@@ -152,8 +246,27 @@ class InsightGatherers:
 
         # ---- observed: what really happened in the learner's last run ------
         if mem_state:
-            largest = max(mem_state.items(), key=lambda x: x[1].get('size', 0), default=None)
+            # Only report variables this line actually touches -- otherwise the same
+            # "list grew to N" note would repeat on every line of the function.
+            referenced = None
+            if node is not None:
+                # compound statements: only their header (loop iterable/target, if/while test)
+                if isinstance(node, (ast.For, ast.AsyncFor)):
+                    scope = [node.target, node.iter]
+                elif isinstance(node, (ast.While, ast.If)):
+                    scope = [node.test]
+                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    scope = []
+                else:
+                    scope = [node]
+                referenced = {n.id for part in scope for n in ast.walk(part) if isinstance(n, ast.Name)}
+            items = [(k, d) for k, d in mem_state.items() if referenced is None or k in referenced]
+            largest = max(items, key=lambda x: x[1].get('size', 0), default=None)
             if largest and largest[1].get('size', 0) > 1:
-                c.append((0, f"In your last test run, `{largest[0]}` grew to hold {largest[1]['size']} element(s) here -- the biggest structure seen on this line. That growth is the memory Big-O is describing."))
+                c.append((1, f"**From your last run:** `{largest[0]}` grew to hold {largest[1]['size']} element(s) at this line -- the biggest structure seen here. That growth is the memory Big-O is describing: run it again with a larger input and watch how this number grows."))
 
-        return self._top(c)
+        line_notes = []
+        if node is not None:
+            line_notes = self.generator.line_insights.space_notes(node, sig, local_s, global_s, mem_state, hits)
+        merged = self._merge(line_notes, c) or [self._FALLBACK_SPACE]
+        return self._top(merged, MAX_SPACE_INSIGHTS)

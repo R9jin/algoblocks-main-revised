@@ -22,6 +22,7 @@ import {
   FiZap
 } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
+import AppearanceCard from "../components/AppearanceCard";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
 import { assessmentsDB, progressDB, submissionsDB } from "../db";
@@ -833,6 +834,7 @@ export default function ProfilePage() {
 
           <div className="profile-content-grid">
             <main className="profile-main-content" style={{ gridColumn: '1 / -1' }}>
+              <AppearanceCard />
               <div className="content-header-row">
                 <h2>Administrator Account</h2>
                 <span className="mastery-subtitle">
@@ -1016,6 +1018,8 @@ export default function ProfilePage() {
                 <p><strong>{metrics.assessmentsTaken}</strong> <span className="text-muted">evaluations recorded</span></p>
               </div>
             </div>
+
+            <AppearanceCard />
           </aside>
 
           <main className="profile-main-content">

@@ -5,6 +5,11 @@ let pyodide = null;
 let pyodidePromise = null; 
 
 let inputResolve = null;
+// Manual Stop support. STOP_RUN resolves a pending input() with this sentinel;
+// the Python-side input wrapper turns it into KeyboardInterrupt, so the program
+// ends cleanly and the engine stays loaded (no restart needed).
+const STOP_SENTINEL = "\u0000__ALGOBLOCKS_STOP__\u0000";
+let runStopped = false;
 function strictBigONormalizer(raw) {
   if (!raw) return "O(1)";
   let s = String(raw).toLowerCase().trim().replace(/\s+/g, "");
@@ -213,14 +218,20 @@ const ENGINE_MODULE_FILES = [
   "complexity_analyzer/signature_recorder.py",
   "complexity_analyzer/ast_node_visitors.py",
   "complexity_analyzer/complexity_synthesizer.py",
+  "complexity_analyzer/pipeline_trace.py",
   "complexity_explainer/__init__.py",
   "complexity_explainer/complexity_explainer.py",
   "complexity_explainer/explanation_signals.py",
   "complexity_explainer/growth_insight.py",
+  "complexity_explainer/notation_insight.py",
+  "complexity_explainer/notation_clarity.py",
   "complexity_explainer/pattern_evaluators.py",
   "complexity_explainer/pattern_visitor.py",
+  "complexity_explainer/statement_narrator.py",
+  "complexity_explainer/paradigm_detector.py",
   "complexity_explainer/variable_explanations.py",
   "complexity_explainer/insight_gatherers.py",
+  "complexity_explainer/line_insights.py",
   "complexity_explainer/overall_narrative.py",
   "complexity_explainer/explanation_warnings.py",
   "complexity_explainer/insight_generator.py",
@@ -312,8 +323,14 @@ async function initPyodide() {
   return await pyodidePromise;
 }
 
-self.onmessage = async (e) => {
-  const { type, code, data, requestEpoch } = e.data;
+const handleWorkerMessage = async (e) => {
+  const { type, code, data, requestEpoch, runId } = e.data;
+
+  if (type === 'STOP_RUN') {
+    runStopped = true;
+    if (inputResolve) { inputResolve(STOP_SENTINEL); inputResolve = null; }
+    return;
+  }
 
   if (type === 'INPUT_RESPONSE') {
     if (inputResolve) { inputResolve(data); inputResolve = null; }
@@ -338,6 +355,7 @@ self.onmessage = async (e) => {
   // nothing to do with its actual cost.
   const CODE_LENGTH_LIMITS = {
     ANALYZE_CODE: 30000,
+    TRACE_PIPELINE: 30000,
     RUN_CODE: 30000,
     PYTHON_TO_BLOCKS: 60000,
   };
@@ -346,6 +364,7 @@ self.onmessage = async (e) => {
     const errorMsg = `Code payload too large. Maximum allowed is ${maxLen} characters.`;
     if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg }, requestEpoch });
     else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: errorMsg } });
+    else if (type === 'TRACE_PIPELINE') self.postMessage({ type: 'TRACE_PIPELINE_RESULT', data: { status: 'error', message: errorMsg }, requestEpoch });
     else self.postMessage({ type: 'ERROR', data: errorMsg });
     return;
   }
@@ -368,11 +387,12 @@ for _mod in (
     'complexity_analyzer.code_preprocessor', 'complexity_analyzer.call_graph_mapper',
     'complexity_analyzer.topological_sequencer', 'complexity_analyzer.complexity_heuristics',
     'complexity_analyzer.signature_recorder', 'complexity_analyzer.ast_node_visitors',
-    'complexity_analyzer.complexity_synthesizer',
+    'complexity_analyzer.complexity_synthesizer', 'complexity_analyzer.pipeline_trace',
     'complexity_explainer', 'complexity_explainer.complexity_explainer',
-    'complexity_explainer.explanation_signals', 'complexity_explainer.growth_insight', 'complexity_explainer.pattern_evaluators',
-    'complexity_explainer.pattern_visitor', 'complexity_explainer.variable_explanations',
-    'complexity_explainer.insight_gatherers', 'complexity_explainer.overall_narrative',
+    'complexity_explainer.explanation_signals', 'complexity_explainer.growth_insight', 'complexity_explainer.notation_insight', 'complexity_explainer.notation_clarity', 'complexity_explainer.pattern_evaluators',
+    'complexity_explainer.pattern_visitor', 'complexity_explainer.statement_narrator',
+    'complexity_explainer.paradigm_detector', 'complexity_explainer.variable_explanations',
+    'complexity_explainer.insight_gatherers', 'complexity_explainer.line_insights', 'complexity_explainer.overall_narrative',
     'complexity_explainer.explanation_warnings', 'complexity_explainer.insight_generator',
     'dynamic_tracer', 'scope_detector',
 ):
@@ -450,6 +470,10 @@ try:
         # catch these, so surface them through the same error list the
         # popup on the right already renders.
         output_dict["multiple_errors"] = list(output_dict["logic_warnings"])
+    # Names that are read but never defined: Python parses this fine and only
+    # fails when run, so report it here (flagged blocking) next to any other findings.
+    if isinstance(output_dict, dict) and output_dict.get("status") != "error" and output_dict.get("name_errors"):
+        output_dict["multiple_errors"] = list(output_dict.get("multiple_errors") or []) + list(output_dict["name_errors"])
     output = json.dumps(output_dict)
 except Exception as e:
     custom_errs = gather_custom_lint_errors(user_code)
@@ -465,6 +489,27 @@ output
       `);
       const resultData = JSON.parse(resultJsonStr);
       self.postMessage({ type: 'ANALYZE_RESULT', data: resultData, requestEpoch });
+    }
+
+    else if (type === 'TRACE_PIPELINE') {
+      // "Pipeline" tab: replay of the complexity analysis model. Observational
+      // only -- it never touches the result shown in the Complexity tab.
+      pyodide.setStdout({ batched: () => {} });
+      pyodide.setStderr({ batched: () => {} });
+      pyodide.globals.set("user_code", code);
+      const traceJsonStr = await pyodide.runPythonAsync(`
+import json, sys
+for _mod in ('complexity_analyzer.pipeline_trace',):
+    if _mod in sys.modules:
+        del sys.modules[_mod]
+try:
+    from complexity_analyzer.pipeline_trace import trace_pipeline
+    out = json.dumps(trace_pipeline(user_code))
+except Exception as e:
+    out = json.dumps({"status": "error", "message": f"{type(e).__name__}: {e}"})
+out
+      `);
+      self.postMessage({ type: 'TRACE_PIPELINE_RESULT', data: JSON.parse(traceJsonStr), requestEpoch });
     }
 
     else if (type === 'PYTHON_TO_BLOCKS') {
@@ -490,21 +535,28 @@ output
     }
 
     else if (type === 'RUN_CODE') {
-      pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" }) });
-      pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" }) });
+      // runId tags every message of this run so the UI can ignore late messages
+      // from a run the user already stopped.
+      runStopped = false;
+      pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n", runId }) });
+      pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n", runId }) });
       pyodide.globals.set("custom_input_sync", (prompt) => {
         const safePrompt = prompt === undefined ? "" : String(prompt);
-        if (safePrompt) self.postMessage({ type: 'OUTPUT', data: safePrompt });
-        self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: "" } });
+        if (safePrompt) self.postMessage({ type: 'OUTPUT', data: safePrompt, runId });
+        self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: "" }, runId });
         const simulated = " [Simulated Input - Nested function limitation]";
-        self.postMessage({ type: 'OUTPUT', data: simulated + "\n" });
+        self.postMessage({ type: 'OUTPUT', data: simulated + "\n", runId });
         return simulated;
       });
+      pyodide.globals.set("stop_sentinel", STOP_SENTINEL);
       pyodide.globals.set("custom_input_async", async (prompt) => {
+        // Already stopped: every further input() ends the program immediately
+        // instead of waiting for text nobody will type.
+        if (runStopped) return STOP_SENTINEL;
         return new Promise((resolve) => {
           inputResolve = (value) => { resolve(value); };
           const safePrompt = prompt === undefined ? "" : String(prompt);
-          self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: safePrompt } });
+          self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: safePrompt }, runId });
         });
       });
       pyodide.globals.set("user_code", code);
@@ -527,6 +579,12 @@ class LineExecutionProfiler:
             self.hits[frame.f_lineno] += 1
         return self.trace_lines
 
+async def __ab_input__(prompt=""):
+    value = await custom_input_async(prompt)
+    if value == stop_sentinel:
+        raise KeyboardInterrupt("Program stopped by user")
+    return value
+
 class AsyncInputTransformer(ast.NodeTransformer):
     def __init__(self):
         self.has_input = False
@@ -534,7 +592,7 @@ class AsyncInputTransformer(ast.NodeTransformer):
         self.generic_visit(node)
         if isinstance(node.func, ast.Name) and node.func.id == 'input':
             self.has_input = True
-            new_func = ast.Name(id='custom_input_async', ctx=ast.Load())
+            new_func = ast.Name(id='__ab_input__', ctx=ast.Load())
             new_call = ast.Call(func=new_func, args=node.args, keywords=node.keywords)
             return ast.copy_location(ast.Await(value=new_call), node)
         return node
@@ -547,26 +605,36 @@ try:
     transformer = AsyncInputTransformer()
     transformed = transformer.visit(tree)
     ast.fix_missing_locations(transformed)
+    # Every run gets its OWN fresh namespace. Running user code inside this
+    # worker's persistent globals() meant variables from a previous run
+    # (e.g. an earlier "n = 3") were still defined on the next run, so code
+    # whose declaration had since been deleted still "worked" instead of
+    # raising NameError. It also let user variables named json/ast/traceback
+    # clobber this harness. A fresh dict makes each run behave like a clean
+    # python3 script.
+    user_ns = {"__name__": "__main__", "__builtins__": builtins, "custom_input_async": custom_input_async, "__ab_input__": __ab_input__}
     try:
         if transformer.has_input:
             compiled_code = compile(transformed, "<user_code>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
             sys.settrace(dyn_profiler.trace_lines)
-            coro = eval(compiled_code, globals())
+            coro = eval(compiled_code, user_ns)
             if coro is not None:
                 await coro
         else:
             compiled_code = compile(transformed, "<user_code>", "exec")
             sys.settrace(dyn_profiler.trace_lines)
-            exec(compiled_code, globals())
+            exec(compiled_code, user_ns)
     finally:
         sys.settrace(None)
         globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
+except KeyboardInterrupt:
+    pass  # stopped by the user (Stop button / Ctrl+C): end quietly, no traceback
 except Exception:
     print(traceback.format_exc(), file=sys.stderr)
       `);
       const countsStr = pyodide.globals.get("run_hits_json");
       const counts = countsStr ? JSON.parse(countsStr) : {};
-      self.postMessage({ type: 'RUN_RESULT', data: "", counts });
+      self.postMessage({ type: 'RUN_RESULT', data: "", counts, runId });
     }
 
     else if (type === 'RUN_BENCHMARK_SUITE') {
@@ -622,7 +690,7 @@ else:
 
 try:
     from complexity_analyzer.analyzer import analyze_source_code
-    res = analyze_source_code(user_code)
+    res = analyze_source_code(user_code, explain=False)  # benchmark scores values only; skip educational insights
 except Exception as err:
     res = {"status": "error", "total": "ERROR", "space_total": "ERROR", "lines": [], "overall_explanation": f"AST Parse crash: {str(err)}"}
 
@@ -640,8 +708,9 @@ json.dumps(res)
           const rawExpectedTime = getGroundTruthTime(item);
           const rawExpectedSpace = getGroundTruthSpace(item);
           
-          const predictedTime = resultJs.total || "PARSE_FAIL";
-          const predictedSpace = resultJs.space_total || resultJs.space || "O(1)";
+          // A crashed parse reports total = null now; the regex guess lives in fallback_total so the benchmark numbers stay comparable.
+          const predictedTime = resultJs.total || resultJs.fallback_total || "PARSE_FAIL";
+          const predictedSpace = resultJs.space_total || resultJs.fallback_space_total || resultJs.space || "O(1)";
 
           const normExpTime = strictBigONormalizer(rawExpectedTime);
           const normPredTime = strictBigONormalizer(predictedTime);
@@ -892,6 +961,56 @@ json.dumps(res)
     // exactly the code path most likely to hit an edge case the inner
     // Python try/except didn't anticipate.
     else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: err.message || 'Failed to convert Python code to blocks.' } });
+    else if (type === 'TRACE_PIPELINE') self.postMessage({ type: 'TRACE_PIPELINE_RESULT', data: { status: 'error', message: err.message || 'Pipeline trace failed.' }, requestEpoch });
     else self.postMessage({ type: 'ERROR', data: err.message });
   }
+};
+
+// ---------------------------------------------------------------------------
+// MESSAGE SERIALIZATION (benchmark-accuracy fix)
+//
+// Every handler above `await`s Pyodide, and they all share ONE interpreter and
+// ONE set of Python globals (`user_code`) plus the `sys.modules` entries that
+// ANALYZE_CODE deletes and re-imports. When two jobs overlapped -- typically
+// the Accuracy Overview page's background RUN_BENCHMARK_SUITE running at the
+// same time as the Evaluation Suite's, or an editor ANALYZE_CODE arriving
+// mid-benchmark -- one job overwrote `user_code` while the other was still
+// waiting to read it. The analyzer then silently analysed ANOTHER algorithm's
+// source (the report showed `algo_n_001` scored with `countRotations`'
+// statements, shifted by a constant number of rows), and accuracy collapsed
+// from ~87% to ~49% even though the analyzer itself was unchanged. The
+// explainer additions made each analysis slower, which widened the overlap
+// window and exposed the race.
+//
+// Fix: run jobs strictly one at a time, and never start a second benchmark
+// while one is already running (its BENCHMARK_PROGRESS / BENCHMARK_COMPLETE
+// messages are broadcast to every listener anyway, so a second requester
+// simply receives the same result).
+// ---------------------------------------------------------------------------
+let jobQueue = Promise.resolve();
+let benchmarkRunning = false;
+
+self.onmessage = (e) => {
+  const type = e.data && e.data.type;
+
+  // Must stay immediate: INPUT_RESPONSE unblocks a RUN_CODE job that is
+  // waiting on input() (queueing it would deadlock), and INIT_ENGINE is
+  // idempotent (it just awaits the shared init promise).
+  if (type === 'INPUT_RESPONSE' || type === 'INIT_ENGINE' || type === 'STOP_RUN') {
+    return handleWorkerMessage(e);
+  }
+
+  if (type === 'RUN_BENCHMARK_SUITE') {
+    if (benchmarkRunning) return;
+    benchmarkRunning = true;
+    jobQueue = jobQueue
+      .then(() => handleWorkerMessage(e))
+      .catch((err) => console.error('Benchmark job failed:', err))
+      .finally(() => { benchmarkRunning = false; });
+    return;
+  }
+
+  jobQueue = jobQueue
+    .then(() => handleWorkerMessage(e))
+    .catch((err) => console.error('Worker job failed:', err));
 };

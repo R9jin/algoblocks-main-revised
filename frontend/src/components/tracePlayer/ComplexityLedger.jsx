@@ -343,7 +343,7 @@ export default function ComplexityLedger({
     Object.entries({
       "O(1)": 0, "O(log n)": 1, "O(log min(a, b))": 1, "O(sqrt n)": 1.5,
       "O(n)": 2, "O(n log n)": 3,
-      "O(n^2)": 4, "O(n*m)": 4, "O(n^3)": 5, "O(n^4)": 6,
+      "O(n^2)": 4, "O(n^2 log n)": 4.5, "O(n*m)": 4, "O(n^3)": 5, "O(n^4)": 6,
       "O(2^n)": 7, "O(3^n)": 7.5, "O(n!)": 8,
     }).map(([k, v]) => [canon(k), v])
   );
@@ -356,7 +356,12 @@ export default function ComplexityLedger({
     // supplementary context, not a second thing to reconcile against.
     const match = label.match(/O\([^)]*\)/i);
     const core = match ? match[0] : label;
-    return BIGO_RANK[canon(core)] ?? null;
+    const listed = BIGO_RANK[canon(core)];
+    if (listed !== undefined) return listed;
+    // degrees the table doesn't list (n^5, n^3 log n, ...): rank by exponent, below 2^n
+    const pm = core.replace(/\s+/g, "").match(/n\^(\d+)/i);
+    if (pm && Number(pm[1]) >= 3) return Math.min(6.9, 5 + (Number(pm[1]) - 3) * 0.9) + (/log/i.test(core) ? 0.05 : 0);
+    return null;
   };
   const reachedLocalClasses = Object.values(statsByKey)
     .map((s) => s.localBigO)

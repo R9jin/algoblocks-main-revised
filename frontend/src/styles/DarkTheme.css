@@ -1,0 +1,289 @@
+/* frontend/src/styles/DarkTheme.css
+   =====================================================================
+   DARK THEME -- active only under <html data-theme="dark"> (set from
+   Profile > Appearance, see utils/theme.js). Nothing here applies in light
+   mode. Imported LAST in index.jsx and every block uses `:root[data-theme]`
+   (specificity 0,2,0) so it beats the per-page `:root { ... }` token blocks
+   regardless of stylesheet order.
+
+   Strategy: flip the shared colour TOKENS first (most of the app reads them),
+   then patch the places that hard-code light colours.
+   ===================================================================== */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* ---- shared tokens (MainApp.css / ProfilePage.css) ---- */
+  --app-bg:        #150A24;
+  --panel-bg:      #211337;
+  --border-light:  #3B2762;
+  --text-main:     #EDE9FE;
+  --text-muted:    #B6A9D8;
+  --purple-light:  #2C1A4D;
+  --purple-alpha:  rgba(167, 120, 255, 0.16);
+
+  /* ---- global glass tokens (index.css) ---- */
+  --gb-bg-base:        #150A24;
+  --gb-bg-elevated:    #211337;
+  --gb-glass-bg:       rgba(255, 255, 255, 0.05);
+  --gb-glass-bg-strong:rgba(255, 255, 255, 0.09);
+  --gb-glass-border:   rgba(255, 255, 255, 0.14);
+  --gb-text-heading:   #F5F3FF;
+  --gb-text-secondary: #E4DDF7;
+  --gb-text-muted:     #B6A9D8;
+
+  /* ---- Dashboard / Learning Path glass ---- */
+  --glass-surface:        rgba(36, 21, 62, 0.62);
+  --glass-surface-strong: rgba(36, 21, 62, 0.82);
+  --glass-surface-soft:   rgba(36, 21, 62, 0.48);
+  --glass-border:         rgba(255, 255, 255, 0.12);
+  --glass-shadow:         0 8px 32px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --glass-highlight:      inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+
+  /* ---- LiquidGlass.css "light glass" tokens ----
+     ROOT CAUSE of the pale grey cards: LiquidGlass.css paints every
+     [class*="card"], [class*="dropdown"], [class*="panel"], [class*="-box"]
+     and .module-card-v2 with `background: var(--lg-light-bg) !important`, and
+     those tokens are white gradients (38-62% white). Over the dark page they
+     read as light grey slabs. Redefining the tokens here (0,2,0 beats the
+     plain :root blocks) turns all of those surfaces into dark glass at once. */
+  --lg-light-bg:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.07) 0%, rgba(124, 58, 237, 0.10) 100%),
+    rgba(33, 19, 55, 0.78);
+  --lg-light-border: 1.5px solid rgba(255, 255, 255, 0.12);
+  --lg-light-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  /* ---- Home / Auth page tokens ---- */
+  --home-surface: #211337;  --home-surface-subtle: #2A1A47;
+  --home-text: #EDE9FE;     --home-text-muted: #B6A9D8;
+  --home-border: #3B2762;   --home-purple-soft: #2C1A4D;
+  --auth-surface: #211337;  --auth-surface-subtle: #2A1A47;
+  --auth-text: #EDE9FE;     --auth-text-muted: #B6A9D8;
+  --auth-border: #3B2762;   --auth-purple-soft: #2C1A4D;
+
+  /* ---- LightSurfaces.css text tokens (workspace tabs, badges, pipeline) ----
+     Same specificity as `:root:root`; this file loads after it, so it wins. */
+  --lt-text-main:  #EDE9FE;
+  --lt-text-muted: #B6A9D8;
+  --lt-text-brand: #D3BFFF;
+  --lt-system-badge: #D3BFFF;
+  --lt-inline-code:  #FDBA74;
+  --lt-total-time:   #6EE7B7;
+  --lt-total-space:  #7DD3FC;
+  --lt-bottleneck:   #FCA5A5;
+  --lt-clear-console:#FCA5A5;
+}
+
+/* ---------- Page background (replaces the light purple mesh) ---------- */
+:root[data-theme="dark"] { background-color: #120820; }
+:root[data-theme="dark"] body {
+  color: var(--gb-text-secondary);
+  background-color: #120820;
+  background-image:
+    radial-gradient(ellipse 900px 700px at 5%  -5%,  rgba(124, 58, 237, 0.30), transparent 60%),
+    radial-gradient(ellipse 700px 600px at 97%  8%,  rgba(79, 70, 229, 0.24), transparent 55%),
+    radial-gradient(ellipse 800px 600px at 50% 108%, rgba(88, 28, 135, 0.34), transparent 60%),
+    radial-gradient(ellipse 500px 400px at 85%  60%, rgba(168, 85, 247, 0.12), transparent 55%),
+    linear-gradient(175deg, #170B2B 0%, #130924 55%, #0F061C 100%);
+}
+:root[data-theme="dark"] * { scrollbar-color: rgba(167, 120, 255, 0.4) transparent; }
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgba(167, 120, 255, 0.35); background-clip: padding-box; }
+
+/* ---------- Shared header + user dropdown ---------- */
+:root[data-theme="dark"] .dashboard-header {
+  background: rgba(24, 12, 42, 0.72);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="dark"] .logo-text { color: #E9DDFF; }
+:root[data-theme="dark"] .back-home,
+:root[data-theme="dark"] .btn-open-project { color: #D3BFFF; }
+:root[data-theme="dark"] .back-home:hover { color: #FFFFFF; }
+:root[data-theme="dark"] .user-profile-img { background-color: #3A2562; border-color: #7B5FC4; color: #EDE3FF; }
+:root[data-theme="dark"] .user-dropdown { background-color: #1D1033; border-color: #3B2762; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55); }
+:root[data-theme="dark"] .user-dropdown-head { background-color: rgba(255, 255, 255, 0.04); border-bottom-color: #3B2762; }
+:root[data-theme="dark"] .dropdown-avatar-img { background-color: #3A2562; border-color: #7B5FC4; color: #EDE3FF; }
+:root[data-theme="dark"] .user-name { color: #F5F3FF; }
+:root[data-theme="dark"] .user-email { color: #B6A9D8; }
+:root[data-theme="dark"] .user-dd-item { color: #E4DDF7; }
+:root[data-theme="dark"] .user-dd-item svg { color: #B6A9D8; }
+:root[data-theme="dark"] .user-dd-item:hover,
+:root[data-theme="dark"] .user-dd-item:hover svg { color: #FFFFFF; }
+:root[data-theme="dark"] .user-dd-item.danger,
+:root[data-theme="dark"] .user-dd-item.danger svg { color: #F87171; }
+:root[data-theme="dark"] .user-dd-item.danger:hover { background-color: rgba(248, 113, 113, 0.14); }
+:root[data-theme="dark"] .user-dd-divider { background-color: #3B2762; }
+
+/* ---------- Profile page: hard-coded light surfaces ---------- */
+:root[data-theme="dark"] .stat-box,
+:root[data-theme="dark"] .profile-main-content,
+:root[data-theme="dark"] .profile-header-card { box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35); }
+:root[data-theme="dark"] .mastery-card:hover { background: rgba(255, 255, 255, 0.04); }
+:root[data-theme="dark"] .mastery-card.completed { background: rgba(16, 185, 129, 0.08); }
+:root[data-theme="dark"] .lesson-block.locked-block { background: rgba(255, 255, 255, 0.03); }
+:root[data-theme="dark"] .lesson-block.optimization-block {
+  background: linear-gradient(180deg, rgba(167, 120, 255, 0.10) 0%, var(--panel-bg) 90px);
+}
+:root[data-theme="dark"] .activity-row { background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.10); }
+:root[data-theme="dark"] .activity-row.completed-row { background: rgba(16, 185, 129, 0.12); }
+:root[data-theme="dark"] .activity-row.locked-row { background: rgba(255, 255, 255, 0.02); }
+:root[data-theme="dark"] .act-metrics-group { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.09); }
+:root[data-theme="dark"] .metric-cluster { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.11); }
+:root[data-theme="dark"] .aes-badge.empty,
+:root[data-theme="dark"] .rog-badge.empty { background: rgba(255, 255, 255, 0.05); }
+:root[data-theme="dark"] .complexity-badge,
+:root[data-theme="dark"] .score-cluster .cluster-label { color: #C4B5FD; }
+:root[data-theme="dark"] .tests-badge { color: #7DB4FF; }
+:root[data-theme="dark"] .bigo-space .bigo-val { color: #C4B5FD; }
+:root[data-theme="dark"] .bigo-time  .bigo-val { color: #22D3EE; }
+
+:root[data-theme="dark"] .amc-grid  { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.09); }
+:root[data-theme="dark"] .amc-panel { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.12); }
+:root[data-theme="dark"] .amc-panel-label,
+:root[data-theme="dark"] .bigo-type,
+:root[data-theme="dark"] .impr-type,
+:root[data-theme="dark"] .rog-sub { color: rgba(237, 233, 254, 0.58); }
+:root[data-theme="dark"] .aes-donut-text,
+:root[data-theme="dark"] .rog-icon,
+:root[data-theme="dark"] .rog-value,
+:root[data-theme="dark"] .tmr-label,
+:root[data-theme="dark"] .tmr-frac,
+:root[data-theme="dark"] .impr-to { color: #F5F3FF; }
+:root[data-theme="dark"] .impr-from { color: #94A3B8; }
+:root[data-theme="dark"] .rog-empty { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.18); }
+:root[data-theme="dark"] .tmr-track { background: rgba(255, 255, 255, 0.12); }
+:root[data-theme="dark"] .bigo-chip { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.14); }
+
+:root[data-theme="dark"] .milestone-status.disabled,
+:root[data-theme="dark"] .locked-reason-span { color: #C4B5FD; }
+
+/* ---------- Appearance card (dark tweaks) ---------- */
+:root[data-theme="dark"] .appearance-box { box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35); }
+:root[data-theme="dark"] .appearance-opt:hover { color: #D3BFFF; }
+
+
+/* =====================================================================
+   CARD / GLASS FIXES (dark only)
+   ===================================================================== */
+
+/* Text-only children whose class merely CONTAINS "card"/"box"/"panel"
+   (module-card-title, card-header, ...) were picking up the glass
+   background + border from the blanket selectors in LiquidGlass.css. On a
+   light page that is invisible; on dark it draws boxes around headings. */
+:root[data-theme="dark"] [class*="card-title"],
+:root[data-theme="dark"] [class*="card-description"],
+:root[data-theme="dark"] [class*="card-desc"],
+:root[data-theme="dark"] [class*="card-text"],
+:root[data-theme="dark"] [class*="card-info"],
+:root[data-theme="dark"] [class*="card-meta"],
+:root[data-theme="dark"] [class*="card-body"],
+:root[data-theme="dark"] [class*="card-content"],
+:root[data-theme="dark"] [class*="card-footer"],
+:root[data-theme="dark"] [class*="card-header"]:not([class*="header-card"]),
+:root[data-theme="dark"] [class*="-box-title"],
+:root[data-theme="dark"] [class*="panel-title"],
+:root[data-theme="dark"] [class*="panel-head"],
+:root[data-theme="dark"] [class*="panel-label"],
+:root[data-theme="dark"] [class*="panel-body"] {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+          backdrop-filter: none !important;
+}
+
+/* Learning-path module cards: LiquidGlass hover is a white inset glow with
+   !important -- swap it for a purple lift. */
+:root[data-theme="dark"] .module-card-v2:hover {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.50), 0 0 0 1px rgba(167, 139, 250, 0.35) !important;
+  border-color: rgba(167, 139, 250, 0.45) !important;
+}
+
+/* Lesson rows inside an expanded module were near-white (they match
+   [class*="dropdown"]). Make them a subtle tint of the card behind them. */
+:root[data-theme="dark"] .module-lessons-dropdown {
+  background: rgba(0, 0, 0, 0.18) !important;
+  border: 0 !important;
+  border-top: 1px solid #3B2762 !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .dropdown-lesson-item {
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .dropdown-lesson-item:hover:not(.locked) {
+  background: rgba(167, 120, 255, 0.14) !important;
+}
+:root[data-theme="dark"] .dropdown-lesson-item.locked {
+  background: rgba(255, 255, 255, 0.025) !important;
+}
+
+/* Pills and form fields use `rgba(255,255,255,.22-.35) !important` */
+:root[data-theme="dark"] .meta-pill {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not(.blocklyHtmlInput),
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea:not(.blocklyHtmlInput) {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.16) !important;
+  color: #F5F3FF !important;
+}
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder { color: #8F82B5; }
+:root[data-theme="dark"] select option { background: #211337; color: #EDE9FE; }
+
+/* Buttons carry a white inset highlight meant for light pages */
+:root[data-theme="dark"] [class*="btn"]:not([class*="workspace"]),
+:root[data-theme="dark"] button:not([class*="workspace"]) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 2px 10px rgba(0, 0, 0, 0.30);
+}
+
+/* ---------- "How accurate is AlgoBlocks?" (AccuracyOverview.css) ---------- */
+:root[data-theme="dark"] .acc-overview-page { color: #EDE9FE; }
+:root[data-theme="dark"] .acc-overview-hero,
+:root[data-theme="dark"] .acc-metric-panel,
+:root[data-theme="dark"] .acc-explainer {
+  background-color: rgba(33, 19, 55, 0.78) !important;
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.07) 0%, rgba(124, 58, 237, 0.10) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+:root[data-theme="dark"] .acc-overview-hero::before { background: linear-gradient(180deg, #A78BFA 0%, #7C3AED 100%); }
+:root[data-theme="dark"] .acc-overview-hero-icon { background: rgba(167, 139, 250, 0.18); color: #D3BFFF; }
+:root[data-theme="dark"] .acc-overview-hero h1,
+:root[data-theme="dark"] .acc-section-head h2,
+:root[data-theme="dark"] .acc-metric-panel-head,
+:root[data-theme="dark"] .acc-ring-percent,
+:root[data-theme="dark"] .acc-metric-stat-num,
+:root[data-theme="dark"] .acc-explainer-toggle { color: #F5F3FF; }
+:root[data-theme="dark"] .acc-overview-hero p,
+:root[data-theme="dark"] .acc-section-head p,
+:root[data-theme="dark"] .acc-metric-stat-name,
+:root[data-theme="dark"] .acc-overview-footnote,
+:root[data-theme="dark"] .acc-explainer-body p,
+:root[data-theme="dark"] .acc-overview-skeleton p,
+:root[data-theme="dark"] .acc-overview-error { color: #C9BEE8; }
+:root[data-theme="dark"] .acc-section-head p strong { color: #F5F3FF; }
+:root[data-theme="dark"] .acc-scope-note { color: #D3BFFF !important; }
+:root[data-theme="dark"] .acc-scope-note strong { color: #FFFFFF; }
+:root[data-theme="dark"] .acc-scope-badge {
+  color: #E4DDF7;
+  background: rgba(167, 139, 250, 0.16);
+  border-color: rgba(167, 139, 250, 0.40);
+}
+:root[data-theme="dark"] .acc-refresh-link { color: #D3BFFF; background: rgba(167, 139, 250, 0.16); border-color: rgba(167, 139, 250, 0.40); }
+:root[data-theme="dark"] .acc-num-pass { color: #6EE7B7; }
+:root[data-theme="dark"] .acc-num-fail { color: #FCA5A5; }
+:root[data-theme="dark"] .acc-stat-dot-pass { color: #6EE7B7; }
+:root[data-theme="dark"] .acc-stat-dot-fail { color: #FCA5A5; }
+:root[data-theme="dark"] .acc-ring-track { stroke: rgba(255, 255, 255, 0.12); }
+:root[data-theme="dark"] .acc-metric-bar { background: rgba(255, 255, 255, 0.10); }
+:root[data-theme="dark"] .acc-metric-stat-row-muted { border-top-color: rgba(255, 255, 255, 0.14); }
+:root[data-theme="dark"] .acc-explainer-toggle:hover { background: rgba(167, 139, 250, 0.10); }

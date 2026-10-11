@@ -1,0 +1,176 @@
+/* frontend/src/styles/AdminPipelineView.css
+ * Page shell classes come from AdminUserManagement.css; only the
+ * workspace/pipeline sections are styled here. */
+
+.apv-section {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(90, 19, 152, 0.14);
+  box-shadow: 0 8px 28px rgba(60, 30, 120, 0.08);
+}
+
+.apv-section-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.apv-section-head h2 {
+  margin: 0 0 2px 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #241b52;
+}
+
+.apv-section-head p {
+  margin: 0;
+  color: #5b5675;
+  font-size: 0.93rem;
+  line-height: 1.45;
+  max-width: 760px;
+}
+
+.apv-step-badge {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #5a1398, #8b5cf6);
+}
+
+.apv-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.apv-seg {
+  display: inline-flex;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(90, 19, 152, 0.3);
+}
+
+.apv-seg button {
+  padding: 8px 18px;
+  border: 0;
+  background: transparent;
+  color: #5a1398;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.apv-seg button.active {
+  background: #5a1398;
+  color: #fff;
+}
+
+.apv-sample {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(90, 19, 152, 0.3);
+  background: #fff;
+  color: #5a1398;
+}
+
+.apv-sample select {
+  border: 0;
+  background: transparent;
+  padding: 9px 4px;
+  font-size: 0.92rem;
+  color: #241b52;
+  outline: none;
+  cursor: pointer;
+  max-width: 320px;
+}
+
+.apv-clear-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(90, 19, 152, 0.3);
+  background: #fff;
+  color: #5a1398;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.apv-engine-note {
+  font-size: 0.85rem;
+  color: #7a6b99;
+}
+
+.apv-notice {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff7e6;
+  border: 1px solid #f5d28a;
+  color: #7a5200;
+  font-size: 0.9rem;
+}
+
+/* Blockly and Monaco both need a definite height to size themselves. */
+.apv-workspace-frame {
+  height: 520px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(90, 19, 152, 0.18);
+  background: var(--panel-bg, #fff);
+}
+
+.apv-pane {
+  height: 100%;
+  width: 100%;
+}
+
+/* PipelineReplay fills its parent (flex:1; min-height:0; overflow:hidden). */
+.apv-pipeline-frame {
+  height: 78vh;
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(90, 19, 152, 0.18);
+}
+
+.apv-footnote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 4px 4px;
+  font-size: 0.85rem;
+  color: #7a6b99;
+}
+
+:root[data-theme="dark"] .apv-section {
+  background: rgba(30, 24, 52, 0.72);
+  border-color: rgba(167, 139, 250, 0.22);
+}
+:root[data-theme="dark"] .apv-section-head h2 { color: #ece8ff; }
+:root[data-theme="dark"] .apv-section-head p,
+:root[data-theme="dark"] .apv-engine-note,
+:root[data-theme="dark"] .apv-footnote { color: #b9b0d9; }
+:root[data-theme="dark"] .apv-sample,
+:root[data-theme="dark"] .apv-clear-btn { background: #241d3d; color: #d8ccff; border-color: rgba(167, 139, 250, 0.35); }
+:root[data-theme="dark"] .apv-sample select { color: #ece8ff; }
+:root[data-theme="dark"] .apv-seg { border-color: rgba(167, 139, 250, 0.35); }
+:root[data-theme="dark"] .apv-seg button { color: #d8ccff; }
+:root[data-theme="dark"] .apv-seg button.active { background: #7c3aed; color: #fff; }
+
+@media (max-width: 720px) {
+  .apv-section { padding: 14px; }
+  .apv-workspace-frame { height: 420px; }
+}

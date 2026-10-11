@@ -11,6 +11,7 @@ import BlockGlossaryModal from "../components/BlockGlossaryModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import DockableWorkspace from "../components/DockableWorkspace.jsx";
+import PipelineReplay from "../components/PipelineReplay.jsx";
 import ComplexityPanelContent from "../components/panelContent/ComplexityPanelContent.jsx";
 import ConsolePanelContent from "../components/panelContent/ConsolePanelContent.jsx";
 import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
@@ -19,6 +20,7 @@ import WorkspaceHeader from "../components/WorkspaceHeader.jsx";
 import { projectsDB, templatesDB } from "../db.js";
 import { fetchStaticJson, warmStaticJson } from "../utils/staticJsonCache";
 import "../styles/MainApp.css";
+import "../styles/PipelineMode.css";
 
 import { FiActivity, FiChevronLeft, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
 import { usePyodide } from "../context/PyodideContext.jsx";
@@ -55,6 +57,10 @@ const SIDEBAR_TEMPLATES = [
   { name: "Fibonacci (Recursive)", path: "recursive/recursive_fibonacci", desc: "Generates Fibonacci sequence recursively.", category: "Recursive" },
   { name: "Permutation (Recursive)", path: "recursive/recursive_permutation", desc: "Generates all permutations of a string.", category: "Recursive" },
   { name: "Tower of Hanoi (Recursive)", path: "recursive/recursive_tower_of_hanoi", desc: "Moves disks following rules.", category: "Recursive" },
+  { name: "BFS (Undirected Graph)", path: "graph/bfs_undirected", desc: "Level-by-level traversal; edges go both ways.", category: "Graph" },
+  { name: "BFS (Directed Graph)", path: "graph/bfs_directed", desc: "Level-by-level traversal; edges go one way.", category: "Graph" },
+  { name: "DFS (Undirected Graph)", path: "graph/dfs_undirected", desc: "Recursive depth-first traversal; edges go both ways.", category: "Graph" },
+  { name: "DFS (Directed Graph)", path: "graph/dfs_directed", desc: "Recursive depth-first traversal; edges go one way.", category: "Graph" },
 ];
 
 const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -111,8 +117,8 @@ const createInitialTab = (locState = null) => {
 // emergency snapshot wins over a blank tab, but never overrides an
 // explicit incoming projectToLoad (the user asked to open something
 // specific -- that intent shouldn't be silently replaced by an old draft).
-const getInitialTabsState = (locState = null) => {
-  if (!locState?.projectToLoad) {
+const getInitialTabsState = (locState = null, skipRecovery = false) => {
+  if (!locState?.projectToLoad && !skipRecovery) {
     const user = getUser();
     const snapshot = readEmergencyTabsSnapshot(user?.email);
     if (snapshot && Array.isArray(snapshot.tabs) && snapshot.tabs.length > 0) {
@@ -134,7 +140,14 @@ const getInitialTabsState = (locState = null) => {
 const MAX_PROJECTS_PER_USER = 20;
 const MAX_TEMPLATES_PER_USER = 20;
 
-export default function MainApp() {
+// pipelineMode: the admin-only "Pipeline View" page (/admin/pipeline) renders
+// this same workspace -- templates sidebar, tabs, blocks/python, console,
+// complexity panels, Big-O reference, block explorer -- and adds the full
+// Pipeline replay underneath it. Everything user-centred is switched off in
+// that mode: no Save / project + template storage, no cloud pull of the
+// admin's own items, no emergency localStorage snapshot, no unsaved-changes
+// prompts. It exists so panelists can watch the Complexity Analysis Model run.
+export default function MainApp({ pipelineMode = false }) {
   const location = useLocation();
   const navigate = useNavigate();
   const navigationContext = React.useContext(NavigationContext);
@@ -145,7 +158,7 @@ export default function MainApp() {
   const { worker, isEngineReady, resetWorker, progress: engineProgress, engineError } = usePyodide();
 
   const initialTabsStateRef = useRef(null);
-  if (initialTabsStateRef.current === null) initialTabsStateRef.current = getInitialTabsState(location.state);
+  if (initialTabsStateRef.current === null) initialTabsStateRef.current = getInitialTabsState(location.state, pipelineMode);
 
   const [tabs, setTabs] = useState(() => initialTabsStateRef.current.tabs);
   const [activeTabId, setActiveTabId] = useState(() => initialTabsStateRef.current.activeTabId);
@@ -213,6 +226,12 @@ export default function MainApp() {
   const workerRef = useRef(null);
   const runTimeoutRef = useRef(null);
   const renderIntervalRef = useRef(null);
+  // Every run gets an id. Messages from a run the user already stopped carry an old
+  // id and are ignored, so they can never leak into the next run's console.
+  const runIdRef = useRef(0);
+  // Set when Run is pressed while a CPU-bound program is running: that run can only be
+  // killed by restarting the engine, so the new run starts once the engine is ready.
+  const pendingRerunRef = useRef(false);
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   // Accumulates raw stderr text for the run currently in flight. Pyodide
@@ -292,6 +311,7 @@ export default function MainApp() {
   };
 
   const emergencySaveNow = () => {
+    if (pipelineMode) return;
     try {
       const user = getUser();
       const key = emergencyTabsKey(user?.email);
@@ -342,7 +362,7 @@ export default function MainApp() {
   }, []);
 
   useEffect(() => {
-    if (!navigator || !navigator.block) return;
+    if (pipelineMode || !navigator || !navigator.block) return;
     const unblock = navigator.block((tx) => {
       const hasUnsavedChanges = latestTabsRef.current.some((t) => t.isDirty === true);
       if (hasUnsavedChanges && !isNavigatingAwayRef.current) setLeaveModal({ isOpen: true, tx, targetPath: null });
@@ -352,6 +372,7 @@ export default function MainApp() {
   }, [navigator]);
 
   useEffect(() => {
+    if (pipelineMode) return undefined;
     const handleBeforeUnload = (e) => {
       emergencySaveNow();
       const hasUnsavedChanges = latestTabsRef.current.some((t) => t.isDirty === true);
@@ -403,13 +424,17 @@ export default function MainApp() {
   const initWorker = () => {
     if (!workerRef.current) return;
     workerRef.current.onmessage = (event) => {
-      const { type, data, counts } = event.data;
+      const { type, data, counts, runId } = event.data;
+      if ((type === "OUTPUT" || type === "ERROR" || type === "INPUT_REQUEST" || type === "RUN_RESULT")
+          && runId !== undefined && runId !== runIdRef.current) return;
       if (type === "ANALYZE_RESULT") {
         const targetId = analyzingTabId.current;
         if (data.status === "success") {
           const initialCounts = {};
           (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-          const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
+          // Only genuine errors (e.g. NameError) are flagged `blocking`; "possible bug" lint
+          // warnings share this list but must not hide the complexity result.
+          const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: err.blocking === true, isNameError: /^(NameError|ZeroDivisionError|IndexError|TypeError|ValueError)\b/.test(err.message || "") }));
           updateTab(targetId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: {
@@ -427,10 +452,10 @@ export default function MainApp() {
           });
         } else {
           if (data.multiple_errors && data.multiple_errors.length > 0) {
-            const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
+            const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: true }));
             updateTab(targetId, { syntaxErrors: mappedErrors });
           } else {
-            updateTab(targetId, { syntaxErrors: [{ line: data.line, message: data.message, fix: translatePythonError(data.message) }] });
+            updateTab(targetId, { syntaxErrors: [{ line: data.line, message: data.message, fix: translatePythonError(data.message), blocking: true }] });
           }
         }
       } else if (type === "RUN_RESULT") {
@@ -442,9 +467,27 @@ export default function MainApp() {
         // line -- not whatever fragment happened to arrive first.
         let hintBlock = "";
         if (runtimeErrorTextRef.current.trim()) {
-          const hint = translatePythonError(extractErrorSummaryLine(runtimeErrorTextRef.current));
+          const crashText = runtimeErrorTextRef.current;
+          const summary = extractErrorSummaryLine(crashText);
+          const hint = translatePythonError(summary);
           if (hint) hintBlock = `\n${hint}\n`;
           runtimeErrorTextRef.current = "";
+          // Mark the crashing line in the editor and tell the Complexity panel the
+          // run failed. The last <user_code> frame in the traceback is the user's own
+          // line (earlier frames can be helper functions).
+          const frames = [...crashText.matchAll(/File "<user_code>", line (\d+)/g)];
+          const crashLine = frames.length ? Number(frames[frames.length - 1][1]) : null;
+          if (crashLine && summary) {
+            const crashEntry = { line: crashLine, message: summary, fix: hint || translatePythonError(summary), blocking: false, isRuntimeCrash: true, isNameError: /^NameError/.test(summary) };
+            const crashTabId = analyzingTabId.current;
+            setTabs((prev) => prev.map((t) => {
+              if (t.id !== crashTabId) return t;
+              const existing = t.syntaxErrors || [];
+              // Already caught before the run (e.g. an undefined name): keep that entry as is.
+              if (existing.some((e) => e.line === crashLine && e.message === summary)) return t;
+              return { ...t, syntaxErrors: [...existing.filter((e) => !e.isRuntimeCrash), crashEntry] };
+            }));
+          }
         }
         setConsoleOutput((prev) => prev + flushed + resultData + hintBlock + "\n> Program finished.\n");
         if (counts) updateTab(analyzingTabId.current, { lineExecutions: counts });
@@ -487,6 +530,12 @@ export default function MainApp() {
 
   useEffect(() => { if (worker) { workerRef.current = worker; initWorker(); } }, [worker]);
 
+  // Run pressed during a busy-loop run: start the fresh run as soon as the engine is back.
+  useEffect(() => {
+    if (isEngineReady && pendingRerunRef.current) { pendingRerunRef.current = false; handleRunCode(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEngineReady]);
+
   useEffect(() => {
     const handleOnline = () => { setIsOnline(true); showToast("Connection restored.", "success"); };
     const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Using local Pyodide.", "error"); };
@@ -503,6 +552,9 @@ export default function MainApp() {
 
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map((t) => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
+    // Pipeline mode: the full built-in template library only; never pull or
+    // list the signed-in account's own saved projects/templates.
+    if (pipelineMode) { setAllTemplates(baseTemplates); return; }
     try {
       const user = getUser();
       if (!user) { setAllTemplates(baseTemplates); return; }
@@ -709,15 +761,36 @@ export default function MainApp() {
     }
   }, [activeTab.pythonCode, activeTab.isEditingCode, isOnline, activeTabId, isEngineReady]);
 
-  const handleSyncToBlocks = async () => {
+  // Always points at the newest tab state so an in-flight conversion can
+  // tell whether the learner kept typing while it was running.
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  // Last text per tab that an automatic sync already tried, so a snippet
+  // that can't be auto-converted isn't retried in a loop.
+  const lastAutoSyncTextRef = useRef({});
+  // The text the learner most recently typed in the Python editor, per tab.
+  // Auto-sync only fires for text typed this session (or when there are no
+  // blocks yet), so just OPENING a saved project never silently rebuilds its
+  // saved blocks from the Python text.
+  const typedPythonRef = useRef({});
+
+  // Python -> Blocks. `silent` is the automatic mode that runs while the
+  // learner types: no panel switching, no toast, no modal. The manual
+  // "Sync to Blocks" button keeps the full, visible flow.
+  const syncToBlocks = async (silent = false) => {
     if (isSyncingToBlocks) return;
-    const hasErrors = activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0;
-    if (hasErrors) { showToast("Cannot sync to blocks. Please fix Python syntax errors first.", "error"); return; }
+    // A NameError (undefined variable) still converts to blocks fine; only real
+    // syntax problems should stop the sync.
+    const hasErrors = activeTab.syntaxErrors && activeTab.syntaxErrors.some((e) => !e.isNameError && !e.isRuntimeCrash);
+    if (hasErrors) { if (!silent) showToast("Cannot sync to blocks. Please fix Python syntax errors first.", "error"); return; }
     if (!isEngineReady) {
-      showToast(engineError || (engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment."), "error");
+      if (!silent) showToast(engineError || (engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment."), "error");
       return;
     }
-    if (workspaceRefs.current[activeTabId] && activeTab.pythonCode) {
+    const tabId = activeTabId;
+    if (workspaceRefs.current[tabId] && activeTab.pythonCode) {
+      const snapshot = activeTab.pythonCode;
+      if (silent) lastAutoSyncTextRef.current[tabId] = snapshot;
       // Bring the Blocks panel into view *before* the conversion starts,
       // not after it succeeds. If unsupported/partially-supported
       // libraries are detected, loadFromPython() below pops open the
@@ -727,17 +800,60 @@ export default function MainApp() {
       // hidden dock region and the whole sync looks permanently "stuck"
       // even though it's just waiting on a confirmation the user can't
       // see or click.
-      focusDockPanel("blockly");
+      if (!silent) focusDockPanel("blockly");
       setIsSyncingToBlocks(true);
       try {
-        const cleanCode = sanitizePythonCode(activeTab.pythonCode);
-        await workspaceRefs.current[activeTabId].loadFromPython(cleanCode);
-        updateTab(activeTabId, { isEditingCode: false, viewMode: "workspace" });
-        showToast("Code successfully synced to Blocks", "success");
-      } catch (e) { showToast(`Sync Failed: ${e.message}`, "error"); }
+        const cleanCode = sanitizePythonCode(snapshot);
+        const result = await workspaceRefs.current[tabId].loadFromPython(cleanCode, { silent });
+        if (result?.skipped) return;
+        // If the learner typed more while this ran, stay "dirty" so the
+        // auto-sync effect converts the newer text too.
+        const stillCurrent = activeTabRef.current?.id !== tabId || activeTabRef.current?.pythonCode === snapshot;
+        updateTab(tabId, stillCurrent ? (silent ? { isEditingCode: false } : { isEditingCode: false, viewMode: "workspace" }) : {});
+        if (!silent) showToast("Code successfully synced to Blocks", "success");
+      } catch (e) { if (!silent) showToast(`Sync Failed: ${e.message}`, "error"); }
       finally { setIsSyncingToBlocks(false); }
     }
   };
+
+  const handleSyncToBlocks = () => syncToBlocks(false);
+
+  // Line Executions -> Python editor: bring the Python panel forward and select
+  // the clicked line. The panel may still be mounting, so wait a tick before
+  // touching the editor.
+  const jumpToPythonLine = (line) => {
+    updateTab(activeTabId, { viewMode: "python" });
+    focusDockPanel("python");
+    setTimeout(() => {
+      const editor = editorRef.current; const monaco = monacoRef.current;
+      const model = editor?.getModel?.();
+      if (!editor || !monaco || !model) return;
+      const ln = Math.min(Math.max(1, line), model.getLineCount());
+      editor.revealLineInCenter(ln);
+      editor.setSelection(new monaco.Range(ln, 1, ln, model.getLineMaxColumn(ln)));
+      editor.focus();
+    }, 120);
+  };
+
+  // Automatic Python -> Blocks sync (Blocks -> Python already happens on
+  // every block edit). Editing the Python -- e.g. deleting "n = 3" -- is now
+  // reflected in the blocks after a short typing pause, with no need to
+  // press "Sync to Blocks". Applies to the Main app and, because the admin
+  // Pipeline page renders this same component, to that page as well.
+  const syncToBlocksRef = useRef(syncToBlocks);
+  syncToBlocksRef.current = syncToBlocks;
+  useEffect(() => {
+    if (!activeTab.isEditingCode || isSyncingToBlocks || !isEngineReady) return;
+    const code = activeTab.pythonCode;
+    if (!code || !code.trim() || code === "# Drag blocks to generate Python code") return;
+    if (activeTab.syntaxErrors && activeTab.syntaxErrors.some((e) => !e.isNameError && !e.isRuntimeCrash)) return;
+    if (lastAutoSyncTextRef.current[activeTabId] === code) return;
+    const bj = activeTab.blocklyJson;
+    const noBlocksYet = !bj || Object.keys(bj).length === 0 || (bj.blocks && bj.blocks.blocks && bj.blocks.blocks.length === 0);
+    if (typedPythonRef.current[activeTabId] !== code && !noBlocksYet) return;
+    const timeoutId = setTimeout(() => { syncToBlocksRef.current(true); }, 1200);
+    return () => clearTimeout(timeoutId);
+  }, [activeTab.pythonCode, activeTab.isEditingCode, activeTab.syntaxErrors, activeTabId, isSyncingToBlocks, isEngineReady]);
 
   const handleClear = () => {
     setModalConfig({
@@ -760,26 +876,64 @@ export default function MainApp() {
     });
   };
 
+  // Manual stop. While the program waits at input() the worker is idle, so STOP_RUN ends it
+  // instantly and the engine stays loaded. A program stuck in a busy loop cannot hear any
+  // message, so that case restarts the engine (same recovery as the infinite-loop timeout).
+  // Returns true when the engine had to be restarted.
+  const stopExecution = ({ silent = false } = {}) => {
+    clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+    const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+    runIdRef.current += 1;
+    const graceful = isWaitingForInput && !!workerRef.current;
+    if (graceful) workerRef.current.postMessage({ type: "STOP_RUN" });
+    else resetWorker();
+    if (!silent) setConsoleOutput((prev) => prev + flushed + (graceful ? "^C" : "") + "\n> Program stopped.\n");
+    setIsEvaluating(false); setIsWaitingForInput(false); setUserInput(""); outputCountRef.current = 0;
+    return !graceful;
+  };
+
   const handleRunCode = async () => {
-    if (isEvaluating) return;
+    // Run is never locked (like an IDE): pressing it mid-run stops that run and starts again.
+    if (isEvaluating) {
+      const engineRestarting = stopExecution({ silent: true });
+      if (engineRestarting) {
+        pendingRerunRef.current = true;
+        setConsoleOutput("> Stopping the program and restarting the engine...\n");
+        return;
+      }
+    }
     if (!isEngineReady) {
       showToast(engineError || (engineProgress?.stage ? `Still preparing the Python engine (${engineProgress.stage})` : "The Python engine is still loading. Please wait a moment."), "error");
       return;
     }
-    if (!activeTab.pythonCode || activeTab.pythonCode.trim() === "" || activeTab.pythonCode === "# Drag blocks to generate Python code") {
+    // Clean up unused (unplugged) value blocks first; they do nothing and can
+    // leave stray lines in the generated Python. When the blocks are the source
+    // of truth, run the freshly regenerated code, since the tab state only
+    // catches up after Blockly's debounced onChange.
+    const cleaned = workspaceRefs.current[activeTabId]?.removeUnusedBlocks?.();
+    const codeToRun = (cleaned?.removed && !activeTab.isEditingCode && typeof cleaned.code === "string")
+      ? cleaned.code.trim()
+      : activeTab.pythonCode;
+    if (!codeToRun || codeToRun.trim() === "" || codeToRun === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute."); focusDockPanel("console"); setConsoleTab("output"); return;
     }
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
     setIsEvaluating(true); updateTab(activeTabId, { lineExecutions: {} });
-    focusDockPanel("console"); setConsoleTab("output"); setConsoleOutput((prev) => prev + "\n> Running the program...\n");
+    focusDockPanel("console"); setConsoleTab("output");
+    // Each run starts with a fresh console (like an IDE), so the learner never
+    // has to press Clear and old output never gets mixed with the new run.
+    setConsoleOutput("> Running the program...\n");
+    // A new run replaces the previous run's crash marker.
+    setTabs((prev) => prev.map((t) => (t.id === activeTabId ? { ...t, syntaxErrors: (t.syntaxErrors || []).filter((e) => !e.isRuntimeCrash) } : t)));
 
     outputCountRef.current = 0; pendingOutputRef.current = ""; runtimeErrorTextRef.current = "";
     renderIntervalRef.current = setInterval(() => {
       if (pendingOutputRef.current) { setConsoleOutput((prev) => prev + pendingOutputRef.current); pendingOutputRef.current = ""; }
     }, 100);
 
-    const safePayload = sanitizePythonCode(activeTab.pythonCode);
-    workerRef.current.postMessage({ type: "RUN_CODE", code: safePayload });
+    const safePayload = sanitizePythonCode(codeToRun);
+    const runId = ++runIdRef.current;
+    workerRef.current.postMessage({ type: "RUN_CODE", code: safePayload, runId });
 
     runTimeoutRef.current = setTimeout(() => {
       resetWorker();
@@ -878,7 +1032,7 @@ export default function MainApp() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) { e.preventDefault(); openSaveModalRef.current(); }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) { e.preventDefault(); if (!pipelineMode) openSaveModalRef.current(); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -1183,6 +1337,7 @@ export default function MainApp() {
           isSyncingToBlocks={isSyncingToBlocks}
           onChangeCode={(value) => {
             const cleanValue = sanitizePythonCode(value);
+            typedPythonRef.current[activeTabId] = cleanValue;
             updateTab(activeTabId, { pythonCode: cleanValue, isEditingCode: true, syntaxErrors: [], isDirty: true });
           }}
           onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
@@ -1204,8 +1359,12 @@ export default function MainApp() {
           userInput={userInput}
           setUserInput={setUserInput}
           onSendInput={handleSendInput}
+          isEvaluating={isEvaluating}
+          onStopRun={() => stopExecution()}
           pythonCode={activeTab.pythonCode}
           lineExecutions={activeTab.lineExecutions}
+          totalComplexity={(activeTab.syntaxErrors || []).some((e) => e.blocking) ? null : (activeTab.analysisResult?.total || null)}
+          onJumpToLine={jumpToPythonLine}
         />
       ),
     },
@@ -1221,13 +1380,15 @@ export default function MainApp() {
           analysisResult={activeTab.analysisResult}
           analysisTime={activeTab.analysisTime}
           defaultWeight={0}
+          hasErrors={(activeTab.syntaxErrors || []).some((e) => e.blocking)}
+          runtimeCrash={(activeTab.syntaxErrors || []).find((e) => e.isRuntimeCrash) || null}
         />
       ),
     },
   ];
 
   return (
-    <div className="workspace-app-container">
+    <div className={`workspace-app-container${pipelineMode ? " pipeline-mode" : ""}`}>
       <ConfirmModal isOpen={leaveModal.isOpen} title="Unsaved Changes" message="You have unsaved changes in your workspace. Are you sure you want to leave? All unsaved progress will be lost." confirmText="Leave Workspace" cancelText="Stay" isDanger={true} onCancel={cancelLeaveSite} onConfirm={confirmLeaveSite} />
       <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} isDanger={modalConfig.isDanger} onCancel={closeModal} onConfirm={modalConfig.onConfirmAction} />
 
@@ -1313,11 +1474,23 @@ export default function MainApp() {
         engineProgress={engineProgress}
         handleUpdateDB={openSaveModal} 
         isEvaluating={isEvaluating} 
+        onStopRun={() => stopExecution()}
         isAdmin={isAdmin}
         isGuest={isGuest}
-        tour={workspaceTour}
-        tourPageId="workspace"
+        hideSave={pipelineMode}
+        tour={pipelineMode ? undefined : workspaceTour}
+        tourPageId={pipelineMode ? "admin-pipeline" : "workspace"}
       />
+
+      {pipelineMode && (
+        <div className="pm-section-bar">
+          <span className="pm-step-badge">1</span>
+          <div>
+            <strong>Workspace</strong>
+            <span>Input to the model. Build blocks, write Python, or load any template. Run it and read the Console and Complexity panels as usual.</span>
+          </div>
+        </div>
+      )}
 
       <Split className={`workspace-split ${!isSidebarVisible ? "sidebar-hidden" : ""}`} sizes={[20, 80]} minSize={[isSidebarVisible ? 250 : 0, 400]} gutterSize={8}>
         <aside className="templates-sidebar">
@@ -1377,7 +1550,7 @@ export default function MainApp() {
             <div className="editor-container">
               <DockableWorkspace
                 ref={dockRef}
-                layoutKey="mainapp-workspace"
+                layoutKey={pipelineMode ? "admin-pipeline-workspace" : "mainapp-workspace"}
                 panels={dockPanels}
                 defaultLayout={DEFAULT_DOCK_LAYOUT}
                 onLayoutChange={({ openPanelIds: ids }) => setOpenPanelIds(ids)}
@@ -1400,6 +1573,20 @@ export default function MainApp() {
           </WorkspaceFooterBar>
         </main>
       </Split>
+      {pipelineMode && (
+        <section className="pm-pipeline-section" aria-label="Pipeline view">
+          <div className="pm-section-bar">
+            <span className="pm-step-badge">2</span>
+            <div>
+              <strong>Pipeline View</strong>
+              <span>The same analysis replayed stage by stage, following the Complexity Analysis Model. It follows the code in the active workspace tab above.</span>
+            </div>
+          </div>
+          <div className="pm-pipeline-frame">
+            <PipelineReplay sourceCode={activeTab.pythonCode} blockingErrors={(activeTab.syntaxErrors || []).filter((e) => e.blocking)} runtimeCrash={(activeTab.syntaxErrors || []).find((e) => e.isRuntimeCrash) || null} />
+          </div>
+        </section>
+      )}
       <BigOModal isOpen={isBigOModalOpen} onClose={() => setIsBigOModalOpen(false)} />
       <BlockGlossaryModal isOpen={isBlockGlossaryOpen} onClose={() => setIsBlockGlossaryOpen(false)} />
     </div>

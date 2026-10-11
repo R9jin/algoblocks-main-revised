@@ -2073,8 +2073,10 @@ th, .admin-activity-table th, .full-report-table th, .eval-dataset-table th,
   border-color: rgba(255, 255, 255, 0.5) !important;
 }
 
-/* Ensure text contrast */
-h1, h2, h3, h4, .analytics-card-value, .admin-metric-value, .eval-metric-value {
+/* Ensure text contrast -- scoped to the Evaluation Suite page (was a global
+   h1-h4 rule that leaked into dark surfaces on every page). */
+.eval-suite-container :is(h1, h2, h3, h4),
+.analytics-card-value, .admin-metric-value, .eval-metric-value {
   color: #5d5d5e !important;
 }
 

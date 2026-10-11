@@ -16,6 +16,7 @@ import { mirrorStaticContentToIndexedDb, whenIdle, whenServiceWorkerReady } from
 // Lazy load ALL pages to prevent circular dependency crashes and reduce the initial load payload
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminUserManagement = lazy(() => import('./pages/AdminUserManagement'));
+const AdminPipelineView = lazy(() => import('./pages/AdminPipelineView'));
 const AccuracyOverview = lazy(() => import('./pages/AccuracyOverview'));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const EvaluationSuite = lazy(() => import("./pages/EvaluationSuite"));
@@ -231,6 +232,7 @@ function App() {
           */}
           <Route path="/admin/users" element={<AdminOnlyRoute><AdminUserManagement /></AdminOnlyRoute>} />
           <Route path="/admin/evaluation-suite" element={<AdminOnlyRoute><EvaluationSuite /></AdminOnlyRoute>} />
+          <Route path="/admin/pipeline" element={<AdminOnlyRoute><AdminPipelineView /></AdminOnlyRoute>} />
 
           {/* Catch-all route: prevents a completely blank screen if the user lands on an invalid 404 path */}
           <Route path="*" element={<Navigate to="/" replace />} />

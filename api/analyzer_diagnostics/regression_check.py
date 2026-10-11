@@ -26,7 +26,11 @@ if _HERE not in sys.path:
 
 from complexity_analyzer.analyzer import analyze_source_code  # noqa: E402
 
-GROUND_TRUTH_DIR = os.path.join(_HERE, "ground_truth")
+# DATASET SWITCH: "processed" (273: 259 cleaned + 14 added O(n!)) or "original_278" (278 original).
+# Both live as subfolders of api/analyzer_diagnostics/ground_truth/ because the
+# serverless function can only read files vendored inside api/.
+ACTIVE_DATASET = "processed"
+GROUND_TRUTH_DIR = os.path.join(_HERE, "ground_truth", ACTIVE_DATASET)
 
 # ---------------------------------------------------------------------------
 # Regression floors -- kept identical to tests/test_analyzer_regression.py

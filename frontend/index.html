@@ -9,6 +9,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlgoBlocks</title>
 
+  <script>
+    (function () {
+      try {
+        var p = localStorage.getItem("algoblocks-theme");
+        var dark = p === "dark" || (p === "system" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      } catch (e) {}
+    })();
+  </script>
 </head>
 
 <body>

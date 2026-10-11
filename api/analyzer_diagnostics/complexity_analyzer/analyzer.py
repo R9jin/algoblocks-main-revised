@@ -26,6 +26,7 @@ pipeline-stage class.
 import ast
 import re
 import time
+from contextlib import contextmanager
 from collections import deque, Counter
 import sys
 
@@ -34,6 +35,11 @@ sys.setrecursionlimit(2000)
 
 from complexity_analyzer.code_preprocessor import (
     extract_constant,
+    find_script_literal_name_locs,
+    find_element_dim_loops,
+    graph_aux_space,
+    find_constant_sized_names,
+    script_literal_loop_note,
     _name_hints_memo_or_graph,
     _detect_factorial_branching,
     preprocess_source,
@@ -56,6 +62,18 @@ try:
     from logic_lint import detect_logic_issues
 except ImportError:
     def detect_logic_issues(source_code, tree=None):
+        return []
+
+try:
+    from scope_detector import detect_name_errors
+except ImportError:
+    def detect_name_errors(source_code, tree=None, limit=10):
+        return []
+
+try:
+    from scope_detector import detect_static_runtime_errors
+except ImportError:
+    def detect_static_runtime_errors(source_code, tree=None):
         return []
 
 try:
@@ -93,7 +111,7 @@ class ComplexityAnalyzer:
         "O(n log n)": "O(n log n)", 
         "O(n^2)": "O(n^2)", 
         "O(V+E)": "O(V+E)", 
-        "O(n * m)": "O(n^2)",
+        "O(n * m)": "O(n * m)",
         "O(3^n)": "O(2^n)", 
         "O(2^n)": "O(2^n)", 
         "O(n * n!)": "O(n!)", 
@@ -128,7 +146,7 @@ class ComplexityAnalyzer:
         # literal constants.
         self.module_int_constants = set()
         self.builtin_complexities = {
-            'sort': {'time': 'O(n log n)', 'space': 'O(1)', 'desc': 'Sorts the list in-place using the stable Timsort algorithm.'},
+            'sort': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Sorts the list in place with Timsort. Timsort is a merge-based sort that needs up to O(n) temporary space in the worst case, so the auxiliary space is O(n) even though no new list is returned.'},
             'sorted': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Creates and returns a completely new sorted list.'},
             'bisect': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Performs a binary search on a sorted sequence.'},
             'bisect_left': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Performs a binary search on a sorted sequence.'},
@@ -181,7 +199,7 @@ class ComplexityAnalyzer:
             'items': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Returns dict items view.'},
             'range': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Creates mathematical range object.'},
             'clear': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Empties the container.'},
-            'get': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Looks up dictionary key. Evaluated as worst-case O(n) due to hash collisions.'},
+            'get': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Looks up a dictionary key. Hash lookups are counted as O(1), the same convention used for `in`, `add` and `d[key]`.'},
             'popleft': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Removes first element of deque.'},
 
             # -----------------------------------------------------------
@@ -415,9 +433,32 @@ class ComplexityAnalyzer:
             'pvariance', 'quantiles', 'correlation', 'covariance', 'linear_regression',
         }
         self.aliases = {}
+        self.explain = True
+        # Time spent building educational insights (per-line explanations,
+        # bottleneck notes, the overall narrative). Tracked separately so the
+        # reported "analysis time" measures the complexity analysis itself,
+        # the same thing the dataset benchmark measures with explain=False.
+        self._explain_seconds = 0.0
+        self._explain_depth = 0
         if SemanticNLGEngine:
             self.nlg_engine = SemanticNLGEngine(self)
-            
+
+    @contextmanager
+    def explain_clock(self):
+        """Counts the time spent inside the block as explanation time. Nested
+        use is safe: only the outermost block is counted, so time is never
+        subtracted twice."""
+        if self._explain_depth > 0:
+            yield
+            return
+        self._explain_depth += 1
+        t0 = time.perf_counter()
+        try:
+            yield
+        finally:
+            self._explain_seconds += time.perf_counter() - t0
+            self._explain_depth -= 1
+
     def reset_state(self):
         # Cleared here (not just at __init__) because some cached
         # classifiers read self.variable_complexities / self.loop_depth,
@@ -429,6 +470,11 @@ class ComplexityAnalyzer:
         self.current_depth = 0           
         self.loop_depth = 0
         self.log_loop_depth = 0          
+        # Depth of enclosing loops whose body calls a log-cost routine (heappush, bisect, ...).
+        # Kept apart from log_loop_depth (loops that themselves run log n times) because the
+        # extra log factor belongs on the lines doing log-cost work, not on a sibling line in
+        # the same loop that already costs O(n): n x max(log n, n) is n^2, not n^2 log n.
+        self.call_log_depth = 0
         self.sqrt_loop_depth = 0
         self.graph_depth = 0             
         self.in_if_depth = 0
@@ -442,6 +488,10 @@ class ComplexityAnalyzer:
         self.active_gcd_vars = None
         self.function_gcd_vars = None
         self.var_types = {} 
+        # Names bound to a container whose length is a fixed constant (e.g. a 256-slot
+        # table, `[0] * 26`): operations whose cost depends on the container's length
+        # (sorting it, copying it) are O(1) for these, not O(n).
+        self.constant_size_containers = set()
         self.loop_body_stack = []
         
         self.max_complexity = 0          
@@ -465,6 +515,9 @@ class ComplexityAnalyzer:
         self.indirect_recursive_funcs = getattr(self, 'indirect_recursive_funcs', set()) 
         
         self.in_dead_code = False
+        # Why the current region is dead: {"kind": ..., "reason": ...}.
+        # Set wherever in_dead_code is raised; copied onto each line entry.
+        self.dead_reason = None
         self.in_graph_context = False        
         self.has_recursion_in_loop = False  
         self.has_factorial_branching = False
@@ -480,8 +533,9 @@ class ComplexityAnalyzer:
 
     @property
     def details(self):
-        if not getattr(self, '_bottlenecks_applied', False) and len(self._details) > 0 and SemanticNLGEngine:
-            self.signature_recorder._apply_bottlenecks()
+        if not getattr(self, '_bottlenecks_applied', False) and len(self._details) > 0 and SemanticNLGEngine and getattr(self, 'explain', True):
+            with self.explain_clock():
+                self.signature_recorder._apply_bottlenecks()
             self._bottlenecks_applied = True
         return self._details
 
@@ -587,9 +641,13 @@ def _finalize_line_output(details):
     return finalized
 
 
-def analyze_source_code(source_code):
+def analyze_source_code(source_code, explain=True):
+    """explain=False skips every educational-insight step (per-line explanations,
+    bottleneck/praise notes, overall narrative). Complexity results are unaffected;
+    the dataset benchmark uses it because it only scores the predicted values."""
     import time
     start_time = time.perf_counter()
+    analyzer = None  # set once the analyzer exists; read for the explanation time below
     
     source_code = preprocess_source(source_code)
     
@@ -605,6 +663,7 @@ def analyze_source_code(source_code):
                 pass 
         
         analyzer = ComplexityAnalyzer(source_code, trace_data)
+        analyzer.explain = bool(explain)
 
         # Scan for module-level literal-int/float constants (see comment on
         # `module_int_constants` in __init__) so loop-bound / allocation-size
@@ -623,6 +682,10 @@ def analyze_source_code(source_code):
                 for target in stmt.targets:
                     if isinstance(target, ast.Name) and target.id not in param_names:
                         analyzer.module_int_constants.add(target.id)
+        analyzer.script_literal_locs = find_script_literal_name_locs(tree)
+        analyzer.m_dim_for_locs = find_element_dim_loops(tree)
+        analyzer.graph_aux_space = graph_aux_space(tree)
+        analyzer.const_sized_names = find_constant_sized_names(tree, analyzer.complexity_heuristics._is_constant_expr)
 
         analyzer.call_graph_mapper.bfs_first_pass(tree)
 
@@ -642,7 +705,13 @@ def analyze_source_code(source_code):
         # references.
         analyzer.ast_visitor.visit(tree)
 
-        overall_exp = analyzer.complexity_synthesizer.get_overall_explanation(tree)
+        overall_exp = ""  # stays empty when explain=False (educational insights skipped)
+        if explain:
+            with analyzer.explain_clock():
+                overall_exp = analyzer.complexity_synthesizer.get_overall_explanation(tree)
+        _lit_note = script_literal_loop_note(tree, getattr(analyzer, 'script_literal_locs', set()))
+        if _lit_note:
+            overall_exp = ((overall_exp or '') + '\n\n' + _lit_note).strip()
 
         results = {
             "status": "success",
@@ -661,10 +730,27 @@ def analyze_source_code(source_code):
             # upstream of this (syntax check, Pyodide traceback) ever has
             # a chance to catch them.
             "logic_warnings": detect_logic_issues(source_code, tree),
+            # Names that are read but never defined (NameError at run time).
+            # Plus errors that are certain to be raised when the code runs
+            # (`10 / 0`, `a[10]` on a 3-item list, `'a' + 1`, `int('abc')`).
+            # They share this list so the front end treats them exactly like
+            # a NameError: blocking, shown on the line, and the Python ->
+            # Blocks auto-sync keeps working.
+            "name_errors": detect_name_errors(source_code, tree)
+                           + detect_static_runtime_errors(source_code, tree),
         }
     except Exception as e:
         print(f"[AST CRASH FALLBACK TRIGGERED]: {e}")
         results = fallback_analyzer(source_code)
+        # The regex heuristic is a guess about code that did not even parse.
+        # Keep it available to the accuracy benchmarks as `fallback_total` /
+        # `fallback_space_total`, but do NOT present it as the answer: `total`
+        # / `space_total` are None so exports and reports can't pick up a
+        # made-up "O(n)" for broken code.
+        results["fallback_total"] = results.get("total")
+        results["fallback_space_total"] = results.get("space_total")
+        results["total"] = None
+        results["space_total"] = None
         # NOTE: fallback_analyzer() always reports status "success" (it still
         # provides a rough heuristic complexity guess), but a real failure
         # here (most commonly a SyntaxError) needs to be reported as an
@@ -678,6 +764,13 @@ def analyze_source_code(source_code):
         results.setdefault("scope_warnings", [])
         results.setdefault("logic_warnings", [])
     end_time = time.perf_counter()
-    results["analysis_time_ms"] = (end_time - start_time) * 1000
+    total_ms = (end_time - start_time) * 1000
+    # Educational insights are built inside the same pass, but they are not part
+    # of working out the complexity, so they are reported separately. This makes
+    # "analysis_time_ms" comparable to the dataset benchmark (explain=False).
+    explain_ms = (getattr(analyzer, "_explain_seconds", 0.0) or 0.0) * 1000
+    results["analysis_time_ms"] = max(0.0, total_ms - explain_ms)
+    results["explanation_time_ms"] = explain_ms
+    results["total_time_ms"] = total_ms
     
     return results

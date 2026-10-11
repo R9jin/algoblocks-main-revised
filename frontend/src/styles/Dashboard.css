@@ -105,7 +105,7 @@
 
 .hero-subtitle {
   font-size: 1.05rem;
-  color: #64748B;
+  color: #475569;
   margin: 0;
   line-height: 1.5;
 }
@@ -166,7 +166,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 800;
-  color: #7F57F9;
+  color: #5A1398;
   background: rgba(127, 87, 249, 0.1);
   padding: 6px 12px;
   border-radius: 8px;
@@ -182,7 +182,7 @@
 
 .learning-desc {
   font-size: 0.95rem;
-  color: #64748B;
+  color: #475569;
   margin: 0 0 24px 0;
 }
 
@@ -259,7 +259,7 @@
 }
 
 .bento-library-section .section-header p {
-  color: #64748B;
+  color: #475569;
   margin: 0;
   font-size: 0.95rem;
 }
@@ -335,7 +335,7 @@
 
 .template-desc {
   font-size: 0.85rem;
-  color: #64748B;
+  color: #475569;
   line-height: 1.5;
   margin: 0 0 16px 0;
   flex-grow: 1;
@@ -345,7 +345,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #7F57F9;
+  color: #5A1398;
   font-weight: 700;
   font-size: 0.9rem;
   padding-top: 12px;
@@ -372,7 +372,7 @@
 }
 
 .bento-help-section .section-header p {
-  color: #64748B;
+  color: #475569;
   margin: 0;
   font-size: 0.95rem;
 }
@@ -407,12 +407,12 @@
 
 .bento-resource-card svg:last-child {
   flex-shrink: 0;
-  color: #94A3B8;
+  color: #5B6B7F;
   transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .bento-resource-card:hover svg:last-child {
-  color: #7F57F9;
+  color: #5A1398;
   transform: translateX(2px);
 }
 
@@ -421,7 +421,7 @@
   height: 40px;
   border-radius: 10px;
   background: #F5F1FE;
-  color: #7F57F9;
+  color: #5A1398;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -442,7 +442,7 @@
 
 .resource-desc {
   font-size: 0.8rem;
-  color: #64748B;
+  color: #475569;
   line-height: 1.4;
   margin: 0;
 }
@@ -503,7 +503,7 @@
 .bento-faq-answer p {
   margin: 0;
   font-size: 0.95rem;
-  color: #64748B;
+  color: #475569;
   line-height: 1.6;
 }
 
@@ -583,7 +583,7 @@
   width: 36px;
   height: 36px;
   background: rgba(127, 87, 249, 0.1);
-  color: #7F57F9;
+  color: #5A1398;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -612,7 +612,7 @@
   align-items: center;
   gap: 6px;
   font-size: 0.75rem;
-  color: #64748B;
+  color: #475569;
 }
 
 .dot-separator { color: #CBD5E1; }
@@ -648,7 +648,7 @@
   justify-content: center;
   text-align: center;
   padding: 40px 20px;
-  color: #64748B;
+  color: #475569;
   height: 100%;
 }
 
@@ -656,7 +656,7 @@
   width: 48px;
   height: 48px;
   background: #F1F5F9;
-  color: #94A3B8;
+  color: #5B6B7F;
   border-radius: 12px;
   display: flex;
   align-items: center;

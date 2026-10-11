@@ -30,7 +30,7 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7F57F9, #E058FB);
+  background: linear-gradient(135deg, #6B44F0, #A62BC4);
   color: #FFFFFF;
   font-weight: bold;
   font-size: 1.1rem;
@@ -84,7 +84,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7F57F9, #E058FB);
+  background: linear-gradient(135deg, #6B44F0, #A62BC4);
   color: #FFFFFF;
   font-weight: bold;
   font-size: 1.5rem;
@@ -102,7 +102,7 @@
 }
 
 .user-email {
-  color: #A396B8;
+  color: #475569;
   font-size: 0.85rem;
   text-align: center;
   word-break: break-all;

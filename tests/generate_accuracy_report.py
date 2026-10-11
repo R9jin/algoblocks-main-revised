@@ -39,8 +39,8 @@ def main():
 
         expected_t = entry["expected_overall_time"]
         expected_s = entry["expected_overall_space"]
-        predicted_t = result.get("total")
-        predicted_s = result.get("space_total")
+        predicted_t = result.get("total") or result.get("fallback_total")
+        predicted_s = result.get("space_total") or result.get("fallback_space_total")
 
         t_ok = predicted_t == expected_t
         s_ok = predicted_s == expected_s

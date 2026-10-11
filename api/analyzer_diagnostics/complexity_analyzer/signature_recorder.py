@@ -8,6 +8,7 @@ analysis model (local/global time+space weights, bottleneck
 propagation, and per-line result recording).
 """
 import ast
+import re
 
 try:
     from complexity_explainer.complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
@@ -31,6 +32,14 @@ class SignatureRecorder:
         w = 0
         if "n!" in complexity_str: w = 150
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: w = 100
+        elif re.search(r"\w(\^\d+)? \* \w", complexity_str):
+            # product of independent sizes, e.g. O(n * m): ranks like n^(sum of exponents)
+            _deg = sum(int(x) if x else 1 for x in re.findall(r"[a-zA-Z](?:\^(\d+))?", re.sub(r"log n|O\(|\)", "", complexity_str)))
+            w = (20 + 6 * (_deg - 2) if _deg >= 2 else 10) - 0.5
+        elif re.search(r"n\^(\d+)", complexity_str) and int(re.search(r"n\^(\d+)", complexity_str).group(1)) >= 3:
+            _k = int(re.search(r"n\^(\d+)", complexity_str).group(1))
+            w = min(20 + 6 * (_k - 2), 90) + (1 if "log n" in complexity_str else 0)
+        elif "n^2 log n" in complexity_str or "n² log n" in complexity_str: w = 25
         elif "n^2" in complexity_str or "n²" in complexity_str: w = 20
         elif "n log n" in complexity_str: w = 15
         elif "V+E" in complexity_str or "V" in complexity_str: w = 12
@@ -48,6 +57,7 @@ class SignatureRecorder:
         s_w = 0
         if "n!" in complexity_str: s_w = 5
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: s_w = 4
+        elif re.search(r"n\^([3-9]|\d\d+)", complexity_str): s_w = 2.5
         elif "n^2" in complexity_str or "n²" in complexity_str: s_w = 2
         elif "V+E" in complexity_str or "V" in complexity_str: s_w = 3
         # Same substring-ordering fix as _get_weight above: "sqrt n" and
@@ -98,7 +108,18 @@ class SignatureRecorder:
             n_count = len(poly_dims) if poly_dims else 0
             
             if n_count >= 2:
-                return "O(n^2)"
+                # Two or more nested loops over DIFFERENT sizes (rows x columns, n x m) are reported
+                # with the project's single-size convention: n is the largest size, so the nest is
+                # O(n^2), not O(n * m). One symbol keeps the badge readable for students and matches
+                # how the ground-truth labels are written. (The per-loop sizes are still tracked
+                # separately in the explanations.)
+                # A log factor survives the multiplication: n loops over an
+                # O(n log n) step (e.g. sorted() inside a loop) is O(n^2 log n),
+                # not O(n^2).
+                # n_count is the number of nested growing dimensions: 3 nested loops
+                # over n is O(n^3), 4 is O(n^4), and so on.
+                base = "n^2" if n_count == 2 else f"n^{n_count}"
+                return f"O({base} log n)" if log > 0 else f"O({base})"
             elif n_count == 1:
                 if log > 0:
                     return "O(n log n)"
@@ -163,6 +184,8 @@ class SignatureRecorder:
                     else:
                         iter_name = self.analyzer.complexity_heuristics._get_iterable_name(node.iter)
                         dim = self.analyzer.complexity_heuristics._register_and_get_dim(iter_name)
+                        if (getattr(node, 'lineno', None), getattr(node, 'col_offset', None)) in getattr(self.analyzer, 'm_dim_for_locs', ()):
+                            dim = 'm'  # columns of the enclosing loop's current row
                         if dim: node_dims = [dim]
             elif isinstance(node, ast.While):
                 if getattr(self.analyzer, 'in_graph_context', False) and self.analyzer.call_graph_mapper._is_graph_while_loop(node): node_graph = 1
@@ -186,10 +209,11 @@ class SignatureRecorder:
                 elif "O(log n)" in time_override: node_log = 1
                 elif "O(sqrt n)" in time_override: node_sqrt = 1
                 elif "O(n * m)" in time_override: node_dims.extend(['n', 'm'])
-                elif "O(n^5)" in time_override: node_dims.extend(['n', 'n'])
-                elif "O(n^4)" in time_override: node_dims.extend(['n', 'n'])
-                elif "O(n^3)" in time_override or "n³" in time_override: node_dims.extend(['n', 'n'])
-                elif "O(n^2)" in time_override or "n²" in time_override: node_dims.extend(['n', 'n'])
+                elif re.search(r"n\^(\d+)", time_override) or "n²" in time_override or "n³" in time_override:
+                    _m = re.search(r"n\^(\d+)", time_override)
+                    _k = int(_m.group(1)) if _m else (3 if "n³" in time_override else 2)
+                    node_dims.extend(['n'] * _k)
+                    if "log n" in time_override: node_log = 1
                 elif "O(3^n)" in time_override: self.analyzer.max_exp = 1 
                 elif "O(2^n)" in time_override or "2ⁿ" in time_override: self.analyzer.max_exp = 1
                 elif "O(n!)" in time_override or "n!" in time_override: self.analyzer.max_fact = 1
@@ -233,7 +257,8 @@ class SignatureRecorder:
                 tot_graph = node_graph
             else:
                 tot_dims = self.analyzer.active_poly_dims + node_dims
-                tot_log = self.analyzer.log_loop_depth + node_log
+                _own_poly = bool(node_dims) and not node_log
+                tot_log = self.analyzer.log_loop_depth + node_log + (0 if _own_poly else getattr(self.analyzer, 'call_log_depth', 0))
                 tot_sqrt = getattr(self.analyzer, 'sqrt_loop_depth', 0) + node_sqrt
                 tot_graph = getattr(self.analyzer, 'graph_depth', 0) + node_graph
                 
@@ -326,13 +351,14 @@ class SignatureRecorder:
                         mem_state[var_name] = dict(var_data)
         
         time_exp, space_exp = "", ""        
-        if SemanticNLGEngine:
-            for var_name, var_data in mem_state.items():
-                var_data["explanation"] = self.analyzer.nlg_engine.generate_variable_explanation(var_name, var_data, self.analyzer.var_types.get(var_name))
+        if SemanticNLGEngine and getattr(self.analyzer, 'explain', True):
+            with self.analyzer.explain_clock():
+                for var_name, var_data in mem_state.items():
+                    var_data["explanation"] = self.analyzer.nlg_engine.generate_variable_explanation(var_name, var_data, self.analyzer.var_types.get(var_name))
 
-            time_exp, space_exp = self.analyzer.nlg_engine.generate_explanations(
-                node, local_t, global_t, local_s, global_s, is_dead, line_text, hits, mem_state
-            )
+                time_exp, space_exp = self.analyzer.nlg_engine.generate_explanations(
+                    node, local_t, global_t, local_s, global_s, is_dead, line_text, hits, mem_state
+                )
 
         builtin_desc = None
         if isinstance(node, ast.Call):
@@ -342,7 +368,9 @@ class SignatureRecorder:
             elif isinstance(func_obj, ast.Attribute):
                 builtin_desc = self.analyzer.builtin_complexities.get(func_obj.attr, {}).get('desc')
 
-        if builtin_desc and not is_dead:
+        # The line-specific sentence from the narrator already says what the line does;
+        # the canned built-in description is only a fallback for when there is none.
+        if builtin_desc and not is_dead and not (time_exp or "").strip():
             if builtin_desc not in time_exp:
                 time_exp = builtin_desc + ("\n\n" + time_exp if time_exp and time_exp != "Function call." else "")
 
@@ -356,6 +384,12 @@ class SignatureRecorder:
             "time_explanation": time_exp, "space_explanation": space_exp,
             "hits": hits, "memory_state": mem_state
         }
+        if is_dead:
+            dr = getattr(self.analyzer, 'dead_reason', None) or {"kind": "unreachable", "reason": "This code is never executed, so it is not counted toward the complexity."}
+            entry["dead_kind"] = dr["kind"]
+            entry["dead_reason"] = dr["reason"]
+            entry["time_explanation"] = dr["reason"] + " It does not add to the program's time complexity."
+            entry["space_explanation"] = dr["reason"] + " It does not add to the program's space complexity."
         
         if self.analyzer._details and self.analyzer._details[-1]["lineno"] == line_num:
             prev_w = self.analyzer._details[-1].get("weight", -1)

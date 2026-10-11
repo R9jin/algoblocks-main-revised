@@ -1550,12 +1550,22 @@ th, .admin-activity-table th, .full-report-table th, .eval-dataset-table th,
   border-color: rgba(255, 255, 255, 0.5) !important;
 }
 
-/* Ensure text contrast */
-h1, h3, h4, .analytics-card-value, .admin-metric-value, .eval-metric-value {
+/* Ensure text contrast.
+   SCOPED to the admin pages only. These used to be bare `h1, h3, h4 {...}` /
+   `h2 {...}` selectors with !important, which leaked into every page and
+   turned headings on dark surfaces (workspace header, call graph, modals...)
+   dark-on-dark. Dark surfaces now live in styles/DarkSurfaces.css. */
+.admin-page-wrapper :is(h1, h3, h4),
+.admin-page-container :is(h1, h3, h4) {
   color: #080808 !important;
 }
 
-h2, .analytics-card-value, .admin-metric-value, .eval-metric-value {
+.admin-page-wrapper h2,
+.admin-page-container h2 {
+  color: #4c4c4c !important;
+}
+
+.analytics-card-value, .admin-metric-value, .eval-metric-value {
   color: #4c4c4c !important;
 }
 

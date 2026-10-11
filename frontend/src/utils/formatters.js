@@ -24,6 +24,8 @@ export function formatComplexity(str) {
 export const getComplexityWeight = (complexity) => {
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
   if (comp.includes("o(1)") || comp === "1") return 1;
+  // n^3, n^4, ... (any degree 3+) outrank n^2 but stay below 2^n
+  { const m = comp.match(/n\^(\d+)/); if (m && Number(m[1]) >= 3) return 6; }
   // Check n^2 / n^3 before n to avoid "O(n2)" triggering "O(n)"
   if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n2")) return 5;
   if (comp.includes("n^3") || comp.includes("n³") || comp.includes("n3")) return 6;

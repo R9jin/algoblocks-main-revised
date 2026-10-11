@@ -9,18 +9,57 @@ export const handleEditorWillMount = (monaco) => {
     inherit: true,
     rules: [
       { token: "keyword", foreground: "7928CA", fontStyle: "bold" },
-      { token: "string", foreground: "10B981" },
-      { token: "comment", foreground: "94A3B8", fontStyle: "italic" },
-      { token: "number", foreground: "F59E0B" },
+      { token: "string", foreground: "047857" },
+      { token: "comment", foreground: "5B6B7F", fontStyle: "italic" },
+      { token: "number", foreground: "B45309" },
     ],
     colors: {
       "editor.background": "#F8FAFC",
       "editor.foreground": "#1E293B",
-      "editorLineNumber.foreground": "#CBD5E1",
+      "editorLineNumber.foreground": "#64748B",
+      "editorLineNumber.activeForeground": "#1E293B",
+      "editorBracketHighlight.foreground1": "#1E7A1E",
+      "editorBracketHighlight.foreground2": "#B45309",
+      "editorBracketHighlight.foreground3": "#6B21A8",
       "editor.lineHighlightBackground": "#F1F5F9",
       "editorCursor.foreground": "#7928CA",
       "editor.selectionBackground": "#E2E8F0",
       "editor.inactiveSelectionBackground": "#F1F5F9",
+    },
+  });
+
+  // Dark counterpart, picked in PythonCodeEditor when <html data-theme="dark">.
+  // Every foreground below is >= 4.5:1 on the #150A24 editor background.
+  monaco.editor.defineTheme("algoblocks-dark", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "keyword", foreground: "C4B5FD", fontStyle: "bold" },
+      { token: "string", foreground: "6EE7B7" },
+      { token: "comment", foreground: "9B8EC4", fontStyle: "italic" },
+      { token: "number", foreground: "FDBA74" },
+    ],
+    colors: {
+      "editor.background": "#150A24",
+      "editor.foreground": "#E4DDF7",
+      "editorLineNumber.foreground": "#9B8EC4",
+      "editorLineNumber.activeForeground": "#F5F3FF",
+      "editorBracketHighlight.foreground1": "#86EFAC",
+      "editorBracketHighlight.foreground2": "#FDBA74",
+      "editorBracketHighlight.foreground3": "#D8B4FE",
+      "editor.lineHighlightBackground": "#211337",
+      "editorCursor.foreground": "#D3BFFF",
+      "editor.selectionBackground": "#4B3A7C",
+      "editor.inactiveSelectionBackground": "#2F1E50",
+      "editorWidget.background": "#211337",
+      "editorWidget.border": "#4B3A7C",
+      "editorSuggestWidget.background": "#211337",
+      "editorSuggestWidget.border": "#4B3A7C",
+      "editorSuggestWidget.selectedBackground": "#3A2562",
+      "editorHoverWidget.background": "#211337",
+      "editorHoverWidget.border": "#4B3A7C",
+      "scrollbarSlider.background": "#A78BFA44",
+      "scrollbarSlider.hoverBackground": "#A78BFA77",
     },
   });
 };
@@ -65,17 +104,20 @@ export const getComplexityClass = (complexity) => {
 };
 
 export const COMPLEXITY_CLASS_COLORS = {
-  constant: "#10B981",
-  log: "#0EA5E9",
-  sqrt: "#14B8A6",
-  linear: "#F59E0B",
-  graph: "#D97706",
-  nlogn: "#F97316",
-  quadratic: "#EF4444",
+  // Every value is >= 4.5:1 on the light panel (#F8FAFC) because these are
+  // rendered as TEXT in the complexity table. The old, brighter hues
+  // (#10B981, #F59E0B, #F97316 ...) were only ~2:1 and read as washed-out.
+  constant: "#047857",
+  log: "#0369A1",
+  sqrt: "#0F766E",
+  linear: "#B45309",
+  graph: "#92400E",
+  nlogn: "#C2410C",
+  quadratic: "#B91C1C",
   polyHigh: "#BE123C",
   exponential: "#7928CA",
-  factorial: "#C026D3",
-  unknown: "#64748B",
+  factorial: "#A21CAF",
+  unknown: "#475569",
 };
 
 export const getComplexityColor = (complexity) =>

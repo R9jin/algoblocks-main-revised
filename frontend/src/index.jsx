@@ -23,6 +23,17 @@ import '@fontsource/fira-code/latin-600.css';
 import '@fontsource/fira-code/latin-700.css';
 import App from './App.jsx';
 import './index.css';
+// Dark-surface text colours -- must stay last so it wins over component CSS.
+import './styles/DarkSurfaces.css';
+import './styles/LightSurfaces.css';
+// Dark theme palette (active only under <html data-theme="dark">) -- keep last.
+import './styles/DarkTheme.css';
+// Dark theme coverage for every page / the code workspace (same gate: data-theme="dark").
+import './styles/DarkPages.css';
+import './styles/DarkWorkspace.css';
+import { initTheme } from './utils/theme';
+
+initTheme();
 
 // =====================================================================
 // GLOBAL API INTERCEPTOR

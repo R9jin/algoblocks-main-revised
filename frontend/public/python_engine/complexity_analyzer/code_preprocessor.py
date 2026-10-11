@@ -98,7 +98,11 @@ def _detect_factorial_branching(func_node):
         it = for_node.iter
         if isinstance(it, ast.Call) and getattr(getattr(it, 'func', None), 'id', '') == 'range' and it.args:
             last_arg = it.args[-1]
-            return isinstance(last_arg, ast.Name)
+            if isinstance(last_arg, ast.Name):
+                return True
+            # `range(1, n + 1)` / `range(n - 1)`: still a bare int bound once the +/-1 is dropped.
+            return (isinstance(last_arg, ast.BinOp) and isinstance(last_arg.op, (ast.Add, ast.Sub))
+                    and isinstance(last_arg.left, ast.Name) and isinstance(last_arg.right, ast.Constant))
         return False
 
     def has_guarded_recursive_call(loop_node):
@@ -123,6 +127,90 @@ def _detect_factorial_branching(func_node):
             for n in ast.walk(loop_node)
         )
         return has_if and has_recursive_call
+
+    def enumerates_suffix_choices(for_node):
+        """
+        True for `for i in range(start, end): ... recurse(..., i + 1)` where `start` is one of the
+        function's own parameters: every level only looks at positions AFTER the one just chosen,
+        so the calls enumerate subsets / ways to cut the input -- 2^(n-1) of them -- not
+        orderings. (Placement backtracking such as N-Queens loops over ALL choices from a fixed
+        start, `range(n)`, which is why it is left to the factorial rule.)
+        """
+        it = for_node.iter
+        if not (isinstance(it, ast.Call) and getattr(getattr(it, 'func', None), 'id', '') == 'range' and len(it.args) >= 2):
+            return False
+        if not (isinstance(it.args[0], ast.Name) and it.args[0].id in param_names):
+            return False
+        loop_var = for_node.target.id if isinstance(for_node.target, ast.Name) else None
+        if not loop_var:
+            return False
+        for n in ast.walk(for_node):
+            if isinstance(n, ast.Call) and getattr(getattr(n, 'func', None), 'id', None) == func_name:
+                for a in list(n.args) + [k.value for k in n.keywords]:
+                    if (isinstance(a, ast.BinOp) and isinstance(a.op, ast.Add) and isinstance(a.left, ast.Name)
+                            and a.left.id == loop_var and isinstance(a.right, ast.Constant) and a.right.value == 1):
+                        return True
+        return False
+
+    def has_dedup_guard():
+        """
+        True when the function skips states it has already expanded: `if X not in S:` (or an
+        `if X in S: return`) together with `S.add(X)`. With that guard each distinct state is
+        expanded once, so the work is bounded by the number of distinct states (2^n subsets
+        here), however many orderings lead to them.
+        """
+        added = set()
+        for n in ast.walk(func_node):
+            if (isinstance(n, ast.Call) and getattr(getattr(n, 'func', None), 'attr', '') == 'add'
+                    and isinstance(getattr(n.func, 'value', None), ast.Name) and n.args and isinstance(n.args[0], ast.Name)):
+                added.add((n.func.value.id, n.args[0].id))
+        for n in ast.walk(func_node):
+            if isinstance(n, ast.If) and isinstance(n.test, ast.Compare) and len(n.test.ops) == 1 \
+                    and isinstance(n.test.ops[0], (ast.In, ast.NotIn)) and isinstance(n.test.left, ast.Name) \
+                    and isinstance(n.test.comparators[0], ast.Name):
+                if (n.test.comparators[0].id, n.test.left.id) in added:
+                    return True
+        return False
+
+    def swaps_and_recurses_on_next_slot(for_node):
+        """
+        In-place swap permutation idiom (permute-by-swapping, TSP/Hamiltonian brute force, etc):
+
+            for i in range(l, r + 1):
+                a[l], a[i] = a[i], a[l]      # put element i into slot l
+                f(a, l + 1, ...)             # fill the remaining slots
+                a[l], a[i] = a[i], a[l]      # undo
+
+        The loop starts at a parameter `l`, the body swaps something with the loop variable, and
+        the recursive call advances that same parameter by one. Each level therefore has one fewer
+        free slot than the level above it (n, n-1, n-2, ...), i.e. n! leaves.
+        """
+        it = for_node.iter
+        if not (isinstance(it, ast.Call) and getattr(getattr(it, 'func', None), 'id', '') == 'range' and len(it.args) >= 2):
+            return False
+        start = it.args[0]
+        if not (isinstance(start, ast.Name) and start.id in param_names):
+            return False
+        loop_var = for_node.target.id if isinstance(for_node.target, ast.Name) else None
+        if not loop_var:
+            return False
+        has_swap = False
+        for n in ast.walk(for_node):
+            if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Tuple) \
+                    and len(n.targets[0].elts) == 2 and isinstance(n.value, ast.Tuple):
+                names = {m.id for m in ast.walk(n) if isinstance(m, ast.Name)}
+                if loop_var in names:
+                    has_swap = True
+                    break
+        if not has_swap:
+            return False
+        for n in ast.walk(for_node):
+            if isinstance(n, ast.Call) and getattr(getattr(n, 'func', None), 'id', None) == func_name:
+                for a in list(n.args) + [k.value for k in n.keywords]:
+                    if (isinstance(a, ast.BinOp) and isinstance(a.op, ast.Add) and isinstance(a.left, ast.Name)
+                            and a.left.id == start.id and isinstance(a.right, ast.Constant) and a.right.value == 1):
+                        return True
+        return False
 
     def while_shrinks_and_recurses(while_node):
         """
@@ -155,6 +243,8 @@ def _detect_factorial_branching(func_node):
     def scan(node):
         for child in ast.iter_child_nodes(node):
             if isinstance(child, ast.For):
+                if swaps_and_recurses_on_next_slot(child):
+                    return True
                 bound_name = loop_bound_name(child)
                 if bound_name:
                     derived_names = {bound_name} | param_names
@@ -195,7 +285,7 @@ def _detect_factorial_branching(func_node):
                                 has_shrink_op = True
                     if has_recursive_call and has_shrink_op:
                         return True
-                elif range_bound_is_plain_int(child) and has_guarded_recursive_call(child):
+                elif range_bound_is_plain_int(child) and has_guarded_recursive_call(child) and not enumerates_suffix_choices(child):
                     # Placement/board-backtracking idiom (N-Queens, Sudoku,
                     # permutation-by-index): `for choice in range(n): if
                     # <valid>: ... recurse(...)`. No literal list is
@@ -218,9 +308,58 @@ def _detect_factorial_branching(func_node):
         return False
 
     try:
-        return scan(func_node)
+        return scan(func_node) and not has_dedup_guard()
     except Exception:
         return False
+
+
+def _factorial_recursion_space(func_node):
+    """
+    Space class for a factorial-branching recursion, decided from what the function keeps alive.
+
+    - "O(n!)": it collects results across the whole enumeration (a local list that is appended to
+      or extended and then returned), so every permutation stays in memory.
+    - "O(n^2)": it passes a freshly sliced-and-joined copy of its input down each call
+      (`s[:i] + s[i+1:]`), so each of the n live frames owns an O(n) copy.
+    - "O(n)": it only prints/counts/undoes in place; one root-to-leaf path of frames is live.
+    """
+    collected = set()
+    for n in ast.walk(func_node):
+        if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name) \
+                and isinstance(n.value, (ast.List, ast.ListComp)):
+            collected.add(n.targets[0].id)
+    grows = set()
+    for n in ast.walk(func_node):
+        if isinstance(n, ast.Call) and getattr(n.func, 'attr', '') in ('append', 'extend') \
+                and isinstance(getattr(n.func, 'value', None), ast.Name) and n.func.value.id in collected:
+            grows.add(n.func.value.id)
+    returned = {n.value.id for n in ast.walk(func_node)
+                if isinstance(n, ast.Return) and isinstance(n.value, ast.Name)}
+    if grows & returned:
+        return "O(n!)"
+
+    def is_snapshot(x):
+        # path[:], list(path), tuple(path), path.copy(): a stored copy of the whole partial solution
+        if isinstance(x, ast.Subscript) and isinstance(x.slice, ast.Slice):
+            return True
+        if isinstance(x, ast.Call):
+            f = x.func
+            return (isinstance(f, ast.Name) and f.id in ('list', 'tuple', 'set', 'copy', 'deepcopy')) \
+                or (isinstance(f, ast.Attribute) and f.attr in ('copy', 'deepcopy'))
+        return False
+    # an out-parameter / global collector that receives a snapshot of every finished permutation
+    for n in ast.walk(func_node):
+        if isinstance(n, ast.Call) and getattr(n.func, 'attr', '') in ('append', 'add') \
+                and isinstance(getattr(n.func, 'value', None), ast.Name) and n.args and is_snapshot(n.args[0]):
+            return "O(n!)"
+
+    def is_slice(x):
+        return isinstance(x, ast.Subscript) and isinstance(x.slice, ast.Slice)
+    for n in ast.walk(func_node):
+        if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Add) and is_slice(n.left) and is_slice(n.right):
+            return "O(n^2)"
+    return "O(n)"
+
 
 def preprocess_source(source_code):
     """
@@ -229,8 +368,17 @@ def preprocess_source(source_code):
     """
     try:
         # Fix unescaped newlines in string literals that crash the AST
-        source_code = re.sub(r"'\s*\n\s*'", r"'\\n'", source_code)
-        source_code = re.sub(r'"\s*\n\s*"', r'"\\n"', source_code)
+        # Only repair broken string literals when the code does not already parse. On valid code these
+        # patterns are legitimate: implicit concatenation of adjacent literals on consecutive lines
+        # (`"a"\n"b"`) and triple-quoted strings/docstrings, which the repair would otherwise corrupt.
+        try:
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                ast.parse(source_code)
+        except SyntaxError:
+            source_code = re.sub(r"'\s*\n\s*'", r"'\\n'", source_code)
+            source_code = re.sub(r'"\s*\n\s*"', r'"\\n"', source_code)
         
         source_code = re.sub(r'\bxrange\(', 'range(', source_code)
         
@@ -277,3 +425,242 @@ def safe_walk(node):
                             todo.append(item)
                 elif isinstance(value, ast.AST):
                     todo.append(value)
+
+
+def find_script_literal_name_locs(tree):
+    """
+    Source locations (lineno, col_offset) of every `ast.Name` *load* that sits
+    at module (script) level and refers to a name which is bound exactly once
+    in the whole module, by a plain top-level `name = <int/float literal>`,
+    and is never rebound anywhere else (no augmented assignment, loop target,
+    parameter, import, `global`, def/class, comprehension target, ...).
+
+    Such a name is a true compile-time constant for the script, so
+    `n = 3` / `for i in range(n)` really is O(1). Loops inside functions are
+    deliberately NOT covered: there a short name like `n` conventionally
+    stands for a scalable input size (the benchmark's convention), so it
+    stays symbolic.
+    """
+    literal_assigns = {}
+    for stmt in getattr(tree, 'body', []):
+        if (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1
+                and isinstance(stmt.targets[0], ast.Name)
+                and isinstance(stmt.value, ast.Constant)
+                and isinstance(stmt.value.value, (int, float))
+                and not isinstance(stmt.value.value, bool)):
+            literal_assigns.setdefault(stmt.targets[0].id, []).append(stmt.targets[0])
+
+    bind_count = {}
+    def bump(name):
+        bind_count[name] = bind_count.get(name, 0) + 1
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            bump(node.id)
+        elif isinstance(node, ast.arg):
+            bump(node.arg)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            bump(node.name)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            for a in node.names:
+                bump((a.asname or a.name).split('.')[0])
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            for n in node.names:
+                bump(n); bump(n)  # any global/nonlocal declaration disqualifies
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            bump(node.name)
+        elif isinstance(node, ast.NamedExpr) and isinstance(node.target, ast.Name):
+            bump(node.target.id)
+
+    constants = {n for n, tg in literal_assigns.items() if len(tg) == 1 and bind_count.get(n, 0) == 1}
+    if not constants:
+        return set()
+
+    locs = set()
+    def walk_script_scope(node):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
+                continue
+            if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Load) and child.id in constants:
+                locs.add((child.lineno, child.col_offset))
+            walk_script_scope(child)
+    walk_script_scope(tree)
+    return locs
+
+
+def script_literal_loop_note(tree, locs):
+    """
+    Teaching hint for loops bounded by a script-level literal (`n = 3` then
+    `range(n)`): they count as O(1), which surprises learners who think of
+    `n` as "the input size". Returns one sentence naming the fixed variable(s)
+    and what would make the loop O(n) instead, or "" when it doesn't apply.
+    """
+    if not locs:
+        return ""
+    values = {}
+    for stmt in getattr(tree, 'body', []):
+        if (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1
+                and isinstance(stmt.targets[0], ast.Name)
+                and isinstance(stmt.value, ast.Constant)):
+            values[stmt.targets[0].id] = stmt.value.value
+
+    used = []
+    def header_names(expr):
+        for n in ast.walk(expr):
+            if isinstance(n, ast.Name) and (n.lineno, n.col_offset) in locs and n.id not in used:
+                used.append(n.id)
+    def walk_scope(node):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
+                continue
+            if isinstance(child, ast.For):
+                header_names(child.iter)
+            elif isinstance(child, ast.While):
+                header_names(child.test)
+            walk_scope(child)
+    walk_scope(tree)
+    if not used:
+        return ""
+    shown = ", ".join(f"{n} = {values.get(n)}" for n in used[:3])
+    return (f"Note: {shown} is a fixed value in this script, so the loop always runs the same "
+            f"number of times and counts as O(1). If {used[0]} came from input() or a function "
+            f"parameter, it could grow with the input and the loop would be O(n).")
+
+
+def find_element_dim_loops(tree):
+    """
+    Locations of `for` loops that walk the *inside* of the thing an enclosing loop is
+    currently on -- `for row in grid: for v in row` or `for i in range(n): for j in
+    range(len(grid[i]))`. Rows and columns are separate input sizes, so the nest costs
+    O(n * m) (rows x columns), not O(n^2).
+    """
+    locs = set()
+
+    def unwrap(it):
+        if isinstance(it, ast.Call) and getattr(it.func, 'id', '') == 'range' and it.args:
+            a = it.args[-1]
+            if isinstance(a, ast.Call) and getattr(a.func, 'id', '') == 'len' and a.args:
+                return a.args[0]
+            return None
+        return it
+
+    def visit(node, outers):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
+                visit(child, [])
+                continue
+            if isinstance(child, ast.For):
+                x = unwrap(child.iter)
+                if x is not None:
+                    for tgt, is_container in outers:
+                        if isinstance(x, ast.Name) and x.id == tgt and is_container:
+                            locs.add((child.lineno, child.col_offset))
+                        elif isinstance(x, ast.Subscript) and isinstance(x.slice, ast.Name) and x.slice.id == tgt:
+                            locs.add((child.lineno, child.col_offset))
+                tgt = child.target.id if isinstance(child.target, ast.Name) else None
+                is_container = not (isinstance(child.iter, ast.Call) and getattr(child.iter.func, 'id', '') == 'range')
+                visit(child, outers + [(tgt, is_container)])
+            else:
+                visit(child, outers)
+
+    visit(tree, [])
+    return locs
+
+
+def graph_aux_space(tree):
+    """
+    Worst-case AUXILIARY space of a graph traversal: "V" or "V+E".
+
+    The adjacency structure that is passed in is input, not extra space. Extra space is
+    the visited set plus the work list (queue / stack):
+      * every push is paired with marking that neighbour (`visited.add(nb)`, `seen[nb] = True`),
+        or the traversal is recursive -> each vertex is stored at most once -> O(V)
+      * a push WITHOUT marking (iterative DFS that marks on pop) can store one entry per
+        edge -> O(V+E)
+      * building the adjacency lists from an edge list (`g[u].append(v)`) -> O(V+E)
+    """
+    try:
+        for n in ast.walk(tree):
+            if (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr in ('append', 'add')
+                    and isinstance(n.func.value, ast.Subscript)):
+                return "V+E"                       # g[u].append(v): constructing the graph
+        for loop in ast.walk(tree):
+            if not isinstance(loop, ast.For):
+                continue
+            tgt = loop.target.id if isinstance(loop.target, ast.Name) else None
+            if not tgt or not isinstance(loop.iter, (ast.Subscript, ast.Attribute, ast.Call)):
+                continue
+            body_nodes = [x for st in loop.body for x in ast.walk(st)]
+            pushes = []
+            for x in body_nodes:
+                if (isinstance(x, ast.Call) and isinstance(x.func, ast.Attribute)
+                        and x.func.attr in ('append', 'appendleft', 'put', 'push', 'heappush')):
+                    names = {m.id for a in x.args for m in ast.walk(a) if isinstance(m, ast.Name)}
+                    if tgt in names:
+                        pushes.append(x)
+                elif (isinstance(x, ast.Call) and isinstance(x.func, ast.Attribute) and x.func.attr == 'extend'):
+                    pass
+            if not pushes:
+                continue
+            marked = False
+            for x in body_nodes:
+                if (isinstance(x, ast.Call) and isinstance(x.func, ast.Attribute) and x.func.attr == 'add'
+                        and any(isinstance(a, ast.Name) and a.id == tgt for a in x.args)):
+                    marked = True
+                if isinstance(x, ast.Assign):
+                    for t in x.targets:
+                        if isinstance(t, ast.Subscript) and isinstance(t.slice, ast.Name) and t.slice.id == tgt:
+                            marked = True
+            if not marked:
+                # Kahn's topological sort: the push sits under `if indegree[nb] == 0`, which is true
+                # exactly once per vertex, so each vertex is queued at most once (still O(V)).
+                for st in loop.body:
+                    for x in ast.walk(st):
+                        if (isinstance(x, ast.If) and isinstance(x.test, ast.Compare) and len(x.test.ops) == 1
+                                and isinstance(x.test.ops[0], ast.Eq)
+                                and isinstance(x.test.left, ast.Subscript) and isinstance(x.test.left.slice, ast.Name)
+                                and x.test.left.slice.id == tgt
+                                and isinstance(x.test.comparators[0], ast.Constant) and x.test.comparators[0].value == 0
+                                and any(y in pushes for b in x.body for y in ast.walk(b))):
+                            marked = True
+            if not marked:
+                return "V+E"
+        return "V"
+    except Exception:
+        return "V+E"
+
+
+def find_constant_sized_names(tree, is_const):
+    """
+    Names bound to a list whose length is a fixed constant (rule 7: alphabet-sized tables and
+    fixed-capacity preallocations are O(1)): `[0] * MAX_CHAR`, `[0 for _ in range(256)]`,
+    `[n for i in range(MAX_CHAR)]`. `is_const` decides whether a size expression is constant.
+    A name that is ever rebound to anything else is dropped, so a sort of it is never
+    mistaken for a sort of a constant-sized table.
+    """
+    sized, other = set(), set()
+    try:
+        for n in ast.walk(tree):
+            if not (isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name)):
+                continue
+            name, v, ok = n.targets[0].id, n.value, False
+            if isinstance(v, ast.ListComp) and len(v.generators) == 1 and not v.generators[0].ifs:
+                it = v.generators[0].iter
+                ok = (isinstance(it, ast.Call) and getattr(it.func, 'id', '') == 'range' and bool(it.args)
+                      and all(is_const(a) for a in it.args))
+            elif isinstance(v, ast.BinOp) and isinstance(v.op, ast.Mult):
+                if isinstance(v.left, ast.List):
+                    ok = is_const(v.right)
+                elif isinstance(v.right, ast.List):
+                    ok = is_const(v.left)
+            if (isinstance(v, ast.Call) and getattr(v.func, 'id', '') in ('sorted', 'list') and v.args
+                    and isinstance(v.args[0], ast.Name) and v.args[0].id == name):
+                continue                      # `t = sorted(t)` keeps the same fixed length
+            (sized if ok else other).add(name)
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name):
+                pass
+            if isinstance(n, ast.AugAssign) and isinstance(n.target, ast.Name):
+                other.add(n.target.id)
+    except Exception:
+        return set()
+    return sized - other

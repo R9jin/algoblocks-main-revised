@@ -126,6 +126,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const workerMessageHandler = useRef(null);
   const runTimeoutRef = useRef(null);
   const renderIntervalRef = useRef(null);
+  // Id of the current plain run; messages from a run the user stopped are ignored.
+  const runIdRef = useRef(0);
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   // See runtimeErrorTextRef in MainApp.jsx for the full rationale: Pyodide
@@ -355,7 +357,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   }, []);
 
   workerMessageHandler.current = (event) => {
-    const { type, data, counts, requestEpoch } = event.data;
+    const { type, data, counts, requestEpoch, runId } = event.data;
+    if ((type === "OUTPUT" || type === "ERROR" || type === "INPUT_REQUEST" || type === "RUN_RESULT")
+        && runId !== undefined && runId !== runIdRef.current) return;
     if (type === "ANALYZE_RESULT") {
       // Drop responses to an ANALYZE_CODE request we no longer care about --
       // e.g. one still in flight for the pre-restart code when the user hits
@@ -418,14 +422,16 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const initialCounts = {};
         (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
         setLineExecutions((prev) => ({ ...prev, ...initialCounts }));
-        const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
+        // Only genuine errors (e.g. NameError) are flagged `blocking`; "possible bug" lint
+        // warnings share this list but must not hide the complexity result.
+        const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: err.blocking === true, isNameError: /^(NameError|ZeroDivisionError|IndexError|TypeError|ValueError)\b/.test(err.message || "") }));
         setSyntaxErrors(runtimeErrors);
       } else {
         if (data.multiple_errors && data.multiple_errors.length > 0) {
-          const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message) }));
+          const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: true }));
           setSyntaxErrors(mappedErrors);
         } else {
-          setSyntaxErrors([{ line: data.line, message: data.message, fix: translatePythonError(data.message) }]);
+          setSyntaxErrors([{ line: data.line, message: data.message, fix: translatePythonError(data.message), blocking: true }]);
         }
       }
     } else if (type === "RUN_RESULT") {
@@ -454,9 +460,24 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         // as they streamed in.
         let hintBlock = "";
         if (runtimeErrorTextRef.current.trim()) {
-          const hint = translatePythonError(extractErrorSummaryLine(runtimeErrorTextRef.current));
+          const crashText = runtimeErrorTextRef.current;
+          const summary = extractErrorSummaryLine(crashText);
+          const hint = translatePythonError(summary);
           if (hint) hintBlock = `\n${hint}\n`;
           runtimeErrorTextRef.current = "";
+          // Mark the crashing line in the editor and tell the Complexity panel the run
+          // failed. The last <user_code> frame is the learner's own line.
+          const frames = [...crashText.matchAll(/File "<user_code>", line (\d+)/g)];
+          const crashLine = frames.length ? Number(frames[frames.length - 1][1]) : null;
+          if (crashLine && summary) {
+            const crashEntry = { line: crashLine, message: summary, fix: hint || translatePythonError(summary), blocking: false, isRuntimeCrash: true, isNameError: /^NameError/.test(summary) };
+            setSyntaxErrors((prev) => {
+              const existing = prev || [];
+              // Already caught before the run (e.g. an undefined name): keep that entry as is.
+              if (existing.some((e) => e.line === crashLine && e.message === summary)) return existing;
+              return [...existing.filter((e) => !e.isRuntimeCrash), crashEntry];
+            });
+          }
         }
 
         setConsoleOutput((prev) => prev + finalOutput + hintBlock + "\n> Program finished." + notice + "\n");
@@ -1181,37 +1202,94 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     }
   };
 
-  const handleSyncToBlocks = async () => {
-    if (workspaceRef.current && generatedPython) {
-      if (isSyncingBlocks) return;
-      if (!isEngineReady) {
+  // Always points at the newest Python text so an in-flight conversion can
+  // tell whether the learner kept typing while it was running.
+  const generatedPythonRef = useRef(generatedPython);
+  generatedPythonRef.current = generatedPython;
+  // The last text an automatic sync already tried, so a snippet that can't
+  // be auto-converted (scope warnings, unparseable) isn't retried in a loop.
+  const lastAutoSyncTextRef = useRef(null);
+
+  // Python -> Blocks. `silent` is the automatic mode that runs while the
+  // learner types: no panel switching, no toast, no modal, no error popup.
+  // The manual "Sync to Blocks" button still uses the full, visible flow.
+  const syncToBlocks = async (silent = false) => {
+    if (!workspaceRef.current || !generatedPython) return;
+    if (isSyncingBlocks) return;
+    if (!isEngineReady) {
+      if (!silent) {
         setConsoleOutput(`Still preparing the Python engine${engineProgress?.stage ? ` (${engineProgress.stage})` : ""}. Please wait a moment and try again.`);
         focusDockPanel("console"); setConsoleTab("output");
-        return;
       }
-      // Bring the Blocks panel into view *before* the conversion starts.
-      // loadFromPython() below may pop open the ScopeWarningModal
-      // (rendered inside BlocklyWorkspace) when it detects unsupported or
-      // partially-supported libraries, and pause for the user's decision --
-      // if that dock panel isn't visible/focused when it appears, the
-      // whole sync looks permanently stuck even though it's just waiting
-      // on a confirmation the user can't see.
-      focusDockPanel("blockly");
-      setIsSyncingBlocks(true);
-      try {
-        await workspaceRef.current.loadFromPython(sanitizePythonCode(generatedPython));
-        loadTimeRef.current = Date.now(); // Reset protection timer
-        setIsEditingCode(false); 
+      return;
+    }
+    const snapshot = generatedPython;
+    if (silent) lastAutoSyncTextRef.current = snapshot;
+    // Bring the Blocks panel into view *before* the conversion starts.
+    // loadFromPython() below may pop open the ScopeWarningModal
+    // (rendered inside BlocklyWorkspace) when it detects unsupported or
+    // partially-supported libraries, and pause for the user's decision --
+    // if that dock panel isn't visible/focused when it appears, the
+    // whole sync looks permanently stuck even though it's just waiting
+    // on a confirmation the user can't see.
+    if (!silent) focusDockPanel("blockly");
+    setIsSyncingBlocks(true);
+    try {
+      const result = await workspaceRef.current.loadFromPython(sanitizePythonCode(snapshot), { silent });
+      if (result?.skipped) return;
+      loadTimeRef.current = Date.now(); // Reset protection timer
+      // If the learner typed more while this ran, stay "dirty" so the
+      // auto-sync effect converts the newer text too.
+      if (generatedPythonRef.current === snapshot) setIsEditingCode(false);
+      if (!silent) {
         setViewMode("workspace");
         focusDockPanel("blockly");
         showToast("Python code successfully converted into blocks!", "success");
-      } catch (e) {
-        setModalConfig({ isOpen: true, title: "Sync Error", message: e?.message || "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
-      } finally {
-        setIsSyncingBlocks(false);
       }
+    } catch (e) {
+      // Automatic attempts fail quietly (e.g. half-typed code); syntax
+      // problems are already surfaced by the analyzer's error list.
+      if (!silent) setModalConfig({ isOpen: true, title: "Sync Error", message: e?.message || "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
+    } finally {
+      setIsSyncingBlocks(false);
     }
   };
+
+  const handleSyncToBlocks = () => syncToBlocks(false);
+
+  // Line Executions -> Python editor: bring the Python panel forward and select
+  // the clicked line. The panel may still be mounting, so wait a tick before
+  // touching the editor.
+  const jumpToPythonLine = (line) => {
+    setViewMode("python");
+    focusDockPanel("python");
+    setTimeout(() => {
+      const editor = editorRef.current; const monaco = monacoRef.current;
+      const model = editor?.getModel?.();
+      if (!editor || !monaco || !model) return;
+      const ln = Math.min(Math.max(1, line), model.getLineCount());
+      editor.revealLineInCenter(ln);
+      editor.setSelection(new monaco.Range(ln, 1, ln, model.getLineMaxColumn(ln)));
+      editor.focus();
+    }, 120);
+  };
+
+  // Automatic Python -> Blocks sync. Blocks -> Python already happens on
+  // every block edit; this makes the other direction match, so editing the
+  // Python (e.g. deleting "n = 3") is reflected in the blocks without
+  // pressing "Sync to Blocks". Waits for a typing pause and valid syntax.
+  const syncToBlocksRef = useRef(syncToBlocks);
+  syncToBlocksRef.current = syncToBlocks;
+  useEffect(() => {
+    if (!isReadyRef.current || isUnmountingRef.current || isResettingRef.current) return;
+    if (!isEditingCode || isSyncingBlocks || !isEngineReady) return;
+    if (!generatedPython || !generatedPython.trim() || generatedPython === "# Drag blocks to generate Python code") return;
+    // A NameError / run-time crash still converts to blocks fine; only real syntax problems stop the sync.
+    if (syntaxErrors && syntaxErrors.some((e) => !e.isNameError && !e.isRuntimeCrash)) return;
+    if (lastAutoSyncTextRef.current === generatedPython) return;
+    const timeoutId = setTimeout(() => { syncToBlocksRef.current(true); }, 1200);
+    return () => clearTimeout(timeoutId);
+  }, [generatedPython, isEditingCode, isSyncingBlocks, isEngineReady, syntaxErrors]);
 
   const handleActivityRun = async () => {
     if (isEvaluating) return;
@@ -1220,11 +1298,23 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       focusDockPanel("console"); setConsoleTab("output");
       return;
     }
-    if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
+    // Clean up unused (unplugged) value blocks first; they do nothing and can
+    // leave stray lines in the generated Python. When the blocks are the source
+    // of truth, run the freshly regenerated code, since state only catches up
+    // after Blockly's debounced onChange.
+    const cleaned = workspaceRef.current?.removeUnusedBlocks?.();
+    const codeToRun = (cleaned?.removed && !isEditingCode && typeof cleaned.code === "string")
+      ? cleaned.code.trim()
+      : generatedPython;
+    if (!codeToRun || codeToRun.trim() === "" || codeToRun === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute."); focusDockPanel("console"); setConsoleTab("output"); return;
     }
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); setIsEvaluating(true); setLineExecutions({});
-    focusDockPanel("console"); setConsoleTab("output"); setConsoleOutput((prev) => prev + "\n> Running the program...\n");
+    focusDockPanel("console"); setConsoleTab("output");
+    // Fresh console on every run (IDE-style) instead of appending to old output.
+    setConsoleOutput("> Running the program...\n");
+    // A new run replaces the previous run's crash marker.
+    setSyntaxErrors((prev) => (prev || []).filter((e) => !e.isRuntimeCrash));
 
     outputCountRef.current = 0; pendingOutputRef.current = ""; runtimeErrorTextRef.current = "";
     runTimeoutRef.current = setTimeout(() => {
@@ -1233,7 +1323,27 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       setIsEvaluating(false); setIsWaitingForInput(false);
     }, 10000);
 
-    workerRef.current?.postMessage({ type: "RUN_CODE", code: sanitizePythonCode(generatedPython) });
+    const runId = ++runIdRef.current;
+    workerRef.current?.postMessage({ type: "RUN_CODE", code: sanitizePythonCode(codeToRun), runId });
+  };
+
+  // Manual stop. Waiting at input(): instant, engine stays loaded. Otherwise (busy loop, or a
+  // test-case run) the worker is restarted -- the same recovery the 10s timeout already uses.
+  const handleStopRun = () => {
+    clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+    const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+    runIdRef.current += 1;
+    const graceful = isWaitingForInput && !testResolveRef.current && !!workerRef.current;
+    if (graceful) workerRef.current.postMessage({ type: "STOP_RUN" });
+    else {
+      resetWorker();
+      if (testRejectRef.current) {
+        testRejectRef.current(new Error("Stopped by user."));
+        testResolveRef.current = null; testRejectRef.current = null;
+      }
+    }
+    setConsoleOutput((prev) => prev + flushed + (graceful ? "^C" : "") + "\n> Program stopped.\n");
+    setIsEvaluating(false); setIsWaitingForInput(false); setUserInput(""); outputCountRef.current = 0;
   };
 
   const handleSendInput = (e) => {
@@ -1872,8 +1982,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           userInput={userInput}
           setUserInput={setUserInput}
           onSendInput={handleSendInput}
+          isEvaluating={isEvaluating}
+          onStopRun={handleStopRun}
           pythonCode={generatedPython}
           lineExecutions={lineExecutions}
+          totalComplexity={(syntaxErrors || []).some((e) => e.blocking) ? null : (analysisResult?.total || null)}
+          onJumpToLine={jumpToPythonLine}
         />
       ),
     },
@@ -1889,6 +2003,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           analysisResult={analysisResult}
           analysisTime={analysisTime}
           defaultWeight={7}
+          hasErrors={(syntaxErrors || []).some((e) => e.blocking)}
+          runtimeCrash={(syntaxErrors || []).find((e) => e.isRuntimeCrash) || null}
           analysisTimeLabel="Analyzed In:"
           analysisBadgeStyle={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
           analysisLabelStyle={{ color: '#64748B' }}

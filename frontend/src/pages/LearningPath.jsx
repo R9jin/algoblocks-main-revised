@@ -423,7 +423,7 @@ export default function LearningPath() {
               <FiLock size={32} color="#7c5cff" />
             </div>
             <h2 style={{ margin: 0 }}>Sign up to access the Learning Path</h2>
-            <p style={{ margin: 0, color: "#94a3b8" }}>
+            <p style={{ margin: 0, color: "#475569" }}>
               Guest sessions don't save progress, so lessons and activities
               can't be tracked here. Create a free account to unlock the
               full curriculum and keep your progress across visits.
@@ -548,7 +548,7 @@ export default function LearningPath() {
                                   borderRadius: "12px",
                                   textTransform: "uppercase",
                                   backgroundColor: isModuleCompletelyLocked ? "rgba(100, 116, 139, 0.15)" : iconConfig.difficulty === "Beginner" ? "rgba(34, 197, 94, 0.15)" : iconConfig.difficulty === "Intermediate" ? "rgba(249, 115, 22, 0.15)" : "rgba(236, 72, 153, 0.15)",
-                                  color: isModuleCompletelyLocked ? "#64748b" : iconConfig.difficulty === "Beginner" ? "#22c55e" : iconConfig.difficulty === "Intermediate" ? "#ea580c" : "#ec4899",
+                                  color: isModuleCompletelyLocked ? "#475569" : iconConfig.difficulty === "Beginner" ? "#166534" : iconConfig.difficulty === "Intermediate" ? "#9A3412" : "#BE185D",
                                 }}
                               >
                                 {iconConfig.difficulty}
@@ -700,8 +700,8 @@ export default function LearningPath() {
             <div className="module-card-content" style={{ paddingRight: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
                 <div style={{ flex: 1 }}>
-                  <h3 className="module-card-title" style={{ margin: "0 0 8px 0", color: !isGlobalPostTestUnlocked ? "#64748b" : "" }}>Comprehensive Course Post-Test</h3>
-                  <p className="module-card-description" style={{ margin: 0, color: "#94a3b8" }}>
+                  <h3 className="module-card-title" style={{ margin: "0 0 8px 0", color: !isGlobalPostTestUnlocked ? "#475569" : "" }}>Comprehensive Course Post-Test</h3>
+                  <p className="module-card-description" style={{ margin: 0, color: "#475569" }}>
                     {!isGlobalPostTestUnlocked 
                       ? "Complete all modules to unlock the final exam." 
                       : "The final challenge! Prove your mastery of all concepts covered in the curriculum."}
@@ -712,7 +712,7 @@ export default function LearningPath() {
                     <span style={{ fontWeight: "bold", fontSize: "1.2rem", color: "#22c55e" }}>{globalPostTestScore}%</span>
                   )}
                   {!isGlobalPostTestUnlocked ? (
-                    <button className="btn-assessment start disabled" disabled style={{ padding: "12px 24px", fontSize: "1rem", backgroundColor: "#334155", color: "#94a3b8" }}>
+                    <button className="btn-assessment start disabled" disabled style={{ padding: "12px 24px", fontSize: "1rem", background: "#E2E8F0", boxShadow: "none", color: "#475569" }}>
                       <FiLock style={{ marginRight: "8px" }} /> Locked
                     </button>
                   ) : isGlobalPostTestDone ? (

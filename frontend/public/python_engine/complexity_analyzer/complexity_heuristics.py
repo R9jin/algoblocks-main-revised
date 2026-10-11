@@ -6,6 +6,7 @@ passes: loop-bound classification (constant/log/sqrt/exponential),
 linear-variable tracking, and related pattern detectors.
 """
 import ast
+import re
 from complexity_analyzer.code_preprocessor import safe_walk, extract_constant
 
 
@@ -24,7 +25,12 @@ class ComplexityHeuristics:
             if isinstance(expr_node, ast.Name):
                 t = self.analyzer.var_types.get(expr_node.id, '')
                 if t in ['list', 'set', 'dict', 'tuple', 'str', 'deque']: return True
-                if any(k in expr_node.id.lower() for k in ['arr', 'list', 'dict', 'set', 'str', 'queue', 'stack', 'graph', 'matrix', 'items', 'nums']): 
+                # Match whole words of the identifier, not substrings: 'arr' is inside `arrSum`
+                # and 'set' inside `offset`, but neither names a container. A word that says
+                # the value is a single number (sum, count, len, max, ...) marks a scalar.
+                _w = {x.lower() for x in re.findall(r'[A-Z]?[a-z0-9]+|[A-Z]+(?![a-z])', expr_node.id)}
+                if (_w & {'arr', 'array', 'list', 'dict', 'set', 'str', 'string', 'queue', 'stack', 'graph', 'matrix', 'items', 'nums'}
+                        and not _w & {'sum', 'total', 'count', 'cnt', 'len', 'length', 'size', 'max', 'min', 'idx', 'index', 'val', 'value', 'num', 'avg', 'mean', 'diff', 'prod'}):
                     return True
         except Exception:
             pass
@@ -79,6 +85,8 @@ class ComplexityHeuristics:
             if isinstance(expr_node, (ast.Constant, getattr(ast, 'Num', type(None)), getattr(ast, 'Str', type(None)))):
                 return True
             if isinstance(expr_node, ast.Name):
+                if (getattr(expr_node, 'lineno', None), getattr(expr_node, 'col_offset', None)) in getattr(self.analyzer, 'script_literal_locs', ()):
+                    return True
                 # A variable already known to be derived from math.sqrt(...)
                 # (see variable_complexities in ast_node_visitors.py) scales
                 # with the input, no matter what it's named -- e.g.
@@ -101,9 +109,21 @@ class ComplexityHeuristics:
                 if name_u not in ['N', 'M', 'V', 'E', 'K', 'T', 'L', 'R', 'C', 'W', 'H', 'ROW', 'COL', 'SIZE', 'LEN'] and expr_node.id in getattr(self.analyzer, 'module_int_constants', ()):
                     return True
                 if name_u in ['N', 'M', 'V', 'E', 'K', 'T', 'L', 'R', 'C', 'W', 'H', 'ROW', 'COL', 'SIZE', 'LEN']: return False
+                # lower/camelCase names built from a size word (`max_len`, `maxLength`) are
+                # variables holding an input-dependent size; only SHOUTING_CASE names
+                # (`MAX_LEN = 1000`) are conventional constants.
+                if not expr_node.id.isupper() and {w.lower() for w in re.findall(r'[A-Z]?[a-z0-9]+|[A-Z]+(?![a-z])', expr_node.id)} & {'len', 'length', 'size', 'count', 'total'}:
+                    return False
                 if any(k in name_u for k in ['MAX', 'CHARS', 'NO_OF_CHARS', 'ALPHABET']): return True
                 if expr_node.id.isupper(): return True
-                if any(k in expr_node.id.lower() for k in ['max', 'min', 'mod', 'inf', 'limit', 'cap']): return True
+                # Whole-word match on the name's camelCase / snake_case parts. A raw substring
+                # test made `max_len`, `min_cost`, `info`, `capacity` look like fixed constants
+                # (a loop over `max_len` is a loop over the input's length, not a constant).
+                # A word that names a size (len/size/count/...) always marks a data-dependent bound.
+                _words = {w.lower() for w in re.findall(r'[A-Z]?[a-z0-9]+|[A-Z]+(?![a-z])', expr_node.id)}
+                if _words & {'len', 'length', 'size', 'count', 'num', 'number', 'total', 'width', 'height', 'rows', 'cols'}:
+                    return False
+                if _words & {'max', 'min', 'mod', 'inf', 'limit', 'cap'}: return True
                 return False
             if isinstance(expr_node, ast.BinOp):
                 return self._is_constant_expr(expr_node.left) and self._is_constant_expr(expr_node.right)
@@ -152,7 +172,11 @@ class ComplexityHeuristics:
         key = ('_is_constant_loop', id(node))
         cache = self.analyzer._loop_classify_cache
         if key not in cache:
-            cache[key] = self._is_constant_loop_uncached(node)
+            # A loop whose body ends in an UNCONDITIONAL break/return (a direct statement of the
+            # body, not inside an `if`) can only ever run its first pass -- O(1), however large
+            # the range looks. (A conditional break still leaves the worst case at n passes.)
+            _once = isinstance(node, (ast.For, ast.While)) and any(isinstance(st, (ast.Break, ast.Return)) for st in node.body)
+            cache[key] = True if _once else self._is_constant_loop_uncached(node)
         return cache[key]
 
     def _is_sqrt_loop(self, node):
@@ -245,6 +269,28 @@ class ComplexityHeuristics:
         except Exception:
             return False
 
+    def _moves_monotonically(self, name, loop_node):
+        """True if `name` is only ever stepped by a constant inside this loop (p += 1, p -= 2,
+        p = p + 1): a pointer that moves one way."""
+        try:
+            seen = False
+            for st in safe_walk(loop_node):
+                if isinstance(st, ast.AugAssign) and isinstance(st.target, ast.Name) and st.target.id == name:
+                    if isinstance(st.op, (ast.Add, ast.Sub)) and isinstance(st.value, ast.Constant) and isinstance(st.value.value, int):
+                        seen = True
+                    else:
+                        return False
+                elif isinstance(st, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in st.targets):
+                    v = st.value
+                    if (isinstance(v, ast.BinOp) and isinstance(v.op, (ast.Add, ast.Sub)) and isinstance(v.left, ast.Name)
+                            and v.left.id == name and isinstance(v.right, ast.Constant) and isinstance(v.right.value, int)):
+                        seen = True
+                    else:
+                        return False
+            return seen
+        except Exception:
+            return False
+
     def _is_amortized_inner_loop(self, node):
         try:
             # FIX: Only apply amortized logic to truly nested inner loops.
@@ -262,6 +308,21 @@ class ComplexityHeuristics:
             if pops_container: return True
             
             if isinstance(node, ast.While):
+                # "Mark as you go" loop: the test reads a cell of some table (`not vis[j]`,
+                # `parent[j] == -1`) and the body overwrites a cell of the same table with a plain
+                # value, so a cell that was visited cannot satisfy the test again. Over ALL outer
+                # iterations the loop can then advance at most once per cell: O(n) in total, not
+                # outer x inner. (Not valid if the enclosing loop rebuilds the table each pass.)
+                for child in safe_walk(node.test):
+                    if isinstance(child, ast.Subscript) and isinstance(child.value, ast.Name):
+                        _tbl = child.value.id
+                        _marks = any(
+                            isinstance(st, ast.Assign) and isinstance(st.value, (ast.Constant, ast.Name))
+                            and any(isinstance(t, ast.Subscript) and isinstance(t.value, ast.Name) and t.value.id == _tbl for t in st.targets)
+                            for b in node.body for st in safe_walk(b))
+                        if _marks and not self._pointer_reset_by_enclosing_loop(_tbl, node):
+                            return True
+
                 for child in safe_walk(node.test):
                     if isinstance(child, ast.Subscript) and isinstance(getattr(child.value, 'value', None), ast.Name):
                         if child.value.value.id.lower() in ['v', 'freq', 'count', 'map', 'visited', 'vis']:
@@ -274,7 +335,16 @@ class ComplexityHeuristics:
                             if self._pointer_reset_by_enclosing_loop(child.id, node):
                                 return False
                             return True
-                                    
+
+                # Structural form of the same idea, independent of variable names: the test
+                # reads a pointer that this loop only moves one way (`p += 1`) and that the
+                # enclosing loop never resets, so across ALL outer iterations the pointer can
+                # travel its range only once -- total work O(n), not outer x inner.
+                for child in safe_walk(node.test):
+                    if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Load):
+                        if self._moves_monotonically(child.id, node) and not self._pointer_reset_by_enclosing_loop(child.id, node):
+                            return True
+
             return False
         except Exception:
             return False
@@ -346,6 +416,10 @@ class ComplexityHeuristics:
                     if isinstance(sub, ast.AugAssign):
                         if isinstance(sub.op, (ast.BitAnd, ast.BitOr, ast.BitXor, ast.RShift, ast.LShift, ast.FloorDiv)):
                             if isinstance(sub.target, ast.Name) and sub.target.id in cond_vars: return True, None
+                        # `x /= 10` shrinks the control variable geometrically, like `x //= 10`.
+                        if isinstance(sub.op, ast.Div) and isinstance(sub.target, ast.Name) and sub.target.id in cond_vars:
+                            _dv = extract_constant(sub.value)
+                            if isinstance(_dv, (int, float)) and not isinstance(_dv, bool) and _dv > 1: return True, None
                         
                     if isinstance(sub, ast.Assign):
                         for t in sub.targets:
@@ -353,6 +427,12 @@ class ComplexityHeuristics:
                                 for v in safe_walk(sub.value):
                                     if isinstance(v, ast.BinOp) and isinstance(v.op, (ast.BitAnd, ast.RShift, ast.LShift, ast.FloorDiv)):
                                         return True, None
+                                    # `x = int(x / 10)`: dividing the control variable by a constant > 1
+                                    # (true division wrapped in int()) is the same shrink as `x // 10`.
+                                    if isinstance(v, ast.BinOp) and isinstance(v.op, ast.Div) and isinstance(v.left, ast.Name) and v.left.id == t.id:
+                                        _dv = extract_constant(v.right)
+                                        if isinstance(_dv, (int, float)) and not isinstance(_dv, bool) and _dv > 1:
+                                            return True, None
                             if isinstance(sub.value, ast.BinOp) and isinstance(sub.value.op, (ast.Add, ast.Sub)):
                                 if isinstance(sub.value.right, ast.BinOp) and isinstance(sub.value.right.op, ast.BitAnd):
                                     return True, None
