@@ -229,7 +229,15 @@ class LineInsights:
         notes += self._observed_time(inner, line_no, hits)
         if not has_trap:
             notes += self._reality_check(local_t, global_t, line_no)
-        return notes
+        # Notation clarity: where the same code can be read two ways, say which reading
+        # Big-O uses. Shown ahead of the generic loop notes (see insight_gatherers).
+        try:
+            clarity = self.generator.notation_clarity.time_notes(inner, line_no, local_t, global_t)
+        except Exception:
+            if STRICT:
+                raise
+            clarity = []
+        return list(clarity) + notes
 
     # ------------------------------------------------------------------
     # PUBLIC: space notes

@@ -32,6 +32,7 @@ from complexity_explainer.overall_narrative import OverallNarrative
 from complexity_explainer.explanation_warnings import ExplanationWarnings
 from complexity_explainer.growth_insight import ProgramShape
 from complexity_explainer.line_insights import LineInsights
+from complexity_explainer.notation_clarity import NotationClarity
 
 
 class EducationalInsightGenerator:
@@ -51,6 +52,7 @@ class EducationalInsightGenerator:
         self.overall_narrative = OverallNarrative(self)
         self.explanation_warnings = ExplanationWarnings(self)
         self.line_insights = LineInsights(self)
+        self.notation_clarity = NotationClarity(self)
         self._seed = ""
         self._shape = None
         self._shape_key = None

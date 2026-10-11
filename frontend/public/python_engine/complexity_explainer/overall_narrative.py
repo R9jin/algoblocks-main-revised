@@ -49,6 +49,12 @@ class OverallNarrative:
         dominant = self._dominant_constructs(live)
 
         time_narrative = self._build_overall_time_narrative(t_info, sig, final_time, dominant)
+        try:
+            reading = gen.notation_clarity.program_notes(final_time)
+        except Exception:
+            reading = []
+        if reading:
+            time_narrative += "\n\n" + "\n\n".join(reading)
         time_simp = self._build_real_simplification(details, "global_time", final_time, is_time=True, sig=sig, dominant=dominant)
 
         space_narrative = self._build_overall_space_narrative(s_info, sig, final_space, live)
