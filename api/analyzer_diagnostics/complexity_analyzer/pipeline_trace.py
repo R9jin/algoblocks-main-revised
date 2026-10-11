@@ -156,6 +156,7 @@ def _line_snapshot(entry):
         "local_space": entry.get("local_space"), "global_space": entry.get("global_space"),
         "indent": entry.get("indent", 0),
         "dead_kind": entry.get("dead_kind"), "dead_reason": entry.get("dead_reason"),
+        "uncalled_function": entry.get("uncalled_function"), "uncalled_reason": entry.get("uncalled_reason"),
     }
 
 

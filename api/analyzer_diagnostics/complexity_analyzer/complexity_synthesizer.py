@@ -85,7 +85,8 @@ class ComplexitySynthesizer:
             return res
 
     def _base_final_asymptotic_badge(self):
-        all_comps = " ".join([str(d.get('global_time', '')) for d in self.analyzer._details] + [str(d.get('local_time', '')) for d in self.analyzer._details])
+        _live = [d for d in self.analyzer._details if not d.get('uncalled_function')]   # entry-point scope only
+        all_comps = " ".join([str(d.get('global_time', '')) for d in _live] + [str(d.get('local_time', '')) for d in _live])
         
         resolved_custom = []
         _dead = getattr(self.analyzer, 'dead_funcs', set()) or set()
@@ -140,7 +141,8 @@ class ComplexitySynthesizer:
         return "O(1)"
 
     def get_final_space_badge(self):
-        all_spaces = " ".join([str(d.get('global_space', '')) for d in self.analyzer._details] + [str(d.get('local_space', '')) for d in self.analyzer._details])
+        _live = [d for d in self.analyzer._details if not d.get('uncalled_function')]   # entry-point scope only
+        all_spaces = " ".join([str(d.get('global_space', '')) for d in _live] + [str(d.get('local_space', '')) for d in _live])
         _explicit = all_spaces   # what the lines themselves reported, before function summaries and the weight top-up
         _dead = getattr(self.analyzer, 'dead_funcs', set()) or set()
         for _fname, space_val in self.analyzer.custom_space.items():
@@ -169,7 +171,17 @@ class ComplexitySynthesizer:
             # adjacency lists, can reach O(V+E) (see graph_aux_space)
             # Rule 9 of the benchmark conventions: work/space that is once-per-vertex is O(n) with n = V;
             # only edge-proportional storage (building adjacency, push-without-mark) is O(V+E).
-            return "O(n)" if getattr(self.analyzer, 'graph_aux_space', "V+E") == "V" else "O(V+E)"
+            if getattr(self.analyzer, 'graph_aux_space', "V+E") == "V":
+                # Single-structure programs keep the benchmark convention (n = V). When the program ALSO has
+                # independent size symbols (loops over n, m, ...), collapsing V into 'n' would merge two
+                # different input sizes, so the graph bookkeeping keeps its own symbol.
+                # "independent size symbols" = the program iterates over the scalar size parameters n / m
+                # themselves; benchmark-style `range(vertices)` loops are just the vertex count (n = V).
+                _indep = re.search(r"range\(\s*[nm]\s*\)", raw_code) is not None
+                if _indep and getattr(self.analyzer, 'poly_terms', None) and "O(n)" not in _explicit:
+                    return "O(V)"
+                return "O(n)"
+            return "O(V+E)"
         if "O(n)" in all_spaces: return "O(n)"
         if "sqrt n" in all_spaces: return "O(sqrt n)"
         if "log n" in all_spaces: return "O(log n)"

@@ -57,6 +57,22 @@ class SignatureRecorder:
         elif "n" in complexity_str: w = 10
         return w
 
+    def _assign_targets_of(self, call_node):
+        """Targets of the assignment that owns `call_node` (e.g. `visited` in `visited = set()`)."""
+        tree = getattr(self.analyzer, 'tree', None) or getattr(self.analyzer, '_tree', None)
+        if tree is None: return []
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Assign) and n.value is call_node:
+                return n.targets
+        return []
+
+    @staticmethod
+    def _is_empty_container_init(v):
+        if isinstance(v, (ast.List, ast.Set, ast.Tuple)) and not v.elts: return True
+        if isinstance(v, ast.Dict) and not v.keys: return True
+        return (isinstance(v, ast.Call) and not v.args and not v.keywords
+                and getattr(v.func, 'id', getattr(v.func, 'attr', '')) in ('set', 'list', 'dict', 'deque', 'defaultdict', 'Counter', 'OrderedDict'))
+
     def _get_space_weight(self, complexity_str):
         if complexity_str == "S(placeholder)": return 0
         s_w = 0
@@ -337,10 +353,39 @@ class SignatureRecorder:
 
         if local_s == "S(placeholder)": global_s = "S(placeholder)"
 
-        if getattr(self.analyzer, 'in_graph_context', False):
+        # A call to a non-graph helper keeps the helper's own space class: the CALLER being graph-flavoured
+        # (it also walks a graph) must not relabel the callee's O(n) recursion/slicing space as O(V+E).
+        _plain_call = (custom_op == "Function Call")
+        if getattr(self.analyzer, 'in_graph_context', False) and not _plain_call:
             if "O(n)" in local_s: local_s = local_s.replace("O(n)", "O(V+E)")
             if "O(n)" in global_s: global_s = global_s.replace("O(n)", "O(V+E)")
             
+        # Space accounting for traversal bookkeeping: creating an EMPTY container allocates O(1); the
+        # O(V) / O(V+E) peak belongs to the statements that grow it (add / append inside the traversal).
+        # The container's eventual peak is still folded into the program's space total through
+        # max_space_weight (weight 3 = graph-sized), so overall space is unchanged -- only the row
+        # attribution is corrected. Function-level (uncalled) rows never touch entry-point maxima.
+        if getattr(self.analyzer, 'in_graph_context', False) and not is_dead:
+            _gaux = getattr(self.analyzer, 'graph_aux_space', "V+E")
+            _gsym = "O(V)" if _gaux == "V" else "O(V+E)"
+            _init_val = node.value if isinstance(node, ast.Assign) else (node if isinstance(node, ast.Call) else None)
+            if _init_val is not None and self._is_empty_container_init(_init_val) and (isinstance(node, ast.Assign) or "V+E" in local_s or "V+E" in global_s):
+                if "V+E" in local_s or "V+E" in global_s:
+                    local_s = global_s = "O(1)"
+                    if not getattr(self.analyzer, 'in_uncalled_func', False):
+                        self.analyzer.max_space_weight = max(getattr(self.analyzer, 'max_space_weight', 0), 3)
+                for _t in (node.targets if isinstance(node, ast.Assign) else self._assign_targets_of(node)):
+                    if isinstance(_t, ast.Name):
+                        self.analyzer.__dict__.setdefault('graph_containers', set()).add(_t.id)
+            else:
+                _call = node if isinstance(node, ast.Call) else getattr(node, 'value', None)
+                if (isinstance(_call, ast.Call) and isinstance(_call.func, ast.Attribute)
+                        and _call.func.attr in ('add', 'append', 'appendleft', 'extend')
+                        and isinstance(_call.func.value, ast.Name)
+                        and _call.func.value.id in getattr(self.analyzer, 'graph_containers', ())
+                        and self.analyzer.loop_depth > 0):
+                    global_s = _gsym   # local allocation stays O(1); the container grows to V (or V+E) overall
+
         curr_func = self.analyzer.current_function_name or ""
         is_char_count = "char" in curr_func.lower() and "count" in curr_func.lower()
         if is_char_count:
@@ -353,7 +398,8 @@ class SignatureRecorder:
         t_w = self._get_weight(global_t, is_recurrence)
         s_w = self._get_space_weight(global_s)
 
-        if not is_dead and time_override != "Definition":
+        _uncalled = getattr(self.analyzer, 'in_uncalled_func', False)
+        if not is_dead and not _uncalled and time_override != "Definition":
             overall_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.analyzer.max_exp, tot_graph, gcd_vars, self.analyzer.max_fact)
             if tot_dims and not (tot_log or tot_sqrt or tot_graph or self.analyzer.max_exp or self.analyzer.max_fact):
                 if not hasattr(self.analyzer, 'poly_terms'): self.analyzer.poly_terms = set()
@@ -420,6 +466,10 @@ class SignatureRecorder:
             "time_explanation": time_exp, "space_explanation": space_exp,
             "hits": hits, "memory_state": mem_state
         }
+        if _uncalled and not is_dead:
+            entry["uncalled_function"] = True
+            entry["scope"] = "function-level"
+            entry["uncalled_reason"] = getattr(self.analyzer, 'uncalled_reason', None)
         if is_dead:
             dr = getattr(self.analyzer, 'dead_reason', None) or {"kind": "unreachable", "reason": "This code is never executed, so it is not counted toward the complexity."}
             entry["dead_kind"] = dr["kind"]

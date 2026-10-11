@@ -191,9 +191,11 @@ def test_uncalled_function_is_excluded_from_total():
 def test_dead_function_lines_are_marked_dead():
     res = analyze_source_code(DEAD_HELPER.lstrip("\n"))
     ops = {l["lineno"]: l["operation"] for l in res["lines"]}
-    # helper() body = lines 2-6 (line 1 is its `def`, which just records the declaration)
-    assert all(ops[n] == "Dead Code" for n in range(2, 7))
-    assert ops[9] != "Dead Code"  # used() body stays live
+    # helper() body = lines 2-6. Policy: an uncalled helper is analysed at FUNCTION level (its own
+    # complexity is shown) but flagged and excluded from the entry total -- it is not "Dead Code".
+    assert all(ops[n] != "Dead Code" for n in range(2, 7))
+    assert all(l.get("uncalled_function") for l in res["lines"] if 1 <= l["lineno"] <= 6)
+    assert ops[9] != "Dead Code" and not any(l.get("uncalled_function") for l in res["lines"] if l["lineno"] >= 8)
 
 
 def test_function_called_only_by_dead_function_is_dead():
@@ -269,16 +271,18 @@ def test_unreachable_after_return_has_reason():
 def test_uncalled_function_lines_carry_reason_including_def_line():
     rows = _by_line(analyze_source_code(DEAD_HELPER.lstrip("\n")))
     for n in range(1, 7):  # def line + body
-        assert rows[n]["dead_kind"] == "uncalled_function", n
-        assert "never called" in rows[n]["dead_reason"]
-    assert "dead_reason" not in rows[9]
+        assert rows[n]["uncalled_function"] is True, n
+        assert rows[n]["scope"] == "function-level", n
+        assert "never called" in rows[n]["uncalled_reason"]
+        assert "dead_reason" not in rows[n]   # uncalled is not the same thing as unreachable
+    assert "uncalled_reason" not in rows[9]
 
 
 def test_function_only_called_by_dead_function_explains_chain():
     code = DEAD_HELPER.lstrip("\n") + "\ndef a(x):\n    return b(x)\n\ndef b(x):\n    return x\n"
     rows = _by_line(analyze_source_code(code))
     b_def = max(n for n, r in rows.items() if r["lineOfCode"].strip().startswith("def b"))
-    assert "only called from dead code" in rows[b_def]["dead_reason"]
+    assert "only called from dead code" in rows[b_def]["uncalled_reason"]
 
 
 def test_live_lines_have_no_dead_fields():
@@ -289,5 +293,5 @@ def test_live_lines_have_no_dead_fields():
 def test_pipeline_ledger_rows_include_dead_reason():
     traced = trace_pipeline(DEAD_HELPER.lstrip("\n"))
     recon = [e for e in traced["events"] if e.get("stage") == "synthesis" and e.get("kind") == "reconcile"][0]
-    dead_rows = [r for r in recon["rows"] if r.get("dead_reason")]
-    assert dead_rows and all("never called" in r["dead_reason"] for r in dead_rows)
+    dead_rows = [r for r in recon["rows"] if r.get("uncalled_reason")]
+    assert dead_rows and all("never called" in r["uncalled_reason"] for r in dead_rows)

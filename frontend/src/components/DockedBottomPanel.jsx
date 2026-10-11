@@ -237,6 +237,7 @@ export default function DockedBottomPanel({
                               {isBottleneck && <span className="bottleneck-badge">Bottleneck</span>}
                               {isEfficient && <span className="efficient-badge">Efficient</span>}
                               {isDead && <span className="dead-badge" title={line.dead_reason || "This code never runs, so it is not counted."}>Dead code</span>}
+                              {!isDead && line.uncalled_function && <span className="dead-badge" title={line.uncalled_reason || "This helper is never called, so its own complexity is shown here but not added to the entry point's total."}>Uncalled &middot; own cost</span>}
                             </td>
                             <td className="complexity-cell" style={{ color: timeColor }}>{formatComplexity(timeComplexity)}</td>
                             <td className="complexity-cell" style={{ color: spaceColor }}>

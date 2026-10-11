@@ -781,6 +781,7 @@ function Ledger({ rows, activeLine, title, showFunc }) {
                   <code>{r.code}</code><span className="pr-op">{r.operation}</span>
                   {r.dead_reason && <span className="pr-dead-tag" title={r.dead_reason}>Dead code</span>}
                   {r.dead_reason && <div className="pr-dead-why">{r.dead_reason}</div>}
+                  {!r.dead_reason && r.uncalled_reason && <span className="pr-dead-tag" title={r.uncalled_reason}>Uncalled &middot; own cost</span>}
                 </td>
                 {showFunc && <td>{r.func || "main"}</td>}
                 <td className="r mono">{formatComplexity(r.global_time || "O(1)")}</td>

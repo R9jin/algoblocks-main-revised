@@ -264,7 +264,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
         self.analyzer.in_graph_context = self.analyzer.call_graph_mapper._detect_graph_context(node)
         
         is_dead = node.name not in self.analyzer.reachable_funcs
-        self.analyzer.signature_recorder.record_line(node, time_override="O(1)" if is_dead else "Definition", space_override="O(1)")
+        self.analyzer.signature_recorder.record_line(node, time_override="Definition", space_override="O(1)")
         
         # Ensure we capture the exact index to avoid IndexError during update mapping
         found_idx = None
@@ -275,17 +275,23 @@ class ASTNodeVisitor(ast.NodeVisitor):
         if found_idx is not None:
             start_idx = found_idx
         
-        prev_dead = self.analyzer.in_dead_code; self.analyzer.in_dead_code = is_dead or prev_dead
-        prev_reason = getattr(self.analyzer, 'dead_reason', None)
+        # Entry-point execution vs function-level analysis: a `def` that nothing calls never runs, so
+        # its body must not add to the entry point's total -- but the helper itself is still a function
+        # the learner wrote, so its body is analysed on its own (rows flagged `uncalled_function`).
+        # `in_dead_code` stays reserved for statements that are genuinely unreachable.
+        prev_dead = self.analyzer.in_dead_code
+        prev_uncalled = getattr(self.analyzer, 'in_uncalled_func', False)
+        prev_uncalled_reason = getattr(self.analyzer, 'uncalled_reason', None)
         func_dead_reason = None
-        if is_dead and not prev_dead:
+        if is_dead and not prev_uncalled:
             func_dead_reason = getattr(self.analyzer, 'dead_func_reasons', {}).get(node.name) or {
                 "kind": "uncalled_function",
-                "reason": f"`{node.name}()` is never called, so its body never runs and is left out of the complexity total."}
-            self.analyzer.dead_reason = func_dead_reason
+                "reason": f"`{node.name}()` is never called by the program, so it adds nothing to the entry point's complexity. Its own complexity is shown below."}
+            self.analyzer.uncalled_reason = func_dead_reason["reason"]
+        self.analyzer.in_uncalled_func = prev_uncalled or is_dead
         self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1
-        self.analyzer.in_dead_code = prev_dead
-        self.analyzer.dead_reason = prev_reason
+        self.analyzer.in_uncalled_func = prev_uncalled
+        self.analyzer.uncalled_reason = prev_uncalled_reason
         
         does_linear_work = self.analyzer.max_poly_str != "O(1)" or self.analyzer.has_slicing
         if not does_linear_work:
@@ -566,8 +572,12 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     elif not getattr(self.analyzer, 'in_graph_context', False):
                         if self.analyzer._details[i]["global_time"] == "O(1)" and relation not in ["O(1)", "O(log n)"]:
                             if "2T(" in relation or "T(n-1) + T(n-2)" in relation or self.analyzer.recursive_calls_count >= 2:
-                                self.analyzer._details[i]["global_time"] = "O(n)"
-                                self.analyzer._details[i]["weight"] = self.analyzer.signature_recorder._get_weight("O(n)")
+                                # Cumulative executions of this line = number of invocations of the function.
+                                # When the recurrence is exponential/factorial that is the whole resolved
+                                # class (2^n / n!), not a linear count: the base case runs once per leaf.
+                                _bump = resolved_rel if ("2^n" in resolved_rel or "n!" in resolved_rel) else "O(n)"
+                                self.analyzer._details[i]["global_time"] = _bump
+                                self.analyzer._details[i]["weight"] = self.analyzer.signature_recorder._get_weight(_bump)
 
         if start_idx < len(self.analyzer._details):
             self.analyzer._details[start_idx]["local_time"] = "O(1)"
@@ -578,8 +588,9 @@ class ASTNodeVisitor(ast.NodeVisitor):
             self.analyzer._details[start_idx]["time_explanation"] = "Function declaration."
             self.analyzer._details[start_idx]["space_explanation"] = "O(1) memory overhead."
             if func_dead_reason:
-                self.analyzer._details[start_idx]["dead_kind"] = func_dead_reason["kind"]
-                self.analyzer._details[start_idx]["dead_reason"] = func_dead_reason["reason"]
+                self.analyzer._details[start_idx]["uncalled_function"] = True
+                self.analyzer._details[start_idx]["scope"] = "function-level"
+                self.analyzer._details[start_idx]["uncalled_reason"] = func_dead_reason["reason"]
                 self.analyzer._details[start_idx]["time_explanation"] = "Function declaration. " + func_dead_reason["reason"]
             # Teach what the definition means instead of a one-line stub. Any failure
             # here must fall back to the plain text above, never break the analysis.
@@ -597,6 +608,11 @@ class ASTNodeVisitor(ast.NodeVisitor):
             except Exception:
                 pass
 
+        if is_dead:
+            # function-level only: hand the enclosing scope's maxima back untouched
+            (self.analyzer.max_complexity, self.analyzer.max_space_weight, self.analyzer.max_poly_str,
+             self.analyzer.max_log, self.analyzer.max_sqrt, self.analyzer.max_exp,
+             self.analyzer.max_graph_ve, self.analyzer.max_fact) = prev_data
         if not is_dead:
             self.analyzer.max_exp, self.analyzer.max_graph_ve = max(prev_data[5], self.analyzer.max_exp), max(prev_data[6], self.analyzer.max_graph_ve)
             self.analyzer.max_fact = max(prev_data[7] if len(prev_data) > 7 else 0, getattr(self.analyzer, 'max_fact', 0))
@@ -617,7 +633,10 @@ class ASTNodeVisitor(ast.NodeVisitor):
 
         if start_idx < len(self.analyzer._details):
             for i in range(start_idx, len(self.analyzer._details)):
-                if final_sp_upgrade and self.analyzer._details[i].get("global_space") == "O(n)":
+                # a plain call row already carries the CALLEE's own space class; another helper's
+                # O(n^2) must not be copied onto it
+                if (final_sp_upgrade and self.analyzer._details[i].get("global_space") == "O(n)"
+                        and self.analyzer._details[i].get("operation") != "Function Call"):
                     self.analyzer._details[i]["global_space"] = final_sp_upgrade
 
         self.analyzer.current_function_name = None; self.analyzer.in_graph_context = False; self.analyzer.recursive_calls_count = 0 
@@ -1115,6 +1134,10 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 self.analyzer.signature_recorder.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
             else:
                 call_comp = self.analyzer.custom_functions[f_id]
+                # a call to a permutation-style helper must show its resolved class, not a raw "T(n-1)" token.
+                # (Deliberately narrow: resolving every recurrence here changed other programs' totals.)
+                if "n * T(n-1)" in call_comp or "n*T(n-1)" in call_comp:
+                    call_comp = "O(n!)"
                 self.analyzer.signature_recorder.record_line(node, time_override=call_comp, space_override=self.analyzer.custom_space.get(f_id, "O(1)"), custom_op="Function Call")
 
         elif isinstance(func_node, ast.Name):
