@@ -214,6 +214,7 @@ const ENGINE_MODULE_FILES = [
   "complexity_analyzer/code_preprocessor.py",
   "complexity_analyzer/call_graph_mapper.py",
   "complexity_analyzer/topological_sequencer.py",
+  "complexity_analyzer/size_symbols.py",
   "complexity_analyzer/complexity_heuristics.py",
   "complexity_analyzer/signature_recorder.py",
   "complexity_analyzer/ast_node_visitors.py",
@@ -385,7 +386,7 @@ import ast
 for _mod in (
     'complexity_analyzer', 'complexity_analyzer.analyzer',
     'complexity_analyzer.code_preprocessor', 'complexity_analyzer.call_graph_mapper',
-    'complexity_analyzer.topological_sequencer', 'complexity_analyzer.complexity_heuristics',
+    'complexity_analyzer.topological_sequencer', 'complexity_analyzer.size_symbols', 'complexity_analyzer.complexity_heuristics',
     'complexity_analyzer.signature_recorder', 'complexity_analyzer.ast_node_visitors',
     'complexity_analyzer.complexity_synthesizer', 'complexity_analyzer.pipeline_trace',
     'complexity_explainer', 'complexity_explainer.complexity_explainer',

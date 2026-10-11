@@ -10,6 +10,33 @@ monolithic analyzer.py for maintainability.
 """
 import ast
 import re
+
+# THEORETICAL (ASYMPTOTIC) MODE
+# -----------------------------------------------------------------------------
+# In asymptotic analysis a variable such as `n` stands for a problem size that
+# grows toward infinity. A value assigned in the source (`n = 10`) is only a
+# sample/test value, so it must NEVER turn the loops, allocations or recursion
+# that depend on it into O(1). When True (default) every variable -- whatever its
+# name or assigned value -- is symbolic; only literals written directly in the
+# construct (`range(10)`, `[0] * 5`) count as constants, because those really do
+# execute a fixed number of times regardless of the input.
+# Set to False to restore the old "strict program" behaviour (named / assigned
+# constants fold to O(1)).
+THEORETICAL_MODE = True
+
+# MULTI-VARIABLE NOTATION (conventional asymptotic analysis)
+# Independent sizes keep their own symbol -- see size_symbols.py. Identity decides the symbol, never spelling:
+#   for i in range(x): for j in range(y)        -> O(n * m)     x and y are different sizes
+#   n = len(arr); range(n) x range(len(arr))    -> O(n^2)       same size, one symbol
+#   def f(arr, n): range(n) x range(len(arr))   -> O(n^2)       a length parameter measures the collection
+#   range(x ** 2) x range(y)                    -> O(n^2 * m)
+# False restores the single-size convention (every nest of two or more sizes prints O(n^2)).
+MULTI_VARIABLE_NOTATION = True
+
+# Sequential code over DIFFERENT sizes adds: a loop over n then a loop over m is O(n + m); a nest over n
+# followed by a loop over m is O(n^2 + m). Applied only when every term involves a single size (a mixed
+# product beside another term is not trusted). False reports only the dominant term (O(n)).
+SUM_OF_INDEPENDENT_TERMS = True
 from collections import deque, Counter
 
 def extract_constant(node):
@@ -240,10 +267,45 @@ def _detect_factorial_branching(func_node):
         )
         return shrinks and has_recursive_call
 
+    def loop_param_branching(for_node):
+        """
+        T(k) = k * T(k - c): `for i in range(k): ... f(k - 1)` where `k` is one of the function's own
+        parameters. The loop makes k recursive calls and each one has a problem smaller by a constant,
+        so the call tree has k * (k-1) * (k-2) * ... = k! leaves. A constant-bounded loop
+        (`range(3)`), a shrink by division (`f(k // 2)`) or an early return/break inside the loop is
+        deliberately NOT matched: those are other growth shapes.
+        """
+        it = for_node.iter
+        if not (isinstance(it, ast.Call) and getattr(getattr(it, 'func', None), 'id', '') == 'range' and it.args):
+            return False
+        bound = it.args[0] if len(it.args) == 1 else it.args[1]
+        if len(it.args) >= 2 and not isinstance(it.args[0], ast.Constant):
+            return False
+        name = None
+        if isinstance(bound, ast.Name):
+            name = bound.id
+        elif (isinstance(bound, ast.BinOp) and isinstance(bound.op, (ast.Add, ast.Sub))
+              and isinstance(bound.left, ast.Name) and isinstance(bound.right, ast.Constant)):
+            name = bound.left.id
+        if name not in param_names:
+            return False
+        if any(isinstance(n, (ast.Return, ast.Break)) for n in ast.walk(for_node)):
+            return False
+        for n in ast.walk(for_node):
+            if isinstance(n, ast.Call) and getattr(getattr(n, 'func', None), 'id', None) == func_name:
+                for a in list(n.args) + [k.value for k in n.keywords]:
+                    if (isinstance(a, ast.BinOp) and isinstance(a.op, ast.Sub) and isinstance(a.left, ast.Name)
+                            and a.left.id == name and isinstance(a.right, ast.Constant)
+                            and isinstance(a.right.value, int) and a.right.value >= 1):
+                        return True
+        return False
+
     def scan(node):
         for child in ast.iter_child_nodes(node):
             if isinstance(child, ast.For):
                 if swaps_and_recurses_on_next_slot(child):
+                    return True
+                if loop_param_branching(child):
                     return True
                 bound_name = loop_bound_name(child)
                 if bound_name:
@@ -441,6 +503,8 @@ def find_script_literal_name_locs(tree):
     stands for a scalable input size (the benchmark's convention), so it
     stays symbolic.
     """
+    if THEORETICAL_MODE:
+        return set()
     literal_assigns = {}
     for stmt in getattr(tree, 'body', []):
         if (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1
@@ -494,7 +558,7 @@ def script_literal_loop_note(tree, locs):
     `n` as "the input size". Returns one sentence naming the fixed variable(s)
     and what would make the loop O(n) instead, or "" when it doesn't apply.
     """
-    if not locs:
+    if THEORETICAL_MODE or not locs:
         return ""
     values = {}
     for stmt in getattr(tree, 'body', []):

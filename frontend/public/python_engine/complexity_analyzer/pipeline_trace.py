@@ -237,6 +237,8 @@ def trace_pipeline(source_code):
         analyzer.root_tree = tree
         analyzer.script_literal_locs = find_script_literal_name_locs(tree)
         analyzer.m_dim_for_locs = find_element_dim_loops(tree)
+        from complexity_analyzer.size_symbols import SizeSymbols
+        analyzer.size_symbols = SizeSymbols(tree, analyzer.complexity_heuristics._is_constant_expr)
         analyzer.graph_aux_space = graph_aux_space(tree)
         analyzer.const_sized_names = find_constant_sized_names(tree, analyzer.complexity_heuristics._is_constant_expr)
 

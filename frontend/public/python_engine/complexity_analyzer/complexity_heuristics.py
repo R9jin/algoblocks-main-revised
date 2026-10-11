@@ -68,6 +68,14 @@ class ComplexityHeuristics:
         return None
 
     def _register_and_get_dim(self, var_name):
+        # Theoretical analysis: a size letter is a variable's IDENTITY (x and y are two sizes,
+        # n = len(arr) is the same size as arr), never a guess from its spelling.
+        _sym = getattr(self.analyzer, 'size_symbols', None)
+        if _sym is not None and _cp.THEORETICAL_MODE and isinstance(var_name, str) and var_name:
+            try:
+                return _sym.letter_for(var_name, getattr(self.analyzer, 'current_function_name', None))
+            except Exception:
+                pass
         try:
             if not var_name: return 'n'
             if isinstance(var_name, str):
@@ -244,6 +252,19 @@ class ComplexityHeuristics:
         except Exception:
             return False
 
+
+    def _loop_dims(self, node):
+        """Ordered size symbols of a `for` loop's pass count (one entry per polynomial degree),
+        e.g. range(n) -> ['n'], range(x * y) -> ['n', 'm'], range(n ** 2) -> ['n', 'n']."""
+        _sym = getattr(self.analyzer, 'size_symbols', None)
+        if _sym is not None and _cp.THEORETICAL_MODE:
+            try:
+                return _sym.loop_dims(node, getattr(self.analyzer, 'current_function_name', None))
+            except Exception:
+                pass
+        iter_name = self._get_iterable_name(node.iter)
+        dim = self._register_and_get_dim(iter_name)
+        return [dim] * self._loop_bound_degree(node) if dim else []
 
     def _loop_bound_degree(self, node):
         """

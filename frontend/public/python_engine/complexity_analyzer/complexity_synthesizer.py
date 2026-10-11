@@ -41,13 +41,16 @@ class ComplexitySynthesizer:
             if not re.fullmatch(r"O\([a-zA-Z](?:\^\d+)?(?: \* [a-zA-Z](?:\^\d+)?)*\)", res): return res
             terms = {t for t in getattr(self.analyzer, 'poly_terms', set()) if t}
             if len({v for t in terms for v in t}) < 2: return res
+            # only add terms that each involve ONE size (n, m, n^2, ...): a mixed product next to
+            # another term (n * m + n^2) comes from loops whose bounds move, and is not trustworthy
+            if any(len(set(t)) > 1 for t in terms): return res
             from collections import Counter
             cs = [Counter(t) for t in terms]
             def inside(a, b): return a != b and all(b[v] >= k for v, k in a.items())
             top = [c for c in cs if not any(inside(c, o) for o in cs)]
             if len(top) < 2: return res
-            def fmt(c): return " * ".join((f"{v}^{k}" if k > 1 else v) for v, k in sorted(c.items(), key=lambda kv: (kv[0] != 'n', kv[0])))
-            return "O(" + " + ".join(fmt(c) for c in sorted(top, key=lambda c: (-sum(c.values()), 'n' not in c, fmt(c)))) + ")"
+            def fmt(c): return " * ".join((f"{v}^{k}" if k > 1 else v) for v, k in sorted(c.items(), key=lambda kv: __import__('complexity_analyzer.size_symbols', fromlist=['letter_rank']).letter_rank(kv[0])))
+            return "O(" + " + ".join(fmt(c) for c in sorted(top, key=lambda c: (-sum(c.values()), min(__import__('complexity_analyzer.size_symbols', fromlist=['letter_rank']).letter_rank(v) for v in c), fmt(c)))) + ")"
         except Exception:
             return res
 
@@ -106,6 +109,7 @@ class ComplexitySynthesizer:
 
     def get_final_space_badge(self):
         all_spaces = " ".join([str(d.get('global_space', '')) for d in self.analyzer._details] + [str(d.get('local_space', '')) for d in self.analyzer._details])
+        _explicit = all_spaces   # what the lines themselves reported, before function summaries and the weight top-up
         for space_val in self.analyzer.custom_space.values(): all_spaces += " " + space_val
         raw_code = re.sub(r'//.*|#.*|/\*[\s\S]*?\*/', '', "\n".join(self.analyzer.source_lines)).lower()
             
@@ -118,6 +122,10 @@ class ComplexitySynthesizer:
         
         if "n!" in all_spaces: return "O(n!)"
         if "2^n" in all_spaces or "2ⁿ" in all_spaces: return "O(2^n)"
+        # a table whose sides are different sizes (len(a) x len(b)) is O(n * m), not O(n^2)
+        _prods = re.findall(r"O\(([a-z](?:\^\d+)?(?: \* [a-z](?:\^\d+)?)+)\)", _explicit)
+        if _prods and not re.search(r"n\^[3-9]", " ".join(self.analyzer.custom_space.values())) and not re.search(r"n\^\d|n²", re.sub(r"O\([a-z](?:\^\d+)?(?: \* [a-z](?:\^\d+)?)+\)", "", _explicit)):
+            return "O(" + max(_prods, key=lambda t: sum(int(x) if x else 1 for x in re.findall(r"[a-z](?:\^(\d+))?", t))) + ")"
         _sp = [int(k) for k in re.findall(r"n\^(\d+)", all_spaces) if int(k) >= 3]
         if _sp: return f"O(n^{max(_sp)})"
         if "n^2" in all_spaces or "n²" in all_spaces: return "O(n^2)"

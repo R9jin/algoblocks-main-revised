@@ -10,14 +10,14 @@ it.
 The confusions it covers:
 
   * a fixed number is not "n":      range(1000)            -> O(1), however big 1000 feels
-  * a variable can still be fixed:  n = 10; range(n)       -> O(1); n = int(input()) -> O(n)
+  * a variable is a symbol:         n = 10; range(n)       -> O(n); the 10 is only a sample value
   * where n comes from:             typed in / len(x) / a parameter -- and a number's
                                     VALUE is not its number of digits
   * constants and offsets vanish:   range(n // 2), range(5, n), range(0, n, 2)  -> O(n)
   * direct ranges look at the gap:  range(i, i + 3) is O(1) even though i grows
   * not every nested loop is x n:   an inner range(3) multiplies by 3, not by n
-  * two different inputs:           len(a) x len(b) is O(a*b); the analyzer's single n
-                                    only reads as n^2 when both are about equal
+  * two different inputs:           len(a) x len(b) is O(n * m): each independent size keeps
+                                    its own symbol; it only reads as n^2 when both are the same size
   * two styles, same output:        `for x in a` vs `range(len(a))`, and a loop that adds
                                     1..n vs the formula n*(n+1)/2 -- Big-O grades the
                                     work done, not the answer
@@ -548,11 +548,31 @@ class NotationClarity:
             A = A if a_coll else theirs
             B = B if b_coll else mine
             what = "walks" if (a_coll or b_coll) else "counts up to"
+            sym = getattr(self.generator.ctx, "size_symbols", None)
+            if sym is not None:
+                sc = self._scope_name(node)
+                la, lb = sym.letter_for(theirs, sc), sym.letter_for(mine, sc)
+                if la and lb and la == lb:
+                    continue   # different names, same size (n = len(arr)): one symbol, nothing to explain
+                if la and lb:
+                    return [(CLARITY_PRIORITY, (
+                        f"**Two different sizes:** the outer loop depends on `{theirs}` and this one on `{mine}`, so the work is about {A} × {B} passes. "
+                        f"They are independent inputs, so asymptotic analysis keeps them as two symbols -- n = `{theirs}`, m = `{mine}` -- and the "
+                        f"nest is O({la} * {lb}), not O(n^2). It would only simplify to O(n^2) if the two were always the same size."))]
             return [(CLARITY_PRIORITY, (
                 f"**Two different inputs:** the outer loop depends on `{theirs}` and this one on `{mine}`, so the work is about {A} x {B} passes -- "
-                f"written O({A} * {B}) because the two can differ. The analyzer uses a single n for 'input size', so it writes O(n^2); "
-                f"that is exact only when both are about the same size."))]
+                f"written O({A} * {B}) because the two can differ."))]
         return []
+
+    def _scope_name(self, node) -> Optional[str]:
+        """Name of the function that contains `node` (None at script level)."""
+        self._ensure_parents()
+        cur = self._parents.get(id(node))
+        while cur is not None:
+            if isinstance(cur, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                return cur.name
+            cur = self._parents.get(id(cur))
+        return None
 
     def _derived_from_loopvar(self, node, outer) -> bool:
         tnames = {x.id for x in ast.walk(outer.target) if isinstance(x, ast.Name)}

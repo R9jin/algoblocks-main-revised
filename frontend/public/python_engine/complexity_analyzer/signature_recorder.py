@@ -112,7 +112,7 @@ class SignatureRecorder:
                 # distinct size variables stay distinct: O(n * m), O(n^2 * m), ...
                 from collections import Counter as _C
                 _cnt = _C(poly_dims)
-                _terms = [(f"{v}^{k}" if k > 1 else v) for v, k in sorted(_cnt.items(), key=lambda kv: (kv[0] != 'n', kv[0]))]
+                _terms = [(f"{v}^{k}" if k > 1 else v) for v, k in sorted(_cnt.items(), key=lambda kv: __import__('complexity_analyzer.size_symbols', fromlist=['letter_rank']).letter_rank(kv[0]))]
                 return f"O({' * '.join(_terms)} log n)" if log > 0 else f"O({' * '.join(_terms)})"
             if n_count >= 2:
                 # Two or more nested loops over DIFFERENT sizes (rows x columns, n x m) are reported
@@ -191,9 +191,13 @@ class SignatureRecorder:
                     else:
                         iter_name = self.analyzer.complexity_heuristics._get_iterable_name(node.iter)
                         dim = self.analyzer.complexity_heuristics._register_and_get_dim(iter_name)
+                        _ld = self.analyzer.complexity_heuristics._loop_dims(node)
                         if (getattr(node, 'lineno', None), getattr(node, 'col_offset', None)) in getattr(self.analyzer, 'm_dim_for_locs', ()):
                             dim = 'm'  # columns of the enclosing loop's current row
-                        if dim: node_dims = [dim] * self.analyzer.complexity_heuristics._loop_bound_degree(node)
+                            _ld = ['m'] * max(1, len(_ld))
+                        elif _ld:
+                            dim = _ld[0]
+                        if dim: node_dims = list(_ld) if _ld else [dim]
             elif isinstance(node, ast.While):
                 if getattr(self.analyzer, 'in_graph_context', False) and self.analyzer.call_graph_mapper._is_graph_while_loop(node): node_graph = 1
                 else:
@@ -213,7 +217,12 @@ class SignatureRecorder:
                             node_dims = ['n']
         else:
             if not is_recurrence:
-                if "n log n" in time_override: node_dims.append('n'); node_log = 1
+                _prod = re.fullmatch(r"O\(([a-z](?:\^\d+)?(?: \* [a-z](?:\^\d+)?)+)\)", time_override)
+                if _prod and _cp.MULTI_VARIABLE_NOTATION:
+                    for _f in _prod.group(1).split(" * "):
+                        _v, _, _e = _f.partition("^")
+                        node_dims.extend([_v] * (int(_e) if _e else 1))
+                elif "n log n" in time_override: node_dims.append('n'); node_log = 1
                 elif "O(V+E)" in time_override or "O(V)" in time_override: node_graph = 1
                 elif "O(log n)" in time_override: node_log = 1
                 elif "O(sqrt n)" in time_override: node_sqrt = 1
@@ -337,6 +346,9 @@ class SignatureRecorder:
             if tot_dims and not (tot_log or tot_sqrt or tot_graph or self.analyzer.max_exp or self.analyzer.max_fact):
                 if not hasattr(self.analyzer, 'poly_terms'): self.analyzer.poly_terms = set()
                 self.analyzer.poly_terms.add(tuple(sorted(tot_dims)))   # for O(n + m) of sequential loops over different sizes
+                _alt = getattr(getattr(self.analyzer, 'size_symbols', None), 'alt_terms', {}).get(id(node)) if isinstance(node, ast.For) else None
+                if _alt:   # for i in range(n + m): the loop is O(n) + O(m)
+                    self.analyzer.poly_terms.add(tuple(sorted(list(self.analyzer.active_poly_dims) + list(_alt))))
             
             context_w = self._get_weight(overall_t, False)
             

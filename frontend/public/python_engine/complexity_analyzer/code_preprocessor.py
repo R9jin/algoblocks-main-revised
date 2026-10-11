@@ -24,15 +24,19 @@ import re
 # constants fold to O(1)).
 THEORETICAL_MODE = True
 
-# MULTI-VARIABLE NOTATION
-# When True, nested loops over DIFFERENT size variables keep them apart
-# (for i in range(n): for j in range(m) -> O(n * m)) instead of collapsing them to the
-# single-size O(n^2). Loops over the same variable are unchanged (n, n -> O(n^2)).
+# MULTI-VARIABLE NOTATION (conventional asymptotic analysis)
+# Independent sizes keep their own symbol -- see size_symbols.py. Identity decides the symbol, never spelling:
+#   for i in range(x): for j in range(y)        -> O(n * m)     x and y are different sizes
+#   n = len(arr); range(n) x range(len(arr))    -> O(n^2)       same size, one symbol
+#   def f(arr, n): range(n) x range(len(arr))   -> O(n^2)       a length parameter measures the collection
+#   range(x ** 2) x range(y)                    -> O(n^2 * m)
+# False restores the single-size convention (every nest of two or more sizes prints O(n^2)).
 MULTI_VARIABLE_NOTATION = True
 
-# Sequential loops over DIFFERENT sizes add (O(n + m)). OFF by default: the size letters are guessed
-# from variable names, so incidental loops produce noisy sums (e.g. O(n * c + n^2)).
-SUM_OF_INDEPENDENT_TERMS = False
+# Sequential code over DIFFERENT sizes adds: a loop over n then a loop over m is O(n + m); a nest over n
+# followed by a loop over m is O(n^2 + m). Applied only when every term involves a single size (a mixed
+# product beside another term is not trusted). False reports only the dominant term (O(n)).
+SUM_OF_INDEPENDENT_TERMS = True
 from collections import deque, Counter
 
 def extract_constant(node):

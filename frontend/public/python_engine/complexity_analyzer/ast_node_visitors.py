@@ -7,6 +7,7 @@ producing per-line complexity signatures -- the traversal half of the
 "Dependency-Ordered Signature Pass (DFS)" stage.
 """
 import ast
+from complexity_analyzer import code_preprocessor as _cp_mod
 from complexity_analyzer.code_preprocessor import safe_walk, extract_constant, _name_hints_memo_or_graph, _detect_factorial_branching, _factorial_recursion_space
 import re
 
@@ -705,8 +706,12 @@ class ASTNodeVisitor(ast.NodeVisitor):
     def visit_For(self, node):
         iter_name = self.analyzer.complexity_heuristics._get_iterable_name(node.iter)
         dim = self.analyzer.complexity_heuristics._register_and_get_dim(iter_name)
+        loop_dims = self.analyzer.complexity_heuristics._loop_dims(node)
         if (getattr(node, 'lineno', None), getattr(node, 'col_offset', None)) in getattr(self.analyzer, 'm_dim_for_locs', ()):
             dim = 'm'  # walks the inside of the enclosing loop's current row: columns, a separate size
+            loop_dims = ['m'] * max(1, len(loop_dims))
+        elif loop_dims:
+            dim = loop_dims[0]
         target_name = node.target.id if isinstance(node.target, ast.Name) else None
         
         is_const = self.analyzer.complexity_heuristics._is_constant_loop(node)
@@ -813,7 +818,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             elif is_sqrt:
                 self.analyzer.sqrt_loop_depth = getattr(self.analyzer, 'sqrt_loop_depth', 0) + 1
             elif dim:
-                self.analyzer.active_poly_dims.extend([dim] * self.analyzer.complexity_heuristics._loop_bound_degree(node))
+                self.analyzer.active_poly_dims.extend(loop_dims or [dim])
         
         if has_log_call: self.analyzer.call_log_depth += 1
         
@@ -827,7 +832,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             elif is_sqrt:
                 self.analyzer.sqrt_loop_depth -= 1
             elif dim:
-                for _ in range(self.analyzer.complexity_heuristics._loop_bound_degree(node)): self.analyzer.active_poly_dims.pop()
+                for _ in range(len(loop_dims or [dim])): self.analyzer.active_poly_dims.pop()
                 
         self._visit_block(getattr(node, 'orelse', []))
         self.analyzer.current_depth -= 1
@@ -1343,6 +1348,16 @@ class ASTNodeVisitor(ast.NodeVisitor):
                         if isinstance(_t, ast.Name): self.analyzer.constant_size_containers.add(_t.id)
                 elif is_nested or (len(active_loops) > 0 and isinstance(node.targets[0], ast.Subscript)):
                     _k = max(2, _alloc_dims(node.value, self.analyzer.complexity_heuristics._is_constant_expr))
+                    _sym = getattr(self.analyzer, 'size_symbols', None)
+                    _ad = _sym.alloc_dims(node.value, self.analyzer.current_function_name) if _sym is not None else []
+                    if _cp_mod.MULTI_VARIABLE_NOTATION and _cp_mod.THEORETICAL_MODE and len(set(_ad)) >= 2:
+                        from collections import Counter as _Ct
+                        from complexity_analyzer.size_symbols import letter_rank as _lr
+                        _prod = " * ".join((f"{v}^{c}" if c > 1 else v) for v, c in sorted(_Ct(_ad).items(), key=lambda kv: _lr(kv[0])))
+                        self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
+                        self.analyzer.signature_recorder.record_line(node, time_override=f"O({_prod})", space_override=f"O({_prod})", custom_op="2D Array Allocation")
+                        self.generic_visit(node)
+                        return
                     self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)  # weight scale: 2 = polynomial; the exact degree travels in the O(n^k) text
                     self.analyzer.signature_recorder.record_line(node, time_override=f"O(n^{_k})", space_override=f"O(n^{_k})", custom_op="2D Array Allocation" if _k == 2 else f"{_k}D Array Allocation")
                     self.generic_visit(node)
