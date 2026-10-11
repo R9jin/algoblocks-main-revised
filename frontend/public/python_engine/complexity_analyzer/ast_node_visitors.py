@@ -209,7 +209,26 @@ class ASTNodeVisitor(ast.NodeVisitor):
         self.analyzer.signature_recorder.record_line(node, time_override=None, space_override=None)
         self.generic_visit(node)
 
+    _PARENT_STATE = ('current_function_name', 'in_graph_context', 'recursive_calls_count', 'tree_traversal_calls',
+                     'function_gcd_vars', 'in_frequency_summation_depth', 'has_recursion_in_loop', 'has_slicing',
+                     'has_partitioning', 'has_division', 'has_global_accumulation', 'has_factorial_branching',
+                     'first_rec_line', 'conditional_partition_lines', 'in_if_depth')
+
     def visit_FunctionDef(self, node):
+        # A def nested in another function must hand the enclosing function's per-function state back
+        # untouched: otherwise its recursion flags / name / graph context leak into (or wipe) the parent.
+        _a = self.analyzer
+        _parent = None
+        if getattr(_a, 'current_function_name', None):
+            _parent = {k: getattr(_a, k, None) for k in self._PARENT_STATE}
+        try:
+            return self._visit_FunctionDef_core(node)
+        finally:
+            if _parent is not None:
+                for k, v in _parent.items():
+                    setattr(_a, k, v)
+
+    def _visit_FunctionDef_core(self, node):
         is_memoized_or_graph = False
         for dec in getattr(node, 'decorator_list', []):
             if isinstance(dec, ast.Name) and dec.id in ['lru_cache', 'cache', 'memoize']: is_memoized_or_graph = True
@@ -590,6 +609,11 @@ class ASTNodeVisitor(ast.NodeVisitor):
         final_sp_upgrade = None
         if self.analyzer.max_space_weight >= 2:
             final_sp_upgrade = "O(n^2)"
+        elif (self.analyzer.custom_space.get(node.name) == "O(n^2)"
+              and self.analyzer.recursive_calls_count > 0):
+            # recursion that copies a slice per call keeps every active frame's copy alive at once
+            # (n + (n-1) + ... = O(n^2) elements): the copy lines carry the retained total.
+            final_sp_upgrade = "O(n^2)"
 
         if start_idx < len(self.analyzer._details):
             for i in range(start_idx, len(self.analyzer._details)):
@@ -843,6 +867,48 @@ class ASTNodeVisitor(ast.NodeVisitor):
         self.analyzer.loop_stack_targets.pop()
 
     def visit_While(self, node):
+        # A BFS-style worklist loop inside a function that is NOT a graph function overall (e.g. one
+        # function that also has plain counting loops) is still a traversal: cost it as V + E for the
+        # region only, then restore the function-level context.
+        _a = self.analyzer
+        _region = False
+        if not getattr(_a, 'in_graph_context', False) and self._looks_like_traversal(node):
+            _a.in_graph_context = True
+            _region = True
+        try:
+            return self._visit_While_core(node)
+        finally:
+            if _region:
+                _a.in_graph_context = False
+
+    @staticmethod
+    def _graph_iter(it):
+        """Does a `for` iterate an adjacency collection: graph[v], graph.get(v, []), adj, neighbors ...?"""
+        kw = ('neighbor', 'adj', 'graph', 'child')
+        if isinstance(it, ast.Subscript): return True
+        if isinstance(it, ast.Name): return any(k in it.id.lower() for k in kw)
+        if isinstance(it, ast.Attribute): return it.attr in ('graph', 'adj', 'adjList')
+        if (isinstance(it, ast.Call) and isinstance(it.func, ast.Attribute) and it.func.attr == 'get'
+                and isinstance(it.func.value, ast.Name)):
+            return any(k in it.func.value.id.lower() for k in kw)
+        return False
+
+    def _looks_like_traversal(self, node):
+        """while <worklist>: v = worklist.pop(..)/popleft(); for nb in <adjacency>: if nb not in visited: ..."""
+        try:
+            pops = fors = member = False
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr in ('pop', 'popleft'):
+                    pops = True
+                elif isinstance(sub, ast.For) and self._graph_iter(sub.iter):
+                    fors = True
+                elif isinstance(sub, ast.Compare) and any(isinstance(o, (ast.In, ast.NotIn)) for o in sub.ops):
+                    member = True
+            return pops and fors and member
+        except Exception:
+            return False
+
+    def _visit_While_core(self, node):
         is_const = self.analyzer.complexity_heuristics._is_constant_loop(node)
         self.analyzer.loop_depth += 1
         self.analyzer.loop_stack.append('1' if is_const else 'n')
@@ -874,7 +940,17 @@ class ASTNodeVisitor(ast.NodeVisitor):
             self.analyzer.current_depth += 1; 
             for child in node.body:
                 if isinstance(child, ast.Assign) and isinstance(getattr(child.value, 'func', None), ast.Attribute) and child.value.func.attr in ['pop', 'popleft']:
-                    self.analyzer.signature_recorder.record_line(child, time_override="O(1)", space_override="O(1)")
+                    _fn = child.value.func
+                    _pop0 = (_fn.attr == 'pop' and len(child.value.args) == 1
+                             and extract_constant(child.value.args[0]) == 0)
+                    if _pop0:
+                        # list.pop(0) shifts every remaining element: O(V) per removal, V removals.
+                        self.analyzer.graph_list_pop0 = True
+                        self.analyzer.signature_recorder.record_line(
+                            child, time_override="O(V)", global_time_override="O(V^2)",
+                            space_override="O(1)", custom_op="Pop from specific index")
+                    else:
+                        self.analyzer.signature_recorder.record_line(child, time_override="O(1)", space_override="O(1)")
                 else:
                     self.visit(child)
             self.analyzer.graph_depth -= 1

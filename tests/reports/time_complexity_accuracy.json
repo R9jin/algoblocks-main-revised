@@ -1,10 +1,18 @@
 {
   "metric": "expected_overall_time vs analyzer 'total'",
   "n": 273,
-  "correct": 252,
-  "accuracy": 0.9231,
-  "floor": 0.9,
+  "correct": 222,
+  "accuracy": 0.8132,
+  "floor": 0.8,
   "mismatches": [
+    {
+      "id": "algo_n2_006",
+      "name": "K-Centers Problem (Greedy Farthest-Point Selection)",
+      "source_file": "ground_truth_chunk_01.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * k)",
+      "analyzer_status": "success"
+    },
     {
       "id": "algo_n_016",
       "name": "Convert a Prefix Expression to Infix",
@@ -22,6 +30,14 @@
       "analyzer_status": "success"
     },
     {
+      "id": "algo_n_041",
+      "name": "Find the Character from One String at the Minimum Index in Another",
+      "source_file": "ground_truth_chunk_05.json",
+      "expected": "O(n)",
+      "predicted": "O(n + m)",
+      "analyzer_status": "success"
+    },
+    {
       "id": "algo_n2_043",
       "name": "Split a Numeric String into an Increasing Sequence",
       "source_file": "ground_truth_chunk_05.json",
@@ -30,11 +46,75 @@
       "analyzer_status": "success"
     },
     {
-      "id": "algo_n_045",
-      "name": "Find Common Strings with Minimum Index Sum",
+      "id": "algo_n_048",
+      "name": "Check if One Array Is a Subset of Another (Hashing)",
       "source_file": "ground_truth_chunk_05.json",
+      "expected": "O(n)",
+      "predicted": "O(n + m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_052",
+      "name": "Check if All Cells of a Grid Are Visited (Spiral Traversal Simulation)",
+      "source_file": "ground_truth_chunk_06.json",
       "expected": "O(n^2)",
-      "predicted": "O(n)",
+      "predicted": "O(n * m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_056",
+      "name": "Maximum Path Sum in a Matrix (DP)",
+      "source_file": "ground_truth_chunk_06.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_069",
+      "name": "Longest Common Subsequence with Permutations Allowed",
+      "source_file": "ground_truth_chunk_07.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^2 + m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_072",
+      "name": "Check if a Matrix Is Skew-Symmetric",
+      "source_file": "ground_truth_chunk_08.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_076",
+      "name": "Maximum of Every Contiguous Subarray of Size K (Brute Force)",
+      "source_file": "ground_truth_chunk_08.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * k)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_077",
+      "name": "Maximum Sum Hourglass Pattern in a Matrix",
+      "source_file": "ground_truth_chunk_08.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_078",
+      "name": "Find the Nth Permutation of a String (Factorial Number System)",
+      "source_file": "ground_truth_chunk_08.json",
+      "expected": "O(n)",
+      "predicted": "O(n + m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_095",
+      "name": "Print the Lower and Upper Triangular Matrix",
+      "source_file": "ground_truth_chunk_10.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
       "analyzer_status": "success"
     },
     {
@@ -42,7 +122,31 @@
       "name": "Distance to the Nearest 1 in a Binary Matrix (Multi-Source BFS)",
       "source_file": "ground_truth_chunk_11.json",
       "expected": "O(n^2)",
-      "predicted": "O(V+E)",
+      "predicted": "O(n * m + V+E)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_105",
+      "name": "Count Distinct Transformations Between Two Strings (DP)",
+      "source_file": "ground_truth_chunk_11.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_106",
+      "name": "Maximum Product of a Sliding Window in Each Matrix Row",
+      "source_file": "ground_truth_chunk_11.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_119",
+      "name": "Check if a Matrix Is a Toeplitz Matrix",
+      "source_file": "ground_truth_chunk_12.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
       "analyzer_status": "success"
     },
     {
@@ -70,6 +174,22 @@
       "analyzer_status": "success"
     },
     {
+      "id": "algo_n_139",
+      "name": "Find a Pair in an Array with a Given Sum (Hashing)",
+      "source_file": "ground_truth_chunk_14.json",
+      "expected": "O(n)",
+      "predicted": "O(n + m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_146",
+      "name": "Replace Matrix Cells with Distance to Nearest Guard (Multi-Source BFS)",
+      "source_file": "ground_truth_chunk_15.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
+      "analyzer_status": "success"
+    },
+    {
       "id": "algo_n2_148",
       "name": "Longest Increasing Path in a Matrix (DFS + Memoization)",
       "source_file": "ground_truth_chunk_15.json",
@@ -94,11 +214,59 @@
       "analyzer_status": "success"
     },
     {
+      "id": "algo_n2_169",
+      "name": "Check if One Array Is a Subset of Another (Brute Force)",
+      "source_file": "ground_truth_chunk_17.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_175",
+      "name": "K Maximum Non-Overlapping Subarray Sums",
+      "source_file": "ground_truth_chunk_18.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * k)",
+      "analyzer_status": "success"
+    },
+    {
       "id": "algo_n2_176",
       "name": "Count Palindromic Subsequences in a String (Recursion)",
       "source_file": "ground_truth_chunk_18.json",
       "expected": "O(n^2)",
       "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_181",
+      "name": "Rotate a Matrix by 180 Degrees (Row Reversal)",
+      "source_file": "ground_truth_chunk_19.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_195",
+      "name": "Check if One Array Is a Subset of Another (Hashing)",
+      "source_file": "ground_truth_chunk_20.json",
+      "expected": "O(n)",
+      "predicted": "O(n + m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_203",
+      "name": "Find All Permutations of a Matrix Row Present in the Matrix",
+      "source_file": "ground_truth_chunk_21.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_205",
+      "name": "Find the Unique Element in a Matrix (Hashing)",
+      "source_file": "ground_truth_chunk_21.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
       "analyzer_status": "success"
     },
     {
@@ -110,11 +278,27 @@
       "analyzer_status": "success"
     },
     {
+      "id": "algo_n2_207",
+      "name": "Find a Common Element in All Rows of a Sorted Matrix",
+      "source_file": "ground_truth_chunk_21.json",
+      "expected": "O(n^2)",
+      "predicted": "O(m^2 + n)",
+      "analyzer_status": "success"
+    },
+    {
       "id": "algo_n_215",
       "name": "Largest Rectangle in a Histogram via Segment Tree RMQ",
       "source_file": "ground_truth_chunk_22.json",
       "expected": "O(n log n)",
       "predicted": "O(2^n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_228",
+      "name": "Maximum Difference Between Sums of Two Matrix Rows",
+      "source_file": "ground_truth_chunk_23.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
       "analyzer_status": "success"
     },
     {
@@ -134,11 +318,51 @@
       "analyzer_status": "success"
     },
     {
+      "id": "algo_n2_245",
+      "name": "Find All Pairs Summing to X Across Two Arrays",
+      "source_file": "ground_truth_chunk_25.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_249",
+      "name": "Print the N Most Frequent Elements (Hash Map)",
+      "source_file": "ground_truth_chunk_25.json",
+      "expected": "O(n)",
+      "predicted": "O(n + m)",
+      "analyzer_status": "success"
+    },
+    {
       "id": "algo_n_260",
       "name": "Find the Kth Character in a Run-Length Encoded String",
       "source_file": "ground_truth_chunk_26.json",
       "expected": "O(2^n)",
       "predicted": "O(n^3)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_262",
+      "name": "Find All Pairs Summing to X Across Two Arrays",
+      "source_file": "ground_truth_chunk_27.json",
+      "expected": "O(n)",
+      "predicted": "O(n + m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_263",
+      "name": "Print Common Characters of Two Strings in Alphabetical Order",
+      "source_file": "ground_truth_chunk_27.json",
+      "expected": "O(n)",
+      "predicted": "O(n + m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_267",
+      "name": "Check if Two N-ary Trees Are Mirror Images",
+      "source_file": "ground_truth_chunk_27.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^2 + e)",
       "analyzer_status": "success"
     },
     {
@@ -154,7 +378,23 @@
       "name": "Sliding Window Maximum Using Two Stacks",
       "source_file": "ground_truth_chunk_29.json",
       "expected": "O(n)",
-      "predicted": "O(n^2)",
+      "predicted": "O(n^2 + m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_ve_290",
+      "name": "Topological Sort Using Kahn's Algorithm",
+      "source_file": "ground_truth_chunk_30.json",
+      "expected": "O(V+E)",
+      "predicted": "O(n * m + V+E)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_ve_292",
+      "name": "Check Whether a Graph Is Bipartite Using BFS",
+      "source_file": "ground_truth_chunk_30.json",
+      "expected": "O(V+E)",
+      "predicted": "O(n^2 + V+E)",
       "analyzer_status": "success"
     },
     {

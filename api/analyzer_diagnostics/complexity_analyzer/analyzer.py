@@ -501,6 +501,7 @@ class ComplexityAnalyzer:
         self.max_exp = 0
         self.max_fact = 0
         self.max_graph_ve = 0                 
+        self.graph_list_pop0 = False          # a list used as a BFS queue with pop(0): traversal is O(V^2 + E)
         self.max_space_weight = 0        
         
         self.variable_complexities = {}  

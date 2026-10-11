@@ -30,6 +30,10 @@ class SignatureRecorder:
     def _get_weight(self, complexity_str, is_recurrence=False):
         if is_recurrence: return 200
         if complexity_str in ["O(1)", "Definition", "Dead Code"]: return 1 if complexity_str != "Dead Code" else -1
+        # a lone size other than n (O(m), O(m^2), O(m log m)) ranks exactly like the same shape over n
+        _lone = re.fullmatch(r"O\(([mkpqrs])(\^\d+)?( log \1)?\)", complexity_str)
+        if _lone: return self._get_weight(f"O(n{_lone.group(2) or ''}{' log n' if _lone.group(3) else ''})")
+        if "V^2" in complexity_str: return 14   # O(V^2) / O(V^2+E): above a single traversal, below n^2
         w = 0
         if "n!" in complexity_str: w = 150
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: w = 100
@@ -114,6 +118,14 @@ class SignatureRecorder:
                 _cnt = _C(poly_dims)
                 _terms = [(f"{v}^{k}" if k > 1 else v) for v, k in sorted(_cnt.items(), key=lambda kv: __import__('complexity_analyzer.size_symbols', fromlist=['letter_rank']).letter_rank(kv[0]))]
                 return f"O({' * '.join(_terms)} log n)" if log > 0 else f"O({' * '.join(_terms)})"
+            # One size symbol repeated (or alone): keep ITS letter. A loop over m is O(m), two nested
+            # loops over m are O(m^2) -- never silently renamed to n.
+            _uniq = set(poly_dims) if poly_dims else set()
+            if (n_count >= 1 and len(_uniq) == 1 and _cp.MULTI_VARIABLE_NOTATION
+                    and next(iter(_uniq)) in ('m', 'k', 'p', 'q', 'r', 's')):
+                _L = next(iter(_uniq))
+                _body = _L if n_count == 1 else f"{_L}^{n_count}"
+                return f"O({_body} log {_L})" if log > 0 else f"O({_body})"
             if n_count >= 2:
                 # Two or more nested loops over DIFFERENT sizes (rows x columns, n x m) are reported
                 # with the project's single-size convention: n is the largest size, so the nest is

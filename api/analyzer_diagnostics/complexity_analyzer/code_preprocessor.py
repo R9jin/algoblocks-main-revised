@@ -469,16 +469,28 @@ def preprocess_source(source_code):
         pass
     return source_code
 
+# Names of helpers defined INSIDE another function that nothing ever calls. Set by the call-graph
+# mapper for the current analysis. A walk over the enclosing function must not see their bodies,
+# otherwise an uncalled nested recursion silently changes the enclosing function's own recurrence
+# (T(n) = n * T(n-1) leaking out of a helper that never runs).
+DEAD_NESTED_FUNCS = set()
+
+
 def safe_walk(node):
     if isinstance(node, list):
         todo = deque(node)
+        _roots = {id(x) for x in node}
     elif isinstance(node, ast.AST):
         todo = deque([node])
+        _roots = {id(node)}
     else:
         return
     while todo:
         curr = todo.popleft()
         if isinstance(curr, ast.AST):
+            if (DEAD_NESTED_FUNCS and isinstance(curr, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and curr.name in DEAD_NESTED_FUNCS and id(curr) not in _roots):
+                continue   # a dead nested helper: not part of what this walk is asking about
             yield curr
             for _, value in ast.iter_fields(curr):
                 if isinstance(value, list):

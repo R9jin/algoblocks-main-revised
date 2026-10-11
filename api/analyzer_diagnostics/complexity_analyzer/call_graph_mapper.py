@@ -31,6 +31,7 @@ class CallGraphMapper:
         # seeded with *every* function and nothing could ever be flagged
         # dead -- an uncalled O(n^2) helper still inflated the overall badge.
         defined_funcs = set()
+        nested_funcs = set()
         # Names a scope merely *mentions* without calling (callbacks such as
         # `sorted(xs, key=helper)`, `map(helper, xs)`, `obj.method` handed
         # around). They keep a function alive but are not call-graph edges,
@@ -53,6 +54,8 @@ class CallGraphMapper:
             if isinstance(current_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 self.analyzer.symbol_table[current_node.name] = current_node  
                 defined_funcs.add(current_node.name)
+                if current_func is not None:
+                    nested_funcs.add(current_node.name)   # def inside another def: a helper, not an entry point
                 if self._is_implicitly_invoked(current_node):
                     implicit_roots.add(current_node.name)
                 current_func = current_node.name  
@@ -102,7 +105,12 @@ class CallGraphMapper:
         if has_entry_point:
             roots = set(entry_targets) | implicit_roots
         else:
-            roots = set(defined_funcs)
+            # Every TOP-LEVEL def is its own entry point. A helper defined inside another function is
+            # only live if that function (or another live helper) actually calls or passes it on;
+            # an uncalled nested helper never runs, so it must not count toward the total.
+            roots = set(defined_funcs) - nested_funcs
+            if not roots:
+                roots = set(defined_funcs)
 
         visited = set(roots)
         reach_queue = deque(roots)
@@ -115,6 +123,8 @@ class CallGraphMapper:
         self.analyzer.defined_funcs = set(defined_funcs)
         self.analyzer.reachable_funcs = visited & defined_funcs
         self.analyzer.dead_funcs = defined_funcs - self.analyzer.reachable_funcs
+        from complexity_analyzer import code_preprocessor as _cp_dead
+        _cp_dead.DEAD_NESTED_FUNCS = set(self.analyzer.dead_funcs) & nested_funcs
         self.analyzer.has_entry_point = has_entry_point
         reasons = {}
         for fn in self.analyzer.dead_funcs:
@@ -277,6 +287,11 @@ class CallGraphMapper:
             if isinstance(node.iter, ast.Subscript): return True
             if isinstance(node.iter, ast.Name) and any(kw in node.iter.id.lower() for kw in ['neighbor', 'adj', 'graph', 'child']): return True
             if isinstance(node.iter, ast.Attribute) and node.iter.attr in ['graph', 'adj', 'adjList']: return True
+            # graph.get(v, []) / adj.get(v, ()): adjacency lookup with a default
+            it = node.iter
+            if (isinstance(it, ast.Call) and isinstance(it.func, ast.Attribute) and it.func.attr == 'get'
+                    and isinstance(it.func.value, ast.Name)
+                    and any(kw in it.func.value.id.lower() for kw in ['neighbor', 'adj', 'graph', 'child'])): return True
             return False
         except Exception:
             return False
