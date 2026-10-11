@@ -9,6 +9,7 @@ propagation, and per-line result recording).
 """
 import ast
 import re
+from complexity_analyzer import code_preprocessor as _cp
 
 try:
     from complexity_explainer.complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
@@ -107,6 +108,12 @@ class SignatureRecorder:
 
             n_count = len(poly_dims) if poly_dims else 0
             
+            if n_count >= 2 and _cp.MULTI_VARIABLE_NOTATION and len(set(poly_dims)) >= 2:
+                # distinct size variables stay distinct: O(n * m), O(n^2 * m), ...
+                from collections import Counter as _C
+                _cnt = _C(poly_dims)
+                _terms = [(f"{v}^{k}" if k > 1 else v) for v, k in sorted(_cnt.items(), key=lambda kv: (kv[0] != 'n', kv[0]))]
+                return f"O({' * '.join(_terms)} log n)" if log > 0 else f"O({' * '.join(_terms)})"
             if n_count >= 2:
                 # Two or more nested loops over DIFFERENT sizes (rows x columns, n x m) are reported
                 # with the project's single-size convention: n is the largest size, so the nest is
@@ -186,12 +193,14 @@ class SignatureRecorder:
                         dim = self.analyzer.complexity_heuristics._register_and_get_dim(iter_name)
                         if (getattr(node, 'lineno', None), getattr(node, 'col_offset', None)) in getattr(self.analyzer, 'm_dim_for_locs', ()):
                             dim = 'm'  # columns of the enclosing loop's current row
-                        if dim: node_dims = [dim]
+                        if dim: node_dims = [dim] * self.analyzer.complexity_heuristics._loop_bound_degree(node)
             elif isinstance(node, ast.While):
                 if getattr(self.analyzer, 'in_graph_context', False) and self.analyzer.call_graph_mapper._is_graph_while_loop(node): node_graph = 1
                 else:
                     is_log, gcd_v = self.analyzer.complexity_heuristics._is_log_loop(node)
-                    if is_log: 
+                    if self.analyzer.complexity_heuristics._is_constant_loop(node):
+                        pass  # fixed pass count (literal-bounded counter): O(1), whatever the step pattern looks like
+                    elif is_log: 
                         node_log = 1
                         gcd_vars = gcd_v
                     elif self.analyzer.complexity_heuristics._is_sqrt_loop(node): node_sqrt = 1
@@ -325,6 +334,9 @@ class SignatureRecorder:
 
         if not is_dead and time_override != "Definition":
             overall_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.analyzer.max_exp, tot_graph, gcd_vars, self.analyzer.max_fact)
+            if tot_dims and not (tot_log or tot_sqrt or tot_graph or self.analyzer.max_exp or self.analyzer.max_fact):
+                if not hasattr(self.analyzer, 'poly_terms'): self.analyzer.poly_terms = set()
+                self.analyzer.poly_terms.add(tuple(sorted(tot_dims)))   # for O(n + m) of sequential loops over different sizes
             
             context_w = self._get_weight(overall_t, False)
             

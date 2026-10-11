@@ -813,7 +813,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             elif is_sqrt:
                 self.analyzer.sqrt_loop_depth = getattr(self.analyzer, 'sqrt_loop_depth', 0) + 1
             elif dim:
-                self.analyzer.active_poly_dims.append(dim)
+                self.analyzer.active_poly_dims.extend([dim] * self.analyzer.complexity_heuristics._loop_bound_degree(node))
         
         if has_log_call: self.analyzer.call_log_depth += 1
         
@@ -827,7 +827,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             elif is_sqrt:
                 self.analyzer.sqrt_loop_depth -= 1
             elif dim:
-                self.analyzer.active_poly_dims.pop()
+                for _ in range(self.analyzer.complexity_heuristics._loop_bound_degree(node)): self.analyzer.active_poly_dims.pop()
                 
         self._visit_block(getattr(node, 'orelse', []))
         self.analyzer.current_depth -= 1
@@ -1484,7 +1484,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
 
     def visit_AugAssign(self, node): 
         if self.analyzer.loop_depth > 0 and isinstance(node.target, ast.Name) and isinstance(node.value, ast.Subscript):
-            self.analyzer.signature_recorder.add_logic_hint(node, "Logic Risk (Data-Dependent Traversal): Your loop increment/step mainly depends heavily on dynamic data values. Static analysis conservatively mainly defaults to worst-case, but runtime could radically fluctuate depending on the dataset state.")
+            self.analyzer.signature_recorder.add_logic_hint(node, "Logic Risk (Data-Dependent Traversal): Your loop increment/step mainly depends heavily on dynamic data values. The analysis therefore assumes the worst case over all possible inputs, since the number of iterations cannot be bounded from the code alone.")
 
         if isinstance(node.target, ast.Name) and self.analyzer.complexity_heuristics._is_linear_var(node.target.id):
             is_geometric = False

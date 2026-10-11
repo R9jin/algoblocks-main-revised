@@ -67,7 +67,10 @@ from complexity_analyzer.analyzer import analyze_source_code
 # before the analyzer fixes was time 82.6% / space 82.6%; after: time 87.6% / space 88.8%.
 # Floors sit ~2 points under the new baseline.
 # Oct 9 2026 (error-driven analyzer update): strict exact match now time 92.3% (252/273) / space 92.3% (252/273); floors raised to 90%.
-MIN_TIME_ACCURACY = 0.90
+# Oct 11 2026 (theoretical-analysis pivot): nested loops over DIFFERENT sizes are now reported as O(n * m) instead of the
+# single-size O(n^2). 15 benchmark entries are labelled O(n^2) under the old single-size convention, so time accuracy is
+# 87.2% (238/273) with cp.MULTI_VARIABLE_NOTATION = True and 92.7% (253/273) with it False. Floor lowered to match.
+MIN_TIME_ACCURACY = 0.87
 MIN_SPACE_ACCURACY = 0.90
 MAX_CRASH_FALLBACK_RATE = 0.06
 

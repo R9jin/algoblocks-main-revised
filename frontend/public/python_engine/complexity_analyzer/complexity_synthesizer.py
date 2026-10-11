@@ -27,6 +27,31 @@ class ComplexitySynthesizer:
         self.analyzer = analyzer
 
     def get_final_asymptotic_badge(self):
+        return self._with_independent_sum(self._base_final_asymptotic_badge())
+
+    def _with_independent_sum(self, res):
+        """
+        Sequential loops over DIFFERENT sizes add: a loop over n followed by a loop over m is
+        O(n + m), not O(n). Only applied to pure polynomial results; a term contained in a bigger
+        one (n inside n * m) is dominated and dropped.
+        """
+        try:
+            from complexity_analyzer import code_preprocessor as _cp
+            if not (_cp.MULTI_VARIABLE_NOTATION and _cp.SUM_OF_INDEPENDENT_TERMS): return res
+            if not re.fullmatch(r"O\([a-zA-Z](?:\^\d+)?(?: \* [a-zA-Z](?:\^\d+)?)*\)", res): return res
+            terms = {t for t in getattr(self.analyzer, 'poly_terms', set()) if t}
+            if len({v for t in terms for v in t}) < 2: return res
+            from collections import Counter
+            cs = [Counter(t) for t in terms]
+            def inside(a, b): return a != b and all(b[v] >= k for v, k in a.items())
+            top = [c for c in cs if not any(inside(c, o) for o in cs)]
+            if len(top) < 2: return res
+            def fmt(c): return " * ".join((f"{v}^{k}" if k > 1 else v) for v, k in sorted(c.items(), key=lambda kv: (kv[0] != 'n', kv[0])))
+            return "O(" + " + ".join(fmt(c) for c in sorted(top, key=lambda c: (-sum(c.values()), 'n' not in c, fmt(c)))) + ")"
+        except Exception:
+            return res
+
+    def _base_final_asymptotic_badge(self):
         all_comps = " ".join([str(d.get('global_time', '')) for d in self.analyzer._details] + [str(d.get('local_time', '')) for d in self.analyzer._details])
         
         resolved_custom = []

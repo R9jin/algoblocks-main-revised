@@ -234,6 +234,7 @@ def trace_pipeline(source_code):
                 for target in stmt.targets:
                     if isinstance(target, ast.Name) and target.id not in param_names:
                         analyzer.module_int_constants.add(target.id)
+        analyzer.root_tree = tree
         analyzer.script_literal_locs = find_script_literal_name_locs(tree)
         analyzer.m_dim_for_locs = find_element_dim_loops(tree)
         analyzer.graph_aux_space = graph_aux_space(tree)
