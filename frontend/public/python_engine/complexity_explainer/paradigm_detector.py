@@ -133,7 +133,20 @@ def _dp_table(f: _Facts) -> Optional[Match]:
         if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Subscript):
             base = _src(n.targets[0].value)
             reads = [s for s in ast.walk(n.value) if isinstance(s, ast.Subscript) and _src(s.value) == base]
-            if reads and any(isinstance(a, _LOOPS) for a in ast.walk(f.tree)):
+            # A real DP table (a) is built by the function itself, not handed in as the input (an input list
+            # that is rewritten slot-by-slot is an in-place algorithm: a shift or a swap, e.g. in bubble or
+            # insertion sort), (b) is filled by COMBINING earlier entries (arithmetic, min/max, a call), not by
+            # copying one neighbour into another slot, and (c) reads entries at an EARLIER index (i - 1, j - w).
+            def _root(e):
+                while isinstance(e, (ast.Subscript, ast.Attribute)):
+                    e = e.value
+                return e.id if isinstance(e, ast.Name) else None
+            owner_fn = next((fn for fn in f.funcs.values() if n in list(ast.walk(fn))), None)
+            params = {a.arg for a in owner_fn.args.args} if owner_fn is not None else set()
+            is_copy = isinstance(n.value, ast.Subscript)
+            earlier = any(isinstance(x, ast.BinOp) and isinstance(x.op, ast.Sub) for r in reads for x in ast.walk(r.slice))
+            if reads and not is_copy and earlier and _root(n.targets[0].value) not in params \
+                    and any(isinstance(a, _LOOPS) for a in ast.walk(f.tree)):
                 inside_loop = any(isinstance(p, _LOOPS) and n in list(ast.walk(p)) for p in f.loops)
                 if inside_loop:
                     return Match(
@@ -377,6 +390,17 @@ def _brute_force(f: _Facts) -> Optional[Match]:
 def _greedy(f: _Facts) -> Optional[Match]:
     sorted_call = [c for c in f.calls if _name(c.func) in ("sorted", "sort")]
     heap = [c for c in f.calls if _name(c.func) in ("heappop", "heappush")]
+    # "sort once, then one pass takes the best" -- a sort that runs *inside* a loop body is
+    # repeated sorting, and a sort with no loop at all is just a sort; neither is greedy.
+    if sorted_call:
+        in_loop = set()
+        for lp in f.loops:
+            for stmt in lp.body:
+                for n in ast.walk(stmt):
+                    in_loop.add(id(n))
+        sorted_call = [c for c in sorted_call if id(c) not in in_loop]
+        if not f.loops:
+            sorted_call = []
     if (sorted_call or heap) and f.max_depth <= 1 and not f.self_calls:
         if sorted_call:
             c = sorted_call[0]
@@ -621,15 +645,43 @@ def _quick_partition(f: _Facts) -> Optional[Match]:
                 "Divide and conquer (partition around a pivot)",
                 "It picks a pivot, splits the items into smaller-than-pivot and bigger-than-pivot groups, and solves each group by calling itself.",
                 [f"`{fname}` uses `{piv.id}` ({_line(piv)}) to split the data, then calls itself {len(calls)} times on the parts."],
-                "If the pivot splits the data evenly it is O(n log n); a bad pivot every time degrades to O(n^2).",
+                "This is the worst case: if the pivot is always the smallest or largest item (for example already-sorted input with a first- or last-element pivot) one group is empty, so there are n levels of O(n) work, which is O(n^2). Only when the pivot splits the data evenly does it drop to O(n log n).",
                 score=87, lines=[piv.lineno])
     return None
 
+def _halving_loop(f: _Facts) -> Optional[Match]:
+    """while-loop whose control variable is halved (or doubled up to a bound) every pass."""
+    for lp in f.loops:
+        if not isinstance(lp, ast.While):
+            continue
+        test_names = {n.id for n in ast.walk(lp.test) if isinstance(n, ast.Name)}
+        for st in ast.walk(lp):
+            tgt = op = val = None
+            if isinstance(st, ast.AugAssign) and isinstance(st.target, ast.Name):
+                tgt, op, val = st.target.id, st.op, st.value
+            elif (isinstance(st, ast.Assign) and len(st.targets) == 1 and isinstance(st.targets[0], ast.Name)
+                  and isinstance(st.value, ast.BinOp) and isinstance(st.value.left, ast.Name) and st.value.left.id == st.targets[0].id):
+                tgt, op, val = st.targets[0].id, st.value.op, st.value.right
+            if tgt is None or tgt not in test_names or not isinstance(val, ast.Constant) or not isinstance(val.value, int):
+                continue
+            halves = isinstance(op, (ast.FloorDiv, ast.Div)) and val.value >= 2 or isinstance(op, ast.RShift) and val.value >= 1
+            doubles = isinstance(op, ast.Mult) and val.value >= 2
+            if halves or doubles:
+                what = "cuts the remaining range in half" if halves else "doubles"
+                return Match(
+                    "Repeated halving (logarithmic loop)",
+                    "Each pass shrinks the remaining work by a constant factor (or grows the step by one), so it needs only about log n passes instead of n.",
+                    [f"{_line(st)}: `{_src(st, 40)}` {what} on every pass of the `while` loop."],
+                    "Doubling the input adds just one more pass -- this is why binary search and similar loops scale so well.",
+                    score=55, lines=[st.lineno])
+    return None
+
+
 _RULES = (_prefix_sum, _kadane, _rolling_dp, _quick_partition, _sliding_window, _union_find, _hash_lookup, _bit_tricks, _dp_memo, _dp_table, _backtracking, _divide_conquer, _binary_search, _graph_traversal,
-          _two_pointers, _elementary_sort, _brute_force, _greedy, _scan)
+          _two_pointers, _elementary_sort, _brute_force, _halving_loop, _greedy, _scan)
 
 
-def detect(tree: Optional[ast.AST]) -> List[Match]:
+def detect(tree: Optional[ast.AST], final_time: Optional[str] = None) -> List[Match]:
     if tree is None:
         return []
     try:
@@ -648,6 +700,12 @@ def detect(tree: Optional[ast.AST]) -> List[Match]:
         if not m.lines:
             import re as _re
             m.lines = sorted({int(x) for w in m.why for x in _re.findall(r"line (\d+)", w)})
+    # "Single pass (linear scan)" only describes O(n)-ish work: never show it next to a
+    # logarithmic, n log n, polynomial or exponential result.
+    if final_time:
+        ft = "".join(str(final_time).split()).lower()
+        if any(k in ft for k in ("log", "^", "!", "²", "³")):
+            found = [m for m in found if not m.name.startswith("Single pass")]
     found.sort(key=lambda m: -m.score)
     # a table fill and a memo are both DP: keep one
     out: List[Match] = []
@@ -662,7 +720,16 @@ def detect(tree: Optional[ast.AST]) -> List[Match]:
     generic = ("Single pass", "Simple recursion", "Direct calculation")
     if out and not out[0].name.startswith(generic):
         out = [out[0]] + [m for m in out[1:] if not m.name.startswith(generic) and m.score >= 60]
+    # a recognised textbook algorithm is the complete answer: a generic paradigm label beside it is noise
+    if out and out[0].score >= 96:
+        out = out[:1]
     return out[:2]
+
+
+# Named textbook algorithms (bubble / merge / Dijkstra / Floyd-Warshall ...) outrank every generic
+# paradigm rule above: see algorithm_recognizer.py
+from complexity_explainer import algorithm_recognizer as _ar  # noqa: E402
+_RULES = _ar.as_rules() + _RULES
 
 
 def describe(matches: List[Match]) -> str:

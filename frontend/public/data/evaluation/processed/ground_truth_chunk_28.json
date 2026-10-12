@@ -43,7 +43,7 @@
       },
       {
         "lineno": 22,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -63,7 +63,7 @@
       },
       {
         "lineno": 31,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
@@ -129,7 +129,7 @@
       },
       {
         "lineno": 29,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -140,7 +140,7 @@
     "id": "algo_n_274",
     "name": "Print the Initials of a Name",
     "code": "# python program to print initials of a name\ndef name(s):\n \n    # split the string into a list\n    l = s.split()\n    new = \"\"\n \n    # traverse in the list\n    for i in range(len(l)-1):\n        s = l[i]\n         \n        # adds the capital first character\n        new += (s[0].upper()+'.')\n         \n    # l[-1] gives last item of list l. We\n    # use title to print first character in\n    # capital.\n    new += l[-1].title()\n     \n    return new\n     \n# Driver code           \ns =\"mohandas karamchand gandhi\"\nprint(name(s))",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -150,7 +150,7 @@
       },
       {
         "lineno": 5,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -170,13 +170,13 @@
       },
       {
         "lineno": 13,
-        "time": "O(n)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 18,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 20,
@@ -190,19 +190,76 @@
       },
       {
         "lineno": 24,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "string rule: new += ... in a loop over words",
+    "gt_alt_inplace_concat": {
+      "expected_overall_time": "O(n)",
+      "expected_overall_space": "O(n)",
+      "line_metrics": [
+        {
+          "lineno": 2,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 5,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 6,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 9,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 10,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 13,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 18,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 20,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 23,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 24,
+          "time": "O(n)",
+          "space": "O(n)"
+        }
+      ]
+    }
   },
   {
     "id": "algo_n2_275",
     "name": "Find All Symmetric Pairs in an Array of Pairs",
     "code": "# A Python3 program to find all symmetric\n# pairs in a given array of pairs.\n \n# Print all pairs that have\n# a symmetric counterpart\ndef findSymPairs(arr, row):\n   \n    # This loop for selection of one pair\n    for i in range(0, row):\n       \n        # This loop for searching of symmetric pair\n        for j in range(i + 1, row):\n           \n            # Condition of symmetric pair\n            if (arr[i][0] == arr[j][1] and arr[i][1] == arr[j][0]):\n                print(\"(\",arr[i][0],\",\",arr[i][1],\")\")\n                 \n# Driver Code\nif __name__ == '__main__':\n    arr = [[0 for i in range(2)]\n            for i in range(5)]\n    arr[0][0], arr[0][1] = 11, 20\n    arr[1][0], arr[1][1] = 30, 40\n    arr[2][0], arr[2][1] = 5, 10\n    arr[3][0], arr[3][1] = 40, 30\n    arr[4][0], arr[4][1] = 10, 5\n    findSymPairs(arr, 5)\n \n# This code is contributed by Arpit Jain",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(n)",
+    "expected_overall_space": "O(1)",
     "line_metrics": [
       {
         "lineno": 6,
@@ -237,7 +294,7 @@
       {
         "lineno": 20,
         "time": "O(1)",
-        "space": "O(n^2)"
+        "space": "O(1)"
       },
       {
         "lineno": 22,
@@ -266,7 +323,7 @@
       },
       {
         "lineno": 27,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
@@ -347,8 +404,8 @@
       },
       {
         "lineno": 23,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -448,12 +505,13 @@
       },
       {
         "lineno": 44,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "n=max(len(arr), max element): the multiples loop runs max/arr[i] times per element"
   },
   {
     "id": "algo_n2_278",
@@ -474,7 +532,7 @@
       },
       {
         "lineno": 10,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -509,8 +567,8 @@
       },
       {
         "lineno": 25,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
@@ -520,8 +578,8 @@
     "id": "algo_n_279",
     "name": "Remove Vowels from a String (Regex)",
     "code": "# Python program to remove vowels from a string\n# Function to remove vowels\n \n# import the module for regular expression (re)\nimport re\ndef rem_vowel(string):\n    return (re.sub(\"[aeiouAEIOU]\",\"\",string))           \n \n# Driver program\nstring = \"GeeksforGeeks - A Computer Science Portal for Geeks\"\nprint(rem_vowel(string))",
-    "expected_overall_time": "O(1)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 5,
@@ -535,8 +593,8 @@
       },
       {
         "lineno": 7,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 10,
@@ -545,8 +603,8 @@
       },
       {
         "lineno": 11,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -601,8 +659,8 @@
       },
       {
         "lineno": 18,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 19,
@@ -626,8 +684,8 @@
       },
       {
         "lineno": 26,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",

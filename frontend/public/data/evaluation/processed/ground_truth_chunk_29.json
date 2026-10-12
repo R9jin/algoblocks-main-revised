@@ -3,7 +3,7 @@
     "id": "algo_n_281",
     "name": "Check if a String Can Be Split into Two Divisible Substrings",
     "code": "# Python3 program to check if a can be splitted\n# into two strings such that one is divisible by 'a'\n# and other is divisible by 'b'.\n \n# Finds if it is possible to partition str\n# into two parts such that first part is\n# divisible by a and second part is divisible\n# by b.\ndef findDivision(str, a, b):\n    lenn = len(str)\n     \n    # Create an array of size lenn+1 and\n    # initialize it with 0.\n    # Store remainders from left to right\n    # when divided by 'a'\n    lr = [0] * (lenn + 1)\n    lr[0] = (int(str[0]))%a\n    for i in range(1, lenn):\n        lr[i] = ((lr[i - 1] * 10) % a + \\\n                     int(str[i])) % a\n                      \n    # Compute remainders from right to left\n    # when divided by 'b'\n    rl = [0] * (lenn + 1)\n    rl[lenn - 1] = int(str[lenn - 1]) % b\n    power10 = 10\n    for i in range(lenn - 2, -1, -1):\n        rl[i] = (rl[i + 1] + int(str[i]) * power10) % b\n        power10 = (power10 * 10) % b\n         \n    # Find a point that can partition a number\n    for i in range(0, lenn - 1):\n         \n        # If split is not possible at this point\n        if (lr[i] != 0):\n            continue\n             \n        # We can split at i if one of the following\n        # two is true.\n        # a) All characters after str[i] are 0\n        # b) after str[i] is divisible by b, i.e.,\n        # str[i+1..n-1] is divisible by b.\n        if (rl[i + 1] == 0):\n            print(\"YES\")\n            for k in range(0, i + 1):\n                print(str[k], end = \"\")\n             \n            print(\",\", end = \" \")\n             \n            for i in range(i + 1, lenn):\n                print(str[k], end = \"\")\n                return\n     \n    print(\"NO\")\n \n# Driver code\nstr = \"123\"\na, b = 12, 3\nfindDivision(str, a, b)\n \n# This code is contributed by SHUBHAMSINGH10",
-    "expected_overall_time": "O(n^2)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -18,7 +18,7 @@
       },
       {
         "lineno": 16,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -38,7 +38,7 @@
       },
       {
         "lineno": 24,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -88,37 +88,37 @@
       },
       {
         "lineno": 44,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 45,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 46,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 48,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 50,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 51,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 52,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -138,208 +138,13 @@
       },
       {
         "lineno": 59,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
-  },
-  {
-    "id": "algo_n2_282",
-    "name": "Find Unique Triplets Summing to a Given Value",
-    "code": "# Python program to find unique triplets\n# that sum up to a given value.\n \n# Function to find unique triplets that\n# sum up to a given value.\ndef findTriplets(nums, n, Sum):\n    i = 0\n    j = 0\n    k = 0\n \n    # list to store all unique triplets.\n    triplet = []\n \n    # list to store already found triplets\n    # to avoid duplication.\n    uniqTriplets = []\n \n    # Variable used to hold triplet\n    # converted to string form.\n    temp = \"\"\n \n    # Variable used to store current\n    # triplet which is stored in vector\n    # if it is unique.\n    newTriplet = [0, 0, 0]\n \n    # Sort the input array.\n    nums.sort()\n \n    # Iterate over the array from the\n    # start and consider it as the\n    # first element.\n    for i in range(n - 2):\n         \n        # index of the first element in\n        # the remaining elements.\n        j = i + 1\n \n        # index of the last element.\n        k = n - 1\n \n        while(j < k):\n           \n            # If sum of triplet is equal to\n            # given value, then check if\n            # this triplet is unique or not.\n            # To check uniqueness, convert\n            # triplet to string form and\n            # then check if this string is\n            # present in set or not. If\n            # triplet is unique, then store\n            # it in list.\n            if(nums[i] + nums[j] + nums[k] == Sum):\n                temp = str(nums[i]) + \":\" + str(nums[j]) + \":\" + str(nums[k])\n                if temp not in uniqTriplets:\n                    uniqTriplets.append(temp)\n                    newTriplet[0] = nums[i]\n                    newTriplet[1] = nums[j]\n                    newTriplet[2] = nums[k]\n                    triplet.append(newTriplet)\n                    newTriplet = [0, 0, 0]\n \n                # Increment the first index\n                # and decrement the last\n                # index of remaining elements.\n                j += 1\n                k -= 1\n                 \n            # If sum is greater than given\n            # value then to reduce sum\n            # decrement the last index.\n            elif(nums[i] + nums[j] + nums[k] > Sum):\n                k -= 1\n                 \n            # If sum is less than given value\n            # then to increase sum increment\n            # the first index of remaining\n            # elements.\n            else:\n                j += 1\n \n    # If no unique triplet is found, then\n       # return 0.\n    if(len(triplet) == 0):\n        return 0\n     \n    # Print all unique triplets stored in\n    # list.\n    for i in range(len(triplet)):\n        print(triplet[i], end = \", \")\n    return 1\n \n# Driver Code\nnums = [12, 3, 6, 1, 6, 9]\nn = len(nums)\nSum = 24\n \n# Function call\nif(not findTriplets(nums, n, Sum)):\n    print(\"No triplets can be formed.\")\n \n# This code is contributed by rag2127",
-    "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(n^2)",
-    "line_metrics": [
-      {
-        "lineno": 6,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 7,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 8,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 9,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 12,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 16,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 20,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 25,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 28,
-        "time": "O(n log n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 33,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 37,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 40,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 42,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 53,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 54,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 55,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 56,
-        "time": "O(n^2)",
-        "space": "O(n^2)"
-      },
-      {
-        "lineno": 57,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 58,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 59,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 60,
-        "time": "O(n^2)",
-        "space": "O(n^2)"
-      },
-      {
-        "lineno": 61,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 66,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 67,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 72,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 73,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 80,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 84,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 85,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 89,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 90,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 91,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 94,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 95,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 96,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 99,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 100,
-        "time": "O(1)",
-        "space": "O(1)"
-      }
-    ],
-    "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n^2)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "the success branch runs once (it returns)"
   },
   {
     "id": "algo_n_283",
@@ -360,48 +165,48 @@
       },
       {
         "lineno": 8,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 9,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 11,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 12,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 14,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 15,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 16,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 18,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 19,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 21,
@@ -410,12 +215,12 @@
       },
       {
         "lineno": 27,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 28,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -436,7 +241,7 @@
       {
         "lineno": 33,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 34,
@@ -445,7 +250,7 @@
       },
       {
         "lineno": 35,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -455,47 +260,47 @@
       },
       {
         "lineno": 41,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 42,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 43,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 44,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 46,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 47,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 48,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 50,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 51,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -575,17 +380,18 @@
       },
       {
         "lineno": 83,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 84,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "two-stack queue: every element moves from s2 to s1 at most once"
   },
   {
     "id": "algo_n_284",
@@ -612,11 +418,11 @@
       {
         "lineno": 13,
         "time": "O(1)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 17,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -676,7 +482,7 @@
       },
       {
         "lineno": 47,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       }
     ],
@@ -727,32 +533,32 @@
       },
       {
         "lineno": 9,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 10,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 11,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 12,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 14,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 15,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
@@ -767,17 +573,18 @@
       },
       {
         "lineno": 20,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
         "lineno": 21,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "encoded = encoded + str(count) + ch copies the result every run (left operand is a temporary, so CPython cannot do it in place); ABAB... has n runs"
   },
   {
     "id": "algo_n_286",
@@ -893,7 +700,7 @@
       },
       {
         "lineno": 40,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -913,6 +720,7 @@
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "256-slot arrays are constant size"
   }
 ]

@@ -568,6 +568,9 @@ class StatementNarrator:
                 return f"Starts `{name}` as `None`, meaning it holds nothing yet."
             if v is True or v is False:
                 return f"Sets the flag `{name}` to `{v}`."
+            if isinstance(v, int) and not isinstance(v, bool) and v != 0 and name.lower() in ("n", "size"):
+                return (f"Sets `{name}` to `{v}` -- a fixed value, not a growing input, so loops that count up to `{name}` "
+                        f"make the same number of passes every run.")
             if isinstance(v, (int, float)) and v == 0:
                 return self.pick(f"Starts `{name}` at 0" + (f" (it will be {role})." if role else "."),
                                  f"Sets `{name}` to 0 before the work begins.")

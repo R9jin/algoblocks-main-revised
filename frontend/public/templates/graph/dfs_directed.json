@@ -1,0 +1,530 @@
+{
+ "blocks": {
+  "languageVersion": 0,
+  "blocks": [
+   {
+    "type": "procedures_defreturn",
+    "id": "44599700-9fce-4",
+    "fields": {
+     "NAME": "dfs_directed"
+    },
+    "extraState": {
+     "params": [
+      {
+       "name": "graph",
+       "id": "graph"
+      },
+      {
+       "name": "node",
+       "id": "node"
+      },
+      {
+       "name": "visited",
+       "id": "visited"
+      }
+     ]
+    },
+    "inputs": {
+     "RETURN": {
+      "block": {
+       "type": "variables_get",
+       "id": "2cea9f10-462f-4",
+       "fields": {
+        "VAR": {
+         "id": "visited",
+         "name": "visited"
+        }
+       },
+       "output": "Any"
+      }
+     },
+     "STACK": {
+      "block": {
+       "type": "list_append",
+       "id": "8a5addc8-4db2-4",
+       "inputs": {
+        "LIST": {
+         "block": {
+          "type": "variables_get",
+          "id": "5c4ee67b-b280-4",
+          "fields": {
+           "VAR": {
+            "id": "visited",
+            "name": "visited"
+           }
+          },
+          "output": "Any"
+         }
+        },
+        "ITEM": {
+         "block": {
+          "type": "variables_get",
+          "id": "99fa9380-380e-4",
+          "fields": {
+           "VAR": {
+            "id": "node",
+            "name": "node"
+           }
+          },
+          "output": "Any"
+         }
+        }
+       },
+       "next": {
+        "block": {
+         "type": "text_print",
+         "id": "3bbea845-67f0-4",
+         "inputs": {
+          "TEXT": {
+           "block": {
+            "type": "variables_get",
+            "id": "0a4839ec-0b2b-4",
+            "fields": {
+             "VAR": {
+              "id": "node",
+              "name": "node"
+             }
+            },
+            "output": "Any"
+           }
+          }
+         },
+         "next": {
+          "block": {
+           "type": "controls_forEach",
+           "id": "c0f7363a-5652-4",
+           "fields": {
+            "VAR": {
+             "id": "neighbor",
+             "name": "neighbor"
+            }
+           },
+           "inputs": {
+            "LIST": {
+             "block": {
+              "type": "lists_getIndex",
+              "id": "e5c2d174-c035-4",
+              "fields": {
+               "MODE": "GET",
+               "WHERE": "FROM_START"
+              },
+              "inputs": {
+               "VALUE": {
+                "block": {
+                 "type": "variables_get",
+                 "id": "16dbbf6b-4ee7-4",
+                 "fields": {
+                  "VAR": {
+                   "id": "graph",
+                   "name": "graph"
+                  }
+                 },
+                 "output": "Any"
+                }
+               },
+               "AT": {
+                "block": {
+                 "type": "variables_get",
+                 "id": "d48ffafb-7aca-4",
+                 "fields": {
+                  "VAR": {
+                   "id": "node",
+                   "name": "node"
+                  }
+                 },
+                 "output": "Any"
+                }
+               }
+              },
+              "output": "Any"
+             }
+            },
+            "DO": {
+             "block": {
+              "type": "controls_if",
+              "id": "ff8f6011-0aae-4",
+              "inputs": {
+               "IF0": {
+                "block": {
+                 "type": "logic_negate",
+                 "id": "aa69c031-5343-4",
+                 "inputs": {
+                  "BOOL": {
+                   "block": {
+                    "type": "logic_in",
+                    "id": "4c073e4e-fc4b-4",
+                    "inputs": {
+                     "ITEM": {
+                      "block": {
+                       "type": "variables_get",
+                       "id": "19638541-5745-4",
+                       "fields": {
+                        "VAR": {
+                         "id": "neighbor",
+                         "name": "neighbor"
+                        }
+                       },
+                       "output": "Any"
+                      }
+                     },
+                     "COLLECTION": {
+                      "block": {
+                       "type": "variables_get",
+                       "id": "189e0672-7207-4",
+                       "fields": {
+                        "VAR": {
+                         "id": "visited",
+                         "name": "visited"
+                        }
+                       },
+                       "output": "Any"
+                      }
+                     }
+                    },
+                    "output": "Any"
+                   }
+                  }
+                 },
+                 "output": "Any"
+                }
+               },
+               "DO0": {
+                "block": {
+                 "type": "procedures_callnoreturn",
+                 "id": "932f8d0a-0133-4",
+                 "extraState": {
+                  "name": "dfs_directed",
+                  "params": [
+                   "arg0",
+                   "arg1",
+                   "arg2"
+                  ]
+                 },
+                 "inputs": {
+                  "ARG0": {
+                   "block": {
+                    "type": "variables_get",
+                    "id": "1184e268-6752-4",
+                    "fields": {
+                     "VAR": {
+                      "id": "graph",
+                      "name": "graph"
+                     }
+                    },
+                    "output": "Any"
+                   }
+                  },
+                  "ARG1": {
+                   "block": {
+                    "type": "variables_get",
+                    "id": "153828a9-bc32-4",
+                    "fields": {
+                     "VAR": {
+                      "id": "neighbor",
+                      "name": "neighbor"
+                     }
+                    },
+                    "output": "Any"
+                   }
+                  },
+                  "ARG2": {
+                   "block": {
+                    "type": "variables_get",
+                    "id": "a8460d0c-097d-4",
+                    "fields": {
+                     "VAR": {
+                      "id": "visited",
+                      "name": "visited"
+                     }
+                    },
+                    "output": "Any"
+                   }
+                  }
+                 },
+                 "output": "Any"
+                }
+               }
+              },
+              "output": "Any"
+             }
+            }
+           }
+          }
+         }
+        }
+       },
+       "output": "Any"
+      }
+     }
+    },
+    "x": 20,
+    "y": 20
+   },
+   {
+    "type": "variables_set",
+    "id": "1358ab5c-b747-4",
+    "fields": {
+     "VAR": {
+      "id": "graph",
+      "name": "graph"
+     }
+    },
+    "inputs": {
+     "VALUE": {
+      "block": {
+       "type": "dict_from_pairs",
+       "id": "7818905c-4dbc-4",
+       "output": "Dictionary",
+       "inputs": {
+        "LIST": {
+         "block": {
+          "type": "lists_create_with",
+          "id": "59f328e3-00ba-4",
+          "extraState": {
+           "itemCount": 4
+          },
+          "output": "Array",
+          "inputs": {
+           "ADD0": {
+            "block": {
+             "type": "dict_pair",
+             "id": "a74c8e7b-9153-4",
+             "output": "DictPair",
+             "inputs": {
+              "KEY": {
+               "block": {
+                "type": "math_number",
+                "id": "11a97cf7-2f8b-4",
+                "fields": {
+                 "NUM": "0"
+                },
+                "output": "Number"
+               }
+              },
+              "VALUE": {
+               "block": {
+                "type": "lists_create_with",
+                "id": "29b3812d-b1da-4",
+                "extraState": {
+                 "itemCount": 2
+                },
+                "output": "Array",
+                "inputs": {
+                 "ADD0": {
+                  "block": {
+                   "type": "math_number",
+                   "id": "c78af78b-0caf-4",
+                   "fields": {
+                    "NUM": "1"
+                   },
+                   "output": "Number"
+                  }
+                 },
+                 "ADD1": {
+                  "block": {
+                   "type": "math_number",
+                   "id": "b3743c0e-ff86-4",
+                   "fields": {
+                    "NUM": "2"
+                   },
+                   "output": "Number"
+                  }
+                 }
+                }
+               }
+              }
+             }
+            }
+           },
+           "ADD1": {
+            "block": {
+             "type": "dict_pair",
+             "id": "5145e3e1-eba5-4",
+             "output": "DictPair",
+             "inputs": {
+              "KEY": {
+               "block": {
+                "type": "math_number",
+                "id": "c9fd8e2f-46ba-4",
+                "fields": {
+                 "NUM": "1"
+                },
+                "output": "Number"
+               }
+              },
+              "VALUE": {
+               "block": {
+                "type": "lists_create_with",
+                "id": "cc1e45af-8e89-4",
+                "extraState": {
+                 "itemCount": 1
+                },
+                "output": "Array",
+                "inputs": {
+                 "ADD0": {
+                  "block": {
+                   "type": "math_number",
+                   "id": "58674be3-0f49-4",
+                   "fields": {
+                    "NUM": "3"
+                   },
+                   "output": "Number"
+                  }
+                 }
+                }
+               }
+              }
+             }
+            }
+           },
+           "ADD2": {
+            "block": {
+             "type": "dict_pair",
+             "id": "1db92de7-6de8-4",
+             "output": "DictPair",
+             "inputs": {
+              "KEY": {
+               "block": {
+                "type": "math_number",
+                "id": "d93ecb3e-d381-4",
+                "fields": {
+                 "NUM": "2"
+                },
+                "output": "Number"
+               }
+              },
+              "VALUE": {
+               "block": {
+                "type": "lists_create_with",
+                "id": "b83d2d23-5004-4",
+                "extraState": {
+                 "itemCount": 1
+                },
+                "output": "Array",
+                "inputs": {
+                 "ADD0": {
+                  "block": {
+                   "type": "math_number",
+                   "id": "ccceefd8-c770-4",
+                   "fields": {
+                    "NUM": "3"
+                   },
+                   "output": "Number"
+                  }
+                 }
+                }
+               }
+              }
+             }
+            }
+           },
+           "ADD3": {
+            "block": {
+             "type": "dict_pair",
+             "id": "fc64ab64-d096-4",
+             "output": "DictPair",
+             "inputs": {
+              "KEY": {
+               "block": {
+                "type": "math_number",
+                "id": "72d47883-ce1e-4",
+                "fields": {
+                 "NUM": "3"
+                },
+                "output": "Number"
+               }
+              },
+              "VALUE": {
+               "block": {
+                "type": "lists_create_with",
+                "id": "8d45893a-5fe4-4",
+                "extraState": {
+                 "itemCount": 0
+                },
+                "output": "Array"
+               }
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    "next": {
+     "block": {
+      "type": "procedures_callnoreturn",
+      "id": "ab82841d-0013-4",
+      "extraState": {
+       "name": "dfs_directed",
+       "params": [
+        "arg0",
+        "arg1",
+        "arg2"
+       ]
+      },
+      "inputs": {
+       "ARG0": {
+        "block": {
+         "type": "variables_get",
+         "id": "87f5b0d1-31ca-4",
+         "fields": {
+          "VAR": {
+           "id": "graph",
+           "name": "graph"
+          }
+         },
+         "output": "Any"
+        }
+       },
+       "ARG1": {
+        "block": {
+         "type": "math_number",
+         "id": "2ed37499-580e-4",
+         "fields": {
+          "NUM": "0"
+         },
+         "output": "Number"
+        }
+       },
+       "ARG2": {
+        "block": {
+         "type": "lists_create_with",
+         "id": "7be8e5d4-a693-4",
+         "extraState": {
+          "itemCount": 0
+         },
+         "output": "Array"
+        }
+       }
+      }
+     }
+    },
+    "x": 20,
+    "y": 550
+   }
+  ]
+ },
+ "variables": [
+  {
+   "id": "node",
+   "name": "node"
+  },
+  {
+   "id": "graph",
+   "name": "graph"
+  },
+  {
+   "id": "neighbor",
+   "name": "neighbor"
+  },
+  {
+   "id": "visited",
+   "name": "visited"
+  }
+ ],
+ "backpack": []
+}

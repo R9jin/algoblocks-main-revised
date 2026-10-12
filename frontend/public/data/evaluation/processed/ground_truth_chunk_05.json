@@ -98,12 +98,13 @@
       },
       {
         "lineno": 55,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "n = max(len(st), len(patt)); dict can hold one entry per distinct character"
   },
   {
     "id": "algo_n2_042",
@@ -130,7 +131,7 @@
       {
         "lineno": 9,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 13,
@@ -189,12 +190,13 @@
       },
       {
         "lineno": 39,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "for 1..n every element starts a run of length up to n-i"
   },
   {
     "id": "algo_n2_043",
@@ -245,23 +247,23 @@
       },
       {
         "lineno": 24,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
         "lineno": 25,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 26,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 31,
-        "time": "O(n)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 32,
@@ -270,27 +272,27 @@
       },
       {
         "lineno": 33,
-        "time": "O(n^2)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 34,
-        "time": "O(n^2)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 38,
-        "time": "O(n^2)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 39,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 40,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -300,7 +302,7 @@
       },
       {
         "lineno": 45,
-        "time": "O(n^2)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
@@ -310,47 +312,47 @@
       },
       {
         "lineno": 50,
-        "time": "O(n^2)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 54,
-        "time": "O(n^2)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 55,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 56,
         "time": "O(n^2)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 57,
-        "time": "O(n^2)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 58,
-        "time": "O(n^2)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 63,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 64,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 66,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -360,12 +362,12 @@
       },
       {
         "lineno": 71,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 72,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -375,12 +377,12 @@
       },
       {
         "lineno": 76,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 77,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -390,12 +392,13 @@
       },
       {
         "lineno": 84,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "slice/compare/str() cost O(len) per step; n/i steps for prefix length i => O(n) per i => O(n^2). Line 58 compares an int with the builtin len (bug, only reached after a partial match) and is ignored for complexity. Repaired syntax: else if -> elif"
   },
   {
     "id": "algo_n_044",
@@ -446,7 +449,7 @@
       },
       {
         "lineno": 20,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -492,8 +495,8 @@
       },
       {
         "lineno": 18,
-        "time": "O(n^2)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 22,
@@ -502,7 +505,7 @@
       },
       {
         "lineno": 23,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -562,12 +565,13 @@
       },
       {
         "lineno": 44,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "n=max(len(list1),len(list2)); no common string => all O(n^2) pairs visited"
   },
   {
     "id": "algo_nlogn_046",
@@ -638,17 +642,18 @@
       },
       {
         "lineno": 36,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 37,
-        "time": "O(1)",
+        "time": "O(n log n)",
         "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n log n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "sorted(a) result is discarded but the sort still runs and allocates a copy"
   },
   {
     "id": "algo_n_047",
@@ -699,12 +704,12 @@
       },
       {
         "lineno": 20,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 24,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -751,7 +756,7 @@
       {
         "lineno": 8,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 10,
@@ -766,7 +771,7 @@
       {
         "lineno": 12,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 14,
@@ -792,7 +797,7 @@
     "name": "Print a Cross/Plus Pattern in a Matrix",
     "code": "# Python 3 program to print the\n# string in 'plus' pattern\nmax = 100\n \n# Function to make a cross\n# in the matrix\ndef carveCross(str):\n     \n    n = len(str)\n    if (n % 2 == 0) :\n     \n        ''' As, it is not possible to make\n        the cross exactly in the middle of\n        the matrix with an even length string.'''\n        print(\"Not possible. Please enter \"\n            , \"odd length string.\\n\")\n     \n    else :\n \n        # declaring a 2D array i.e a matrix\n        arr = [[ False for x in range(max)]\n                       for y in range(max)]\n        m = n // 2\n \n        ''' Now, we will fill all the\n        elements of the array with 'X'''\n        for i in range( n) :\n            for j in range(n) :\n                arr[i][j] = 'X'\n \n        '''Now, we will place the characters\n        of the string in the matrix, such\n        that a cross is formed in it.'''\n        for i in range(n):\n         \n            ''' here the characters of the\n            string will be added in the\n            middle column of our array.'''\n            arr[i][m] = str[i]\n         \n        for i in range(n):\n         \n            # here the characters of the\n            # string will be added in the\n            # middle row of our array.\n            arr[m][i] = str[i]\n \n        # Now finally, we will print\n        # the array\n        for i in range(n):\n            for j in range(n):\n                print( arr[i][j] , end=\" \")\n             \n            print()\n \n# Driver Code\nif __name__ == \"__main__\":\n    str = \"PICTURE\"\n    carveCross(str)\n \n# This code is contributed\n# by ChitraNayal",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(n^2)",
+    "expected_overall_space": "O(1)",
     "line_metrics": [
       {
         "lineno": 3,
@@ -822,7 +827,7 @@
       {
         "lineno": 21,
         "time": "O(1)",
-        "space": "O(n^2)"
+        "space": "O(1)"
       },
       {
         "lineno": 23,
@@ -896,117 +901,12 @@
       },
       {
         "lineno": 59,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
-  },
-  {
-    "id": "algo_n2_050",
-    "name": "Check if All Rows of a Matrix Are Rotations of Each Other",
-    "code": "# Python3 program to check if all rows\n# of a matrix are rotations of each other\n \nMAX = 1000\n \n# Returns true if all rows of mat[0..n-1][0..n-1]\n# are rotations of each other.\ndef isPermutedMatrix(mat, n) :\n     \n    # Creating a string that contains\n    # elements of first row.\n    str_cat = \"\"\n    for i in range(n) :\n        str_cat = str_cat + \"-\" + str(mat[0][i])\n \n    # Concatenating the string with itself\n    # so that substring search operations\n    # can be performed on this\n    str_cat = str_cat + str_cat\n \n    # Start traversing remaining rows\n    for i in range(1, n) :\n         \n        # Store the matrix into vector\n        # in the form of strings\n        curr_str = \"\"\n         \n        for j in range(n) :\n            curr_str = curr_str + \"-\" + str(mat[i][j])\n \n        # Check if the current string is present\n        # in the concatenated string or not\n        if (str_cat.find(curr_str)) :\n            return True\n             \n    return False\n \n# Driver code\nif __name__ == \"__main__\" :\n    n = 4\n    mat = [[1, 2, 3, 4],\n           [4, 1, 2, 3],\n           [3, 4, 1, 2],\n           [2, 3, 4, 1]]\n     \n    if (isPermutedMatrix(mat, n)):\n        print(\"Yes\")\n    else :\n        print(\"No\")\n         \n# This code is contributed by Ryuga",
-    "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(n)",
-    "line_metrics": [
-      {
-        "lineno": 4,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 8,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 12,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 13,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 14,
-        "time": "O(n)",
-        "space": "O(n)"
-      },
-      {
-        "lineno": 19,
-        "time": "O(1)",
-        "space": "O(n)"
-      },
-      {
-        "lineno": 22,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 26,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 28,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 29,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 33,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 34,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 36,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 39,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 40,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 41,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 46,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 47,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 49,
-        "time": "O(1)",
-        "space": "O(1)"
-      }
-    ],
-    "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "max=100 is a fixed constant: the 100x100 grid is O(1) space"
   }
 ]

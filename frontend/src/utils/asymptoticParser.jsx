@@ -93,6 +93,12 @@ export const getComplexityClass = (complexity) => {
     if (degree === 2) return "quadratic";
   }
   if (/cubic|quartic/.test(s)) return "polyHigh";
+  // any product of two or more size letters (n*m, n*k, m*k*n): rows x columns is quadratic-like, three sizes cubic-like
+  const prod = s.match(/o\(([a-z](?:\^\d+)?(?:\*[a-z](?:\^\d+)?)+)(?:log[a-z])?\)/);
+  if (prod) {
+    const factors = prod[1].split("*").reduce((t, f) => t + (Number((f.split("^")[1])) || 1), 0);
+    return factors >= 3 ? "polyHigh" : "quadratic";
+  }
   if (/n\*n|n\*m|m\*n/.test(s)) return "quadratic";
   if (/nlog|n\*log/.test(s)) return "nlogn";
   if (/v\+e|e\+v|n\+m|m\+n|o\(v\)|o\(e\)/.test(s)) return "graph";
@@ -135,6 +141,8 @@ export const getComplexityWeight = (complexity, defaultWeight = 0) => {
   if (comp.includes("n!") || comp.includes("n*t(n-1)")) return 9;
   if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("c^n") || comp.includes("t(n-1)+t(n-2)")) return 8;
   if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*n") || comp.includes("n*m") || comp.includes("m*n") || comp.includes("t(n-1)+o(n)")) return 7;
+  if (/o\([a-z](\^\d+)?(\*[a-z](\^\d+)?)+\)/.test(comp)) return 7; // product of independent sizes: n*m, n*k, n^2*m ...
+  if (/o\([a-z](\^\d+)?(\+[a-z](\^\d+)?)+\)/.test(comp)) return 5; // sum of independent sizes: n+m, n+m+k
   if (comp.includes("nlogn") || comp.includes("n*log") || comp.includes("nlog") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(log")) return 6;
   if (comp.includes("v+e") || comp.includes("e+v") || comp.includes("n+m") || comp.includes("m+n")) return 5;
   if (comp.includes("o(n)") || comp.includes("o(m)") || comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)") || comp.includes("t(n-1)+o(1)")) return 4;

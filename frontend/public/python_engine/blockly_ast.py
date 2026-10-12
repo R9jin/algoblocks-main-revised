@@ -516,6 +516,11 @@ class BlocklyASTConverter:
             if isinstance(node, ast.Name):
                 if node.id in ["int", "float", "str", "list", "dict", "bool", "tuple", "set"]:
                     return {"type": "python_type_primitive", "id": gen_uid(), "fields": {"TYPE": node.id}}
+                # The Blockly generators write this name for an empty value socket
+                # (see BlocklyWorkspace.jsx, EMPTY_SOCKET). Round-trip it back to an
+                # empty socket instead of inventing a variable called __empty_socket__.
+                if node.id == "__empty_socket__":
+                    return None
                 self.variables.add(node.id)
                 return {"type": "variables_get", "id": gen_uid(), "fields": {"VAR": {"id": node.id, "name": node.id}}}
 

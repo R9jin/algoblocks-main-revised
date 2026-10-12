@@ -23,7 +23,13 @@ import ast
 import re
 import sys
 
-from complexity_analyzer.code_preprocessor import preprocess_source
+from complexity_analyzer.code_preprocessor import (
+    find_script_literal_name_locs,
+    find_element_dim_loops,
+    graph_aux_space,
+    find_constant_sized_names,
+    preprocess_source,
+)
 from complexity_analyzer.analyzer import (
     ComplexityAnalyzer,
     fallback_analyzer,
@@ -150,6 +156,7 @@ def _line_snapshot(entry):
         "local_space": entry.get("local_space"), "global_space": entry.get("global_space"),
         "indent": entry.get("indent", 0),
         "dead_kind": entry.get("dead_kind"), "dead_reason": entry.get("dead_reason"),
+        "uncalled_function": entry.get("uncalled_function"), "uncalled_reason": entry.get("uncalled_reason"),
     }
 
 
@@ -228,6 +235,13 @@ def trace_pipeline(source_code):
                 for target in stmt.targets:
                     if isinstance(target, ast.Name) and target.id not in param_names:
                         analyzer.module_int_constants.add(target.id)
+        analyzer.root_tree = tree
+        analyzer.script_literal_locs = find_script_literal_name_locs(tree)
+        analyzer.m_dim_for_locs = find_element_dim_loops(tree)
+        from complexity_analyzer.size_symbols import SizeSymbols
+        analyzer.size_symbols = SizeSymbols(tree, analyzer.complexity_heuristics._is_constant_expr)
+        analyzer.graph_aux_space = graph_aux_space(tree)
+        analyzer.const_sized_names = find_constant_sized_names(tree, analyzer.complexity_heuristics._is_constant_expr)
 
         # ------------------------------------------------------------------
         # Stages: BFS Call Graph Mapper + Topological Sequencer (hooks inside)

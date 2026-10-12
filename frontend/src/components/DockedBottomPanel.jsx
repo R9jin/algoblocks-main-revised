@@ -7,6 +7,7 @@ import { formatComplexity } from "../utils/formatters";
 import CallGraphVisualizer from "./CallGraphVisualizer.jsx";
 import ComplexityGraph from "./ComplexityGraph.jsx";
 import MemoryVisualizer from "./MemoryVisualizer.jsx";
+import { focusWithoutScroll, scrollToEndWithin } from "../utils/scrollWithin";
 
 export default function DockedBottomPanel({
   bottomPanel,
@@ -39,7 +40,7 @@ export default function DockedBottomPanel({
 
   useEffect(() => {
     if (consoleEndRef.current && consoleTab === "output") {
-      consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
+      scrollToEndWithin(consoleEndRef.current);
     }
   }, [consoleOutput, isWaitingForInput, consoleTab]);
 
@@ -96,7 +97,7 @@ export default function DockedBottomPanel({
                     <div className="console-input-line">
                       <span className="console-cursor"><FiChevronRight size={14} /></span>
                       <input
-                        autoFocus
+                        ref={focusWithoutScroll}
                         value={userInput}
                         onChange={(e) => setUserInput(e.target.value)}
                         onKeyDown={onSendInput}
@@ -236,6 +237,7 @@ export default function DockedBottomPanel({
                               {isBottleneck && <span className="bottleneck-badge">Bottleneck</span>}
                               {isEfficient && <span className="efficient-badge">Efficient</span>}
                               {isDead && <span className="dead-badge" title={line.dead_reason || "This code never runs, so it is not counted."}>Dead code</span>}
+                              {!isDead && line.uncalled_function && <span className="dead-badge" title={line.uncalled_reason || "This helper is never called, so its own complexity is shown here but not added to the entry point's total."}>Uncalled &middot; own cost</span>}
                             </td>
                             <td className="complexity-cell" style={{ color: timeColor }}>{formatComplexity(timeComplexity)}</td>
                             <td className="complexity-cell" style={{ color: spaceColor }}>

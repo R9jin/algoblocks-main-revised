@@ -30,6 +30,12 @@ const SYSTEM_TEMPLATES = {
     { name: "Linear Search", path: "search/linear_search", desc: "Sequentially checks each element of the list until a match is found.", icon: "/assets/search-icon.png", isSystem: true },
     { name: "Binary Search", path: "search/binary_search", desc: "Efficiently searches a sorted array by repeatedly dividing the search interval in half.", icon: "/assets/search-icon.png", isSystem: true },
     { name: "Exponential Search", path: "search/exponential_search", desc: "Finds the range where the element should be, then performs a binary search.", icon: "/assets/search-icon.png", isSystem: true },
+  ],
+  graph: [
+    { name: "BFS (Undirected Graph)", path: "graph/bfs_undirected", desc: "Breadth-first traversal of an undirected graph: every edge is stored in both directions, and a visited list stops it from looping back.", icon: "/assets/search-icon.png", isSystem: true },
+    { name: "BFS (Directed Graph)", path: "graph/bfs_directed", desc: "Breadth-first traversal of a directed graph: an edge only leads from its source to its target, so some nodes may be unreachable.", icon: "/assets/search-icon.png", isSystem: true },
+    { name: "DFS (Undirected Graph)", path: "graph/dfs_undirected", desc: "Depth-first traversal of an undirected graph using recursion and a visited list.", icon: "/assets/search-icon.png", isSystem: true },
+    { name: "DFS (Directed Graph)", path: "graph/dfs_directed", desc: "Depth-first traversal of a directed graph, following edges only in their given direction.", icon: "/assets/search-icon.png", isSystem: true },
   ]
 };
 

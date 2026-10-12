@@ -8,6 +8,8 @@ analysis model (local/global time+space weights, bottleneck
 propagation, and per-line result recording).
 """
 import ast
+import re
+from complexity_analyzer import code_preprocessor as _cp
 
 try:
     from complexity_explainer.complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
@@ -28,9 +30,21 @@ class SignatureRecorder:
     def _get_weight(self, complexity_str, is_recurrence=False):
         if is_recurrence: return 200
         if complexity_str in ["O(1)", "Definition", "Dead Code"]: return 1 if complexity_str != "Dead Code" else -1
+        # a lone size other than n (O(m), O(m^2), O(m log m)) ranks exactly like the same shape over n
+        _lone = re.fullmatch(r"O\(([mkpqrs])(\^\d+)?( log \1)?\)", complexity_str)
+        if _lone: return self._get_weight(f"O(n{_lone.group(2) or ''}{' log n' if _lone.group(3) else ''})")
+        if "V^2" in complexity_str: return 14   # O(V^2) / O(V^2+E): above a single traversal, below n^2
         w = 0
         if "n!" in complexity_str: w = 150
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: w = 100
+        elif re.search(r"\w(\^\d+)? \* \w", complexity_str):
+            # product of independent sizes, e.g. O(n * m): ranks like n^(sum of exponents)
+            _deg = sum(int(x) if x else 1 for x in re.findall(r"[a-zA-Z](?:\^(\d+))?", re.sub(r"log n|O\(|\)", "", complexity_str)))
+            w = (20 + 6 * (_deg - 2) if _deg >= 2 else 10) - 0.5
+        elif re.search(r"n\^(\d+)", complexity_str) and int(re.search(r"n\^(\d+)", complexity_str).group(1)) >= 3:
+            _k = int(re.search(r"n\^(\d+)", complexity_str).group(1))
+            w = min(20 + 6 * (_k - 2), 90) + (1 if "log n" in complexity_str else 0)
+        elif "n^2 log n" in complexity_str or "n² log n" in complexity_str: w = 25
         elif "n^2" in complexity_str or "n²" in complexity_str: w = 20
         elif "n log n" in complexity_str: w = 15
         elif "V+E" in complexity_str or "V" in complexity_str: w = 12
@@ -43,11 +57,28 @@ class SignatureRecorder:
         elif "n" in complexity_str: w = 10
         return w
 
+    def _assign_targets_of(self, call_node):
+        """Targets of the assignment that owns `call_node` (e.g. `visited` in `visited = set()`)."""
+        tree = getattr(self.analyzer, 'tree', None) or getattr(self.analyzer, '_tree', None)
+        if tree is None: return []
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Assign) and n.value is call_node:
+                return n.targets
+        return []
+
+    @staticmethod
+    def _is_empty_container_init(v):
+        if isinstance(v, (ast.List, ast.Set, ast.Tuple)) and not v.elts: return True
+        if isinstance(v, ast.Dict) and not v.keys: return True
+        return (isinstance(v, ast.Call) and not v.args and not v.keywords
+                and getattr(v.func, 'id', getattr(v.func, 'attr', '')) in ('set', 'list', 'dict', 'deque', 'defaultdict', 'Counter', 'OrderedDict'))
+
     def _get_space_weight(self, complexity_str):
         if complexity_str == "S(placeholder)": return 0
         s_w = 0
         if "n!" in complexity_str: s_w = 5
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: s_w = 4
+        elif re.search(r"n\^([3-9]|\d\d+)", complexity_str): s_w = 2.5
         elif "n^2" in complexity_str or "n²" in complexity_str: s_w = 2
         elif "V+E" in complexity_str or "V" in complexity_str: s_w = 3
         # Same substring-ordering fix as _get_weight above: "sqrt n" and
@@ -97,8 +128,33 @@ class SignatureRecorder:
 
             n_count = len(poly_dims) if poly_dims else 0
             
+            if n_count >= 2 and _cp.MULTI_VARIABLE_NOTATION and len(set(poly_dims)) >= 2:
+                # distinct size variables stay distinct: O(n * m), O(n^2 * m), ...
+                from collections import Counter as _C
+                _cnt = _C(poly_dims)
+                _terms = [(f"{v}^{k}" if k > 1 else v) for v, k in sorted(_cnt.items(), key=lambda kv: __import__('complexity_analyzer.size_symbols', fromlist=['letter_rank']).letter_rank(kv[0]))]
+                return f"O({' * '.join(_terms)} log n)" if log > 0 else f"O({' * '.join(_terms)})"
+            # One size symbol repeated (or alone): keep ITS letter. A loop over m is O(m), two nested
+            # loops over m are O(m^2) -- never silently renamed to n.
+            _uniq = set(poly_dims) if poly_dims else set()
+            if (n_count >= 1 and len(_uniq) == 1 and _cp.MULTI_VARIABLE_NOTATION
+                    and next(iter(_uniq)) in ('m', 'k', 'p', 'q', 'r', 's')):
+                _L = next(iter(_uniq))
+                _body = _L if n_count == 1 else f"{_L}^{n_count}"
+                return f"O({_body} log {_L})" if log > 0 else f"O({_body})"
             if n_count >= 2:
-                return "O(n^2)"
+                # Two or more nested loops over DIFFERENT sizes (rows x columns, n x m) are reported
+                # with the project's single-size convention: n is the largest size, so the nest is
+                # O(n^2), not O(n * m). One symbol keeps the badge readable for students and matches
+                # how the ground-truth labels are written. (The per-loop sizes are still tracked
+                # separately in the explanations.)
+                # A log factor survives the multiplication: n loops over an
+                # O(n log n) step (e.g. sorted() inside a loop) is O(n^2 log n),
+                # not O(n^2).
+                # n_count is the number of nested growing dimensions: 3 nested loops
+                # over n is O(n^3), 4 is O(n^4), and so on.
+                base = "n^2" if n_count == 2 else f"n^{n_count}"
+                return f"O({base} log n)" if log > 0 else f"O({base})"
             elif n_count == 1:
                 if log > 0:
                     return "O(n log n)"
@@ -163,12 +219,20 @@ class SignatureRecorder:
                     else:
                         iter_name = self.analyzer.complexity_heuristics._get_iterable_name(node.iter)
                         dim = self.analyzer.complexity_heuristics._register_and_get_dim(iter_name)
-                        if dim: node_dims = [dim]
+                        _ld = self.analyzer.complexity_heuristics._loop_dims(node)
+                        if (getattr(node, 'lineno', None), getattr(node, 'col_offset', None)) in getattr(self.analyzer, 'm_dim_for_locs', ()):
+                            dim = 'm'  # columns of the enclosing loop's current row
+                            _ld = ['m'] * max(1, len(_ld))
+                        elif _ld:
+                            dim = _ld[0]
+                        if dim: node_dims = list(_ld) if _ld else [dim]
             elif isinstance(node, ast.While):
                 if getattr(self.analyzer, 'in_graph_context', False) and self.analyzer.call_graph_mapper._is_graph_while_loop(node): node_graph = 1
                 else:
                     is_log, gcd_v = self.analyzer.complexity_heuristics._is_log_loop(node)
-                    if is_log: 
+                    if self.analyzer.complexity_heuristics._is_constant_loop(node):
+                        pass  # fixed pass count (literal-bounded counter): O(1), whatever the step pattern looks like
+                    elif is_log: 
                         node_log = 1
                         gcd_vars = gcd_v
                     elif self.analyzer.complexity_heuristics._is_sqrt_loop(node): node_sqrt = 1
@@ -181,15 +245,21 @@ class SignatureRecorder:
                             node_dims = ['n']
         else:
             if not is_recurrence:
-                if "n log n" in time_override: node_dims.append('n'); node_log = 1
+                _prod = re.fullmatch(r"O\(([a-z](?:\^\d+)?(?: \* [a-z](?:\^\d+)?)+)\)", time_override)
+                if _prod and _cp.MULTI_VARIABLE_NOTATION:
+                    for _f in _prod.group(1).split(" * "):
+                        _v, _, _e = _f.partition("^")
+                        node_dims.extend([_v] * (int(_e) if _e else 1))
+                elif "n log n" in time_override: node_dims.append('n'); node_log = 1
                 elif "O(V+E)" in time_override or "O(V)" in time_override: node_graph = 1
                 elif "O(log n)" in time_override: node_log = 1
                 elif "O(sqrt n)" in time_override: node_sqrt = 1
                 elif "O(n * m)" in time_override: node_dims.extend(['n', 'm'])
-                elif "O(n^5)" in time_override: node_dims.extend(['n', 'n'])
-                elif "O(n^4)" in time_override: node_dims.extend(['n', 'n'])
-                elif "O(n^3)" in time_override or "n³" in time_override: node_dims.extend(['n', 'n'])
-                elif "O(n^2)" in time_override or "n²" in time_override: node_dims.extend(['n', 'n'])
+                elif re.search(r"n\^(\d+)", time_override) or "n²" in time_override or "n³" in time_override:
+                    _m = re.search(r"n\^(\d+)", time_override)
+                    _k = int(_m.group(1)) if _m else (3 if "n³" in time_override else 2)
+                    node_dims.extend(['n'] * _k)
+                    if "log n" in time_override: node_log = 1
                 elif "O(3^n)" in time_override: self.analyzer.max_exp = 1 
                 elif "O(2^n)" in time_override or "2ⁿ" in time_override: self.analyzer.max_exp = 1
                 elif "O(n!)" in time_override or "n!" in time_override: self.analyzer.max_fact = 1
@@ -233,7 +303,8 @@ class SignatureRecorder:
                 tot_graph = node_graph
             else:
                 tot_dims = self.analyzer.active_poly_dims + node_dims
-                tot_log = self.analyzer.log_loop_depth + node_log
+                _own_poly = bool(node_dims) and not node_log
+                tot_log = self.analyzer.log_loop_depth + node_log + (0 if _own_poly else getattr(self.analyzer, 'call_log_depth', 0))
                 tot_sqrt = getattr(self.analyzer, 'sqrt_loop_depth', 0) + node_sqrt
                 tot_graph = getattr(self.analyzer, 'graph_depth', 0) + node_graph
                 
@@ -282,10 +353,39 @@ class SignatureRecorder:
 
         if local_s == "S(placeholder)": global_s = "S(placeholder)"
 
-        if getattr(self.analyzer, 'in_graph_context', False):
+        # A call to a non-graph helper keeps the helper's own space class: the CALLER being graph-flavoured
+        # (it also walks a graph) must not relabel the callee's O(n) recursion/slicing space as O(V+E).
+        _plain_call = (custom_op == "Function Call")
+        if getattr(self.analyzer, 'in_graph_context', False) and not _plain_call:
             if "O(n)" in local_s: local_s = local_s.replace("O(n)", "O(V+E)")
             if "O(n)" in global_s: global_s = global_s.replace("O(n)", "O(V+E)")
             
+        # Space accounting for traversal bookkeeping: creating an EMPTY container allocates O(1); the
+        # O(V) / O(V+E) peak belongs to the statements that grow it (add / append inside the traversal).
+        # The container's eventual peak is still folded into the program's space total through
+        # max_space_weight (weight 3 = graph-sized), so overall space is unchanged -- only the row
+        # attribution is corrected. Function-level (uncalled) rows never touch entry-point maxima.
+        if getattr(self.analyzer, 'in_graph_context', False) and not is_dead:
+            _gaux = getattr(self.analyzer, 'graph_aux_space', "V+E")
+            _gsym = "O(V)" if _gaux == "V" else "O(V+E)"
+            _init_val = node.value if isinstance(node, ast.Assign) else (node if isinstance(node, ast.Call) else None)
+            if _init_val is not None and self._is_empty_container_init(_init_val) and (isinstance(node, ast.Assign) or "V+E" in local_s or "V+E" in global_s):
+                if "V+E" in local_s or "V+E" in global_s:
+                    local_s = global_s = "O(1)"
+                    if not getattr(self.analyzer, 'in_uncalled_func', False):
+                        self.analyzer.max_space_weight = max(getattr(self.analyzer, 'max_space_weight', 0), 3)
+                for _t in (node.targets if isinstance(node, ast.Assign) else self._assign_targets_of(node)):
+                    if isinstance(_t, ast.Name):
+                        self.analyzer.__dict__.setdefault('graph_containers', set()).add(_t.id)
+            else:
+                _call = node if isinstance(node, ast.Call) else getattr(node, 'value', None)
+                if (isinstance(_call, ast.Call) and isinstance(_call.func, ast.Attribute)
+                        and _call.func.attr in ('add', 'append', 'appendleft', 'extend')
+                        and isinstance(_call.func.value, ast.Name)
+                        and _call.func.value.id in getattr(self.analyzer, 'graph_containers', ())
+                        and self.analyzer.loop_depth > 0):
+                    global_s = _gsym   # local allocation stays O(1); the container grows to V (or V+E) overall
+
         curr_func = self.analyzer.current_function_name or ""
         is_char_count = "char" in curr_func.lower() and "count" in curr_func.lower()
         if is_char_count:
@@ -298,8 +398,15 @@ class SignatureRecorder:
         t_w = self._get_weight(global_t, is_recurrence)
         s_w = self._get_space_weight(global_s)
 
-        if not is_dead and time_override != "Definition":
+        _uncalled = getattr(self.analyzer, 'in_uncalled_func', False)
+        if not is_dead and not _uncalled and time_override != "Definition":
             overall_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.analyzer.max_exp, tot_graph, gcd_vars, self.analyzer.max_fact)
+            if tot_dims and not (tot_log or tot_sqrt or tot_graph or self.analyzer.max_exp or self.analyzer.max_fact):
+                if not hasattr(self.analyzer, 'poly_terms'): self.analyzer.poly_terms = set()
+                self.analyzer.poly_terms.add(tuple(sorted(tot_dims)))   # for O(n + m) of sequential loops over different sizes
+                _alt = getattr(getattr(self.analyzer, 'size_symbols', None), 'alt_terms', {}).get(id(node)) if isinstance(node, ast.For) else None
+                if _alt:   # for i in range(n + m): the loop is O(n) + O(m)
+                    self.analyzer.poly_terms.add(tuple(sorted(list(self.analyzer.active_poly_dims) + list(_alt))))
             
             context_w = self._get_weight(overall_t, False)
             
@@ -327,12 +434,13 @@ class SignatureRecorder:
         
         time_exp, space_exp = "", ""        
         if SemanticNLGEngine and getattr(self.analyzer, 'explain', True):
-            for var_name, var_data in mem_state.items():
-                var_data["explanation"] = self.analyzer.nlg_engine.generate_variable_explanation(var_name, var_data, self.analyzer.var_types.get(var_name))
+            with self.analyzer.explain_clock():
+                for var_name, var_data in mem_state.items():
+                    var_data["explanation"] = self.analyzer.nlg_engine.generate_variable_explanation(var_name, var_data, self.analyzer.var_types.get(var_name))
 
-            time_exp, space_exp = self.analyzer.nlg_engine.generate_explanations(
-                node, local_t, global_t, local_s, global_s, is_dead, line_text, hits, mem_state
-            )
+                time_exp, space_exp = self.analyzer.nlg_engine.generate_explanations(
+                    node, local_t, global_t, local_s, global_s, is_dead, line_text, hits, mem_state
+                )
 
         builtin_desc = None
         if isinstance(node, ast.Call):
@@ -358,6 +466,10 @@ class SignatureRecorder:
             "time_explanation": time_exp, "space_explanation": space_exp,
             "hits": hits, "memory_state": mem_state
         }
+        if _uncalled and not is_dead:
+            entry["uncalled_function"] = True
+            entry["scope"] = "function-level"
+            entry["uncalled_reason"] = getattr(self.analyzer, 'uncalled_reason', None)
         if is_dead:
             dr = getattr(self.analyzer, 'dead_reason', None) or {"kind": "unreachable", "reason": "This code is never executed, so it is not counted toward the complexity."}
             entry["dead_kind"] = dr["kind"]

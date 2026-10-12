@@ -162,6 +162,53 @@ def _check_bare_except(node, warnings):
     warnings.append({"line": getattr(node, "lineno", 1), "message": f"LogicWarning: {message}"})
 
 
+def _loop_exits(loop):
+    """True if control can leave this `while` loop other than by its condition
+    turning false: a `break` that belongs to THIS loop (not a nested one), a
+    `return`, a `raise`, or a call to exit()/quit()/sys.exit()."""
+    def walk(nodes, in_nested):
+        for n in nodes:
+            if isinstance(n, (ast.Return, ast.Raise)):
+                return True
+            if isinstance(n, ast.Break) and not in_nested:
+                return True
+            if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call):
+                f = n.value.func
+                name = f.id if isinstance(f, ast.Name) else (f.attr if isinstance(f, ast.Attribute) else None)
+                if name in ("exit", "quit", "_exit"):
+                    return True
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+                continue   # a nested def's return/break is not ours
+            nested = in_nested or isinstance(n, (ast.While, ast.For, ast.AsyncFor))
+            for field in ("body", "orelse", "finalbody", "handlers", "cases"):
+                kids = getattr(n, field, None)
+                if isinstance(kids, list) and walk(kids, nested if field != "orelse" or not isinstance(n, (ast.While, ast.For, ast.AsyncFor)) else in_nested):
+                    return True
+        return False
+    return walk(loop.body, False)
+
+
+def _check_infinite_while(node, warnings):
+    """`while True:` (or `while 1:`) with no way out. It parses and the static
+    complexity pass happily reports a Big-O for it, but it can never finish --
+    previously the learner only found out after pressing Run and waiting for
+    the 10 s timeout."""
+    if not isinstance(node, ast.While):
+        return
+    t = node.test
+    if not (isinstance(t, ast.Constant) and t.value and not isinstance(t.value, str)) \
+            and not (isinstance(t, ast.Constant) and isinstance(t.value, str) and t.value):
+        return
+    if _loop_exits(node):
+        return
+    message = (
+        "This `while` loop's condition is always true and nothing inside it can stop it "
+        "(there is no `break`, `return`, `raise` or `exit()`), so the program will never finish. "
+        "Add a `break` that runs when you are done, or use a condition that eventually becomes false."
+    )
+    warnings.append({"line": getattr(node, "lineno", 1), "message": f"LogicWarning: {message}"})
+
+
 # One entry per top-level AST node type this module knows how to inspect.
 # `detect_logic_issues` walks the tree once and dispatches each visited
 # node through every checker below; each checker is responsible for
@@ -170,6 +217,7 @@ _CHECKS = (
     _check_len_vs_container_literal,
     _check_mutable_default_arg,
     _check_bare_except,
+    _check_infinite_while,
 )
 
 

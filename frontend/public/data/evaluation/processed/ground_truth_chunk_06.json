@@ -19,7 +19,7 @@
       {
         "lineno": 8,
         "time": "O(1)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 9,
@@ -29,7 +29,7 @@
       {
         "lineno": 10,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 14,
@@ -68,7 +68,7 @@
       },
       {
         "lineno": 25,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       }
     ],
@@ -79,7 +79,7 @@
     "id": "algo_n_052",
     "name": "Check if All Cells of a Grid Are Visited (Spiral Traversal Simulation)",
     "code": "# Python3 program for the above approach\n \n# function which tells all cells are visited or not\ndef isAllCellTraversed(grid, n, m):\n \n    visited = [[True for j in range(m)] for i in range(n)];\n    total = n*m;\n   \n    # starting cell values\n    startx = grid[0][0][0];\n    starty = grid[0][0][1];\n \n    for i in range(total-2):\n \n        # if we get {0,0} before the end of loop\n        # then returns False. Because it means we\n        # didn't traverse all the cells\n        if (grid[startx][starty][0] == -1 and\n            grid[startx][starty][1] == -1):\n            return False;\n \n        # If found cycle then return False\n        if (visited[startx][starty] == True):\n            return False;\n \n        visited[startx][starty] = True;\n        x = grid[startx][starty][0];\n        y = grid[startx][starty][1];\n \n        # Update startx and starty values to next\n        # cell values\n        startx = x;\n        starty = y;\n \n    # finally if we reach our goal then returns True\n    if (grid[startx][starty][0] == -1 and\n        grid[startx][starty][1] == -1):\n        return True;\n \n    return False;\n     \n# Driver code\ncell = [[[] for j in range(3)] for i in range(3)]\ncell[0][0] = [0, 1];\ncell[0][1] = [2, 0];\ncell[1][0] = [-1,-1];\ncell[1][1] = [1, 0];\ncell[2][0] = [2, 1];\ncell[2][1] = [1, 1];\n \nif(not isAllCellTraversed(cell, 3, 2)):\n  print(\"True\");\nelse:\n  print(\"False\");\n \n  # This code is contributed by rrrtnx.",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n^2)",
     "line_metrics": [
       {
@@ -89,7 +89,7 @@
       },
       {
         "lineno": 6,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n^2)"
       },
       {
@@ -109,52 +109,52 @@
       },
       {
         "lineno": 13,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 18,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 20,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 23,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 24,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 26,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 27,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 28,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 32,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 33,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -175,7 +175,7 @@
       {
         "lineno": 43,
         "time": "O(1)",
-        "space": "O(n^2)"
+        "space": "O(1)"
       },
       {
         "lineno": 44,
@@ -209,8 +209,8 @@
       },
       {
         "lineno": 51,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n^2)"
       },
       {
         "lineno": 52,
@@ -224,7 +224,8 @@
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n^2)"
+    "dataset_original_space": "O(n^2)",
+    "gt_note": "n=max(rows,cols); visited grid has n*m cells"
   },
   {
     "id": "algo_n_053",
@@ -285,7 +286,7 @@
       },
       {
         "lineno": 32,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -321,7 +322,7 @@
       },
       {
         "lineno": 14,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -336,7 +337,7 @@
       },
       {
         "lineno": 24,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       }
     ],
@@ -362,13 +363,13 @@
       },
       {
         "lineno": 6,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 9,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 12,
@@ -387,8 +388,8 @@
       },
       {
         "lineno": 16,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -397,7 +398,8 @@
   {
     "id": "algo_n2_056",
     "name": "Maximum Path Sum in a Matrix (DP)",
-    "code": "# Python 3 program for finding max path in matrix\n# To calculate max path in matrix\n \ndef findMaxPath(mat):\n   \n    for i in range(1, N):\n  \n        res = -1\n        for j in range(M):\n  \n            # When all paths are possible\n            if (j > 0 and j < M - 1):\n                mat[i][j] += max(mat[i - 1][j],\n                                 max(mat[i - 1][j - 1],\n                                     mat[i - 1][j + 1]))\n  \n            # When diagonal right is not possible\n            else if (j > 0):\n                mat[i][j] += max(mat[i - 1][j],\n                                 mat[i - 1][j - 1])\n  \n            # When diagonal left is not possible\n            else if (j < M - 1):\n                mat[i][j] += max(mat[i - 1][j],\n                                 mat[i - 1][j + 1])\n  \n            # Store max path sum\n            res = max(mat[i][j], res)\n    return res\n \n# Driver program to check findMaxPath\nN=4\nM=6\nmat = ([[ 10, 10, 2, 0, 20, 4 ],\n        [ 1, 0, 0, 30, 2, 5 ],\n        [ 0, 10, 4, 0, 2, 0 ],\n        [ 1, 0, 2, 20, 0, 4 ]])\n               \nprint(findMaxPath(mat))\n \n# This code is contributed by Azkia Anam.",
+    "code": "# Python 3 program for finding max path in matrix\n# To calculate max path in matrix\n \ndef findMaxPath(mat):\n   \n    for i in range(1, N):\n  \n        res = -1\n        for j in range(M):\n  \n            # When all paths are possible\n            if (j > 0 and j < M - 1):\n                mat[i][j] += max(mat[i - 1][j],\n                                 max(mat[i - 1][j - 1],\n                                     mat[i - 1][j + 1]))\n  \n            # When diagonal right is not possible\n            elif (j > 0):\n                mat[i][j] += max(mat[i - 1][j],\n                                 mat[i - 1][j - 1])\n  \n            # When diagonal left is not possible\n            elif (j < M - 1):\n                mat[i][j] += max(mat[i - 1][j],\n                                 mat[i - 1][j + 1])\n  \n            # Store max path sum\n            res = max(mat[i][j], res)\n    return res\n \n# Driver program to check findMaxPath\nN=4\nM=6\nmat = ([[ 10, 10, 2, 0, 20, 4 ],\n        [ 1, 0, 0, 30, 2, 5 ],\n        [ 0, 10, 4, 0, 2, 0 ],\n        [ 1, 0, 2, 20, 0, 4 ]])\n               \nprint(findMaxPath(mat))\n \n# This code is contributed by Azkia Anam.",
+    "dataset_original_code": "# Python 3 program for finding max path in matrix\n# To calculate max path in matrix\n \ndef findMaxPath(mat):\n   \n    for i in range(1, N):\n  \n        res = -1\n        for j in range(M):\n  \n            # When all paths are possible\n            if (j > 0 and j < M - 1):\n                mat[i][j] += max(mat[i - 1][j],\n                                 max(mat[i - 1][j - 1],\n                                     mat[i - 1][j + 1]))\n  \n            # When diagonal right is not possible\n            else if (j > 0):\n                mat[i][j] += max(mat[i - 1][j],\n                                 mat[i - 1][j - 1])\n  \n            # When diagonal left is not possible\n            else if (j < M - 1):\n                mat[i][j] += max(mat[i - 1][j],\n                                 mat[i - 1][j + 1])\n  \n            # Store max path sum\n            res = max(mat[i][j], res)\n    return res\n \n# Driver program to check findMaxPath\nN=4\nM=6\nmat = ([[ 10, 10, 2, 0, 20, 4 ],\n        [ 1, 0, 0, 30, 2, 5 ],\n        [ 0, 10, 4, 0, 2, 0 ],\n        [ 1, 0, 2, 20, 0, 4 ]])\n               \nprint(findMaxPath(mat))\n \n# This code is contributed by Azkia Anam.",
     "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
@@ -478,12 +480,13 @@
       },
       {
         "lineno": 39,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "n=max(N,M); repaired syntax: else if -> elif"
   },
   {
     "id": "algo_n_057",
@@ -510,7 +513,7 @@
       {
         "lineno": 10,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 12,
@@ -549,7 +552,7 @@
       },
       {
         "lineno": 24,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       }
     ],
@@ -560,7 +563,7 @@
     "id": "algo_n2_058",
     "name": "Mirror Characters of a String After Position K",
     "code": "# function to mirror characters of a string\n \ndef mirrorChars(input,k):\n \n    # create dictionary\n    original = 'abcdefghijklmnopqrstuvwxyz'\n    reverse = 'zyxwvutsrqponmlkjihgfedcba'\n    dictChars = dict(zip(original,reverse))\n \n    # separate out string after length k to change\n    # characters in mirror\n    prefix = input[0:k-1]\n    suffix = input[k-1:]\n    mirror = ''\n \n    # change into mirror\n    for i in range(0,len(suffix)):\n         mirror = mirror + dictChars[suffix[i]]\n \n    # concat prefix and mirrored part\n    print (prefix+mirror)\n          \n# Driver program\nif __name__ == \"__main__\":\n    input = 'paradox'\n    k = 3\n    mirrorChars(input,k)",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -581,16 +584,16 @@
       {
         "lineno": 8,
         "time": "O(1)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 12,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
         "lineno": 13,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -605,12 +608,12 @@
       },
       {
         "lineno": 18,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
         "lineno": 21,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -630,18 +633,95 @@
       },
       {
         "lineno": 27,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "string rule: mirror += ... is O(n) per step",
+    "gt_alt_inplace_concat": {
+      "expected_overall_time": "O(n)",
+      "expected_overall_space": "O(n)",
+      "line_metrics": [
+        {
+          "lineno": 3,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 6,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 7,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 8,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 12,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 13,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 14,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 17,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 18,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 21,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 24,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 25,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 26,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 27,
+          "time": "O(n)",
+          "space": "O(n)"
+        }
+      ]
+    }
   },
   {
     "id": "algo_n_059",
     "name": "Find the Shortest Unsorted Subarray",
     "code": "# Python3 program to find shortest\n# subarray which is unsorted\n \n# Bool function for checking an array \n# elements are in increasing\ndef increasing(a, n):\n \n    for i in range(0, n - 1):\n        if (a[i] >= a[i + 1]):\n            return False\n             \n    return True\n \n# Bool function for checking an array\n# elements are in decreasing\ndef decreasing(a, n):\n \n    for i in range(0, n - 1):\n        if (a[i] < a[i + 1]):\n            return False\n             \n    return True\n \ndef shortestUnsorted(a, n):\n \n    # increasing and decreasing are two functions.\n    # if function return True value then print\n    # 0 otherwise 3.\n    if (increasing(a, n) == True or\n        decreasing(a, n) == True):\n        return 0\n    else:\n        return 3\n \n# Driver code\nar = [7, 9, 10, 8, 11]\nn = len(ar)\nprint(shortestUnsorted(ar, n))\n \n# This code is contributed by Smitha Dinesh Semwal.",
-    "expected_overall_time": "O(n log n)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
       {
@@ -661,7 +741,7 @@
       },
       {
         "lineno": 10,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -686,7 +766,7 @@
       },
       {
         "lineno": 20,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -701,7 +781,7 @@
       },
       {
         "lineno": 29,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -726,7 +806,7 @@
       },
       {
         "lineno": 38,
-        "time": "O(n log n)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -752,12 +832,12 @@
       },
       {
         "lineno": 9,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
         "lineno": 14,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -802,7 +882,7 @@
       },
       {
         "lineno": 49,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -877,11 +957,12 @@
       },
       {
         "lineno": 86,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "worst case k>=n so the inner loop never breaks early"
   }
 ]

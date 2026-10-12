@@ -78,8 +78,8 @@
       },
       {
         "lineno": 47,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 48,
@@ -93,107 +93,6 @@
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
-  },
-  {
-    "id": "algo_n_022",
-    "name": "Convert a Prefix Expression to Infix",
-    "code": "# Python Program to convert prefix to Infix\ndef prefixToInfix(prefix):\n    stack = []\n     \n    # read prefix in reverse order\n    i = len(prefix) - 1\n    while i >= 0:\n        if not isOperator(prefix[i]):\n             \n            # symbol is operand\n            stack.append(prefix[i])\n            i -= 1\n        else:\n           \n            # symbol is operator\n            str = \"(\" + stack.pop() + prefix[i] + stack.pop() + \")\"\n            stack.append(str)\n            i -= 1\n     \n    return stack.pop()\n \ndef isOperator(c):\n    if c == \"*\" or c == \"+\" or c == \"-\" or c == \"/\" or c == \"^\" or c == \"(\" or c == \")\":\n        return True\n    else:\n        return False\n \n# Driver code\nif __name__==\"__main__\":\n    str = \"*-A/BC-/AKL\"\n    print(prefixToInfix(str))\n     \n# This code is contributed by avishekarora",
-    "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(n)",
-    "line_metrics": [
-      {
-        "lineno": 2,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 3,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 6,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 7,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 8,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 11,
-        "time": "O(n)",
-        "space": "O(n)"
-      },
-      {
-        "lineno": 12,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 16,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 17,
-        "time": "O(n)",
-        "space": "O(n)"
-      },
-      {
-        "lineno": 18,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 20,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 22,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 23,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 24,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 26,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 29,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 30,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 31,
-        "time": "O(1)",
-        "space": "O(1)"
-      }
-    ],
-    "dataset_original_time": "O(n^2)",
     "dataset_original_space": "O(n)"
   },
   {
@@ -265,12 +164,12 @@
       },
       {
         "lineno": 26,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 27,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -290,7 +189,7 @@
       },
       {
         "lineno": 35,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -310,7 +209,8 @@
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "256-slot count array is constant size"
   },
   {
     "id": "algo_n_024",
@@ -406,22 +306,22 @@
       },
       {
         "lineno": 34,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
         "lineno": 39,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
         "lineno": 42,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 43,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -431,12 +331,13 @@
       },
       {
         "lineno": 49,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "slices copy up to n chars"
   },
   {
     "id": "algo_n_025",
@@ -452,7 +353,7 @@
       },
       {
         "lineno": 11,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -532,7 +433,7 @@
       },
       {
         "lineno": 42,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -542,7 +443,7 @@
       },
       {
         "lineno": 44,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       }
     ],
@@ -623,7 +524,7 @@
       },
       {
         "lineno": 29,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -804,12 +705,12 @@
       },
       {
         "lineno": 60,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 61,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -820,8 +721,8 @@
     "id": "algo_n_028",
     "name": "Count Strings of N Characters with Limited 'b' and 'c' Counts (DP)",
     "code": "# Python 3 program to count number of strings\n# of n characters with\n \n# n is total number of characters.\n# bCount and cCount are counts of 'b'\n# and 'c' respectively.\ndef countStrUtil(dp, n, bCount=1,cCount=2):\n \n    # Base cases\n    if (bCount < 0 or cCount < 0):\n        return 0\n    if (n == 0):\n        return 1\n    if (bCount == 0 and cCount == 0):\n        return 1\n \n    # if we had saw this combination previously\n    if (dp[n][bCount][cCount] != -1):\n        return dp[n][bCount][cCount]\n \n    # Three cases, we choose, a or b or c\n    # In all three cases n decreases by 1.\n    res = countStrUtil(dp, n-1, bCount, cCount)\n    res += countStrUtil(dp, n-1, bCount-1, cCount)\n    res += countStrUtil(dp, n-1, bCount, cCount-1)\n \n    dp[n][bCount][cCount] = res\n    return dp[n][bCount][cCount]\n \n# A wrapper over countStrUtil()\ndef countStr(n):\n \n    dp = [ [ [-1 for x in range(2+1)] for y in range(1+1)]for z in range(n+1)]\n    return countStrUtil(dp, n)\n \n# Driver code\nif __name__ == \"__main__\":\n     \n    n = 3 # Total number of characters\n    print(countStr(n))\n     \n# This code is contributed by chitranayal",
-    "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(n^2)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 7,
@@ -831,7 +732,7 @@
       {
         "lineno": 10,
         "time": "O(n)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 11,
@@ -841,17 +742,17 @@
       {
         "lineno": 12,
         "time": "O(n)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 13,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 14,
         "time": "O(n)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 15,
@@ -861,7 +762,7 @@
       {
         "lineno": 18,
         "time": "O(n)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 19,
@@ -870,18 +771,18 @@
       },
       {
         "lineno": 23,
-        "time": "O(n^2)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 24,
-        "time": "O(n^2)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 25,
-        "time": "O(n^2)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 27,
@@ -900,13 +801,13 @@
       },
       {
         "lineno": 33,
-        "time": "O(1)",
-        "space": "O(n^2)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 34,
-        "time": "O(n)",
-        "space": "O(1)"
+        "time": "O(1)",
+        "space": "O(n)"
       },
       {
         "lineno": 37,
@@ -921,11 +822,12 @@
       {
         "lineno": 40,
         "time": "O(1)",
-        "space": "O(1)"
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "memoized: at most 6(n+1) states; depth n; dp table has 6(n+1) cells"
   },
   {
     "id": "algo_n2_029",
@@ -996,7 +898,7 @@
       },
       {
         "lineno": 31,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
@@ -1047,6 +949,7 @@
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "s.lower() allocates an n-char copy; the set has at most 26 elements"
   }
 ]

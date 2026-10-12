@@ -3,7 +3,7 @@
     "id": "algo_n_011",
     "name": "Reverse a String While Preserving Special Characters",
     "code": "# Python3 program to reverse string without\n# affecting it's special character\ndef rev(s, l, r) :\n    while l<r :\n        temp = s[l]\n        s[l] = s[r]\n        s[r] = temp\n        l += 1\n        r -= 1\n     \n# creating character array of size\n# equal to length of string\ndef reverse(s):\n     \n    temp = ['']*len(s)\n    x = 0\n     \n    for i in range(len(s)) :\n        if s[i] >= 'a' and s[i] <= 'z' or s[i] >= 'A' and s[i] <= 'Z' :\n            # storing elements in array\n            temp[x] = s[i]\n            x += 1\n     \n    # reversing the character array       \n    rev(temp, 0, x)\n     \n    lst = list(s)\n    x = 0\n     \n    for i in range(len(s)) :\n        if s[i] >= 'a' and s[i] <= 'z' or s[i] >= 'A' and s[i] <= 'Z' :\n            # updating the origional string\n            lst[i] = temp[x]\n            x += 1\n     \n    revStr = \"\"\n    for i in range(len(s)) :\n        revStr += lst[i]\n         \n    print(\"reverse string is :\",revStr);\n     \n# Driver Code\nif __name__ == \"__main__\" :\n     \n    s=\"Ab,c,de!$\"\n     \n    reverse(s)\n     \n# This code is contributed by aditya942003patil",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -48,7 +48,7 @@
       },
       {
         "lineno": 15,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -78,12 +78,12 @@
       },
       {
         "lineno": 25,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 27,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -123,12 +123,12 @@
       },
       {
         "lineno": 38,
-        "time": "O(n)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 40,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -143,18 +143,165 @@
       },
       {
         "lineno": 47,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "str += in loop is O(n) per step (immutable strings) => O(n^2)",
+    "gt_alt_inplace_concat": {
+      "expected_overall_time": "O(n)",
+      "expected_overall_space": "O(n)",
+      "line_metrics": [
+        {
+          "lineno": 3,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 4,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 5,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 6,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 7,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 8,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 9,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 13,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 15,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 16,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 18,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 19,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 21,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 22,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 25,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 27,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 28,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 30,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 31,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 33,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 34,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 36,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 37,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 38,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 40,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 43,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 45,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 47,
+          "time": "O(n)",
+          "space": "O(n)"
+        }
+      ]
+    }
   },
   {
     "id": "algo_n2_012",
     "name": "Kth Smallest Element via QuickSelect",
     "code": "# Python3 implementation of above implementation\n \n# This function returns k'th smallest element\n# in arr[l..r] using QuickSort based method.\n# ASSUMPTION: ALL ELEMENTS IN ARR[] ARE DISTINCT\nfrom random import randint\n \ndef randomPartition(arr, l, r):\n    n = r - l + 1\n    pivot = randint(1, 100) % n\n    arr[l + pivot], arr[r] = arr[l + pivot], arr[r]\n    return partition(arr, l, r)\n \ndef kthSmallest(arr, l, r, k):\n \n    # If k is smaller than\n    # number of elements in array\n    if (k > 0 and k <= r - l + 1):\n \n        # Partition the array around last element and\n        # get position of pivot element in sorted array\n        pos = randomPartition(arr, l, r)\n \n        # If position is same as k\n        if (pos - l == k - 1):\n            return arr[pos]\n             \n        # If position is more, recur for left subarray\n        if (pos - l > k - 1):\n            return kthSmallest(arr, l, pos - 1, k)\n \n        # Else recur for right subarray\n        return kthSmallest(arr, pos + 1, r,\n                           k - pos + l - 1)\n \n    # If k is more than number of elements in array\n    return 10**9\n \n# Standard partition process of QuickSort().\n# It considers the last element as pivot and\n# moves all smaller element to left of it\n# and greater elements to right\ndef partition(arr, l, r):\n    x = arr[r]\n    i = l\n    for j in range(l, r):\n        if (arr[j] <= x):\n            arr[i], arr[j] = arr[j], arr[i]\n            i += 1\n \n    arr[i], arr[r] = arr[r], arr[i]\n    return i\n \n# Driver Code\narr = [12, 3, 5, 7, 4, 19, 26]\nn = len(arr)\nk = 3\nprint(\"K'th smallest element is\",\n       kthSmallest(arr, 0, n - 1, k))\n \n# This code is contributed by Mohit Kumar",
-    "expected_overall_time": "O(2^n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -169,22 +316,22 @@
       },
       {
         "lineno": 9,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 10,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 11,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 12,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -194,42 +341,42 @@
       },
       {
         "lineno": 18,
-        "time": "O(2^n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 22,
-        "time": "O(2^n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 25,
-        "time": "O(2^n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 26,
-        "time": "O(2^n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 29,
-        "time": "O(2^n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 30,
-        "time": "O(2^n)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 33,
-        "time": "O(2^n)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 37,
-        "time": "O(2^n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -239,42 +386,42 @@
       },
       {
         "lineno": 44,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 45,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 46,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 47,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 48,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 49,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 51,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 52,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -294,12 +441,13 @@
       },
       {
         "lineno": 58,
-        "time": "O(2^n)",
+        "time": "O(1)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "the swap in randomPartition is a no-op so pivot is always arr[r]: sorted input gives n levels of O(n) partition; depth n"
   },
   {
     "id": "algo_logn_013",
@@ -341,7 +489,7 @@
       {
         "lineno": 19,
         "time": "O(log n)",
-        "space": "O(1)"
+        "space": "O(log n)"
       },
       {
         "lineno": 23,
@@ -351,7 +499,7 @@
       {
         "lineno": 25,
         "time": "O(log n)",
-        "space": "O(log n)"
+        "space": "O(1)"
       },
       {
         "lineno": 26,
@@ -361,21 +509,21 @@
       {
         "lineno": 31,
         "time": "O(log n)",
-        "space": "O(log n)"
+        "space": "O(1)"
       },
       {
         "lineno": 32,
         "time": "O(log n)",
-        "space": "O(1)"
+        "space": "O(log n)"
       },
       {
         "lineno": 35,
         "time": "O(log n)",
-        "space": "O(1)"
+        "space": "O(log n)"
       },
       {
         "lineno": 38,
-        "time": "O(log n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -481,7 +629,7 @@
       },
       {
         "lineno": 38,
-        "time": "O(1)",
+        "time": "O(log n)",
         "space": "O(1)"
       }
     ],
@@ -587,22 +735,22 @@
       },
       {
         "lineno": 45,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 46,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 47,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 48,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -627,7 +775,7 @@
       },
       {
         "lineno": 55,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -642,18 +790,19 @@
       },
       {
         "lineno": 59,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n log n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "heap holds at most 26 letters, so each heap op is O(1)"
   },
   {
     "id": "algo_n_016",
     "name": "Convert a Prefix Expression to Infix",
     "code": "# Python Program to convert prefix to Infix\ndef prefixToInfix(prefix):\n    stack = []\n     \n    # read prefix in reverse order\n    i = len(prefix) - 1\n    while i >= 0:\n        if not isOperator(prefix[i]):\n             \n            # symbol is operand\n            stack.append(prefix[i])\n            i -= 1\n        else:\n           \n            # symbol is operator\n            str = \"(\" + stack.pop() + prefix[i] + stack.pop() + \")\"\n            stack.append(str)\n            i -= 1\n     \n    return stack.pop()\n \ndef isOperator(c):\n    if c == \"*\" or c == \"+\" or c == \"-\" or c == \"/\" or c == \"^\" or c == \"(\" or c == \")\":\n        return True\n    else:\n        return False\n \n# Driver code\nif __name__==\"__main__\":\n    str = \"*-A/BC-/AKL\"\n    print(prefixToInfix(str))\n     \n# This code is contributed by avishekarora",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -693,8 +842,8 @@
       },
       {
         "lineno": 16,
-        "time": "O(n)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 17,
@@ -718,17 +867,17 @@
       },
       {
         "lineno": 23,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 24,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 26,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -743,19 +892,20 @@
       },
       {
         "lineno": 31,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "concatenation in line 16 copies the growing operand strings: right-leaning prefix like +A+B+C... gives O(n^2)"
   },
   {
     "id": "algo_nlogn_017",
     "name": "Count Pairs with XOR Equal to 0 (Sorting)",
     "code": "# Python3 program to find number of pairs\n# in an array such that their XOR is 0\n \n# Function to calculate the count\ndef calculate(a) :\n \n    # Sorting the list using\n    # built in function\n    a.sort()\n     \n    count = 1\n    answer = 0\n     \n    # Traversing through the elements\n    for i in range(1, len(a)) :\n \n        if a[i] == a[i - 1] :\n             \n            # Counting frequency of each elements\n            count += 1\n \n        else :\n \n            # Adding the contribution of\n            # the frequency to the answer\n            answer = answer + count * (count - 1) // 2\n            count = 1\n \n    answer = answer + count * (count - 1) // 2\n     \n    return answer\n \n \n# Driver Code\nif __name__ == '__main__':\n     \n    a = [1, 2, 1, 2, 4]\n \n    # Print the count\n    print(calculate(a))",
     "expected_overall_time": "O(n log n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 5,
@@ -765,7 +915,7 @@
       {
         "lineno": 9,
         "time": "O(n log n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 11,
@@ -824,145 +974,20 @@
       },
       {
         "lineno": 40,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n log n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n log n)",
-    "dataset_original_space": "O(1)"
-  },
-  {
-    "id": "algo_n3_018",
-    "name": "Maximize a Number by Swapping Digits (Brute Force)",
-    "code": "# Python3 program to implement the approach\n \n# Python3 has no built-in swap function.\ndef swap(str, i, j):\n    ch = list(str)\n    temp = ch[i]\n    ch[i] = ch[j]\n    ch[j] = temp\n    return \"\".join(ch)\n \n# Since STRINGS are immutable in JavaScript, first we have\n# to convert it to a character array in order to sort.\ndef sortString(str, s_index, e_index):\n    tempArray = list(str)\n \n    # Sorting temp array using\n    tempArray = tempArray[:s_index] + sorted(tempArray[s_index: e_index])\n \n    # returning the new sorted string\n    return \"\".join(tempArray)\n \ndef maximizeNumber(N, M):\n    # Sorting the digits of the\n    # number in increasing order.\n    N = sortString(N, 0, len(N))\n \n    for i in range(len(N)):\n        for j in range(i + 1, len(N)):\n \n            # Copying the string into another\n            # temp string.\n            t = N\n \n            # Swapping the j-th char(digit)\n            # with i-th char(digit)\n \n            t = swap(t, j, i)\n \n            # Sorting the temp string\n            # from i-th pos to end.\n            t = sortString(t, i + 1, len(t))\n \n            # Checking if the string t is\n            # greater than string N and less\n            # than or equal to the number M.\n            if (int(t) > int(N) and int(t) <= M):\n \n                # If yes then, we will permanently\n                # swap the i-th char(or digit)\n                # with j-th char(digit).\n                N = swap(N, i, j)\n \n    # Returns the maximized number.\n    return N\n \n# Driver Code\nN = \"123\"\nM = 222\nprint(maximizeNumber(N, M))\n \n# This code is contributed by phasing17",
-    "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(n)",
-    "line_metrics": [
-      {
-        "lineno": 4,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 5,
-        "time": "O(1)",
-        "space": "O(n)"
-      },
-      {
-        "lineno": 6,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 7,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 8,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 9,
-        "time": "O(1)",
-        "space": "O(n)"
-      },
-      {
-        "lineno": 13,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 14,
-        "time": "O(1)",
-        "space": "O(n)"
-      },
-      {
-        "lineno": 17,
-        "time": "O(n log n)",
-        "space": "O(n)"
-      },
-      {
-        "lineno": 20,
-        "time": "O(1)",
-        "space": "O(n)"
-      },
-      {
-        "lineno": 22,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 25,
-        "time": "O(1)",
-        "space": "O(n)"
-      },
-      {
-        "lineno": 27,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 28,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 32,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 37,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 41,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 46,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 51,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 54,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 57,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 58,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 59,
-        "time": "O(1)",
-        "space": "O(n)"
-      }
-    ],
-    "dataset_original_time": "O(n^3)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "list.sort needs O(n) temp space in the worst case"
   },
   {
     "id": "algo_2n_019",
     "name": "Find All Occurrences of a Word in a Grid (DFS Backtracking)",
     "code": "# Python3 Program to find all occurrences of the word in\n# a matrix\nROW = 3\nCOL = 5\n \n# check whether given cell (row, col) is a valid\n# cell or not.\ndef isvalid(row, col, prevRow, prevCol):\n     \n    # return true if row number and column number\n    # is in range\n    return (row >= 0) and (row < ROW) and (col >= 0) and \\\n           (col < COL) and not (row== prevRow and col == prevCol)\n \n# These arrays are used to get row and column\n# numbers of 8 neighboursof a given cell\nrowNum = [-1, -1, -1, 0, 0, 1, 1, 1]\ncolNum = [-1, 0, 1, -1, 1, -1, 0, 1]\n \n# A utility function to do DFS for a 2D boolean\n# matrix. It only considers the 8 neighbours as\n# adjacent vertices\ndef DFS(mat, row, col,prevRow, prevCol, word,path, index, n):\n     \n    # return if current character doesn't match with\n    # the next character in the word\n    if (index > n or mat[row][col] != word[index]):\n        return\n     \n    # append current character position to path\n    path += word[index] + \"(\" + str(row)+ \", \" + str(col) + \") \"\n     \n    # current character matches with the last character\\\n    # in the word\n    if (index == n):\n        print(path)\n        return\n     \n    # Recur for all connected neighbours\n    for k in range(8):\n        if (isvalid(row + rowNum[k], col + colNum[k],prevRow, prevCol)):\n            DFS(mat, row + rowNum[k], col + colNum[k],row, col, word, path, index + 1, n)\n \n# The main function to find all occurrences of the\n# word in a matrix\ndef findWords(mat,word, n):\n     \n    # traverse through the all cells of given matrix\n    for i in range(ROW):\n        for j in range(COL):\n             \n            # occurrence of first character in matrix\n            if (mat[i][j] == word[0]):\n                # check and print if path exists\n                DFS(mat, i, j, -1, -1, word, \"\", 0, n)\n \n# Driver code\nmat = [['B', 'N', 'E', 'Y', 'S'],\n        ['H', 'E', 'D', 'E', 'S'],\n        ['S', 'G', 'N', 'D', 'E']]\nword = list(\"DES\")\nfindWords(mat, word, len(word) - 1)\n     \n# This code is contributed by SHUBHAMSINGH10",
     "expected_overall_time": "O(2^n)",
-    "expected_overall_space": "O(n)",
+    "expected_overall_space": "O(n^2)",
     "line_metrics": [
       {
         "lineno": 3,
@@ -981,7 +1006,7 @@
       },
       {
         "lineno": 12,
-        "time": "O(1)",
+        "time": "O(2^n)",
         "space": "O(1)"
       },
       {
@@ -1012,7 +1037,7 @@
       {
         "lineno": 31,
         "time": "O(2^n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 35,
@@ -1042,7 +1067,7 @@
       {
         "lineno": 42,
         "time": "O(2^n)",
-        "space": "O(1)"
+        "space": "O(n^2)"
       },
       {
         "lineno": 46,
@@ -1067,7 +1092,7 @@
       {
         "lineno": 55,
         "time": "O(2^n)",
-        "space": "O(n)"
+        "space": "O(n^2)"
       },
       {
         "lineno": 58,
@@ -1077,16 +1102,17 @@
       {
         "lineno": 61,
         "time": "O(1)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 62,
-        "time": "O(1)",
-        "space": "O(n)"
+        "time": "O(2^n)",
+        "space": "O(n^2)"
       }
     ],
     "dataset_original_time": "O(2^n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "n=word length; path may revisit cells (only the previous cell is excluded) so up to 7^w calls: exponential tier; each frame holds its own path string, so stack memory is O(n^2)"
   },
   {
     "id": "algo_n_020",
@@ -1102,7 +1128,7 @@
       },
       {
         "lineno": 6,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -1152,8 +1178,8 @@
       },
       {
         "lineno": 32,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",

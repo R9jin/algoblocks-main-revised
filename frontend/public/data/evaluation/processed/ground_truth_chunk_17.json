@@ -3,7 +3,7 @@
     "id": "algo_n2_161",
     "name": "Insertion Sort with Swaps Across Two Lists",
     "code": "# code contributed by mahee96\n \n# \"Insertion sort of list 2 with swaps from list 1\"\n#\n# swap elements to get list 1 correctly, meanwhile\n# place the swapped item in correct position of list 2\n# eventually list 2 is also sorted\n# Time = O(m*n) or O(n*m)\n# AUX = O(1)\ndef merge(arr1, arr2):\n    x = arr1; y = arr2\n    end = len(arr1)\n    i = 0\n    while(i < end):                 # O(m) or O(n)\n        if(x[i] > y[0]):\n            swap(x,y,i,0)\n            insert(y,0)             # O(n) or O(m) number of shifts\n        i+=1\n \n# O(n):\ndef insert(y, i):\n    orig = y[i]\n    i+=1\n    while (i<len(y) and y[i]<orig):\n        y[i-1] = y[i]\n        i+=1\n    y[i-1] = orig\n \ndef swap(x,y,i,j):\n    temp = x[i]\n    x[i] = y[j]\n    y[j] = temp\n \ndef test():\n    c1 = [2, 3, 8, 13]\n    c2 = [1, 5, 9, 10, 15, 20 ]\n    for _ in range(2):\n        merge(c1,c2)\n        print(c1,c2)\n        c1, c2 = c2, c1\n \ntest()",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
       {
@@ -43,7 +43,7 @@
       },
       {
         "lineno": 17,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -58,32 +58,32 @@
       },
       {
         "lineno": 22,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 23,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 24,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 25,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 26,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 27,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -93,17 +93,17 @@
       },
       {
         "lineno": 30,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 31,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 32,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -128,12 +128,12 @@
       },
       {
         "lineno": 38,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 39,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -143,19 +143,20 @@
       },
       {
         "lineno": 42,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "n=max(len(c1),len(c2)); each insert shifts up to len(y) elements for up to len(x) swaps"
   },
   {
     "id": "algo_n_162",
     "name": "Reverse Each Word's Letters Based on Word Count",
     "code": "# Python3 program to reverse string\n# according to the number of words\n \n# Reverse the letters of the word\ndef reverse(string, start, end):\n \n    # Temporary variable to store character\n    temp = ''\n    while start <= end:\n \n        # Swapping the first and last character\n        temp = string[start]\n        string[start] = string[end]\n        string[end] = temp\n        start += 1\n        end -= 1\n \n# This function forms the required string\ndef reverseletter(string, start, end):\n    wstart, wend = start, start\n \n    while wend < end:\n        if string[wend] == \" \":\n            wend += 1\n            continue\n \n        # Checking the number of words\n        # present in string to reverse\n        while wend <= end and string[wend] != \" \":\n            wend += 1\n        wend -= 1\n \n        # Reverse the letter\n        # of the words\n        reverse(string, wstart, wend)\n        wend += 1\n \n# Driver Code\nif __name__ == \"__main__\":\n    string = \"Ashish Yadav Abhishek Rajput Sunil Pundir\"\n    string = list(string)\n    reverseletter(string, 0, len(string) - 1)\n    print(''.join(string))\n \n# This code is contributed by\n# sanjeev2552",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 5,
@@ -164,7 +165,7 @@
       },
       {
         "lineno": 8,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -264,18 +265,18 @@
       },
       {
         "lineno": 41,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 42,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 43,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -285,7 +286,7 @@
     "id": "algo_1_163",
     "name": "Check if a Tic-Tac-Toe Board Is Valid",
     "code": "# Python3 program to check whether a given tic tac toe\n# board is valid or not\n \n# Returns true if char wins. Char can be either\n# 'X' or 'O'\ndef win_check(arr, char):\n    # Check all possible winning combinations\n    matches = [[0, 1, 2], [3, 4, 5],\n               [6, 7, 8], [0, 3, 6],\n               [1, 4, 7], [2, 5, 8],\n               [0, 4, 8], [2, 4, 6]]\n \n    for i in range(8):\n        if(arr[matches[i][0]] == char and\n            arr[matches[i][1]] == char and\n            arr[matches[i][2]] == char):\n            return True\n    return False\n \ndef is_valid(arr):\n    # Count number of 'X' and 'O' in the given board\n    xcount = arr.count('X')\n    ocount = arr.count('O')\n     \n    # Board can be valid only if either xcount and ocount\n    # is same or count is one more than oCount\n    if(xcount == ocount+1 or xcount == ocount):\n        # Check if O wins\n        if win_check(arr, 'O'):\n            # Check if X wins, At a given point only one can win,\n            # if X also wins then return Invalid\n            if win_check(arr, 'X'):\n                return \"Invalid\"\n \n            # O can only win if xcount == ocount in case where whole\n            # board has values in each position.\n            if xcount == ocount:\n                return \"Valid\"\n \n        # If X wins then it should be xc == oc + 1,\n        # If not return Invalid    \n        if win_check(arr, 'X') and xcount != ocount+1:\n            return \"Invalid\"\n         \n        # if O is not the winner return Valid\n        if not win_check(arr, 'O'):\n            return \"Valid\"\n         \n    # If nothing above matches return invalid\n    return \"Invalid\"\n \n \n# Driver Code\narr = ['X', 'X', 'O',\n       'O', 'O', 'X',\n       'X', 'O', 'X']\nprint(\"Given board is \" + is_valid(arr))",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(1)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
       {
@@ -300,17 +301,17 @@
       },
       {
         "lineno": 13,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 14,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 17,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -400,7 +401,8 @@
       }
     ],
     "dataset_original_time": "O(1)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "the board always has 9 cells"
   },
   {
     "id": "algo_n2_164",
@@ -526,12 +528,13 @@
       },
       {
         "lineno": 47,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "n=max(len(arr),rotations); with rightRange = 2^k-1 every j is a submask so the inner loop runs the full range"
   },
   {
     "id": "algo_n_165",
@@ -607,7 +610,7 @@
       },
       {
         "lineno": 37,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -618,7 +621,7 @@
     "id": "algo_n2_166",
     "name": "Swap Occurrences of Two Characters in a String",
     "code": "# Python3 program to replace c1 with c2\n# and c2 with c1\ndef replace(s, c1, c2):\n    l = len(s)\n     \n    # loop to traverse in the string\n    for i in range(l):\n         \n        # check for c1 and replace\n        if (s[i] == c1):\n            s = s[0:i] + c2 + s[i + 1:]\n         \n        # check for c2 and replace\n        elif (s[i] == c2):\n            s = s[0:i] + c1 + s[i + 1:]\n    return s\n \n# Driver Code\nif __name__ == '__main__':\n    s = \"grrksfoegrrks\"\n    c1 = 'e'\n    c2 = 'r'\n    print(replace(s, c1, c2))\n \n# This code is contributed\n# by PrinciRaj1992",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -643,7 +646,7 @@
       },
       {
         "lineno": 11,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
@@ -653,7 +656,7 @@
       },
       {
         "lineno": 15,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
@@ -683,12 +686,13 @@
       },
       {
         "lineno": 23,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "each replacement rebuilds the whole string from two slices"
   },
   {
     "id": "algo_n2_167",
@@ -719,7 +723,7 @@
       },
       {
         "lineno": 10,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -734,7 +738,7 @@
       },
       {
         "lineno": 19,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -820,7 +824,7 @@
       },
       {
         "lineno": 47,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -866,7 +870,7 @@
       },
       {
         "lineno": 14,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -876,7 +880,7 @@
       },
       {
         "lineno": 20,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -911,7 +915,7 @@
       },
       {
         "lineno": 37,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -926,13 +930,14 @@
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "n=max(m,n)"
   },
   {
     "id": "algo_nlogn_170",
     "name": "Binary Indexed Tree (Fenwick Tree) for Prefix Sums",
     "code": "# Python implementation of Binary Indexed Tree\n \n# Returns sum of arr[0..index]. This function assumes\n# that the array is preprocessed and partial sums of\n# array elements are stored in BITree[].\ndef getsum(BITTree,i):\n    s = 0 #initialize result\n \n    # index in BITree[] is 1 more than the index in arr[]\n    i = i+1\n \n    # Traverse ancestors of BITree[index]\n    while i > 0:\n \n        # Add current element of BITree to sum\n        s += BITTree[i]\n \n        # Move index to parent node in getSum View\n        i -= i & (-i)\n    return s\n \n# Updates a node in Binary Index Tree (BITree) at given index\n# in BITree. The given value 'val' is added to BITree[i] and\n# all of its ancestors in tree.\ndef updatebit(BITTree , n , i ,v):\n \n    # index in BITree[] is 1 more than the index in arr[]\n    i += 1\n \n    # Traverse all ancestors and add 'val'\n    while i <= n:\n \n        # Add 'val' to current node of BI Tree\n        BITTree[i] += v\n \n        # Update index to that of parent in update View\n        i += i & (-i)\n \n \n# Constructs and returns a Binary Indexed Tree for given\n# array of size n.\ndef construct(arr, n):\n \n    # Create and initialize BITree[] as 0\n    BITTree = [0]*(n+1)\n \n    # Store the actual values in BITree[] using update()\n    for i in range(n):\n        updatebit(BITTree, n, i, arr[i])\n \n    # Uncomment below lines to see contents of BITree[]\n    #for i in range(1,n+1):\n    #     print BITTree[i],\n    return BITTree\n \n \n# Driver code to test above methods\nfreq = [2, 1, 1, 3, 2, 3, 4, 5, 6, 7, 8, 9]\nBITTree = construct(freq,len(freq))\nprint(\"Sum of elements in arr[0..5] is \" + str(getsum(BITTree,5)))\nfreq[3] += 6\nupdatebit(BITTree, len(freq), 3, 6)\nprint(\"Sum of elements in arr[0..5]\"+\n                    \" after update is \" + str(getsum(BITTree,5)))\n \n# This code is contributed by Raju Varshney",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n log n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -952,17 +957,17 @@
       },
       {
         "lineno": 13,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
         "lineno": 16,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
         "lineno": 19,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
@@ -977,22 +982,22 @@
       },
       {
         "lineno": 28,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 31,
-        "time": "O(n)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 34,
-        "time": "O(n)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 37,
-        "time": "O(n)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
@@ -1002,7 +1007,7 @@
       },
       {
         "lineno": 45,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -1012,7 +1017,7 @@
       },
       {
         "lineno": 49,
-        "time": "O(n)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
@@ -1027,12 +1032,12 @@
       },
       {
         "lineno": 59,
-        "time": "O(1)",
+        "time": "O(n log n)",
         "space": "O(n)"
       },
       {
         "lineno": 60,
-        "time": "O(1)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
@@ -1042,12 +1047,12 @@
       },
       {
         "lineno": 62,
-        "time": "O(1)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
         "lineno": 63,
-        "time": "O(1)",
+        "time": "O(log n)",
         "space": "O(1)"
       }
     ],

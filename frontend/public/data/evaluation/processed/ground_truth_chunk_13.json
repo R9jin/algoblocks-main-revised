@@ -3,7 +3,7 @@
     "id": "algo_n2_121",
     "name": "Sum of Matrix Elements Defined by Integer Division of Row and Column",
     "code": "# Program to find sum of matrix element\n# where each element is integer division \n# of row and column.\n \n# Return sum of matrix element where each\n# element is division of its corresponding\n# row and column.\ndef findSum(n):\n    ans = 0; temp = 0;\n \n    for i in range(1, n + 1):\n \n        # count the number of elements of\n        # each column. Initialize to i -1\n        # because number of zeroes are i - 1.\n        if temp < n:\n            temp = i - 1\n \n            # For multiply\n            num = 1\n            while temp < n:\n                if temp + i <= n:\n                    ans += i * num\n                else:\n                    ans += (n - temp) * num\n                temp += i\n                num += 1\n    return ans\n \n# Driver Code\nN = 2\nprint(findSum(N))\n \n# This code is contributed by Shrikant13",
-    "expected_overall_time": "O(n^2)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
       {
@@ -28,42 +28,42 @@
       },
       {
         "lineno": 17,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 20,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 21,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 22,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 23,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 25,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 26,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 27,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -78,12 +78,13 @@
       },
       {
         "lineno": 32,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "n is a numeric value. temp stays >= n after i=1, so the \"if temp < n\" guard skips the inner while for every later i: total O(n), not the O(n log n) of the intended harmonic loop"
   },
   {
     "id": "algo_n_122",
@@ -194,18 +195,18 @@
       },
       {
         "lineno": 58,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 59,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 61,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 62,
@@ -260,7 +261,7 @@
     "id": "algo_n_123",
     "name": "Maximum of Minimums of All Window Sizes (Stack-Based)",
     "code": "# An efficient Python3 program to find\n# maximum of all minimums of windows of\n# different sizes\n \n \ndef printMaxOfMin(arr, n):\n \n    s = []  # Used to find previous\n    # and next smaller\n \n    # Arrays to store previous and next\n    # smaller. Initialize elements of\n    # left[] and right[]\n    left = [-1] * (n + 1)\n    right = [n] * (n + 1)\n \n    # Fill elements of left[] using logic discussed on\n    # https:#www.geeksforgeeks.org/next-greater-element\n    for i in range(n):\n        while (len(s) != 0 and\n               arr[s[-1]] >= arr[i]):\n            s.pop()\n \n        if (len(s) != 0):\n            left[i] = s[-1]\n \n        s.append(i)\n \n    # Empty the stack as stack is going\n    # to be used for right[]\n    while (len(s) != 0):\n        s.pop()\n \n    # Fill elements of right[] using same logic\n    for i in range(n - 1, -1, -1):\n        while (len(s) != 0 and arr[s[-1]] >= arr[i]):\n            s.pop()\n \n        if(len(s) != 0):\n            right[i] = s[-1]\n \n        s.append(i)\n \n    # Create and initialize answer array\n    ans = [0] * (n + 1)\n    for i in range(n + 1):\n        ans[i] = 0\n \n    # Fill answer array by comparing minimums\n    # of all. Lengths computed using left[]\n    # and right[]\n    for i in range(n):\n \n        # Length of the interval\n        Len = right[i] - left[i] - 1\n \n        # arr[i] is a possible answer for this\n        #  Length 'Len' interval, check if arr[i]\n        # is more than max for 'Len'\n        ans[Len] = max(ans[Len], arr[i])\n \n    # Some entries in ans[] may not be filled\n    # yet. Fill them by taking values from\n    # right side of ans[]\n    for i in range(n - 1, 0, -1):\n        ans[i] = max(ans[i], ans[i + 1])\n \n    # Print the result\n    for i in range(1, n + 1):\n        print(ans[i], end=\" \")\n \n \n# Driver Code\nif __name__ == '__main__':\n \n    arr = [10, 20, 30, 50, 10, 70, 30]\n    n = len(arr)\n    printMaxOfMin(arr, n)\n \n# This code is contributed by PranchalK",
-    "expected_overall_time": "O(n^2)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -275,13 +276,13 @@
       },
       {
         "lineno": 14,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 15,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 19,
@@ -290,12 +291,12 @@
       },
       {
         "lineno": 20,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 22,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -330,12 +331,12 @@
       },
       {
         "lineno": 36,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 37,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -355,8 +356,8 @@
       },
       {
         "lineno": 45,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 46,
@@ -385,12 +386,12 @@
       },
       {
         "lineno": 65,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 66,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -420,18 +421,19 @@
       },
       {
         "lineno": 78,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "each index is pushed and popped at most once per pass"
   },
   {
     "id": "algo_n2_124",
     "name": "Split an Alphanumeric String into Letters and Digits",
     "code": "# Python 3 program to split an alphanumeric\n# string using STL\ndef splitString(str):\n \n    alpha = \"\"\n    num = \"\"\n    special = \"\"\n    for i in range(len(str)):\n        if (str[i].isdigit()):\n            num = num+ str[i]\n        elif((str[i] >= 'A' and str[i] <= 'Z') or\n             (str[i] >= 'a' and str[i] <= 'z')):\n            alpha += str[i]\n        else:\n            special += str[i]\n \n    print(alpha)\n    print(num )\n    print(special)\n \n# Driver code\nif __name__ == \"__main__\":\n     \n    str = \"geeks01$$for02geeks03!@!!\"\n    splitString(str)\n \n# This code is contributed by ita_c",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -466,7 +468,7 @@
       },
       {
         "lineno": 10,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
@@ -476,27 +478,27 @@
       },
       {
         "lineno": 13,
-        "time": "O(n)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 15,
-        "time": "O(n)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 17,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 18,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 19,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -511,18 +513,105 @@
       },
       {
         "lineno": 25,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "string rule: num/alpha/special built with +=",
+    "gt_alt_inplace_concat": {
+      "expected_overall_time": "O(n)",
+      "expected_overall_space": "O(n)",
+      "line_metrics": [
+        {
+          "lineno": 3,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 5,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 6,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 7,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 8,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 9,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 10,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 11,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 13,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 15,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 17,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 18,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 19,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 22,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 24,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 25,
+          "time": "O(n)",
+          "space": "O(n)"
+        }
+      ]
+    }
   },
   {
     "id": "algo_n_125",
     "name": "Reverse a String Using a Stack",
     "code": "# Python program to reverse a string using stack\n \n# Function to create an empty stack.\n# It initializes size of stack as 0\n \n \ndef createStack():\n    stack = []\n    return stack\n \n# Function to determine the size of the stack\n \n \ndef size(stack):\n    return len(stack)\n \n# Stack is empty if the size is 0\n \n \ndef isEmpty(stack):\n    if size(stack) == 0:\n        return true\n \n# Function to add an item to stack .\n# It increases size by 1\n \n \ndef push(stack, item):\n    stack.append(item)\n \n# Function to remove an item from stack.\n# It decreases size by 1\n \n \ndef pop(stack):\n    if isEmpty(stack):\n        return\n    return stack.pop()\n \n# A stack based function to reverse a string\n \n \ndef reverse(string):\n    n = len(string)\n \n    # Create a empty stack\n    stack = createStack()\n \n    # Push all characters of string to stack\n    for i in range(0, n, 1):\n        push(stack, string[i])\n \n    # Making the string empty since all\n    # characters are saved in stack\n    string = \"\"\n \n    # Pop all characters of string and\n    # put them back to string\n    for i in range(0, n, 1):\n        string += pop(stack)\n \n    return string\n \n \n# Driver program to test above functions\nstring = \"GeeksQuiz\"\nstring = reverse(string)\nprint(\"Reversed string is \" + string)\n \n# This code is contributed by Sunny Karira",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -547,7 +636,7 @@
       },
       {
         "lineno": 15,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -557,7 +646,7 @@
       },
       {
         "lineno": 21,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -572,8 +661,8 @@
       },
       {
         "lineno": 29,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 35,
@@ -582,7 +671,7 @@
       },
       {
         "lineno": 36,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -592,7 +681,7 @@
       },
       {
         "lineno": 38,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -618,7 +707,7 @@
       {
         "lineno": 51,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 55,
@@ -632,8 +721,8 @@
       },
       {
         "lineno": 60,
-        "time": "O(n)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 62,
@@ -647,24 +736,161 @@
       },
       {
         "lineno": 67,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 68,
-        "time": "O(1)",
-        "space": "O(n)"
+        "time": "O(n)",
+        "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "string rule: string += pop(stack); isEmpty returns the undefined name true but is never reached",
+    "gt_alt_inplace_concat": {
+      "expected_overall_time": "O(n)",
+      "expected_overall_space": "O(n)",
+      "line_metrics": [
+        {
+          "lineno": 7,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 8,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 9,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 14,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 15,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 20,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 21,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 22,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 28,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 29,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 35,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 36,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 37,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 38,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 43,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 44,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 47,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 50,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 51,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 55,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 59,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 60,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 62,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 66,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 67,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 68,
+          "time": "O(n)",
+          "space": "O(1)"
+        }
+      ]
+    }
   },
   {
     "id": "algo_n2_126",
     "name": "Count Triangles Possible from an Array (Two Pointer)",
     "code": "# Python implementation of the above approach\ndef CountTriangles(A):\n \n    n = len(A)\n \n    A.sort()\n \n    count = 0\n \n    for i in range(n - 1, 0, -1):\n        l = 0\n        r = i - 1\n        while(l < r):\n            if(A[l] + A[r] > A[i]):\n \n                # If it is possible with a[l], a[r]\n                # and a[i] then it is also possible\n                # with a[l + 1]..a[r-1], a[r] and a[i]\n                count += r - l\n \n                # checking for more possible solutions\n                r -= 1\n \n            else:\n \n                # if not possible check for\n                # higher values of arr[l]\n                l += 1\n    print(\"No of possible solutions: \", count)\n \n \n# Driver Code\nif __name__ == '__main__':\n \n    A = [10, 21, 22, 100, 101, 200, 300]\n \n    # Function call\n    CountTriangles(A)\n \n# This code is contributed by PrinciRaj1992",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 2,
@@ -679,7 +905,7 @@
       {
         "lineno": 6,
         "time": "O(n log n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 8,
@@ -743,149 +969,18 @@
       },
       {
         "lineno": 38,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
     "dataset_original_space": "O(1)"
   },
   {
-    "id": "algo_n_127",
-    "name": "Product of Max of One Array and Min of Another",
-    "code": "# Python3 program to find the to\n# calculate the product of\n# max element of first array\n# and min element of second array\n \n# Function to calculate the product\ndef minMaxProduct(arr1, arr2,\n                  n1, n2) :\n \n    # Initialize max of first array\n    max = arr1[0]\n \n    # initialize min of second array\n    min = arr2[0]\n     \n    i = 1\n    while (i < n1 and i < n2) :\n     \n        # To find the maximum\n        # element in first array\n        if (arr1[i] > max) :\n            max = arr1[i]\n \n        # To find the minimum\n        # element in second array\n        if (arr2[i] < min) :\n            min = arr2[i]\n         \n        i += 1\n \n    # Process remaining elements\n    while (i < n1) :\n     \n        if (arr1[i] > max) :\n            max = arr1[i]\n            i += 1\n     \n    while (i < n2):\n     \n        if (arr2[i] < min) :\n            min = arr2[i]\n            i += 1\n \n    return max * min\n \n# Driver code\narr1 = [10, 2, 3, 6, 4, 1 ]\narr2 = [5, 1, 4, 2, 6, 9 ]\nn1 = len(arr1)\nn2 = len(arr1)\nprint(minMaxProduct(arr1, arr2, n1, n2))\n \n# This code is contributed by Smitha",
-    "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
-    "line_metrics": [
-      {
-        "lineno": 7,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 11,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 14,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 16,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 17,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 21,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 22,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 26,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 27,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 29,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 32,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 34,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 35,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 36,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 38,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 40,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 41,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 42,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 44,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 47,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 48,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 49,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 50,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 51,
-        "time": "O(1)",
-        "space": "O(1)"
-      }
-    ],
-    "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
-  },
-  {
     "id": "algo_n_128",
     "name": "Reverse a Queue (Recursive)",
     "code": "from queue import Queue\n \n \ndef reverse_queue(queue: Queue):\n    # Base case\n    if queue.empty():\n        return\n \n    # Dequeue current item (from front)\n    item = queue.queue[0]\n    queue.get()\n \n    # Reverse remaining queue\n    reverse_queue(queue)\n \n    # Enqueue current item (to rear)\n    queue.put(item)\n \n \ndef print_queue(queue: Queue):\n    while not queue.empty():\n        print(queue.queue[0], end=\" \")\n        queue.get()\n    print()\n \n \n# Driver Code\nif __name__ == \"__main__\":\n    q = Queue()\n    q.put(56)\n    q.put(27)\n    q.put(30)\n    q.put(45)\n    q.put(85)\n    q.put(92)\n    q.put(58)\n    q.put(80)\n    q.put(90)\n    q.put(100)\n \n    reverse_queue(q)\n    print_queue(q)",
-    "expected_overall_time": "O(n^2)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -901,11 +996,11 @@
       {
         "lineno": 6,
         "time": "O(n)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 7,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -920,8 +1015,8 @@
       },
       {
         "lineno": 14,
-        "time": "O(n^2)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 17,
@@ -1016,16 +1111,17 @@
       {
         "lineno": 41,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 42,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "recursion depth n"
   },
   {
     "id": "algo_n_129",
@@ -1091,7 +1187,7 @@
       },
       {
         "lineno": 29,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -1106,13 +1202,13 @@
       },
       {
         "lineno": 35,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 36,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 38,
@@ -1121,23 +1217,23 @@
       },
       {
         "lineno": 39,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 40,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 41,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 42,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 44,
@@ -1146,8 +1242,8 @@
       },
       {
         "lineno": 45,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -1157,7 +1253,7 @@
     "id": "algo_n2_130",
     "name": "Check if a String Is a Rotation of a Palindrome",
     "code": "# Python program to check if a given string is a rotation\n# of a palindrome\n \n# A utility function to check if a string str is palindrome\ndef isPalindrome(string):\n \n    # Start from leftmost and rightmost corners of str\n    l = 0\n    h = len(string) - 1\n \n    # Keep comparing characters while they are same\n    while h > l:\n        l+= 1\n        h-= 1\n        if string[l-1] != string[h + 1]:\n            return False\n \n    # If we reach here, then all characters were matching   \n    return True\n \n# Function to check if a given string is a rotation of a\n# palindrome.\ndef isRotationOfPalindrome(string):\n \n    # If string itself is palindrome\n    if isPalindrome(string):\n        return True\n \n    # Now try all rotations one by one\n    n = len(string)\n    for i in range(n-1):\n        string1 = string[i + 1:n]\n        string2 = string[0:i + 1]\n \n        # Check if this rotation is palindrome\n        string1+=(string2)\n        if isPalindrome(string1):\n            return True\n \n    return False\n \n# Driver program\nprint (\"1\" if isRotationOfPalindrome(\"aab\") == True else \"0\")\nprint (\"1\" if isRotationOfPalindrome(\"abcde\") == True else \"0\")\nprint (\"1\" if isRotationOfPalindrome(\"aaaad\") == True else \"0\")\n \n# This code is contributed by BHAVYA JAIN",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -1167,32 +1263,32 @@
       },
       {
         "lineno": 8,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 9,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 12,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 13,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 14,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 15,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -1212,7 +1308,7 @@
       },
       {
         "lineno": 26,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -1232,22 +1328,22 @@
       },
       {
         "lineno": 32,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
         "lineno": 33,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
         "lineno": 36,
-        "time": "O(n)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 37,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -1262,17 +1358,17 @@
       },
       {
         "lineno": 43,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
         "lineno": 44,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
         "lineno": 45,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       }
     ],

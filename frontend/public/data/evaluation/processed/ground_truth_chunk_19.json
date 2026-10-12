@@ -88,7 +88,7 @@
       },
       {
         "lineno": 31,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -128,12 +128,12 @@
       },
       {
         "lineno": 52,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 55,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
@@ -145,7 +145,7 @@
     "name": "Minimum Subsets with All Distinct Elements (Sorting)",
     "code": "# A sorting based solution to find the\n# minimum number of subsets of a set\n# such that every subset contains distinct\n# elements.\n \n# function to count subsets such that all\n# subsets have distinct elements.\ndef subset(ar, n):\n \n    # take input and initialize res = 0\n    res = 0\n \n    # sort the array\n    ar.sort()\n \n    # traverse the input array and\n    # find maximum frequency\n    for i in range(0, n) :\n        count = 1\n \n        # for each number find its repetition / frequency\n        for i in range(n - 1):\n            if ar[i] == ar[i + 1]:\n                count+=1\n            else:\n                break\n             \n        # update res\n        res = max(res, count)\n     \n    return res\n \n \n# Driver code\nar = [ 5, 6, 9, 3, 4, 3, 4 ]\nn = len(ar)\nprint(subset(ar, n))\n \n# This code is contributed by\n# Smitha Dinesh Semwal",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 8,
@@ -160,7 +160,7 @@
       {
         "lineno": 14,
         "time": "O(n log n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 18,
@@ -189,7 +189,7 @@
       },
       {
         "lineno": 26,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -214,12 +214,13 @@
       },
       {
         "lineno": 37,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "worst case all elements equal: the inner loop never breaks"
   },
   {
     "id": "algo_n_183",
@@ -240,7 +241,7 @@
       },
       {
         "lineno": 10,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -255,12 +256,12 @@
       },
       {
         "lineno": 15,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 16,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -270,7 +271,7 @@
       },
       {
         "lineno": 23,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       }
     ],
@@ -302,27 +303,27 @@
       {
         "lineno": 17,
         "time": "O(log n)",
-        "space": "O(log n)"
+        "space": "O(1)"
       },
       {
         "lineno": 19,
-        "time": "O(log n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 26,
         "time": "O(log n)",
-        "space": "O(log n)"
+        "space": "O(1)"
       },
       {
         "lineno": 27,
         "time": "O(log n)",
-        "space": "O(1)"
+        "space": "O(log n)"
       },
       {
         "lineno": 34,
         "time": "O(log n)",
-        "space": "O(1)"
+        "space": "O(log n)"
       },
       {
         "lineno": 39,
@@ -332,7 +333,7 @@
       {
         "lineno": 41,
         "time": "O(log n)",
-        "space": "O(1)"
+        "space": "O(log n)"
       },
       {
         "lineno": 45,
@@ -346,8 +347,8 @@
       },
       {
         "lineno": 47,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(log n)",
+        "space": "O(log n)"
       }
     ],
     "dataset_original_time": "O(log n)",
@@ -447,18 +448,19 @@
       },
       {
         "lineno": 49,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "26-letter count array is constant size"
   },
   {
     "id": "algo_n_186",
     "name": "Find the Two Repeating Elements Using Sum and Product",
     "code": "# Python3 code for Find the two repeating\n# elements in a given array\nimport math\n \n \ndef printRepeating(arr, size):\n \n    # S is for sum of elements in arr[]\n    S = 0\n \n    # P is for product of elements in arr[]\n    P = 1\n \n    n = size - 2\n \n    # Calculate Sum and Product\n    # of all elements in arr[]\n    for i in range(0, size):\n        S = S + arr[i]\n        P = P * arr[i]\n \n    # S is x + y now\n    S = S - n * (n + 1) // 2\n \n    # P is x*y now\n    P = P // fact(n)\n \n    # D is x - y now\n    D = math.sqrt(S * S - 4 * P)\n \n    x = (D + S) // 2\n    y = (S - D) // 2\n \n    print(\"Repeating elements are \",\n          (int)(x), \" \", (int)(y))\n \n \ndef fact(n):\n    if(n == 0):\n        return 1\n    else:\n        return(n * fact(n - 1))\n \n \n# Driver code\narr = [4, 2, 4, 5, 2, 3, 1]\narr_size = len(arr)\nprintRepeating(arr, arr_size)\n \n \n# This code is contributed by Nikita Tiwari.",
-    "expected_overall_time": "O(n^2)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -509,7 +511,7 @@
       {
         "lineno": 26,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 29,
@@ -539,17 +541,17 @@
       {
         "lineno": 39,
         "time": "O(n)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 40,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 42,
-        "time": "O(n^2)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 46,
@@ -563,12 +565,13 @@
       },
       {
         "lineno": 48,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "recursive factorial of n-2: depth n"
   },
   {
     "id": "algo_n_187",
@@ -584,77 +587,77 @@
       },
       {
         "lineno": 8,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 9,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 10,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 11,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 12,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 13,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 14,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 15,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 16,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 17,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 18,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 19,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 20,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 21,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 22,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -739,7 +742,7 @@
       },
       {
         "lineno": 61,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -750,7 +753,7 @@
     "id": "algo_n_189",
     "name": "Check if a Corner String Is Present at Matrix Corners",
     "code": "# Python program to find\n# if a given corner string\n# is present at corners.\n \ndef isCornerPresent(str, corner) :\n \n    n = len(str)\n    cl = len(corner)\n \n    # If length of corner\n    # string is more, it\n    # cannot be present\n    # at corners.\n    if (n < cl) :\n        return False\n \n    # Return true if corner\n    # string is present at\n    # both corners of given\n    # string.\n    return ((str[: cl] == corner) and\n            (str[n - cl :] == corner))\n \n# Driver Code\nstr = \"geeksforgeeks\"\ncorner = \"geeks\"\nif (isCornerPresent(str, corner)) :\n    print (\"Yes\")\nelse :\n    print (\"No\")\n \n# This code is contributed by\n# Manish Shaw(manishshaw1)",
-    "expected_overall_time": "O(1)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -780,7 +783,7 @@
       },
       {
         "lineno": 21,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -795,7 +798,7 @@
       },
       {
         "lineno": 27,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -810,7 +813,8 @@
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "slices copy up to n characters"
   },
   {
     "id": "algo_n_190",
@@ -891,7 +895,7 @@
       },
       {
         "lineno": 42,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],

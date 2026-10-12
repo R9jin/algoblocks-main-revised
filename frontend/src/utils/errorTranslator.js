@@ -116,6 +116,13 @@ export const translatePythonError = (errorMsg) => {
     // 2. VARIABLE & NAME ERRORS
     // -------------------------------------------------------------------------
     {
+      // Written by the block generators for a socket with nothing plugged in
+      // (BlocklyWorkspace.jsx). It used to be silently replaced by 0.
+      test: /NameError: name '__empty_socket__' is not defined/i,
+      generate: () =>
+        "Empty Block Socket: one of your blocks has an empty slot where a value is needed (for example the end of a `for` range, or one side of a comparison). Plug a number or variable into it. If you meant to use a variable like `n`, make sure it is created first with a `set n to ...` block before it is used.",
+    },
+    {
       test: /NameError: name '(.+)' is not defined/i,
       generate: (match) =>
         `Undefined Variable: You are trying to use a variable or function named \`${match[1]}\`, but it doesn't exist in the computer's memory yet. Did you misspell the name? Or did you forget to initialize it earlier in your code (e.g., \`${match[1]} = 0\`)? Remember, capitalization matters in Python (\`MyVar\` is different from \`myvar\`).`,
@@ -164,7 +171,7 @@ export const translatePythonError = (errorMsg) => {
     // 4. INDEX & ARRAY BOUNDARY ERRORS
     // -------------------------------------------------------------------------
     {
-      test: /IndexError: list index out of range/i,
+      test: /IndexError: (?:list|string|tuple) index out of range/i,
       generate: () =>
         "Out of Bounds: You are commanding the computer to look up a specific slot in an array, but that slot doesn't exist! Remember that arrays start counting at 0. If a list has 5 items, the maximum valid index is 4. Check your loop limits (e.g., making sure you use `< len(arr)` and not `<= len(arr)`).",
     },

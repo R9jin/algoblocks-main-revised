@@ -15,6 +15,7 @@ Two sources feed each line:
 Every candidate carries a priority so a busy line still leads with what matters:
 
     0  performance trap -- says what is slow AND what to do instead
+    0.5 notation clarity -- which of several readings of the code Big-O uses (notation_clarity.py)
     1  line-specific teaching / algorithmic pattern / evidence from the last run
     2  background fact, rule of thumb, scale intuition
 
@@ -26,6 +27,8 @@ import re
 from typing import List, Tuple
 
 from complexity_explainer.explanation_signals import PatternSignals
+
+from complexity_explainer import theory_catalog
 
 MAX_TIME_INSIGHTS = 3
 MAX_SPACE_INSIGHTS = 2
@@ -99,7 +102,8 @@ class InsightGatherers:
         ordered = sorted(enumerate(candidates), key=lambda x: (x[1][0], x[0]))
         # traps (priority 0) keep their full "what to do instead" advice; everything
         # else is trimmed to idea + reason so the panel stays short and readable
-        return [(text if pri == 0 else _brief(text)) for _, (pri, text) in ordered][:limit]
+        # (priority < 1 = traps and notation-clarity notes: keep their full explanation)
+        return [(text if pri < 1 else _brief(text)) for _, (pri, text) in ordered][:limit]
 
     @staticmethod
     def _merge(line_notes: List[Tuple[int, str]], signal_notes: List[Tuple[int, str]]) -> List[Tuple[int, str]]:
@@ -199,8 +203,14 @@ class InsightGatherers:
         line_notes = []
         if node is not None:
             line_notes = self.generator.line_insights.time_notes(node, sig, local_t, global_t, hits, code_snippet)
+            try:  # theory-style framing: summations, cost model, worst/amortized/expected (theory_catalog)
+                line_notes = list(line_notes) + theory_catalog.line_time_notes(self.generator.shape.tree, node, local_t, global_t)
+            except Exception:
+                pass
         merged = self._merge(line_notes, c) or [self._FALLBACK_TIME]
-        return self._top(merged, MAX_TIME_INSIGHTS)
+        # a notation-clarity note earns one extra slot so it never pushes out the usual teaching
+        extra = 1 if any(0 < pri < 1 for pri, _ in merged) else 0
+        return self._top(merged, MAX_TIME_INSIGHTS + extra)
 
     def _gather_space_insights(self, sig: PatternSignals, mem_state: dict,
                                node=None, local_s: str = "", global_s: str = "", hits: int = 0) -> List[str]:
@@ -264,5 +274,10 @@ class InsightGatherers:
         line_notes = []
         if node is not None:
             line_notes = self.generator.line_insights.space_notes(node, sig, local_s, global_s, mem_state, hits)
+            try:
+                line_notes = list(line_notes) + theory_catalog.line_space_notes(self.generator.shape.tree, node, local_s, global_s)
+            except Exception:
+                pass
         merged = self._merge(line_notes, c) or [self._FALLBACK_SPACE]
-        return self._top(merged, MAX_SPACE_INSIGHTS)
+        extra = 1 if any(0 < pri < 1 for pri, _ in merged) else 0
+        return self._top(merged, MAX_SPACE_INSIGHTS + extra)

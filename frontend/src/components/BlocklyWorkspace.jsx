@@ -13,6 +13,7 @@ import "blockly/blocks";
 import * as En from "blockly/msg/en";
 import { pythonGenerator } from "blockly/python";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { FiTrash2 } from "react-icons/fi";
 import { convertPythonToBlocks } from "../workers/analyzerInstance";
 import FloatingErrorDropdown from "./FloatingErrorDropdown.jsx";
 import ScopeWarningModal from "./ScopeWarningModal.jsx";
@@ -229,14 +230,41 @@ export function registerCustomPythonGenerators() {
 
   const getCode = (b, n, o = pythonGenerator.ORDER_NONE) => pythonGenerator.valueToCode(b, n, o);
 
+  // EMPTY SOCKETS MUST NOT BECOME 0.
+  // Blockly's stock generators, and ours, used to replace an empty value socket
+  // with a literal ("|| '0'"). So `for i in range(n)` whose `n` block was
+  // removed -- or never filled in because `n` was never declared -- silently
+  // turned into `range(0)` and "worked", even though nothing was declared.
+  // For operands where a made-up number changes the program's meaning, an
+  // empty socket now generates this name instead. It is not defined anywhere, so
+  // the analyzer reports "NameError" on that exact line (see scope_detector.py,
+  // EMPTY_SOCKET_NAME), the run stops with an explanation, and blockly_ast.py
+  // turns it back into an empty socket if the text is synced to blocks again.
+  const EMPTY_SOCKET = "__empty_socket__";
+  const needCode = (b, n, o = pythonGenerator.ORDER_NONE) => pythonGenerator.valueToCode(b, n, o) || EMPTY_SOCKET;
+  const makeStrictOperands = (type, inputNames) => {
+    const orig = pythonGenerator.forBlock[type];
+    if (typeof orig !== "function" || orig.__strictOperands) return;
+    const wrapped = function (block, gen) {
+      for (const name of inputNames) {
+        if (block.getInput(name) && !block.getInputTargetBlock(name)) return [EMPTY_SOCKET, pythonGenerator.ORDER_ATOMIC];
+      }
+      return orig.call(this, block, gen);
+    };
+    wrapped.__strictOperands = true;
+    pythonGenerator.forBlock[type] = wrapped;
+  };
+  makeStrictOperands("math_arithmetic", ["A", "B"]);
+  makeStrictOperands("logic_compare", ["A", "B"]);
+
   pythonGenerator.forBlock["math_change"] = function (block) {
     const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
-    const val = getCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC) || "0";
+    const val = needCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC);
     return `${v} += ${val}\n`;
   };
 
   pythonGenerator.forBlock["controls_repeat_ext"] = function (block) {
-    const repeats = getCode(block, "TIMES", pythonGenerator.ORDER_NONE) || "0";
+    const repeats = needCode(block, "TIMES", pythonGenerator.ORDER_NONE);
     const branch = pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS;
     return `for _ in range(${repeats}):\n${branch}`;
   };
@@ -250,14 +278,14 @@ export function registerCustomPythonGenerators() {
   pythonGenerator.forBlock["math_assignment"] = function (block) {
     const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
     const op = block.getFieldValue("OP");
-    const val = getCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC) || "0";
+    const val = needCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC);
     const sym = op === "MINUS" ? "-=" : op === "MULTIPLY" ? "*=" : op === "DIVIDE" ? "/=" : "+=";
     return `${v} ${sym} ${val}\n`;
   };
 
   pythonGenerator.forBlock["controls_for"] = function (block) {
     const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
-    const from = getCode(block, "FROM") || "0", to = getCode(block, "TO") || "0", step = getCode(block, "BY") || "1";
+    const from = needCode(block, "FROM"), to = needCode(block, "TO"), step = getCode(block, "BY") || "1";
     const rangeCode = step.trim() === "1" ? (from.trim() === "0" ? `range(${to})` : `range(${from}, ${to})`) : `range(${from}, ${to}, ${step})`;
     return `for ${v} in ${rangeCode}:\n${pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS}`;
   };
@@ -298,15 +326,15 @@ export function registerCustomPythonGenerators() {
   pythonGenerator.forBlock["procedure_return_value"] = b => `return ${getCode(b, "VALUE") || "None"}\n`;
   pythonGenerator.forBlock["custom_string_join"] = b => [`${getCode(b, "DELIMITER", pythonGenerator.ORDER_MEMBER) || "''"}.join(${getCode(b, "LIST") || "[]"})`, pythonGenerator.ORDER_FUNCTION_CALL];
   pythonGenerator.forBlock["string_to_list"] = b => [`list(${getCode(b, "STRING") || "''"})`, pythonGenerator.ORDER_FUNCTION_CALL];
-  pythonGenerator.forBlock["type_cast_int"] = b => [`int(${getCode(b, "VALUE") || "0"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+  pythonGenerator.forBlock["type_cast_int"] = b => [`int(${needCode(b, "VALUE")})`, pythonGenerator.ORDER_FUNCTION_CALL];
 
   pythonGenerator.forBlock["math_advanced_operators"] = function (block) {
     const opMap = { FLOOR_DIV: ["//", pythonGenerator.ORDER_MULTIPLICATIVE], POWER: ["**", pythonGenerator.ORDER_EXPONENTIATION], RSHIFT: [">>", pythonGenerator.ORDER_BITWISE_SHIFT], LSHIFT: ["<<", pythonGenerator.ORDER_BITWISE_SHIFT], BIT_AND: ["&", pythonGenerator.ORDER_BITWISE_AND], BIT_OR: ["|", pythonGenerator.ORDER_BITWISE_OR] };
     const [sym, order] = opMap[block.getFieldValue("OP")] || ["", pythonGenerator.ORDER_NONE];
-    return [`${getCode(block, "A", order) || "0"} ${sym} ${getCode(block, "B", order) || "0"}`, order];
+    return [`${needCode(block, "A", order)} ${sym} ${needCode(block, "B", order)}`, order];
   };
 
-  pythonGenerator.forBlock["math_min_max"] = b => [`${b.getFieldValue("OP") === "MAX" ? "max" : "min"}(${getCode(b, "A") || "0"}, ${getCode(b, "B") || "0"})`, pythonGenerator.ORDER_FUNCTION_CALL];
+  pythonGenerator.forBlock["math_min_max"] = b => [`${b.getFieldValue("OP") === "MAX" ? "max" : "min"}(${needCode(b, "A")}, ${needCode(b, "B")})`, pythonGenerator.ORDER_FUNCTION_CALL];
   pythonGenerator.forBlock["comment_block"] = b => `# ${b.getFieldValue("TEXT") || ""}\n`;
   pythonGenerator.forBlock["multi_line_comment"] = b => `"""\n${b.getFieldValue("TEXT") || ""}\n"""\n`;
   pythonGenerator.forBlock["blank_line"] = () => `\n`;
@@ -353,7 +381,7 @@ export function registerCustomPythonGenerators() {
   pythonGenerator.forBlock["list_count"] = b => [`${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.count(${getCode(b, "ITEM") || "None"})`, pythonGenerator.ORDER_FUNCTION_CALL];
   pythonGenerator.forBlock["list_reverse"] = b => `${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.reverse()\n`;
   pythonGenerator.forBlock["list_clear"] = b => `${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}.clear()\n`;
-  pythonGenerator.forBlock["list_range"] = b => [`list(range(${getCode(b, "START") || "0"}, ${getCode(b, "END") || "0"}))`, pythonGenerator.ORDER_FUNCTION_CALL];
+  pythonGenerator.forBlock["list_range"] = b => [`list(range(${needCode(b, "START")}, ${needCode(b, "END")}))`, pythonGenerator.ORDER_FUNCTION_CALL];
   pythonGenerator.forBlock["variable_swap"] = b => `${pythonGenerator.getVariableName(b.getFieldValue("VAR1"))}, ${pythonGenerator.getVariableName(b.getFieldValue("VAR2"))} = ${pythonGenerator.getVariableName(b.getFieldValue("VAR2"))}, ${pythonGenerator.getVariableName(b.getFieldValue("VAR1"))}\n`;
   pythonGenerator.forBlock["logic_in"] = b => [`${getCode(b, "ITEM", pythonGenerator.ORDER_RELATIONAL) || "None"} in ${getCode(b, "COLLECTION", pythonGenerator.ORDER_RELATIONAL) || "[]"}`, pythonGenerator.ORDER_RELATIONAL];
   pythonGenerator.forBlock["list_slice_advanced"] = b => [`${getCode(b, "LIST", pythonGenerator.ORDER_MEMBER) || "[]"}[${getCode(b, "START") || ""}:${getCode(b, "END") || ""}]`, pythonGenerator.ORDER_MEMBER];
@@ -591,6 +619,109 @@ export const toolbox = {
   ]
 };
 
+// ---------------------------------------------------------------------------
+// Overlap protection
+//
+// Two sources of hidden blocks used to exist:
+//  1. The Python->Blocks converter (blockly_ast.py) stacks top-level groups
+//     using an *estimated* height (get_chain_height). Real rendered heights
+//     differ (wrapped fields, multiline raw blocks, nested C-shapes), so a
+//     group could land on top of the next one and hide it from the learner.
+//  2. A learner could drop one top-level stack directly on top of another.
+//
+// Both are fixed using the REAL measured bounding boxes Blockly computes
+// after render: relayoutTopBlocks() restacks every top-level group
+// vertically with a fixed gap, and nudgeOutOfOverlap() moves just a dropped
+// group to the nearest free spot below whatever it landed on.
+// ---------------------------------------------------------------------------
+const BLOCK_GAP = 30;
+
+const topLevelBlocks = (ws) => ws.getTopBlocks(false).filter((b) => !b.isInsertionMarker?.());
+
+const rectsOverlap = (a, b, pad = 0) =>
+  a.left < b.right + pad && a.right > b.left - pad && a.top < b.bottom + pad && a.bottom > b.top - pad;
+
+const hasTopLevelOverlap = (ws) => {
+  const rects = topLevelBlocks(ws).map((b) => b.getBoundingRectangle());
+  for (let i = 0; i < rects.length; i++)
+    for (let j = i + 1; j < rects.length; j++)
+      if (rectsOverlap(rects[i], rects[j])) return true;
+  return false;
+};
+
+// Restack every top-level group in a single column, in current reading order
+// (top-to-bottom, then left-to-right), using measured heights.
+export const relayoutTopBlocks = (ws) => {
+  if (!ws) return;
+  const blocks = topLevelBlocks(ws).sort((a, b) => {
+    const pa = a.getRelativeToSurfaceXY(), pb = b.getRelativeToSurfaceXY();
+    return pa.y - pb.y || pa.x - pb.x;
+  });
+  if (blocks.length < 2) return;
+  // If the panel is hidden/unrendered, sizes read back as 0 and restacking
+  // would just pile everything up -- leave the layout alone in that case.
+  if (blocks.every((b) => !b.getHeightWidth().height)) return;
+  const startX = Math.min(...blocks.map((b) => b.getRelativeToSurfaceXY().x));
+  let y = Math.min(...blocks.map((b) => b.getRelativeToSurfaceXY().y));
+  const prevGroup = Blockly.Events.getGroup();
+  Blockly.Events.setGroup(true);
+  try {
+    for (const b of blocks) {
+      const pos = b.getRelativeToSurfaceXY();
+      b.moveBy(startX - pos.x, y - pos.y);
+      y += b.getHeightWidth().height + BLOCK_GAP;
+    }
+  } finally {
+    Blockly.Events.setGroup(prevGroup || false);
+  }
+};
+
+// Only restack when something actually overlaps, so a learner's own saved
+// arrangement is left alone whenever it is already fine.
+export const fixOverlapsIfAny = (ws) => {
+  if (!ws) return;
+  try { if (hasTopLevelOverlap(ws)) relayoutTopBlocks(ws); } catch (e) { /* layout is best-effort */ }
+};
+
+// Move one top-level group straight down past anything it overlaps.
+const nudgeOutOfOverlap = (ws, block) => {
+  if (!block || block.disposed || block.getParent()) return;
+  const others = topLevelBlocks(ws).filter((b) => b.id !== block.id);
+  for (let guard = 0; guard < 25; guard++) {
+    const mine = block.getBoundingRectangle();
+    const hit = others.find((o) => rectsOverlap(mine, o.getBoundingRectangle()));
+    if (!hit) return;
+    const target = hit.getBoundingRectangle().bottom + BLOCK_GAP;
+    block.moveBy(0, target - mine.top);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Unused ("loose") blocks
+//
+// A value block (number, text, variable, comparison, list...) that is not
+// plugged into anything does no useful work, so it only clutters the canvas
+// and confuses the learner. Only side-effect-free value types qualify, and
+// every block inside the loose group must qualify too, so a loose group that
+// contains a function call (which would really run) is never touched.
+// Standalone statement blocks (e.g. a lone print) still run, so they are
+// never counted as unused.
+// ---------------------------------------------------------------------------
+const LOOSE_BLOCK_TYPES = new Set([
+  "math_number", "math_arithmetic", "math_single", "math_round", "math_modulo",
+  "logic_boolean", "logic_compare", "logic_operation", "logic_negate",
+  "text", "text_join", "variables_get", "lists_create_with",
+]);
+
+const realDescendants = (b) => b.getDescendants(false).filter((d) => !d.isShadow?.());
+
+const findUnusedBlocks = (ws) =>
+  ws.getTopBlocks(false).filter((b) =>
+    !b.isInsertionMarker?.() && !!b.outputConnection && !b.getParent() &&
+    realDescendants(b).every((d) => LOOSE_BLOCK_TYPES.has(d.type)));
+
+const countBlocks = (blocks) => blocks.reduce((n, b) => n + realDescendants(b).length, 0);
+
 const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson }, ref) => {
   const blocklyDiv = useRef(null);
   const workspace = useRef(null);
@@ -636,6 +767,65 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     }
   };
 
+  // Unused-block cleanup state. `unusedCount` drives the floating
+  // "Remove unused blocks" button; `notice` is the "Removed N unused blocks.
+  // Undo" message, which keeps the removed blocks (as JSON) so Undo can put
+  // them back exactly where they were.
+  const [unusedCount, setUnusedCount] = useState(0);
+  const [notice, setNotice] = useState(null);
+  const noticeTimerRef = useRef(null);
+
+  const dismissNotice = () => {
+    if (noticeTimerRef.current) { clearTimeout(noticeTimerRef.current); noticeTimerRef.current = null; }
+    setNotice(null);
+  };
+
+  const showNotice = (message, saved) => {
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    setNotice({ message, saved });
+    noticeTimerRef.current = setTimeout(() => { noticeTimerRef.current = null; setNotice(null); }, 20000);
+  };
+
+  // Removes every unused block. Returns { removed, code }: `code` is the
+  // freshly generated Python for the cleaned workspace, so a caller that is
+  // about to run the blocks' code can use it right away instead of waiting
+  // for the debounced onChange to deliver it.
+  const removeUnusedNow = () => {
+    const ws = workspace.current;
+    if (!ws) return { removed: 0 };
+    const loose = findUnusedBlocks(ws);
+    if (!loose.length) return { removed: 0 };
+    const removed = countBlocks(loose);
+    const saved = loose.map((b) => Blockly.serialization.blocks.save(b, { addCoordinates: true }));
+    const prevGroup = Blockly.Events.getGroup();
+    Blockly.Events.setGroup(true);
+    try { loose.forEach((b) => b.dispose(false)); } finally { Blockly.Events.setGroup(prevGroup || false); }
+    setUnusedCount(0);
+    showNotice(`Removed ${removed} unused block${removed === 1 ? "" : "s"}.`, saved);
+    let code;
+    try { code = pythonGenerator.workspaceToCode(ws); } catch (e) { code = undefined; }
+    return { removed, code };
+  };
+
+  const undoRemoval = () => {
+    const ws = workspace.current;
+    const saved = notice?.saved;
+    dismissNotice();
+    if (!ws || !saved) return;
+    const prevGroup = Blockly.Events.getGroup();
+    Blockly.Events.setGroup(true);
+    try {
+      saved.forEach((json) => {
+        try {
+          const rest = { ...json };
+          delete rest.id; // fresh id: the old one may be reused
+          const blk = Blockly.serialization.blocks.append(rest, ws);
+          nudgeOutOfOverlap(ws, blk);
+        } catch (e) { console.warn("Could not restore a removed block:", e); }
+      });
+    } finally { Blockly.Events.setGroup(prevGroup || false); }
+  };
+
   const executeLoad = (json, preservePythonCode) => {
     if (!workspace.current) return;
 
@@ -650,6 +840,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     // suppressAutoChangeRef above for why that's a problem on its own.
     if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
     suppressAutoChangeRef.current = true;
+    dismissNotice(); // stale Undo must never restore blocks into a different workspace
 
     try {
       Blockly.Events.setGroup(true); 
@@ -677,10 +868,14 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     }
 
     setTimeout(() => {
-      // Only now -- once this load's own delivery below has run -- is it
-      // safe to let the generic listener react to future real edits again.
-      suppressAutoChangeRef.current = false;
-      if (!workspace.current) return;
+      if (!workspace.current) { suppressAutoChangeRef.current = false; return; }
+      // Relayout BEFORE reading the code/JSON back so the delivered JSON has
+      // the corrected positions. Blockly queues the resulting move events
+      // asynchronously, so keep the generic listener muted a moment longer
+      // (released below) or those events would trigger a second, stale
+      // delivery on top of this one.
+      fixOverlapsIfAny(workspace.current);
+      setTimeout(() => { suppressAutoChangeRef.current = false; }, 50);
       const code = pythonGenerator.workspaceToCode(workspace.current);
       const currentJson = Blockly.serialization.workspaces.save(workspace.current);
 
@@ -704,6 +899,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       // calling this, so no replacement delivery is needed here.
       if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
       suppressAutoChangeRef.current = true;
+      dismissNotice();
       Blockly.Events.setGroup(true);
       try { workspace.current.clear(); } finally {
         Blockly.Events.setGroup(false);
@@ -729,15 +925,22 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     setTheme: (themeName) => {
       if (workspace.current) workspace.current.setTheme(themeName === "dark" ? DarkTheme : pastelTheme);
     },
-    loadFromPython: async (pythonCode) => {
-      if (!workspace.current || !pythonCode) return;
+    // `silent` is used by the automatic Python->Blocks sync that runs while the
+    // learner types. It must never interrupt them, so instead of opening the
+    // scope-warning modal it simply skips (the manual "Sync to Blocks" button
+    // still shows the modal). Resolves { skipped: true } when nothing was
+    // loaded, otherwise { synced: true }.
+    loadFromPython: async (pythonCode, { silent = false } = {}) => {
+      if (!workspace.current || !pythonCode) return { skipped: true };
       const cleanCode = sanitizePythonCode(pythonCode);
       const data = await convertPythonToBlocks(cleanCode);
       if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
+      if (!workspace.current) return { skipped: true };
 
         if (Array.isArray(data.scope_warnings) && data.scope_warnings.length > 0) {
+          if (silent) return { skipped: true, reason: "scope_warnings" };
           const proceed = await confirmScopeWarnings(data.scope_warnings);
-          if (!proceed) return;
+          if (!proceed) return { skipped: true, reason: "cancelled" };
         }
 
         // Cancel any pending debounced delivery from an edit just before
@@ -751,6 +954,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         // dropping the isUnsynced=false this call already established.
         if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
         suppressAutoChangeRef.current = true;
+        dismissNotice();
 
         try { 
           Blockly.Events.setGroup(true);
@@ -776,14 +980,23 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
           setTimeout(() => {
             // Only re-arm the generic listener once this sync's own
             // delivery (below) has actually happened.
-            suppressAutoChangeRef.current = false;
+            fixOverlapsIfAny(workspace.current);
+            // Same as executeLoad: let the queued move events from the
+            // relayout flush while still muted, then re-arm the listener.
+            setTimeout(() => { suppressAutoChangeRef.current = false; }, 50);
             if (workspace.current && onChangeRef.current) {
               onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonCode);
             }
             resolve();
           }, 100);
         });
+        return { synced: true };
     },
+    // Exposed so a "Tidy up" control or caller can force a clean layout.
+    arrangeBlocks: () => { if (workspace.current) relayoutTopBlocks(workspace.current); },
+    // Removes unused (loose, do-nothing) value blocks. Used when the program
+    // is run and by the "Remove unused blocks" button. Returns { removed, code }.
+    removeUnusedBlocks: () => removeUnusedNow(),
     resize: () => { if (workspace.current) { Blockly.svgResize(workspace.current); workspace.current.markFocused(); } }
   }));
 
@@ -845,6 +1058,56 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
 
       registerCustomPythonGenerators();
 
+      // After a learner finishes dragging a top-level stack, make sure it
+      // didn't land on top of (and hide) another stack.
+      workspace.current.addChangeListener((event) => {
+        if (event.type !== Blockly.Events.BLOCK_DRAG || event.isStart || suppressAutoChangeRef.current) return;
+        const ws = workspace.current;
+        const dragged = ws && event.blockId ? ws.getBlockById(event.blockId) : null;
+        if (!dragged) return;
+        // Wait a tick so Blockly has finished connecting/bumping the block.
+        setTimeout(() => { if (workspace.current === ws) nudgeOutOfOverlap(ws, dragged.getRootBlock?.() || dragged); }, 0);
+      });
+
+      // Unused-block warning: a plain value block (number, text, math, comparison,
+      // variable, list...) that isn't plugged into anything produces no Python at all,
+      // so it just clutters the workspace and confuses the learner. Show Blockly's own
+      // warning icon on it. Limited to side-effect-free block types so a loose call that
+      // really does run is never mislabeled.
+      const looseWarnedIds = new Set();
+      let flaggingLoose = false;
+      const flagLooseBlocks = () => {
+        const ws = workspace.current;
+        if (!ws || flaggingLoose) return;
+        flaggingLoose = true;
+        try {
+          const loose = findUnusedBlocks(ws);
+          const stillLoose = new Set(loose.map((b) => b.id));
+          loose.forEach((b) => {
+            if (!looseWarnedIds.has(b.id)) {
+              b.setWarningText("This block isn't connected to anything, so it does nothing. Plug it into another block, or remove it with \"Remove unused blocks\". It is also cleaned up when you run the program.");
+              looseWarnedIds.add(b.id);
+            }
+          });
+          [...looseWarnedIds].forEach((id) => {
+            if (stillLoose.has(id)) return;
+            const b = ws.getBlockById(id);
+            if (b) b.setWarningText(null);
+            looseWarnedIds.delete(id);
+          });
+          setUnusedCount(countBlocks(loose));
+        } catch (e) { /* warnings are cosmetic; never break the workspace over them */ }
+        flaggingLoose = false;
+      };
+      let looseTimer = null;
+      workspace.current.addChangeListener((event) => {
+        const t = event.type;
+        if (t !== Blockly.Events.BLOCK_MOVE && t !== Blockly.Events.BLOCK_CREATE
+            && t !== Blockly.Events.BLOCK_DELETE && t !== Blockly.Events.FINISHED_LOADING) return;
+        if (looseTimer) clearTimeout(looseTimer);
+        looseTimer = setTimeout(flagLooseBlocks, 150);
+      });
+
       workspace.current.addChangeListener((event) => {
         if (event.isUiEvent) return;
         // Muted while executeLoad/clear()/loadFromPython own delivery of a
@@ -885,6 +1148,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       // timeout swallows the resulting exception silently, but the intent
       // was never for it to fire at all once this instance is gone.
       if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
+      if (noticeTimerRef.current) { clearTimeout(noticeTimerRef.current); noticeTimerRef.current = null; }
       try { [searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin].forEach(p => p?.dispose && p.dispose()); } catch (e) {}
       if (workspace.current) { workspace.current.dispose(); workspace.current = null; }
       if (blocklyDiv.current?.resizeObserver) blocklyDiv.current.resizeObserver.disconnect();
@@ -894,6 +1158,49 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={blocklyDiv} style={{ height: "100%", width: "100%" }} />
+      {unusedCount > 0 && (
+        <button
+          type="button"
+          onClick={() => removeUnusedNow()}
+          title="Delete value blocks that aren't plugged into anything. They do nothing, and you can undo this."
+          style={{
+            position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", zIndex: 40,
+            display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", border: "none",
+            borderRadius: 18, background: "#7c3aed", color: "#fff", fontSize: "0.82rem", fontWeight: 600,
+            cursor: "pointer", boxShadow: "0 4px 14px rgba(124, 58, 237, 0.35)",
+          }}
+        >
+          <FiTrash2 size={14} /> Remove unused blocks ({unusedCount})
+        </button>
+      )}
+      {notice && (
+        <div
+          role="status"
+          style={{
+            position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", zIndex: 60,
+            display: "flex", alignItems: "center", gap: 12, padding: "9px 14px", borderRadius: 10,
+            background: "rgba(30, 30, 44, 0.96)", color: "#fff", fontSize: "0.85rem",
+            boxShadow: "0 6px 20px rgba(0, 0, 0, 0.3)", maxWidth: "90%",
+          }}
+        >
+          <span>{notice.message}</span>
+          <button
+            type="button"
+            onClick={undoRemoval}
+            style={{ background: "none", border: "none", color: "#c4b5fd", fontWeight: 700, cursor: "pointer", padding: 0, fontSize: "0.85rem" }}
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            onClick={dismissNotice}
+            aria-label="Dismiss"
+            style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", padding: 0, fontSize: "1.1rem", lineHeight: 1 }}
+          >
+            ×
+          </button>
+        </div>
+      )}
       <FloatingErrorDropdown syntaxErrors={syntaxErrors} />
       <ScopeWarningModal
         isOpen={scopeWarningState.isOpen}

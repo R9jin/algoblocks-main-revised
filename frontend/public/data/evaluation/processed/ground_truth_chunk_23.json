@@ -33,12 +33,12 @@
       },
       {
         "lineno": 18,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 19,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -68,7 +68,7 @@
       },
       {
         "lineno": 32,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -89,7 +89,7 @@
       },
       {
         "lineno": 9,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -144,133 +144,12 @@
       },
       {
         "lineno": 28,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
     "dataset_original_space": "O(n^2)"
-  },
-  {
-    "id": "algo_n_223",
-    "name": "Convert a Decimal Number to Roman Numerals",
-    "code": "# Python 3 program to convert Decimal\n# number to Roman numbers.\nimport math\n \ndef integerToRoman(A):\n    romansDict = \\\n        {\n            1: \"I\",\n            5: \"V\",\n            10: \"X\",\n            50: \"L\",\n            100: \"C\",\n            500: \"D\",\n            1000: \"M\",\n            5000: \"G\",\n            10000: \"H\"\n        }\n \n    div = 1\n    while A >= div:\n        div *= 10\n \n    div //= 10\n \n    res = \"\"\n \n    while A:\n \n        # main significant digit extracted\n        # into lastNum\n        lastNum = (A // div)\n \n        if lastNum <= 3:\n            res += (romansDict[div] * lastNum)\n        elif lastNum == 4:\n            res += (romansDict[div] +\n                          romansDict[div * 5])\n        elif 5 <= lastNum <= 8:\n            res += (romansDict[div * 5] +\n            (romansDict[div] * (lastNum - 5)))\n        elif lastNum == 9:\n            res += (romansDict[div] +\n                         romansDict[div * 10])\n \n        A = math.floor(A % div)\n        div //= 10\n         \n    return res\n \n# Driver code\nprint(\"Roman Numeral of Integer is:\"\n                   + str(integerToRoman(3549)))",
-    "expected_overall_time": "O(log n)",
-    "expected_overall_space": "O(1)",
-    "line_metrics": [
-      {
-        "lineno": 3,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 5,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 6,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 19,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 20,
-        "time": "O(log n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 21,
-        "time": "O(log n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 23,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 25,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 27,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 31,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 33,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 34,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 35,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 36,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 38,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 39,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 41,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 42,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 45,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 46,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 48,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 51,
-        "time": "O(1)",
-        "space": "O(1)"
-      }
-    ],
-    "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
   },
   {
     "id": "algo_n_224",
@@ -367,7 +246,7 @@
       {
         "lineno": 49,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 51,
@@ -391,8 +270,8 @@
       },
       {
         "lineno": 58,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -437,23 +316,23 @@
       },
       {
         "lineno": 21,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 24,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 27,
         "time": "O(n log n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 30,
         "time": "O(n log n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 33,
@@ -517,13 +396,13 @@
       },
       {
         "lineno": 60,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n log n)",
+        "space": "O(n)"
       },
       {
         "lineno": 61,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n log n)",
+        "space": "O(n)"
       },
       {
         "lineno": 62,
@@ -593,123 +472,8 @@
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
-  },
-  {
-    "id": "algo_n_227",
-    "name": "Find Common Strings with Minimum Index Sum",
-    "code": "# Function to print common strings\n# with minimum index sum\ndef find(list1, list2):\n    res = [] # resultant list\n    max_possible_sum = len(list1) + len(list2) - 2\n \n    # iterating over sum in ascending order\n    for sum in range(max_possible_sum + 1):\n         \n        # iterating over one list and check index\n        # (Corresponding to given sum) in other list\n        for i in range(sum + 1):\n \n            # put common strings in resultant list\n            if (i < len(list1) and\n               (sum - i) < len(list2) and\n                list1[i] == list2[sum - i]):\n                res.append(list1[i])\n \n        # if common string found then break as we are\n        # considering index sums in increasing order.\n        if (len(res) > 0):\n            break\n \n    # print the resultant list\n    for i in range(len(res)):\n        print(res[i], end = \" \")\n \n# Driver code\n \n# Creating list1\nlist1 = []\nlist1.append(\"GeeksforGeeks\")\nlist1.append(\"Udemy\")\nlist1.append(\"Coursera\")\nlist1.append(\"edX\")\n \n# Creating list2\nlist2 = []\nlist2.append(\"Codecademy\")\nlist2.append(\"Khan Academy\")\nlist2.append(\"GeeksforGeeks\")\n \nfind(list1, list2)\n \n# This code is contributed by Mohit Kumar",
-    "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(n)",
-    "line_metrics": [
-      {
-        "lineno": 3,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 4,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 5,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 8,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 12,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 15,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 18,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 22,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 23,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 26,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 27,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 32,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 33,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 34,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 35,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 36,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 39,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 40,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 41,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 42,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 44,
-        "time": "O(1)",
-        "space": "O(n)"
-      }
-    ],
-    "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "worst case reverse-sorted input"
   },
   {
     "id": "algo_n2_228",
@@ -725,7 +489,7 @@
       },
       {
         "lineno": 11,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -765,27 +529,27 @@
       },
       {
         "lineno": 27,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 31,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 32,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 38,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 39,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -810,7 +574,7 @@
       },
       {
         "lineno": 51,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       }
     ],
@@ -921,7 +685,7 @@
       },
       {
         "lineno": 42,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -932,7 +696,7 @@
     "id": "algo_n_230",
     "name": "Find the Maximum Occurring Digit in a Number (No Array)",
     "code": "# Finds maximum occurring digit\n# without using any array/string\n \n# Simple function to count\n# occurrences of digit d in x\ndef countOccurrences(x, d):\n    count = 0; # Initialize count\n               # of digit d\n    while (x):\n         \n        # Increment count if current\n        # digit is same as d\n        if (x % 10 == d):\n            count += 1;\n        x = int(x / 10);\n \n    return count;\n \n# Returns the max occurring\n# digit in x\ndef maxOccurring(x):\n     \n    # Handle negative number\n    if (x < 0):\n        x = -x;\n     \n    result = 0; # Initialize result\n                # which is a digit\n    max_count = 1; # Initialize count\n                   # of result\n     \n    # Traverse through all digits\n    for d in range(10):\n         \n        # Count occurrences of current digit\n        count = countOccurrences(x, d);\n         \n        # Update max_count and\n        # result if needed\n        if (count >= max_count):\n            max_count = count;\n            result = d;\n         \n    return result;\n \n# Driver Code\nx = 1223355;\nprint(\"Max occurring digit is\",\n              maxOccurring(x));\n \n# This code is contributed by mits.",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(log n)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
       {
@@ -947,22 +711,22 @@
       },
       {
         "lineno": 9,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
         "lineno": 13,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
         "lineno": 14,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
         "lineno": 15,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
@@ -1002,7 +766,7 @@
       },
       {
         "lineno": 36,
-        "time": "O(1)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
@@ -1037,6 +801,7 @@
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "n is the numeric value; 10 digit values tried, each pass is O(digits)"
   }
 ]

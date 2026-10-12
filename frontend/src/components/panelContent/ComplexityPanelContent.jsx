@@ -26,13 +26,21 @@ export default function ComplexityPanelContent({
   analysisLabelStyle = null,
   analysisValStyle = null,
   extraBadges = null,
+  // True while the code has syntax/runtime errors. A complexity result for
+  // code that cannot run would be misleading, so no Big-O is shown until
+  // the errors are fixed.
+  hasErrors = false,
+  // { line, message } when the last Run crashed with a Python error (e.g.
+  // ZeroDivisionError). The complexity is still a valid static reading of the
+  // code, but the learner should know it didn't run to completion.
+  runtimeCrash = null,
 }) {
   const [expandedLines, setExpandedLines] = useState({});
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
 
   const lines = analysisResult?.lines || [];
-  const safeTotal = analysisResult?.total || "O(1)";
-  const safeSpaceTotal = analysisResult?.space_total || "O(1)";
+  const safeTotal = hasErrors ? "—" : (analysisResult?.total || "O(1)");
+  const safeSpaceTotal = hasErrors ? "—" : (analysisResult?.space_total || "O(1)");
   const safeExplanation = analysisResult?.overall_explanation || "";
 
   // Which libraries in the code the analyzer has no (or only partial) cost
@@ -148,7 +156,20 @@ export default function ComplexityPanelContent({
         </ul>
       )}
 
-      {scopeGateActive ? (
+      {!hasErrors && runtimeCrash && (
+        <div className="runtime-crash-note" role="alert" style={{ margin: "8px 12px", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--warning, #d97706)", background: "var(--warning-bg, rgba(217,119,6,0.10))", fontSize: "0.85rem", lineHeight: 1.45 }}>
+          <strong>This code stopped with an error when it ran</strong>
+          {runtimeCrash.line ? ` (line ${runtimeCrash.line})` : ""}: {runtimeCrash.message}.
+          {" "}The complexity below is a static estimate of the code as written, not proof that it runs correctly.
+        </div>
+      )}
+
+      {hasErrors ? (
+        <div className="empty-analysis-state error-gate-placeholder">
+          <FiInfo size={28} />
+          <p>The complexity can't be calculated yet because the code has errors. Fix the highlighted errors and the Big-O result will appear here.</p>
+        </div>
+      ) : scopeGateActive ? (
         <div className="empty-analysis-state scope-gate-placeholder">
           <FiInfo size={28} />
           <p>This code uses libraries the analyzer can't fully reason about, so the results below may be inaccurate.</p>
@@ -164,7 +185,7 @@ export default function ComplexityPanelContent({
         </div>
       ) : activeComplexityTab === "memory" ? (
         <div className="memory-wrapper">
-          <MemoryVisualizer analysisData={lines} currentStep={lines.length > 0 ? lines.length - 1 : 0} />
+          <MemoryVisualizer analysisData={lines} currentStep={lines.length > 0 ? lines.length - 1 : 0} spaceComplexity={safeSpaceTotal !== "—" ? safeSpaceTotal : null} />
         </div>
       ) : activeComplexityTab === "callgraph" ? (
         <div className="callgraph-wrapper" style={{ height: "100%", overflow: "hidden" }}>
@@ -211,6 +232,7 @@ export default function ComplexityPanelContent({
                         {isBottleneck && <span className="bottleneck-badge">Bottleneck</span>}
                         {isEfficient && <span className="efficient-badge">Efficient</span>}
                         {isDead && <span className="dead-badge" title={line.dead_reason || "This code never runs, so it is not counted."}>Dead code</span>}
+                        {!isDead && line.uncalled_function && <span className="dead-badge" title={line.uncalled_reason || "This helper is never called, so its own complexity is shown here but not added to the entry point's total."}>Uncalled &middot; own cost</span>}
                       </td>
                       <td className="complexity-cell" style={{ color: timeColor }} title={timeRaw !== timeComplexity ? `Recurrence: ${timeRaw}` : undefined}>{formatComplexity(timeComplexity)}</td>
                       <td className="complexity-cell" style={{ color: spaceColor }}>

@@ -23,7 +23,7 @@
       },
       {
         "lineno": 13,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n^2)"
       },
       {
@@ -74,12 +74,12 @@
       {
         "lineno": 49,
         "time": "O(1)",
-        "space": "O(n^2)"
+        "space": "O(1)"
       },
       {
         "lineno": 52,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n^2)"
       },
       {
         "lineno": 54,
@@ -93,7 +93,8 @@
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n^2)"
+    "dataset_original_space": "O(n^2)",
+    "gt_note": "dp table is supplied by the caller; isPalin table is (n+1)^2"
   },
   {
     "id": "algo_n2_072",
@@ -154,7 +155,7 @@
       },
       {
         "lineno": 21,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -194,12 +195,12 @@
       },
       {
         "lineno": 37,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n^2)"
       },
       {
         "lineno": 40,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -209,12 +210,12 @@
       },
       {
         "lineno": 42,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 46,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -229,7 +230,8 @@
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n^2)"
+    "dataset_original_space": "O(n^2)",
+    "gt_note": "n=ROW=COL; the transposed copy is n^2"
   },
   {
     "id": "algo_n2_073",
@@ -245,7 +247,7 @@
       },
       {
         "lineno": 7,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -320,8 +322,8 @@
       },
       {
         "lineno": 38,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
@@ -371,7 +373,7 @@
       },
       {
         "lineno": 19,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -401,7 +403,7 @@
       },
       {
         "lineno": 30,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
@@ -477,12 +479,13 @@
       },
       {
         "lineno": 25,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "K up to n/2 gives about n^2/4 comparisons"
   },
   {
     "id": "algo_n2_077",
@@ -568,7 +571,7 @@
       },
       {
         "lineno": 52,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -585,7 +588,7 @@
     "name": "Find the Nth Permutation of a String (Factorial Number System)",
     "code": "# Python3 program to print n-th permutation\n \nMAX_CHAR = 26\nMAX_FACT = 20\nfact = [None] * (MAX_FACT)\n \n# Utility for calculating factorials\ndef precomputeFactorials():\n \n    fact[0] = 1\n    for i in range(1, MAX_FACT):\n        fact[i] = fact[i - 1] * i\n \n# Function for nth permutation\ndef nPermute(string, n):\n \n    precomputeFactorials()\n \n    # length of given string\n    length = len(string)\n \n    # Count frequencies of all\n    # characters\n    freq = [0] * (MAX_CHAR)\n    for i in range(0, length):\n        freq[ord(string[i]) - ord('a')] += 1\n \n    # out string for output string\n    out = [None] * (MAX_CHAR)\n \n    # iterate till sum equals n\n    Sum, k = 0, 0\n \n    # We update both n and sum in\n    # this loop.\n    while Sum != n:\n \n        Sum = 0\n         \n        # check for characters present in freq[]\n        for i in range(0, MAX_CHAR):\n            if freq[i] == 0:\n                continue\n \n            # Remove character\n            freq[i] -= 1\n \n            # calculate sum after fixing\n            # a particular char\n            xsum = fact[length - 1 - k]\n            for j in range(0, MAX_CHAR):\n                xsum = xsum // fact[freq[j]]\n            Sum += xsum\n \n            # if sum > n fix that char as\n            # present char and update sum\n            # and required nth after fixing\n            # char at that position\n            if Sum >= n:\n                out[k] = chr(i + ord('a'))\n                n -= Sum - xsum\n                k += 1\n                break\n             \n            # if sum < n, add character back\n            if Sum < n:\n                freq[i] += 1\n         \n    # if sum == n means this char will provide\n    # its greatest permutation as nth permutation\n    i = MAX_CHAR-1\n    while k < length and i >= 0:\n        if freq[i]:\n            out[k] = chr(i + ord('a'))\n            freq[i] -= 1\n            i += 1\n            k += 1\n         \n        i -= 1\n \n    # print result\n    print(''.join(out[:k]))\n \n# Driver Code\nif __name__ == \"__main__\":\n \n    n = 2\n    string = \"geeksquiz\"\n \n    nPermute(string, n)\n     \n# This code is contributed by Rituraj Jain",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(n)",
+    "expected_overall_space": "O(1)",
     "line_metrics": [
       {
         "lineno": 3,
@@ -664,87 +667,87 @@
       },
       {
         "lineno": 36,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 38,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 41,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 42,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 43,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 46,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 50,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 51,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 52,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 53,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 59,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 60,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 61,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 62,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 63,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 66,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 67,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -754,43 +757,43 @@
       },
       {
         "lineno": 72,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 73,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 74,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 75,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 76,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 77,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 79,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 82,
         "time": "O(1)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 85,
@@ -809,12 +812,13 @@
       },
       {
         "lineno": 90,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "26-letter alphabet and 20-entry factorial table are constants; out[] holds at most 26 chars, so only the letter-count loop scales with n"
   },
   {
     "id": "algo_n_080",
@@ -836,7 +840,7 @@
       {
         "lineno": 9,
         "time": "O(1)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 10,
@@ -846,12 +850,12 @@
       {
         "lineno": 11,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 12,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 15,
@@ -900,8 +904,8 @@
       },
       {
         "lineno": 32,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",

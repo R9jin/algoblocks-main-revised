@@ -6,7 +6,12 @@
   height: auto;
   min-height: 100vh;
   overflow: visible;
+  overflow-anchor: none;
 }
+
+/* Never let the browser's scroll anchoring shift the page while the replay
+ * grows or re-renders. */
+html:has(.workspace-app-container.pipeline-mode) { overflow-anchor: none; }
 
 /* Fixed-height stage so Blockly / Monaco / the dock can size themselves. */
 .pipeline-mode .workspace-split {

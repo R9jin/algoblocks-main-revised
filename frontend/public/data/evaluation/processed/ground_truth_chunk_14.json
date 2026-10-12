@@ -4,7 +4,7 @@
     "name": "Reverse the Order of Vowels in a String",
     "code": "# Python3 program to reverse order of vowels\n \n# utility function to check for vowel\ndef isVowel(c):\n    return (c=='a' or c=='A' or c=='e' or\n            c=='E' or c=='i' or c=='I' or\n            c=='o' or c=='O' or c=='u' or\n            c=='U')\n \n# Function to reverse order of vowels\ndef reverseVowel(str):\n \n    # Start two indexes from two corners\n    # and move toward each other\n    i = 0\n    j = len(str) - 1\n    while (i < j):\n        if not isVowel(str[i]):\n            i += 1\n            continue\n        if (not isVowel(str[j])):\n            j -= 1\n            continue\n         \n        # swapping\n        str[i], str[j] = str[j], str[i]\n        i += 1\n        j -= 1\n    return str\n \n# Driver function\nif __name__ == \"__main__\":\n    str = \"hello world\"\n    print(*reverseVowel(list(str)), sep = \"\")\n \n# This code is contributed by SHUBHAMSINGH10",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 4,
@@ -13,7 +13,7 @@
       },
       {
         "lineno": 5,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -98,8 +98,8 @@
       },
       {
         "lineno": 34,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -109,8 +109,8 @@
     "id": "algo_logn_132",
     "name": "Reverse a Number Using a Stack",
     "code": "# Python3 program to reverse the\n# number using a stack\n \n# Stack to maintain order of digits\nst = [];\n \n# Function to push digits into stack\ndef push_digits(number):\n \n    while (number != 0):\n        st.append(number % 10);\n        number = int(number / 10);\n \n# Function to reverse the number\ndef reverse_number(number):\n     \n    # Function call to push number's\n    # digits to stack\n    push_digits(number);\n     \n    reverse = 0;\n    i = 1;\n     \n    # Popping the digits and forming\n    # the reversed number\n    while (len(st) > 0):\n        reverse = reverse + (st[len(st) - 1] * i);\n        st.pop();\n        i = i * 10;\n     \n    # Return the reversed number formed\n    return reverse;\n \n# Driver Code\nnumber = 39997;\n \n# Function call to reverse number\nprint(reverse_number(number));\n \n# This code is contributed by mits",
-    "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(n)",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(log n)",
     "line_metrics": [
       {
         "lineno": 5,
@@ -124,17 +124,17 @@
       },
       {
         "lineno": 10,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
         "lineno": 11,
-        "time": "O(n)",
-        "space": "O(n)"
+        "time": "O(log n)",
+        "space": "O(log n)"
       },
       {
         "lineno": 12,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
@@ -144,8 +144,8 @@
       },
       {
         "lineno": 19,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(log n)",
+        "space": "O(log n)"
       },
       {
         "lineno": 21,
@@ -159,22 +159,22 @@
       },
       {
         "lineno": 26,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
         "lineno": 27,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
         "lineno": 28,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
         "lineno": 29,
-        "time": "O(n)",
+        "time": "O(log n)",
         "space": "O(1)"
       },
       {
@@ -189,12 +189,13 @@
       },
       {
         "lineno": 38,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(log n)",
+        "space": "O(log n)"
       }
     ],
     "dataset_original_time": "O(log n)",
-    "dataset_original_space": "O(log n)"
+    "dataset_original_space": "O(log n)",
+    "gt_note": "n is the numeric value; one stack entry per digit"
   },
   {
     "id": "algo_n_133",
@@ -210,7 +211,7 @@
       },
       {
         "lineno": 6,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -255,7 +256,7 @@
       },
       {
         "lineno": 31,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -270,7 +271,7 @@
       },
       {
         "lineno": 38,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -461,19 +462,20 @@
       },
       {
         "lineno": 58,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n log n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "dictionary counting is O(n); no sorting is involved"
   },
   {
     "id": "algo_n2_135",
     "name": "Compute the Difficulty Score of a Sentence",
     "code": "# Python3 program to find difficulty\n# of a sentence\n \n# Utility function to check character\n# is vowel or not\ndef isVowel(ch):\n    return (ch == 'a' or ch == 'e' or\n            ch == 'i' or ch == 'o' or\n            ch == 'u')\n \n# Function to calculate difficulty\ndef calcDiff(str):\n    str = str.lower()\n    count_vowels = 0\n    count_conso = 0\n    consec_conso = 0\n    hard_words = 0\n    easy_words = 0\n \n    # Start traversing the string\n    for i in range(0, len(str)):\n         \n        # Check if current character is\n        # vowel or consonant\n        if(str[i]!= \" \" and isVowel(str[i])):\n             \n            # Increment if vowel\n            count_vowels += 1\n            consec_conso = 0\n             \n        # Increment counter for consonant\n        # also maintain a separate counter for\n        # counting consecutive consonants\n        elif(str[i] != \" \"):\n            count_conso += 1\n            consec_conso += 1\n \n        # If we get 4 consecutive consonants\n        # then it is a hard word\n        if(consec_conso == 4):\n            hard_words += 1\n \n            # Move to the next word\n            while(i < len(str) and str[i] != \" \"):\n                i += 1\n                 \n            # Reset all counts\n            count_conso = 0\n            count_vowels = 0\n            consec_conso = 0\n        elif(i < len(str) and (str[i] == ' ' or\n                          i == len(str) - 1)):\n                               \n            # Increment hard_words, if no. of\n            # consonants are higher than no. of\n            # vowels, otherwise increment count_vowels\n            if(count_conso > count_vowels):\n                hard_words += 1\n            else:\n                easy_words += 1\n \n            # Reset all counts\n            count_conso = 0\n            count_vowels = 0\n            consec_conso = 0\n             \n    # Return difficulty of sentence    \n    return (5 * hard_words + 3 * easy_words)\n     \n# Driver Code\nif __name__==\"__main__\":\n    str = \"I am a geek\"\n    str2 = \"We are geeks\"\n    print(calcDiff(str))\n    print(calcDiff(str2))\n \n# This code is contributed\n# by Sairahul Jella",
-    "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 6,
@@ -482,7 +484,7 @@
       },
       {
         "lineno": 7,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -492,8 +494,8 @@
       },
       {
         "lineno": 13,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 14,
@@ -567,12 +569,12 @@
       },
       {
         "lineno": 44,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 45,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -647,17 +649,18 @@
       },
       {
         "lineno": 74,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 75,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "the inner while at line 44 rescans to the end of the word every time 4 consonants accumulate, and the for loop then resumes at i+1: a long consonant-only word costs O(n^2)"
   },
   {
     "id": "algo_n2_137",
@@ -693,7 +696,7 @@
       },
       {
         "lineno": 9,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -703,7 +706,7 @@
       },
       {
         "lineno": 12,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -723,7 +726,7 @@
       },
       {
         "lineno": 21,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -855,12 +858,12 @@
       },
       {
         "lineno": 38,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 39,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -920,11 +923,12 @@
       },
       {
         "lineno": 75,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "n = max(array length, target sum x); rem has x entries"
   }
 ]

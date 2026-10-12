@@ -58,7 +58,7 @@
       },
       {
         "lineno": 34,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -88,8 +88,8 @@
       },
       {
         "lineno": 49,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 50,
@@ -109,7 +109,7 @@
     "id": "algo_n_102",
     "name": "Find the Position of a Number in a Sequence of 4s and 7s",
     "code": "# python program to find position\n# of a number in a series of\n# numbers with 4 and 7 as the\n# only digits.\ndef findpos(n):\n    i = 0\n    j = len(n)\n    pos = 0\n    while (i<j):\n         \n        # check all digit position\n        # if number is left then\n        # pos*2+1\n        if(n[i] == '4'):\n            pos = pos * 2 + 1\n             \n        # if number is right then\n        # pos*2+2\n        if(n[i] == '7'):\n            pos = pos * 2 + 2\n         \n        i= i+1\n     \n    return pos\n \n \n# Driver code\n# given a number which is constructed\n# by 4 and 7 digit only\nn = \"774\"\nprint(findpos(n))\n \n# This code is contributed by Sam007",
-    "expected_overall_time": "O(log n)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
       {
@@ -134,32 +134,32 @@
       },
       {
         "lineno": 9,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 14,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 15,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 19,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 20,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 22,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -174,7 +174,7 @@
       },
       {
         "lineno": 31,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -260,7 +260,7 @@
       },
       {
         "lineno": 44,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
@@ -297,7 +297,7 @@
       {
         "lineno": 10,
         "time": "O(1)",
-        "space": "O(n^2)"
+        "space": "O(1)"
       },
       {
         "lineno": 11,
@@ -401,12 +401,12 @@
       },
       {
         "lineno": 56,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 57,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -451,17 +451,17 @@
       },
       {
         "lineno": 73,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 74,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 75,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -471,7 +471,7 @@
       },
       {
         "lineno": 78,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -491,8 +491,8 @@
       },
       {
         "lineno": 90,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n^2)"
       },
       {
         "lineno": 93,
@@ -506,17 +506,17 @@
       },
       {
         "lineno": 99,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 100,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 101,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -566,12 +566,12 @@
       },
       {
         "lineno": 117,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n^2)"
       },
       {
         "lineno": 120,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -586,17 +586,19 @@
       },
       {
         "lineno": 131,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n^2)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n^2)"
+    "dataset_original_space": "O(n^2)",
+    "gt_note": "n=grid side; V=n^2 cells, E=O(V); every cell enqueued once; adjacency lists hold O(n^2) entries"
   },
   {
     "id": "algo_n2_105",
     "name": "Count Distinct Transformations Between Two Strings (DP)",
-    "code": "# Python3 program to count the distinct\n# transformation of one string to other.\n \ndef countTransformation(a, b):\n    n = len(a)\n    m = len(b)\n \n    # If b = \"\" i.e., an empty string. There\n    # is only one way to transform (remove all\n    # characters)\n    if m == 0:\n        return 1\n \n    dp = [[0] * (n) for _ in range(m)]\n \n    # Fill dp[][] in bottom up manner\n    # Traverse all character of b[]\n    for i in range(m):\n \n        # Traverse all characters of a[] for b[i]\n        for j in range(i, n):\n \n            # Filling the first row of the dp\n            # matrix.\n            if i == 0:\n                if j == 0:\n                    if a[j] == b[i]:\n                        dp[i][j] = 1\n                    else:\n                        dp[i][j] = 0\n                else if a[j] == b[i]:\n                    dp[i][j] = dp[i][j - 1] + 1\n                else:\n                    dp[i][j] = dp[i][j - 1]\n \n            # Filling other rows\n            else:\n                if a[j] == b[i]:\n                    dp[i][j] = (dp[i][j - 1] +\n                                dp[i - 1][j - 1])\n                else:\n                    dp[i][j] = dp[i][j - 1]\n    return dp[m - 1][n - 1]\n \n# Driver Code\nif __name__ == \"__main__\":\n    a = \"abcccdf\"\n    b = \"abccdf\"\n    print(countTransformation(a, b))\n \n# This code is contributed by vibhu4agarwal",
+    "code": "# Python3 program to count the distinct\n# transformation of one string to other.\n \ndef countTransformation(a, b):\n    n = len(a)\n    m = len(b)\n \n    # If b = \"\" i.e., an empty string. There\n    # is only one way to transform (remove all\n    # characters)\n    if m == 0:\n        return 1\n \n    dp = [[0] * (n) for _ in range(m)]\n \n    # Fill dp[][] in bottom up manner\n    # Traverse all character of b[]\n    for i in range(m):\n \n        # Traverse all characters of a[] for b[i]\n        for j in range(i, n):\n \n            # Filling the first row of the dp\n            # matrix.\n            if i == 0:\n                if j == 0:\n                    if a[j] == b[i]:\n                        dp[i][j] = 1\n                    else:\n                        dp[i][j] = 0\n                elif a[j] == b[i]:\n                    dp[i][j] = dp[i][j - 1] + 1\n                else:\n                    dp[i][j] = dp[i][j - 1]\n \n            # Filling other rows\n            else:\n                if a[j] == b[i]:\n                    dp[i][j] = (dp[i][j - 1] +\n                                dp[i - 1][j - 1])\n                else:\n                    dp[i][j] = dp[i][j - 1]\n    return dp[m - 1][n - 1]\n \n# Driver Code\nif __name__ == \"__main__\":\n    a = \"abcccdf\"\n    b = \"abccdf\"\n    print(countTransformation(a, b))\n \n# This code is contributed by vibhu4agarwal",
+    "dataset_original_code": "# Python3 program to count the distinct\n# transformation of one string to other.\n \ndef countTransformation(a, b):\n    n = len(a)\n    m = len(b)\n \n    # If b = \"\" i.e., an empty string. There\n    # is only one way to transform (remove all\n    # characters)\n    if m == 0:\n        return 1\n \n    dp = [[0] * (n) for _ in range(m)]\n \n    # Fill dp[][] in bottom up manner\n    # Traverse all character of b[]\n    for i in range(m):\n \n        # Traverse all characters of a[] for b[i]\n        for j in range(i, n):\n \n            # Filling the first row of the dp\n            # matrix.\n            if i == 0:\n                if j == 0:\n                    if a[j] == b[i]:\n                        dp[i][j] = 1\n                    else:\n                        dp[i][j] = 0\n                else if a[j] == b[i]:\n                    dp[i][j] = dp[i][j - 1] + 1\n                else:\n                    dp[i][j] = dp[i][j - 1]\n \n            # Filling other rows\n            else:\n                if a[j] == b[i]:\n                    dp[i][j] = (dp[i][j - 1] +\n                                dp[i - 1][j - 1])\n                else:\n                    dp[i][j] = dp[i][j - 1]\n    return dp[m - 1][n - 1]\n \n# Driver Code\nif __name__ == \"__main__\":\n    a = \"abcccdf\"\n    b = \"abccdf\"\n    print(countTransformation(a, b))\n \n# This code is contributed by vibhu4agarwal",
     "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n^2)",
     "line_metrics": [
@@ -627,7 +629,7 @@
       },
       {
         "lineno": 14,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n^2)"
       },
       {
@@ -647,37 +649,37 @@
       },
       {
         "lineno": 26,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 27,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 28,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 30,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 31,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 32,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 34,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -717,12 +719,13 @@
       },
       {
         "lineno": 49,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n^2)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n^2)"
+    "dataset_original_space": "O(n^2)",
+    "gt_note": "n=max(len(a),len(b)); repaired syntax: else if -> elif"
   },
   {
     "id": "algo_n2_106",
@@ -813,7 +816,7 @@
       },
       {
         "lineno": 36,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -823,14 +826,15 @@
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "n=max(rows,cols,k)"
   },
   {
     "id": "algo_nlogn_109",
     "name": "Maximum Subarray Sum Excluding Certain Elements (Sort + Binary Search)",
     "code": "# Python Program to find max subarray\n# sum excluding some elements\n \n# Utility function for findMaxSubarraySum()\n# with the following parameters\n# A => Array A,\n# B => Array B,\n# n => Number of elements in Array A,\n# m => Number of elements in Array B\nimport sys\n \n \ndef binary_search(B, m, target):\n \n    start,end = 0,m - 1\n             \n    # Iterate while start not meets end\n    while (start <= end):\n \n        # Find the mid index\n        mid = (start + end) // 2\n \n        # If element is present at mid, return True\n        if (B[mid] == target):\n            return True\n \n        # Else look in left or right half accordingly\n        elif (B[mid] < target):\n            start = mid + 1\n        else:\n            end = mid - 1\n \n    return False\n \ndef findMaxSubarraySumUtil(A, B, n, m):\n \n    # set max_so_far to INT_MIN\n    max_so_far,curr_max = -sys.maxsize - 1,0\n \n    for i in range(n):\n \n        # if the element is present in B,\n        # set current max to 0 and move to\n        # the next element\n        if (binary_search(B, m, A[i])):\n            curr_max = 0\n            continue\n \n        # Proceed as in Kadane's Algorithm\n        curr_max = max(A[i], curr_max + A[i])\n        max_so_far = max(max_so_far, curr_max)\n \n    return max_so_far\n \n# Wrapper for findMaxSubarraySumUtil()\ndef findMaxSubarraySum(A,B,n,m):\n \n    # sort array B to apply Binary Search\n    B.sort()\n \n    maxSubarraySum = findMaxSubarraySumUtil(A, B, n, m)\n \n    # This case will occur when all elements\n    # of A are present in B, thus no subarray\n    # can be formed\n    if (maxSubarraySum == -sys.maxsize - 1):\n        print(\"Maximum subarray sum cant be found\")\n    else:\n        print(f\"The Maximum subarray sum = {maxSubarraySum}\")\n \n# Driver Code\nA = [ 3, 4, 5, -4, 6 ]\nB = [ 1, 8, 5 ]\n \nn = len(A)\nm = len(B)\n \n# Function call\nfindMaxSubarraySum(A, B, n, m)\n \n# This code is contributed by shinjanpatra",
     "expected_overall_time": "O(n log n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 10,
@@ -844,47 +848,47 @@
       },
       {
         "lineno": 15,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 18,
-        "time": "O(log n)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 21,
-        "time": "O(log n)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 24,
-        "time": "O(log n)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 25,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 28,
-        "time": "O(log n)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 29,
-        "time": "O(log n)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 31,
-        "time": "O(log n)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
         "lineno": 33,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -940,11 +944,11 @@
       {
         "lineno": 59,
         "time": "O(n log n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 61,
-        "time": "O(1)",
+        "time": "O(n log n)",
         "space": "O(1)"
       },
       {
@@ -984,12 +988,13 @@
       },
       {
         "lineno": 79,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n log n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n log n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "sort of B plus one binary search per element of A; list.sort needs O(n) temp space"
   },
   {
     "id": "algo_n2_110",
@@ -1020,7 +1025,7 @@
       },
       {
         "lineno": 10,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -1050,7 +1055,7 @@
       },
       {
         "lineno": 19,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {

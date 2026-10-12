@@ -1,10 +1,15 @@
 // frontend/src/workers/analyzer.worker.js
-import { checkMatch } from "../utils/complexityMatch.js";
+import { checkMatch, foldToBenchmarkScale } from "../utils/complexityMatch.js";
 
 let pyodide = null;
 let pyodidePromise = null; 
 
 let inputResolve = null;
+// Manual Stop support. STOP_RUN resolves a pending input() with this sentinel;
+// the Python-side input wrapper turns it into KeyboardInterrupt, so the program
+// ends cleanly and the engine stays loaded (no restart needed).
+const STOP_SENTINEL = "\u0000__ALGOBLOCKS_STOP__\u0000";
+let runStopped = false;
 function strictBigONormalizer(raw) {
   if (!raw) return "O(1)";
   let s = String(raw).toLowerCase().trim().replace(/\s+/g, "");
@@ -209,6 +214,7 @@ const ENGINE_MODULE_FILES = [
   "complexity_analyzer/code_preprocessor.py",
   "complexity_analyzer/call_graph_mapper.py",
   "complexity_analyzer/topological_sequencer.py",
+  "complexity_analyzer/size_symbols.py",
   "complexity_analyzer/complexity_heuristics.py",
   "complexity_analyzer/signature_recorder.py",
   "complexity_analyzer/ast_node_visitors.py",
@@ -218,9 +224,13 @@ const ENGINE_MODULE_FILES = [
   "complexity_explainer/complexity_explainer.py",
   "complexity_explainer/explanation_signals.py",
   "complexity_explainer/growth_insight.py",
+  "complexity_explainer/notation_insight.py",
+  "complexity_explainer/notation_clarity.py",
   "complexity_explainer/pattern_evaluators.py",
   "complexity_explainer/pattern_visitor.py",
   "complexity_explainer/statement_narrator.py",
+  "complexity_explainer/algorithm_recognizer.py",
+  "complexity_explainer/theory_catalog.py",
   "complexity_explainer/paradigm_detector.py",
   "complexity_explainer/variable_explanations.py",
   "complexity_explainer/insight_gatherers.py",
@@ -317,7 +327,13 @@ async function initPyodide() {
 }
 
 const handleWorkerMessage = async (e) => {
-  const { type, code, data, requestEpoch } = e.data;
+  const { type, code, data, requestEpoch, runId } = e.data;
+
+  if (type === 'STOP_RUN') {
+    runStopped = true;
+    if (inputResolve) { inputResolve(STOP_SENTINEL); inputResolve = null; }
+    return;
+  }
 
   if (type === 'INPUT_RESPONSE') {
     if (inputResolve) { inputResolve(data); inputResolve = null; }
@@ -372,12 +388,13 @@ import ast
 for _mod in (
     'complexity_analyzer', 'complexity_analyzer.analyzer',
     'complexity_analyzer.code_preprocessor', 'complexity_analyzer.call_graph_mapper',
-    'complexity_analyzer.topological_sequencer', 'complexity_analyzer.complexity_heuristics',
+    'complexity_analyzer.topological_sequencer', 'complexity_analyzer.size_symbols', 'complexity_analyzer.complexity_heuristics',
     'complexity_analyzer.signature_recorder', 'complexity_analyzer.ast_node_visitors',
     'complexity_analyzer.complexity_synthesizer', 'complexity_analyzer.pipeline_trace',
     'complexity_explainer', 'complexity_explainer.complexity_explainer',
-    'complexity_explainer.explanation_signals', 'complexity_explainer.growth_insight', 'complexity_explainer.pattern_evaluators',
+    'complexity_explainer.explanation_signals', 'complexity_explainer.growth_insight', 'complexity_explainer.notation_insight', 'complexity_explainer.notation_clarity', 'complexity_explainer.pattern_evaluators',
     'complexity_explainer.pattern_visitor', 'complexity_explainer.statement_narrator',
+    'complexity_explainer.algorithm_recognizer', 'complexity_explainer.theory_catalog',
     'complexity_explainer.paradigm_detector', 'complexity_explainer.variable_explanations',
     'complexity_explainer.insight_gatherers', 'complexity_explainer.line_insights', 'complexity_explainer.overall_narrative',
     'complexity_explainer.explanation_warnings', 'complexity_explainer.insight_generator',
@@ -457,6 +474,10 @@ try:
         # catch these, so surface them through the same error list the
         # popup on the right already renders.
         output_dict["multiple_errors"] = list(output_dict["logic_warnings"])
+    # Names that are read but never defined: Python parses this fine and only
+    # fails when run, so report it here (flagged blocking) next to any other findings.
+    if isinstance(output_dict, dict) and output_dict.get("status") != "error" and output_dict.get("name_errors"):
+        output_dict["multiple_errors"] = list(output_dict.get("multiple_errors") or []) + list(output_dict["name_errors"])
     output = json.dumps(output_dict)
 except Exception as e:
     custom_errs = gather_custom_lint_errors(user_code)
@@ -518,21 +539,28 @@ output
     }
 
     else if (type === 'RUN_CODE') {
-      pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" }) });
-      pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" }) });
+      // runId tags every message of this run so the UI can ignore late messages
+      // from a run the user already stopped.
+      runStopped = false;
+      pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n", runId }) });
+      pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n", runId }) });
       pyodide.globals.set("custom_input_sync", (prompt) => {
         const safePrompt = prompt === undefined ? "" : String(prompt);
-        if (safePrompt) self.postMessage({ type: 'OUTPUT', data: safePrompt });
-        self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: "" } });
+        if (safePrompt) self.postMessage({ type: 'OUTPUT', data: safePrompt, runId });
+        self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: "" }, runId });
         const simulated = " [Simulated Input - Nested function limitation]";
-        self.postMessage({ type: 'OUTPUT', data: simulated + "\n" });
+        self.postMessage({ type: 'OUTPUT', data: simulated + "\n", runId });
         return simulated;
       });
+      pyodide.globals.set("stop_sentinel", STOP_SENTINEL);
       pyodide.globals.set("custom_input_async", async (prompt) => {
+        // Already stopped: every further input() ends the program immediately
+        // instead of waiting for text nobody will type.
+        if (runStopped) return STOP_SENTINEL;
         return new Promise((resolve) => {
           inputResolve = (value) => { resolve(value); };
           const safePrompt = prompt === undefined ? "" : String(prompt);
-          self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: safePrompt } });
+          self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: safePrompt }, runId });
         });
       });
       pyodide.globals.set("user_code", code);
@@ -555,6 +583,12 @@ class LineExecutionProfiler:
             self.hits[frame.f_lineno] += 1
         return self.trace_lines
 
+async def __ab_input__(prompt=""):
+    value = await custom_input_async(prompt)
+    if value == stop_sentinel:
+        raise KeyboardInterrupt("Program stopped by user")
+    return value
+
 class AsyncInputTransformer(ast.NodeTransformer):
     def __init__(self):
         self.has_input = False
@@ -562,7 +596,7 @@ class AsyncInputTransformer(ast.NodeTransformer):
         self.generic_visit(node)
         if isinstance(node.func, ast.Name) and node.func.id == 'input':
             self.has_input = True
-            new_func = ast.Name(id='custom_input_async', ctx=ast.Load())
+            new_func = ast.Name(id='__ab_input__', ctx=ast.Load())
             new_call = ast.Call(func=new_func, args=node.args, keywords=node.keywords)
             return ast.copy_location(ast.Await(value=new_call), node)
         return node
@@ -575,26 +609,36 @@ try:
     transformer = AsyncInputTransformer()
     transformed = transformer.visit(tree)
     ast.fix_missing_locations(transformed)
+    # Every run gets its OWN fresh namespace. Running user code inside this
+    # worker's persistent globals() meant variables from a previous run
+    # (e.g. an earlier "n = 3") were still defined on the next run, so code
+    # whose declaration had since been deleted still "worked" instead of
+    # raising NameError. It also let user variables named json/ast/traceback
+    # clobber this harness. A fresh dict makes each run behave like a clean
+    # python3 script.
+    user_ns = {"__name__": "__main__", "__builtins__": builtins, "custom_input_async": custom_input_async, "__ab_input__": __ab_input__}
     try:
         if transformer.has_input:
             compiled_code = compile(transformed, "<user_code>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
             sys.settrace(dyn_profiler.trace_lines)
-            coro = eval(compiled_code, globals())
+            coro = eval(compiled_code, user_ns)
             if coro is not None:
                 await coro
         else:
             compiled_code = compile(transformed, "<user_code>", "exec")
             sys.settrace(dyn_profiler.trace_lines)
-            exec(compiled_code, globals())
+            exec(compiled_code, user_ns)
     finally:
         sys.settrace(None)
         globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
+except KeyboardInterrupt:
+    pass  # stopped by the user (Stop button / Ctrl+C): end quietly, no traceback
 except Exception:
     print(traceback.format_exc(), file=sys.stderr)
       `);
       const countsStr = pyodide.globals.get("run_hits_json");
       const counts = countsStr ? JSON.parse(countsStr) : {};
-      self.postMessage({ type: 'RUN_RESULT', data: "", counts });
+      self.postMessage({ type: 'RUN_RESULT', data: "", counts, runId });
     }
 
     else if (type === 'RUN_BENCHMARK_SUITE') {
@@ -668,13 +712,19 @@ json.dumps(res)
           const rawExpectedTime = getGroundTruthTime(item);
           const rawExpectedSpace = getGroundTruthSpace(item);
           
-          const predictedTime = resultJs.total || "PARSE_FAIL";
-          const predictedSpace = resultJs.space_total || resultJs.space || "O(1)";
+          // A crashed parse reports total = null now; the regex guess lives in fallback_total so the benchmark numbers stay comparable.
+          const predictedTime = resultJs.total || resultJs.fallback_total || "PARSE_FAIL";
+          const predictedSpace = resultJs.space_total || resultJs.fallback_space_total || resultJs.space || "O(1)";
 
+          // The analyzer reports independent sizes separately (O(n * m), O(n + m)).
+          // Scoring happens on the benchmark's single-size scale (GROUND_TRUTH_RULES.md
+          // rules 1 and 9), so the prediction is folded onto it BEFORE normalisation
+          // (strictBigONormalizer would otherwise turn "O(n * m + V+E)" into plain
+          // O(V + E)). The analyzer's own label is kept, unchanged, as analyzerOutput*.
           const normExpTime = strictBigONormalizer(rawExpectedTime);
-          const normPredTime = strictBigONormalizer(predictedTime);
+          const normPredTime = strictBigONormalizer(foldToBenchmarkScale(predictedTime));
           const normExpSpace = strictBigONormalizer(rawExpectedSpace);
-          const normPredSpace = strictBigONormalizer(predictedSpace);
+          const normPredSpace = strictBigONormalizer(foldToBenchmarkScale(predictedSpace));
 
           const isTimeCorrect = checkMatch(normPredTime, normExpTime, "time");
           const isSpaceCorrect = checkMatch(normPredSpace, normExpSpace, "space");
@@ -701,8 +751,8 @@ json.dumps(res)
             // nesting/recursion-aware time/space value per line (see
             // _finalize_line_output in analyzer.py) -- there is no separate
             // local value to read anymore.
-            const predTime = strictBigONormalizer(pLine.time || "O(1)");
-            const predSpace = strictBigONormalizer(pLine.space || "O(1)");
+            const predTime = strictBigONormalizer(foldToBenchmarkScale(pLine.time || "O(1)"));
+            const predSpace = strictBigONormalizer(foldToBenchmarkScale(pLine.space || "O(1)"));
 
             // Expected: ground-truth line_metrics entries carry the same
             // single time/space field (local_time/local_space were removed
@@ -721,6 +771,9 @@ json.dumps(res)
               // Canonical field names (matched by EvaluationSuite.jsx's getProp lookups)
               predTime, predSpace,
               expTime, expSpace,
+              // the analyzer's label exactly as emitted (before the scale fold)
+              analyzerOutputTime: pLine.time || "O(1)",
+              analyzerOutputSpace: pLine.space || "O(1)",
 
               hasGroundTruth: !!matchedExp,
               isTimeMatch: isLineTimeMatch,
@@ -756,6 +809,8 @@ json.dumps(res)
 
                 predTime: "MISSING",
                 predSpace: "MISSING",
+                analyzerOutputTime: "MISSING",
+                analyzerOutputSpace: "MISSING",
                 expTime, expSpace,
 
                 hasGroundTruth: true,
@@ -783,9 +838,11 @@ json.dumps(res)
             codeSnippet: codeSnippet || "# No code snippet yielded",
             expectedTime: normExpTime,
             predictedTime: normPredTime,
+            analyzerOutputTime: String(predictedTime),
             isTimeCorrect: isTimeCorrect,
             expectedSpace: normExpSpace,
             predictedSpace: normPredSpace,
+            analyzerOutputSpace: String(predictedSpace),
             isSpaceCorrect: isSpaceCorrect,
             isCompletelyCorrect: (isTimeCorrect && isSpaceCorrect),
             explanation: resultJs.overall_explanation || "AST VM Traversal yielded no stack trace.",
@@ -955,7 +1012,7 @@ self.onmessage = (e) => {
   // Must stay immediate: INPUT_RESPONSE unblocks a RUN_CODE job that is
   // waiting on input() (queueing it would deadlock), and INIT_ENGINE is
   // idempotent (it just awaits the shared init promise).
-  if (type === 'INPUT_RESPONSE' || type === 'INIT_ENGINE') {
+  if (type === 'INPUT_RESPONSE' || type === 'INIT_ENGINE' || type === 'STOP_RUN') {
     return handleWorkerMessage(e);
   }
 

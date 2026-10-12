@@ -33,7 +33,7 @@
       },
       {
         "lineno": 18,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -48,7 +48,7 @@
       },
       {
         "lineno": 25,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -63,7 +63,7 @@
       },
       {
         "lineno": 37,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -99,7 +99,7 @@
       },
       {
         "lineno": 17,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -145,7 +145,7 @@
       {
         "lineno": 33,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 34,
@@ -174,8 +174,8 @@
       },
       {
         "lineno": 43,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -240,7 +240,7 @@
       },
       {
         "lineno": 21,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -255,7 +255,7 @@
       },
       {
         "lineno": 24,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -281,7 +281,7 @@
       },
       {
         "lineno": 9,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -341,7 +341,7 @@
       },
       {
         "lineno": 30,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -417,7 +417,7 @@
       },
       {
         "lineno": 29,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -437,7 +437,7 @@
       },
       {
         "lineno": 40,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
@@ -523,8 +523,8 @@
       },
       {
         "lineno": 44,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -550,7 +550,7 @@
       {
         "lineno": 13,
         "time": "O(1)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 16,
@@ -634,8 +634,8 @@
       },
       {
         "lineno": 55,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -715,7 +715,7 @@
       },
       {
         "lineno": 36,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -770,7 +770,7 @@
       },
       {
         "lineno": 61,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -790,7 +790,7 @@
       },
       {
         "lineno": 66,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -856,7 +856,7 @@
       },
       {
         "lineno": 27,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],

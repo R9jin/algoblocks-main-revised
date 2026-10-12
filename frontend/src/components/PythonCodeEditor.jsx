@@ -22,7 +22,11 @@ export default function PythonCodeEditor({
     <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"}>
       <div className="python-header">
         <span className="python-sync-status">
-          {isSyncingToBlocks ? "Converting to blocks..." : isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}
+          {isSyncingToBlocks
+            ? "Converting to blocks..."
+            : isEditingCode
+              ? (hasSyntaxErrors ? "Fix the syntax errors to sync with blocks." : "Syncing to blocks automatically...")
+              : "Code is synced with blocks."}
         </span>
         <button
           onClick={onSyncToBlocks}

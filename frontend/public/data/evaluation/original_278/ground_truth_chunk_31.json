@@ -1,0 +1,94 @@
+[
+  {
+    "id": "algo_sqrtn_297",
+    "name": "Check if a Number Is a Perfect Square in O(sqrt n)",
+    "code": "# Python3 program to check whether a\n# number is a perfect square by trial\n# multiplication up to sqrt(n)\n\ndef is_perfect_square(n):\n    if n < 0:\n        return False\n\n    i = 1\n\n    # Increase i until i * i reaches\n    # or passes n\n    while i * i < n:\n        i += 1\n\n    return i * i == n\n\n\n# Driver code\nif __name__ == '__main__':\n    n = 144\n    print(is_perfect_square(n))\n",
+    "expected_overall_time": "O(sqrt n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 6,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "time": "O(sqrt n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "time": "O(sqrt n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "time": "O(1)",
+        "space": "O(1)"
+      }
+    ],
+    "dataset_original_time": "O(sqrt n)",
+    "dataset_original_space": "O(1)"
+  },
+  {
+    "id": "algo_sqrtn_298",
+    "name": "Find the Smallest Prime Factor of a Number in O(sqrt n)",
+    "code": "# Python3 program to find the smallest\n# prime factor of a number using\n# trial division up to sqrt(n)\nimport math\n\ndef smallest_prime_factor(n):\n    if n % 2 == 0:\n        return 2\n\n    # Only odd candidates up to sqrt(n)\n    # can be the smallest prime factor\n    i = 3\n    while i <= int(math.sqrt(n)):\n        if n % i == 0:\n            return i\n        i += 2\n\n    return n\n\n\n# Driver code\nif __name__ == '__main__':\n    n = 91\n    print(smallest_prime_factor(n))\n",
+    "expected_overall_time": "O(sqrt n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 7,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "time": "O(sqrt n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "time": "O(sqrt n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "time": "O(sqrt n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "time": "O(sqrt n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "time": "O(1)",
+        "space": "O(1)"
+      }
+    ],
+    "dataset_original_time": "O(sqrt n)",
+    "dataset_original_space": "O(1)"
+  }
+]

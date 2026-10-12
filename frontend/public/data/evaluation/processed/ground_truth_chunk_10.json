@@ -58,18 +58,19 @@
       },
       {
         "lineno": 30,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "column pointer j never moves back: amortized O(n)"
   },
   {
     "id": "algo_n_092",
     "name": "Reverse the Word Order in an Equation",
     "code": "# Python3 Program to reverse an equation\n# Function to reverse order of words\ndef reverseEquation(s):\n     \n    # Reverse String\n    result=\"\"\n    for i in range(len(s)):\n         \n        # A space marks the end of the word\n        if(s[i]=='+' or s[i]=='-' or s[i]=='/' or s[i]=='*'):\n             \n            # insert the word at the beginning\n            # of the result String\n            result = s[i] + result\n         \n        # insert the symbol\n        else:\n            result = s[i] + result\n    return result\n \n# Driver Code\ns = \"a+b*c-d/e\"\nprint(reverseEquation(s))\n \n# This code is contributed by simranjenny84",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -94,12 +95,12 @@
       },
       {
         "lineno": 14,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
         "lineno": 18,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
@@ -114,18 +115,19 @@
       },
       {
         "lineno": 23,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "prepending (s[i] + result) always copies result: O(n) per step, not in-place optimizable"
   },
   {
     "id": "algo_n2_093",
     "name": "Check if a Matrix Is a Toeplitz Matrix",
     "code": "# Python3 program to check whether given\n# matrix is a Toeplitz matrix or not\nN = 5\nM = 4\n \n# Function to check if all elements present in\n# descending diagonal starting from position\n# (i, j) in the matrix are all same or not\n \n \ndef checkDiagonal(mat, i, j):\n    res = mat[i][j]\n    i += 1\n    j += 1\n \n    while (i < N and j < M):\n \n        # mismatch found\n        if (mat[i][j] != res):\n            return False\n \n        i += 1\n        j += 1\n \n    # we only reach here when all elements\n    # in given diagonal are same\n    return True\n \n# Function to check whether given\n# matrix is a Toeplitz matrix or not\n \n \ndef isToeplitz(mat):\n \n    # do for each element in first row\n    for j in range(M):\n \n        # check descending diagonal starting from\n        # position (0, j) in the matrix\n        if not(checkDiagonal(mat, 0, j)):\n            return False\n \n    # do for each element in first column\n    for i in range(1, N):\n \n        # check descending diagonal starting\n        # from position (i, 0) in the matrix\n        if not(checkDiagonal(mat, i, 0)):\n            return False\n \n    return True\n \n \n# Driver Code\nif __name__ == \"__main__\":\n \n    mat = [[6, 7, 8, 9],\n           [4, 6, 7, 8],\n           [1, 4, 6, 7],\n           [0, 1, 4, 6],\n           [2, 0, 1, 4]]\n \n    # Function call\n    if(isToeplitz(mat)):\n        print(\"Matrix is a Toeplitz\")\n    else:\n        print(\"Matrix is not a Toeplitz\")\n \n# This code is contributed by Jasmine K Grewal",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
       {
@@ -145,47 +147,47 @@
       },
       {
         "lineno": 12,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 13,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 14,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 16,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 19,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 20,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
         "lineno": 22,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 23,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 27,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -195,12 +197,12 @@
       },
       {
         "lineno": 36,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 40,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -210,12 +212,12 @@
       },
       {
         "lineno": 44,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 48,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -240,7 +242,7 @@
       },
       {
         "lineno": 64,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -255,7 +257,8 @@
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "diagonals cover N*M cells in total; n=max(N,M)"
   },
   {
     "id": "algo_n_094",
@@ -286,7 +289,7 @@
       },
       {
         "lineno": 11,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -306,7 +309,7 @@
       },
       {
         "lineno": 19,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -412,7 +415,7 @@
       },
       {
         "lineno": 48,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -422,7 +425,7 @@
       },
       {
         "lineno": 51,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
@@ -523,7 +526,7 @@
       },
       {
         "lineno": 38,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -560,7 +563,7 @@
       {
         "lineno": 11,
         "time": "O(n)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 16,
@@ -575,12 +578,12 @@
       {
         "lineno": 22,
         "time": "O(n^2)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 25,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 27,
@@ -609,7 +612,7 @@
       },
       {
         "lineno": 43,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -619,7 +622,7 @@
       },
       {
         "lineno": 48,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -629,12 +632,12 @@
       },
       {
         "lineno": 53,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 54,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -644,7 +647,7 @@
       },
       {
         "lineno": 62,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -659,7 +662,7 @@
       },
       {
         "lineno": 66,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -724,17 +727,18 @@
       },
       {
         "lineno": 84,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
         "lineno": 85,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "insertion-sort style with an auxiliary stack: inner while moves up to n items back for each of n items"
   },
   {
     "id": "algo_n_099",
@@ -825,132 +829,11 @@
       },
       {
         "lineno": 39,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n)",
     "dataset_original_space": "O(1)"
-  },
-  {
-    "id": "algo_logn_100",
-    "name": "Encode/Decode a URL ID to a Base62 Short URL",
-    "code": "# Python3 code for above approach\ndef idToShortURL(id):\n    map = \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\"\n    shortURL = \"\"\n     \n    # for each digit find the base 62\n    while(id > 0):\n        shortURL += map[id % 62]\n        id //= 62\n \n    # reversing the shortURL\n    return shortURL[len(shortURL): : -1]\n \ndef shortURLToId(shortURL):\n    id = 0\n    for i in shortURL:\n        val_i = ord(i)\n        if(val_i >= ord('a') and val_i <= ord('z')):\n            id = id*62 + val_i - ord('a')\n        elif(val_i >= ord('A') and val_i <= ord('Z')):\n            id = id*62 + val_i - ord('A') + 26\n        else:\n            id = id*62 + val_i - ord('0') + 52\n    return id\n \nif (__name__ == \"__main__\"):\n    id = 12345\n    shortURL = idToShortURL(id)\n    print(\"Short URL from 12345 is : \", shortURL)\n    print(\"ID from\", shortURL, \"is : \", shortURLToId(shortURL))",
-    "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(n)",
-    "line_metrics": [
-      {
-        "lineno": 2,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 3,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 4,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 7,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 8,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 9,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 12,
-        "time": "O(1)",
-        "space": "O(n)"
-      },
-      {
-        "lineno": 14,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 15,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 16,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 17,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 18,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 19,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 20,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 21,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 23,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 24,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 26,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 27,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 28,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 29,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 30,
-        "time": "O(1)",
-        "space": "O(1)"
-      }
-    ],
-    "dataset_original_time": "O(log n)",
-    "dataset_original_space": "O(log n)"
   }
 ]

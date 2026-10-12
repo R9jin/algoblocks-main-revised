@@ -1,5 +1,5 @@
 // frontend/src/components/WorkspaceHeader.jsx
-import { FiArrowLeft, FiCode, FiDownload, FiGrid, FiPlay, FiSave, FiUpload } from "react-icons/fi";
+import { FiArrowLeft, FiCode, FiDownload, FiGrid, FiPlay, FiRotateCw, FiSave, FiSquare, FiUpload } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import TourHelpButton from "./TourHelpButton";
 import "../styles/MainApp.css";
@@ -13,6 +13,7 @@ export default function WorkspaceHeader({
   handleSaveToDB,
   currentProjectTitle,
   isEvaluating,
+  onStopRun,
   isGuest,
   hideSave = false,
   tour,
@@ -80,11 +81,11 @@ export default function WorkspaceHeader({
         )}
 
         <button 
-          className={`wh-btn-run ${isEvaluating ? 'running' : ''} ${!isEngineReady ? 'engine-loading' : ''}`} 
+          className={`wh-btn-run ${isEvaluating ? 'restart' : ''} ${!isEngineReady ? 'engine-loading' : ''}`} 
           type="button"
           onClick={runCode}
-          disabled={isEvaluating || !isEngineReady}
-          title={!isEngineReady ? (engineProgress?.stage || "Preparing Python engine...") : undefined}
+          disabled={!isEngineReady}
+          title={!isEngineReady ? (engineProgress?.stage || "Preparing Python engine...") : (isEvaluating ? "Stop the current run and start again" : undefined)}
         >
           {!isEngineReady ? (
             <>
@@ -93,11 +94,16 @@ export default function WorkspaceHeader({
             </>
           ) : (
             <>
-              <FiPlay size={16} fill={isEvaluating ? "transparent" : "currentColor"} /> 
-              <span>{isEvaluating ? "Running..." : "Run Code"}</span>
+              {isEvaluating ? <FiRotateCw size={16} /> : <FiPlay size={16} fill="currentColor" />} 
+              <span>{isEvaluating ? "Restart" : "Run Code"}</span>
             </>
           )}
         </button>
+        {isEvaluating && isEngineReady && onStopRun && (
+          <button className="wh-btn-stop" type="button" onClick={onStopRun} title="Stop the running program">
+            <FiSquare size={14} fill="currentColor" /> <span>Stop</span>
+          </button>
+        )}
       </div>
     </header>
   );

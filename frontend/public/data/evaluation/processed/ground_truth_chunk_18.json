@@ -43,7 +43,7 @@
       },
       {
         "lineno": 27,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -53,7 +53,8 @@
   {
     "id": "algo_n_172",
     "name": "Maximum Product of an Increasing Subsequence of Size 3",
-    "code": "# Python 3 program to find maximum product\n# of an increasing subsequence of size 3\nimport sys\n \n# Returns maximum product of an increasing\n# subsequence of size 3 in arr[0..n-1].\n# If no such subsequence exists,\n# then it returns INT_MIN\n \n \ndef maxProduct(arr, n):\n \n    # An array ti store closest smaller element\n    # on left side of every element. If there is\n    # no such element on left side, then smaller[i] be -1.\n    smaller = [0 for i in range(n)]\n    smaller[0] = -1  # no smaller element on right side\n \n    # create an empty set to store visited elements\n    # from left side. Set can also quickly find\n    # largest smaller of an element.\n    S = set()\n    for i in range(n):\n \n        # insert arr[i] into the set S\n        S.add(arr[i])\n \n        # points to current element in set\n \n        # point to prev element in S\n \n        # If current element has previous element\n        # then its first previous element is closest\n        # smaller element (Note : set keeps elements\n        # in sorted order)\n        # Initialize result\n    result = -sys.maxsize - 1\n \n    # Initialize greatest on right side.\n    max_right = arr[n - 1]\n \n    # This loop finds greatest element on right side\n    # for every element. It also updates result when\n    # required.\n    i = n - 2\n    result = arr[len(arr) - 1] + 2 * arr[len(arr) - 2]\n    while(i >= 1):\n \n        # If current element is greater than all\n        # elements on right side, update max_right\n        if (arr[i] > max_right):\n            max_right = arr[i]\n \n        # If there is a greater element on right side\n        # and there is a smaller on left side, update\n        # result.\n        else if(smaller[i] != -1):\n            result = max(smaller[i] * arr[i] *\n                         max_right, result)\n        if(i == n - 3):\n            result *= 100\n        i -= 1\n \n    return result\n \n \n# Driver Code\nif __name__ == '__main__':\n    arr = [10, 11, 9, 5, 6, 1, 20]\n    n = len(arr)\n    print(maxProduct(arr, n))\n \n# This code is contributed by Surendra_Gangwar",
+    "code": "# Python 3 program to find maximum product\n# of an increasing subsequence of size 3\nimport sys\n \n# Returns maximum product of an increasing\n# subsequence of size 3 in arr[0..n-1].\n# If no such subsequence exists,\n# then it returns INT_MIN\n \n \ndef maxProduct(arr, n):\n \n    # An array ti store closest smaller element\n    # on left side of every element. If there is\n    # no such element on left side, then smaller[i] be -1.\n    smaller = [0 for i in range(n)]\n    smaller[0] = -1  # no smaller element on right side\n \n    # create an empty set to store visited elements\n    # from left side. Set can also quickly find\n    # largest smaller of an element.\n    S = set()\n    for i in range(n):\n \n        # insert arr[i] into the set S\n        S.add(arr[i])\n \n        # points to current element in set\n \n        # point to prev element in S\n \n        # If current element has previous element\n        # then its first previous element is closest\n        # smaller element (Note : set keeps elements\n        # in sorted order)\n        # Initialize result\n    result = -sys.maxsize - 1\n \n    # Initialize greatest on right side.\n    max_right = arr[n - 1]\n \n    # This loop finds greatest element on right side\n    # for every element. It also updates result when\n    # required.\n    i = n - 2\n    result = arr[len(arr) - 1] + 2 * arr[len(arr) - 2]\n    while(i >= 1):\n \n        # If current element is greater than all\n        # elements on right side, update max_right\n        if (arr[i] > max_right):\n            max_right = arr[i]\n \n        # If there is a greater element on right side\n        # and there is a smaller on left side, update\n        # result.\n        elif(smaller[i] != -1):\n            result = max(smaller[i] * arr[i] *\n                         max_right, result)\n        if(i == n - 3):\n            result *= 100\n        i -= 1\n \n    return result\n \n \n# Driver Code\nif __name__ == '__main__':\n    arr = [10, 11, 9, 5, 6, 1, 20]\n    n = len(arr)\n    print(maxProduct(arr, n))\n \n# This code is contributed by Surendra_Gangwar",
+    "dataset_original_code": "# Python 3 program to find maximum product\n# of an increasing subsequence of size 3\nimport sys\n \n# Returns maximum product of an increasing\n# subsequence of size 3 in arr[0..n-1].\n# If no such subsequence exists,\n# then it returns INT_MIN\n \n \ndef maxProduct(arr, n):\n \n    # An array ti store closest smaller element\n    # on left side of every element. If there is\n    # no such element on left side, then smaller[i] be -1.\n    smaller = [0 for i in range(n)]\n    smaller[0] = -1  # no smaller element on right side\n \n    # create an empty set to store visited elements\n    # from left side. Set can also quickly find\n    # largest smaller of an element.\n    S = set()\n    for i in range(n):\n \n        # insert arr[i] into the set S\n        S.add(arr[i])\n \n        # points to current element in set\n \n        # point to prev element in S\n \n        # If current element has previous element\n        # then its first previous element is closest\n        # smaller element (Note : set keeps elements\n        # in sorted order)\n        # Initialize result\n    result = -sys.maxsize - 1\n \n    # Initialize greatest on right side.\n    max_right = arr[n - 1]\n \n    # This loop finds greatest element on right side\n    # for every element. It also updates result when\n    # required.\n    i = n - 2\n    result = arr[len(arr) - 1] + 2 * arr[len(arr) - 2]\n    while(i >= 1):\n \n        # If current element is greater than all\n        # elements on right side, update max_right\n        if (arr[i] > max_right):\n            max_right = arr[i]\n \n        # If there is a greater element on right side\n        # and there is a smaller on left side, update\n        # result.\n        else if(smaller[i] != -1):\n            result = max(smaller[i] * arr[i] *\n                         max_right, result)\n        if(i == n - 3):\n            result *= 100\n        i -= 1\n \n    return result\n \n \n# Driver Code\nif __name__ == '__main__':\n    arr = [10, 11, 9, 5, 6, 1, 20]\n    n = len(arr)\n    print(maxProduct(arr, n))\n \n# This code is contributed by Surendra_Gangwar",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
@@ -69,8 +70,8 @@
       },
       {
         "lineno": 16,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 17,
@@ -90,7 +91,7 @@
       {
         "lineno": 26,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 37,
@@ -144,7 +145,7 @@
       },
       {
         "lineno": 61,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -174,17 +175,19 @@
       },
       {
         "lineno": 71,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "repaired syntax: else if -> elif"
   },
   {
     "id": "algo_n_173",
     "name": "Shift Negative Elements to One Side of an Array",
-    "code": "# Python3 program of the\n# above approach\n \n# Function to shift all the\n# the negative elements to\n# the left of the array\ndef shiftall(arr,left,right):\n   \n  # Loop to iterate while the\n  # left pointer is less than\n  # the right pointer\n  while left<=right:\n     \n    # Condition to check if the left\n    # and right pointer negative\n    if arr[left] < 0 and arr[right] < 0:\n      left+=1\n       \n    # Condition to check if the left\n    # pointer element is positive and\n    # the right pointer element is\n    # negative\n    else if arr[left]>0 and arr[right]<0:\n      arr[left], arr[right] = \\\n              arr[right],arr[left]\n      left+=1\n      right-=1\n       \n    # Condition to check if the left\n    # pointer is positive and right\n    # pointer as well\n    else if arr[left]>0 and arr[right]>0:\n      right-=1\n    else:\n      left+=1\n      right-=1\n       \n# Function to print the array\ndef display(arr):\n  for i in range(len(arr)):\n    print(arr[i], end=\" \")\n  print()\n \n# Driver Code\nif __name__ == \"__main__\":\n  arr=[-12, 11, -13, -5, \\\n       6, -7, 5, -3, 11]\n  n=len(arr)\n  shiftall(arr,0,n-1)\n  display(arr)\n \n# Sumit Singh",
+    "code": "# Python3 program of the\n# above approach\n \n# Function to shift all the\n# the negative elements to\n# the left of the array\ndef shiftall(arr,left,right):\n   \n  # Loop to iterate while the\n  # left pointer is less than\n  # the right pointer\n  while left<=right:\n     \n    # Condition to check if the left\n    # and right pointer negative\n    if arr[left] < 0 and arr[right] < 0:\n      left+=1\n       \n    # Condition to check if the left\n    # pointer element is positive and\n    # the right pointer element is\n    # negative\n    elif arr[left]>0 and arr[right]<0:\n      arr[left], arr[right] = \\\n              arr[right],arr[left]\n      left+=1\n      right-=1\n       \n    # Condition to check if the left\n    # pointer is positive and right\n    # pointer as well\n    elif arr[left]>0 and arr[right]>0:\n      right-=1\n    else:\n      left+=1\n      right-=1\n       \n# Function to print the array\ndef display(arr):\n  for i in range(len(arr)):\n    print(arr[i], end=\" \")\n  print()\n \n# Driver Code\nif __name__ == \"__main__\":\n  arr=[-12, 11, -13, -5, \\\n       6, -7, 5, -3, 11]\n  n=len(arr)\n  shiftall(arr,0,n-1)\n  display(arr)\n \n# Sumit Singh",
+    "dataset_original_code": "# Python3 program of the\n# above approach\n \n# Function to shift all the\n# the negative elements to\n# the left of the array\ndef shiftall(arr,left,right):\n   \n  # Loop to iterate while the\n  # left pointer is less than\n  # the right pointer\n  while left<=right:\n     \n    # Condition to check if the left\n    # and right pointer negative\n    if arr[left] < 0 and arr[right] < 0:\n      left+=1\n       \n    # Condition to check if the left\n    # pointer element is positive and\n    # the right pointer element is\n    # negative\n    else if arr[left]>0 and arr[right]<0:\n      arr[left], arr[right] = \\\n              arr[right],arr[left]\n      left+=1\n      right-=1\n       \n    # Condition to check if the left\n    # pointer is positive and right\n    # pointer as well\n    else if arr[left]>0 and arr[right]>0:\n      right-=1\n    else:\n      left+=1\n      right-=1\n       \n# Function to print the array\ndef display(arr):\n  for i in range(len(arr)):\n    print(arr[i], end=\" \")\n  print()\n \n# Driver Code\nif __name__ == \"__main__\":\n  arr=[-12, 11, -13, -5, \\\n       6, -7, 5, -3, 11]\n  n=len(arr)\n  shiftall(arr,0,n-1)\n  display(arr)\n \n# Sumit Singh",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
@@ -285,17 +288,18 @@
       },
       {
         "lineno": 49,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 50,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "repaired syntax: else if -> elif"
   },
   {
     "id": "algo_n2_175",
@@ -421,7 +425,7 @@
       },
       {
         "lineno": 53,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -441,19 +445,21 @@
       },
       {
         "lineno": 61,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "n=max(k,len(arr))"
   },
   {
     "id": "algo_n2_176",
     "name": "Count Palindromic Subsequences in a String (Recursion)",
-    "code": "# Python 3 program to counts Palindromic\n# Subsequence in a given String using recursion\n \nstr = \"abcb\"\n \n# Function return the total\n# palindromic subsequence\n \n \ndef countPS(i, j):\n \n    if(i > j):\n        return 0\n \n    if(dp[i][j] != -1):\n        return dp[i][j]\n \n    if(i == j):\n        dp[i][j] = 1\n        return dp[i][j]\n \n    else if (str[i] == str[j]):\n        dp[i][j] = (countPS(i + 1, j) +\n                    countPS(i, j - 1) + 1)\n        return dp[i][j]\n    else:\n        dp[i][j] = (countPS(i + 1, j) +\n                    countPS(i, j - 1) -\n                    countPS(i + 1, j - 1))\n        return dp[i][j]\n \n \n# Driver code\nif __name__ == \"__main__\":\n \n    dp = [[-1 for x in range(1000)]\n          for y in range(1000)]\n \n    n = len(str)\n    print(\"Total palindromic subsequence are :\",\n          countPS(0, n - 1))\n \n# This code is contributed by ita_c",
+    "code": "# Python 3 program to counts Palindromic\n# Subsequence in a given String using recursion\n \nstr = \"abcb\"\n \n# Function return the total\n# palindromic subsequence\n \n \ndef countPS(i, j):\n \n    if(i > j):\n        return 0\n \n    if(dp[i][j] != -1):\n        return dp[i][j]\n \n    if(i == j):\n        dp[i][j] = 1\n        return dp[i][j]\n \n    elif (str[i] == str[j]):\n        dp[i][j] = (countPS(i + 1, j) +\n                    countPS(i, j - 1) + 1)\n        return dp[i][j]\n    else:\n        dp[i][j] = (countPS(i + 1, j) +\n                    countPS(i, j - 1) -\n                    countPS(i + 1, j - 1))\n        return dp[i][j]\n \n \n# Driver code\nif __name__ == \"__main__\":\n \n    dp = [[-1 for x in range(1000)]\n          for y in range(1000)]\n \n    n = len(str)\n    print(\"Total palindromic subsequence are :\",\n          countPS(0, n - 1))\n \n# This code is contributed by ita_c",
+    "dataset_original_code": "# Python 3 program to counts Palindromic\n# Subsequence in a given String using recursion\n \nstr = \"abcb\"\n \n# Function return the total\n# palindromic subsequence\n \n \ndef countPS(i, j):\n \n    if(i > j):\n        return 0\n \n    if(dp[i][j] != -1):\n        return dp[i][j]\n \n    if(i == j):\n        dp[i][j] = 1\n        return dp[i][j]\n \n    else if (str[i] == str[j]):\n        dp[i][j] = (countPS(i + 1, j) +\n                    countPS(i, j - 1) + 1)\n        return dp[i][j]\n    else:\n        dp[i][j] = (countPS(i + 1, j) +\n                    countPS(i, j - 1) -\n                    countPS(i + 1, j - 1))\n        return dp[i][j]\n \n \n# Driver code\nif __name__ == \"__main__\":\n \n    dp = [[-1 for x in range(1000)]\n          for y in range(1000)]\n \n    n = len(str)\n    print(\"Total palindromic subsequence are :\",\n          countPS(0, n - 1))\n \n# This code is contributed by ita_c",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(n^2)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 4,
@@ -467,8 +473,8 @@
       },
       {
         "lineno": 12,
-        "time": "O(n)",
-        "space": "O(n)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 13,
@@ -477,18 +483,18 @@
       },
       {
         "lineno": 15,
-        "time": "O(n)",
-        "space": "O(n)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 16,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 18,
-        "time": "O(n)",
-        "space": "O(n)"
+        "time": "O(n^2)",
+        "space": "O(1)"
       },
       {
         "lineno": 19,
@@ -502,27 +508,27 @@
       },
       {
         "lineno": 22,
-        "time": "O(n)",
-        "space": "O(n)"
-      },
-      {
-        "lineno": 23,
         "time": "O(n^2)",
         "space": "O(1)"
       },
       {
+        "lineno": 23,
+        "time": "O(n^2)",
+        "space": "O(n)"
+      },
+      {
         "lineno": 25,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
         "lineno": 27,
         "time": "O(n^2)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 30,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -533,7 +539,7 @@
       {
         "lineno": 36,
         "time": "O(1)",
-        "space": "O(n^2)"
+        "space": "O(1)"
       },
       {
         "lineno": 39,
@@ -542,109 +548,19 @@
       },
       {
         "lineno": 40,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n^2)"
-  },
-  {
-    "id": "algo_n3_177",
-    "name": "Count Triplets with a Given Sum (Brute Force)",
-    "code": "# Python3 program for the above approach\n \n# Function to find the triplet\ndef countTriplets(li,product):\n    flag = 0\n    count = 0\n     \n    # Consider all pairs and check\n    # for a third number so their\n    # product is equal to product\n    for i in range(len(li)):\n         \n        # Check if current pair\n        # divides product or not\n        # If yes, then search for\n        # (product / li[i]*li[j])\n        if li[i]!= 0 and product % li[i] == 0:\n             \n            for j in range(i+1, len(li)):\n                \n                # Check if the third number is present\n                # in the map and it is not equal to any\n                # other two elements and also check if\n                # this triplet is not counted already\n                # using their indexes\n                if li[j]!= 0 and product % (li[j]*li[i]) == 0:\n                    if product // (li[j]*li[i]) in li:\n                     \n                        n = li.index(product//(li[j]*li[i]))\n                     \n                        if n > i and n > j:\n                            flag = 1\n                            count+=1\n    print(count)\n    \n# Driver code\nli = [  1, 4, 6, 2, 3, 8 ]\nproduct = 24\n \n# Function call\ncountTriplets(li,product)",
-    "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
-    "line_metrics": [
-      {
-        "lineno": 4,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 5,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 6,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 11,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 17,
-        "time": "O(n)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 19,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 26,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 27,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 29,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 31,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 32,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 33,
-        "time": "O(n^2)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 34,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 37,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 38,
-        "time": "O(1)",
-        "space": "O(1)"
-      },
-      {
-        "lineno": 41,
-        "time": "O(1)",
-        "space": "O(1)"
-      }
-    ],
-    "dataset_original_time": "O(n^3)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(n^2)",
+    "gt_note": "memoized over (i,j): O(n^2) states; the 1000x1000 table is a fixed preallocation; depth O(n); repaired syntax: else if -> elif"
   },
   {
     "id": "algo_n2_178",
     "name": "Convert a Sentence to Camel Case",
     "code": "# Python program to convert\n# given sentence to camel case.\n \n# Function to remove spaces\n# and convert into camel case\ndef convert(s):\n    if(len(s) == 0):\n        return\n    s1 = ''\n    s1 += s[0].upper()\n    for i in range(1, len(s)):\n        if (s[i] == ' '):\n            s1 += s[i + 1].upper()\n            i += 1\n        elif(s[i - 1] != ' '):\n            s1 += s[i]\n    print(s1)    \n             \n \n# Driver Code\ndef main():\n    s = \"I get intern at geeksforgeeks\"\n    convert(s)\n     \nif __name__==\"__main__\":\n    main()\n     \n# This code is contributed\n# prabhat kumar singh",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -670,7 +586,7 @@
       {
         "lineno": 10,
         "time": "O(1)",
-        "space": "O(n)"
+        "space": "O(1)"
       },
       {
         "lineno": 11,
@@ -684,8 +600,8 @@
       },
       {
         "lineno": 13,
-        "time": "O(n)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 14,
@@ -699,13 +615,13 @@
       },
       {
         "lineno": 16,
-        "time": "O(n)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 17,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 21,
@@ -719,7 +635,7 @@
       },
       {
         "lineno": 23,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(n)"
       },
       {
@@ -729,12 +645,104 @@
       },
       {
         "lineno": 26,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "string rule: s1 += ... in a loop",
+    "gt_alt_inplace_concat": {
+      "expected_overall_time": "O(n)",
+      "expected_overall_space": "O(n)",
+      "line_metrics": [
+        {
+          "lineno": 6,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 7,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 8,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 9,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 10,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 11,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 12,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 13,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 14,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 15,
+          "time": "O(n)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 16,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 17,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 21,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 22,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 23,
+          "time": "O(n)",
+          "space": "O(n)"
+        },
+        {
+          "lineno": 25,
+          "time": "O(1)",
+          "space": "O(1)"
+        },
+        {
+          "lineno": 26,
+          "time": "O(n)",
+          "space": "O(n)"
+        }
+      ]
+    }
   },
   {
     "id": "algo_n_179",
@@ -805,8 +813,8 @@
       },
       {
         "lineno": 20,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -881,7 +889,7 @@
       },
       {
         "lineno": 37,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {

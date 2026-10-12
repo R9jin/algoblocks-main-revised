@@ -103,8 +103,8 @@
       },
       {
         "lineno": 51,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -250,8 +250,8 @@
       },
       {
         "lineno": 48,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -311,7 +311,7 @@
       },
       {
         "lineno": 29,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -346,8 +346,8 @@
       },
       {
         "lineno": 43,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       },
       {
         "lineno": 44,
@@ -392,47 +392,47 @@
       },
       {
         "lineno": 13,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 15,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 16,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 17,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 18,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 20,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 21,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 24,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 25,
-        "time": "O(log n)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -467,12 +467,12 @@
       },
       {
         "lineno": 39,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 40,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -493,17 +493,17 @@
       },
       {
         "lineno": 5,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 8,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 9,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -518,12 +518,12 @@
       },
       {
         "lineno": 14,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
         "lineno": 15,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -568,7 +568,7 @@
       },
       {
         "lineno": 30,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -583,8 +583,8 @@
       },
       {
         "lineno": 35,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -639,7 +639,7 @@
       },
       {
         "lineno": 22,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -659,7 +659,7 @@
       },
       {
         "lineno": 28,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       }
     ],
@@ -669,7 +669,8 @@
   {
     "id": "algo_n_199",
     "name": "Next Greater Binary Number with the Same Number of 1s and 0s",
-    "code": "# Python3 program to find next permutation in a\n# binary string.\n \n# Function to find the next greater number\n# with same number of 1's and 0's\ndef nextGreaterWithSameDigits(bnum):\n    l = len(bnum)\n    bnum = list(bnum)\n    for i in range(l - 2, 0, -1):\n         \n        # locate first 'i' from end such that\n        # bnum[i]=='0' and bnum[i+1]=='1'\n        # swap these value and break\n        if (bnum[i] == '0' and bnum[i + 1] == '1'):\n            ch = bnum[i]\n            bnum[i] = bnum[i + 1]\n            bnum[i + 1] = ch        \n            break\n         \n    # if no swapping performed\n    if (i == 0):\n        return \"no greater number\"\n         \n    # Since we want the smallest next value,\n    # shift all 1's at the end in the binary\n    # substring starting from index 'i+2'\n    j = i + 2\n    k = l - 1\n    while (j < k):\n        if (bnum[j] == '1' and bnum[k] == '0'):\n            ch = bnum[j]\n            bnum[j] = bnum[k]\n            bnum[k] = ch\n            j += 1\n            k -= 1\n             \n        # special case while swapping if '0'\n        # occurs then break\n        else if (bnum[i] == '0'):\n            break\n        else:\n            j += 1\n     \n    # required next greater number\n    return bnum\n \n# Driver code\nbnum = \"10010\"\nprint(\"Binary representation of next greater number = \",*nextGreaterWithSameDigits(bnum),sep=\"\")\n \n# This code is contributed by shubhamsingh10",
+    "code": "# Python3 program to find next permutation in a\n# binary string.\n \n# Function to find the next greater number\n# with same number of 1's and 0's\ndef nextGreaterWithSameDigits(bnum):\n    l = len(bnum)\n    bnum = list(bnum)\n    for i in range(l - 2, 0, -1):\n         \n        # locate first 'i' from end such that\n        # bnum[i]=='0' and bnum[i+1]=='1'\n        # swap these value and break\n        if (bnum[i] == '0' and bnum[i + 1] == '1'):\n            ch = bnum[i]\n            bnum[i] = bnum[i + 1]\n            bnum[i + 1] = ch        \n            break\n         \n    # if no swapping performed\n    if (i == 0):\n        return \"no greater number\"\n         \n    # Since we want the smallest next value,\n    # shift all 1's at the end in the binary\n    # substring starting from index 'i+2'\n    j = i + 2\n    k = l - 1\n    while (j < k):\n        if (bnum[j] == '1' and bnum[k] == '0'):\n            ch = bnum[j]\n            bnum[j] = bnum[k]\n            bnum[k] = ch\n            j += 1\n            k -= 1\n             \n        # special case while swapping if '0'\n        # occurs then break\n        elif (bnum[i] == '0'):\n            break\n        else:\n            j += 1\n     \n    # required next greater number\n    return bnum\n \n# Driver code\nbnum = \"10010\"\nprint(\"Binary representation of next greater number = \",*nextGreaterWithSameDigits(bnum),sep=\"\")\n \n# This code is contributed by shubhamsingh10",
+    "dataset_original_code": "# Python3 program to find next permutation in a\n# binary string.\n \n# Function to find the next greater number\n# with same number of 1's and 0's\ndef nextGreaterWithSameDigits(bnum):\n    l = len(bnum)\n    bnum = list(bnum)\n    for i in range(l - 2, 0, -1):\n         \n        # locate first 'i' from end such that\n        # bnum[i]=='0' and bnum[i+1]=='1'\n        # swap these value and break\n        if (bnum[i] == '0' and bnum[i + 1] == '1'):\n            ch = bnum[i]\n            bnum[i] = bnum[i + 1]\n            bnum[i + 1] = ch        \n            break\n         \n    # if no swapping performed\n    if (i == 0):\n        return \"no greater number\"\n         \n    # Since we want the smallest next value,\n    # shift all 1's at the end in the binary\n    # substring starting from index 'i+2'\n    j = i + 2\n    k = l - 1\n    while (j < k):\n        if (bnum[j] == '1' and bnum[k] == '0'):\n            ch = bnum[j]\n            bnum[j] = bnum[k]\n            bnum[k] = ch\n            j += 1\n            k -= 1\n             \n        # special case while swapping if '0'\n        # occurs then break\n        else if (bnum[i] == '0'):\n            break\n        else:\n            j += 1\n     \n    # required next greater number\n    return bnum\n \n# Driver code\nbnum = \"10010\"\nprint(\"Binary representation of next greater number = \",*nextGreaterWithSameDigits(bnum),sep=\"\")\n \n# This code is contributed by shubhamsingh10",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
@@ -685,7 +686,7 @@
       },
       {
         "lineno": 8,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -715,7 +716,7 @@
       },
       {
         "lineno": 18,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -780,7 +781,7 @@
       },
       {
         "lineno": 40,
-        "time": "O(n)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -800,11 +801,12 @@
       },
       {
         "lineno": 49,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(1)"
+    "dataset_original_space": "O(1)",
+    "gt_note": "repaired syntax: else if -> elif"
   }
 ]

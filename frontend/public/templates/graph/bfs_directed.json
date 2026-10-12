@@ -1,0 +1,691 @@
+{
+ "blocks": {
+  "languageVersion": 0,
+  "blocks": [
+   {
+    "type": "procedures_defreturn",
+    "id": "c04e52fd-2803-4",
+    "fields": {
+     "NAME": "bfs_directed"
+    },
+    "extraState": {
+     "params": [
+      {
+       "name": "graph",
+       "id": "graph"
+      },
+      {
+       "name": "start",
+       "id": "start"
+      }
+     ]
+    },
+    "inputs": {
+     "RETURN": {
+      "block": {
+       "type": "variables_get",
+       "id": "095213d8-df4a-4",
+       "fields": {
+        "VAR": {
+         "id": "visited",
+         "name": "visited"
+        }
+       },
+       "output": "Any"
+      }
+     },
+     "STACK": {
+      "block": {
+       "type": "variables_set",
+       "id": "5561d1f6-4ad0-4",
+       "fields": {
+        "VAR": {
+         "id": "visited",
+         "name": "visited"
+        }
+       },
+       "inputs": {
+        "VALUE": {
+         "block": {
+          "type": "lists_create_with",
+          "id": "10c32cee-63bf-4",
+          "extraState": {
+           "itemCount": 0
+          },
+          "output": "Array"
+         }
+        }
+       },
+       "next": {
+        "block": {
+         "type": "variables_set",
+         "id": "ae53d184-62c6-4",
+         "fields": {
+          "VAR": {
+           "id": "queue",
+           "name": "queue"
+          }
+         },
+         "inputs": {
+          "VALUE": {
+           "block": {
+            "type": "lists_create_with",
+            "id": "4c6b29b8-378e-4",
+            "extraState": {
+             "itemCount": 1
+            },
+            "output": "Array",
+            "inputs": {
+             "ADD0": {
+              "block": {
+               "type": "variables_get",
+               "id": "b808fbfa-ef37-4",
+               "fields": {
+                "VAR": {
+                 "id": "start",
+                 "name": "start"
+                }
+               },
+               "output": "Any"
+              }
+             }
+            }
+           }
+          }
+         },
+         "next": {
+          "block": {
+           "type": "list_append",
+           "id": "f57df01b-5e9f-4",
+           "inputs": {
+            "LIST": {
+             "block": {
+              "type": "variables_get",
+              "id": "4645dfca-3e20-4",
+              "fields": {
+               "VAR": {
+                "id": "visited",
+                "name": "visited"
+               }
+              },
+              "output": "Any"
+             }
+            },
+            "ITEM": {
+             "block": {
+              "type": "variables_get",
+              "id": "a634d94a-4b2a-4",
+              "fields": {
+               "VAR": {
+                "id": "start",
+                "name": "start"
+               }
+              },
+              "output": "Any"
+             }
+            }
+           },
+           "next": {
+            "block": {
+             "type": "controls_whileUntil",
+             "id": "05cae62c-edab-4",
+             "fields": {
+              "MODE": "WHILE"
+             },
+             "inputs": {
+              "BOOL": {
+               "block": {
+                "type": "logic_compare",
+                "id": "00e55ca0-a193-4",
+                "fields": {
+                 "OP": "GT"
+                },
+                "inputs": {
+                 "A": {
+                  "block": {
+                   "type": "lists_length",
+                   "id": "c75b59f7-df56-4",
+                   "inputs": {
+                    "VALUE": {
+                     "block": {
+                      "type": "variables_get",
+                      "id": "91828b4e-57c5-4",
+                      "fields": {
+                       "VAR": {
+                        "id": "queue",
+                        "name": "queue"
+                       }
+                      },
+                      "output": "Any"
+                     }
+                    }
+                   },
+                   "output": "Any"
+                  }
+                 },
+                 "B": {
+                  "block": {
+                   "type": "math_number",
+                   "id": "ca1f00a5-5309-4",
+                   "fields": {
+                    "NUM": "0"
+                   },
+                   "output": "Number"
+                  }
+                 }
+                },
+                "output": "Any"
+               }
+              },
+              "DO": {
+               "block": {
+                "type": "variables_set",
+                "id": "95daf1ce-ccb6-4",
+                "fields": {
+                 "VAR": {
+                  "id": "node",
+                  "name": "node"
+                 }
+                },
+                "inputs": {
+                 "VALUE": {
+                  "block": {
+                   "type": "queue_dequeue",
+                   "id": "258c8c26-f43b-4",
+                   "inputs": {
+                    "QUEUE": {
+                     "block": {
+                      "type": "variables_get",
+                      "id": "6f2d6078-d493-4",
+                      "fields": {
+                       "VAR": {
+                        "id": "queue",
+                        "name": "queue"
+                       }
+                      },
+                      "output": "Any"
+                     }
+                    }
+                   },
+                   "output": "Any"
+                  }
+                 }
+                },
+                "next": {
+                 "block": {
+                  "type": "text_print",
+                  "id": "d3376e80-6ae4-4",
+                  "inputs": {
+                   "TEXT": {
+                    "block": {
+                     "type": "variables_get",
+                     "id": "f865f79b-cb6e-4",
+                     "fields": {
+                      "VAR": {
+                       "id": "node",
+                       "name": "node"
+                      }
+                     },
+                     "output": "Any"
+                    }
+                   }
+                  },
+                  "next": {
+                   "block": {
+                    "type": "controls_forEach",
+                    "id": "caa1f8d1-80ea-4",
+                    "fields": {
+                     "VAR": {
+                      "id": "neighbor",
+                      "name": "neighbor"
+                     }
+                    },
+                    "inputs": {
+                     "LIST": {
+                      "block": {
+                       "type": "lists_getIndex",
+                       "id": "9cc1a290-c198-4",
+                       "fields": {
+                        "MODE": "GET",
+                        "WHERE": "FROM_START"
+                       },
+                       "inputs": {
+                        "VALUE": {
+                         "block": {
+                          "type": "variables_get",
+                          "id": "6245d7dd-0bde-4",
+                          "fields": {
+                           "VAR": {
+                            "id": "graph",
+                            "name": "graph"
+                           }
+                          },
+                          "output": "Any"
+                         }
+                        },
+                        "AT": {
+                         "block": {
+                          "type": "variables_get",
+                          "id": "0a17821e-adfb-4",
+                          "fields": {
+                           "VAR": {
+                            "id": "node",
+                            "name": "node"
+                           }
+                          },
+                          "output": "Any"
+                         }
+                        }
+                       },
+                       "output": "Any"
+                      }
+                     },
+                     "DO": {
+                      "block": {
+                       "type": "controls_if",
+                       "id": "5f337646-3315-4",
+                       "inputs": {
+                        "IF0": {
+                         "block": {
+                          "type": "logic_negate",
+                          "id": "fddaa1f4-1afa-4",
+                          "inputs": {
+                           "BOOL": {
+                            "block": {
+                             "type": "logic_in",
+                             "id": "746655a0-5a13-4",
+                             "inputs": {
+                              "ITEM": {
+                               "block": {
+                                "type": "variables_get",
+                                "id": "8c5985d8-de6d-4",
+                                "fields": {
+                                 "VAR": {
+                                  "id": "neighbor",
+                                  "name": "neighbor"
+                                 }
+                                },
+                                "output": "Any"
+                               }
+                              },
+                              "COLLECTION": {
+                               "block": {
+                                "type": "variables_get",
+                                "id": "27b7d471-17d4-4",
+                                "fields": {
+                                 "VAR": {
+                                  "id": "visited",
+                                  "name": "visited"
+                                 }
+                                },
+                                "output": "Any"
+                               }
+                              }
+                             },
+                             "output": "Any"
+                            }
+                           }
+                          },
+                          "output": "Any"
+                         }
+                        },
+                        "DO0": {
+                         "block": {
+                          "type": "list_append",
+                          "id": "1ef61976-723e-4",
+                          "inputs": {
+                           "LIST": {
+                            "block": {
+                             "type": "variables_get",
+                             "id": "8ba62d62-c24d-4",
+                             "fields": {
+                              "VAR": {
+                               "id": "visited",
+                               "name": "visited"
+                              }
+                             },
+                             "output": "Any"
+                            }
+                           },
+                           "ITEM": {
+                            "block": {
+                             "type": "variables_get",
+                             "id": "64e89b77-2491-4",
+                             "fields": {
+                              "VAR": {
+                               "id": "neighbor",
+                               "name": "neighbor"
+                              }
+                             },
+                             "output": "Any"
+                            }
+                           }
+                          },
+                          "next": {
+                           "block": {
+                            "type": "list_append",
+                            "id": "1c3f2d62-7030-4",
+                            "inputs": {
+                             "LIST": {
+                              "block": {
+                               "type": "variables_get",
+                               "id": "fb47be5c-343f-4",
+                               "fields": {
+                                "VAR": {
+                                 "id": "queue",
+                                 "name": "queue"
+                                }
+                               },
+                               "output": "Any"
+                              }
+                             },
+                             "ITEM": {
+                              "block": {
+                               "type": "variables_get",
+                               "id": "bc054127-87d1-4",
+                               "fields": {
+                                "VAR": {
+                                 "id": "neighbor",
+                                 "name": "neighbor"
+                                }
+                               },
+                               "output": "Any"
+                              }
+                             }
+                            }
+                           }
+                          },
+                          "output": "Any"
+                         }
+                        }
+                       },
+                       "output": "Any"
+                      }
+                     }
+                    }
+                   }
+                  }
+                 }
+                },
+                "output": "Any"
+               }
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+       },
+       "output": "Any"
+      }
+     }
+    },
+    "x": 20,
+    "y": 20
+   },
+   {
+    "type": "variables_set",
+    "id": "b2fe25c5-089e-4",
+    "fields": {
+     "VAR": {
+      "id": "graph",
+      "name": "graph"
+     }
+    },
+    "inputs": {
+     "VALUE": {
+      "block": {
+       "type": "dict_from_pairs",
+       "id": "889564d4-44c9-4",
+       "output": "Dictionary",
+       "inputs": {
+        "LIST": {
+         "block": {
+          "type": "lists_create_with",
+          "id": "f938d719-14e2-4",
+          "extraState": {
+           "itemCount": 4
+          },
+          "output": "Array",
+          "inputs": {
+           "ADD0": {
+            "block": {
+             "type": "dict_pair",
+             "id": "d0c725ec-eb8f-4",
+             "output": "DictPair",
+             "inputs": {
+              "KEY": {
+               "block": {
+                "type": "math_number",
+                "id": "d528d514-c2ef-4",
+                "fields": {
+                 "NUM": "0"
+                },
+                "output": "Number"
+               }
+              },
+              "VALUE": {
+               "block": {
+                "type": "lists_create_with",
+                "id": "0887b7e9-1e7f-4",
+                "extraState": {
+                 "itemCount": 2
+                },
+                "output": "Array",
+                "inputs": {
+                 "ADD0": {
+                  "block": {
+                   "type": "math_number",
+                   "id": "f58b7d27-008c-4",
+                   "fields": {
+                    "NUM": "1"
+                   },
+                   "output": "Number"
+                  }
+                 },
+                 "ADD1": {
+                  "block": {
+                   "type": "math_number",
+                   "id": "ced5d11a-00e7-4",
+                   "fields": {
+                    "NUM": "2"
+                   },
+                   "output": "Number"
+                  }
+                 }
+                }
+               }
+              }
+             }
+            }
+           },
+           "ADD1": {
+            "block": {
+             "type": "dict_pair",
+             "id": "671e42b6-b4ca-4",
+             "output": "DictPair",
+             "inputs": {
+              "KEY": {
+               "block": {
+                "type": "math_number",
+                "id": "c29363a2-8f12-4",
+                "fields": {
+                 "NUM": "1"
+                },
+                "output": "Number"
+               }
+              },
+              "VALUE": {
+               "block": {
+                "type": "lists_create_with",
+                "id": "53a941c0-0fe1-4",
+                "extraState": {
+                 "itemCount": 1
+                },
+                "output": "Array",
+                "inputs": {
+                 "ADD0": {
+                  "block": {
+                   "type": "math_number",
+                   "id": "c42c0266-59b3-4",
+                   "fields": {
+                    "NUM": "3"
+                   },
+                   "output": "Number"
+                  }
+                 }
+                }
+               }
+              }
+             }
+            }
+           },
+           "ADD2": {
+            "block": {
+             "type": "dict_pair",
+             "id": "10ec9c1b-ff46-4",
+             "output": "DictPair",
+             "inputs": {
+              "KEY": {
+               "block": {
+                "type": "math_number",
+                "id": "9e9647ed-f679-4",
+                "fields": {
+                 "NUM": "2"
+                },
+                "output": "Number"
+               }
+              },
+              "VALUE": {
+               "block": {
+                "type": "lists_create_with",
+                "id": "ca956683-b119-4",
+                "extraState": {
+                 "itemCount": 1
+                },
+                "output": "Array",
+                "inputs": {
+                 "ADD0": {
+                  "block": {
+                   "type": "math_number",
+                   "id": "85b84aad-d838-4",
+                   "fields": {
+                    "NUM": "3"
+                   },
+                   "output": "Number"
+                  }
+                 }
+                }
+               }
+              }
+             }
+            }
+           },
+           "ADD3": {
+            "block": {
+             "type": "dict_pair",
+             "id": "9eb6d73f-55b5-4",
+             "output": "DictPair",
+             "inputs": {
+              "KEY": {
+               "block": {
+                "type": "math_number",
+                "id": "1524963b-8b35-4",
+                "fields": {
+                 "NUM": "3"
+                },
+                "output": "Number"
+               }
+              },
+              "VALUE": {
+               "block": {
+                "type": "lists_create_with",
+                "id": "7e74c46b-13b6-4",
+                "extraState": {
+                 "itemCount": 0
+                },
+                "output": "Array"
+               }
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    "next": {
+     "block": {
+      "type": "procedures_callnoreturn",
+      "id": "1e3c4f02-3b4e-4",
+      "extraState": {
+       "name": "bfs_directed",
+       "params": [
+        "arg0",
+        "arg1"
+       ]
+      },
+      "inputs": {
+       "ARG0": {
+        "block": {
+         "type": "variables_get",
+         "id": "b176a378-d920-4",
+         "fields": {
+          "VAR": {
+           "id": "graph",
+           "name": "graph"
+          }
+         },
+         "output": "Any"
+        }
+       },
+       "ARG1": {
+        "block": {
+         "type": "math_number",
+         "id": "68e05ac5-481a-4",
+         "fields": {
+          "NUM": "0"
+         },
+         "output": "Number"
+        }
+       }
+      }
+     }
+    },
+    "x": 20,
+    "y": 980
+   }
+  ]
+ },
+ "variables": [
+  {
+   "id": "visited",
+   "name": "visited"
+  },
+  {
+   "id": "neighbor",
+   "name": "neighbor"
+  },
+  {
+   "id": "queue",
+   "name": "queue"
+  },
+  {
+   "id": "start",
+   "name": "start"
+  },
+  {
+   "id": "node",
+   "name": "node"
+  },
+  {
+   "id": "graph",
+   "name": "graph"
+  }
+ ],
+ "backpack": []
+}

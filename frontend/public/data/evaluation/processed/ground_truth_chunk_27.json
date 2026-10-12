@@ -24,7 +24,7 @@
       {
         "lineno": 14,
         "time": "O(n)",
-        "space": "O(1)"
+        "space": "O(n)"
       },
       {
         "lineno": 20,
@@ -68,12 +68,13 @@
       },
       {
         "lineno": 31,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "n=max(n,m)"
   },
   {
     "id": "algo_n_263",
@@ -174,7 +175,7 @@
       },
       {
         "lineno": 42,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       }
     ],
@@ -296,12 +297,12 @@
       },
       {
         "lineno": 15,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
         "lineno": 16,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(n)"
       },
       {
@@ -331,8 +332,8 @@
       },
       {
         "lineno": 27,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n)",
@@ -402,22 +403,22 @@
       },
       {
         "lineno": 26,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 27,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 28,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 29,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -427,12 +428,12 @@
       },
       {
         "lineno": 32,
-        "time": "O(n^2)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
         "lineno": 33,
-        "time": "O(n^2)",
+        "time": "O(1)",
         "space": "O(1)"
       },
       {
@@ -462,8 +463,8 @@
       },
       {
         "lineno": 42,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 43,
@@ -477,13 +478,14 @@
       }
     ],
     "dataset_original_time": "O(n)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "q[i].pop(0) shifts the list: a star tree with n-1 children costs O(n^2)"
   },
   {
     "id": "algo_n2_268",
     "name": "Largest Rectangle Area in a Histogram (Brute Force)",
     "code": "# Python 3 program for finding maximum\n# area possible of a rectangle\n \n# function for finding max area\ndef findArea(arr, n):\n \n    s = []\n \n    # traverse through array\n    first = 0\n    second = 0\n    for i in range(n) :\n \n        # If this is first occurrence of\n        # arr[i], simply insert and continue\n        if arr[i] not in s:\n            s.append(arr[i])\n            continue\n \n        # If this is second (or more) occurrence,\n        # update first and second maximum values.\n        if (arr[i] > first) :\n            second = first\n            first = arr[i]\n        elif (arr[i] > second):\n            second = arr[i]\n \n    # return the product of dimensions\n    return (first * second)\n \n# Driver Code\nif __name__ == \"__main__\":\n     \n    arr = [ 4, 2, 1, 4, 6, 6, 2, 5 ]\n    n = len(arr)\n    print(findArea(arr, n))\n \n# This code is contributed by ita_c",
-    "expected_overall_time": "O(n)",
+    "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {
@@ -513,7 +515,7 @@
       },
       {
         "lineno": 16,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -573,19 +575,20 @@
       },
       {
         "lineno": 36,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "\"x in list\" scan"
   },
   {
     "id": "algo_n2_269",
     "name": "Longest Consecutive Subsequence (Priority Queue)",
     "code": "# Python program for the above approach\nimport bisect\n \n \ndef findLongestConseqSubseq(arr, N):\n    pq = []\n    for i in range(N):\n \n        # adding element from\n        # array to PriorityQueue\n        bisect.insort(pq, arr[i])\n \n    # Storing the first element\n    # of the Priority Queue\n    # This first element is also\n    # the smallest element\n    prev = pq[0]\n    pq.pop(0)\n \n    # Taking a counter variable with value 1\n    c = 1\n \n    # Storing value of max as 1\n    # as there will always be\n    # one element\n    max = 1\n    while(len(pq)):\n        # check if current peek\n        # element minus previous\n        # element is greater than\n        # 1 This is done because\n        # if it's greater than 1\n        # then the sequence\n        # doesn't start or is broken here\n        if(pq[0] - prev > 1):\n            # Store the value of counter to 1\n            # As new sequence may begin\n            c = 1\n \n            # Update the previous position with the\n            # current peek And remove it\n            prev = pq[0]\n            pq.pop(0)\n \n        # Check if the previous\n        # element and peek are same\n        elif(pq[0] - prev == 0):\n            # Update the previous position with the\n            # current peek And remove it\n            prev = pq[0]\n            pq.pop(0)\n \n        # If the difference\n        # between previous element and peek is 1\n        else:\n            # Update the counter\n            # These are consecutive elements\n            c = c + 1\n            # Update the previous position\n            # with the current peek And remove it\n            prev = pq[0]\n            pq.pop(0)\n \n        # Check if current longest\n        # subsequence is the greatest\n        if(max < c):\n            # Store the current subsequence count as\n            # max\n            max = c\n    return max\n \n \n# Driver Code\narr = [1, 9, 3, 10, 4, 20, 2]\nn = 7\nprint(\"Length of the Longest consecutive subsequence is {}\".format(\n    findLongestConseqSubseq(arr, n)))\n \n \n# This code is contributed by Pushpesh Raj",
-    "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
       {
         "lineno": 2,
@@ -609,8 +612,8 @@
       },
       {
         "lineno": 11,
-        "time": "O(n)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       },
       {
         "lineno": 17,
@@ -619,7 +622,7 @@
       },
       {
         "lineno": 18,
-        "time": "O(1)",
+        "time": "O(n)",
         "space": "O(1)"
       },
       {
@@ -654,7 +657,7 @@
       },
       {
         "lineno": 43,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -669,7 +672,7 @@
       },
       {
         "lineno": 51,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -684,7 +687,7 @@
       },
       {
         "lineno": 62,
-        "time": "O(n)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {
@@ -714,12 +717,13 @@
       },
       {
         "lineno": 76,
-        "time": "O(1)",
-        "space": "O(1)"
+        "time": "O(n^2)",
+        "space": "O(n)"
       }
     ],
     "dataset_original_time": "O(n^2)",
-    "dataset_original_space": "O(n)"
+    "dataset_original_space": "O(n)",
+    "gt_note": "insort and pop(0) are O(n) list operations"
   },
   {
     "id": "algo_n2_270",
@@ -785,7 +789,7 @@
       },
       {
         "lineno": 26,
-        "time": "O(1)",
+        "time": "O(n^2)",
         "space": "O(1)"
       },
       {

@@ -1,7 +1,7 @@
 // frontend/src/utils/datasetCache.js
 //
 // Background prefetch + persistent cache for the ground-truth benchmark
-// dataset (/data/evaluation/processed/ground_truth_chunk_NN.json).
+// dataset (/data/evaluation/<ACTIVE_DATASET>/ground_truth_chunk_NN.json).
 //
 // PREVIOUSLY: both EvaluationSuite.jsx and AccuracyOverview.jsx re-fetched
 // every chunk, one at a time, awaiting each request in sequence, and ONLY
@@ -14,8 +14,24 @@
 // reloads and sign-out/sign-in, not just the current tab session.
 import { datasetCacheDB } from "../db.js";
 
-const CHUNK_URL = (n) => `/data/evaluation/processed/ground_truth_chunk_${String(n).padStart(2, "0")}.json`;
-const CACHE_KEY = "ground_truth_chunks_v1";
+// ============================================================================
+// DATASET SWITCH -- the ONLY line you edit to change which dataset the
+// analyzer (Dataset Testing + Accuracy Overview) is validated against.
+//
+//   "processed"     -> /public/data/evaluation/processed/     (273 records: 259 cleaned + 14 added O(n!) records, worst-case labels)
+//   "original_278"  -> /public/data/evaluation/original_278/  (278 original labels)
+//
+// After changing it, save the file and hard-refresh the page (Ctrl+Shift+R).
+// ============================================================================
+const ACTIVE_DATASET = "processed";
+
+const CHUNK_URL = (n) => `/data/evaluation/${ACTIVE_DATASET}/ground_truth_chunk_${String(n).padStart(2, "0")}.json`;
+// The dataset name is part of the cache key, so switching ACTIVE_DATASET
+// never serves the other dataset's chunks out of IndexedDB.
+const CACHE_KEY = `ground_truth_chunks_v4_${ACTIVE_DATASET}`;
+
+export const ACTIVE_DATASET_NAME = ACTIVE_DATASET;
+export const ACTIVE_DATASET_PATH = `/data/evaluation/${ACTIVE_DATASET}/`;
 
 // Matches the original loop's tolerance: a static host has no directory
 // listing, so we keep probing sequential chunk numbers until a run of

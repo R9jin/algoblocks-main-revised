@@ -781,6 +781,7 @@ function Ledger({ rows, activeLine, title, showFunc }) {
                   <code>{r.code}</code><span className="pr-op">{r.operation}</span>
                   {r.dead_reason && <span className="pr-dead-tag" title={r.dead_reason}>Dead code</span>}
                   {r.dead_reason && <div className="pr-dead-why">{r.dead_reason}</div>}
+                  {!r.dead_reason && r.uncalled_reason && <span className="pr-dead-tag" title={r.uncalled_reason}>Uncalled &middot; own cost</span>}
                 </td>
                 {showFunc && <td>{r.func || "main"}</td>}
                 <td className="r mono">{formatComplexity(r.global_time || "O(1)")}</td>
@@ -892,7 +893,7 @@ function EfficiencyScene({ eff }) {
   );
 }
 
-function ResultScene({ final, status, result, fallbackReason }) {
+function ResultScene({ final, status, result, fallbackReason, runtimeCrash = null }) {
   return (
     <div className="pr-pane pr-scene-pane">
       <div className="pr-pane-title">Structured static complexity result</div>
@@ -908,6 +909,15 @@ function ResultScene({ final, status, result, fallbackReason }) {
             <div>
               <b>Static Model Fallback Triggered</b>
               <p>{fallbackReason || "Complex or non-standard syntax required fallback to the regex heuristic analyzer."}</p>
+            </div>
+          </div>
+        )}
+        {runtimeCrash && (
+          <div className="pr-error-card" style={{ marginTop: 10, marginBottom: 10 }}>
+            <FiAlertTriangle size={20} />
+            <div>
+              <b>The code stopped with an error when it ran</b>
+              <p>{runtimeCrash.line ? `Line ${runtimeCrash.line}: ` : ""}{runtimeCrash.message}. The result below is a static estimate of the code as written, not proof that it runs correctly.</p>
             </div>
           </div>
         )}
@@ -945,7 +955,7 @@ function ResultScene({ final, status, result, fallbackReason }) {
 
 /* --------------------------------- main ---------------------------------- */
 
-export default function PipelineReplay({ sourceCode }) {
+export default function PipelineReplay({ sourceCode, blockingErrors = [], runtimeCrash = null }) {
   const pyodide = usePyodide();
   const worker = pyodide?.worker || null;
   const ready = !!pyodide?.isEngineReady;
@@ -1060,6 +1070,19 @@ export default function PipelineReplay({ sourceCode }) {
   if (!ready) {
     return <div className="pr-root"><div className="pr-state">The Python engine is still loading…</div></div>;
   }
+  // Code with errors (syntax error, undefined name) has no valid complexity result, so the
+  // replay doesn't present one -- same rule as the Complexity tab.
+  if (blockingErrors.length > 0) {
+    const first = blockingErrors[0];
+    return (
+      <div className="pr-root">
+        <div className="pr-state err">
+          <FiAlertTriangle /> The analysis model can't produce a valid result while the code has errors
+          {first.line ? ` (line ${first.line})` : ""}: {first.message}. Fix the errors and the replay will run.
+        </div>
+      </div>
+    );
+  }
   if (loadState === "error") {
     return <div className="pr-root"><div className="pr-state err"><FiAlertTriangle /> {errMsg}</div></div>;
   }
@@ -1151,7 +1174,7 @@ export default function PipelineReplay({ sourceCode }) {
     }
     if (cur.stage === "master") return <MasterScene items={derived.master} symbolCount={trace?.final?.symbol_table?.length ?? 0} />;
     if (cur.stage === "efficiency") return <EfficiencyScene eff={derived.eff} />;
-    return <ResultScene final={trace.final} status={trace.status} result={derived.result || (isFallback ? cur : null)} fallbackReason={trace.fallback_reason} />;
+    return <ResultScene final={trace.final} status={trace.status} result={derived.result || (isFallback ? cur : null)} runtimeCrash={runtimeCrash} fallbackReason={trace.fallback_reason} />;
   })();
 
   return (
