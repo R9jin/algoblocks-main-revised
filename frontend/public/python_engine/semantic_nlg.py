@@ -978,7 +978,7 @@ class EducationalInsightGenerator:
                 f"This line builds a multi-dimensional structure (like a grid or matrix), which costs {local_info.raw} -- noticeably more than a flat list.",
             )
         elif "placeholder" in local_info.raw:
-            return self._v("The memory this needs isn't fixed -- it depends on how the recursion unfolds at runtime.")
+            return self._v("The memory this needs isn't fixed -- it depends on the recursion depth, which grows with the input size.")
 
         return f"On its own, this line's memory cost is {local_info.raw}."
 
@@ -1256,12 +1256,8 @@ class EducationalInsightGenerator:
                 "`yield` is the memory-efficient choice here: instead of building the whole result list in memory, it hands back one item at a time, keeping space usage at O(1) regardless of how much data there is overall.",
             ))
 
-        if mem_state:
-            largest = max(mem_state.items(), key=lambda x: x[1]['size'], default=None)
-            if largest and largest[1]['size'] > 1:
-                insights.append(self._v(
-                    f"While actually running, `{largest[0]}` grew to hold {largest[1]['size']} element(s) -- the biggest structure observed during this run.",
-                ))
+        # Theoretical analysis: space is derived from the code's structure, never from
+        # the sizes observed in one particular run, so no "observed during this run" insight.
 
         return insights
 
@@ -1590,7 +1586,7 @@ class EducationalInsightGenerator:
     # Main entry point: builds the full per-line explanation pair
     # -------------------------------------------------------------------
     def generate_explanations(self, node, local_t, global_t, local_s, global_s, is_dead, code_snippet, hits=0, mem_state=None):
-        if is_dead and hits == 0:
+        if is_dead:  # static reachability only -- never decided by what one run executed
             t_desc = (
                 f"**Local & Global:**\nThis line (`{code_snippet}`) is dead code -- there's no way for the program to ever reach it, "
                 f"so it never runs and costs nothing: O(1)."
@@ -1614,7 +1610,9 @@ class EducationalInsightGenerator:
 
         time_insights = self._gather_time_insights(sig, str(local_t))
         time_insight_text = "\n\n**Worth Knowing:**\n" + "\n\n".join(time_insights) if time_insights else ""
-        time_hits = f"\n\n*This line actually ran {hits} time(s) during the last test.*" if hits > 0 else ""
+        # Theoretical analysis: how many times a line happened to run in one test says
+        # nothing about its asymptotic cost, so it is deliberately not mentioned here.
+        time_hits = ""
 
         full_time_desc = (
             f"{time_intro}\n\n"

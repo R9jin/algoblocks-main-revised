@@ -1,8 +1,8 @@
 {
   "metric": "expected_overall_space vs analyzer 'space_total'",
   "n": 273,
-  "correct": 252,
-  "accuracy": 0.9231,
+  "correct": 249,
+  "accuracy": 0.9121,
   "floor": 0.9,
   "mismatches": [
     {
@@ -38,6 +38,22 @@
       "analyzer_status": "success"
     },
     {
+      "id": "algo_n_045",
+      "name": "Find Common Strings with Minimum Index Sum",
+      "source_file": "ground_truth_chunk_05.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_049",
+      "name": "Print a Cross/Plus Pattern in a Matrix",
+      "source_file": "ground_truth_chunk_05.json",
+      "expected": "O(1)",
+      "predicted": "O(n^2)",
+      "analyzer_status": "success"
+    },
+    {
       "id": "algo_n2_072",
       "name": "Check if a Matrix Is Skew-Symmetric",
       "source_file": "ground_truth_chunk_08.json",
@@ -59,6 +75,14 @@
       "source_file": "ground_truth_chunk_08.json",
       "expected": "O(1)",
       "predicted": "O(n)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_105",
+      "name": "Count Distinct Transformations Between Two Strings (DP)",
+      "source_file": "ground_truth_chunk_11.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n * m)",
       "analyzer_status": "success"
     },
     {

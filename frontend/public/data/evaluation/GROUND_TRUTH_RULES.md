@@ -22,3 +22,25 @@ Labels in `processed/` were derived from the code alone, by writing down each lo
 Processing relabeled the only two O(n!) records to O(2^n), which left one of the nine notations with no benchmark record. Fourteen genuine factorial programs were added to `processed/` (273 records in total). Their labels were derived from the code by hand under the rules above, with the line labels written next to the code in `tools/ground_truth/factorial_records_src.py`; no analyzer output was consulted. `tools/ground_truth/verify_factorial_records.py` runs each program under a line tracer for n = 5 to 8 as a sanity check on the growth of every labeled line. The records have no original label (`dataset_original_time` and `dataset_original_space` are null) and are not in `original_278/`.
 
 Each record enumerates (close to) all n! orderings in the worst case: swap backtracking, used-array backtracking, slicing, Heap's algorithm, iterative next-permutation, insertion, and brute-force TSP, permutation sort, derangement counting, assignment, Hamiltonian-path counting. Overall space is O(n) for the in-place ones, O(n^2) where each frame holds a slice, and O(n!) where all permutations are stored.
+
+## Addendum (2026-10-12): scoring scale for analyzer output
+
+The analyzer keeps independent size symbols apart (`O(n * m)`, `O(n + m)`, `O(n * k)`, `O(m^2 + n)`), which is the correct
+analysis output and is not changed. The ground truth stays on the nine-class, single-size scale above (rule 1: n is the
+largest size parameter; rule 9: V is n). So a prediction is **folded onto that scale before it is compared**:
+
+| analyzer label | scored as | basis |
+|---|---|---|
+| `O(n * m)`, `O(n * k)`, `O(m * k)`, `O(n * v)` | `O(n^2)` | rule 1 (n = max size) |
+| `O(n + m)`, `O(m)`, `O(k)` | `O(n)` | rule 1 |
+| `O(n^2 + m)`, `O(m^2 + n)`, `O(m^2)` | `O(n^2)` | rule 1, higher term dominates |
+| `O(n^2 + e)` | `O(n^2)` | rule 9, E <= V^2 |
+| any label naming a `V+E` sum, e.g. `O(n * m + V+E)` | `O(V + E)` | unchanged behaviour |
+| `O(n^3)`, `O(n^4)`, `O(t(n-1))`, `O(n * e)` ... | left as is (counts as a miss) | outside the nine classes / unresolved |
+
+The fold is symmetric, only ever picks the single-size representative of a class the label already belongs to, and never
+turns one class into a different one. The raw analyzer label is always kept next to the scored one (the
+`Analyzer Output (Time/Space)` columns of the benchmark workbook). Implementation: `frontend/src/utils/complexityMatch.js`
+(`foldToBenchmarkScale`) and `frontend/public/python_engine/benchmark_scale.py`; keep the two in step.
+
+No ground-truth label was changed in this pass; see `processed/GROUND_TRUTH_AUDIT_2026-10-12.md`.

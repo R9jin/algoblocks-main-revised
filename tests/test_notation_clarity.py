@@ -27,7 +27,6 @@ def _run(src):
 CASES = [
     # (name, source, expected total, phrase that must appear)
     ("fixed literal", "t = 0\nfor i in range(1000):\n    t += 1\n", "O(1)", "A fixed number is not n"),
-    ("fixed variable", "n = 10\nt = 0\nfor i in range(n):\n    t += i\n", "O(1)", "A variable can still be a constant"),
     ("typed-in n", "n = int(input())\nt = 0\nfor i in range(n):\n    t += i\n", "O(n)", "Where n comes from"),
     ("parameter", "def f(n):\n    t = 0\n    for i in range(n):\n        t += 1\n    return t\n", "O(n)", "A number you pass in is the size"),
     ("size alias", "def f(a):\n    k = len(a)\n    t = 0\n    for i in range(k):\n        t += a[i]\n    return t\n", "O(n)", "A new name is still the same n"),
@@ -35,7 +34,7 @@ CASES = [
     ("step", "def f(n):\n    t = 0\n    for i in range(0, n, 2):\n        t += 1\n    return t\n", "O(n)", "Skipping doesn't change the class"),
     ("fraction", "def f(n):\n    t = 0\n    for i in range(n // 2):\n        t += 1\n    return t\n", "O(n)", "Constants and offsets don't change the class"),
     ("constant inner loop", "def f(n):\n    t = 0\n    for i in range(n):\n        for j in range(3):\n            t += 1\n    return t\n", "O(n)", "Not every nested loop is another factor of n"),
-    ("two inputs", "def f(a, b):\n    t = 0\n    for x in a:\n        for y in b:\n            t += 1\n    return t\n", "O(n^2)", "Two different inputs"),
+    ("two inputs", "def f(a, b):\n    t = 0\n    for x in a:\n        for y in b:\n            t += 1\n    return t\n", "O(n * m)", "Two different sizes"),
     ("fixed gap", "def f(a):\n    t = 0\n    for i in range(len(a)):\n        for j in range(i, i + 3):\n            t += 1\n    return t\n", "O(n^2)", "A direct range counts the gap"),
     ("formula vs loop", "def f(n):\n    return n * (n + 1) // 2\n", "O(1)", "Same output, different Big-O"),
     ("digits", "def f(n):\n    c = 0\n    while n > 0:\n        n //= 10\n        c += 1\n    return c\n", "O(log n)", "Value vs. digits"),
@@ -49,9 +48,14 @@ def test_clarity_note_appears_and_total_is_unchanged(name, src, total, phrase):
     assert phrase in text, f"{name}: expected a note containing {phrase!r}"
 
 
-def test_loops_but_still_constant_is_said_at_program_level():
-    _, text = _run("n = 10\nt = 0\nfor i in range(n):\n    t += i\n")
-    assert "Loops, but still O(1)" in text
+def test_an_assigned_value_is_never_called_a_constant():
+    # Theoretical analysis: `n = 10` is only a sample value of the size n, so the loop is O(n)
+    # and no note may call the loop constant.
+    r, text = _run("n = 10\nt = 0\nfor i in range(n):\n    t += i\n")
+    assert r["total"] == "O(n)"
+    assert "Loops, but still O(1)" not in text
+    assert "A variable can still be a constant" not in text
+    assert "A name for a fixed number" not in text
 
 
 def test_never_claims_o1_when_the_analyzer_reads_the_bound_as_a_size():

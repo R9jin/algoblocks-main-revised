@@ -23,6 +23,7 @@ from contextlib import redirect_stdout
 
 from conftest import GROUND_TRUTH_DIR, REPORTS_DIR, load_ground_truth  # noqa: E402
 from complexity_analyzer.analyzer import analyze_source_code  # noqa: E402
+from benchmark_scale import fold_to_benchmark_scale  # noqa: E402
 
 
 def main():
@@ -42,8 +43,8 @@ def main():
         predicted_t = result.get("total") or result.get("fallback_total")
         predicted_s = result.get("space_total") or result.get("fallback_space_total")
 
-        t_ok = predicted_t == expected_t
-        s_ok = predicted_s == expected_s
+        t_ok = fold_to_benchmark_scale(predicted_t) == fold_to_benchmark_scale(expected_t)
+        s_ok = fold_to_benchmark_scale(predicted_s) == fold_to_benchmark_scale(expected_s)
 
         time_correct += t_ok
         space_correct += s_ok

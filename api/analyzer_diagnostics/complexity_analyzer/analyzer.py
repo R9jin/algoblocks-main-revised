@@ -501,6 +501,7 @@ class ComplexityAnalyzer:
         self.max_exp = 0
         self.max_fact = 0
         self.max_graph_ve = 0                 
+        self.graph_list_pop0 = False          # a list used as a BFS queue with pop(0): traversal is O(V^2 + E)
         self.max_space_weight = 0        
         
         self.variable_complexities = {}  
@@ -682,8 +683,11 @@ def analyze_source_code(source_code, explain=True):
                 for target in stmt.targets:
                     if isinstance(target, ast.Name) and target.id not in param_names:
                         analyzer.module_int_constants.add(target.id)
+        analyzer.root_tree = tree
         analyzer.script_literal_locs = find_script_literal_name_locs(tree)
         analyzer.m_dim_for_locs = find_element_dim_loops(tree)
+        from complexity_analyzer.size_symbols import SizeSymbols
+        analyzer.size_symbols = SizeSymbols(tree, analyzer.complexity_heuristics._is_constant_expr)
         analyzer.graph_aux_space = graph_aux_space(tree)
         analyzer.const_sized_names = find_constant_sized_names(tree, analyzer.complexity_heuristics._is_constant_expr)
 

@@ -8,6 +8,7 @@ linear-variable tracking, and related pattern detectors.
 import ast
 import re
 from complexity_analyzer.code_preprocessor import safe_walk, extract_constant
+from complexity_analyzer import code_preprocessor as _cp
 
 
 class ComplexityHeuristics:
@@ -67,6 +68,14 @@ class ComplexityHeuristics:
         return None
 
     def _register_and_get_dim(self, var_name):
+        # Theoretical analysis: a size letter is a variable's IDENTITY (x and y are two sizes,
+        # n = len(arr) is the same size as arr), never a guess from its spelling.
+        _sym = getattr(self.analyzer, 'size_symbols', None)
+        if _sym is not None and _cp.THEORETICAL_MODE and isinstance(var_name, str) and var_name:
+            try:
+                return _sym.letter_for(var_name, getattr(self.analyzer, 'current_function_name', None))
+            except Exception:
+                pass
         try:
             if not var_name: return 'n'
             if isinstance(var_name, str):
@@ -85,6 +94,15 @@ class ComplexityHeuristics:
             if isinstance(expr_node, (ast.Constant, getattr(ast, 'Num', type(None)), getattr(ast, 'Str', type(None)))):
                 return True
             if isinstance(expr_node, ast.Name):
+                # Theoretical mode: a variable is a symbolic quantity that grows
+                # with the input -- never a fixed constant, whatever its name
+                # (n, MAX, size...) or its assigned value.
+                if _cp.THEORETICAL_MODE:
+                    # Only exception: a named ALPHABET size (MAX_CHAR = 26,
+                    # NO_OF_CHARS = 256) is a fixed property of the character set,
+                    # not a size that scales with the input.
+                    _nu = expr_node.id.upper()
+                    return any(k in _nu for k in ('CHARS', 'MAX_CHAR', 'ALPHABET', 'ASCII'))
                 if (getattr(expr_node, 'lineno', None), getattr(expr_node, 'col_offset', None)) in getattr(self.analyzer, 'script_literal_locs', ()):
                     return True
                 # A variable already known to be derived from math.sqrt(...)
@@ -136,9 +154,11 @@ class ComplexityHeuristics:
     def _is_exponential_expr(self, expr_node):
         try:
             if isinstance(expr_node, ast.BinOp):
-                if isinstance(expr_node.op, ast.LShift): return True
-                if isinstance(expr_node.op, ast.Pow) and isinstance(getattr(expr_node.left, 'value', getattr(expr_node.left, 'n', None)), (int, float)): return True
-            elif isinstance(expr_node, ast.Call) and getattr(getattr(expr_node, 'func', None), 'id', '') == 'pow': return True
+                # a literal shift/exponent (1 << 10, 2 ** 10) is just a fixed number, not growth
+                if isinstance(expr_node.op, ast.LShift): return not self._is_constant_expr(expr_node.right)
+                if isinstance(expr_node.op, ast.Pow) and isinstance(getattr(expr_node.left, 'value', getattr(expr_node.left, 'n', None)), (int, float)): return not self._is_constant_expr(expr_node.right)
+            elif isinstance(expr_node, ast.Call) and getattr(getattr(expr_node, 'func', None), 'id', '') == 'pow':
+                return not (len(expr_node.args) >= 2 and self._is_constant_expr(expr_node.args[1]))
         except Exception:
             pass
         return False
@@ -179,6 +199,103 @@ class ComplexityHeuristics:
             cache[key] = True if _once else self._is_constant_loop_uncached(node)
         return cache[key]
 
+
+    def _is_literal_counter_loop(self, node):
+        """
+        `i = 1` ... `while i < 64: i *= 2` -- the counter starts from a literal, is only
+        stepped by literals, and is compared with a literal, so the pass count is a fixed
+        number no matter what the input is: O(1). Anything that touches a variable
+        (`i = n`, `i *= k`, `while x > 0` with x derived from the input) is NOT matched and
+        stays symbolic, which keeps halving/doubling over `n` at O(log n).
+        """
+        try:
+            test = getattr(node, 'test', None)
+            if not isinstance(test, ast.Compare) or len(test.ops) != 1 or len(test.comparators) != 1:
+                return False
+            l, r = test.left, test.comparators[0]
+            lit = lambda e: isinstance(e, ast.Constant) and isinstance(e.value, (int, float)) and not isinstance(e.value, bool)
+            if isinstance(l, ast.Name) and lit(r): name = l.id
+            elif isinstance(r, ast.Name) and lit(l): name = r.id
+            else: return False
+            # the counter's most recent plain assignment before the loop, in the same block, must be a literal
+            root = getattr(self.analyzer, 'root_tree', None)
+            if root is None: return False
+            block, idx = None, None
+            for parent in ast.walk(root):
+                for field in ('body', 'orelse', 'finalbody'):
+                    lst = getattr(parent, field, None)
+                    if isinstance(lst, list) and any(st is node for st in lst):
+                        block, idx = lst, next(i for i, st in enumerate(lst) if st is node)
+                        break
+                if block is not None: break
+            if block is None: return False
+            started_literal = False
+            for st in reversed(block[:idx]):
+                if isinstance(st, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in st.targets):
+                    started_literal = lit(st.value); break
+                if any(isinstance(n, ast.Name) and n.id == name and isinstance(n.ctx, ast.Store) for n in ast.walk(st)):
+                    return False
+            if not started_literal: return False
+            # inside the loop the counter may only be stepped by literals
+            stepped = False
+            for sub in safe_walk(node):
+                if isinstance(sub, ast.AugAssign) and isinstance(sub.target, ast.Name) and sub.target.id == name:
+                    if not lit(sub.value): return False
+                    stepped = True
+                elif isinstance(sub, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in sub.targets):
+                    v = sub.value
+                    if not (isinstance(v, ast.BinOp) and isinstance(v.left, ast.Name) and v.left.id == name and lit(v.right)): return False
+                    stepped = True
+                elif isinstance(sub, (ast.For, ast.comprehension)) and any(isinstance(n, ast.Name) and n.id == name and isinstance(n.ctx, ast.Store) for n in ast.walk(getattr(sub, 'target', sub))):
+                    return False
+            return stepped
+        except Exception:
+            return False
+
+
+    def _loop_dims(self, node):
+        """Ordered size symbols of a `for` loop's pass count (one entry per polynomial degree),
+        e.g. range(n) -> ['n'], range(x * y) -> ['n', 'm'], range(n ** 2) -> ['n', 'n']."""
+        _sym = getattr(self.analyzer, 'size_symbols', None)
+        if _sym is not None and _cp.THEORETICAL_MODE:
+            try:
+                return _sym.loop_dims(node, getattr(self.analyzer, 'current_function_name', None))
+            except Exception:
+                pass
+        iter_name = self._get_iterable_name(node.iter)
+        dim = self._register_and_get_dim(iter_name)
+        return [dim] * self._loop_bound_degree(node) if dim else []
+
+    def _loop_bound_degree(self, node):
+        """
+        Polynomial degree of a `for` loop's pass count in the input size:
+        range(n) -> 1, range(n * n) / range(n ** 2) -> 2, range(n * (n - 1) // 2) -> 2,
+        range(len(a) * 2) -> 1. (A loop that is constant is handled elsewhere and never asks.)
+        """
+        def deg(e):
+            if self._is_constant_expr(e): return 0
+            if isinstance(e, ast.Name): return 1
+            if isinstance(e, ast.UnaryOp): return deg(e.operand)
+            if isinstance(e, ast.BinOp):
+                if isinstance(e.op, (ast.Add, ast.Sub)): return max(deg(e.left), deg(e.right))
+                if isinstance(e.op, ast.Mult): return deg(e.left) + deg(e.right)
+                if isinstance(e.op, (ast.Div, ast.FloorDiv, ast.Mod)): return deg(e.left)
+                if isinstance(e.op, ast.Pow):
+                    k = e.right.value if isinstance(e.right, ast.Constant) and isinstance(e.right.value, int) and not isinstance(e.right.value, bool) else None
+                    if k is not None and 1 <= k <= 8: return max(1, deg(e.left)) * k
+                return 1
+            if isinstance(e, ast.Call):
+                return 1 if (getattr(e.func, 'id', '') == 'len' or any(deg(a) for a in e.args)) else 0
+            return 1
+        try:
+            it = node.iter
+            if isinstance(it, ast.Call) and getattr(it.func, 'id', '') == 'range' and it.args:
+                bound = it.args[0] if len(it.args) == 1 else it.args[1]
+                return max(1, min(deg(bound), 8))
+        except Exception:
+            pass
+        return 1
+
     def _is_sqrt_loop(self, node):
         key = ('_is_sqrt_loop', id(node))
         cache = self.analyzer._loop_classify_cache
@@ -197,6 +314,7 @@ class ComplexityHeuristics:
         try:
             if isinstance(node, ast.While):
                 if any(isinstance(child, ast.Break) for child in safe_walk(node)): return False
+                if self._is_literal_counter_loop(node): return True
                 if getattr(node, 'test', None):
                     if isinstance(node.test, ast.Constant): return True
                     if self._is_constant_expr(node.test): return True
@@ -533,7 +651,8 @@ class ComplexityHeuristics:
             if isinstance(node, ast.For) and isinstance(node.iter, ast.Call):
                 if getattr(node.iter.func, 'id', '') == 'range':
                     for arg in node.iter.args:
-                        if isinstance(arg, ast.BinOp) and isinstance(arg.op, ast.Pow): return True
+                        # exponential only when the EXPONENT grows (2**n); n**2 is polynomial, 2**10 is fixed
+                        if isinstance(arg, ast.BinOp) and isinstance(arg.op, ast.Pow) and not self._is_constant_expr(arg.right): return True
             return False
         except Exception:
             return False
@@ -546,10 +665,10 @@ class ComplexityHeuristics:
             for child in safe_walk(expr):
                 if isinstance(child, ast.BinOp):
                     val = extract_constant(child.left) or 0
-                    if isinstance(child.op, ast.Pow) and isinstance(val, (int, float)) and val == 2: return True
+                    if isinstance(child.op, ast.Pow) and isinstance(val, (int, float)) and val == 2 and not self._is_constant_expr(child.right): return True
                 if isinstance(child, ast.Call) and isinstance(getattr(child, 'func', None), ast.Name) and child.func.id == 'pow':
                     val = extract_constant(child.args[0] if getattr(child, 'args', None) else None) or 0
-                    if len(child.args) >= 2 and isinstance(val, (int, float)) and val == 2: return True
+                    if len(child.args) >= 2 and isinstance(val, (int, float)) and val == 2 and not self._is_constant_expr(child.args[1]): return True
                 if isinstance(child, ast.Name) and self.analyzer.variable_complexities.get(child.id) == "exponential": return True
             return False
         except Exception:

@@ -7,6 +7,7 @@ producing per-line complexity signatures -- the traversal half of the
 "Dependency-Ordered Signature Pass (DFS)" stage.
 """
 import ast
+from complexity_analyzer import code_preprocessor as _cp_mod
 from complexity_analyzer.code_preprocessor import safe_walk, extract_constant, _name_hints_memo_or_graph, _detect_factorial_branching, _factorial_recursion_space
 import re
 
@@ -208,7 +209,26 @@ class ASTNodeVisitor(ast.NodeVisitor):
         self.analyzer.signature_recorder.record_line(node, time_override=None, space_override=None)
         self.generic_visit(node)
 
+    _PARENT_STATE = ('current_function_name', 'in_graph_context', 'recursive_calls_count', 'tree_traversal_calls',
+                     'function_gcd_vars', 'in_frequency_summation_depth', 'has_recursion_in_loop', 'has_slicing',
+                     'has_partitioning', 'has_division', 'has_global_accumulation', 'has_factorial_branching',
+                     'first_rec_line', 'conditional_partition_lines', 'in_if_depth')
+
     def visit_FunctionDef(self, node):
+        # A def nested in another function must hand the enclosing function's per-function state back
+        # untouched: otherwise its recursion flags / name / graph context leak into (or wipe) the parent.
+        _a = self.analyzer
+        _parent = None
+        if getattr(_a, 'current_function_name', None):
+            _parent = {k: getattr(_a, k, None) for k in self._PARENT_STATE}
+        try:
+            return self._visit_FunctionDef_core(node)
+        finally:
+            if _parent is not None:
+                for k, v in _parent.items():
+                    setattr(_a, k, v)
+
+    def _visit_FunctionDef_core(self, node):
         is_memoized_or_graph = False
         for dec in getattr(node, 'decorator_list', []):
             if isinstance(dec, ast.Name) and dec.id in ['lru_cache', 'cache', 'memoize']: is_memoized_or_graph = True
@@ -244,7 +264,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
         self.analyzer.in_graph_context = self.analyzer.call_graph_mapper._detect_graph_context(node)
         
         is_dead = node.name not in self.analyzer.reachable_funcs
-        self.analyzer.signature_recorder.record_line(node, time_override="O(1)" if is_dead else "Definition", space_override="O(1)")
+        self.analyzer.signature_recorder.record_line(node, time_override="Definition", space_override="O(1)")
         
         # Ensure we capture the exact index to avoid IndexError during update mapping
         found_idx = None
@@ -255,17 +275,23 @@ class ASTNodeVisitor(ast.NodeVisitor):
         if found_idx is not None:
             start_idx = found_idx
         
-        prev_dead = self.analyzer.in_dead_code; self.analyzer.in_dead_code = is_dead or prev_dead
-        prev_reason = getattr(self.analyzer, 'dead_reason', None)
+        # Entry-point execution vs function-level analysis: a `def` that nothing calls never runs, so
+        # its body must not add to the entry point's total -- but the helper itself is still a function
+        # the learner wrote, so its body is analysed on its own (rows flagged `uncalled_function`).
+        # `in_dead_code` stays reserved for statements that are genuinely unreachable.
+        prev_dead = self.analyzer.in_dead_code
+        prev_uncalled = getattr(self.analyzer, 'in_uncalled_func', False)
+        prev_uncalled_reason = getattr(self.analyzer, 'uncalled_reason', None)
         func_dead_reason = None
-        if is_dead and not prev_dead:
+        if is_dead and not prev_uncalled:
             func_dead_reason = getattr(self.analyzer, 'dead_func_reasons', {}).get(node.name) or {
                 "kind": "uncalled_function",
-                "reason": f"`{node.name}()` is never called, so its body never runs and is left out of the complexity total."}
-            self.analyzer.dead_reason = func_dead_reason
+                "reason": f"`{node.name}()` is never called by the program, so it adds nothing to the entry point's complexity. Its own complexity is shown below."}
+            self.analyzer.uncalled_reason = func_dead_reason["reason"]
+        self.analyzer.in_uncalled_func = prev_uncalled or is_dead
         self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1
-        self.analyzer.in_dead_code = prev_dead
-        self.analyzer.dead_reason = prev_reason
+        self.analyzer.in_uncalled_func = prev_uncalled
+        self.analyzer.uncalled_reason = prev_uncalled_reason
         
         does_linear_work = self.analyzer.max_poly_str != "O(1)" or self.analyzer.has_slicing
         if not does_linear_work:
@@ -546,8 +572,12 @@ class ASTNodeVisitor(ast.NodeVisitor):
                     elif not getattr(self.analyzer, 'in_graph_context', False):
                         if self.analyzer._details[i]["global_time"] == "O(1)" and relation not in ["O(1)", "O(log n)"]:
                             if "2T(" in relation or "T(n-1) + T(n-2)" in relation or self.analyzer.recursive_calls_count >= 2:
-                                self.analyzer._details[i]["global_time"] = "O(n)"
-                                self.analyzer._details[i]["weight"] = self.analyzer.signature_recorder._get_weight("O(n)")
+                                # Cumulative executions of this line = number of invocations of the function.
+                                # When the recurrence is exponential/factorial that is the whole resolved
+                                # class (2^n / n!), not a linear count: the base case runs once per leaf.
+                                _bump = resolved_rel if ("2^n" in resolved_rel or "n!" in resolved_rel) else "O(n)"
+                                self.analyzer._details[i]["global_time"] = _bump
+                                self.analyzer._details[i]["weight"] = self.analyzer.signature_recorder._get_weight(_bump)
 
         if start_idx < len(self.analyzer._details):
             self.analyzer._details[start_idx]["local_time"] = "O(1)"
@@ -558,8 +588,9 @@ class ASTNodeVisitor(ast.NodeVisitor):
             self.analyzer._details[start_idx]["time_explanation"] = "Function declaration."
             self.analyzer._details[start_idx]["space_explanation"] = "O(1) memory overhead."
             if func_dead_reason:
-                self.analyzer._details[start_idx]["dead_kind"] = func_dead_reason["kind"]
-                self.analyzer._details[start_idx]["dead_reason"] = func_dead_reason["reason"]
+                self.analyzer._details[start_idx]["uncalled_function"] = True
+                self.analyzer._details[start_idx]["scope"] = "function-level"
+                self.analyzer._details[start_idx]["uncalled_reason"] = func_dead_reason["reason"]
                 self.analyzer._details[start_idx]["time_explanation"] = "Function declaration. " + func_dead_reason["reason"]
             # Teach what the definition means instead of a one-line stub. Any failure
             # here must fall back to the plain text above, never break the analysis.
@@ -577,6 +608,11 @@ class ASTNodeVisitor(ast.NodeVisitor):
             except Exception:
                 pass
 
+        if is_dead:
+            # function-level only: hand the enclosing scope's maxima back untouched
+            (self.analyzer.max_complexity, self.analyzer.max_space_weight, self.analyzer.max_poly_str,
+             self.analyzer.max_log, self.analyzer.max_sqrt, self.analyzer.max_exp,
+             self.analyzer.max_graph_ve, self.analyzer.max_fact) = prev_data
         if not is_dead:
             self.analyzer.max_exp, self.analyzer.max_graph_ve = max(prev_data[5], self.analyzer.max_exp), max(prev_data[6], self.analyzer.max_graph_ve)
             self.analyzer.max_fact = max(prev_data[7] if len(prev_data) > 7 else 0, getattr(self.analyzer, 'max_fact', 0))
@@ -589,10 +625,18 @@ class ASTNodeVisitor(ast.NodeVisitor):
         final_sp_upgrade = None
         if self.analyzer.max_space_weight >= 2:
             final_sp_upgrade = "O(n^2)"
+        elif (self.analyzer.custom_space.get(node.name) == "O(n^2)"
+              and self.analyzer.recursive_calls_count > 0):
+            # recursion that copies a slice per call keeps every active frame's copy alive at once
+            # (n + (n-1) + ... = O(n^2) elements): the copy lines carry the retained total.
+            final_sp_upgrade = "O(n^2)"
 
         if start_idx < len(self.analyzer._details):
             for i in range(start_idx, len(self.analyzer._details)):
-                if final_sp_upgrade and self.analyzer._details[i].get("global_space") == "O(n)":
+                # a plain call row already carries the CALLEE's own space class; another helper's
+                # O(n^2) must not be copied onto it
+                if (final_sp_upgrade and self.analyzer._details[i].get("global_space") == "O(n)"
+                        and self.analyzer._details[i].get("operation") != "Function Call"):
                     self.analyzer._details[i]["global_space"] = final_sp_upgrade
 
         self.analyzer.current_function_name = None; self.analyzer.in_graph_context = False; self.analyzer.recursive_calls_count = 0 
@@ -705,8 +749,12 @@ class ASTNodeVisitor(ast.NodeVisitor):
     def visit_For(self, node):
         iter_name = self.analyzer.complexity_heuristics._get_iterable_name(node.iter)
         dim = self.analyzer.complexity_heuristics._register_and_get_dim(iter_name)
+        loop_dims = self.analyzer.complexity_heuristics._loop_dims(node)
         if (getattr(node, 'lineno', None), getattr(node, 'col_offset', None)) in getattr(self.analyzer, 'm_dim_for_locs', ()):
             dim = 'm'  # walks the inside of the enclosing loop's current row: columns, a separate size
+            loop_dims = ['m'] * max(1, len(loop_dims))
+        elif loop_dims:
+            dim = loop_dims[0]
         target_name = node.target.id if isinstance(node.target, ast.Name) else None
         
         is_const = self.analyzer.complexity_heuristics._is_constant_loop(node)
@@ -813,7 +861,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             elif is_sqrt:
                 self.analyzer.sqrt_loop_depth = getattr(self.analyzer, 'sqrt_loop_depth', 0) + 1
             elif dim:
-                self.analyzer.active_poly_dims.append(dim)
+                self.analyzer.active_poly_dims.extend(loop_dims or [dim])
         
         if has_log_call: self.analyzer.call_log_depth += 1
         
@@ -827,7 +875,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
             elif is_sqrt:
                 self.analyzer.sqrt_loop_depth -= 1
             elif dim:
-                self.analyzer.active_poly_dims.pop()
+                for _ in range(len(loop_dims or [dim])): self.analyzer.active_poly_dims.pop()
                 
         self._visit_block(getattr(node, 'orelse', []))
         self.analyzer.current_depth -= 1
@@ -838,6 +886,48 @@ class ASTNodeVisitor(ast.NodeVisitor):
         self.analyzer.loop_stack_targets.pop()
 
     def visit_While(self, node):
+        # A BFS-style worklist loop inside a function that is NOT a graph function overall (e.g. one
+        # function that also has plain counting loops) is still a traversal: cost it as V + E for the
+        # region only, then restore the function-level context.
+        _a = self.analyzer
+        _region = False
+        if not getattr(_a, 'in_graph_context', False) and self._looks_like_traversal(node):
+            _a.in_graph_context = True
+            _region = True
+        try:
+            return self._visit_While_core(node)
+        finally:
+            if _region:
+                _a.in_graph_context = False
+
+    @staticmethod
+    def _graph_iter(it):
+        """Does a `for` iterate an adjacency collection: graph[v], graph.get(v, []), adj, neighbors ...?"""
+        kw = ('neighbor', 'adj', 'graph', 'child')
+        if isinstance(it, ast.Subscript): return True
+        if isinstance(it, ast.Name): return any(k in it.id.lower() for k in kw)
+        if isinstance(it, ast.Attribute): return it.attr in ('graph', 'adj', 'adjList')
+        if (isinstance(it, ast.Call) and isinstance(it.func, ast.Attribute) and it.func.attr == 'get'
+                and isinstance(it.func.value, ast.Name)):
+            return any(k in it.func.value.id.lower() for k in kw)
+        return False
+
+    def _looks_like_traversal(self, node):
+        """while <worklist>: v = worklist.pop(..)/popleft(); for nb in <adjacency>: if nb not in visited: ..."""
+        try:
+            pops = fors = member = False
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr in ('pop', 'popleft'):
+                    pops = True
+                elif isinstance(sub, ast.For) and self._graph_iter(sub.iter):
+                    fors = True
+                elif isinstance(sub, ast.Compare) and any(isinstance(o, (ast.In, ast.NotIn)) for o in sub.ops):
+                    member = True
+            return pops and fors and member
+        except Exception:
+            return False
+
+    def _visit_While_core(self, node):
         is_const = self.analyzer.complexity_heuristics._is_constant_loop(node)
         self.analyzer.loop_depth += 1
         self.analyzer.loop_stack.append('1' if is_const else 'n')
@@ -869,7 +959,17 @@ class ASTNodeVisitor(ast.NodeVisitor):
             self.analyzer.current_depth += 1; 
             for child in node.body:
                 if isinstance(child, ast.Assign) and isinstance(getattr(child.value, 'func', None), ast.Attribute) and child.value.func.attr in ['pop', 'popleft']:
-                    self.analyzer.signature_recorder.record_line(child, time_override="O(1)", space_override="O(1)")
+                    _fn = child.value.func
+                    _pop0 = (_fn.attr == 'pop' and len(child.value.args) == 1
+                             and extract_constant(child.value.args[0]) == 0)
+                    if _pop0:
+                        # list.pop(0) shifts every remaining element: O(V) per removal, V removals.
+                        self.analyzer.graph_list_pop0 = True
+                        self.analyzer.signature_recorder.record_line(
+                            child, time_override="O(V)", global_time_override="O(V^2)",
+                            space_override="O(1)", custom_op="Pop from specific index")
+                    else:
+                        self.analyzer.signature_recorder.record_line(child, time_override="O(1)", space_override="O(1)")
                 else:
                     self.visit(child)
             self.analyzer.graph_depth -= 1
@@ -1034,6 +1134,10 @@ class ASTNodeVisitor(ast.NodeVisitor):
                 self.analyzer.signature_recorder.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
             else:
                 call_comp = self.analyzer.custom_functions[f_id]
+                # a call to a permutation-style helper must show its resolved class, not a raw "T(n-1)" token.
+                # (Deliberately narrow: resolving every recurrence here changed other programs' totals.)
+                if "n * T(n-1)" in call_comp or "n*T(n-1)" in call_comp:
+                    call_comp = "O(n!)"
                 self.analyzer.signature_recorder.record_line(node, time_override=call_comp, space_override=self.analyzer.custom_space.get(f_id, "O(1)"), custom_op="Function Call")
 
         elif isinstance(func_node, ast.Name):
@@ -1343,6 +1447,16 @@ class ASTNodeVisitor(ast.NodeVisitor):
                         if isinstance(_t, ast.Name): self.analyzer.constant_size_containers.add(_t.id)
                 elif is_nested or (len(active_loops) > 0 and isinstance(node.targets[0], ast.Subscript)):
                     _k = max(2, _alloc_dims(node.value, self.analyzer.complexity_heuristics._is_constant_expr))
+                    _sym = getattr(self.analyzer, 'size_symbols', None)
+                    _ad = _sym.alloc_dims(node.value, self.analyzer.current_function_name) if _sym is not None else []
+                    if _cp_mod.MULTI_VARIABLE_NOTATION and _cp_mod.THEORETICAL_MODE and len(set(_ad)) >= 2:
+                        from collections import Counter as _Ct
+                        from complexity_analyzer.size_symbols import letter_rank as _lr
+                        _prod = " * ".join((f"{v}^{c}" if c > 1 else v) for v, c in sorted(_Ct(_ad).items(), key=lambda kv: _lr(kv[0])))
+                        self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
+                        self.analyzer.signature_recorder.record_line(node, time_override=f"O({_prod})", space_override=f"O({_prod})", custom_op="2D Array Allocation")
+                        self.generic_visit(node)
+                        return
                     self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)  # weight scale: 2 = polynomial; the exact degree travels in the O(n^k) text
                     self.analyzer.signature_recorder.record_line(node, time_override=f"O(n^{_k})", space_override=f"O(n^{_k})", custom_op="2D Array Allocation" if _k == 2 else f"{_k}D Array Allocation")
                     self.generic_visit(node)
@@ -1484,7 +1598,7 @@ class ASTNodeVisitor(ast.NodeVisitor):
 
     def visit_AugAssign(self, node): 
         if self.analyzer.loop_depth > 0 and isinstance(node.target, ast.Name) and isinstance(node.value, ast.Subscript):
-            self.analyzer.signature_recorder.add_logic_hint(node, "Logic Risk (Data-Dependent Traversal): Your loop increment/step mainly depends heavily on dynamic data values. Static analysis conservatively mainly defaults to worst-case, but runtime could radically fluctuate depending on the dataset state.")
+            self.analyzer.signature_recorder.add_logic_hint(node, "Logic Risk (Data-Dependent Traversal): Your loop increment/step mainly depends heavily on dynamic data values. The analysis therefore assumes the worst case over all possible inputs, since the number of iterations cannot be bounded from the code alone.")
 
         if isinstance(node.target, ast.Name) and self.analyzer.complexity_heuristics._is_linear_var(node.target.id):
             is_geometric = False
