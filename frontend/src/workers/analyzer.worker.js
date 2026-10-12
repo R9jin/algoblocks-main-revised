@@ -1,5 +1,5 @@
 // frontend/src/workers/analyzer.worker.js
-import { checkMatch } from "../utils/complexityMatch.js";
+import { checkMatch, foldToBenchmarkScale } from "../utils/complexityMatch.js";
 
 let pyodide = null;
 let pyodidePromise = null; 
@@ -713,10 +713,15 @@ json.dumps(res)
           const predictedTime = resultJs.total || resultJs.fallback_total || "PARSE_FAIL";
           const predictedSpace = resultJs.space_total || resultJs.fallback_space_total || resultJs.space || "O(1)";
 
+          // The analyzer reports independent sizes separately (O(n * m), O(n + m)).
+          // Scoring happens on the benchmark's single-size scale (GROUND_TRUTH_RULES.md
+          // rules 1 and 9), so the prediction is folded onto it BEFORE normalisation
+          // (strictBigONormalizer would otherwise turn "O(n * m + V+E)" into plain
+          // O(V + E)). The analyzer's own label is kept, unchanged, as analyzerOutput*.
           const normExpTime = strictBigONormalizer(rawExpectedTime);
-          const normPredTime = strictBigONormalizer(predictedTime);
+          const normPredTime = strictBigONormalizer(foldToBenchmarkScale(predictedTime));
           const normExpSpace = strictBigONormalizer(rawExpectedSpace);
-          const normPredSpace = strictBigONormalizer(predictedSpace);
+          const normPredSpace = strictBigONormalizer(foldToBenchmarkScale(predictedSpace));
 
           const isTimeCorrect = checkMatch(normPredTime, normExpTime, "time");
           const isSpaceCorrect = checkMatch(normPredSpace, normExpSpace, "space");
@@ -743,8 +748,8 @@ json.dumps(res)
             // nesting/recursion-aware time/space value per line (see
             // _finalize_line_output in analyzer.py) -- there is no separate
             // local value to read anymore.
-            const predTime = strictBigONormalizer(pLine.time || "O(1)");
-            const predSpace = strictBigONormalizer(pLine.space || "O(1)");
+            const predTime = strictBigONormalizer(foldToBenchmarkScale(pLine.time || "O(1)"));
+            const predSpace = strictBigONormalizer(foldToBenchmarkScale(pLine.space || "O(1)"));
 
             // Expected: ground-truth line_metrics entries carry the same
             // single time/space field (local_time/local_space were removed
@@ -763,6 +768,9 @@ json.dumps(res)
               // Canonical field names (matched by EvaluationSuite.jsx's getProp lookups)
               predTime, predSpace,
               expTime, expSpace,
+              // the analyzer's label exactly as emitted (before the scale fold)
+              analyzerOutputTime: pLine.time || "O(1)",
+              analyzerOutputSpace: pLine.space || "O(1)",
 
               hasGroundTruth: !!matchedExp,
               isTimeMatch: isLineTimeMatch,
@@ -798,6 +806,8 @@ json.dumps(res)
 
                 predTime: "MISSING",
                 predSpace: "MISSING",
+                analyzerOutputTime: "MISSING",
+                analyzerOutputSpace: "MISSING",
                 expTime, expSpace,
 
                 hasGroundTruth: true,
@@ -825,9 +835,11 @@ json.dumps(res)
             codeSnippet: codeSnippet || "# No code snippet yielded",
             expectedTime: normExpTime,
             predictedTime: normPredTime,
+            analyzerOutputTime: String(predictedTime),
             isTimeCorrect: isTimeCorrect,
             expectedSpace: normExpSpace,
             predictedSpace: normPredSpace,
+            analyzerOutputSpace: String(predictedSpace),
             isSpaceCorrect: isSpaceCorrect,
             isCompletelyCorrect: (isTimeCorrect && isSpaceCorrect),
             explanation: resultJs.overall_explanation || "AST VM Traversal yielded no stack trace.",

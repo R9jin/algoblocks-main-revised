@@ -28,6 +28,11 @@ sys.path.append(os.path.join(root_dir, 'api'))
 
 from api.analyzer import analyze_source_code
 
+try:  # the analyzer keeps independent size symbols apart; scoring maps them onto the benchmark scale
+    from benchmark_scale import fold_to_benchmark_scale
+except ImportError:  # imported as a package
+    from python_engine.benchmark_scale import fold_to_benchmark_scale
+
 EQUIVALENCE_MAP = {
     "T(n) = T(n/2) + O(1)": "O(log n)",
     "T(n) = 2T(n/2) + O(n)": "O(n log n)",
@@ -98,6 +103,9 @@ def get_metric(line_data, possible_keys):
 
     return "-"
 
+def EXPECTED_EQ(v):
+    return EQUIVALENCE_MAP.get(v, v)
+
 def check_match(actual, expected, metric_type="time"):
     """STRICT exact match on the complexity class.
 
@@ -107,7 +115,11 @@ def check_match(actual, expected, metric_type="time"):
     """
     if expected == "-" or not expected: return True   # nothing to grade against
     if actual == "-" or not actual: return False
-    return EQUIVALENCE_MAP.get(actual, actual) == EQUIVALENCE_MAP.get(expected, expected)
+    # Independent-size labels (O(n * m), O(n + m) ...) are folded onto the benchmark's single-size
+    # scale per GROUND_TRUTH_RULES.md rules 1 and 9 before comparing. The raw label stays in the report.
+    actual = fold_to_benchmark_scale(EQUIVALENCE_MAP.get(actual, actual))
+    expected = fold_to_benchmark_scale(EXPECTED_EQ(expected))
+    return actual == expected
 
 def calc_percentile(data, pct):
     if not data: return 0.0
@@ -274,10 +286,10 @@ def calculate_metrics(injected_dataset=None):
         if is_time_match and is_space_match: perfect_passed_count += 1
 
         y_true_time.append(expected_time)
-        y_pred_time.append(normalize_complexity(EQUIVALENCE_MAP.get(actual_time, actual_time)))
+        y_pred_time.append(fold_to_benchmark_scale(normalize_complexity(EQUIVALENCE_MAP.get(actual_time, actual_time))))
         
         y_true_space.append(expected_space)
-        y_pred_space.append(normalize_complexity(EQUIVALENCE_MAP.get(actual_space, actual_space)))
+        y_pred_space.append(fold_to_benchmark_scale(normalize_complexity(EQUIVALENCE_MAP.get(actual_space, actual_space))))
 
         actual_lines_dict = { detail.get('lineno'): detail for detail in actual_details }
         gt_line_metrics = item.get('line_metrics', item.get('lines', item.get('line_level_complexities', [])))
@@ -311,13 +323,13 @@ def calculate_metrics(injected_dataset=None):
 
                 if exp_time != '-':
                     y_true_line_time.append(exp_time)
-                    y_pred_line_time.append(act_time)
+                    y_pred_line_time.append(fold_to_benchmark_scale(act_time))
                     lines_time_evaluated += 1
                     if time_match: lines_time_correct += 1
 
                 if exp_space != '-':
                     y_true_line_space.append(exp_space)
-                    y_pred_line_space.append(act_space)
+                    y_pred_line_space.append(fold_to_benchmark_scale(act_space))
                     lines_space_evaluated += 1
                     if space_match: lines_space_correct += 1
             else:

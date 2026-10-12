@@ -986,6 +986,8 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         isSpaceMatch: l.isSpaceMatch ? "Yes" : "No",
         hasGroundTruth: l.hasGroundTruth ? "Yes" : "No",
         hits: l.hits,
+        analyzerOutputTime: l.analyzerOutputTime ?? l.predTime,
+        analyzerOutputSpace: l.analyzerOutputSpace ?? l.predSpace,
         // Source objects for the cached values of the formulas below.
         _isPassed: l.isPassed,
       }))
@@ -999,6 +1001,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
       "id", "name", "category", "expectedTime", "predictedTime", "isTimeCorrect",
       "expectedSpace", "predictedSpace", "isSpaceCorrect", "overall",
       "processingTimeMs", "peakMemBytes", "explanation", "codeSnippet",
+      "analyzerOutputTime", "analyzerOutputSpace",
     ];
     const algo = sheetRefs(ALGO_SHEET, ALGO_KEYS, details.length);
 
@@ -1007,6 +1010,7 @@ export default function EvaluationSuite({ embedded = false } = {}) {
       "algorithmId", "algorithmName", "lineno", "lineOfCode", "operation",
       "predTime", "expTime", "isTimeMatch", "predSpace", "expSpace",
       "isSpaceMatch", "hasGroundTruth", "isPassed", "hits",
+      "analyzerOutputTime", "analyzerOutputSpace",
     ];
     const line = sheetRefs(LINE_SHEET, LINE_KEYS, lineRows.length);
 
@@ -1015,7 +1019,9 @@ export default function EvaluationSuite({ embedded = false } = {}) {
 
 
     // "Does the predicted label count as matching the expected one?" as a
-    // cell formula -- STRICT exact match, the same rule checkMatch() applies:
+    // cell formula -- STRICT exact match on the benchmark's single-size scale (the
+    // predicted cell already holds the folded label; the analyzer's own is in the
+    // Analyzer Output columns), the same rule checkMatch() applies:
     // nothing to grade against (expected blank or "-") passes, otherwise the
     // two labels must be identical. Excel's `=` is case-insensitive, like
     // checkMatch's toLowerCase. Different classes are never interchangeable.
@@ -1265,7 +1271,9 @@ export default function EvaluationSuite({ embedded = false } = {}) {
       generated: new Date().toLocaleString(),
       dataset: reportScopeLabel,
       howto: "Every figure is a formula over the raw sheets (Full Algorithm Results, Line-Level Results). " +
-        "Accuracy is strict exact match against the ground-truth class. Edit a label, delete a row or add a row there and every sheet recalculates.",
+        "Accuracy is strict exact match against the ground-truth class, scored on the benchmark's single-size scale: " +
+        "independent-size labels such as O(n * m) or O(n + m) are folded to O(n^2) / O(n) (ground-truth rules 1 and 9) " +
+        "and the analyzer's own label is kept in the Analyzer Output columns. Edit a label, delete a row or add a row there and every sheet recalculates.",
 
       tested: { formula: algo.count("id"), result: details.length },
       timePassed: { formula: `COUNTIF(${timeCorrectR},"Yes")`, result: results.timePassed },
@@ -1425,6 +1433,10 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         { header: "Peak Memory (bytes)", key: "peakMemBytes", width: 18 },
         { header: "Explanation", key: "explanation", width: 50, wrap: true },
         { header: "Code Snippet", key: "codeSnippet", width: 60, wrap: true },
+        // Analyzer label as emitted, before the single-size scale fold. "Predicted Time/Space"
+        // above is the scored (folded) label the match columns and matrices use.
+        { header: "Analyzer Output (Time)", key: "analyzerOutputTime", width: 20 },
+        { header: "Analyzer Output (Space)", key: "analyzerOutputSpace", width: 20 },
       ],
       details.map((d, i) => ({
         id: d.id,
@@ -1454,6 +1466,8 @@ export default function EvaluationSuite({ embedded = false } = {}) {
         peakMemBytes: d.peakMemBytes,
         explanation: d.explanation,
         codeSnippet: d.codeSnippet,
+        analyzerOutputTime: d.analyzerOutputTime ?? d.predictedTime,
+        analyzerOutputSpace: d.analyzerOutputSpace ?? d.predictedSpace,
       })),
       { headerColor }
     );
@@ -1478,6 +1492,8 @@ export default function EvaluationSuite({ embedded = false } = {}) {
           { header: "Has Ground Truth", key: "hasGroundTruth", width: 14 },
           { header: "Passed", key: "isPassed", width: 9 },
           { header: "Hits", key: "hits", width: 8 },
+          { header: "Analyzer Output (Time)", key: "analyzerOutputTime", width: 20 },
+          { header: "Analyzer Output (Space)", key: "analyzerOutputSpace", width: 20 },
         ],
         lineRows.map((l, i) => ({
           ...l,

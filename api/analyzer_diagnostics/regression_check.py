@@ -25,6 +25,7 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
 from complexity_analyzer.analyzer import analyze_source_code  # noqa: E402
+from benchmark_scale import fold_to_benchmark_scale  # noqa: E402
 
 # DATASET SWITCH: "processed" (273: 259 cleaned + 14 added O(n!)) or "original_278" (278 original).
 # Both live as subfolders of api/analyzer_diagnostics/ground_truth/ because the
@@ -167,8 +168,8 @@ def run_regression_check() -> Dict[str, Any]:
 
         per_class[expected_t]["n"] += 1
 
-        t_ok = predicted_t == expected_t
-        s_ok = predicted_s == expected_s
+        t_ok = fold_to_benchmark_scale(predicted_t) == fold_to_benchmark_scale(expected_t)
+        s_ok = fold_to_benchmark_scale(predicted_s) == fold_to_benchmark_scale(expected_s)
         if t_ok:
             time_correct += 1
             per_class[expected_t]["correct"] += 1

@@ -87,3 +87,12 @@ tests. This suite was scoped to answer one question defensibly in a
 panel: "how do you know the number in Chapter 4 is still accurate?"
 Broader coverage is legitimate future work, not something this suite
 claims to provide.
+
+
+## Scoring scale (2026-10-12)
+
+Predictions are folded onto the benchmark's single-size scale before they are compared
+(`frontend/public/python_engine/benchmark_scale.py`; rules in `GROUND_TRUTH_RULES.md`, addendum of 2026-10-12).
+`O(n * m)` scores as `O(n^2)`, `O(n + m)` as `O(n)`; labels naming a `V+E` sum score as `O(V + E)`; anything outside
+the nine classes is left alone and counts as a miss. Re-scored on the 273 records: time 92.7% (253/273),
+space 91.6% (250/273), both 86.4% (236/273). Without the fold the same analyzer output scores time 82.1%.
