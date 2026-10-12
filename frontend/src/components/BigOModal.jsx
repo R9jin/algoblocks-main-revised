@@ -8,8 +8,8 @@ import ComplexityGraph from "./ComplexityGraph.jsx";
 // Curve colours for the growth graph; they match the .o-excel/.o-good/.o-fair/.o-bad badge colours.
 const GRAPH_COLORS = { excel: "#27ae60", good: "#2980b9", fair: "#f39c12", bad: "#e74c3c" };
 
-// First tab: the classes a learner meets in almost every algorithm course,
-// ordered from fastest to slowest growth.
+// First tab: the nine complexity classes the analyzer is built around, ordered from
+// fastest to slowest growth. O(V + E) is a graph result, drawn with V and E growing together.
 const COMMON_BIG_O = [
   {
     complexity: "O(1)",
@@ -30,6 +30,15 @@ const COMMON_BIG_O = [
     link: "https://www.khanacademy.org/computing/computer-science/algorithms/binary-search/a/running-time-of-binary-search"
   },
   {
+    complexity: "O(√n)",
+    name: "Square Root Time",
+    color: "good",
+    def: "The execution time grows in proportion to the square root of the input size. It is much slower than logarithmic time but significantly faster than linear time for large datasets.",
+    analogy: "Walking exactly halfway across a square room instead of walking along the entire perimeter.",
+    example: "Checking if a number is prime by looping only up to its square root, or Grover's quantum search algorithm.",
+    link: "https://www.geeksforgeeks.org/understanding-time-complexity-simple-examples/"
+  },
+  {
     complexity: "O(n)",
     name: "Linear Time",
     color: "good",
@@ -37,6 +46,16 @@ const COMMON_BIG_O = [
     analogy: "Reading a book page by page from start to finish.",
     example: "Linear Search, counting elements, or traversing an array to find the maximum/minimum value.",
     link: "https://www.geeksforgeeks.org/linear-search/"
+  },
+  {
+    complexity: "O(V + E)",
+    name: "Graph Traversal Time",
+    color: "fair",
+    graphNote: "V and E grow together with the graph, so it is drawn as one straight line.",
+    def: "The execution time scales linearly with the size of a graph, depending on both the number of Vertices (nodes) and Edges (connections).",
+    analogy: "Visiting every city on a road map (Vertices) and driving down every connecting highway between them (Edges).",
+    example: "Breadth-First Search (BFS) and Depth-First Search (DFS) algorithms on an adjacency list representation of a graph.",
+    link: "https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/analyzing-graph-algorithms"
   },
   {
     complexity: "O(n log n)",
@@ -76,21 +95,10 @@ const COMMON_BIG_O = [
   }
 ];
 
-// Second tab: the specific and less common forms the AlgoBlocks analyzer can
-// report -- higher polynomial degrees, extra log factors, exponential variants,
-// results over several input sizes and graph results. `group` draws a small
+// Second tab: the less common forms -- extra log factors, higher polynomial degrees,
+// exponential variants, results over several input sizes and the list-queue graph case. `group` draws a small
 // section label above the first row of each group.
 const NICHE_BIG_O = [
-  {
-    complexity: "O(√n)",
-    name: "Square Root Time",
-    group: "Roots and logs",
-    color: "good",
-    def: "The execution time grows in proportion to the square root of the input size. It is much slower than logarithmic time but significantly faster than linear time for large datasets.",
-    analogy: "Walking exactly halfway across a square room instead of walking along the entire perimeter.",
-    example: "Checking if a number is prime by looping only up to its square root, or Grover's quantum search algorithm.",
-    link: "https://www.geeksforgeeks.org/understanding-time-complexity-simple-examples/"
-  },
   {
     complexity: "O(n log² n)",
     name: "Poly-Logarithmic Time",
@@ -195,17 +203,6 @@ const NICHE_BIG_O = [
     link: "https://www.geeksforgeeks.org/complete-guide-on-complexity-analysis/"
   },
   {
-    complexity: "O(V + E)",
-    name: "Graph Traversal Time",
-    group: "Graphs",
-    color: "fair",
-    graphNote: "V and E grow together with the graph, so it is drawn as one straight line.",
-    def: "The execution time scales linearly with the size of a graph, depending on both the number of Vertices (nodes) and Edges (connections).",
-    analogy: "Visiting every city on a road map (Vertices) and driving down every connecting highway between them (Edges).",
-    example: "Breadth-First Search (BFS) and Depth-First Search (DFS) algorithms on an adjacency list representation of a graph.",
-    link: "https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/analyzing-graph-algorithms"
-  },
-  {
     complexity: "O(V² + E)",
     name: "Graph Traversal with a List Queue",
     group: "Graphs",
@@ -218,18 +215,141 @@ const NICHE_BIG_O = [
   }
 ];
 
+
+// Third tab: the recurrence T(n) behind each class. `complexity` is the solved bound
+// (it also drives the growth graph); `recurrence` is what the row shows in the name column.
+const RECURRENCES = [
+  {
+    complexity: "O(1)",
+    recurrence: "T(n) = 1",
+    name: "No recursion",
+    group: "The nine classes",
+    color: "excel",
+    def: "The work does not depend on n and there is no recursive call, so the cost is a fixed number of steps.",
+    method: "Nothing to solve. T(n) = c, which is O(1).",
+    example: "Reading arr[i], pushing onto a stack, or a hash map lookup."
+  },
+  {
+    complexity: "O(log n)",
+    recurrence: "T(n) = T(n/2) + 1",
+    name: "Halve the input",
+    group: "The nine classes",
+    color: "excel",
+    def: "One recursive call on half of the input, plus a constant amount of work to decide which half to keep.",
+    method: "Master Theorem with a = 1, b = 2, f(n) = 1. Since log_b(a) = 0 matches the degree of f(n), case 2 gives O(log n). Unrolling gives the same answer: n halves to 1 after log₂ n steps, each costing 1.",
+    example: "Recursive binary search."
+  },
+  {
+    complexity: "O(√n)",
+    recurrence: "T(n) = 2T(n/4) + 1",
+    name: "Two calls on a quarter of the input",
+    group: "The nine classes",
+    color: "good",
+    def: "Two subproblems, each a quarter of the size, with constant work to split them. The number of leaves grows like the square root of n.",
+    method: "Master Theorem with a = 2, b = 4, f(n) = 1. log_b(a) = log₄ 2 = 0.5 is bigger than the degree of f(n), which is 0, so case 1 applies and the leaves dominate: O(n^0.5) = O(√n). Loop-based square root code, like trial division up to √n, has no recurrence at all: it is just a loop that runs √n times.",
+    example: "Trial division up to the square root of n, or a recursion that splits into two quarter-size halves."
+  },
+  {
+    complexity: "O(n)",
+    recurrence: "T(n) = T(n - 1) + 1",
+    name: "Shrink by one",
+    group: "The nine classes",
+    color: "good",
+    def: "One recursive call on an input that is one smaller, plus a constant amount of work in each call.",
+    method: "Unroll: T(n) = 1 + 1 + ... + 1 with n terms, which is n. The call chain is n levels deep and each level costs 1.",
+    example: "Recursive sum of a list, recursive linear search, or a recursive factorial that only multiplies."
+  },
+  {
+    complexity: "O(V + E)",
+    recurrence: "T(V, E) = T(V - 1, E - deg(v)) + 1 + deg(v)",
+    name: "Visit a vertex and scan its edges",
+    group: "The nine classes",
+    color: "fair",
+    graphNote: "V and E grow together with the graph, so it is drawn as one straight line.",
+    def: "Each recursive step visits one new vertex and scans the edges leaving it. A visited vertex is never expanded again.",
+    method: "Add up the work over all steps: 1 per vertex gives V, and deg(v) per vertex adds up to E for a directed graph (2E for an undirected graph, which is still O(E)). The total is O(V + E).",
+    example: "DFS and BFS on an adjacency list."
+  },
+  {
+    complexity: "O(n log n)",
+    recurrence: "T(n) = 2T(n/2) + n",
+    name: "Split in half, combine in linear time",
+    group: "The nine classes",
+    color: "fair",
+    def: "Two recursive calls on halves of the input, plus a linear amount of work to split or merge the results.",
+    method: "Master Theorem with a = 2, b = 2, f(n) = n. log_b(a) = 1 matches the degree of f(n), so case 2 gives O(n log n). Unrolling: there are log₂ n levels and every level does n work in total.",
+    example: "Merge Sort."
+  },
+  {
+    complexity: "O(n²)",
+    recurrence: "T(n) = T(n - 1) + n",
+    name: "Shrink by one, linear work each call",
+    group: "The nine classes",
+    color: "bad",
+    def: "One recursive call on an input that is one smaller, but every call also scans the whole current input.",
+    method: "Unroll: T(n) = n + (n - 1) + ... + 1 = n(n + 1) / 2, which is O(n²).",
+    example: "Recursive Selection Sort, or Quick Sort when the pivot is always the smallest or largest item (worst case)."
+  },
+  {
+    complexity: "O(2ⁿ)",
+    recurrence: "T(n) = 2T(n - 1) + 1",
+    name: "Two calls on an input one smaller",
+    group: "The nine classes",
+    color: "bad",
+    def: "Every call makes two recursive calls, each on an input that is only one smaller, so the number of calls doubles at every level.",
+    method: "Unroll: T(n) = 1 + 2 + 4 + ... + 2ⁿ⁻¹ = 2ⁿ - 1, which is O(2ⁿ). The Fibonacci recurrence T(n) = T(n - 1) + T(n - 2) + 1 also solves to O(2ⁿ), with base about 1.618 instead of 2.",
+    example: "Tower of Hanoi, or naive recursive Fibonacci."
+  },
+  {
+    complexity: "O(n!)",
+    recurrence: "T(n) = n · T(n - 1) + 1",
+    name: "n calls on an input one smaller",
+    group: "The nine classes",
+    color: "bad",
+    def: "Every call loops over its n remaining choices and makes one recursive call for each, on an input that is one smaller.",
+    method: "Unroll: the number of calls is n × (n - 1) × ... × 1 = n!, so the cost is O(n!). If each finished ordering is also copied or printed at about n steps, the cost becomes O(n · n!).",
+    example: "Generating every permutation of a list, or brute-force Traveling Salesperson."
+  },
+  {
+    complexity: "O(n)",
+    recurrence: "T(n) = 2T(n/2) + 1",
+    name: "Split in half, constant combine",
+    group: "Other Master Theorem cases",
+    color: "good",
+    def: "Two recursive calls on halves, but only a constant amount of work to combine them. The leaves outnumber the levels, so they dominate.",
+    method: "Master Theorem with a = 2, b = 2, f(n) = 1. log_b(a) = 1 is bigger than the degree of f(n), so case 1 gives O(n).",
+    example: "Finding the maximum of an array by comparing the maxima of its two halves."
+  },
+  {
+    complexity: "O(n)",
+    recurrence: "T(n) = T(n/2) + n",
+    name: "Halve the input, linear work each call",
+    group: "Other Master Theorem cases",
+    color: "good",
+    def: "One recursive call on half of the input, but each call does linear work. The work shrinks geometrically (n + n/2 + n/4 + ...), so the first call dominates.",
+    method: "Master Theorem with a = 1, b = 2, f(n) = n. log_b(a) = 0 is smaller than the degree of f(n), so case 3 gives O(n). Unrolling: n + n/2 + n/4 + ... is less than 2n.",
+    example: "Quickselect with a good pivot, finding the median in average linear time."
+  }
+];
+
 const TABS = [
   {
     id: "common",
     label: "Common Classes",
-    note: "The classes you will meet most often, ordered from fastest to slowest growth.",
+    note: "The nine classes the analyzer reports, ordered from fastest to slowest growth.",
     data: COMMON_BIG_O
   },
   {
     id: "niche",
     label: "Uncommon Classes",
-    note: "Specific forms the analyzer can report: higher polynomials, extra log factors, exponential variants, several input sizes and graph results.",
+    note: "Rarer forms you may still run into: extra log factors, higher polynomials, exponential variants, several input sizes and the list-queue graph case.",
     data: NICHE_BIG_O
+  },
+  {
+    id: "recurrence",
+    label: "Recurrence Relations",
+    note: "The recurrence T(n) behind each class. Read the recurrence in the middle column, expand a row to see how it solves to the bound on the left. For T(n) = a T(n/b) + f(n), compare f(n) with n to the power log_b(a): if f(n) is smaller the leaves win, if equal you get an extra log n, if larger f(n) wins.",
+    data: RECURRENCES
   }
 ];
 
@@ -305,30 +425,36 @@ export default function BigOModal({ isOpen, onClose }) {
           <p className="big-o-tab-note">{currentTab.note}</p>
 
           <div className="big-o-list-header">
-            <span>Complexity</span>
-            <span>Name</span>
+            <span>{currentTab.id === "recurrence" ? "Solves to" : "Complexity"}</span>
+            <span>{currentTab.id === "recurrence" ? "Recurrence" : "Name"}</span>
             <span></span>
           </div>
 
           {currentTab.data.map((item) => {
             const showGroup = item.group && item.group !== lastGroup;
             lastGroup = item.group;
-            const isExpanded = expandedRow === item.complexity;
+            const rowId = item.recurrence || item.complexity;
+            const isExpanded = expandedRow === rowId;
 
             return (
-              <Fragment key={item.complexity}>
+              <Fragment key={rowId}>
                 {showGroup && <div className="big-o-group-label">{item.group}</div>}
                 <div className={`big-o-row ${isExpanded ? 'expanded' : ''}`}>
-                  <div className="big-o-row-trigger" onClick={() => toggleRow(item.complexity)}>
+                  <div className="big-o-row-trigger" onClick={() => toggleRow(rowId)}>
                     <span className={`o-badge o-${item.color}`}>{formatComplexity(item.complexity)}</span>
-                    <span className="o-name">{item.name}</span>
+                    <span className="o-name">
+                      {item.recurrence ? <span className="o-recurrence">{item.recurrence}</span> : null}
+                      {item.recurrence ? <span className="o-name-sub">{item.name}</span> : item.name}
+                    </span>
                     <span className="o-chevron dropdown-chevron">▶</span>
                   </div>
 
                   {isExpanded && (
                     <div className="big-o-row-details">
-                      <p><strong>Definition:</strong> {item.def}</p>
-                      <p><strong>Analogy:</strong> {item.analogy}</p>
+                      {item.recurrence && <p><strong>Recurrence:</strong> <code>{item.recurrence}</code></p>}
+                      <p><strong>{item.recurrence ? "How it arises:" : "Definition:"}</strong> {item.def}</p>
+                      {item.method && <p><strong>Solving it:</strong> {item.method}</p>}
+                      {item.analogy && <p><strong>Analogy:</strong> {item.analogy}</p>}
                       <p><strong>Examples:</strong> {item.example}</p>
                       <p><strong>Growth Graph:</strong></p>
                       <div className="big-o-graph-wrapper">
@@ -339,9 +465,11 @@ export default function BigOModal({ isOpen, onClose }) {
                           note={item.graphNote}
                         />
                       </div>
-                      <p className="verified-resource-container">
-                        <strong>Verified Resource:</strong> <a href={item.link} target="_blank" rel="noopener noreferrer" className="verified-resource-link">Explore {item.name} in-depth</a>
-                      </p>
+                      {item.link && (
+                        <p className="verified-resource-container">
+                          <strong>Verified Resource:</strong> <a href={item.link} target="_blank" rel="noopener noreferrer" className="verified-resource-link">Explore {item.name} in-depth</a>
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

@@ -354,3 +354,24 @@
     padding: 12px 10px;
   }
 }
+
+.o-name .o-recurrence {
+    display: block;
+    font-family: monospace;
+    font-weight: 600;
+}
+
+.o-name .o-name-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: #777;
+}
+
+.big-o-row-details code {
+    font-family: monospace;
+    background: #F4F0FF;
+    padding: 1px 6px;
+    border-radius: 4px;
+}
