@@ -28,6 +28,8 @@ from typing import List, Tuple
 
 from complexity_explainer.explanation_signals import PatternSignals
 
+from complexity_explainer import theory_catalog
+
 MAX_TIME_INSIGHTS = 3
 MAX_SPACE_INSIGHTS = 2
 
@@ -201,6 +203,10 @@ class InsightGatherers:
         line_notes = []
         if node is not None:
             line_notes = self.generator.line_insights.time_notes(node, sig, local_t, global_t, hits, code_snippet)
+            try:  # theory-style framing: summations, cost model, worst/amortized/expected (theory_catalog)
+                line_notes = list(line_notes) + theory_catalog.line_time_notes(self.generator.shape.tree, node, local_t, global_t)
+            except Exception:
+                pass
         merged = self._merge(line_notes, c) or [self._FALLBACK_TIME]
         # a notation-clarity note earns one extra slot so it never pushes out the usual teaching
         extra = 1 if any(0 < pri < 1 for pri, _ in merged) else 0
@@ -268,5 +274,10 @@ class InsightGatherers:
         line_notes = []
         if node is not None:
             line_notes = self.generator.line_insights.space_notes(node, sig, local_s, global_s, mem_state, hits)
+            try:
+                line_notes = list(line_notes) + theory_catalog.line_space_notes(self.generator.shape.tree, node, local_s, global_s)
+            except Exception:
+                pass
         merged = self._merge(line_notes, c) or [self._FALLBACK_SPACE]
-        return self._top(merged, MAX_SPACE_INSIGHTS)
+        extra = 1 if any(0 < pri < 1 for pri, _ in merged) else 0
+        return self._top(merged, MAX_SPACE_INSIGHTS + extra)
