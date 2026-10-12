@@ -1,10 +1,16 @@
 // frontend/src/components/BigOModal.jsx
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import useMountTransition from "../hooks/useMountTransition";
 import "../styles/BigOModal.css";
 import { formatComplexity } from "../utils/formatters";
+import ComplexityGraph from "./ComplexityGraph.jsx";
 
-const BIG_O_DATA = [
+// Curve colours for the growth graph; they match the .o-excel/.o-good/.o-fair/.o-bad badge colours.
+const GRAPH_COLORS = { excel: "#27ae60", good: "#2980b9", fair: "#f39c12", bad: "#e74c3c" };
+
+// First tab: the classes a learner meets in almost every algorithm course,
+// ordered from fastest to slowest growth.
+const COMMON_BIG_O = [
   {
     complexity: "O(1)",
     name: "Constant Time",
@@ -24,15 +30,6 @@ const BIG_O_DATA = [
     link: "https://www.khanacademy.org/computing/computer-science/algorithms/binary-search/a/running-time-of-binary-search"
   },
   {
-    complexity: "O(√n)",
-    name: "Square Root Time",
-    color: "good",
-    def: "The execution time grows in proportion to the square root of the input size. It is much slower than logarithmic time but significantly faster than linear time for large datasets.",
-    analogy: "Walking exactly halfway across a square room instead of walking along the entire perimeter.",
-    example: "Checking if a number is prime by looping only up to its square root, or Grover's quantum search algorithm.",
-    link: "https://www.geeksforgeeks.org/understanding-time-complexity-simple-examples/"
-  },
-  {
     complexity: "O(n)",
     name: "Linear Time",
     color: "good",
@@ -40,15 +37,6 @@ const BIG_O_DATA = [
     analogy: "Reading a book page by page from start to finish.",
     example: "Linear Search, counting elements, or traversing an array to find the maximum/minimum value.",
     link: "https://www.geeksforgeeks.org/linear-search/"
-  },
-  {
-    complexity: "O(V + E)",
-    name: "Graph Traversal Time",
-    color: "fair",
-    def: "The execution time scales linearly with the size of a graph, depending on both the number of Vertices (nodes) and Edges (connections).",
-    analogy: "Visiting every city on a road map (Vertices) and driving down every connecting highway between them (Edges).",
-    example: "Breadth-First Search (BFS) and Depth-First Search (DFS) algorithms on an adjacency list representation of a graph.",
-    link: "https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/analyzing-graph-algorithms"
   },
   {
     complexity: "O(n log n)",
@@ -60,15 +48,6 @@ const BIG_O_DATA = [
     link: "https://www.khanacademy.org/computing/computer-science/algorithms/merge-sort/a/analysis-of-merge-sort"
   },
   {
-    complexity: "O(n log² n)",
-    name: "Poly-Logarithmic Time",
-    color: "fair",
-    def: "A pass over n items where each item pays a logarithmic cost that itself contains another logarithmic step (log n x log n). It sits between n log n and n².",
-    analogy: "Sorting each of n piles of paper, where every pile is itself sorted by repeatedly splitting it in half.",
-    example: "Divide-and-conquer algorithms whose combine step itself sorts, and some geometric algorithms.",
-    link: "https://www.geeksforgeeks.org/complete-guide-on-complexity-analysis/"
-  },
-  {
     complexity: "O(n²)",
     name: "Quadratic Time",
     color: "bad",
@@ -76,42 +55,6 @@ const BIG_O_DATA = [
     analogy: "A networking event where every single person in the room must individually shake hands with every other person in the room.",
     example: "Bubble Sort, Insertion Sort, Selection Sort, or finding duplicate values using brute-force nested loops.",
     link: "https://www.geeksforgeeks.org/bubble-sort/"
-  },
-  {
-    complexity: "O(n² log n)",
-    name: "Quadratic-Logarithmic Time",
-    color: "bad",
-    def: "Two nested loops over the input (n x n) where every pass also pays a logarithmic step, such as a sort or a binary search. The log factor is small (about 10 at n = 1,000) but it multiplies the whole n² cost.",
-    analogy: "Comparing every pair of people at a party, and for each pair also looking something up in a sorted phone book.",
-    example: "Sorting inside a nested loop, or running a binary search for every pair of items.",
-    link: "https://www.geeksforgeeks.org/complete-guide-on-complexity-analysis/"
-  },
-  {
-    complexity: "O(n³)",
-    name: "Cubic Time",
-    color: "bad",
-    def: "The execution time grows with the cube of the input size. The exponent counts the loops stacked inside each other: three nested loops over n make the innermost line run n x n x n times. Doubling the input makes the work 8 times larger.",
-    analogy: "Checking every (row, column, layer) cell of a cube whose sides have n cells, or comparing every possible triple of friends.",
-    example: "Naive matrix multiplication, Floyd-Warshall all-pairs shortest paths, or brute-force 3Sum with three nested loops.",
-    link: "https://www.geeksforgeeks.org/analysis-of-algorithms-big-o-analysis/"
-  },
-  {
-    complexity: "O(n⁴)",
-    name: "Quartic Time",
-    color: "bad",
-    def: "Four loops stacked inside each other, so the innermost line runs n x n x n x n times. Doubling the input makes the work 16 times larger, and at n = 1,000 it already needs about a trillion steps. It usually means a smarter approach (sorting, hashing or dynamic programming) is waiting to be found.",
-    analogy: "Visiting every cell of a four-dimensional hypercube with n cells along each side.",
-    example: "Brute-force 4Sum with four nested loops, or a 3D dynamic-programming table that is also scanned by one more loop.",
-    link: "https://www.geeksforgeeks.org/analysis-of-algorithms-big-o-analysis/"
-  },
-  {
-    complexity: "O(nᵏ)",
-    name: "Polynomial Time (degree k)",
-    color: "bad",
-    def: "The general form behind quadratic, cubic and quartic time: k loops stacked inside each other give n to the power k. The bigger k is, the faster the cost explodes: doubling the input multiplies the work by 2ᵏ. Any fixed k is still called polynomial, which is far better than exponential, but k of 5 or more is rarely practical in Python.",
-    analogy: "A k-dimensional grid with n cells along every side: you must visit all nᵏ cells.",
-    example: "Brute-force search over five or more values at once, or k nested loops that each walk the whole input.",
-    link: "https://www.geeksforgeeks.org/analysis-of-algorithms-big-o-analysis/"
   },
   {
     complexity: "O(2ⁿ)",
@@ -123,15 +66,6 @@ const BIG_O_DATA = [
     link: "https://www.geeksforgeeks.org/exponential-time-complexity/"
   },
   {
-    complexity: "O(3ⁿ)",
-    name: "Exponential Time (base 3)",
-    color: "bad",
-    def: "Every extra input item multiplies the number of cases by 3 instead of 2, so it becomes unmanageable even sooner than 2ⁿ: a Python loop only copes with n of about 14 in a second.",
-    analogy: "A combination lock with n dials and 3 positions per dial: 3ⁿ possible codes to try.",
-    example: "A recursion that calls itself 3 times per call, or brute force over every string of length n built from 3 symbols.",
-    link: "https://www.geeksforgeeks.org/exponential-time-complexity/"
-  },
-  {
     complexity: "O(n!)",
     name: "Factorial Time",
     color: "bad",
@@ -139,10 +73,89 @@ const BIG_O_DATA = [
     analogy: "Trying to find the best seating arrangement for your friends at a dinner table by making them physically sit in every possible permutation of chairs.",
     example: "Generating all possible permutations of a given string/array, or the brute-force solution to the Traveling Salesperson Problem.",
     link: "https://www.geeksforgeeks.org/factorial-time-complexity/"
+  }
+];
+
+// Second tab: the specific and less common forms the AlgoBlocks analyzer can
+// report -- higher polynomial degrees, extra log factors, exponential variants,
+// results over several input sizes and graph results. `group` draws a small
+// section label above the first row of each group.
+const NICHE_BIG_O = [
+  {
+    complexity: "O(√n)",
+    name: "Square Root Time",
+    group: "Roots and logs",
+    color: "good",
+    def: "The execution time grows in proportion to the square root of the input size. It is much slower than logarithmic time but significantly faster than linear time for large datasets.",
+    analogy: "Walking exactly halfway across a square room instead of walking along the entire perimeter.",
+    example: "Checking if a number is prime by looping only up to its square root, or Grover's quantum search algorithm.",
+    link: "https://www.geeksforgeeks.org/understanding-time-complexity-simple-examples/"
+  },
+  {
+    complexity: "O(n log² n)",
+    name: "Poly-Logarithmic Time",
+    group: "Roots and logs",
+    color: "fair",
+    def: "A pass over n items where each item pays a logarithmic cost that itself contains another logarithmic step (log n x log n). It sits between n log n and n².",
+    analogy: "Sorting each of n piles of paper, where every pile is itself sorted by repeatedly splitting it in half.",
+    example: "Divide-and-conquer algorithms whose combine step itself sorts, and some geometric algorithms.",
+    link: "https://www.geeksforgeeks.org/complete-guide-on-complexity-analysis/"
+  },
+  {
+    complexity: "O(n² log n)",
+    name: "Quadratic-Logarithmic Time",
+    group: "Polynomial",
+    color: "bad",
+    def: "Two nested loops over the input (n x n) where every pass also pays a logarithmic step, such as a sort or a binary search. The log factor is small (about 10 at n = 1,000) but it multiplies the whole n² cost.",
+    analogy: "Comparing every pair of people at a party, and for each pair also looking something up in a sorted phone book.",
+    example: "Sorting inside a nested loop, or running a binary search for every pair of items.",
+    link: "https://www.geeksforgeeks.org/complete-guide-on-complexity-analysis/"
+  },
+  {
+    complexity: "O(n³)",
+    name: "Cubic Time",
+    group: "Polynomial",
+    color: "bad",
+    def: "The execution time grows with the cube of the input size. The exponent counts the loops stacked inside each other: three nested loops over n make the innermost line run n x n x n times. Doubling the input makes the work 8 times larger.",
+    analogy: "Checking every (row, column, layer) cell of a cube whose sides have n cells, or comparing every possible triple of friends.",
+    example: "Naive matrix multiplication, Floyd-Warshall all-pairs shortest paths, or brute-force 3Sum with three nested loops.",
+    link: "https://www.geeksforgeeks.org/analysis-of-algorithms-big-o-analysis/"
+  },
+  {
+    complexity: "O(n⁴)",
+    name: "Quartic Time",
+    group: "Polynomial",
+    color: "bad",
+    def: "Four loops stacked inside each other, so the innermost line runs n x n x n x n times. Doubling the input makes the work 16 times larger, and at n = 1,000 it already needs about a trillion steps. It usually means a smarter approach (sorting, hashing or dynamic programming) is waiting to be found.",
+    analogy: "Visiting every cell of a four-dimensional hypercube with n cells along each side.",
+    example: "Brute-force 4Sum with four nested loops, or a 3D dynamic-programming table that is also scanned by one more loop.",
+    link: "https://www.geeksforgeeks.org/analysis-of-algorithms-big-o-analysis/"
+  },
+  {
+    complexity: "O(nᵏ)",
+    name: "Polynomial Time (degree k)",
+    group: "Polynomial",
+    color: "bad",
+    graphNote: "k is any fixed exponent, so the graph uses an illustrative k = 5.",
+    def: "The general form behind quadratic, cubic and quartic time: k loops stacked inside each other give n to the power k. The bigger k is, the faster the cost explodes: doubling the input multiplies the work by 2ᵏ. Any fixed k is still called polynomial, which is far better than exponential, but k of 5 or more is rarely practical in Python.",
+    analogy: "A k-dimensional grid with n cells along every side: you must visit all nᵏ cells.",
+    example: "Brute-force search over five or more values at once, or k nested loops that each walk the whole input.",
+    link: "https://www.geeksforgeeks.org/analysis-of-algorithms-big-o-analysis/"
+  },
+  {
+    complexity: "O(3ⁿ)",
+    name: "Exponential Time (base 3)",
+    group: "Exponential and beyond",
+    color: "bad",
+    def: "Every extra input item multiplies the number of cases by 3 instead of 2, so it becomes unmanageable even sooner than 2ⁿ: a Python loop only copes with n of about 14 in a second.",
+    analogy: "A combination lock with n dials and 3 positions per dial: 3ⁿ possible codes to try.",
+    example: "A recursion that calls itself 3 times per call, or brute force over every string of length n built from 3 symbols.",
+    link: "https://www.geeksforgeeks.org/exponential-time-complexity/"
   },
   {
     complexity: "O(n·n!)",
     name: "Factorial Time (extra factor of n)",
+    group: "Exponential and beyond",
     color: "bad",
     def: "Like O(n!), the program goes through every possible ordering of the items, but each ordering also costs about n steps to build or check. It grows even faster than plain factorial time.",
     analogy: "Seating n guests in every possible order, then reading out the whole seating chart each time.",
@@ -152,23 +165,103 @@ const BIG_O_DATA = [
   {
     complexity: "O(nⁿ)",
     name: "Super-Exponential Time",
+    group: "Exponential and beyond",
     color: "bad",
     def: "n choices made n separate times (n x n x ... x n). It is larger than factorial time because factorial shrinks the number of choices at every position while nⁿ never does. It usually signals unrestricted brute force.",
     analogy: "Filling n slots where every slot can hold any of n values, with no restrictions at all.",
     example: "Brute force over every possible mapping of n items onto n positions, repetitions allowed.",
     link: "https://www.geeksforgeeks.org/factorial-time-complexity/"
+  },
+  {
+    complexity: "O(n·m)",
+    name: "Two Input Sizes (Product)",
+    group: "Several input sizes",
+    color: "bad",
+    graphNote: "Drawn with n = m, where it matches O(n²). With a small m the real curve is much flatter.",
+    def: "Used when the code works with two different inputs whose sizes are independent, so each gets its own letter. A loop over n items with a loop over m items inside it runs the innermost line n x m times. It only counts as quadratic when n and m happen to be the same size, so both letters stay in the answer.",
+    analogy: "Checking every seat in a theatre that has n rows with m seats in each row.",
+    example: "Filling an n x m dynamic-programming table (such as Longest Common Subsequence on two strings), or comparing every item of one list against every item of another.",
+    link: "https://www.geeksforgeeks.org/complete-guide-on-complexity-analysis/"
+  },
+  {
+    complexity: "O(n + m)",
+    name: "Two Input Sizes (Sum)",
+    group: "Several input sizes",
+    color: "good",
+    graphNote: "Drawn with n = m, so the two sizes together grow like a straight line.",
+    def: "Two loops that run one after the other, one over n items and one over m items, add their costs instead of multiplying them. Neither letter can be dropped because the inputs are independent: the total grows with whichever one is larger.",
+    analogy: "Reading one book of n pages and then a second book of m pages: you read n + m pages in total, not n x m.",
+    example: "Merging two sorted lists, or a loop over one array followed by a separate loop over a different array.",
+    link: "https://www.geeksforgeeks.org/complete-guide-on-complexity-analysis/"
+  },
+  {
+    complexity: "O(V + E)",
+    name: "Graph Traversal Time",
+    group: "Graphs",
+    color: "fair",
+    graphNote: "V and E grow together with the graph, so it is drawn as one straight line.",
+    def: "The execution time scales linearly with the size of a graph, depending on both the number of Vertices (nodes) and Edges (connections).",
+    analogy: "Visiting every city on a road map (Vertices) and driving down every connecting highway between them (Edges).",
+    example: "Breadth-First Search (BFS) and Depth-First Search (DFS) algorithms on an adjacency list representation of a graph.",
+    link: "https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/analyzing-graph-algorithms"
+  },
+  {
+    complexity: "O(V² + E)",
+    name: "Graph Traversal with a List Queue",
+    group: "Graphs",
+    color: "bad",
+    graphNote: "Drawn against V: the V² term dominates, so it curves like O(n²).",
+    def: "A breadth-first search should cost O(V + E), but when the queue is a plain Python list and items are removed with pop(0), every removal shifts all the remaining items one place left. That costs O(V) per removal across V removals, so the traversal grows to V² + E. Switching to collections.deque and popleft() brings it back to O(V + E).",
+    analogy: "A checkout line where everyone must shuffle one step forward each time the first person leaves, instead of the line simply moving its front marker.",
+    example: "BFS written with queue = [start] and queue.pop(0) instead of a collections.deque.",
+    link: "https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/analyzing-graph-algorithms"
+  }
+];
+
+const TABS = [
+  {
+    id: "common",
+    label: "Common Classes",
+    note: "The classes you will meet most often, ordered from fastest to slowest growth.",
+    data: COMMON_BIG_O
+  },
+  {
+    id: "niche",
+    label: "Uncommon Classes",
+    note: "Specific forms the analyzer can report: higher polynomials, extra log factors, exponential variants, several input sizes and graph results.",
+    data: NICHE_BIG_O
   }
 ];
 
 export default function BigOModal({ isOpen, onClose }) {
+  const [activeTab, setActiveTab] = useState("common");
   const [expandedRow, setExpandedRow] = useState(null);
+  const [wasOpen, setWasOpen] = useState(isOpen);
   const shouldRender = useMountTransition(isOpen, 220);
+
+  // Every time the modal opens it starts on the Common tab with all rows collapsed.
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setActiveTab("common");
+      setExpandedRow(null);
+    }
+  }
 
   if (!shouldRender) return null;
 
-  const toggleRow = (index) => {
-    setExpandedRow(expandedRow === index ? null : index);
+  const currentTab = TABS.find((tab) => tab.id === activeTab) || TABS[0];
+
+  const selectTab = (tabId) => {
+    setActiveTab(tabId);
+    setExpandedRow(null);
   };
+
+  const toggleRow = (complexity) => {
+    setExpandedRow(expandedRow === complexity ? null : complexity);
+  };
+
+  let lastGroup = null;
 
   return (
     <div className={`big-o-modal-overlay ${isOpen ? "" : "is-closing"}`} onClick={onClose}>
@@ -184,33 +277,77 @@ export default function BigOModal({ isOpen, onClose }) {
           <button className="big-o-close-btn" onClick={onClose}>✕</button>
         </div>
 
-        <div className="big-o-accordion">
+        <div className="big-o-tabs" role="tablist" aria-label="Big O reference sections">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              id={`big-o-tab-${tab.id}`}
+              aria-selected={activeTab === tab.id}
+              aria-controls="big-o-tabpanel"
+              className={`big-o-tab ${activeTab === tab.id ? "active" : ""}`}
+              onClick={() => selectTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* key remounts the list on a tab switch so it always starts scrolled to the top */}
+        <div
+          className="big-o-accordion"
+          key={currentTab.id}
+          role="tabpanel"
+          id="big-o-tabpanel"
+          aria-labelledby={`big-o-tab-${currentTab.id}`}
+        >
+          <p className="big-o-tab-note">{currentTab.note}</p>
+
           <div className="big-o-list-header">
             <span>Complexity</span>
             <span>Name</span>
             <span></span>
           </div>
 
-          {BIG_O_DATA.map((item, idx) => (
-            <div key={idx} className={`big-o-row ${expandedRow === idx ? 'expanded' : ''}`}>
-              <div className="big-o-row-trigger" onClick={() => toggleRow(idx)}>
-                <span className={`o-badge o-${item.color}`}>{formatComplexity(item.complexity)}</span>
-                <span className="o-name">{item.name}</span>
-                <span className="o-chevron dropdown-chevron">▶</span>
-              </div>
+          {currentTab.data.map((item) => {
+            const showGroup = item.group && item.group !== lastGroup;
+            lastGroup = item.group;
+            const isExpanded = expandedRow === item.complexity;
 
-              {expandedRow === idx && (
-                <div className="big-o-row-details">
-                  <p><strong>Definition:</strong> {item.def}</p>
-                  <p><strong>Analogy:</strong> {item.analogy}</p>
-                  <p><strong>Examples:</strong> {item.example}</p>
-                  <p className="verified-resource-container">
-                    <strong>Verified Resource:</strong> <a href={item.link} target="_blank" rel="noopener noreferrer" className="verified-resource-link">Explore {item.name} in-depth</a>
-                  </p>
+            return (
+              <Fragment key={item.complexity}>
+                {showGroup && <div className="big-o-group-label">{item.group}</div>}
+                <div className={`big-o-row ${isExpanded ? 'expanded' : ''}`}>
+                  <div className="big-o-row-trigger" onClick={() => toggleRow(item.complexity)}>
+                    <span className={`o-badge o-${item.color}`}>{formatComplexity(item.complexity)}</span>
+                    <span className="o-name">{item.name}</span>
+                    <span className="o-chevron dropdown-chevron">▶</span>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="big-o-row-details">
+                      <p><strong>Definition:</strong> {item.def}</p>
+                      <p><strong>Analogy:</strong> {item.analogy}</p>
+                      <p><strong>Examples:</strong> {item.example}</p>
+                      <p><strong>Growth Graph:</strong></p>
+                      <div className="big-o-graph-wrapper">
+                        <ComplexityGraph
+                          complexity={item.complexity}
+                          color={GRAPH_COLORS[item.color]}
+                          label="Time Curve"
+                          note={item.graphNote}
+                        />
+                      </div>
+                      <p className="verified-resource-container">
+                        <strong>Verified Resource:</strong> <a href={item.link} target="_blank" rel="noopener noreferrer" className="verified-resource-link">Explore {item.name} in-depth</a>
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+              </Fragment>
+            );
+          })}
         </div>
       </div>
     </div>

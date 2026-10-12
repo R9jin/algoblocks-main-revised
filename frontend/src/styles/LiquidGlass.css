@@ -425,7 +425,8 @@ footer,
 [class*="tab-btn"],
 [class*="nav-tab"],
 [class*="tab-pill"],
-.block-glossary-tab {
+.block-glossary-tab,
+.big-o-tab {
   background: rgba(255, 255, 255, 0.22) !important;
   -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
           backdrop-filter: blur(14px) saturate(160%) !important;
@@ -438,7 +439,8 @@ footer,
 [class*="tab-btn"].active,
 [class*="nav-tab"].active,
 [class*="tab-pill"].active,
-.block-glossary-tab.active {
+.block-glossary-tab.active,
+.big-o-tab.active {
   background: rgba(255, 255, 255, 0.55) !important;
   border-color: rgba(108, 92, 231, 0.50) !important;
   box-shadow:

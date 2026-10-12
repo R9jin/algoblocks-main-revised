@@ -1167,8 +1167,15 @@
 :root[data-theme="dark"] .big-o-list-header {
   border-bottom-color: #3B2762;
 }
+:root[data-theme="dark"] .big-o-tab-note {
+  color: #B6A9D8;
+}
+:root[data-theme="dark"] .big-o-group-label {
+  color: #C4B5FD;
+}
 :root[data-theme="dark"] .big-o-row,
 :root[data-theme="dark"] .block-glossary-row,
+:root[data-theme="dark"] .big-o-tabs,
 :root[data-theme="dark"] .block-glossary-tabs {
   border-color: #3B2762;
 }
@@ -1208,11 +1215,14 @@
 :root[data-theme="dark"] .block-glossary-search-input {
   border-color: #4B3A7C;
 }
+:root[data-theme="dark"] .big-o-tab,
 :root[data-theme="dark"] .block-glossary-tab {
   border-color: #4B3A7C;
   background: #2A1A47;
   color: #D5CCEE;
 }
+:root[data-theme="dark"] .big-o-tab:hover,
+:root[data-theme="dark"] .big-o-tab.active,
 :root[data-theme="dark"] .block-glossary-tab:hover,
 :root[data-theme="dark"] .block-glossary-tab.active {
   background: #3A2562;

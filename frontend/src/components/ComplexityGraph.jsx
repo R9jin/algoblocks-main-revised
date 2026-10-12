@@ -36,8 +36,12 @@ const fnFor = (type, degree = 3) => {
     case 'n2logn': return (n) => n * n * lg(n);
     case 'quadratic': return (n) => n * n;
     case 'poly': return (n) => Math.pow(n, degree);
+    case 'nlog2n': return (n) => n * lg(n) * lg(n);
     case 'exponential': return (n) => Math.pow(2, n);
+    case 'exp3': return (n) => Math.pow(3, n);
     case 'factorial': return stirling;
+    case 'nfact': return (n) => n * stirling(n);
+    case 'nn': return (n) => Math.pow(Math.max(n, 0), Math.max(n, 0));
     default: return (n) => n;
   }
 };
@@ -45,12 +49,14 @@ const fnFor = (type, degree = 3) => {
 const CANONICAL_LABEL = {
   constant: 'O(1)', log: 'O(log n)', sqrt: 'O(√n)', linear: 'O(n)', nlogn: 'O(n log n)',
   n2logn: 'O(n² log n)', quadratic: 'O(n²)', poly: 'O(n³)', exponential: 'O(2ⁿ)', factorial: 'O(n!)',
+  nlog2n: 'O(n log² n)', exp3: 'O(3ⁿ)', nfact: 'O(n·n!)', nn: 'O(nⁿ)',
 };
 
 // Which zone a class sits in (matches the coloured bands behind the curves).
 const RATING = {
   constant: 'Excellent', log: 'Excellent', sqrt: 'Good', linear: 'Good', nlogn: 'Fair',
   n2logn: 'Bad', quadratic: 'Bad', poly: 'Horrible', exponential: 'Horrible', factorial: 'Horrible',
+  nlog2n: 'Bad', exp3: 'Horrible', nfact: 'Horrible', nn: 'Horrible',
 };
 
 // Reference curves always drawn, in the order they are listed.
@@ -66,14 +72,24 @@ const ZONES = [
 ];
 
 // Resolve a complexity string to a curve family. "nlogn" must be tested before "logn".
+const SUPERSCRIPT_DIGIT = { '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9 };
+
 const classifyComplexity = (comp) => {
   if (comp.includes('o(1)')) return { type: 'constant' };
+  // Factorial / super-exponential forms first: "n*n!" would otherwise read as n*n, and "n^n" as a polynomial.
+  if (comp.includes('n*n!')) return { type: 'nfact' };
+  if (comp.includes('n^n') || comp.includes('nⁿ')) return { type: 'nn' };
   if (comp.includes('n^2logn') || comp.includes('n²logn')) return { type: 'n2logn' };
+  if (comp.includes('nlog^2n') || comp.includes('nlog²n')) return { type: 'nlog2n' };
   { const m = comp.match(/n\^(\d+)/); if (m && Number(m[1]) >= 3) return { type: 'poly', degree: Number(m[1]) }; }
+  { const m = comp.match(/n([⁴-⁹])/); if (m) return { type: 'poly', degree: SUPERSCRIPT_DIGIT[m[1]] }; }
   if (comp.includes('n³')) return { type: 'poly', degree: 3 };
+  // General degree k: no fixed degree exists, so it is drawn with an illustrative k = 5.
+  if (comp.includes('n^k') || comp.includes('nᵏ')) return { type: 'poly', degree: 5 };
   if (comp.includes('nlogn')) return { type: 'nlogn' };
   if (comp.includes('logn')) return { type: 'log' };
-  if (comp.includes('n^2') || comp.includes('n²') || comp.includes('n*n') || comp.includes('n*m') || comp.includes('m*n')) return { type: 'quadratic' };
+  if (comp.includes('n^2') || comp.includes('n²') || comp.includes('v^2') || comp.includes('v²') || comp.includes('n*n') || comp.includes('n*m') || comp.includes('m*n')) return { type: 'quadratic' };
+  if (comp.includes('3^n') || comp.includes('3ⁿ')) return { type: 'exp3' };
   if (comp.includes('2^n') || comp.includes('2ⁿ') || comp.includes('c^n')) return { type: 'exponential' };
   if (comp.includes('n!')) return { type: 'factorial' };
   if (comp.includes('sqrt') || comp.includes('√n')) return { type: 'sqrt' };
@@ -129,7 +145,8 @@ const useElementSize = (ref, fallback) => {
   return size;
 };
 
-const ComplexityGraph = ({ complexity, color, label }) => {
+// `note` (optional) adds one explanatory line under the readout, e.g. how a multi-variable class is drawn.
+const ComplexityGraph = ({ complexity, color, label, note }) => {
   const clipId = useId().replace(/:/g, '');
   const hostRef = useRef(null);
   const { w: W, h: H } = useElementSize(hostRef, { w: 320, h: 220 });
@@ -140,7 +157,7 @@ const ComplexityGraph = ({ complexity, color, label }) => {
   const unit = isSpace ? 'memory units' : 'operations';
 
   const resolved = resolveRecurrenceToBigO(complexity);
-  const comp = resolved.toLowerCase().replace(/\s+/g, '');
+  const comp = resolved.toLowerCase().replace(/\s+/g, '').replace(/[·×⋅•]/g, '*');
   const { type: activeType, degree } = classifyComplexity(comp);
   const activeText = formatComplexity(resolved);
   const activeFn = useMemo(() => fnFor(activeType, degree), [activeType, degree]);
@@ -334,6 +351,7 @@ const ComplexityGraph = ({ complexity, color, label }) => {
         {` · ${rating}`}
         <span className="cg-hint">{' · hover the chart to read each curve'}</span>
       </div>
+      {note && <div className="cg-note">{note}</div>}
     </div>
   );
 };
