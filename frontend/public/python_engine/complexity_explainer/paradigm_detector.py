@@ -133,7 +133,20 @@ def _dp_table(f: _Facts) -> Optional[Match]:
         if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Subscript):
             base = _src(n.targets[0].value)
             reads = [s for s in ast.walk(n.value) if isinstance(s, ast.Subscript) and _src(s.value) == base]
-            if reads and any(isinstance(a, _LOOPS) for a in ast.walk(f.tree)):
+            # A real DP table (a) is built by the function itself, not handed in as the input (an input list
+            # that is rewritten slot-by-slot is an in-place algorithm: a shift or a swap, e.g. in bubble or
+            # insertion sort), (b) is filled by COMBINING earlier entries (arithmetic, min/max, a call), not by
+            # copying one neighbour into another slot, and (c) reads entries at an EARLIER index (i - 1, j - w).
+            def _root(e):
+                while isinstance(e, (ast.Subscript, ast.Attribute)):
+                    e = e.value
+                return e.id if isinstance(e, ast.Name) else None
+            owner_fn = next((fn for fn in f.funcs.values() if n in list(ast.walk(fn))), None)
+            params = {a.arg for a in owner_fn.args.args} if owner_fn is not None else set()
+            is_copy = isinstance(n.value, ast.Subscript)
+            earlier = any(isinstance(x, ast.BinOp) and isinstance(x.op, ast.Sub) for r in reads for x in ast.walk(r.slice))
+            if reads and not is_copy and earlier and _root(n.targets[0].value) not in params \
+                    and any(isinstance(a, _LOOPS) for a in ast.walk(f.tree)):
                 inside_loop = any(isinstance(p, _LOOPS) and n in list(ast.walk(p)) for p in f.loops)
                 if inside_loop:
                     return Match(
@@ -707,7 +720,16 @@ def detect(tree: Optional[ast.AST], final_time: Optional[str] = None) -> List[Ma
     generic = ("Single pass", "Simple recursion", "Direct calculation")
     if out and not out[0].name.startswith(generic):
         out = [out[0]] + [m for m in out[1:] if not m.name.startswith(generic) and m.score >= 60]
+    # a recognised textbook algorithm is the complete answer: a generic paradigm label beside it is noise
+    if out and out[0].score >= 96:
+        out = out[:1]
     return out[:2]
+
+
+# Named textbook algorithms (bubble / merge / Dijkstra / Floyd-Warshall ...) outrank every generic
+# paradigm rule above: see algorithm_recognizer.py
+from complexity_explainer import algorithm_recognizer as _ar  # noqa: E402
+_RULES = _ar.as_rules() + _RULES
 
 
 def describe(matches: List[Match]) -> str:

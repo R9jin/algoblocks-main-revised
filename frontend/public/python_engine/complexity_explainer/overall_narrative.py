@@ -21,7 +21,7 @@ from complexity_explainer.growth_insight import (
     parse_complexity, is_constant, scaling_line, doubling_effect, growth_word,
 )
 from complexity_explainer.notation_insight import notation_card, reduce_tip, classify_notation
-from complexity_explainer import paradigm_detector
+from complexity_explainer import paradigm_detector, theory_catalog
 from complexity_explainer.statement_narrator import walkthrough
 
 _HIERARCHY = ["1", "log min", "log", "sqrt", "n", "m", "V", "V + E", "n log n", "n^2", "n * m", "n^3", "2^n", "3^n", "n!", "n * n!"]
@@ -87,6 +87,12 @@ class OverallNarrative:
             "**Working Through the Math**\n"
             f"{space_simp}\n\n"
         )
+        try:
+            theory = theory_catalog.overall_theory(gen.shape.tree, final_time, final_space)
+        except Exception:
+            theory = ""
+        if theory:
+            md += "#### Theory Notes\n" + theory + "\n\n"
         if improve:
             md += "#### What You Could Improve\n" + improve + "\n\n"
         md += "#### In Short\n" + summary
