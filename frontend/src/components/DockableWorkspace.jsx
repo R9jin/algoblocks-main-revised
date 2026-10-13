@@ -61,7 +61,12 @@ function reconcileLayout(rawLayout, panels) {
     regions[key] = { panelIds, size };
   }
 
-  const missing = validIds.filter((id) => !seen.has(id));
+  // A panel the user closed is absent from every region but still listed in the
+  // saved `lastRegion`. Only panels we have never seen before fall back to the
+  // center; otherwise every closed Console/Complexity tab came back (in the
+  // Blocks area) after a reload.
+  const knownPanels = rawLayout?.lastRegion || {};
+  const missing = validIds.filter((id) => !seen.has(id) && !(id in knownPanels));
   if (missing.length) {
     regions.center.panelIds = [...regions.center.panelIds, ...missing];
   }
@@ -98,35 +103,49 @@ function loadLayout(layoutKey, defaultLayout, panels) {
 }
 
 function DockSplitter({ axis, onDelta, title }) {
-  const draggingRef = useRef(false);
-  const lastPosRef = useRef(0);
+  const cleanupRef = useRef(null);
 
-  const onMouseDown = (e) => {
+  // If the splitter unmounts mid-drag (e.g. its region collapses), drop the
+  // window listeners and restore the body cursor/selection.
+  useEffect(() => () => { if (cleanupRef.current) cleanupRef.current(); }, []);
+
+  // Pointer events cover mouse, touch and pen with one code path.
+  const onPointerDown = (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
-    draggingRef.current = true;
-    lastPosRef.current = axis === "x" ? e.clientX : e.clientY;
+    if (cleanupRef.current) cleanupRef.current();
+    let lastPos = axis === "x" ? e.clientX : e.clientY;
     document.body.style.cursor = axis === "x" ? "col-resize" : "row-resize";
     document.body.style.userSelect = "none";
 
-    const onMouseMove = (ev) => {
-      if (!draggingRef.current) return;
+    const onMove = (ev) => {
       const pos = axis === "x" ? ev.clientX : ev.clientY;
-      const delta = pos - lastPosRef.current;
-      lastPosRef.current = pos;
+      const delta = pos - lastPos;
+      lastPos = pos;
       if (delta !== 0) onDelta(delta);
     };
-    const onMouseUp = () => {
-      draggingRef.current = false;
+    const stop = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", stop);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      cleanupRef.current = null;
     };
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", stop);
+    window.addEventListener("pointercancel", stop);
+    cleanupRef.current = stop;
   };
 
-  return <div className={`dock-splitter dock-splitter-${axis}`} onMouseDown={onMouseDown} title={title} />;
+  return (
+    <div
+      className={`dock-splitter dock-splitter-${axis}`}
+      onPointerDown={onPointerDown}
+      style={{ touchAction: "none" }}
+      title={title}
+    />
+  );
 }
 
 function DropOverlay({ quadrant }) {
@@ -148,6 +167,8 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
   }, [panels]);
 
   const [layout, setLayout] = useState(() => loadLayout(layoutKey, defaultLayout, panels));
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
   const [dragState, setDragState] = useState(null); // { panelId, fromRegion }
   const [dragOver, setDragOver] = useState(null); // { region, quadrant }
 
@@ -221,11 +242,16 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
   };
 
   const openPanelInternal = (panelId) => {
+    // Pick the region from the current layout first: calling setMobileRegion
+    // inside the setLayout updater below was a side effect in a function React
+    // is allowed to run twice.
+    const cur = layoutRef.current;
+    const openIn = REGION_KEYS.find((key) => cur.regions[key].panelIds.includes(panelId));
+    const targetRegion = openIn
+      || ((cur.lastRegion?.[panelId] && REGION_KEYS.includes(cur.lastRegion[panelId])) ? cur.lastRegion[panelId] : "bottom");
+    setMobileRegion(targetRegion);
     setLayout((prev) => {
       if (isPanelOpenInLayout(prev, panelId)) {
-        for (const key of REGION_KEYS) {
-          if (prev.regions[key].panelIds.includes(panelId)) { setMobileRegion(key); break; }
-        }
         return REGION_KEYS.reduce((acc, key) => {
           if (acc.regions[key].panelIds.includes(panelId) && acc.activeTab[key] !== panelId) {
             return { ...acc, activeTab: { ...acc.activeTab, [key]: panelId } };
@@ -233,13 +259,9 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
           return acc;
         }, prev);
       }
-      const targetRegion = (prev.lastRegion?.[panelId] && REGION_KEYS.includes(prev.lastRegion[panelId]))
-        ? prev.lastRegion[panelId]
-        : "bottom";
       const next = cloneLayout(prev);
       next.regions[targetRegion].panelIds.push(panelId);
       next.activeTab[targetRegion] = panelId;
-      setMobileRegion(targetRegion);
       return next;
     });
   };
@@ -258,15 +280,12 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
     // (footer shortcuts, guided tours, "run code" revealing the console)
     // keep working correctly no matter how the user has rearranged panels.
     focusPanel: (panelId) => {
+      const host = REGION_KEYS.find((key) => layoutRef.current.regions[key].panelIds.includes(panelId));
+      if (!host) return;
+      setMobileRegion(host);
       setLayout((prev) => {
-        for (const key of REGION_KEYS) {
-          if (prev.regions[key].panelIds.includes(panelId)) {
-            setMobileRegion(key);
-            if (prev.activeTab[key] === panelId) return prev;
-            return { ...prev, activeTab: { ...prev.activeTab, [key]: panelId } };
-          }
-        }
-        return prev;
+        if (prev.activeTab[host] === panelId || !prev.regions[host].panelIds.includes(panelId)) return prev;
+        return { ...prev, activeTab: { ...prev.activeTab, [host]: panelId } };
       });
     },
     // Fully removes panelId from the layout (it disappears from every
