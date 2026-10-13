@@ -1,7 +1,7 @@
 // frontend/src/components/panelContent/ConsolePanelContent.jsx
 //
 // The console tab's body content, extracted out of the old
-// DockedBottomPanel so it can be docked independently by
+// old bottom panel so it can be docked independently by
 // DockableWorkspace. Reuses the original CSS classes (console-*) so
 // nothing visually changes.
 

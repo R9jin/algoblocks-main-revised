@@ -583,8 +583,10 @@ export default function MainApp({ pipelineMode = false }) {
 
   useEffect(() => {
     if (workspaceRefs.current[activeTabId]) {
-      setTimeout(() => workspaceRefs.current[activeTabId].resize(), 50);
-      setTimeout(() => workspaceRefs.current[activeTabId].resize(), 300);
+      // Look the ref up again inside the timer: the tab may have been closed
+      // (or the panel remounted) before it fires.
+      setTimeout(() => workspaceRefs.current[activeTabId]?.resize?.(), 50);
+      setTimeout(() => workspaceRefs.current[activeTabId]?.resize?.(), 300);
     }
   }, [activeTabId, isSidebarVisible]);
 
@@ -675,14 +677,19 @@ export default function MainApp({ pipelineMode = false }) {
   };
 
   const closeTab = (id) => {
-    setTabs((prev) => {
-      const filtered = prev.filter((t) => t.id !== id);
-      if (filtered.length === 0) {
-        const newTab = createInitialTab(); setActiveTabId(newTab.id); return [newTab];
-      }
+    // Compute the next tab list here instead of inside a setTabs updater: the
+    // updater used to call setActiveTabId (and createInitialTab) as a side
+    // effect, and React may run updaters twice -- which could create two
+    // different "new" tabs and leave activeTabId pointing at the discarded one.
+    const filtered = tabs.filter((t) => t.id !== id);
+    if (filtered.length === 0) {
+      const newTab = createInitialTab();
+      setTabs([newTab]);
+      setActiveTabId(newTab.id);
+    } else {
+      setTabs(filtered);
       if (activeTabId === id) setActiveTabId(filtered[filtered.length - 1].id);
-      return filtered;
-    });
+    }
     delete workspaceRefs.current[id];
   };
 
@@ -829,6 +836,24 @@ export default function MainApp({ pipelineMode = false }) {
       return;
     }
     const tabId = activeTabId;
+    // Empty editor: the Python is the source of truth, so the blocks go too
+    // (undoable), instead of silently leaving stale blocks behind.
+    if (workspaceRefs.current[tabId] && !(activeTab.pythonCode || "").trim()) {
+      setIsSyncingToBlocks(true);
+      try {
+        const result = await workspaceRefs.current[tabId].clearFromPython();
+        if (result?.skipped) return;
+        const stillBlank = !(activeTabRef.current?.pythonCode || "").trim();
+        updateTab(tabId, stillBlank ? {
+          isEditingCode: false,
+          analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
+          analysisTime: "0.0", lineExecutions: {}, syntaxErrors: [],
+          ...(silent ? {} : { viewMode: "workspace" }),
+        } : {});
+      } catch (e) { if (!silent) showToast(`Sync Failed: ${e.message}`, "error"); }
+      finally { setIsSyncingToBlocks(false); }
+      return;
+    }
     if (workspaceRefs.current[tabId] && activeTab.pythonCode) {
       const snapshot = activeTab.pythonCode;
       if (silent) lastAutoSyncTextRef.current[tabId] = snapshot;
@@ -884,17 +909,32 @@ export default function MainApp({ pipelineMode = false }) {
   const syncToBlocksRef = useRef(syncToBlocks);
   syncToBlocksRef.current = syncToBlocks;
   useEffect(() => {
-    if (!activeTab.isEditingCode || isSyncingToBlocks || !isEngineReady) return;
-    const code = activeTab.pythonCode;
-    if (!code || !code.trim() || code === "# Drag blocks to generate Python code") return;
-    if (activeTab.syntaxErrors && activeTab.syntaxErrors.some((e) => !e.isNameError && !e.isRuntimeCrash)) return;
-    if (lastAutoSyncTextRef.current[activeTabId] === code) return;
+    if (!activeTab.isEditingCode || isSyncingToBlocks) return;
+    const code = activeTab.pythonCode || "";
+    if (code === "# Drag blocks to generate Python code") return;
     const bj = activeTab.blocklyJson;
-    const noBlocksYet = !bj || Object.keys(bj).length === 0 || (bj.blocks && bj.blocks.blocks && bj.blocks.blocks.length === 0);
+    const hasBlocks = !!(bj && bj.blocks && bj.blocks.blocks && bj.blocks.blocks.length > 0);
+    const isBlank = !code.trim();
+    if (isBlank) {
+      // Cleared editor -> remove the blocks right away (no engine needed).
+      if (!hasBlocks) return;
+      const t = setTimeout(() => { syncToBlocksRef.current(true); }, 300);
+      return () => clearTimeout(t);
+    }
+    if (!isEngineReady) return;
+    if (lastAutoSyncTextRef.current[activeTabId] === code) return;
+    const noBlocksYet = !hasBlocks;
     if (typedPythonRef.current[activeTabId] !== code && !noBlocksYet) return;
-    const timeoutId = setTimeout(() => { syncToBlocksRef.current(true); }, 1200);
+    // Syntax problems are re-checked when the timer fires (and the converter
+    // itself rejects them). Depending on syntaxErrors here restarted this timer
+    // every time the 800ms analysis finished, which is why syncing lagged.
+    const timeoutId = setTimeout(() => {
+      const errs = activeTabRef.current?.syntaxErrors;
+      if (errs && errs.some((e) => !e.isNameError && !e.isRuntimeCrash)) return;
+      syncToBlocksRef.current(true);
+    }, 500);
     return () => clearTimeout(timeoutId);
-  }, [activeTab.pythonCode, activeTab.isEditingCode, activeTab.syntaxErrors, activeTabId, isSyncingToBlocks, isEngineReady]);
+  }, [activeTab.pythonCode, activeTab.isEditingCode, activeTab.blocklyJson, activeTabId, isSyncingToBlocks, isEngineReady]);
 
   const handleClear = () => {
     setModalConfig({
@@ -905,6 +945,10 @@ export default function MainApp({ pipelineMode = false }) {
           workspaceRefs.current[activeTabId].clear();
           updateTab(activeTabId, {
             pythonCode: "# Drag blocks to generate Python code", blocklyJson: null,
+            // Back to "blocks are the source of truth". Left as true after typing
+            // in the Python editor, handleBlocklyChange kept ignoring every new
+            // block, so the Python panel stayed on the placeholder text.
+            isEditingCode: false,
             analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
             analysisTime: "0.0", lineExecutions: {}, syntaxErrors: [],
             currentLoadedId: null, title: "Untitled Project", saveType: "project",
@@ -1107,8 +1151,14 @@ export default function MainApp({ pipelineMode = false }) {
       try {
         const json = JSON.parse(e.target.result);
         let blocks = json; let pythonCode = "# Drag blocks to generate Python code"; let title = file.name.replace(".json", "");
-        if (json.type === "algoblocks_project") { blocks = json.blocklyJson; pythonCode = json.pythonCode; title = json.title || title; }
-        else if (json.workspace && json.workspace.blocklyJson) { blocks = json.workspace.blocklyJson; pythonCode = json.pythonCode || pythonCode; }
+        if (json && json.type === "algoblocks_project") { blocks = json.blocklyJson; pythonCode = json.pythonCode; title = json.title || title; }
+        else if (json && json.workspace && json.workspace.blocklyJson) { blocks = json.workspace.blocklyJson; pythonCode = json.pythonCode || pythonCode; }
+
+        // An unrelated (but syntactically valid) JSON file used to be "imported"
+        // as an empty workspace: it cleared every block and still reported
+        // success. Reject anything that isn't a Blockly workspace instead.
+        if (!blocks || typeof blocks !== "object") throw new Error("Not an AlgoBlocks workspace file");
+        if (typeof pythonCode !== "string" || !pythonCode) pythonCode = "# Drag blocks to generate Python code";
 
         if (workspaceRefs.current[activeTabId]) {
           workspaceRefs.current[activeTabId].loadTemplate(blocks);
@@ -1287,7 +1337,19 @@ export default function MainApp({ pipelineMode = false }) {
       tabs.forEach((t) => {
         if (String(t.currentLoadedId) === String(item._id)) {
           workspaceRefs.current[t.id]?.clear();
-          updateTab(t.id, { currentLoadedId: null, title: "Untitled Project", description: "", category: "Custom Templates", isDirty: false });
+          // clear() is muted (no onChange), so the tab must be reset here too.
+          // Otherwise it keeps the deleted project's Python text and stale
+          // blocklyJson, and the old blocks come back the next time the Blocks
+          // panel remounts (getLiveBlocklyJson falls back to blocklyJson when
+          // the live workspace is empty).
+          updateTab(t.id, {
+            currentLoadedId: null, title: "Untitled Project", description: "", category: "Custom Templates",
+            pythonCode: "# Drag blocks to generate Python code", blocklyJson: null, isEditingCode: false,
+            syntaxErrors: [], lineExecutions: {},
+            analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
+            analysisTime: "0.0",
+            isDirty: false, ignoreDirtyUntil: Date.now() + 1200,
+          });
         }
       });
       window.dispatchEvent(new Event("localDataSynced"));
