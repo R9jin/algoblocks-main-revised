@@ -1,3 +1,4 @@
+import { withPanelBoundary } from "../components/PanelErrorBoundary.jsx";
 import DOMPurify from "dompurify";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiActivity, FiBookOpen, FiChevronLeft, FiChevronRight, FiGrid, FiInfo, FiLayers, FiPlay, FiTerminal } from "react-icons/fi";
@@ -5,13 +6,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
 import BlockGlossaryModal from "../components/BlockGlossaryModal.jsx";
-import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
+import BlocklyWorkspaceRaw from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import DockableWorkspace from "../components/DockableWorkspace.jsx";
 import RewardModal from "../components/RewardModal.jsx";
-import ComplexityPanelContent from "../components/panelContent/ComplexityPanelContent.jsx";
+import ComplexityPanelContentRaw from "../components/panelContent/ComplexityPanelContent.jsx";
 import ConsolePanelContent from "../components/panelContent/ConsolePanelContent.jsx";
-import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
+import PythonCodeEditorRaw from "../components/PythonCodeEditor.jsx";
 import TourHelpButton from "../components/TourHelpButton";
 import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
 import { useOnboarding, GENERIC_ACTIVITY_TOUR_PAGE_ID } from "../context/OnboardingContext";
@@ -23,6 +24,9 @@ import "../styles/ActivityApp.css";
 import { getComplexityWeight, sanitizePythonCode } from "../utils/asymptoticParser.jsx";
 import { extractErrorSummaryLine, translatePythonError } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
+const BlocklyWorkspace = withPanelBoundary(BlocklyWorkspaceRaw, "The block editor");
+const ComplexityPanelContent = withPanelBoundary(ComplexityPanelContentRaw, "The complexity panel");
+const PythonCodeEditor = withPanelBoundary(PythonCodeEditorRaw, "The code editor");
 
 // Default docking arrangement, mirrored from MainApp.jsx: Blocks and Python
 // tabbed together in the center (mirrors the old toggle button), Console
@@ -356,8 +360,21 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
   }, []);
 
+  const handleRunTimeout = () => {
+    resetWorker(); const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+    setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+    setIsEvaluating(false); setIsWaitingForInput(false);
+  };
+
   workerMessageHandler.current = (event) => {
     const { type, data, counts, requestEpoch, runId } = event.data;
+    if (type === "RUN_STARTED") {
+      // Only the editor run (tagged with a runId) uses the queued-run backstop.
+      if (runId === undefined || runId !== runIdRef.current) return;
+      clearTimeout(runTimeoutRef.current);
+      runTimeoutRef.current = setTimeout(handleRunTimeout, 10000);
+      return;
+    }
     if ((type === "OUTPUT" || type === "ERROR" || type === "INPUT_REQUEST" || type === "RUN_RESULT")
         && runId !== undefined && runId !== runIdRef.current) return;
     if (type === "ANALYZE_RESULT") {
@@ -1317,11 +1334,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     setSyntaxErrors((prev) => (prev || []).filter((e) => !e.isRuntimeCrash));
 
     outputCountRef.current = 0; pendingOutputRef.current = ""; runtimeErrorTextRef.current = "";
-    runTimeoutRef.current = setTimeout(() => {
-      resetWorker(); const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-      setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
-      setIsEvaluating(false); setIsWaitingForInput(false);
-    }, 10000);
+    // 60 s backstop while queued; RUN_STARTED swaps in the real 10 s timer.
+    runTimeoutRef.current = setTimeout(handleRunTimeout, 60000);
 
     const runId = ++runIdRef.current;
     workerRef.current?.postMessage({ type: "RUN_CODE", code: sanitizePythonCode(codeToRun), runId });
@@ -1352,11 +1366,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       workerRef.current.postMessage({ type: "INPUT_RESPONSE", data: userInput });
       outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
 
-      runTimeoutRef.current = setTimeout(() => {
-        resetWorker(); const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
-        setIsEvaluating(false); setIsWaitingForInput(false);
-      }, 10000);
+      runTimeoutRef.current = setTimeout(handleRunTimeout, 10000);
     }
   };
 

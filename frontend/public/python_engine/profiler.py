@@ -27,7 +27,7 @@ class LineExecutionProfiler:
             isolated_globals = {"input": dummy_input}
             exec(compiled_code, isolated_globals)
             
-        except Exception as e:
+        except (Exception, SystemExit, KeyboardInterrupt):
             pass # Fails gracefully, returning whatever hits we tracked so far
         finally:
             sys.settrace(None)
