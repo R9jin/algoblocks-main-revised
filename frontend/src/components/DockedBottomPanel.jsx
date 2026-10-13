@@ -1,13 +1,17 @@
 // frontend/src/components/DockedBottomPanel.jsx
+import { withPanelBoundary } from "./PanelErrorBoundary.jsx";
 import DOMPurify from "dompurify";
 import React, { useEffect, useRef, useState } from "react";
 import { FiChevronDown, FiChevronRight, FiInfo, FiX } from "react-icons/fi";
 import { formatExplanation, getComplexityColor, getComplexityWeight, parseMarkdown } from "../utils/asymptoticParser.jsx";
 import { formatComplexity } from "../utils/formatters";
-import CallGraphVisualizer from "./CallGraphVisualizer.jsx";
-import ComplexityGraph from "./ComplexityGraph.jsx";
-import MemoryVisualizer from "./MemoryVisualizer.jsx";
+import CallGraphVisualizerRaw from "./CallGraphVisualizer.jsx";
+import ComplexityGraphRaw from "./ComplexityGraph.jsx";
+import MemoryVisualizerRaw from "./MemoryVisualizer.jsx";
 import { focusWithoutScroll, scrollToEndWithin } from "../utils/scrollWithin";
+const CallGraphVisualizer = withPanelBoundary(CallGraphVisualizerRaw, "The call graph");
+const ComplexityGraph = withPanelBoundary(ComplexityGraphRaw, "The complexity chart");
+const MemoryVisualizer = withPanelBoundary(MemoryVisualizerRaw, "The memory map");
 
 export default function DockedBottomPanel({
   bottomPanel,

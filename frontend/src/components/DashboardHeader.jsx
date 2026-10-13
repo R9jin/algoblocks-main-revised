@@ -3,9 +3,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LuActivity, LuFolder, LuGauge, LuGitBranch, LuLayoutDashboard, LuLogOut, LuRefreshCw, LuUser, LuUsers } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/DashboardHeader.css";
-import { stopBackgroundSync, syncManager } from "../utils/syncManager";
 import { isAdminUser } from "../utils/auth";
 import LogoutConfirmModal from "./LogoutConfirmModal";
+import { endSession } from "../utils/sessionCleanup";
 import TourHelpButton from "./TourHelpButton";
 
 export default function DashboardHeader({
@@ -84,17 +84,7 @@ export default function DashboardHeader({
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    stopBackgroundSync();
-
-    await Promise.race([
-      syncManager.processSyncQueue().catch(() => {}),
-      new Promise((resolve) => setTimeout(resolve, LOGOUT_SYNC_BUDGET_MS)),
-    ]);
-
-    ["token", "authToken", "user"].forEach(k => {
-      localStorage.removeItem(k);
-      sessionStorage.removeItem(k);
-    });
+    await endSession({ syncBudgetMs: LOGOUT_SYNC_BUDGET_MS });
 
     // Client-side navigate instead of a hard reload (window.location.replace
     // used to live here). A full reload destroys the entire JS process --

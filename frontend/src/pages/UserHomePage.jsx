@@ -15,7 +15,8 @@ import { IoArrowForward } from "react-icons/io5";
 import Footer from "../components/Footer";
 import UserHeader from "../components/UserHeader";
 import curriculumIndex from "../data/curriculumIndex";
-import { clearLocalUserData, progressDB } from "../db";
+import { progressDB } from "../db";
+import { endSession } from "../utils/sessionCleanup";
 import "../styles/UserHomePage.css";
 import { fetchStaticJson } from "../utils/staticJsonCache";
 
@@ -210,9 +211,7 @@ export default function UserHomePage() {
     // the previous account's progress/assessments/submissions readable by
     // the next session. See db.js clearLocalUserData() for the full
     // explanation.
-    await clearLocalUserData();
-    localStorage.clear();
-    sessionStorage.clear();
+    await endSession();
     // Client-side navigate, not a hard reload -- see DashboardHeader.jsx's
     // handleLogout for why. clearLocalUserData() above already wipes the
     // per-user IndexedDB stores (progress/assessments/submissions/etc); the

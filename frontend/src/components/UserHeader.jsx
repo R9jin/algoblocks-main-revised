@@ -11,8 +11,8 @@ import {
 } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
 import "../styles/UserHeader.css";
-import { startBackgroundSync } from "../utils/syncManager.js";
 import LogoutConfirmModal from "./LogoutConfirmModal";
+import { endSession } from "../utils/sessionCleanup";
 import TourHelpButton from "./TourHelpButton";
 
 // FIX: Added onLogoutClick to the component props
@@ -54,12 +54,8 @@ export default function UserHeader({ user, onLogoutClick, tour, tourPageId }) {
     };
   }, []);
 
-  const handleLogout = () => {
-    if (navigator.onLine) {
-      startBackgroundSync().catch(console.error);
-    }
-    localStorage.clear();
-    sessionStorage.clear();
+  const handleLogout = async () => {
+    await endSession();
     // Client-side navigate, not a hard reload -- see the matching comment
     // in DashboardHeader.jsx's handleLogout. Keeping the SPA alive across
     // sign-out is what lets the app-lifetime Pyodide engine and dataset

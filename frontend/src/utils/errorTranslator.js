@@ -56,6 +56,128 @@ export const translatePythonError = (errorMsg) => {
       test: /^LogicWarning: ([\s\S]*)$/,
       generate: (match) => match[1],
     },
+
+    // -------------------------------------------------------------------------
+    // 0b. SPECIFIC RUNTIME MESSAGES (more specific than the family fallback;
+    // these sit BEFORE the older rules so the tailored wording wins)
+    // -------------------------------------------------------------------------
+    {
+      test: /IndexError: pop from empty list/i,
+      generate: () =>
+        "Popping From an Empty List: `pop()` removes the last item, but the list has nothing left in it. This is the classic stack/queue mistake of removing more items than were added. Check `if len(items) > 0:` (or `if items:`) before every `pop()`, and make sure your push/append steps run before your pop steps.",
+    },
+    {
+      test: /IndexError: pop from empty deque|IndexError: deque is empty/i,
+      generate: () =>
+        "Empty Queue: You removed an item from a queue/deque that has no items. Check that it isn't empty (`if queue:`) before calling `popleft()` or `pop()`.",
+    },
+    {
+      test: /ValueError: invalid literal for int\(\) with base 10: ''/i,
+      generate: () =>
+        "Empty Input: `int()` received an empty string, which usually means the input was blank (the user just pressed Enter) or a value was never filled in. Check that the text isn't empty before converting, for example `if text.strip() != \"\":`, or give `input()` a default like `int(text or 0)`.",
+    },
+    {
+      test: /ValueError: could not convert string to float: ''/i,
+      generate: () =>
+        "Empty Input: `float()` received an empty string. Check that the text isn't blank before converting it to a number.",
+    },
+    {
+      test: /TypeError: 'NoneType' object is not subscriptable/i,
+      generate: () =>
+        "Indexing Into None: You used `[...]` on a value that is `None`. This almost always means a function didn't `return` anything (so it gave back `None`), or a variable was never assigned a real list/dict. Check that the function you called ends with a `return` on every path.",
+    },
+    {
+      test: /TypeError: '(\w+)' object is not subscriptable/i,
+      generate: (match) =>
+        `Can't Index a ${match[1]}: You used square brackets \`[...]\` on a \`${match[1]}\`, which doesn't support looking things up by position or key. Only lists, strings, tuples and dictionaries do. Check the variable's type with \`type(x)\`.`,
+    },
+    {
+      test: /TypeError: (\w+)\(\) takes (?:exactly )?(\d+|from \d+ to \d+) positional arguments? but (\d+) (?:was|were) given/i,
+      generate: (match) =>
+        `Wrong Number of Arguments: \`${match[1]}()\` expects ${match[2]} argument(s), but you passed ${match[3]}. Compare the call with the \`def ${match[1]}(...)\` line and add or remove arguments to match. For methods inside a class, remember that \`self\` counts as the first one.`,
+    },
+    {
+      test: /TypeError: (\w+)\(\) missing (\d+) required positional arguments?: (.+)/i,
+      generate: (match) =>
+        `Missing Argument: \`${match[1]}()\` needs ${match[3]}, but the call didn't supply ${match[2] === "1" ? "it" : "them"}. Pass a value for each parameter in the function's definition.`,
+    },
+    {
+      test: /TypeError: unhashable type: '(\w+)'/i,
+      generate: (match) =>
+        `Unhashable Type: A \`${match[1]}\` can't be used as a dictionary key or set item, because it can change. Use an immutable version instead, for example convert a list with \`tuple(my_list)\` before using it as a key.`,
+    },
+    {
+      test: /TypeError: '(<|>|<=|>=)' not supported between instances of '(\w+)' and '(\w+)'/i,
+      generate: (match) =>
+        `Can't Compare ${match[2]} With ${match[3]}: \`${match[1]}\` needs two values of compatible types (two numbers, or two strings). Convert one side first, e.g. \`int(text)\`, and check whether either value is \`None\` because a function forgot to return something.`,
+    },
+    {
+      test: /TypeError: list indices must be integers or slices, not (\w+)/i,
+      generate: (match) =>
+        `Bad List Index: List positions must be whole numbers, but you used a \`${match[1]}\`. If it's a float from a division, use \`//\` instead of \`/\` (or \`int(...)\`) to get a whole number, for example \`arr[(lo + hi) // 2]\`.`,
+    },
+    {
+      test: /ZeroDivisionError: (?:integer )?(?:division or modulo by zero|division by zero|modulo by zero|integer modulo by zero)/i,
+      generate: () =>
+        "Dividing by Zero: The divisor (the number after `/`, `//` or `%`) was 0 when this line ran. Check what it holds right before this line, for example a counter, a length of an empty list, or a loop variable that starts at 0, and guard it with `if divisor != 0:`.",
+    },
+    {
+      test: /ZeroDivisionError: float division by zero|ZeroDivisionError: float modulo/i,
+      generate: () =>
+        "Dividing by Zero: The number you're dividing by is 0.0. Add a guard such as `if denominator != 0:` before dividing, and check how that variable got to be zero.",
+    },
+    {
+      test: /RuntimeError: dictionary changed size during iteration|RuntimeError: Set changed size during iteration/i,
+      generate: () =>
+        "Changing a Collection While Looping: You added or removed items from a dictionary/set while a `for` loop was reading it, and Python can't keep its place. Loop over a copy instead: `for key in list(my_dict):`, or build a new collection and swap it in afterwards.",
+    },
+    {
+      test: /RuntimeError: maximum recursion depth exceeded/i,
+      generate: () =>
+        "Recursion Never Stops: The function kept calling itself until Python's limit. Check that it has a base case (a condition that returns without calling itself) and that every recursive call moves toward it, for example `n - 1` rather than `n`.",
+    },
+    {
+      test: /UnboundLocalError: (?:cannot access local variable|local variable) '(\w+)'/i,
+      generate: (match) =>
+        `Variable Used Before It Has a Value: \`${match[1]}\` is assigned somewhere inside this function, so Python treats it as local, but this line reads it before any assignment has run (for example it's only set inside an \`if\` that didn't execute). Give \`${match[1]}\` a starting value at the top of the function, or pass it in as a parameter. If you meant the outer variable, declare \`global ${match[1]}\` first.`,
+    },
+    {
+      test: /SyntaxError: '(\(|\[|\{)' was never closed/i,
+      generate: (match) => {
+        const closer = { "(": ")", "[": "]", "{": "}" }[match[1]];
+        return `Unclosed Bracket: A \`${match[1]}\` was opened but never closed with \`${closer}\`. Look at the flagged line and the lines after it for where the group should end, and add the missing \`${closer}\`.`;
+      },
+    },
+    {
+      test: /SyntaxError: unterminated (?:triple-quoted )?string literal/i,
+      generate: () =>
+        "Unfinished Text: A string started with a quote mark but the matching closing quote is missing on that line. Add the same kind of quote (`\"` or `'`) at the end, and check for a quote inside the text that ended it early.",
+    },
+    {
+      test: /^MemoryError\b/i,
+      generate: () =>
+        "Out of Memory: The program tried to build something too large for the browser to hold, such as a huge list or a very long string. Check loops that keep appending forever, or sizes that grow much faster than expected.",
+    },
+    {
+      test: /^AssertionError\b/i,
+      generate: () =>
+        `Assertion Failed: An \`assert\` statement checked a condition that turned out to be False${str.length > 14 ? ` (${str.replace(/^AssertionError:?\s*/i, "").trim()})` : ""}. Print the values used in that condition just before the assert to see which one isn't what you expected.`,
+    },
+    {
+      test: /^NotImplementedError\b/i,
+      generate: () =>
+        "Not Written Yet: The code reached a function or method that deliberately raises `NotImplementedError`, meaning its body hasn't been filled in. Replace it with the real logic, or make sure the right version of the method is being called.",
+    },
+    {
+      test: /^TimeoutError\b/i,
+      generate: () =>
+        "Took Too Long: An operation did not finish in time. Check for a loop that never ends or waits on something that never arrives.",
+    },
+    {
+      test: /^SystemExit\b/i,
+      generate: () =>
+        "Program Exited: The code called `exit()` or `sys.exit()`, which ends the program on purpose. Everything before that line ran normally.",
+    },
     // -------------------------------------------------------------------------
     // 1. SYNTAX & STRUCTURAL ERRORS
     // -------------------------------------------------------------------------
@@ -281,7 +403,7 @@ export const translatePythonError = (errorMsg) => {
   // Truly unrecognized shape (no "ErrorClass: detail" pattern at all) - still
   // echo back the raw text instead of a static line, so the person has
   // something concrete to search on rather than a generic dead end.
-  return `Unrecognized Issue: The engine reported "${str}", which isn't in our lookup table yet. That message usually names the exact variable, value, or operation involved - re-read it closely and check the line directly above and below the one that's flagged.`;
+  return `Something Went Wrong: Python reported "${str}". That message usually names the exact variable, value, or operation involved, so re-read it closely and check the flagged line and the lines just above and below it.`;
 };
 
 // Groups error classes into families so the dynamic fallback above can give

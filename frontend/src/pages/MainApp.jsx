@@ -1,4 +1,5 @@
 // frontend/src/pages/MainApp.jsx
+import { withPanelBoundary } from "../components/PanelErrorBoundary.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import {
   UNSAFE_NavigationContext as NavigationContext,
@@ -8,13 +9,13 @@ import {
 import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
 import BlockGlossaryModal from "../components/BlockGlossaryModal.jsx";
-import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
+import BlocklyWorkspaceRaw from "../components/BlocklyWorkspace.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import DockableWorkspace from "../components/DockableWorkspace.jsx";
 import PipelineReplay from "../components/PipelineReplay.jsx";
-import ComplexityPanelContent from "../components/panelContent/ComplexityPanelContent.jsx";
+import ComplexityPanelContentRaw from "../components/panelContent/ComplexityPanelContent.jsx";
 import ConsolePanelContent from "../components/panelContent/ConsolePanelContent.jsx";
-import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
+import PythonCodeEditorRaw from "../components/PythonCodeEditor.jsx";
 import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
 import WorkspaceHeader from "../components/WorkspaceHeader.jsx";
 import { projectsDB, templatesDB } from "../db.js";
@@ -27,6 +28,9 @@ import { usePyodide } from "../context/PyodideContext.jsx";
 import { sanitizePythonCode } from "../utils/asymptoticParser.jsx";
 import { extractErrorSummaryLine, translatePythonError } from "../utils/errorTranslator.js";
 import { syncManager } from "../utils/syncManager.js";
+const BlocklyWorkspace = withPanelBoundary(BlocklyWorkspaceRaw, "The block editor");
+const ComplexityPanelContent = withPanelBoundary(ComplexityPanelContentRaw, "The complexity panel");
+const PythonCodeEditor = withPanelBoundary(PythonCodeEditorRaw, "The code editor");
 
 // Default docking arrangement: Blocks and Python are tabbed together in the
 // main center region (mirroring the old toggle button), Console and
@@ -64,7 +68,14 @@ const SIDEBAR_TEMPLATES = [
 ];
 
 const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-const getUser = () => { const userStr = localStorage.getItem("user") || sessionStorage.getItem("user"); return userStr ? JSON.parse(userStr) : null; };
+const getUser = () => {
+  try {
+    const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (!userStr || userStr === "undefined" || userStr === "null") return null;
+    const parsed = JSON.parse(userStr);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (e) { return null; }
+};
 const getAuthHeaders = () => { const token = getToken(); return token ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` } : { "Content-Type": "application/json" }; };
 
 // EMERGENCY SAVE (scratch workspace): unlike ActivityApp.jsx, tabs here are
@@ -242,6 +253,10 @@ export default function MainApp({ pipelineMode = false }) {
   // from the real summary line instead of one bogus hint per fragment.
   const runtimeErrorTextRef = useRef("");
   const analyzingTabId = useRef(activeTabId);
+  const analyzeEpochRef = useRef(0);
+  const analyzeEpochTabRef = useRef({}); // requestEpoch -> tabId
+  const latestEpochByTabRef = useRef({}); // tabId -> newest requestEpoch
+  const runTabIdRef = useRef(activeTabId);
   const blocklyAnalyzeTimeoutRef = useRef(null);
 
   const editorRef = useRef(null);
@@ -383,6 +398,8 @@ export default function MainApp({ pipelineMode = false }) {
     // visibilitychange are the reliable fallbacks for flushing the
     // snapshot in those cases.
     const handlePageHide = () => emergencySaveNow();
+    const handleSessionExpired = () => emergencySaveNow();
+    window.addEventListener("algoblocks:session-expired", handleSessionExpired);
     const handleVisibilityChange = () => { if (document.visibilityState === "hidden") emergencySaveNow(); };
     const handleGlobalClick = (e) => {
       if (isNavigatingAwayRef.current) return;
@@ -409,6 +426,7 @@ export default function MainApp({ pipelineMode = false }) {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload); document.removeEventListener("click", handleGlobalClick, { capture: true });
       window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("algoblocks:session-expired", handleSessionExpired);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
@@ -421,14 +439,33 @@ export default function MainApp({ pipelineMode = false }) {
   };
   const cancelLeaveSite = () => setLeaveModal({ isOpen: false, tx: null, targetPath: null });
 
+  const handleRunTimeout = () => {
+    resetWorker();
+    const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+    setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+    setIsEvaluating(false); setIsWaitingForInput(false);
+  };
+
   const initWorker = () => {
     if (!workerRef.current) return;
     workerRef.current.onmessage = (event) => {
-      const { type, data, counts, runId } = event.data;
+      const { type, data, counts, runId, requestEpoch } = event.data;
+      if (type === "RUN_STARTED") {
+        if (runId !== runIdRef.current) return;
+        // The run actually began executing: the 10 s infinite-loop timer starts now,
+        // not while the job was still queued behind another worker job.
+        clearTimeout(runTimeoutRef.current);
+        runTimeoutRef.current = setTimeout(handleRunTimeout, 10000);
+        return;
+      }
       if ((type === "OUTPUT" || type === "ERROR" || type === "INPUT_REQUEST" || type === "RUN_RESULT")
           && runId !== undefined && runId !== runIdRef.current) return;
       if (type === "ANALYZE_RESULT") {
-        const targetId = analyzingTabId.current;
+        // Apply the result only to the tab that asked, and drop it if a newer
+        // request for that tab has been sent since.
+        const targetId = requestEpoch !== undefined ? analyzeEpochTabRef.current[requestEpoch] : analyzingTabId.current;
+        if (!targetId) return;
+        if (requestEpoch !== undefined && latestEpochByTabRef.current[targetId] !== requestEpoch) return;
         if (data.status === "success") {
           const initialCounts = {};
           (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
@@ -447,9 +484,10 @@ export default function MainApp({ pipelineMode = false }) {
               scope_warnings: data.scope_warnings || [],
               logic_warnings: data.logic_warnings || []
             },
-            lineExecutions: (prev) => ({ ...prev, ...initialCounts }),
             syntaxErrors: runtimeErrors,
           });
+          // updateTab stores values as-is, so merge the counts explicitly.
+          setTabs((prev) => prev.map((t) => (t.id === targetId ? { ...t, lineExecutions: { ...(t.lineExecutions || {}), ...initialCounts } } : t)));
         } else {
           if (data.multiple_errors && data.multiple_errors.length > 0) {
             const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: true }));
@@ -479,7 +517,7 @@ export default function MainApp({ pipelineMode = false }) {
           const crashLine = frames.length ? Number(frames[frames.length - 1][1]) : null;
           if (crashLine && summary) {
             const crashEntry = { line: crashLine, message: summary, fix: hint || translatePythonError(summary), blocking: false, isRuntimeCrash: true, isNameError: /^NameError/.test(summary) };
-            const crashTabId = analyzingTabId.current;
+            const crashTabId = runTabIdRef.current;
             setTabs((prev) => prev.map((t) => {
               if (t.id !== crashTabId) return t;
               const existing = t.syntaxErrors || [];
@@ -490,7 +528,7 @@ export default function MainApp({ pipelineMode = false }) {
           }
         }
         setConsoleOutput((prev) => prev + flushed + resultData + hintBlock + "\n> Program finished.\n");
-        if (counts) updateTab(analyzingTabId.current, { lineExecutions: counts });
+        if (counts) updateTab(runTabIdRef.current, { lineExecutions: counts });
         setIsEvaluating(false); setIsWaitingForInput(false);
       } else if (type === "OUTPUT") {
         outputCountRef.current += 1; pendingOutputRef.current += data;
@@ -702,6 +740,9 @@ export default function MainApp({ pipelineMode = false }) {
   const analyzeCode = async (tabId, code) => {
     if (!code || code.trim() === "" || code === "# Drag blocks to generate Python code") return;
     analyzingTabId.current = tabId;
+    const requestEpoch = ++analyzeEpochRef.current;
+    analyzeEpochTabRef.current[requestEpoch] = tabId;
+    latestEpochByTabRef.current[tabId] = requestEpoch;
     const cleanCode = sanitizePythonCode(code);
 
     // Complexity analysis always runs client-side inside the Pyodide
@@ -719,7 +760,7 @@ export default function MainApp({ pipelineMode = false }) {
     // matches ActivityApp.jsx's existing (correct) analysis path and
     // means this feature scales with the number of student *browsers*
     // doing the work themselves, not with backend capacity.
-    if (workerRef.current) workerRef.current.postMessage({ type: "ANALYZE_CODE", code: cleanCode });
+    if (workerRef.current) workerRef.current.postMessage({ type: "ANALYZE_CODE", code: cleanCode, requestEpoch });
   };
 
   const handleBlocklyChange = (tabId, json, pythonCode) => {
@@ -933,14 +974,12 @@ export default function MainApp({ pipelineMode = false }) {
 
     const safePayload = sanitizePythonCode(codeToRun);
     const runId = ++runIdRef.current;
+    runTabIdRef.current = activeTabId;
     workerRef.current.postMessage({ type: "RUN_CODE", code: safePayload, runId });
 
-    runTimeoutRef.current = setTimeout(() => {
-      resetWorker();
-      const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-      setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
-      setIsEvaluating(false); setIsWaitingForInput(false);
-    }, 10000);
+    // 60 s backstop while the job is queued; the worker's RUN_STARTED message
+    // replaces it with the real 10 s infinite-loop timer.
+    runTimeoutRef.current = setTimeout(handleRunTimeout, 60000);
   };
 
   const handleSendInput = (e) => {
@@ -951,12 +990,7 @@ export default function MainApp({ pipelineMode = false }) {
       renderIntervalRef.current = setInterval(() => {
         if (pendingOutputRef.current) { setConsoleOutput((prev) => prev + pendingOutputRef.current); pendingOutputRef.current = ""; }
       }, 100);
-      runTimeoutRef.current = setTimeout(() => {
-        resetWorker();
-        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
-        setIsEvaluating(false); setIsWaitingForInput(false);
-      }, 10000);
+      runTimeoutRef.current = setTimeout(handleRunTimeout, 10000);
     }
   };
 

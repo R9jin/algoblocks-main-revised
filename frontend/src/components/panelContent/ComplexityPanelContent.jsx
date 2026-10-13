@@ -5,15 +5,19 @@
 // DockableWorkspace. Reuses the original CSS classes so nothing visually
 // changes.
 
+import { withPanelBoundary } from "../PanelErrorBoundary.jsx";
 import DOMPurify from "dompurify";
 import React, { useState } from "react";
 import { FiChevronDown, FiInfo } from "react-icons/fi";
 import { formatExplanation, getComplexityClass, getComplexityColor, getComplexityWeight, parseMarkdown } from "../../utils/asymptoticParser.jsx";
 import { formatComplexity, toClosedFormBigO } from "../../utils/formatters";
-import CallGraphVisualizer from "../CallGraphVisualizer.jsx";
-import ComplexityGraph from "../ComplexityGraph.jsx";
-import MemoryVisualizer from "../MemoryVisualizer.jsx";
+import CallGraphVisualizerRaw from "../CallGraphVisualizer.jsx";
+import ComplexityGraphRaw from "../ComplexityGraph.jsx";
+import MemoryVisualizerRaw from "../MemoryVisualizer.jsx";
 import ScopeWarningModal from "../ScopeWarningModal.jsx";
+const CallGraphVisualizer = withPanelBoundary(CallGraphVisualizerRaw, "The call graph");
+const ComplexityGraph = withPanelBoundary(ComplexityGraphRaw, "The complexity chart");
+const MemoryVisualizer = withPanelBoundary(MemoryVisualizerRaw, "The memory map");
 
 export default function ComplexityPanelContent({
   activeComplexityTab,
