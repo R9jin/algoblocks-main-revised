@@ -1,4 +1,5 @@
 // frontend/src/components/PythonCodeEditor.jsx
+import { useRef } from "react";
 import Editor from "@monaco-editor/react";
 import "../utils/monacoSetup"; // bundled Monaco -- no CDN, works offline
 import { handleEditorWillMount } from "../utils/asymptoticParser.jsx";
@@ -15,6 +16,18 @@ export default function PythonCodeEditor({
   onChangeCode,
   onMountEditor
 }) {
+  const editorRef = useRef(null);
+  const handleMount = (editor, monaco) => {
+    editorRef.current = editor;
+    if (onMountEditor) onMountEditor(editor, monaco);
+  };
+  const jumpToLine = (line) => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    ed.revealLineInCenter(line);
+    ed.setPosition({ lineNumber: line, column: 1 });
+    ed.focus();
+  };
   const hasSyntaxErrors = syntaxErrors && syntaxErrors.length > 0;
   const editorTheme = useResolvedTheme() === "dark" ? "algoblocks-dark" : "algoblocks-light";
 
@@ -50,7 +63,7 @@ export default function PythonCodeEditor({
           language="python"
           theme={editorTheme}
           beforeMount={handleEditorWillMount}
-          onMount={onMountEditor}
+          onMount={handleMount}
           value={pythonCode}
           onChange={onChangeCode}
           options={{
@@ -62,7 +75,7 @@ export default function PythonCodeEditor({
             padding: { top: 16 }
           }}
         />
-        <FloatingErrorDropdown syntaxErrors={syntaxErrors} />
+        <FloatingErrorDropdown syntaxErrors={syntaxErrors} onJumpToLine={jumpToLine} />
       </div>
     </div>
   );

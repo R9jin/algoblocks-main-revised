@@ -18,6 +18,7 @@
 // generic "Something went wrong."
 
 import { Component } from "react";
+import { resolveTheme } from "../utils/theme";
 
 function isChunkLoadError(error) {
   const msg = String(error?.message || "");
@@ -53,6 +54,7 @@ export default class RouteErrorBoundary extends Component {
   render() {
     if (!this.state.hasError) return this.props.children;
 
+    const dark = resolveTheme() === "dark";
     const offline = this.state.isChunkError && typeof navigator !== "undefined" && !navigator.onLine;
 
     return (
@@ -66,8 +68,8 @@ export default class RouteErrorBoundary extends Component {
           gap: "16px",
           padding: "24px",
           textAlign: "center",
-          color: "#e5e7eb",
-          background: "#0f1115",
+          color: dark ? "#e5e7eb" : "#1f2937",
+          background: dark ? "#0f1115" : "#f9fafb",
         }}
       >
         <h2 style={{ margin: 0 }}>

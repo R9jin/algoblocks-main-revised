@@ -327,7 +327,7 @@ async function initPyodide() {
 }
 
 const handleWorkerMessage = async (e) => {
-  const { type, code, data, requestEpoch, runId } = e.data;
+  const { type, code, data, requestEpoch, runId, requestId } = e.data;
 
   if (type === 'STOP_RUN') {
     runStopped = true;
@@ -360,14 +360,19 @@ const handleWorkerMessage = async (e) => {
     ANALYZE_CODE: 30000,
     TRACE_PIPELINE: 30000,
     RUN_CODE: 30000,
-    PYTHON_TO_BLOCKS: 60000,
+    PYTHON_TO_BLOCKS: 30000,
   };
+  if (type === 'RUN_CODE') self.postMessage({ type: 'RUN_STARTED', runId });
   const maxLen = CODE_LENGTH_LIMITS[type];
   if (maxLen && code && code.length > maxLen) {
     const errorMsg = `Code payload too large. Maximum allowed is ${maxLen} characters.`;
     if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg }, requestEpoch });
-    else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: errorMsg } });
+    else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: errorMsg }, requestId });
     else if (type === 'TRACE_PIPELINE') self.postMessage({ type: 'TRACE_PIPELINE_RESULT', data: { status: 'error', message: errorMsg }, requestEpoch });
+    else if (type === 'RUN_CODE') {
+      self.postMessage({ type: 'ERROR', data: errorMsg + "\n", runId });
+      self.postMessage({ type: 'RUN_RESULT', data: "", counts: {}, runId });
+    }
     else self.postMessage({ type: 'ERROR', data: errorMsg });
     return;
   }
@@ -535,7 +540,7 @@ except Exception as e:
 output
       `);
       const resultData = JSON.parse(resultJsonStr);
-      self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: resultData });
+      self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: resultData, requestId });
     }
 
     else if (type === 'RUN_CODE') {
@@ -631,8 +636,8 @@ try:
     finally:
         sys.settrace(None)
         globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
-except KeyboardInterrupt:
-    pass  # stopped by the user (Stop button / Ctrl+C): end quietly, no traceback
+except (KeyboardInterrupt, SystemExit):
+    pass  # stopped by the user, or exit()/sys.exit() called: end quietly, no traceback
 except Exception:
     print(traceback.format_exc(), file=sys.stderr)
       `);
@@ -976,8 +981,12 @@ json.dumps(res)
     // converting code that imports an unsupported library, since that's
     // exactly the code path most likely to hit an edge case the inner
     // Python try/except didn't anticipate.
-    else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: err.message || 'Failed to convert Python code to blocks.' } });
+    else if (type === 'PYTHON_TO_BLOCKS') self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: err.message || 'Failed to convert Python code to blocks.' }, requestId });
     else if (type === 'TRACE_PIPELINE') self.postMessage({ type: 'TRACE_PIPELINE_RESULT', data: { status: 'error', message: err.message || 'Pipeline trace failed.' }, requestEpoch });
+    else if (type === 'RUN_CODE') {
+      self.postMessage({ type: 'ERROR', data: (err && err.message ? err.message : String(err)) + "\n", runId });
+      self.postMessage({ type: 'RUN_RESULT', data: "", counts: {}, runId });
+    }
     else self.postMessage({ type: 'ERROR', data: err.message });
   }
 };

@@ -748,6 +748,8 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
   // starts, and lets unmount cancel it too.
   const suppressAutoChangeRef = useRef(false);
   const changeTimeoutRef = useRef(null);
+  const lastGoodCodeRef = useRef("# Drag blocks to generate Python code");
+  const genErrorNotifiedRef = useRef(false);
   const [scopeWarningState, setScopeWarningState] = useState({ isOpen: false, warnings: [] });
 
   // Shows the scope-warning modal and pauses until the user decides.
@@ -838,19 +840,28 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     // listener for the duration too, since clear()/load() below still
     // dispatch real block events to it -- see the comment on
     // suppressAutoChangeRef above for why that's a problem on its own.
+    // Parse BEFORE touching the workspace so bad JSON can't blank it.
+    let parsedJson = json;
+    if (typeof json === "string") {
+      try { parsedJson = JSON.parse(json); }
+      catch (e) {
+        console.warn("Failed to parse JSON string", e);
+        showNotice("Could not load the saved blocks (data looks corrupted). Your current workspace was kept.");
+        return;
+      }
+    }
+
     if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
     suppressAutoChangeRef.current = true;
     dismissNotice(); // stale Undo must never restore blocks into a different workspace
 
+    let snapshot = null;
+    try { snapshot = Blockly.serialization.workspaces.save(workspace.current); } catch (e) { snapshot = null; }
+    let loadFailed = false;
+
     try {
-      Blockly.Events.setGroup(true); 
+      Blockly.Events.setGroup(true);
       workspace.current.clear();
-      
-      let parsedJson = json;
-      if (typeof json === "string") {
-        try { parsedJson = JSON.parse(json); } 
-        catch (e) { console.warn("Failed to parse JSON string"); }
-      }
 
       if (parsedJson && typeof parsedJson === "object" && Object.keys(parsedJson).length > 0) {
         if (Array.isArray(parsedJson)) {
@@ -862,9 +873,20 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         }
       }
     } catch (e) {
+      loadFailed = true;
       console.error("Error loading workspace JSON:", e);
+      try {
+        workspace.current.clear();
+        if (snapshot) Blockly.serialization.workspaces.load(snapshot, workspace.current);
+      } catch (e2) { console.error("Could not restore previous workspace:", e2); }
+      showNotice("Could not load those blocks. Your previous workspace was restored.");
     } finally {
       Blockly.Events.setGroup(false);
+    }
+
+    if (loadFailed) {
+      setTimeout(() => { suppressAutoChangeRef.current = false; }, 50);
+      return;
     }
 
     setTimeout(() => {
@@ -876,7 +898,9 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       // delivery on top of this one.
       fixOverlapsIfAny(workspace.current);
       setTimeout(() => { suppressAutoChangeRef.current = false; }, 50);
-      const code = pythonGenerator.workspaceToCode(workspace.current);
+      let code = "";
+      try { code = pythonGenerator.workspaceToCode(workspace.current); }
+      catch (e) { console.warn("Python generation failed after load:", e); }
       const currentJson = Blockly.serialization.workspaces.save(workspace.current);
 
       if (preservePythonCode !== undefined && preservePythonCode !== null) {
@@ -935,6 +959,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       const cleanCode = sanitizePythonCode(pythonCode);
       const data = await convertPythonToBlocks(cleanCode);
       if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
+      if (!data || data.status !== "success" || !data.blocks) throw new Error("The converter returned no blocks for this code.");
       if (!workspace.current) return { skipped: true };
 
         if (Array.isArray(data.scope_warnings) && data.scope_warnings.length > 0) {
@@ -956,12 +981,19 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         suppressAutoChangeRef.current = true;
         dismissNotice();
 
-        try { 
+        let prevSnapshot = null;
+        try { prevSnapshot = Blockly.serialization.workspaces.save(workspace.current); } catch (e) { prevSnapshot = null; }
+        try {
           Blockly.Events.setGroup(true);
-          workspace.current.clear(); 
-          if (data.status === "success" && data.blocks) {
-            Blockly.serialization.workspaces.load(data.blocks, workspace.current);
-          }
+          workspace.current.clear();
+          Blockly.serialization.workspaces.load(data.blocks, workspace.current);
+        } catch (err) {
+          try {
+            workspace.current.clear();
+            if (prevSnapshot) Blockly.serialization.workspaces.load(prevSnapshot, workspace.current);
+          } catch (e2) { console.error("Could not restore previous workspace:", e2); }
+          suppressAutoChangeRef.current = false;
+          throw err;
         } finally { Blockly.Events.setGroup(false); }
 
         // This delivers the just-loaded blocks/code back to the caller's
@@ -1006,6 +1038,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     if (workspace.current) return;
 
     let searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin;
+    let resizeObserverRef = null;
 
     if (!crossTabPluginInitialized) {
       try { 
@@ -1118,9 +1151,25 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         if (changeTimeoutRef.current) clearTimeout(changeTimeoutRef.current);
         changeTimeoutRef.current = setTimeout(() => {
           changeTimeoutRef.current = null;
-          try { 
-            if (onChangeRef.current) onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonGenerator.workspaceToCode(workspace.current)); 
-          } catch (e) {}
+          const ws = workspace.current;
+          if (!ws || !onChangeRef.current) return;
+          let json;
+          try { json = Blockly.serialization.workspaces.save(ws); }
+          catch (e) { console.error("Workspace save failed:", e); return; }
+          let code;
+          try {
+            code = pythonGenerator.workspaceToCode(ws);
+            lastGoodCodeRef.current = code;
+            genErrorNotifiedRef.current = false;
+          } catch (e) {
+            console.error("Python generation failed:", e);
+            code = lastGoodCodeRef.current;
+            if (!genErrorNotifiedRef.current) {
+              genErrorNotifiedRef.current = true;
+              showNotice("One of your blocks couldn't be turned into Python, so the code panel shows the last working version. Your blocks are still saved.");
+            }
+          }
+          try { onChangeRef.current(json, code); } catch (e) { console.error("onChange handler failed:", e); }
         }, 400);
       });
 
@@ -1130,7 +1179,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         resizeFrame = requestAnimationFrame(() => workspace.current && Blockly.svgResize(workspace.current)); 
       });
       observer.observe(blocklyDiv.current); 
-      blocklyDiv.current.resizeObserver = observer;
+      resizeObserverRef = observer;
 
       if (initialJson) {
          executeLoad(initialJson);
@@ -1151,7 +1200,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       if (noticeTimerRef.current) { clearTimeout(noticeTimerRef.current); noticeTimerRef.current = null; }
       try { [searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin].forEach(p => p?.dispose && p.dispose()); } catch (e) {}
       if (workspace.current) { workspace.current.dispose(); workspace.current = null; }
-      if (blocklyDiv.current?.resizeObserver) blocklyDiv.current.resizeObserver.disconnect();
+      if (resizeObserverRef) { resizeObserverRef.disconnect(); resizeObserverRef = null; }
     };
   }, []);
 

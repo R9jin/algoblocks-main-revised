@@ -42,6 +42,19 @@ const originalFetch = window.fetch;
 const API_TIMEOUT_READ_MS = 12000;
 const API_TIMEOUT_WRITE_MS = 30000;
 
+const OWN_API_ORIGINS = (() => {
+  const origins = new Set([window.location.origin]);
+  try { if (import.meta.env.VITE_API_URL) origins.add(new URL(import.meta.env.VITE_API_URL, window.location.origin).origin); } catch (e) { /* ignore bad env value */ }
+  return origins;
+})();
+function isOwnApiUrl(url) {
+  if (!url || !url.includes('/api')) return false;
+  try {
+    const u = new URL(url, window.location.origin);
+    return OWN_API_ORIGINS.has(u.origin) && (u.pathname === '/api' || u.pathname.startsWith('/api/'));
+  } catch (e) { return false; }
+}
+
 window.fetch = async (...args) => {
   let url = "";
   if (typeof args[0] === 'string') url = args[0];
@@ -53,8 +66,8 @@ window.fetch = async (...args) => {
     return new Response(JSON.stringify({ status: "success", message: "Execution handled by browser." }), { status: 200, headers: { 'Content-Type': 'application/json' }});
   }
 
-  // 2. Inject Tokens
-  if (url.includes('/api')) {
+  // 2. Inject Tokens (only for our own API: relative /api paths or a configured API origin)
+  if (isOwnApiUrl(url)) {
     let config = args[1] || {};
     let newHeaders = new Headers(config.headers);
 
@@ -76,7 +89,7 @@ window.fetch = async (...args) => {
   // to run. Calls that bring their own AbortSignal keep their own timing.
   let timedOut = false;
   let timer = null;
-  if (url.includes('/api')) {
+  if (isOwnApiUrl(url)) {
     const init = args[1] || {};
     const reqMethod = String(init.method || (args[0] && args[0].method) || 'GET').toUpperCase();
     const callerSignal = init.signal || (args[0] && typeof args[0] === 'object' ? args[0].signal : null);
@@ -105,9 +118,12 @@ window.fetch = async (...args) => {
       if (!isGuest) {
         console.warn("Global Fetch: 401 Unauthorized detected. Session expired.");
 
-        // Wipe everything completely
-        localStorage.clear();
-        sessionStorage.clear();
+        // Let the workspace write its recovery snapshot first, then remove only
+        // the auth keys (theme, onboarding and consent flags must survive).
+        try { window.dispatchEvent(new CustomEvent('algoblocks:session-expired')); } catch (e) { /* ignore */ }
+        ['token', 'authToken', 'user'].forEach((k) => {
+          try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) { /* ignore */ }
+        });
 
         // Only redirect if NOT already on an auth page
         const currentPath = window.location.pathname;
@@ -139,6 +155,19 @@ window.fetch = async (...args) => {
     throw error;
   }
 };
+
+// Global safety nets: nothing should fail completely silently.
+const isBenignGlobalError = (msg) => /ResizeObserver loop/i.test(String(msg || ''));
+window.addEventListener('error', (event) => {
+  if (isBenignGlobalError(event.message)) return;
+  console.error('Uncaught error:', event.error || event.message);
+});
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason;
+  // Our own request deadlines and aborted fetches are expected; don't spam the console.
+  if (reason && (reason.name === 'AbortError' || /Network request timed out/i.test(String(reason.message || '')))) return;
+  console.error('Unhandled promise rejection:', reason);
+});
 
 registerSW({ immediate: true });
 

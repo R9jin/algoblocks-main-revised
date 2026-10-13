@@ -122,6 +122,10 @@ class AlgoBlocksTracer:
             runtime_warning = str(e)
             if self.history:
                 runtime_warning_line = self.history[-1].line_no
+        except (SystemExit, KeyboardInterrupt):
+            # exit()/sys.exit() in the student's code is a deliberate, normal stop.
+            # It is a BaseException, so without this it escaped and crashed analysis.
+            pass
         except Exception:
             # Other runtime errors (ZeroDivisionError, etc.) are surfaced
             # elsewhere via the static/AST error path, so a partial trace is
