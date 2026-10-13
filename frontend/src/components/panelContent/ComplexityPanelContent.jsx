@@ -1,7 +1,7 @@
 // frontend/src/components/panelContent/ComplexityPanelContent.jsx
 //
 // The complexity tab's body content, extracted out of the old
-// DockedBottomPanel so it can be docked independently by
+// old bottom panel so it can be docked independently by
 // DockableWorkspace. Reuses the original CSS classes so nothing visually
 // changes.
 

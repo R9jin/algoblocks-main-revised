@@ -219,7 +219,11 @@ export function registerCustomPythonGenerators() {
     pythonGenerator.__originalFinish = pythonGenerator.finish;
     pythonGenerator.finish = function (code) {
       return pythonGenerator.__originalFinish.call(this, code)
+        // Only the `global x` lines Blockly adds on its own are removed. A
+        // `global` the user wrote in a Raw Code block is protected by
+        // protectUserGlobals() below and restored here.
         .replace(/^[ \t]*global[ \t]+.*\n?/gm, "")
+        .replace(/__USER_GLOBAL__/g, "global")
         .replace(/^[ \t]*"""Describe this function\.\.\."""\n?/gm, "")
         .replace(/^[ \t]*# Describe this function\.\.\.\n?/gm, "")
         .replace(/([^\n])\n+(def )/g, "$1\n\n\n$2")
@@ -229,6 +233,9 @@ export function registerCustomPythonGenerators() {
   }
 
   const getCode = (b, n, o = pythonGenerator.ORDER_NONE) => pythonGenerator.valueToCode(b, n, o);
+  // "-" + expression needs brackets unless the expression is a plain name or
+  // number: "#2 from end" with AT = i + 1 used to become -i + 1, not -(i + 1).
+  const negate = (expr) => (/^[A-Za-z_][A-Za-z0-9_]*$|^\d+$/.test(expr) ? `-${expr}` : `-(${expr})`);
 
   // EMPTY SOCKETS MUST NOT BECOME 0.
   // Blockly's stock generators, and ours, used to replace an empty value socket
@@ -296,7 +303,7 @@ export function registerCustomPythonGenerators() {
     let idx = "0";
     if (where === "LAST") idx = "-1";
     else if (where === "FROM_START") idx = getCode(block, "AT") || "0";
-    else if (where === "FROM_END") idx = "-" + (getCode(block, "AT") || "1");
+    else if (where === "FROM_END") idx = negate(getCode(block, "AT") || "1");
 
     if (mode === "GET_REMOVE") return [where === "LAST" ? `${list}.pop()` : `${list}.pop(${idx})`, pythonGenerator.ORDER_FUNCTION_CALL];
     if (mode === "REMOVE") return where === "LAST" ? `${list}.pop()\n` : `${list}.pop(${idx})\n`;
@@ -312,13 +319,13 @@ export function registerCustomPythonGenerators() {
       if (where === "LAST") return `${list}.append(${val})\n`;
       if (where === "FIRST") return `${list}.insert(0, ${val})\n`;
       const at = getCode(block, "AT") || (where === "FROM_END" ? "1" : "0");
-      return `${list}.insert(${where === "FROM_END" ? "-" : ""}${at}, ${val})\n`;
+      return `${list}.insert(${where === "FROM_END" ? negate(at) : at}, ${val})\n`;
     }
 
     let idx = "0";
     if (where === "LAST") idx = "-1";
     else if (where === "FROM_START") idx = getCode(block, "AT") || "0";
-    else if (where === "FROM_END") idx = "-" + (getCode(block, "AT") || "1");
+    else if (where === "FROM_END") idx = negate(getCode(block, "AT") || "1");
 
     return `${list}[${idx}] = ${val}\n`;
   };
@@ -340,10 +347,19 @@ export function registerCustomPythonGenerators() {
   pythonGenerator.forBlock["blank_line"] = () => `\n`;
 
   pythonGenerator.forBlock["text_join"] = function (block) {
+    // Only a lone quoted literal ('abc') is folded straight into the f-string.
+    // The old startsWith/endsWith check also matched 'a' + 'b' and mangled it,
+    // and literal text containing " { or } produced invalid Python.
+    const SIMPLE_LITERAL = /^'(?:[^'\\\n]|\\.)*'$/;
     let fStr = "";
     for (let i = 0; i < block.itemCount_; i++) {
-      let el = getCode(block, "ADD" + i);
-      if (el) fStr += (el.startsWith("'") && el.endsWith("'")) ? el.slice(1, -1) : `{${el}}`;
+      const el = getCode(block, "ADD" + i);
+      if (!el) continue;
+      if (SIMPLE_LITERAL.test(el)) {
+        fStr += el.slice(1, -1).replace(/\\'/g, "'").replace(/"/g, '\\"').replace(/\{/g, "{{").replace(/\}/g, "}}");
+      } else {
+        fStr += `{${el.startsWith("{") ? " " : ""}${el}${el.endsWith("}") ? " " : ""}}`;
+      }
     }
     return [`f"${fStr}"`, pythonGenerator.ORDER_ATOMIC];
   };
@@ -408,9 +424,11 @@ export function registerCustomPythonGenerators() {
   pythonGenerator.forBlock["queue_dequeue_statement"] = b => `${getCode(b, "QUEUE", pythonGenerator.ORDER_MEMBER) || "[]"}.pop(0)\n`;
   pythonGenerator.forBlock["queue_peek"] = b => [`${getCode(b, "QUEUE", pythonGenerator.ORDER_MEMBER) || "[]"}[0]`, pythonGenerator.ORDER_MEMBER];
 
-  pythonGenerator.forBlock["raw_python_statement"] = b => b.getFieldValue("CODE") + "\n";
+  // Hides user-written `global` lines from the strip in finish() above.
+  const protectUserGlobals = (code) => String(code ?? "").replace(/^([ \t]*)global(?=[ \t])/gm, "$1__USER_GLOBAL__");
+  pythonGenerator.forBlock["raw_python_statement"] = b => protectUserGlobals(b.getFieldValue("CODE")) + "\n";
   pythonGenerator.forBlock["raw_python_expression"] = b => [b.getFieldValue("CODE"), pythonGenerator.ORDER_ATOMIC];
-  pythonGenerator.forBlock["raw_python_multiline"] = b => b.getFieldValue("CODE") + "\n";
+  pythonGenerator.forBlock["raw_python_multiline"] = b => protectUserGlobals(b.getFieldValue("CODE")) + "\n";
   pythonGenerator.forBlock["python_input"] = b => [`input(${getCode(b, "PROMPT") || "''"})`, pythonGenerator.ORDER_FUNCTION_CALL];
 }
 
@@ -747,6 +765,10 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
   // that same code cancel any already-pending debounced delivery before it
   // starts, and lets unmount cancel it too.
   const suppressAutoChangeRef = useRef(false);
+  // Each mute takes a new generation number; a delayed un-mute only applies if
+  // no newer mute started meanwhile (otherwise an old release could re-arm the
+  // listener in the middle of a newer load).
+  const muteGenRef = useRef(0);
   const changeTimeoutRef = useRef(null);
   const lastGoodCodeRef = useRef("# Drag blocks to generate Python code");
   const genErrorNotifiedRef = useRef(false);
@@ -852,7 +874,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     }
 
     if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
-    suppressAutoChangeRef.current = true;
+    suppressAutoChangeRef.current = true; const muteGen = ++muteGenRef.current;
     dismissNotice(); // stale Undo must never restore blocks into a different workspace
 
     let snapshot = null;
@@ -885,7 +907,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     }
 
     if (loadFailed) {
-      setTimeout(() => { suppressAutoChangeRef.current = false; }, 50);
+      setTimeout(() => { if (muteGenRef.current === muteGen) suppressAutoChangeRef.current = false; }, 50);
       return;
     }
 
@@ -897,7 +919,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       // (released below) or those events would trigger a second, stale
       // delivery on top of this one.
       fixOverlapsIfAny(workspace.current);
-      setTimeout(() => { suppressAutoChangeRef.current = false; }, 50);
+      setTimeout(() => { if (muteGenRef.current === muteGen) suppressAutoChangeRef.current = false; }, 50);
       let code = "";
       try { code = pythonGenerator.workspaceToCode(workspace.current); }
       catch (e) { console.warn("Python generation failed after load:", e); }
@@ -922,12 +944,14 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       // Every current caller of clear() updates its own state right after
       // calling this, so no replacement delivery is needed here.
       if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
-      suppressAutoChangeRef.current = true;
+      suppressAutoChangeRef.current = true; const muteGen = ++muteGenRef.current;
       dismissNotice();
       Blockly.Events.setGroup(true);
       try { workspace.current.clear(); } finally {
         Blockly.Events.setGroup(false);
-        suppressAutoChangeRef.current = false;
+        // Blockly dispatches the clear's events a tick later, so releasing the
+        // mute right here let them through and re-reported the cleared workspace.
+        setTimeout(() => { if (muteGenRef.current === muteGen) suppressAutoChangeRef.current = false; }, 50);
       }
     },
     // FIX: Added imperative methods to fetch raw JSON manually so failsafes work perfectly
@@ -958,7 +982,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       if (!workspace.current || !pythonCode) return { skipped: true };
       const cleanCode = sanitizePythonCode(pythonCode);
       const data = await convertPythonToBlocks(cleanCode);
-      if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
+      if (data && data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
       if (!data || data.status !== "success" || !data.blocks) throw new Error("The converter returned no blocks for this code.");
       if (!workspace.current) return { skipped: true };
 
@@ -978,7 +1002,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         // (round-tripping through the block generator can reformat it), and
         // dropping the isUnsynced=false this call already established.
         if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
-        suppressAutoChangeRef.current = true;
+        suppressAutoChangeRef.current = true; const muteGen = ++muteGenRef.current;
         dismissNotice();
 
         let prevSnapshot = null;
@@ -992,7 +1016,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
             workspace.current.clear();
             if (prevSnapshot) Blockly.serialization.workspaces.load(prevSnapshot, workspace.current);
           } catch (e2) { console.error("Could not restore previous workspace:", e2); }
-          suppressAutoChangeRef.current = false;
+          setTimeout(() => { if (muteGenRef.current === muteGen) suppressAutoChangeRef.current = false; }, 50);
           throw err;
         } finally { Blockly.Events.setGroup(false); }
 
@@ -1015,7 +1039,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
             fixOverlapsIfAny(workspace.current);
             // Same as executeLoad: let the queued move events from the
             // relayout flush while still muted, then re-arm the listener.
-            setTimeout(() => { suppressAutoChangeRef.current = false; }, 50);
+            setTimeout(() => { if (muteGenRef.current === muteGen) suppressAutoChangeRef.current = false; }, 50);
             if (workspace.current && onChangeRef.current) {
               onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonCode);
             }
@@ -1024,12 +1048,50 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         });
         return { synced: true };
     },
+    // Python -> Blocks for an EMPTY editor: the Python text is the source of
+    // truth, so every block is removed too. The removal is one undo step
+    // (Ctrl+Z, or the "Undo" in the notice), so nothing is lost for good.
+    clearFromPython: async () => {
+      const ws = workspace.current;
+      if (!ws) return { skipped: true };
+      const tops = topLevelBlocks(ws);
+      if (!tops.length) return { synced: true, cleared: 0 };
+      const removed = countBlocks(tops);
+      const saved = tops.map((b) => Blockly.serialization.blocks.save(b, { addCoordinates: true }));
+      if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
+      suppressAutoChangeRef.current = true; const muteGen = ++muteGenRef.current;
+      dismissNotice();
+      const prevGroup = Blockly.Events.getGroup();
+      Blockly.Events.setGroup(true);
+      try { tops.forEach((b) => b.dispose(false)); } finally { Blockly.Events.setGroup(prevGroup || false); }
+      setUnusedCount(0);
+      showNotice(`The Python code is empty, so ${removed} block${removed === 1 ? "" : "s"} ${removed === 1 ? "was" : "were"} removed.`, saved);
+      await new Promise((resolve) => {
+        setTimeout(() => {
+          setTimeout(() => { if (muteGenRef.current === muteGen) suppressAutoChangeRef.current = false; }, 50);
+          if (workspace.current && onChangeRef.current) {
+            onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), "");
+          }
+          resolve();
+        }, 100);
+      });
+      return { synced: true, cleared: removed };
+    },
     // Exposed so a "Tidy up" control or caller can force a clean layout.
     arrangeBlocks: () => { if (workspace.current) relayoutTopBlocks(workspace.current); },
     // Removes unused (loose, do-nothing) value blocks. Used when the program
     // is run and by the "Remove unused blocks" button. Returns { removed, code }.
     removeUnusedBlocks: () => removeUnusedNow(),
-    resize: () => { if (workspace.current) { Blockly.svgResize(workspace.current); workspace.current.markFocused(); } }
+    resize: () => {
+      const ws = workspace.current;
+      if (!ws) return;
+      Blockly.svgResize(ws);
+      // markFocused() moves browser focus to the canvas. Only do it when
+      // nothing else (Monaco, a modal input, the console input) holds focus.
+      const active = document.activeElement;
+      const nothingFocused = !active || active === document.body || blocklyDiv.current?.contains(active);
+      if (nothingFocused) ws.markFocused();
+    }
   }));
 
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
@@ -1039,6 +1101,8 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
 
     let searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin;
     let resizeObserverRef = null;
+    let looseTimer = null;
+    let resizeFrame = null;
 
     if (!crossTabPluginInitialized) {
       try { 
@@ -1132,7 +1196,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         } catch (e) { /* warnings are cosmetic; never break the workspace over them */ }
         flaggingLoose = false;
       };
-      let looseTimer = null;
+      looseTimer = null;
       workspace.current.addChangeListener((event) => {
         const t = event.type;
         if (t !== Blockly.Events.BLOCK_MOVE && t !== Blockly.Events.BLOCK_CREATE
@@ -1173,7 +1237,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         }, 400);
       });
 
-      let resizeFrame;
       const observer = new ResizeObserver(() => { 
         if (resizeFrame) cancelAnimationFrame(resizeFrame); 
         resizeFrame = requestAnimationFrame(() => workspace.current && Blockly.svgResize(workspace.current)); 
@@ -1198,6 +1261,8 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       // was never for it to fire at all once this instance is gone.
       if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
       if (noticeTimerRef.current) { clearTimeout(noticeTimerRef.current); noticeTimerRef.current = null; }
+      if (looseTimer) { clearTimeout(looseTimer); looseTimer = null; }
+      if (resizeFrame) { cancelAnimationFrame(resizeFrame); resizeFrame = null; }
       try { [searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin].forEach(p => p?.dispose && p.dispose()); } catch (e) {}
       if (workspace.current) { workspace.current.dispose(); workspace.current = null; }
       if (resizeObserverRef) { resizeObserverRef.disconnect(); resizeObserverRef = null; }
@@ -1233,13 +1298,13 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
           }}
         >
           <span>{notice.message}</span>
-          <button
+          {notice.saved && <button
             type="button"
             onClick={undoRemoval}
             style={{ background: "none", border: "none", color: "#c4b5fd", fontWeight: 700, cursor: "pointer", padding: 0, fontSize: "0.85rem" }}
           >
             Undo
-          </button>
+          </button>}
           <button
             type="button"
             onClick={dismissNotice}

@@ -303,8 +303,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   useEffect(() => {
     if (workspaceRef.current) {
-      setTimeout(() => workspaceRef.current.resize(), 50);
-      setTimeout(() => workspaceRef.current.resize(), 300);
+      setTimeout(() => workspaceRef.current?.resize?.(), 50);
+      setTimeout(() => workspaceRef.current?.resize?.(), 300);
     }
   }, [isLeftPanelVisible, isRightPanelVisible]);
 
@@ -1226,13 +1226,31 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   // The last text an automatic sync already tried, so a snippet that can't
   // be auto-converted (scope warnings, unparseable) isn't retried in a loop.
   const lastAutoSyncTextRef = useRef(null);
+  const syntaxErrorsRef = useRef([]);
+  syntaxErrorsRef.current = syntaxErrors;
 
   // Python -> Blocks. `silent` is the automatic mode that runs while the
   // learner types: no panel switching, no toast, no modal, no error popup.
   // The manual "Sync to Blocks" button still uses the full, visible flow.
   const syncToBlocks = async (silent = false) => {
-    if (!workspaceRef.current || !generatedPython) return;
+    if (!workspaceRef.current) return;
     if (isSyncingBlocks) return;
+    // Empty editor: the Python is the source of truth, so the blocks go too
+    // (undoable with Ctrl+Z or the notice's Undo button).
+    if (!(generatedPython || "").trim()) {
+      setIsSyncingBlocks(true);
+      try {
+        loadTimeRef.current = 0; // let the empty delivery through the ghost-wipeout guard
+        const result = await workspaceRef.current.clearFromPython();
+        if (result?.skipped) return;
+        if (!(generatedPythonRef.current || "").trim()) {
+          setIsEditingCode(false); setSyntaxErrors([]); setLineExecutions({});
+          if (!silent) { setViewMode("workspace"); focusDockPanel("blockly"); }
+        }
+      } catch (e) { /* clearing is best-effort */ }
+      finally { setIsSyncingBlocks(false); }
+      return;
+    }
     if (!isEngineReady) {
       if (!silent) {
         setConsoleOutput(`Still preparing the Python engine${engineProgress?.stage ? ` (${engineProgress.stage})` : ""}. Please wait a moment and try again.`);
@@ -1299,14 +1317,27 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   syncToBlocksRef.current = syncToBlocks;
   useEffect(() => {
     if (!isReadyRef.current || isUnmountingRef.current || isResettingRef.current) return;
-    if (!isEditingCode || isSyncingBlocks || !isEngineReady) return;
-    if (!generatedPython || !generatedPython.trim() || generatedPython === "# Drag blocks to generate Python code") return;
-    // A NameError / run-time crash still converts to blocks fine; only real syntax problems stop the sync.
-    if (syntaxErrors && syntaxErrors.some((e) => !e.isNameError && !e.isRuntimeCrash)) return;
+    if (!isEditingCode || isSyncingBlocks) return;
+    if (generatedPython === "# Drag blocks to generate Python code") return;
+    if (!generatedPython || !generatedPython.trim()) {
+      // Cleared editor -> remove the blocks right away (no engine needed).
+      let bj = latestBlocksJsonRef.current;
+      try { bj = workspaceRef.current?.getJson?.() || bj; } catch { /* fall back to last delivered JSON */ }
+      if (!(bj && bj.blocks && bj.blocks.blocks && bj.blocks.blocks.length > 0)) return;
+      const t = setTimeout(() => { syncToBlocksRef.current(true); }, 300);
+      return () => clearTimeout(t);
+    }
+    if (!isEngineReady) return;
     if (lastAutoSyncTextRef.current === generatedPython) return;
-    const timeoutId = setTimeout(() => { syncToBlocksRef.current(true); }, 1200);
+    // Syntax problems are re-checked when the timer fires; depending on
+    // syntaxErrors here restarted the timer when each analysis finished (lag).
+    const timeoutId = setTimeout(() => {
+      const errs = syntaxErrorsRef.current;
+      if (errs && errs.some((e) => !e.isNameError && !e.isRuntimeCrash)) return;
+      syncToBlocksRef.current(true);
+    }, 500);
     return () => clearTimeout(timeoutId);
-  }, [generatedPython, isEditingCode, isSyncingBlocks, isEngineReady, syntaxErrors]);
+  }, [generatedPython, isEditingCode, isSyncingBlocks, isEngineReady]);
 
   const handleActivityRun = async () => {
     if (isEvaluating) return;

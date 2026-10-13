@@ -68,6 +68,10 @@ export default function PythonCodeEditor({
           onChange={onChangeCode}
           options={{
             minimap: { enabled: false },
+            // The editor lives in a dock panel that is hidden (display:none)
+            // while another tab is active and is resized by the splitters;
+            // without this it stays 0x0 / stale-sized until a window resize.
+            automaticLayout: true,
             fontSize: 15,
             fontFamily: "Consolas, 'Courier New', monospace",
             scrollBeyondLastLine: false,
