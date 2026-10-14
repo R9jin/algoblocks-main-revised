@@ -32,6 +32,8 @@ import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
+from complexity_explainer.growth_insight import is_symbolic_fixed_range
+
 Note = Tuple[float, str]
 
 CLARITY_PRIORITY = 0.5
@@ -396,6 +398,10 @@ class NotationClarity:
     # -- for loops -------------------------------------------------------
     def _for_notes(self, node, local_t: str = "") -> List[Note]:
         out: List[Note] = []
+        if is_symbolic_fixed_range(node):
+            # scored as the O(n) loop pattern; the strict-O(1) reading is explained by the
+            # "Symbolic vs. strict reading" insight and the line's Global Impact text
+            return out
         bnd = self._loop_bound_expr(node)
 
         if bnd is not None:

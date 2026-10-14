@@ -59,3 +59,57 @@ def test_uncalled_nested_helper_does_not_count():
 outer(5)
 """
     assert total(src) == "O(n)"
+
+
+BFS_LIST_VISITED = """def bfs(graph, start):
+    visited = []
+    queue = %s
+    visited.append(start)
+    while len(queue) > 0:
+        node = queue.%s
+        for neighbor in graph[node]:
+            if not neighbor in visited:
+                visited.append(neighbor)
+                queue.append(neighbor)
+    return visited
+
+graph = {0: [1, 2], 1: [0, 3], 2: [0], 3: [1]}
+bfs(graph, 0)
+"""
+
+
+def test_bfs_list_visited_and_list_queue_total():
+    # pop(0) -> V^2, `in visited` on a list -> V * E
+    assert total(BFS_LIST_VISITED % ("[start]", "pop(0)")) == "O(V^2+V*E)"
+
+
+def test_bfs_list_visited_with_deque_is_v_times_e():
+    src = "from collections import deque\n" + BFS_LIST_VISITED % ("deque([start])", "popleft()")
+    assert total(src) == "O(V*E)"
+
+
+def test_bfs_list_visited_rows():
+    src = BFS_LIST_VISITED % ("[start]", "pop(0)")
+    rows = {l["lineno"]: l for l in analyze_source_code(src)["lines"]}
+    assert rows[8]["time"] == "O(V*E)"            # if not neighbor in visited
+    assert rows[9]["space"] == "O(V)"             # visited.append(neighbor): at most V entries
+    assert rows[14]["time"] == "O(V^2+V*E)"       # the call is the whole traversal
+
+
+def test_bfs_set_visited_is_unchanged():
+    assert total(BFS % ("[start]", "pop(0)")) == "O(V^2+E)"
+
+
+def test_bfs_set_visited_with_deque_is_v_plus_e():
+    # the shipped BFS templates: set visited + deque queue
+    src = "from collections import deque\n" + BFS % ("deque([start])", "popleft()")
+    assert total(src) == "O(V+E)"
+
+
+def test_deque_blocks_round_trip_from_python():
+    import json
+    from blockly_ast import BlocklyASTConverter
+    code = "from collections import deque\nq = deque([1])\nx = q.popleft()\nq.popleft()\nd = deque()\n"
+    types = json.dumps(BlocklyASTConverter().convert(code)["blocks"])
+    for t in ("deque_from_list", "deque_popleft", "deque_popleft_statement", "deque_create_empty"):
+        assert t in types

@@ -502,6 +502,7 @@ class ComplexityAnalyzer:
         self.max_fact = 0
         self.max_graph_ve = 0                 
         self.graph_list_pop0 = False          # a list used as a BFS queue with pop(0): traversal is O(V^2 + E)
+        self.graph_list_member = False        # `nb in visited` on a plain list inside the neighbour loop: O(V) per check -> O(V*E) total
         self.max_space_weight = 0        
         
         self.variable_complexities = {}  
@@ -717,12 +718,23 @@ def analyze_source_code(source_code, explain=True):
         if _lit_note:
             overall_exp = ((overall_exp or '') + '\n\n' + _lit_note).strip()
 
+        _total_badge = analyzer.complexity_synthesizer.get_final_asymptotic_badge()
+        _lines_out = _finalize_line_output(analyzer.details)
+        # The entry-point call row is the whole traversal: when list-based `pop(0)` / `in visited` raised the
+        # traversal above O(V+E), the call row must show that same bound instead of the plain traversal cost.
+        if getattr(analyzer, 'graph_list_pop0', False) or getattr(analyzer, 'graph_list_member', False):
+            for _row in _lines_out:
+                if _row.get("operation") == "Function Call" and _row.get("time") == "O(V+E)":
+                    _row["time"] = _total_badge
+                    # auxiliary space of a guarded-visited traversal is the visited list + queue: O(V)
+                    if getattr(analyzer, 'graph_aux_space', "V+E") == "V" and _row.get("space") == "O(V+E)":
+                        _row["space"] = "O(V)"
         results = {
             "status": "success",
-            "total": analyzer.complexity_synthesizer.get_final_asymptotic_badge(),
+            "total": _total_badge,
             "space_total": analyzer.complexity_synthesizer.get_final_space_badge(),
             "overall_explanation": overall_exp,
-            "lines": _finalize_line_output(analyzer.details),
+            "lines": _lines_out,
             "call_graph": getattr(analyzer, 'call_graph', {}),
             "error": None,
             "runtime_warning": trace_data.get("runtime_warning"),

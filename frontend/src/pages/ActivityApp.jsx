@@ -1174,13 +1174,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   useEffect(() => {
     if (!isReadyRef.current || isUnmountingRef.current || isResettingRef.current) return;
-    if (isOnline && isEngineReady && workerRef.current && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
+    // Analysis runs in the local Pyodide worker, so it must not depend on
+    // network status (a flaky `isOnline` used to silently stop live analysis).
+    if (isEngineReady && workerRef.current && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
       const timeoutId = setTimeout(() => {
         workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython), requestEpoch: analysisEpochRef.current });
       }, 800);
       return () => clearTimeout(timeoutId);
     }
-  }, [generatedPython, isOnline, isEngineReady]);
+  }, [generatedPython, isEngineReady]);
 
   const handleWorkspaceChange = async (json, incomingPythonCode, isUnsynced = false) => {
     if (isUnmountingRef.current || !isReadyRef.current || isResettingRef.current) return;

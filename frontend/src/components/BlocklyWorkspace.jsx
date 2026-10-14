@@ -172,6 +172,13 @@ const customBlocks = [
     args0: [{ type: "input_value", name: "QUEUE", check: "Array" }], previousStatement: null, nextStatement: null },
   { type: "queue_peek", message0: "peek front of queue %1", style: "stack_queue_blocks", tooltip: "Looks at and returns the element currently at the very front of the queue (the oldest item added) without actually modifying or removing it from the queue.",
     args0: [{ type: "input_value", name: "QUEUE", check: "Array" }], output: null },
+  { type: "deque_create_empty", message0: "create empty deque", style: "stack_queue_blocks", tooltip: "Creates a new, empty double-ended queue (collections.deque). Adding to the back and removing from the front are both O(1), so it is the right queue for BFS.", output: null },
+  { type: "deque_from_list", message0: "create deque from list %1", style: "stack_queue_blocks", tooltip: "Creates a double-ended queue (collections.deque) holding the items of a list, in order. Removing from the front with popleft is O(1).",
+    args0: [{ type: "input_value", name: "LIST" }], output: null },
+  { type: "deque_popleft", message0: "popleft and get front of deque %1", style: "stack_queue_blocks", tooltip: "Removes and returns the element at the front of a deque in O(1) time (deque.popleft()). Unlike removing the first item of a list, nothing has to be shifted.",
+    args0: [{ type: "input_value", name: "QUEUE" }], output: null },
+  { type: "deque_popleft_statement", message0: "popleft from deque %1", style: "stack_queue_blocks", tooltip: "Removes the element at the front of a deque in O(1) time and discards it.",
+    args0: [{ type: "input_value", name: "QUEUE" }], previousStatement: null, nextStatement: null },
 ];
 
 if (Blockly.common && Blockly.common.defineBlocksWithJsonArray) { Blockly.common.defineBlocksWithJsonArray(customBlocks); } 
@@ -228,7 +235,9 @@ export function registerCustomPythonGenerators() {
         .replace(/^[ \t]*# Describe this function\.\.\.\n?/gm, "")
         .replace(/([^\n])\n+(def )/g, "$1\n\n\n$2")
         .replace(/([^:\n][ \t]*)\n+([ \t]*(?:for |while |if |return |#))/g, "$1\n\n$2")
-        .replace(/\n{4,}/g, "\n\n\n").trim() + "\n";
+        .replace(/\n{4,}/g, "\n\n\n")
+        .split("\n").filter((l, i, a) => !(/^(from \S+ import .+|import .+)$/.test(l) && a.indexOf(l) !== i)).join("\n")
+        .trim() + "\n";
     };
   }
 
@@ -422,6 +431,11 @@ export function registerCustomPythonGenerators() {
   pythonGenerator.forBlock["queue_enqueue"] = b => `${getCode(b, "QUEUE", pythonGenerator.ORDER_MEMBER) || "[]"}.append(${getCode(b, "ITEM") || "None"})\n`;
   pythonGenerator.forBlock["queue_dequeue"] = b => [`${getCode(b, "QUEUE", pythonGenerator.ORDER_MEMBER) || "[]"}.pop(0)`, pythonGenerator.ORDER_FUNCTION_CALL];
   pythonGenerator.forBlock["queue_dequeue_statement"] = b => `${getCode(b, "QUEUE", pythonGenerator.ORDER_MEMBER) || "[]"}.pop(0)\n`;
+  const needDeque = () => { pythonGenerator.definitions_["import_deque"] = "from collections import deque"; };
+  pythonGenerator.forBlock["deque_create_empty"] = () => { needDeque(); return ["deque()", pythonGenerator.ORDER_FUNCTION_CALL]; };
+  pythonGenerator.forBlock["deque_from_list"] = b => { needDeque(); return [`deque(${getCode(b, "LIST") || "[]"})`, pythonGenerator.ORDER_FUNCTION_CALL]; };
+  pythonGenerator.forBlock["deque_popleft"] = b => [`${getCode(b, "QUEUE", pythonGenerator.ORDER_MEMBER) || "deque()"}.popleft()`, pythonGenerator.ORDER_FUNCTION_CALL];
+  pythonGenerator.forBlock["deque_popleft_statement"] = b => `${getCode(b, "QUEUE", pythonGenerator.ORDER_MEMBER) || "deque()"}.popleft()\n`;
   pythonGenerator.forBlock["queue_peek"] = b => [`${getCode(b, "QUEUE", pythonGenerator.ORDER_MEMBER) || "[]"}[0]`, pythonGenerator.ORDER_MEMBER];
 
   // Hides user-written `global` lines from the strip in finish() above.
@@ -585,7 +599,9 @@ export const toolbox = {
         { kind: "block", type: "stack_push" }, { kind: "block", type: "stack_pop" },
         { kind: "block", type: "stack_pop_statement" }, { kind: "block", type: "stack_peek" },
         { kind: "block", type: "queue_enqueue" }, { kind: "block", type: "queue_dequeue" },
-        { kind: "block", type: "queue_dequeue_statement" }, { kind: "block", type: "queue_peek" }
+        { kind: "block", type: "queue_dequeue_statement" }, { kind: "block", type: "queue_peek" },
+        { kind: "block", type: "deque_create_empty" }, { kind: "block", type: "deque_from_list" },
+        { kind: "block", type: "deque_popleft" }, { kind: "block", type: "deque_popleft_statement" }
       ]
     },
     {

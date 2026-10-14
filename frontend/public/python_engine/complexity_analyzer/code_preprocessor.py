@@ -24,6 +24,12 @@ import re
 # constants fold to O(1)).
 THEORETICAL_MODE = True
 
+# Teaching convention: a `for` loop over range(<fixed constant>) is scored as a loop pattern
+# (linear in its bound, O(n)) instead of being folded to O(1). The explainer still tells the
+# learner that, under STRICT asymptotic analysis, a fixed bound makes the exact code O(1).
+# Set to False to go back to scoring fixed-bound range() loops as O(1).
+SYMBOLIC_FIXED_RANGE = True
+
 # MULTI-VARIABLE NOTATION (conventional asymptotic analysis)
 # Independent sizes keep their own symbol -- see size_symbols.py. Identity decides the symbol, never spelling:
 #   for i in range(x): for j in range(y)        -> O(n * m)     x and y are different sizes
@@ -682,6 +688,17 @@ def graph_aux_space(tree):
                 if (isinstance(x, ast.Call) and isinstance(x.func, ast.Attribute) and x.func.attr == 'add'
                         and any(isinstance(a, ast.Name) and a.id == tgt for a in x.args)):
                     marked = True
+                # list-based visited: `if nb not in visited: visited.append(nb)` marks nb exactly like
+                # a set's .add() -- the append is guarded by the membership test on the SAME list
+                if (isinstance(x, ast.Call) and isinstance(x.func, ast.Attribute) and x.func.attr == 'append'
+                        and isinstance(x.func.value, ast.Name)
+                        and any(isinstance(a, ast.Name) and a.id == tgt for a in x.args)):
+                    _lst = x.func.value.id
+                    if any(isinstance(c, ast.Compare) and isinstance(c.left, ast.Name) and c.left.id == tgt
+                           and any(isinstance(o, (ast.In, ast.NotIn)) for o in c.ops)
+                           and any(isinstance(cp, ast.Name) and cp.id == _lst for cp in c.comparators)
+                           for c in body_nodes):
+                        marked = True
                 if isinstance(x, ast.Assign):
                     for t in x.targets:
                         if isinstance(t, ast.Subscript) and isinstance(t.slice, ast.Name) and t.slice.id == tgt:

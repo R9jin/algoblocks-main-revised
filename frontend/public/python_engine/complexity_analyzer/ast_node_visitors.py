@@ -836,7 +836,15 @@ class ASTNodeVisitor(ast.NodeVisitor):
             self.analyzer.current_depth += 1
             for item in node.body:
                 if isinstance(item, ast.If):
-                    self.analyzer.signature_recorder.record_line(item, time_override="O(1)", space_override="O(1)")
+                    if self._tests_list_membership(item.test):
+                        # `if nb not in visited` with a plain-list `visited`: each check scans the list,
+                        # O(V) per check, once per adjacency entry (O(E)) -> O(V*E) overall.
+                        self.analyzer.graph_list_member = True
+                        self.analyzer.signature_recorder.record_line(
+                            item, time_override="O(V)", global_time_override="O(V*E)",
+                            space_override="O(1)", custom_op="Membership Check (List)")
+                    else:
+                        self.analyzer.signature_recorder.record_line(item, time_override="O(1)", space_override="O(1)")
                     self.analyzer.current_depth += 1
                     for sub in item.body:
                         self.visit(sub)
@@ -899,6 +907,18 @@ class ASTNodeVisitor(ast.NodeVisitor):
         finally:
             if _region:
                 _a.in_graph_context = False
+
+    def _tests_list_membership(self, test):
+        """Does an `if` test contain `x in L` / `x not in L` where L is a known plain list?"""
+        try:
+            for sub in ast.walk(test):
+                if isinstance(sub, ast.Compare) and any(isinstance(o, (ast.In, ast.NotIn)) for o in sub.ops):
+                    for comp in sub.comparators:
+                        if isinstance(comp, ast.Name) and self.analyzer.var_types.get(comp.id) == 'list':
+                            return True
+        except Exception:
+            pass
+        return False
 
     @staticmethod
     def _graph_iter(it):

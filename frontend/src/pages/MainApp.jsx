@@ -773,22 +773,14 @@ export default function MainApp({ pipelineMode = false }) {
   const handleBlocklyChange = (tabId, json, pythonCode) => {
     const tab = tabs.find((t) => t.id === tabId);
     if (!tab) return;
-    const oldCode = (tab.pythonCode || "").trim();
     const newCode = (pythonCode || "").trim();
 
     const canMarkDirty = Date.now() > (tab.ignoreDirtyUntil || 0);
 
     if (!tab.isEditingCode) {
-      if (oldCode !== newCode) {
-        // Blockly can fire several onChange events for a single user
-        // action (dragging a block, resizing a mutator, etc.), and each
-        // one used to trigger an immediate re-analysis. Debouncing this
-        // the same way the Python-editor path already is (800ms) avoids
-        // spinning up the Pyodide worker many times in quick succession
-        // for what's ultimately one edit.
-        if (blocklyAnalyzeTimeoutRef.current) clearTimeout(blocklyAnalyzeTimeoutRef.current);
-        blocklyAnalyzeTimeoutRef.current = setTimeout(() => analyzeCode(tabId, newCode), 800);
-      }
+      // Analysis is triggered by the debounced effect on `pythonCode`
+      // (see "Live analysis" above), so block edits only need to update
+      // the tab here.
       updateTab(tabId, { 
         blocklyJson: json, 
         pythonCode: newCode,
@@ -802,12 +794,36 @@ export default function MainApp({ pipelineMode = false }) {
     }
   };
 
+  // Live analysis. Runs whenever the active tab's Python text changes -- from
+  // typing in the editor OR from block edits (Blocks -> Python writes
+  // `pythonCode` too) -- after a short pause. It deliberately does NOT depend
+  // on `isEditingCode`: the automatic Python -> Blocks sync flips that flag to
+  // false ~500ms after typing, which used to cancel the pending 800ms timer
+  // here (and the re-generated block code usually equals the typed text, so
+  // the Blockly path never re-triggered it either). Result: analysis only
+  // updated after cutting and pasting the code. `lastAnalyzedRef` dedupes so
+  // tab switches / unrelated re-renders don't re-run an identical analysis.
+  const lastAnalyzedRef = useRef({});
   useEffect(() => {
-    if (isEngineReady && activeTab.pythonCode !== "# Drag blocks to generate Python code" && activeTab.isEditingCode) {
-      const timeoutId = setTimeout(() => analyzeCode(activeTabId, activeTab.pythonCode), 800);
-      return () => clearTimeout(timeoutId);
+    const code = activeTab.pythonCode;
+    if (!code || !code.trim() || code === "# Drag blocks to generate Python code") {
+      // Cleared/placeholder text: forget the last analysed snippet so typing
+      // or pasting the same code again is analysed afresh.
+      delete lastAnalyzedRef.current[activeTabId];
+      return;
     }
-  }, [activeTab.pythonCode, activeTab.isEditingCode, isOnline, activeTabId, isEngineReady]);
+    if (!isEngineReady) return;
+    // Skip only if this exact text was already analysed AND its result is
+    // still on the tab (a cleared/reset tab must be re-analysed).
+    if (lastAnalyzedRef.current[activeTabId] === code && activeTab.analysisResult) return;
+    const tabId = activeTabId;
+    const timeoutId = setTimeout(() => {
+      if (!workerRef.current) return;
+      lastAnalyzedRef.current[tabId] = code;
+      analyzeCode(tabId, code);
+    }, 800);
+    return () => clearTimeout(timeoutId);
+  }, [activeTab.pythonCode, activeTabId, isEngineReady]);
 
   // Always points at the newest tab state so an in-flight conversion can
   // tell whether the learner kept typing while it was running.

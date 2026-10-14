@@ -31,9 +31,13 @@ class ComplexitySynthesizer:
         # BFS driven by a plain list: pop(0) is O(V) per removal -> O(V^2 + E) for the traversal.
         if getattr(self.analyzer, 'graph_list_pop0', False) and res == "O(V+E)":
             res = "O(V^2+E)"
+        # `neighbor in visited` on a plain list: O(V) per check x O(E) adjacency entries = O(V*E).
+        # With a list queue (pop(0)) the V^2 term is kept too; otherwise V*E dominates V+E.
+        if getattr(self.analyzer, 'graph_list_member', False) and res in ("O(V+E)", "O(V^2+E)"):
+            res = "O(V^2+V*E)" if res == "O(V^2+E)" else "O(V*E)"
         # A traversal next to genuinely polynomial loops (degree >= 2 over n / m): V and E are separate
         # quantities from n and m, so the badge keeps both instead of letting the graph term hide them.
-        if res in ("O(V+E)", "O(V^2+E)"):
+        if res in ("O(V+E)", "O(V^2+E)", "O(V*E)", "O(V^2+V*E)"):
             terms = {t for t in getattr(self.analyzer, 'poly_terms', set()) if t and len(t) >= 2}
             if terms:
                 from collections import Counter as _C

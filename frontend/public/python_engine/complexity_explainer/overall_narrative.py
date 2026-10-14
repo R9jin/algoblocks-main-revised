@@ -23,6 +23,7 @@ from complexity_explainer.growth_insight import (
 from complexity_explainer.notation_insight import notation_card, reduce_tip, classify_notation
 from complexity_explainer import paradigm_detector, theory_catalog
 from complexity_explainer.statement_narrator import walkthrough
+from complexity_explainer.growth_insight import parse_complexity as _parse_c, strict_asymptotic_note
 
 _HIERARCHY = ["1", "log min", "log", "sqrt", "n", "m", "V", "V + E", "n log n", "n^2", "n * m", "n^3", "2^n", "3^n", "n!", "n * n!"]
 
@@ -451,10 +452,42 @@ class OverallNarrative:
         if (sig.has_early_exits or sig.has_continue) and not is_constant(parse_complexity(raw)):
             out.append("**Worst case, not typical case:** your `break`/`return` can stop early on lucky inputs, but Big-O reports the ceiling -- the input on which no early exit fires.")
 
+        strict = self._strict_fixed_overall(raw, shape)
+        if strict:
+            out.append(strict)
+
         sc = scaling_line(raw)
         if sc:
             out.append(sc + " " + doubling_effect(raw))
         return "\n\n".join(p for p in out if p.strip())
+
+    def _strict_fixed_overall(self, raw: str, shape) -> str:
+        """Program-level 'strictly this is O(1)' paragraph for fixed-bound range() loops."""
+        try:
+            fixed = [lp for lp in shape.all_loops() if lp.fixed]
+            if not fixed:
+                return ""
+            t = _parse_c(raw)
+            strict_poly = None
+            if t is not None and t.kind == "poly" and not t.log:
+                best = 0
+                for lp in shape.all_loops():
+                    nest = shape.enclosing_loops(lp.lineno, include_self=True)
+                    best = max(best, sum(1 for x in nest if x.scales and not x.fixed))
+                top = max(sum(1 for x in shape.enclosing_loops(lp.lineno, include_self=True) if x.scales) for lp in shape.all_loops())
+                if float(t.poly) == float(top):      # every factor of the total comes from a loop we can see
+                    strict_poly = best
+            heads = ", ".join(f"`{lp.header}`" for lp in fixed[:3]) + (" ..." if len(fixed) > 3 else "")
+            if strict_poly is None:
+                strict_txt = "Strictly, the fixed-bound loops add only constant factors."
+            else:
+                strict = "O(1)" if strict_poly == 0 else ("O(n)" if strict_poly == 1 else f"O(n^{strict_poly})")
+                strict_txt = f"Strictly, this exact program is therefore `{strict}`."
+            return (f"**Strict asymptotic analysis:** {heads} {'has a fixed bound' if len(fixed) == 1 else 'have fixed bounds'}, so the number of passes does not depend on the input. "
+                    f"{strict_txt} The headline `{raw}` is the loop-pattern reading AlgoBlocks teaches: it scores a loop over `range(...)` as work proportional to its bound, "
+                    f"showing how the same code would grow once that bound is the input size. The runtime diagnostics count what actually happened in one run; they are not the Big-O.")
+        except Exception:
+            return ""
 
     # ------------------------------------------------------------------
     # Space narrative
