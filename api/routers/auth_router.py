@@ -1,4 +1,12 @@
 # api/routers/auth_router.py
+"""
+Authentication, progress, and assessment endpoints for the AlgoBlocks API.
+
+Mounts under the ``/api`` prefix (see index.py). Covers email/password and
+Google OAuth login, email verification, password reset, lesson progress
+updates, assessment recording, submission retrieval, onboarding state, and
+batch sync.
+"""
 from fastapi import APIRouter, Request, Query, Body, Depends
 from typing import Dict, Any
 
@@ -18,8 +26,9 @@ def login_user(request: Request, req: UserLogin):
 @limiter.limit("5/minute")
 def logout_all(request: Request, email: str = Depends(get_current_user_email)):
     """Bumps the account's token_version, invalidating every outstanding
-    token (including the one used to call this) -- see AuthService.
-    logout_all_sessions / security.py's tv-claim check."""
+    token (including the one used to call this). The caller will need to
+    log in again afterward. See ``AuthService.logout_all_sessions`` and the
+    ``tv`` claim check in ``security.get_current_user_email``."""
     return AuthService.logout_all_sessions(email)
 
 @router.post("/signup")
@@ -27,9 +36,9 @@ def logout_all(request: Request, email: str = Depends(get_current_user_email)):
 def signup_user(request: Request, req: UserCreate):
     # Classic email/password signup: the account starts unverified and a
     # verification link is emailed to req.email (see AuthService.signup_with_email).
-    # Pass the requesting frontend's Origin through so the emailed link
+    # The requesting frontend's Origin is forwarded so the emailed link
     # points back at wherever the person actually is (local dev, production,
-    # or a preview deployment) instead of a hardcoded/missing FRONTEND_URL.
+    # or a preview deployment) instead of a hardcoded FRONTEND_URL.
     return AuthService.signup_with_email(req.email, req.username, req.password, origin=request.headers.get("origin"))
 
 @router.post("/verify-email")
@@ -40,18 +49,18 @@ def verify_email(request: Request, req: VerifyEmailRequest):
 @router.post("/resend-verification")
 @limiter.limit("3/minute")
 def resend_verification(request: Request, req: ResendVerificationRequest):
-    # Same 5/minute-ish tier as other pre-auth email-sending endpoints
-    # (forgot-password), kept slightly tighter (3/minute) since this one
-    # is easy to spam from the "check your email" screen right after signup.
+    # Kept slightly tighter than other pre-auth email-sending endpoints
+    # (3/minute vs 5/minute) since this one is easy to spam from the "check
+    # your email" screen right after signup.
     return AuthService.resend_verification_email(req.email, origin=request.headers.get("origin"))
 
 @router.post("/forgot-password")
 @limiter.limit("5/minute")
 def forgot_password(request: Request, req: ForgotPasswordRequest):
-    # BUG FIX: pass the requesting frontend's Origin through so the emailed
-    # reset link points back at wherever the person actually is (local dev,
-    # production, or a preview deployment) instead of a hardcoded/missing
-    # FRONTEND_URL env var. See mail_service._resolve_frontend_url.
+    # The requesting frontend's Origin is forwarded so the emailed reset
+    # link points back at wherever the person actually is (local dev,
+    # production, or a preview deployment) rather than a hardcoded
+    # FRONTEND_URL. See mail_service._resolve_frontend_url.
     return AuthService.forgot_password(req.email, origin=request.headers.get("origin"))
 
 @router.get("/verify-reset-token")
@@ -77,6 +86,8 @@ def get_progress(request: Request, trusted_email: str = Depends(get_current_user
 @router.post("/update-assessment")
 @limiter.limit("30/minute")
 def update_assessment(request: Request, req: AssessmentUpdateRequest, trusted_email: str = Depends(get_current_user_email)):
+    # Override any client-supplied email with the authenticated identity so
+    # a user cannot record assessment results on behalf of another account.
     req.email = trusted_email
     return AuthService.update_assessment(req)
 

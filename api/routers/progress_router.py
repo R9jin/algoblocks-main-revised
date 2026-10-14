@@ -1,9 +1,17 @@
 # api/routers/progress_router.py
+"""
+Progress, submission, and assessment sync endpoints for the AlgoBlocks API.
+
+Mounts under the ``/api`` prefix (see index.py). All endpoints require a
+valid Bearer token; the authenticated user's email is verified against the
+payload's ``email``/``userId`` before any write occurs, preventing users
+from recording data on behalf of other accounts.
+"""
 from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from typing import Dict, Any
 import logging
 
-# FIX: Removed the double-dot (..) relative imports that were causing Python ImportErrors
+# Uses absolute imports (not relative) so this module can be loaded both\n# standalone and as part of the package without ImportErrors.
 from models import ProgressUpdate, BatchSyncPayload, SyncResponse
 from services.auth_service import AuthService
 from repositories.user_repo import UserRepository
@@ -13,12 +21,11 @@ from limiter import limiter
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# SECURITY: this whole router previously had no rate limiting at all (unlike
-# auth_router/project_router/admin_router), so an authenticated client (or a
-# stolen/leaked token) could hammer these write-heavy sync endpoints without
-# limit -- a straightforward bot/abuse and DB-load vector. Limits below are
-# generous enough for normal background sync (every 30s, see
-# syncManager.js) while still capping worst-case abuse per client.
+# All endpoints in this router are rate-limited. An authenticated client (or
+# a stolen/leaked token) without rate limiting could hammer these write-heavy
+# sync endpoints without bound — a straightforward abuse and DB-load vector.
+# The limits below are generous enough for normal background sync (every 30 s,
+# see syncManager.js) while capping worst-case abuse per client.
 
 @router.post("/update-progress")
 @limiter.limit("30/minute")

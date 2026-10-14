@@ -1,4 +1,17 @@
 # api/routers/admin_router.py
+"""
+Administrator-only endpoints for the AlgoBlocks API.
+
+Mounts under the ``/api/admin`` prefix (see index.py). Every endpoint in
+this router requires an authenticated admin account (``get_current_admin_user``
+dependency). Rate limits apply to every route to prevent abuse.
+
+Provides:
+- User listing, status management, manual verification, and deletion.
+- Per-user learning metrics (TSR, AES, ROG, pre/post-test scores).
+- Cohort-wide analytics overview with statistical measures (t-test, Cohen's d,
+  Hake's g, and a linear regression of learning gain on system interaction).
+"""
 from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from typing import List, Dict, Any
 import logging
@@ -22,12 +35,11 @@ def get_all_users(request: Request, admin_email: str = Depends(get_current_admin
     try:
         users = UserRepository.find_all_users()
 
-        # Reuses the exact same fuzzy assessment-key matching the analytics
-        # dashboard's "post-test only" filter already uses (see
-        # admin_analytics_service.py), so a user counts as having completed
-        # the post-test here if and only if they'd also count there --
-        # no second, slightly-different definition of "completed" to drift
-        # out of sync.
+        # Uses the exact same fuzzy assessment-key matching as the analytics
+        # dashboard's "post-test only" filter (see admin_analytics_service.py)
+        # so a user counts as having completed the post-test here if and only
+        # if they'd also count there — no separate, potentially drifting
+        # definition of "completed".
         assessment_rows = _fetch_all_assessment_rows()
         post_test_completers = set()
         for row in assessment_rows:
@@ -39,19 +51,18 @@ def get_all_users(request: Request, admin_email: str = Depends(get_current_admin
         for user in users:
             if "password" in user:
                 del user["password"]
-            # AdminUserManagement.jsx checks `user.isAdmin`, not the raw
-            # Postgres column name `is_admin`.
+            # AdminUserManagement.jsx checks ``user.isAdmin``, not the raw
+            # Postgres column name ``is_admin``.
             user["isAdmin"] = user.get("is_admin", False)
-            # Same camelCase mapping for is_verified -- needed so the admin
-            # panel can show/act on unverified accounts (see the manual
-            # "Verify" action below, a manual override for accounts whose
-            # verification email never arrived).
+            # camelCase mapping for is_verified so the admin panel can show
+            # and act on unverified accounts (see the manual "Verify" action
+            # below, a manual override for accounts whose verification email
+            # never arrived).
             user["isVerified"] = user.get("is_verified", False)
             # Powers the "Post-test completed only" row filter in
-            # AdminUserManagement.jsx -- lets an admin narrow the user list
-            # down to just the respondents who actually finished the study's
-            # post-test, instead of scrolling past everyone still mid-
-            # curriculum or who never started.
+            # AdminUserManagement.jsx — lets an admin narrow the user list
+            # down to just the respondents who actually finished the post-test
+            # instead of scrolling past everyone still mid-curriculum.
             user["hasCompletedPostTest"] = user.get("email") in post_test_completers
 
         return {"status": "success", "users": users}
@@ -72,11 +83,11 @@ def update_user_status(
     if not email or not status:
         raise HTTPException(status_code=400, detail="Missing email or status")
         
-    # Normalize + validate: the frontend sends "Active"/"Suspended", the DB
-    # column default is lowercase "active". Storing whatever casing a caller
-    # happens to send made the two easy to drift out of sync (that's what
-    # broke the suspend toggle in the UI). Pin it down to two canonical,
-    # lowercase values here so the column can never hold anything else.
+    # Normalise and validate: the frontend sends "Active"/"Suspended",
+    # the DB column default is lowercase "active". Storing whatever casing
+    # a caller happens to send lets the two drift out of sync. Pin it to two
+    # canonical, lowercase values here so the column can never hold anything
+    # else.
     normalized_status = status.strip().lower()
     if normalized_status not in ("active", "suspended"):
         raise HTTPException(status_code=400, detail="Status must be 'active' or 'suspended'")
@@ -136,7 +147,7 @@ def delete_user(
         raise HTTPException(status_code=400, detail="Cannot delete your own account")
         
     try:
-        # User deletion automatically cascades to progress and assessments due to ON DELETE CASCADE
+        # User deletion cascades to progress and assessments via ON DELETE CASCADE.
         rowcount = UserRepository.delete_user(email)
         if rowcount == 0:
             raise HTTPException(status_code=404, detail="User not found")

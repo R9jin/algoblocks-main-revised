@@ -408,6 +408,11 @@ class NotationClarity:
                 bound_fixed = False        # the analyzer scores this loop as growing: don't say O(1)
                 o = Origin("unknown", o.text)
 
+            if o.kind == "unknown" and lo_o.fixed and self.origin(hi, node).fixed:
+                out.append((CLARITY_PRIORITY, (
+                    "**Range iterations count as n:** this analyzer treats fixed numeric range bounds as an iteration size n, "
+                    "so each complete range loop contributes O(n); nested range loops multiply their costs.")))
+
             # 1. where the bound comes from
             big = f"{hi_t} may feel big, but " if (o.value is not None and o.value >= 100) else ""
             if bound_fixed:

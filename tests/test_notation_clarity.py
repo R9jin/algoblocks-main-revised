@@ -26,14 +26,14 @@ def _run(src):
 
 CASES = [
     # (name, source, expected total, phrase that must appear)
-    ("fixed literal", "t = 0\nfor i in range(1000):\n    t += 1\n", "O(1)", "A fixed number is not n"),
+    ("fixed literal", "t = 0\nfor i in range(1000):\n    t += 1\n", "O(n)", "Range iterations count as n"),
     ("typed-in n", "n = int(input())\nt = 0\nfor i in range(n):\n    t += i\n", "O(n)", "Where n comes from"),
     ("parameter", "def f(n):\n    t = 0\n    for i in range(n):\n        t += 1\n    return t\n", "O(n)", "A number you pass in is the size"),
     ("size alias", "def f(a):\n    k = len(a)\n    t = 0\n    for i in range(k):\n        t += a[i]\n    return t\n", "O(n)", "A new name is still the same n"),
     ("offset", "def f(n):\n    t = 0\n    for i in range(5, n):\n        t += 1\n    return t\n", "O(n)", "A start offset is dropped"),
     ("step", "def f(n):\n    t = 0\n    for i in range(0, n, 2):\n        t += 1\n    return t\n", "O(n)", "Skipping doesn't change the class"),
     ("fraction", "def f(n):\n    t = 0\n    for i in range(n // 2):\n        t += 1\n    return t\n", "O(n)", "Constants and offsets don't change the class"),
-    ("constant inner loop", "def f(n):\n    t = 0\n    for i in range(n):\n        for j in range(3):\n            t += 1\n    return t\n", "O(n)", "Not every nested loop is another factor of n"),
+    ("constant inner loop", "def f(n):\n    t = 0\n    for i in range(n):\n        for j in range(3):\n            t += 1\n    return t\n", "O(n^2)", "Range iterations count as n"),
     ("two inputs", "def f(a, b):\n    t = 0\n    for x in a:\n        for y in b:\n            t += 1\n    return t\n", "O(n * m)", "Two different sizes"),
     ("fixed gap", "def f(a):\n    t = 0\n    for i in range(len(a)):\n        for j in range(i, i + 3):\n            t += 1\n    return t\n", "O(n^2)", "A direct range counts the gap"),
     ("formula vs loop", "def f(n):\n    return n * (n + 1) // 2\n", "O(1)", "Same output, different Big-O"),

@@ -3,7 +3,7 @@ test_theoretical_analysis.py -- regression tests for the THEORETICAL (asymptotic
 
 Convention under test: a variable is a symbolic size that grows toward infinity, whatever value it was
 assigned (`n = 10` is only a sample value). Only literals written in the construct itself
-(`range(10)`, `while i < 64`, `range(2**10)`) are constants.
+Fixed range bounds count as iteration sizes; fixed while bounds remain constants.
 
 Run:  pytest tests/test_theoretical_analysis.py -v      (also runs with plain `python`)
 """
@@ -63,15 +63,17 @@ def test_script_level_and_parameter_agree_on_every_class():
         assert time_of("n = 16\n" + b) == time_of(indent(b)), b
 
 
-# --- 2. literals written in the construct are constants --------------------------------------
-@pytest.mark.parametrize("src", [
-    "for i in range(10):\n    print(i)\n",
-    "for i in range(10):\n    for j in range(10):\n        pass\n",
-    "i = 1\nwhile i < 64:\n    i *= 2\n",
-    "for i in range(2**10):\n    pass\n",
+# --- 2. fixed ranges use the teaching convention n iterations -------------------------------
+@pytest.mark.parametrize("src,expected", [
+    ("for i in range(15):\n    print(i)\n", "O(n)"),
+    ("for i in range(1, 11):\n    pass\n", "O(n)"),
+    ("for i in range(10, 0, -2):\n    pass\n", "O(n)"),
+    ("for i in range(10):\n    for j in range(10):\n        pass\n", "O(n^2)"),
+    ("i = 1\nwhile i < 64:\n    i *= 2\n", "O(1)"),
+    ("for i in range(2**10):\n    pass\n", "O(n)"),
 ])
-def test_literal_constructs_are_constant(src):
-    assert time_of(src) == "O(1)"
+def test_fixed_range_iteration_convention(src, expected):
+    assert time_of(src) == expected
 
 
 # --- 3. doubling / halving over a size variable is logarithmic --------------------------------

@@ -324,7 +324,9 @@ class ComplexityHeuristics:
             elif isinstance(node, ast.For):
                 if getattr(node, 'iter', None):
                     if isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
-                        if all(self._is_constant_expr(arg) for arg in node.iter.args): return True
+                        # Teaching convention: every range-based for loop counts
+                        # its iterations as n, including literal/named fixed bounds.
+                        return False
                     elif isinstance(node.iter, (ast.List, ast.Tuple, ast.Set, ast.Constant)): 
                         if len(getattr(node.iter, 'elts', [])) <= 100: return True
                     elif isinstance(node.iter, ast.Name):
