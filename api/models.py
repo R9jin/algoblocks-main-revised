@@ -1,19 +1,26 @@
 # api/models.py
+"""
+Pydantic request/response models for the AlgoBlocks API.
+
+All user-supplied payloads are validated here before they reach service or
+repository code. Size caps on workspace JSON and generated Python prevent
+DoS via oversized payloads; password-strength rules are enforced both here
+(server-side, authoritative) and in the frontend (UX convenience only).
+"""
 import json
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Dict, Any, Optional, List
 
-# Hardening: Blockly workspace JSON and generated Python are user-controlled
-# and were previously unbounded (Dict[str, Any] / str with no length limit).
-# That's not SQL-injectable (all queries are parameterized -- see
-# repositories/*.py) or server-executable (the backend only ever runs
-# ast.parse() on pythonCode for static analysis, never eval/exec), but an
-# unbounded payload is still a storage- and DB-row-bloat DoS vector: a
-# malicious or buggy client could push megabytes of JSON per save. Cap both
-# to a generous-but-bounded size so a single project/template can't blow up
-# the `projects`/`templates` tables.
-MAX_WORKSPACE_BYTES = 300_000   # ~300KB of Blockly JSON; a large real workspace is a few KB
-MAX_PYTHON_CODE_CHARS = 50_000  # ~50k chars of generated/raw Python
+# Blockly workspace JSON and generated Python are user-controlled and were
+# previously unbounded (Dict[str, Any] / str with no length limit). While
+# all queries are parameterized (no SQL injection risk) and the backend only
+# runs ast.parse() for static analysis (never eval/exec), an unbounded payload
+# is a storage and DB-row-bloat DoS vector: a malicious or buggy client could
+# push megabytes of JSON per save. These caps are generous enough for any
+# real workspace while bounding worst-case row size in the projects/templates
+# tables.
+MAX_WORKSPACE_BYTES = 300_000   # ~300 KB of Blockly JSON; a large real workspace is a few KB
+MAX_PYTHON_CODE_CHARS = 50_000  # ~50 k chars of generated/raw Python
 
 
 def _validate_workspace_size(value):
@@ -28,15 +35,24 @@ def _validate_workspace_size(value):
     return value
 
 def _validate_password_strength(value: str) -> str:
-    # BUG FIX / hardening: previously the only rule was a 6-character
-    # minimum, so e.g. "111111" or "aaaaaa" was accepted. bcrypt hashes and
-    # verifies those exactly as reliably as any other password -- character
-    # variety was never actually the cause of login failures -- but a
-    # 6-char, single-character-class password is trivially guessable/
-    # brute-forceable, so it's worth requiring real complexity regardless.
-    # This has to live here (not just in the frontend form) because a
-    # frontend-only check does nothing to stop a request sent straight to
-    # this API.
+    """
+    Enforces a minimum password complexity policy.
+
+    Requires at least 8 characters, at least one letter, and at least one
+    digit. This validation lives here (not only in the frontend) because a
+    frontend-only check does nothing to stop a request sent directly to the
+    API. Raises ``ValueError`` on failure so Pydantic surfaces it as a 422
+    validation error.
+
+    Args:
+        value: The plain-text password to validate.
+
+    Returns:
+        The original value unchanged if it passes all rules.
+
+    Raises:
+        ValueError: If the password does not meet strength requirements.
+    """
     if len(value) < 8:
         raise ValueError("Password must be at least 8 characters long.")
     if not any(ch.isalpha() for ch in value):
@@ -45,9 +61,9 @@ def _validate_password_strength(value: str) -> str:
         raise ValueError("Password must include at least one number.")
     return value
 
-# Classic email/password signup (see AuthService.signup_with_email). The
-# account is created unverified and a verification link is emailed to
-# `email`; the person must click it before they can sign in.
+# Classic email/password signup model (see AuthService.signup_with_email).
+# The account is created unverified and a verification link is emailed to
+# ``email``; the person must click it before they can sign in.
 class UserCreate(BaseModel):
     email: EmailStr
     username: str = Field(..., min_length=3, max_length=50)
@@ -103,13 +119,13 @@ class AssessmentUpdateRequest(BaseModel):
     timeElapsed: int
     completedAt: str
     attempts: int
-    # BUG FIX: the frontend (AssessmentPage.jsx handleSubmit) has always
-    # built and sent `answers` (question position -> selected option index)
-    # and `questionIds` (position -> question id) in this same POST body,
-    # but this model never declared them. FastAPI/Pydantic silently drops
-    # any field not declared on the model, so the individual choices a
-    # respondent made on a pre-test/post-test/quiz were never even reaching
-    # the service layer -- only the aggregate score/correct/total survived.
+    # The frontend (AssessmentPage.jsx handleSubmit) builds and sends
+    # ``answers`` (question position -> selected option index) and
+    # ``questionIds`` (position -> question id) in this same POST body.
+    # Both must be declared here; Pydantic silently drops any undeclared
+    # field, which would cause individual question choices to never reach
+    # the service layer — only the aggregate score/correct/total would
+    # survive.
     answers: Optional[Dict[str, Any]] = None
     questionIds: Optional[List[Any]] = None
 

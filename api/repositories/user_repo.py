@@ -1,9 +1,41 @@
+# api/repositories/user_repo.py
+"""
+Data-access layer for the ``users``, ``progress``, and ``assessments`` tables.
+
+All methods use parameterised queries (no string interpolation of user data)
+to prevent SQL injection. Reads use case-insensitive email matching so
+accounts created with mixed-case addresses (e.g. from mobile autocorrect)
+are always found regardless of what casing the caller passes in. Writes
+normalise the email to lowercase at insert time so every row in the database
+uses canonical casing.
+"""
 from database import get_db_connection
 import json
 
 class UserRepository:
     @staticmethod
     def find_by_email(email: str, conn=None):
+        """
+        Looks up a user by email and assembles the full user dict including
+        their progress and assessment records.
+
+        Accepts an already-open connection so callers that need several
+        queries in one request can share a single connection instead of
+        opening a new one per helper call. Falls back to opening and closing
+        its own connection when called standalone.
+
+        Email matching is case-insensitive so an account created with mixed-
+        case casing (e.g. from mobile autocorrect) is always found regardless
+        of what casing the caller passes in.
+
+        Args:
+            email: The email address to look up.
+            conn: Optional open database connection to reuse.
+
+        Returns:
+            A dict containing the user's profile, progress, and assessments,
+            or ``None`` if no matching account exists.
+        """
         # PERFORMANCE: accepts an already-open connection so callers that
         # need several queries in one request (e.g. AdminAnalyticsService)
         # can share a single connection instead of opening a new one per
@@ -14,16 +46,10 @@ class UserRepository:
             conn = get_db_connection()
         cursor = conn.cursor()
 
-        # BUG FIX: email is a plain VARCHAR column and nothing normalizes
-        # casing on write, so "User@Gmail.com" and "user@gmail.com" used to
-        # be treated as different accounts by a case-sensitive `=`. That
-        # meant someone who signed up with mixed-case autocapitalized email
-        # (e.g. on mobile) could reset their password successfully (reset
-        # is looked up by token, not by typed email) and then still get a
-        # 401 "Invalid credentials" on their very next login, because the
-        # email they *typed* didn't byte-for-byte match what was stored.
-        # Compare case-insensitively so lookups work regardless of what
-        # casing is already in the database, without needing a migration.
+        # Compare case-insensitively so lookups work regardless of the casing
+        # already in the database, without needing a migration. Email is a
+        # plain VARCHAR column; without LOWER() a mixed-case address stored at
+        # signup could silently fail to match on login.
         cursor.execute('SELECT id, name, email, password, status, role, is_admin, is_verified, onboarding_state, failed_login_attempts, locked_until, last_failed_login_at, token_version FROM users WHERE LOWER(email) = LOWER(%s)', (email,))
         user = cursor.fetchone()
         
@@ -112,19 +138,22 @@ class UserRepository:
 
     @staticmethod
     def find_auth_fields_by_email(email: str):
-        # PERFORMANCE: get_current_user_email() (the auth dependency that
-        # runs on EVERY authenticated request, including /get-progress,
-        # /get-assessments and /get-all-submissions) only needs the account
-        # status + token_version to decide whether to reject the request --
-        # it never reads progress or assessments. It was calling the full
-        # find_by_email() anyway, which joins in the *entire* progress table
-        # and *entire* assessments table for this user (2 extra queries) on
-        # top of the users-table lookup, just to check two boolean-ish
-        # fields. The route handler then calls find_by_email() again for
-        # the data it actually wants, so a single Profile-page load (which
-        # fires /get-progress, /get-assessments, /get-all-submissions in
-        # parallel) was paying for that heavy join up to 3 extra times.
-        # This trims the auth check down to the one cheap query it needs.
+        """
+        Lightweight lookup that returns only the fields needed for
+        authentication decisions (status, role, is_admin, token_version).
+
+        Used by ``get_current_user_email`` and ``get_current_admin_user``,
+        which run on every authenticated request. Using this instead of
+        the full ``find_by_email`` avoids the two extra queries that join in
+        all progress and assessment rows when only account status needs to
+        be checked.
+
+        Args:
+            email: The email address to look up.
+
+        Returns:
+            A dict of auth fields, or ``None`` if no matching account exists.
+        """
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -147,9 +176,9 @@ class UserRepository:
         # is_verified=True explicitly for Google-SSO accounts, since Google
         # has already confirmed ownership of the address.
         is_verified = bool(user_data.get("is_verified", False))
-        # BUG FIX: normalize email to lowercase on write so new accounts
-        # can't be created with casing that later fails to case-insensitive-
-        # match at login (see find_by_email above for the full story).
+        # Normalise email to lowercase on write so accounts created with
+        # mixed-case addresses (e.g. from mobile autocorrect) can always be
+        # found case-insensitively on subsequent lookups.
         email_value = user_data.get("email")
         if email_value:
             email_value = email_value.strip().lower()
@@ -172,7 +201,7 @@ class UserRepository:
         # new user simply has zero rows, and find_by_email already treats
         # "no rows" as {} -- same result, no empty-blob row to maintain.
 
-        conn.commit() # <--- CRITICAL FIX: Save the transaction!
+        conn.commit()  # Persist the inserted user row.
         cursor.close()
         conn.close()
         return str(inserted_id)
@@ -217,7 +246,7 @@ class UserRepository:
             DO UPDATE SET score = EXCLUDED.score, updated_at = now()
         ''', (email, lesson_id, score))
 
-        conn.commit() # <--- CRITICAL FIX: Save the transaction!
+        conn.commit()  # Persist the upserted progress row.
         cursor.close()
         conn.close()
 
@@ -259,7 +288,7 @@ class UserRepository:
             json.dumps(question_ids) if question_ids is not None else None,
         ))
 
-        conn.commit() # <--- CRITICAL FIX: Save the transaction!
+        conn.commit()  # Persist the upserted assessment row.
         cursor.close()
         conn.close()
         
@@ -299,7 +328,7 @@ class UserRepository:
         cursor = conn.cursor()
         cursor.execute('DELETE FROM users WHERE email = %s', (email,))
         rowcount = cursor.rowcount
-        conn.commit() # <--- CRITICAL FIX: Save the transaction!
+        conn.commit()  # Persist the deletion and cascade.
         cursor.close()
         conn.close()
         return rowcount

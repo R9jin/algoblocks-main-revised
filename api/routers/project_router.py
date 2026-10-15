@@ -1,4 +1,12 @@
 # api/routers/project_router.py
+"""
+Project management endpoints for the AlgoBlocks API.
+
+Mounts under the ``/api/projects`` prefix (see index.py). All endpoints
+require a valid Bearer token. The authenticated user's email is always
+injected as the owner, preventing users from reading or modifying projects
+belonging to another account.
+"""
 from fastapi import APIRouter, Request, Depends, HTTPException
 from typing import Dict, Optional
 
@@ -35,6 +43,8 @@ def save_project(
     req: ProjectSyncRequest,
     trusted_email: str = Depends(get_current_user_email)
 ):
+    # Overwrite any client-supplied userId/owner_id with the authenticated
+    # email so a user cannot save a project on behalf of another account.
     req.userId = trusted_email
     if not req.owner_id:
         req.owner_id = trusted_email

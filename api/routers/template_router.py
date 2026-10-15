@@ -1,19 +1,24 @@
 # api/routers/template_router.py
+"""
+Template management endpoints for the AlgoBlocks API.
+
+Mounts under the ``/api/templates`` prefix (see index.py). Template reads
+are public to any signed-in user; writes (save/update) are scoped to the
+owner of each template.
+"""
 from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from typing import List, Dict, Any, Optional
 from services.template_service import TemplateService
 from models import TemplateSyncRequest 
-# BUG-07 Fix: Inject current user dependency
 from security import get_current_user_email
 from limiter import limiter
 
 router = APIRouter()
 
-# SECURITY: this router previously had no rate limiting at all. The reads
-# below are public (curated templates are visible to anyone signed in) so
-# they get a generous read-oriented limit; the write path is capped tighter
-# in line with project_router's save/delete limits, to stop a bot or leaked
-# token from scripted mass-creation of templates.
+# Read endpoints are public to any authenticated user (curated templates are
+# visible to everyone signed in) so they get a generous limit; the write path
+# is capped tighter in line with project_router's save/delete limits to
+# prevent scripted mass-creation of templates via a bot or leaked token.
 
 @router.get("")
 @router.get("/")
@@ -21,7 +26,8 @@ router = APIRouter()
 def get_all_templates(request: Request, userId: Optional[str] = Query(None)):
     return TemplateService.get_all_templates()
 
-# Added "" and "/" so syncManager's POST to /api/templates works
+# Added empty-string and trailing-slash routes so syncManager's POST to
+# /api/templates also routes here without a redirect.
 @router.post("")
 @router.post("/")
 @router.post("/save")
