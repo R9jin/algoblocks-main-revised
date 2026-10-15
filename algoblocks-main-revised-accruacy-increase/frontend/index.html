@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/assets/algoblocks_logo.png" />
+  <link rel="apple-touch-icon" href="/assets/pwa-192.png" />
+  <meta name="theme-color" content="#42b883" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoBlocks</title>
+
+  <script>
+    (function () {
+      try {
+        var p = localStorage.getItem("algoblocks-theme");
+        var dark = p === "dark" || (p === "system" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      } catch (e) {}
+    })();
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/index.jsx"></script>
+</body>
+
+</html>

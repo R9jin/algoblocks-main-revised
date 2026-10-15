@@ -1,0 +1,757 @@
+"""
+Complexity Heuristics
+
+Structural AST classifiers shared by the signature and synthesis
+passes: loop-bound classification (constant/log/sqrt/exponential),
+linear-variable tracking, and related pattern detectors.
+"""
+import ast
+import re
+from complexity_analyzer.code_preprocessor import safe_walk, extract_constant
+from complexity_analyzer import code_preprocessor as _cp
+
+
+class ComplexityHeuristics:
+    """Shared structural complexity classifiers. Composed into ComplexityAnalyzer
+    as `self.complexity_heuristics`; reads/writes shared state via `self.analyzer`.
+    """
+
+    def __init__(self, analyzer):
+        self.analyzer = analyzer
+
+    def _is_linear_type(self, expr_node):
+        try:
+            if isinstance(expr_node, (ast.List, ast.Tuple, ast.Set, ast.Dict, ast.ListComp, ast.SetComp, ast.DictComp)):
+                return True
+            if isinstance(expr_node, ast.Name):
+                t = self.analyzer.var_types.get(expr_node.id, '')
+                if t in ['list', 'set', 'dict', 'tuple', 'str', 'deque']: return True
+                # Match whole words of the identifier, not substrings: 'arr' is inside `arrSum`
+                # and 'set' inside `offset`, but neither names a container. A word that says
+                # the value is a single number (sum, count, len, max, ...) marks a scalar.
+                _w = {x.lower() for x in re.findall(r'[A-Z]?[a-z0-9]+|[A-Z]+(?![a-z])', expr_node.id)}
+                if (_w & {'arr', 'array', 'list', 'dict', 'set', 'str', 'string', 'queue', 'stack', 'graph', 'matrix', 'items', 'nums'}
+                        and not _w & {'sum', 'total', 'count', 'cnt', 'len', 'length', 'size', 'max', 'min', 'idx', 'index', 'val', 'value', 'num', 'avg', 'mean', 'diff', 'prod'}):
+                    return True
+        except Exception:
+            pass
+        return False
+
+    def _is_linear_var(self, var_name):
+        try:
+            t = self.analyzer.var_types.get(var_name, '')
+            if t in ['list', 'set', 'dict', 'tuple', 'str', 'deque']: return True
+            for k in ['arr', 'array', 'list', 'dict', 'set', 'queue', 'stack', 'graph', 'matrix', 'items', 'nums']:
+                if var_name.lower() == k or var_name.lower().endswith(f'_{k}'): return True
+        except Exception:
+            pass
+        return False
+
+    def _get_iterable_name(self, node):
+        try:
+            if isinstance(node, ast.Name): return node.id
+            if isinstance(node, ast.Subscript):
+                return self._get_iterable_name(node.value)
+            if isinstance(node, ast.BinOp):
+                left = self._get_iterable_name(node.left)
+                if left: return left
+                return self._get_iterable_name(node.right)
+            if isinstance(node, ast.Call):
+                func_id = getattr(node.func, 'id', '')
+                if func_id == 'len' and len(node.args) > 0:
+                    return self._get_iterable_name(node.args[0])
+                elif func_id == 'range' and len(node.args) > 0:
+                    arg = node.args[0] if len(node.args) == 1 else node.args[1]
+                    return self._get_iterable_name(arg)
+        except Exception:
+            pass
+        return None
+
+    def _register_and_get_dim(self, var_name):
+        # Theoretical analysis: a size letter is a variable's IDENTITY (x and y are two sizes,
+        # n = len(arr) is the same size as arr), never a guess from its spelling.
+        _sym = getattr(self.analyzer, 'size_symbols', None)
+        if _sym is not None and _cp.THEORETICAL_MODE and isinstance(var_name, str) and var_name:
+            try:
+                return _sym.letter_for(var_name, getattr(self.analyzer, 'current_function_name', None))
+            except Exception:
+                pass
+        try:
+            if not var_name: return 'n'
+            if isinstance(var_name, str):
+                lower_name = var_name.lower()
+                if lower_name in ['t', 'tc', 'test', 'tests', 'testcases', '_']: return None
+                if lower_name in ['m', 'p', 'k', 'w', 'c', 'v', 'e', 'q', 'd']: return lower_name
+                if lower_name in ['col', 'width', 'capacity', 'amount', 'target', 'arr2', 'list2', 'arrb', 'val', 'cols'] or '[0]' in lower_name or lower_name.endswith('_m') or lower_name.endswith('arr2') or lower_name.endswith('list2'): 
+                    return 'm'
+                return 'n'
+        except Exception:
+            pass
+        return 'n'
+
+    def _is_constant_expr(self, expr_node):
+        try:
+            if isinstance(expr_node, (ast.Constant, getattr(ast, 'Num', type(None)), getattr(ast, 'Str', type(None)))):
+                return True
+            if isinstance(expr_node, ast.Name):
+                # Theoretical mode: a variable is a symbolic quantity that grows
+                # with the input -- never a fixed constant, whatever its name
+                # (n, MAX, size...) or its assigned value.
+                if _cp.THEORETICAL_MODE:
+                    # Only exception: a named ALPHABET size (MAX_CHAR = 26,
+                    # NO_OF_CHARS = 256) is a fixed property of the character set,
+                    # not a size that scales with the input.
+                    _nu = expr_node.id.upper()
+                    return any(k in _nu for k in ('CHARS', 'MAX_CHAR', 'ALPHABET', 'ASCII'))
+                if (getattr(expr_node, 'lineno', None), getattr(expr_node, 'col_offset', None)) in getattr(self.analyzer, 'script_literal_locs', ()):
+                    return True
+                # A variable already known to be derived from math.sqrt(...)
+                # (see variable_complexities in ast_node_visitors.py) scales
+                # with the input, no matter what it's named -- e.g.
+                # `limit = int(math.sqrt(n)) + 1` genuinely grows with n, but
+                # the name-based heuristic below would otherwise treat any
+                # `...limit...`-named variable as a fixed bound and misread
+                # `for i in range(3, limit, 2)` as a constant-time loop.
+                if getattr(self.analyzer, 'variable_complexities', {}).get(expr_node.id) == "sqrt":
+                    return False
+                # `R`/`C`/`M`/`N`-style short names are deliberately excluded
+                # even when a literal module-level assignment resolves them
+                # to a constant (e.g. `R = 5`): in this dataset those names
+                # are conventionally used for a problem's actual dimension
+                # (hardcoded to one example value, but still meant to scale
+                # in general), not a true fixed bound like `MAX_CHAR = 26`.
+                # Treating them as constant broke more cases than it fixed
+                # (see GROUND_TRUTH_CORRECTIONS.md) so the module-constant
+                # override below only applies outside this blocklist.
+                name_u = expr_node.id.upper()
+                if name_u not in ['N', 'M', 'V', 'E', 'K', 'T', 'L', 'R', 'C', 'W', 'H', 'ROW', 'COL', 'SIZE', 'LEN'] and expr_node.id in getattr(self.analyzer, 'module_int_constants', ()):
+                    return True
+                if name_u in ['N', 'M', 'V', 'E', 'K', 'T', 'L', 'R', 'C', 'W', 'H', 'ROW', 'COL', 'SIZE', 'LEN']: return False
+                # lower/camelCase names built from a size word (`max_len`, `maxLength`) are
+                # variables holding an input-dependent size; only SHOUTING_CASE names
+                # (`MAX_LEN = 1000`) are conventional constants.
+                if not expr_node.id.isupper() and {w.lower() for w in re.findall(r'[A-Z]?[a-z0-9]+|[A-Z]+(?![a-z])', expr_node.id)} & {'len', 'length', 'size', 'count', 'total'}:
+                    return False
+                if any(k in name_u for k in ['MAX', 'CHARS', 'NO_OF_CHARS', 'ALPHABET']): return True
+                if expr_node.id.isupper(): return True
+                # Whole-word match on the name's camelCase / snake_case parts. A raw substring
+                # test made `max_len`, `min_cost`, `info`, `capacity` look like fixed constants
+                # (a loop over `max_len` is a loop over the input's length, not a constant).
+                # A word that names a size (len/size/count/...) always marks a data-dependent bound.
+                _words = {w.lower() for w in re.findall(r'[A-Z]?[a-z0-9]+|[A-Z]+(?![a-z])', expr_node.id)}
+                if _words & {'len', 'length', 'size', 'count', 'num', 'number', 'total', 'width', 'height', 'rows', 'cols'}:
+                    return False
+                if _words & {'max', 'min', 'mod', 'inf', 'limit', 'cap'}: return True
+                return False
+            if isinstance(expr_node, ast.BinOp):
+                return self._is_constant_expr(expr_node.left) and self._is_constant_expr(expr_node.right)
+            if isinstance(expr_node, ast.UnaryOp):
+                return self._is_constant_expr(expr_node.operand)
+            return False
+        except Exception:
+            return False
+            
+    def _is_exponential_expr(self, expr_node):
+        try:
+            if isinstance(expr_node, ast.BinOp):
+                # a literal shift/exponent (1 << 10, 2 ** 10) is just a fixed number, not growth
+                if isinstance(expr_node.op, ast.LShift): return not self._is_constant_expr(expr_node.right)
+                if isinstance(expr_node.op, ast.Pow) and isinstance(getattr(expr_node.left, 'value', getattr(expr_node.left, 'n', None)), (int, float)): return not self._is_constant_expr(expr_node.right)
+            elif isinstance(expr_node, ast.Call) and getattr(getattr(expr_node, 'func', None), 'id', '') == 'pow':
+                return not (len(expr_node.args) >= 2 and self._is_constant_expr(expr_node.args[1]))
+        except Exception:
+            pass
+        return False
+
+    def _get_while_limit_vars(self, node):
+        try:
+            updated_vars = set()
+            for child in node.body:
+                for sub in safe_walk(child):
+                    if isinstance(sub, ast.Assign):
+                        for target in sub.targets:
+                            if isinstance(target, ast.Name): updated_vars.add(target.id)
+                    elif isinstance(sub, ast.AugAssign):
+                        if isinstance(sub.target, ast.Name): updated_vars.add(sub.target.id)
+
+            limit_vars = []
+            ignore_set = {'len', 'range', 'min', 'max', 'True', 'False', 'None'}
+            scalar_hints = ['val', 'key', 'num', 'idx', 'pivot', 'temp', 'curr', 'node', 'element', 'target']
+            for child in safe_walk(node.test):
+                if isinstance(child, ast.Name) and child.id not in updated_vars and child.id not in ignore_set:
+                    if any(kw in child.id.lower() for kw in scalar_hints) and not self._is_linear_var(child.id):
+                        continue
+                    if child.id not in limit_vars:
+                        limit_vars.append(child.id)
+                    
+            return limit_vars
+        except Exception:
+            return []
+
+    def _is_constant_loop(self, node):
+        key = ('_is_constant_loop', id(node))
+        cache = self.analyzer._loop_classify_cache
+        if key not in cache:
+            # A loop whose body ends in an UNCONDITIONAL break/return (a direct statement of the
+            # body, not inside an `if`) can only ever run its first pass -- O(1), however large
+            # the range looks. (A conditional break still leaves the worst case at n passes.)
+            _once = isinstance(node, (ast.For, ast.While)) and any(isinstance(st, (ast.Break, ast.Return)) for st in node.body)
+            cache[key] = True if _once else self._is_constant_loop_uncached(node)
+        return cache[key]
+
+
+    def _is_literal_counter_loop(self, node):
+        """
+        `i = 1` ... `while i < 64: i *= 2` -- the counter starts from a literal, is only
+        stepped by literals, and is compared with a literal, so the pass count is a fixed
+        number no matter what the input is: O(1). Anything that touches a variable
+        (`i = n`, `i *= k`, `while x > 0` with x derived from the input) is NOT matched and
+        stays symbolic, which keeps halving/doubling over `n` at O(log n).
+        """
+        try:
+            test = getattr(node, 'test', None)
+            if not isinstance(test, ast.Compare) or len(test.ops) != 1 or len(test.comparators) != 1:
+                return False
+            l, r = test.left, test.comparators[0]
+            lit = lambda e: isinstance(e, ast.Constant) and isinstance(e.value, (int, float)) and not isinstance(e.value, bool)
+            if isinstance(l, ast.Name) and lit(r): name = l.id
+            elif isinstance(r, ast.Name) and lit(l): name = r.id
+            else: return False
+            # the counter's most recent plain assignment before the loop, in the same block, must be a literal
+            root = getattr(self.analyzer, 'root_tree', None)
+            if root is None: return False
+            block, idx = None, None
+            for parent in ast.walk(root):
+                for field in ('body', 'orelse', 'finalbody'):
+                    lst = getattr(parent, field, None)
+                    if isinstance(lst, list) and any(st is node for st in lst):
+                        block, idx = lst, next(i for i, st in enumerate(lst) if st is node)
+                        break
+                if block is not None: break
+            if block is None: return False
+            started_literal = False
+            for st in reversed(block[:idx]):
+                if isinstance(st, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in st.targets):
+                    started_literal = lit(st.value); break
+                if any(isinstance(n, ast.Name) and n.id == name and isinstance(n.ctx, ast.Store) for n in ast.walk(st)):
+                    return False
+            if not started_literal: return False
+            # inside the loop the counter may only be stepped by literals
+            stepped = False
+            for sub in safe_walk(node):
+                if isinstance(sub, ast.AugAssign) and isinstance(sub.target, ast.Name) and sub.target.id == name:
+                    if not lit(sub.value): return False
+                    stepped = True
+                elif isinstance(sub, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in sub.targets):
+                    v = sub.value
+                    if not (isinstance(v, ast.BinOp) and isinstance(v.left, ast.Name) and v.left.id == name and lit(v.right)): return False
+                    stepped = True
+                elif isinstance(sub, (ast.For, ast.comprehension)) and any(isinstance(n, ast.Name) and n.id == name and isinstance(n.ctx, ast.Store) for n in ast.walk(getattr(sub, 'target', sub))):
+                    return False
+            return stepped
+        except Exception:
+            return False
+
+
+    def _loop_dims(self, node):
+        """Ordered size symbols of a `for` loop's pass count (one entry per polynomial degree),
+        e.g. range(n) -> ['n'], range(x * y) -> ['n', 'm'], range(n ** 2) -> ['n', 'n']."""
+        if _cp.SYMBOLIC_FIXED_RANGE and self.is_fixed_range_loop(node):
+            return ['n']   # fixed bound scored as a symbolic loop (see code_preprocessor.SYMBOLIC_FIXED_RANGE)
+        _sym = getattr(self.analyzer, 'size_symbols', None)
+        if _sym is not None and _cp.THEORETICAL_MODE:
+            try:
+                return _sym.loop_dims(node, getattr(self.analyzer, 'current_function_name', None))
+            except Exception:
+                pass
+        iter_name = self._get_iterable_name(node.iter)
+        dim = self._register_and_get_dim(iter_name)
+        return [dim] * self._loop_bound_degree(node) if dim else []
+
+    def _loop_bound_degree(self, node):
+        """
+        Polynomial degree of a `for` loop's pass count in the input size:
+        range(n) -> 1, range(n * n) / range(n ** 2) -> 2, range(n * (n - 1) // 2) -> 2,
+        range(len(a) * 2) -> 1. (A loop that is constant is handled elsewhere and never asks.)
+        """
+        def deg(e):
+            if self._is_constant_expr(e): return 0
+            if isinstance(e, ast.Name): return 1
+            if isinstance(e, ast.UnaryOp): return deg(e.operand)
+            if isinstance(e, ast.BinOp):
+                if isinstance(e.op, (ast.Add, ast.Sub)): return max(deg(e.left), deg(e.right))
+                if isinstance(e.op, ast.Mult): return deg(e.left) + deg(e.right)
+                if isinstance(e.op, (ast.Div, ast.FloorDiv, ast.Mod)): return deg(e.left)
+                if isinstance(e.op, ast.Pow):
+                    k = e.right.value if isinstance(e.right, ast.Constant) and isinstance(e.right.value, int) and not isinstance(e.right.value, bool) else None
+                    if k is not None and 1 <= k <= 8: return max(1, deg(e.left)) * k
+                return 1
+            if isinstance(e, ast.Call):
+                return 1 if (getattr(e.func, 'id', '') == 'len' or any(deg(a) for a in e.args)) else 0
+            return 1
+        try:
+            it = node.iter
+            if isinstance(it, ast.Call) and getattr(it.func, 'id', '') == 'range' and it.args:
+                bound = it.args[0] if len(it.args) == 1 else it.args[1]
+                return max(1, min(deg(bound), 8))
+        except Exception:
+            pass
+        return 1
+
+    def _is_sqrt_loop(self, node):
+        key = ('_is_sqrt_loop', id(node))
+        cache = self.analyzer._loop_classify_cache
+        if key not in cache:
+            cache[key] = self._is_sqrt_loop_uncached(node)
+        return cache[key]
+
+    def _is_exponential_loop(self, node):
+        key = ('_is_exponential_loop', id(node))
+        cache = self.analyzer._loop_classify_cache
+        if key not in cache:
+            cache[key] = self._is_exponential_loop_uncached(node)
+        return cache[key]
+
+    def is_fixed_range_loop(self, node):
+        """`for ... in range(<constants only>)`: the pass count is a fixed number (range(4))."""
+        try:
+            it = getattr(node, 'iter', None)
+            return bool(isinstance(node, ast.For) and isinstance(it, ast.Call)
+                        and getattr(it.func, 'id', '') == 'range' and it.args and not it.keywords
+                        and all(self._is_constant_expr(a) for a in it.args))
+        except Exception:
+            return False
+
+    def _is_constant_loop_uncached(self, node):
+        try:
+            if isinstance(node, ast.While):
+                if any(isinstance(child, ast.Break) for child in safe_walk(node)): return False
+                if self._is_literal_counter_loop(node): return True
+                if getattr(node, 'test', None):
+                    if isinstance(node.test, ast.Constant): return True
+                    if self._is_constant_expr(node.test): return True
+                    if isinstance(node.test, ast.Compare):
+                        if self._is_constant_expr(node.test.left) and all(self._is_constant_expr(c) for c in getattr(node.test, 'comparators', [])):
+                            return True
+            elif isinstance(node, ast.For):
+                if getattr(node, 'iter', None):
+                    if isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
+                        if all(self._is_constant_expr(arg) for arg in node.iter.args):
+                            # teaching convention: a fixed bound is still scored as the loop pattern (O(n));
+                            # the explainer adds the strict-asymptotic O(1) note
+                            return not _cp.SYMBOLIC_FIXED_RANGE
+                    elif isinstance(node.iter, (ast.List, ast.Tuple, ast.Set, ast.Constant)): 
+                        if len(getattr(node.iter, 'elts', [])) <= 100: return True
+                    elif isinstance(node.iter, ast.Name):
+                        if self._is_constant_expr(node.iter): return True
+            return False
+        except Exception:
+            return False
+
+    def _is_frequency_summation_loop(self, node):
+        try:
+            if isinstance(node, ast.For):
+                if isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
+                    if len(node.iter.args) > 0:
+                        arg_str = ast.dump(node.iter.args[0]).lower()
+                        if 'count' in arg_str or 'freq' in arg_str:
+                            return True
+                        arg = node.iter.args[0]
+                        if isinstance(arg, ast.Subscript):
+                            base_name = getattr(getattr(arg, 'value', None), 'id', '').lower()
+                            if any(kw in base_name for kw in ['count', 'freq', 'bucket', 'dp']):
+                                return True
+                iter_name = getattr(getattr(node, 'target', None), 'id', '').lower()
+                if 'bucket' in iter_name or 'adj' in iter_name or 'graph' in iter_name:
+                    for child in safe_walk(node):
+                        if isinstance(child, ast.Call) and getattr(getattr(child, 'func', None), 'attr', '') in ['extend', 'append']:
+                            return True
+            return False
+        except Exception:
+            return False
+
+    def _pointer_reset_by_enclosing_loop(self, pointer_name, inner_loop_node):
+        """
+        True if `pointer_name` is directly (re-)assigned -- via a plain
+        Assign, not an in-place update like `j -= 1` -- somewhere in the
+        immediately enclosing loop's body (tracked via self.analyzer.loop_body_stack),
+        as opposed to only being initialized once before the outer loop ever
+        started. A pointer that gets reset every outer iteration cannot be
+        amortized across those iterations: each outer pass pays for a fresh
+        inner scan, which is what actually makes patterns like insertion
+        sort or a per-index two-pointer scan genuinely O(n^2), not O(n).
+
+        Deliberately excludes `inner_loop_node`'s own body from the scan --
+        an ordinary decrement inside the inner loop itself, e.g. `j = j - 1`,
+        is written as a plain ast.Assign (not ast.AugAssign) in Python and
+        would otherwise be misread as a "reset".
+        """
+        if not self.analyzer.loop_body_stack:
+            return False
+        try:
+            parent_body = self.analyzer.loop_body_stack[-1]
+            for stmt in parent_body:
+                if stmt is inner_loop_node:
+                    continue
+                for sub in ast.walk(stmt):
+                    if isinstance(sub, ast.Assign):
+                        for t in sub.targets:
+                            if isinstance(t, ast.Name) and t.id == pointer_name:
+                                return True
+            return False
+        except Exception:
+            return False
+
+    def _moves_monotonically(self, name, loop_node):
+        """True if `name` is only ever stepped by a constant inside this loop (p += 1, p -= 2,
+        p = p + 1): a pointer that moves one way."""
+        try:
+            seen = False
+            for st in safe_walk(loop_node):
+                if isinstance(st, ast.AugAssign) and isinstance(st.target, ast.Name) and st.target.id == name:
+                    if isinstance(st.op, (ast.Add, ast.Sub)) and isinstance(st.value, ast.Constant) and isinstance(st.value.value, int):
+                        seen = True
+                    else:
+                        return False
+                elif isinstance(st, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in st.targets):
+                    v = st.value
+                    if (isinstance(v, ast.BinOp) and isinstance(v.op, (ast.Add, ast.Sub)) and isinstance(v.left, ast.Name)
+                            and v.left.id == name and isinstance(v.right, ast.Constant) and isinstance(v.right.value, int)):
+                        seen = True
+                    else:
+                        return False
+            return seen
+        except Exception:
+            return False
+
+    def _is_amortized_inner_loop(self, node):
+        try:
+            # FIX: Only apply amortized logic to truly nested inner loops.
+            # An outermost loop (depth 1) should be evaluated normally to prevent
+            # overriding binary search or standard traversals.
+            if self.analyzer.loop_depth <= 1: return False
+            if not isinstance(node, (ast.While, ast.For)): return False
+            
+            pops_container = False
+            for child in safe_walk(node):
+                if isinstance(child, ast.Call) and isinstance(getattr(child, 'func', None), ast.Attribute):
+                    if child.func.attr in ['pop', 'popleft']:
+                        pops_container = True
+                        break
+            if pops_container: return True
+            
+            if isinstance(node, ast.While):
+                # "Mark as you go" loop: the test reads a cell of some table (`not vis[j]`,
+                # `parent[j] == -1`) and the body overwrites a cell of the same table with a plain
+                # value, so a cell that was visited cannot satisfy the test again. Over ALL outer
+                # iterations the loop can then advance at most once per cell: O(n) in total, not
+                # outer x inner. (Not valid if the enclosing loop rebuilds the table each pass.)
+                for child in safe_walk(node.test):
+                    if isinstance(child, ast.Subscript) and isinstance(child.value, ast.Name):
+                        _tbl = child.value.id
+                        _marks = any(
+                            isinstance(st, ast.Assign) and isinstance(st.value, (ast.Constant, ast.Name))
+                            and any(isinstance(t, ast.Subscript) and isinstance(t.value, ast.Name) and t.value.id == _tbl for t in st.targets)
+                            for b in node.body for st in safe_walk(b))
+                        if _marks and not self._pointer_reset_by_enclosing_loop(_tbl, node):
+                            return True
+
+                for child in safe_walk(node.test):
+                    if isinstance(child, ast.Subscript) and isinstance(getattr(child.value, 'value', None), ast.Name):
+                        if child.value.value.id.lower() in ['v', 'freq', 'count', 'map', 'visited', 'vis']:
+                            return True
+                    if isinstance(child, ast.Name):
+                        if child.id.lower() in ['start', 'left', 'l', 'j']:
+                            # Name alone isn't enough -- confirm the pointer
+                            # actually persists across outer iterations
+                            # rather than being reset by the enclosing loop.
+                            if self._pointer_reset_by_enclosing_loop(child.id, node):
+                                return False
+                            return True
+
+                # Structural form of the same idea, independent of variable names: the test
+                # reads a pointer that this loop only moves one way (`p += 1`) and that the
+                # enclosing loop never resets, so across ALL outer iterations the pointer can
+                # travel its range only once -- total work O(n), not outer x inner.
+                for child in safe_walk(node.test):
+                    if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Load):
+                        if self._moves_monotonically(child.id, node) and not self._pointer_reset_by_enclosing_loop(child.id, node):
+                            return True
+
+            return False
+        except Exception:
+            return False
+
+    def _has_log_call(self, node):
+        try:
+            for child in node.body:
+                for sub in safe_walk(child):
+                    if isinstance(sub, ast.Call):
+                        f_id = getattr(getattr(sub, 'func', None), 'id', getattr(getattr(sub, 'func', None), 'attr', ''))
+                        if f_id in self.analyzer.builtin_complexities and 'log' in self.analyzer.builtin_complexities.get(f_id, {}).get('time', ''):
+                            return True
+                        if f_id in self.analyzer.custom_functions and 'log' in self.analyzer.custom_functions.get(f_id, ''):
+                            return True
+            return False
+        except Exception:
+            return False
+
+    def _is_log_loop(self, node):
+        try:
+            if not isinstance(node, ast.While): return False, None
+            cond_vars = set()
+
+            # Collect only the names that are directly part of the test's own
+            # comparison arithmetic -- not names that merely appear as
+            # arguments to a function call within the test (e.g. the `n` in
+            # `i <= int(math.sqrt(n))` is a bound *derived from* n, not the
+            # loop's own control variable, which is `i`). Without this
+            # distinction, an unrelated nested loop later in the body that
+            # happens to floor-divide `n` (its own, separate shrink pattern)
+            # gets mistaken for evidence that *this* while loop is halving
+            # its control variable, misclassifying a sqrt(n)-bounded loop as
+            # O(log n).
+            def _collect_direct_names(expr):
+                todo = [expr]
+                while todo:
+                    curr = todo.pop()
+                    if isinstance(curr, ast.Name):
+                        cond_vars.add(curr.id)
+                        continue
+                    if isinstance(curr, ast.Call):
+                        # Skip descending into args/keywords: a variable used
+                        # only as an argument to a function call is feeding
+                        # that call's result, not being directly compared.
+                        continue
+                    for _, value in ast.iter_fields(curr):
+                        if isinstance(value, list):
+                            for item in value:
+                                if isinstance(item, ast.AST): todo.append(item)
+                        elif isinstance(value, ast.AST):
+                            todo.append(value)
+
+            _collect_direct_names(node.test)
+            for child in safe_walk(node.test):
+                if isinstance(child, ast.BinOp) and isinstance(child.op, (ast.LShift, ast.RShift)):
+                    return True, None
+                    
+            for child in node.body:
+                for sub in safe_walk(child):
+                    if isinstance(sub, ast.AugAssign) and isinstance(sub.op, (ast.Add, ast.Sub)):
+                        if isinstance(sub.value, ast.BinOp) and isinstance(sub.value.op, ast.BitAnd):
+                            return True, None
+                    
+                    if isinstance(sub, ast.Assign) and getattr(sub, 'targets', []):
+                        if isinstance(sub.targets[0], ast.Tuple) and isinstance(sub.value, ast.Tuple):
+                            for elt in sub.value.elts:
+                                if isinstance(elt, ast.BinOp) and isinstance(elt.op, ast.Mod): return True, None
+                                    
+                    if isinstance(sub, ast.AugAssign):
+                        if isinstance(sub.op, (ast.BitAnd, ast.BitOr, ast.BitXor, ast.RShift, ast.LShift, ast.FloorDiv)):
+                            if isinstance(sub.target, ast.Name) and sub.target.id in cond_vars: return True, None
+                        # `x /= 10` shrinks the control variable geometrically, like `x //= 10`.
+                        if isinstance(sub.op, ast.Div) and isinstance(sub.target, ast.Name) and sub.target.id in cond_vars:
+                            _dv = extract_constant(sub.value)
+                            if isinstance(_dv, (int, float)) and not isinstance(_dv, bool) and _dv > 1: return True, None
+                        
+                    if isinstance(sub, ast.Assign):
+                        for t in sub.targets:
+                            if isinstance(t, ast.Name) and t.id in cond_vars:
+                                for v in safe_walk(sub.value):
+                                    if isinstance(v, ast.BinOp) and isinstance(v.op, (ast.BitAnd, ast.RShift, ast.LShift, ast.FloorDiv)):
+                                        return True, None
+                                    # `x = int(x / 10)`: dividing the control variable by a constant > 1
+                                    # (true division wrapped in int()) is the same shrink as `x // 10`.
+                                    if isinstance(v, ast.BinOp) and isinstance(v.op, ast.Div) and isinstance(v.left, ast.Name) and v.left.id == t.id:
+                                        _dv = extract_constant(v.right)
+                                        if isinstance(_dv, (int, float)) and not isinstance(_dv, bool) and _dv > 1:
+                                            return True, None
+                            if isinstance(sub.value, ast.BinOp) and isinstance(sub.value.op, (ast.Add, ast.Sub)):
+                                if isinstance(sub.value.right, ast.BinOp) and isinstance(sub.value.right.op, ast.BitAnd):
+                                    return True, None
+
+            mid_vars = set()
+            for child in node.body:
+                for sub in safe_walk(child):
+                    if isinstance(sub, ast.Assign):
+                        for target in sub.targets:
+                            if isinstance(target, ast.Name):
+                                for v in safe_walk(sub.value):
+                                    if isinstance(v, ast.BinOp):
+                                        val = extract_constant(v.right) or 0
+                                        if isinstance(v.op, ast.FloorDiv) and isinstance(val, (int, float)) and val == 2: mid_vars.add(target.id)
+                                        elif isinstance(v.op, ast.Div) and isinstance(val, (int, float)) and val == 2: mid_vars.add(target.id)
+                                        elif isinstance(v.op, ast.RShift) and isinstance(val, (int, float)) and val == 1: mid_vars.add(target.id)
+                                    elif isinstance(v, ast.Call) and any(k in getattr(v.func, 'id', '').lower() for k in ['mid', 'half']):
+                                        mid_vars.add(target.id)
+
+            if mid_vars:
+                for child in node.body:
+                    for sub in safe_walk(child):
+                        if isinstance(sub, ast.Assign):
+                            for target in sub.targets:
+                                if isinstance(target, ast.Name) and target.id in cond_vars:
+                                    for v in safe_walk(sub.value):
+                                        if isinstance(v, ast.Name) and v.id in mid_vars: return True, None
+                                        if isinstance(v, ast.BinOp) and (getattr(v.left, 'id', '') in mid_vars or getattr(v.right, 'id', '') in mid_vars): return True, None
+
+            for child in node.body:
+                for sub in safe_walk(child):
+                    if isinstance(sub, ast.Assign):
+                        for target in sub.targets:
+                            if isinstance(sub.value, ast.BinOp) and isinstance(sub.value.op, ast.Mod):
+                                if isinstance(sub.value.left, ast.Name) and isinstance(sub.value.right, ast.Name):
+                                    if isinstance(target, ast.Name) and target.id == sub.value.right.id:
+                                        return True, [sub.value.left.id, sub.value.right.id]
+                            if isinstance(target, ast.Name) and target.id in cond_vars:
+                                for v in safe_walk(sub.value):
+                                    if isinstance(v, ast.Call) and getattr(getattr(v, 'func', None), 'attr', '') == 'sqrt':
+                                        return True, None
+                                        
+                    if isinstance(sub, ast.AugAssign):
+                        if isinstance(sub.target, ast.Name) and sub.target.id in cond_vars:
+                            val = extract_constant(sub.value) or 0
+                            if isinstance(sub.op, (ast.Mult, ast.Div, ast.FloorDiv, ast.Mod)) and isinstance(val, (int, float)) and val > 1: return True, None
+                            if isinstance(sub.op, (ast.LShift, ast.RShift)): return True, None
+                            if isinstance(sub.op, ast.Mod): return True, None
+                    elif isinstance(sub, ast.Assign):
+                        for target in sub.targets:
+                            if isinstance(target, ast.Name) and target.id in cond_vars:
+                                if isinstance(sub.value, ast.BinOp):
+                                    left_val = extract_constant(sub.value.left) or 0
+                                    right_val = extract_constant(sub.value.right) or 0
+                                    if isinstance(sub.value.op, (ast.Mult, ast.Div, ast.FloorDiv, ast.Mod)):
+                                        if getattr(sub.value.left, 'id', None) == target.id and isinstance(right_val, (int, float)) and right_val > 1: return True, None
+                                        if getattr(sub.value.right, 'id', None) == target.id and isinstance(left_val, (int, float)) and left_val > 1: return True, None
+                                    if isinstance(sub.value.op, ast.Mod):
+                                        if getattr(sub.value.left, 'id', None) == target.id or getattr(sub.value.right, 'id', None) == target.id: return True, None
+                                    if isinstance(sub.value.op, (ast.LShift, ast.RShift)): return True, None
+
+            return False, None
+        except Exception:
+            return False, None
+            
+    def _is_sqrt_loop_uncached(self, node):
+        try:
+            if not isinstance(node, (ast.While, ast.For)): return False  
+            expr = node.test if isinstance(node, ast.While) else node.iter
+            
+            for child in safe_walk(expr):
+                if isinstance(child, ast.Call):
+                    func_id = getattr(getattr(child, 'func', None), 'id', '')
+                    if func_id == 'sqrt' or (isinstance(getattr(child, 'func', None), ast.Attribute) and child.func.attr == 'sqrt'): return True
+                    if func_id == 'pow' and getattr(child, 'args', None) and len(child.args) >= 2:
+                        exp_val = extract_constant(child.args[1])
+                        if isinstance(exp_val, (int, float)) and abs(exp_val - 0.5) < 1e-9: return True
+                if isinstance(child, ast.BinOp) and isinstance(child.op, ast.Pow):
+                    exp_val = extract_constant(child.right)
+                    if isinstance(exp_val, (int, float)) and abs(exp_val - 0.5) < 1e-9: return True
+                if isinstance(child, ast.Name) and self.analyzer.variable_complexities.get(child.id) == "sqrt": return True
+
+            if isinstance(node, ast.While) and isinstance(node.test, ast.Compare):
+                left = node.test.left
+                for right in getattr(node.test, 'comparators', []):
+                    if isinstance(left, ast.BinOp) and isinstance(left.op, ast.Mult):
+                        if isinstance(left.left, ast.Name) and isinstance(left.right, ast.Name) and left.left.id == left.right.id: return True
+                    if isinstance(right, ast.BinOp) and isinstance(right.op, ast.Mult):
+                        if isinstance(right.left, ast.Name) and isinstance(right.right, ast.Name) and right.left.id == right.right.id: return True
+                    if isinstance(left, ast.BinOp) and isinstance(left.op, ast.Pow) and extract_constant(left.right) == 2: return True
+                    if isinstance(right, ast.BinOp) and isinstance(right.op, ast.Pow) and extract_constant(right.right) == 2: return True
+            return False
+        except Exception:
+            return False
+    
+    def _is_exponential_loop_bound(self, node):
+        try:
+            if isinstance(node, ast.For) and isinstance(node.iter, ast.Call):
+                if getattr(node.iter.func, 'id', '') == 'range':
+                    for arg in node.iter.args:
+                        # exponential only when the EXPONENT grows (2**n); n**2 is polynomial, 2**10 is fixed
+                        if isinstance(arg, ast.BinOp) and isinstance(arg.op, ast.Pow) and not self._is_constant_expr(arg.right): return True
+            return False
+        except Exception:
+            return False
+
+    def _is_exponential_loop_uncached(self, node):
+        try:
+            if self._is_exponential_loop_bound(node): return True
+            if not isinstance(node, (ast.For, ast.While)): return False
+            expr = node.iter if isinstance(node, ast.For) else node.test
+            for child in safe_walk(expr):
+                if isinstance(child, ast.BinOp):
+                    val = extract_constant(child.left) or 0
+                    if isinstance(child.op, ast.Pow) and isinstance(val, (int, float)) and val == 2 and not self._is_constant_expr(child.right): return True
+                if isinstance(child, ast.Call) and isinstance(getattr(child, 'func', None), ast.Name) and child.func.id == 'pow':
+                    val = extract_constant(child.args[0] if getattr(child, 'args', None) else None) or 0
+                    if len(child.args) >= 2 and isinstance(val, (int, float)) and val == 2 and not self._is_constant_expr(child.args[1]): return True
+                if isinstance(child, ast.Name) and self.analyzer.variable_complexities.get(child.id) == "exponential": return True
+            return False
+        except Exception:
+            return False
+
+    def _evaluate_organic_growth(self, target_id, value_node):
+        try:
+            var_t = self.analyzer.var_types.get(target_id)
+            if not var_t:
+                if 'tup' in target_id.lower(): var_t = 'tuple'
+                elif 'str' in target_id.lower(): var_t = 'str'
+                
+            if var_t not in ['str', 'list', 'tuple', 'set', 'dict', 'deque'] and not self._is_linear_var(target_id):
+                return "O(1)", "O(1)", None
+                
+            self_references = sum(1 for n in safe_walk(value_node) if isinstance(n, ast.Name) and n.id == target_id)
+            
+            is_mult = False
+            for n in safe_walk(value_node):
+                if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Mult):
+                    val1 = extract_constant(n.right) or 0
+                    val2 = extract_constant(n.left) or 0
+                    if (isinstance(n.left, ast.Name) and n.left.id == target_id and isinstance(val1, (int, float)) and val1 > 1) or \
+                       (isinstance(n.right, ast.Name) and n.right.id == target_id and isinstance(val2, (int, float)) and val2 > 1):
+                        is_mult = True
+                        break
+            
+            active_loops = [d for d in self.analyzer.loop_stack if d != '1']
+            loop_multiplier = len(active_loops)
+            
+            if self_references >= 2 or is_mult:
+                if loop_multiplier > 0:
+                    self.analyzer.max_exp = 1
+                    return "O(2^n)", "O(2^n)", "Geometric Expansion"
+                return "O(n)", "O(n)", "Geometric Expansion"
+                    
+            elif self_references == 1:
+                if var_t == 'tuple':
+                    if loop_multiplier > 0:
+                        return "O(n^2)", "O(n^2)", "Tuple Immutability Recreation"
+                    return "O(n)", "O(n)", "Tuple Recreation"
+                    
+                if var_t == 'str':
+                    if loop_multiplier > 1:
+                        return "O(n^2)", "O(1)", "String Concatenation (Immutable)"
+                    return "O(n)", "O(1)", "String Build"
+
+                if loop_multiplier > 0:
+                    space_str = "n^2" if var_t in ['tuple'] else "n"
+                    time_str = "n^2"
+                    return f"O({time_str})", f"O({space_str})", "Linear Accumulation"
+                    
+                return "O(1)", "O(1)", "Linear Accumulation"
+                
+            return "O(1)", "O(1)", None
+        except Exception:
+            return "O(1)", "O(1)", None
+
+    def _is_set_bitwise_op(self, node):
+        try:
+            if not isinstance(node, ast.BinOp): return False
+            if not isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.Sub, ast.BitXor)): return False
+            
+            for child in safe_walk(node):
+                if isinstance(child, (ast.Set, ast.SetComp)): return True
+                if isinstance(child, ast.Name):
+                    if self.analyzer.var_types.get(child.id) == 'set': return True
+                    if 'set' in child.id.lower(): return True
+            return False
+        except Exception:
+            return False

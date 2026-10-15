@@ -25,7 +25,6 @@ import "../styles/PipelineMode.css";
 
 import { FiActivity, FiChevronLeft, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
 import { usePyodide } from "../context/PyodideContext.jsx";
-import useAutomaticCodeAnalysis from "../hooks/useAutomaticCodeAnalysis";
 import { sanitizePythonCode } from "../utils/asymptoticParser.jsx";
 import { extractErrorSummaryLine, translatePythonError } from "../utils/errorTranslator.js";
 import { syncManager } from "../utils/syncManager.js";
@@ -175,6 +174,7 @@ export default function MainApp({ pipelineMode = false }) {
   const [tabs, setTabs] = useState(() => initialTabsStateRef.current.tabs);
   const [activeTabId, setActiveTabId] = useState(() => initialTabsStateRef.current.activeTabId);
 
+  const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? window.navigator.onLine : true);
   const [openPanelIds, setOpenPanelIds] = useState(() => new Set(["blockly", "python"]));
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
   const [isSidebarVisible, setIsSidebarVisible] = useState(() => typeof window === "undefined" || window.innerWidth >= 700);
@@ -257,6 +257,7 @@ export default function MainApp({ pipelineMode = false }) {
   const analyzeEpochTabRef = useRef({}); // requestEpoch -> tabId
   const latestEpochByTabRef = useRef({}); // tabId -> newest requestEpoch
   const runTabIdRef = useRef(activeTabId);
+  const blocklyAnalyzeTimeoutRef = useRef(null);
 
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
@@ -470,7 +471,7 @@ export default function MainApp({ pipelineMode = false }) {
           (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           // Only genuine errors (e.g. NameError) are flagged `blocking`; "possible bug" lint
           // warnings share this list but must not hide the complexity result.
-          const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: err.blocking === true, isNameError: /^(NameError|ZeroDivisionError|IndexError|TypeError|ValueError)\b/.test(err.message || "") }));
+          const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: err.blocking === true, isNameError: /^(?!SyntaxError|IndentationError|TabError)\w*(Error|Exception)\b/.test(err.message || "") }));
           updateTab(targetId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: {
@@ -574,10 +575,10 @@ export default function MainApp({ pipelineMode = false }) {
   }, [isEngineReady]);
 
   useEffect(() => {
-    const handleOnline = () => { showToast("Connection restored.", "success"); };
-    const handleOffline = () => { showToast("Connection lost. Using local Pyodide.", "error"); };
+    const handleOnline = () => { setIsOnline(true); showToast("Connection restored.", "success"); };
+    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Using local Pyodide.", "error"); };
     window.addEventListener("online", handleOnline); window.addEventListener("offline", handleOffline);
-    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); };
+    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); clearTimeout(blocklyAnalyzeTimeoutRef.current); };
   }, []);
 
   useEffect(() => {
@@ -777,6 +778,9 @@ export default function MainApp({ pipelineMode = false }) {
     const canMarkDirty = Date.now() > (tab.ignoreDirtyUntil || 0);
 
     if (!tab.isEditingCode) {
+      // Analysis is triggered by the debounced effect on `pythonCode`
+      // (see "Live analysis" above), so block edits only need to update
+      // the tab here.
       updateTab(tabId, { 
         blocklyJson: json, 
         pythonCode: newCode,
@@ -790,13 +794,36 @@ export default function MainApp({ pipelineMode = false }) {
     }
   };
 
-  useAutomaticCodeAnalysis({
-    code: activeTab.pythonCode,
-    sourceId: activeTabId,
-    worker,
-    enabled: isEngineReady,
-    onAnalyze: (code, tabId) => analyzeCode(tabId, code),
-  });
+  // Live analysis. Runs whenever the active tab's Python text changes -- from
+  // typing in the editor OR from block edits (Blocks -> Python writes
+  // `pythonCode` too) -- after a short pause. It deliberately does NOT depend
+  // on `isEditingCode`: the automatic Python -> Blocks sync flips that flag to
+  // false ~500ms after typing, which used to cancel the pending 800ms timer
+  // here (and the re-generated block code usually equals the typed text, so
+  // the Blockly path never re-triggered it either). Result: analysis only
+  // updated after cutting and pasting the code. `lastAnalyzedRef` dedupes so
+  // tab switches / unrelated re-renders don't re-run an identical analysis.
+  const lastAnalyzedRef = useRef({});
+  useEffect(() => {
+    const code = activeTab.pythonCode;
+    if (!code || !code.trim() || code === "# Drag blocks to generate Python code") {
+      // Cleared/placeholder text: forget the last analysed snippet so typing
+      // or pasting the same code again is analysed afresh.
+      delete lastAnalyzedRef.current[activeTabId];
+      return;
+    }
+    if (!isEngineReady) return;
+    // Skip only if this exact text was already analysed AND its result is
+    // still on the tab (a cleared/reset tab must be re-analysed).
+    if (lastAnalyzedRef.current[activeTabId] === code && activeTab.analysisResult) return;
+    const tabId = activeTabId;
+    const timeoutId = setTimeout(() => {
+      if (!workerRef.current) return;
+      lastAnalyzedRef.current[tabId] = code;
+      analyzeCode(tabId, code);
+    }, 800);
+    return () => clearTimeout(timeoutId);
+  }, [activeTab.pythonCode, activeTabId, isEngineReady]);
 
   // Always points at the newest tab state so an in-flight conversion can
   // tell whether the learner kept typing while it was running.

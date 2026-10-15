@@ -1,0 +1,286 @@
+{
+  "type": "algoblocks_project",
+  "version": "1.0",
+  "title": "algoblocks_workspace",
+  "blocklyJson": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "da9334f6-10bb-4",
+          "x": 20,
+          "y": 20,
+          "extraState": {
+            "params": [
+              {
+                "name": "m",
+                "id": "m"
+              },
+              {
+                "name": "n",
+                "id": "n"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "unique_paths_opt"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "controls_if",
+                "id": "843cb5ef-0b4b-4",
+                "inputs": {
+                  "IF0": {
+                    "block": {
+                      "type": "logic_operation",
+                      "id": "f27de7ca-e3ec-4",
+                      "fields": {
+                        "OP": "OR"
+                      },
+                      "inputs": {
+                        "A": {
+                          "block": {
+                            "type": "logic_compare",
+                            "id": "9c85e3e1-ac13-4",
+                            "fields": {
+                              "OP": "EQ"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "d0087a25-0701-4",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "m"
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "math_number",
+                                  "id": "0c78b23f-2b8a-4",
+                                  "fields": {
+                                    "NUM": 1
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "B": {
+                          "block": {
+                            "type": "logic_compare",
+                            "id": "d54c1ead-5c6d-4",
+                            "fields": {
+                              "OP": "EQ"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "ad6db23f-d2c7-4",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "n"
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "math_number",
+                                  "id": "e67f3e70-971d-4",
+                                  "fields": {
+                                    "NUM": 1
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "DO0": {
+                    "block": {
+                      "type": "procedure_return_value",
+                      "id": "12905a9d-71d4-4",
+                      "inputs": {
+                        "VALUE": {
+                          "block": {
+                            "type": "math_number",
+                            "id": "991a984f-c2ea-4",
+                            "fields": {
+                              "NUM": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "math_arithmetic",
+                "id": "75f90088-286e-4",
+                "fields": {
+                  "OP": "ADD"
+                },
+                "inputs": {
+                  "A": {
+                    "block": {
+                      "type": "procedures_callreturn",
+                      "id": "1befef62-013f-4",
+                      "extraState": {
+                        "name": "unique_paths_opt",
+                        "params": [
+                          "arg0",
+                          "arg1"
+                        ]
+                      },
+                      "inputs": {
+                        "ARG0": {
+                          "block": {
+                            "type": "math_arithmetic",
+                            "id": "fe22069e-591e-4",
+                            "fields": {
+                              "OP": "MINUS"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "aaca4477-6458-4",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "m"
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "math_number",
+                                  "id": "3f45fb74-7ba8-4",
+                                  "fields": {
+                                    "NUM": 1
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "ARG1": {
+                          "block": {
+                            "type": "variables_get",
+                            "id": "12828fcb-17c7-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "n"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "B": {
+                    "block": {
+                      "type": "procedures_callreturn",
+                      "id": "174a98f0-009e-4",
+                      "extraState": {
+                        "name": "unique_paths_opt",
+                        "params": [
+                          "arg0",
+                          "arg1"
+                        ]
+                      },
+                      "inputs": {
+                        "ARG0": {
+                          "block": {
+                            "type": "variables_get",
+                            "id": "1e7f60d6-f81f-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "m"
+                              }
+                            }
+                          }
+                        },
+                        "ARG1": {
+                          "block": {
+                            "type": "math_arithmetic",
+                            "id": "db2b1c50-8a7f-4",
+                            "fields": {
+                              "OP": "MINUS"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "df11f58b-45d4-4",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "n"
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "math_number",
+                                  "id": "2f422285-c97c-4",
+                                  "fields": {
+                                    "NUM": 1
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "n",
+        "id": "n"
+      },
+      {
+        "name": "m",
+        "id": "m"
+      },
+      {
+        "name": "arg0",
+        "id": "TP/v56BG0.1~2)W;7o4I"
+      },
+      {
+        "name": "arg1",
+        "id": "q5%92mD@7QI,LpLAjMit"
+      }
+    ],
+    "backpack": []
+  },
+  "pythonCode": "def unique_paths_opt(m, n):\n    if m == 1 or n == 1:\n        return 1\n\n    return unique_paths_opt(m - 1, n) + unique_paths_opt(m, n - 1)"
+}

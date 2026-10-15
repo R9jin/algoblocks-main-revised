@@ -23,6 +23,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
+from complexity_explainer.growth_insight import is_symbolic_fixed_range
+
 _LOOPS = (ast.For, ast.AsyncFor, ast.While)
 _FUNCS = (ast.FunctionDef, ast.AsyncFunctionDef)
 OPS_PER_SEC = 1e7   # a realistic budget of simple Python operations per second
@@ -341,8 +343,11 @@ def loop_form(node, outer_vars: List[str]) -> Optional[Tuple[str, str]]:
             sc, stc = _const(step), _const(stop)
             used_outer = [o for o in outer_vars if o in _names(stop) | (_names(start) if start is not None else set())]
             if all(_const(a) is not None for a in ra):
-                return ("linear", f"For `{_src(node.iter, 30)}`, this analyzer treats the number of range iterations as n, "
-                                  f"including fixed numeric bounds. One constant-time operation per iteration gives O(n).")
+                if is_symbolic_fixed_range(node):
+                    return ("const", f"The bound `{_src(node.iter, 30)}` is a fixed number, so strictly the loop runs a constant number of times: "
+                                     f"\u03a3 1 over a constant range = \u0398(1).")
+                return ("const", f"The bound `{_src(node.iter, 30)}` is a fixed number, not tied to the input, so the loop runs a constant number of times: "
+                                 f"\u03a3 1 over a constant range = \u0398(1). (If this were `range(n)` with n the problem size it would be \u0398(n).)")
             if used_outer and n_args >= 1:
                 return ("triangular", f"The bound depends on the outer variable `{used_outer[-1]}`, so the iteration count changes each pass. "
                                       f"Add it up: for example \u03a3_{{i=0}}^{{n-1}} i = n(n-1)/2 = \u0398(n\u00b2), and "
@@ -425,6 +430,8 @@ def loop_form(node, outer_vars: List[str]) -> Optional[Tuple[str, str]]:
 def _count_expr(lp) -> str:
     """How many passes a loop makes, written as an expression (n - 1, len(a), log n, ...)."""
     if isinstance(lp, (ast.For, ast.AsyncFor)):
+        if is_symbolic_fixed_range(lp):
+            return "n"   # scored as the loop pattern (see growth_insight.is_symbolic_fixed_range)
         ra = _range_args(lp.iter)
         if ra is not None:
             stop = ra[0] if len(ra) == 1 else ra[1]

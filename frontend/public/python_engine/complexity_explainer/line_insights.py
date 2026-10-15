@@ -29,6 +29,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from complexity_explainer.growth_insight import (
     parse_complexity, is_constant, evaluate, _fmt, Term,
+    is_symbolic_fixed_range, strict_asymptotic_note,
 )
 from complexity_explainer.notation_insight import meaning_line
 
@@ -224,6 +225,7 @@ class LineInsights:
                 raise
 
         has_trap = any(p == 0 for p, _ in notes)
+        notes += self._strict_fixed_note(inner, line_no, global_t)
         if not has_trap:
             notes += self._cross_cutting_time(inner, line_no, local_t, global_t)
         notes += self._observed_time(inner, line_no, hits)
@@ -913,6 +915,22 @@ class LineInsights:
     # ==================================================================
     # TIME: cross-cutting insights (any line)
     # ==================================================================
+    def _strict_fixed_note(self, node, line_no: int, global_t: str) -> List[Note]:
+        """A `for` over range(<fixed constant>) is scored O(n) (the loop pattern). Teach the two readings
+        on the loop's own line; the per-line "Global Impact" text carries the strict O(1) figure."""
+        try:
+            if not (isinstance(node, ast.For) and is_symbolic_fixed_range(node)):
+                return []
+            own = [lp for lp in self._shape.enclosing_loops(line_no, include_self=True)
+                   if lp.fixed and lp.lineno == line_no]
+            # The "Strict asymptotic analysis" paragraph already explains the fixed-bound reading;
+            # repeating it here made the same point a third and fourth time.
+            return []
+        except Exception:
+            if STRICT:
+                raise
+            return []
+
     def _cross_cutting_time(self, node, line_no: int, local_t: str, global_t: str) -> List[Note]:
         out: List[Note] = []
         loc, glo = parse_complexity(local_t), parse_complexity(global_t)

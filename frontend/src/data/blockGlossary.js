@@ -845,6 +845,39 @@ export const BLOCK_GLOSSARY = [
     useCase: "Use to check who's next in line without actually removing them from the queue yet.",
   },
 
+  {
+    type: "deque_create_empty",
+    label: "Create Empty Deque",
+    category: "Stacks & Queues",
+    python: "deque()",
+    description: "Creates an empty double-ended queue (collections.deque). Adding to the back and removing from the front are both O(1).",
+    useCase: "Use as the queue in breadth-first search so every dequeue is constant time.",
+  },
+  {
+    type: "deque_from_list",
+    label: "Create Deque From List",
+    category: "Stacks & Queues",
+    python: "deque([start])",
+    description: "Creates a deque holding the items of a list, in order.",
+    useCase: "Use to start a BFS queue that already holds the start node.",
+  },
+  {
+    type: "deque_popleft",
+    label: "Popleft From Deque (With Return)",
+    category: "Stacks & Queues",
+    python: "queue.popleft()",
+    description: "Removes and returns the element at the front of a deque in O(1) time, with no shifting of the other items.",
+    useCase: "Use to take the next node off a BFS queue in constant time.",
+  },
+  {
+    type: "deque_popleft_statement",
+    label: "Popleft From Deque (Discard)",
+    category: "Stacks & Queues",
+    python: "queue.popleft()  # value discarded",
+    description: "Removes the element at the front of a deque in O(1) time and discards it.",
+    useCase: "Use when you only need to shrink the deque by one.",
+  },
+
   // ───────────────────────────── Variables ─────────────────────────────
   {
     type: "variables_get",
@@ -887,6 +920,14 @@ export const BLOCK_GLOSSARY = [
     python: "def my_function(params):\n    ...\n    return result",
     description: "Defines a reusable named function that computes and sends back a value to wherever it's called.",
     useCase: "Use to package logic that produces a result you need elsewhere, like a calculate_average(list) function.",
+  },
+  {
+    type: "procedure_call_statement",
+    label: "Run Function And Ignore Result",
+    category: "Functions",
+    python: "my_function(a, b)",
+    description: "Runs a function that returns a value as a standalone step and throws the returned value away. Plug the function's call block into it.",
+    useCase: "Use to start a function by itself, such as dfs_undirected(graph, 0), when you only need its effects and not its return value.",
   },
   {
     type: "procedure_return_value",

@@ -225,7 +225,17 @@ export const formatExplanation = (text) => {
     if (trimmedSec.startsWith("**Local & Global Analysis:**")) return renderBlock(trimmedSec.replace("**Local & Global Analysis:**", "").trim(), "Dead Code Analysis", "nlg-deadcode");
     if (trimmedSec.startsWith("**Local Analysis:**")) return renderBlock(trimmedSec.replace("**Local Analysis:**", "").trim(), "Local Analysis", "nlg-local");
     if (trimmedSec.startsWith("**Global Impact:**")) return renderBlock(trimmedSec.replace("**Global Impact:**", "").trim(), "Global Impact", "nlg-global");
-    if (trimmedSec.startsWith("**Educational Insight:**")) return renderBlock(trimmedSec.replace("**Educational Insight:**", "").trim(), "Educational Insight", "nlg-educational");
+    if (trimmedSec.startsWith("**Educational Insight:**")) {
+      // Teaching notes are optional reading: collapsed by default so the
+      // explanation stays scannable (the summary, scaling and run count stay visible).
+      const parsedContent = parseMarkdown(trimmedSec.replace("**Educational Insight:**", "").trim());
+      return (
+        <details key={idx} className="nlg-block nlg-educational nlg-collapsible">
+          <summary className="nlg-block-title">Learn more</summary>
+          <div className="nlg-block-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedContent) }} />
+        </details>
+      );
+    }
     if (trimmedSec.startsWith("**Bottleneck Warning:**") || trimmedSec.startsWith("**Space Bottleneck:**")) {
       const cleanText = trimmedSec.replace(/\*\*(Bottleneck Warning:|Space Bottleneck:|Space Bottleneck)\*\*/g, "").trim();
       return renderBlock(cleanText, "Performance Bottleneck", "nlg-bottleneck");

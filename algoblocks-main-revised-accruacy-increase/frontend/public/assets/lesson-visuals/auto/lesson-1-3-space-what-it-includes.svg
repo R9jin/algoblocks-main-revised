@@ -1,0 +1,13 @@
+<svg viewBox="0 0 640 250" width="640" height="250" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="250" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="8" height="250" rx="4" fill="#7C5CFF"/>
+<text x="30" y="30" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#2B005C">What it Includes</text>
+<circle cx="36" cy="66.5" r="6" fill="#7C5CFF"/>
+<text x="58" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#2B005C">Local</tspan><tspan dx="4" font-weight="700" fill="#2B005C">variables</tspan></text>
+<circle cx="36" cy="114.5" r="6" fill="#7C5CFF"/>
+<text x="58" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#2B005C">Temporary</tspan><tspan dx="4" font-weight="700" fill="#2B005C">storage</tspan></text>
+<circle cx="36" cy="162.5" r="6" fill="#7C5CFF"/>
+<text x="58" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#2B005C">Recursion</tspan><tspan dx="4" font-weight="700" fill="#2B005C">stack</tspan><tspan dx="4" font-weight="700" fill="#2B005C">memory</tspan></text>
+<circle cx="36" cy="210.5" r="6" fill="#7C5CFF"/>
+<text x="58" y="217" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#2B005C">Helper</tspan><tspan dx="4" font-weight="700" fill="#2B005C">structures</tspan><tspan dx="4" font-weight="400" fill="#3D3554">like</tspan><tspan dx="4" font-weight="400" fill="#3D3554">new</tspan><tspan dx="4" font-weight="400" fill="#3D3554">arrays</tspan><tspan dx="4" font-weight="400" fill="#3D3554">or</tspan><tspan dx="4" font-weight="400" fill="#3D3554">dicts</tspan></text>
+</svg>

@@ -3,7 +3,7 @@ test_theoretical_analysis.py -- regression tests for the THEORETICAL (asymptotic
 
 Convention under test: a variable is a symbolic size that grows toward infinity, whatever value it was
 assigned (`n = 10` is only a sample value). Only literals written in the construct itself
-Fixed range bounds count as iteration sizes; fixed while bounds remain constants.
+(`range(10)`, `while i < 64`, `range(2**10)`) are constants.
 
 Run:  pytest tests/test_theoretical_analysis.py -v      (also runs with plain `python`)
 """
@@ -63,17 +63,49 @@ def test_script_level_and_parameter_agree_on_every_class():
         assert time_of("n = 16\n" + b) == time_of(indent(b)), b
 
 
-# --- 2. fixed ranges use the teaching convention n iterations -------------------------------
+# --- 2. literals written in the construct -------------------------------------------------------
+# A `for` over range(<fixed constant>) is scored as the loop pattern (O(n)); the explanation says
+# that STRICT asymptotic analysis of the exact code is O(1). (cp.SYMBOLIC_FIXED_RANGE = False
+# restores the old O(1) scoring.) A literal-bounded `while` counter is still O(1).
 @pytest.mark.parametrize("src,expected", [
-    ("for i in range(15):\n    print(i)\n", "O(n)"),
-    ("for i in range(1, 11):\n    pass\n", "O(n)"),
-    ("for i in range(10, 0, -2):\n    pass\n", "O(n)"),
+    ("for i in range(10):\n    print(i)\n", "O(n)"),
+    ("for i in range(4):\n    print(i)\n", "O(n)"),
+    ("for i in range(1, 10, 2):\n    pass\n", "O(n)"),
     ("for i in range(10):\n    for j in range(10):\n        pass\n", "O(n^2)"),
-    ("i = 1\nwhile i < 64:\n    i *= 2\n", "O(1)"),
     ("for i in range(2**10):\n    pass\n", "O(n)"),
+    ("i = 1\nwhile i < 64:\n    i *= 2\n", "O(1)"),
+    ("for i in range(4):\n    x = 1\n    break\n", "O(1)"),   # unconditional break: really one pass
 ])
-def test_fixed_range_iteration_convention(src, expected):
+def test_fixed_range_scored_as_loop_pattern(src, expected):
     assert time_of(src) == expected
+
+
+def test_fixed_range_switch_restores_strict_scoring():
+    saved = cp.SYMBOLIC_FIXED_RANGE
+    cp.SYMBOLIC_FIXED_RANGE = False
+    try:
+        assert time_of("for i in range(10):\n    print(i)\n") == "O(1)"
+    finally:
+        cp.SYMBOLIC_FIXED_RANGE = saved
+
+
+def test_fixed_range_explanation_states_the_strict_result_per_line():
+    r = run("for i in range(4):\n    print(i)\n")
+    assert r["total"] == "O(n)"
+    for line in r["lines"]:
+        assert "Strict asymptotic analysis" in line["time_explanation"], line["lineOfCode"]
+        assert "`O(1)`" in line["time_explanation"]
+    assert "Strict asymptotic analysis" in r["overall_explanation"]
+    assert "this exact program is therefore `O(1)`" in r["overall_explanation"]
+
+
+def test_fixed_range_inside_a_variable_loop_is_strictly_linear():
+    r = run("def f(n):\n    for i in range(n):\n        for j in range(4):\n            pass\n")
+    assert r["total"] == "O(n^2)"
+    inner = next(l for l in r["lines"] if l["lineOfCode"].strip().startswith("for j"))
+    assert "Strictly, this loop is therefore `O(n)`" in inner["time_explanation"]
+    outer = next(l for l in r["lines"] if l["lineOfCode"].strip().startswith("for i"))
+    assert "Strict asymptotic analysis" not in outer["time_explanation"]   # a variable loop needs no note
 
 
 # --- 3. doubling / halving over a size variable is logarithmic --------------------------------
@@ -147,3 +179,19 @@ def test_explanations_are_not_runtime_based():
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))
+
+
+def _symbolic_note(src):
+    import contextlib, io
+    with contextlib.redirect_stdout(io.StringIO()):
+        r = analyze_source_code(src)
+    return r["overall_explanation"]
+
+
+def test_symbolic_scoring_note_is_not_limited_to_for_loops():
+    assert "Symbolic scoring" in _symbolic_note("for i in range(5):\n    print(i)\n")
+    assert "Symbolic scoring" in _symbolic_note("n = 10\nt = 0\nfor i in range(n):\n    t += i\n")
+    assert "Symbolic scoring" in _symbolic_note(
+        "def fact(n):\n    if n <= 1:\n        return 1\n    return n * fact(n - 1)\nprint(fact(5))\n")
+    # a real input size needs no such note
+    assert "Symbolic scoring" not in _symbolic_note("def f(n):\n    t = 0\n    for i in range(n):\n        t += i\n    return t\n")

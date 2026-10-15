@@ -256,6 +256,8 @@ class ComplexityHeuristics:
     def _loop_dims(self, node):
         """Ordered size symbols of a `for` loop's pass count (one entry per polynomial degree),
         e.g. range(n) -> ['n'], range(x * y) -> ['n', 'm'], range(n ** 2) -> ['n', 'n']."""
+        if _cp.SYMBOLIC_FIXED_RANGE and self.is_fixed_range_loop(node):
+            return ['n']   # fixed bound scored as a symbolic loop (see code_preprocessor.SYMBOLIC_FIXED_RANGE)
         _sym = getattr(self.analyzer, 'size_symbols', None)
         if _sym is not None and _cp.THEORETICAL_MODE:
             try:
@@ -310,6 +312,16 @@ class ComplexityHeuristics:
             cache[key] = self._is_exponential_loop_uncached(node)
         return cache[key]
 
+    def is_fixed_range_loop(self, node):
+        """`for ... in range(<constants only>)`: the pass count is a fixed number (range(4))."""
+        try:
+            it = getattr(node, 'iter', None)
+            return bool(isinstance(node, ast.For) and isinstance(it, ast.Call)
+                        and getattr(it.func, 'id', '') == 'range' and it.args and not it.keywords
+                        and all(self._is_constant_expr(a) for a in it.args))
+        except Exception:
+            return False
+
     def _is_constant_loop_uncached(self, node):
         try:
             if isinstance(node, ast.While):
@@ -324,9 +336,10 @@ class ComplexityHeuristics:
             elif isinstance(node, ast.For):
                 if getattr(node, 'iter', None):
                     if isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
-                        # Teaching convention: every range-based for loop counts
-                        # its iterations as n, including literal/named fixed bounds.
-                        return False
+                        if all(self._is_constant_expr(arg) for arg in node.iter.args):
+                            # teaching convention: a fixed bound is still scored as the loop pattern (O(n));
+                            # the explainer adds the strict-asymptotic O(1) note
+                            return not _cp.SYMBOLIC_FIXED_RANGE
                     elif isinstance(node.iter, (ast.List, ast.Tuple, ast.Set, ast.Constant)): 
                         if len(getattr(node.iter, 'elts', [])) <= 100: return True
                     elif isinstance(node.iter, ast.Name):

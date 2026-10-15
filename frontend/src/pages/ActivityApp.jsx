@@ -17,7 +17,6 @@ import TourHelpButton from "../components/TourHelpButton";
 import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
 import { useOnboarding, GENERIC_ACTIVITY_TOUR_PAGE_ID } from "../context/OnboardingContext";
 import { usePyodide } from "../context/PyodideContext.jsx";
-import useAutomaticCodeAnalysis from "../hooks/useAutomaticCodeAnalysis";
 import { getIntroActivityTour } from "../data/introActivityTours.js";
 import curriculumIndex from "../data/curriculumIndex.js";
 import { curriculumCacheDB, progressDB, submissionsDB, syncQueueDB } from "../db.js";
@@ -122,9 +121,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const { state: onboardingState, isHydrated, startTour } = useOnboarding();
   
   const isReadyRef = useRef(false);
-  // Trigger analysis when loading finishes or Restart reloads identical code;
-  // changing a ref alone does not rerun React effects.
-  const [workspaceRevision, setWorkspaceRevision] = useState(0);
   const isUnmountingRef = useRef(false); 
   const isResettingRef = useRef(false);
   const loadTimeRef = useRef(0); 
@@ -149,7 +145,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const testResolveRef = useRef(null);
   const testRejectRef = useRef(null);
   const outputAccumulatorRef = useRef("");
-  // STALE-ANALYSIS GUARD: bumped for each analysis request, boot(), or Restart,
+  // STALE-ANALYSIS GUARD: bumped every time we start a boot() or a Restart,
   // and stamped onto every ANALYZE_CODE request we send to the worker. The
   // ANALYZE_RESULT handler only trusts a response whose epoch matches the
   // current value. Without this, an analyze request kicked off for the
@@ -173,6 +169,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const [currentAes, setCurrentAes] = useState(0);
   const [currentRog, setCurrentRog] = useState(0);
+  const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? window.navigator.onLine : true);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isSyncingBlocks, setIsSyncingBlocks] = useState(false);
@@ -347,6 +344,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   useEffect(() => {
     const handleOnline = () => {
+      setIsOnline(true);
       showToast("Connection restored. Syncing drafts...", "success");
       // FIX: Flush in-memory workspace state to IndexedDB immediately on
       // reconnect, before the global syncManager 'online' burst runs.
@@ -357,7 +355,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       // freshest state rather than whatever was last debounced.
       triggerFinalSave();
     };
-    const handleOffline = () => { showToast("Connection lost. Saving drafts locally.", "error"); };
+    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Saving drafts locally.", "error"); };
     window.addEventListener("online", handleOnline); window.addEventListener("offline", handleOffline);
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
   }, []);
@@ -443,7 +441,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         setLineExecutions((prev) => ({ ...prev, ...initialCounts }));
         // Only genuine errors (e.g. NameError) are flagged `blocking`; "possible bug" lint
         // warnings share this list but must not hide the complexity result.
-        const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: err.blocking === true, isNameError: /^(NameError|ZeroDivisionError|IndexError|TypeError|ValueError)\b/.test(err.message || "") }));
+        const runtimeErrors = (data.multiple_errors || []).map((err) => ({ line: err.line, message: err.message, fix: translatePythonError(err.message), blocking: err.blocking === true, isNameError: /^(?!SyntaxError|IndentationError|TabError)\w*(Error|Exception)\b/.test(err.message || "") }));
         setSyntaxErrors(runtimeErrors);
       } else {
         if (data.multiple_errors && data.multiple_errors.length > 0) {
@@ -1050,10 +1048,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         if (savedTests && !cancelled) {
           try { const { consoleOutput: savedOut, passedTests: savedPassed } = JSON.parse(savedTests); if (savedOut) setConsoleOutput(savedOut); if (savedPassed !== undefined) setPassedTests(savedPassed); } catch (e) { }
         }
-        if (!cancelled) {
-          isReadyRef.current = true;
-          setWorkspaceRevision((revision) => revision + 1);
-        }
+        if (!cancelled) isReadyRef.current = true;
 
         // Now that we're fully loaded (and have time to let async work
         // actually finish, unlike during unload), persist the recovered
@@ -1177,20 +1172,17 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     }, 1500);
   };
 
-  useAutomaticCodeAnalysis({
-    code: generatedPython,
-    sourceId: `${moduleId}/${activityId}/${workspaceRevision}`,
-    worker,
-    enabled: isEngineReady && workspaceRevision > 0,
-    onAnalyze: (code) => {
-      if (!isReadyRef.current || isUnmountingRef.current || isResettingRef.current) return;
-      worker.postMessage({
-        type: "ANALYZE_CODE",
-        code: sanitizePythonCode(code),
-        requestEpoch: ++analysisEpochRef.current,
-      });
-    },
-  });
+  useEffect(() => {
+    if (!isReadyRef.current || isUnmountingRef.current || isResettingRef.current) return;
+    // Analysis runs in the local Pyodide worker, so it must not depend on
+    // network status (a flaky `isOnline` used to silently stop live analysis).
+    if (isEngineReady && workerRef.current && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
+      const timeoutId = setTimeout(() => {
+        workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython), requestEpoch: analysisEpochRef.current });
+      }, 800);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [generatedPython, isEngineReady]);
 
   const handleWorkspaceChange = async (json, incomingPythonCode, isUnsynced = false) => {
     if (isUnmountingRef.current || !isReadyRef.current || isResettingRef.current) return;
@@ -2287,7 +2279,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                     // again, nothing ever retriggered it afterward, so the
                     // fresh-template baseline analysis silently never ran at all.
                     isResettingRef.current = false;
-                    setWorkspaceRevision((revision) => revision + 1);
 
                     // 8. Persist the reset state with was_reset: true to IndexedDB & Server
                     if (uid) {

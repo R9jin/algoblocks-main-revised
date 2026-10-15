@@ -1,0 +1,240 @@
+{
+  "type": "algoblocks_project",
+  "version": "1.0",
+  "title": "algoblocks_workspace",
+  "blocklyJson": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "0200e376-c679-4",
+          "x": 20,
+          "y": 20,
+          "extraState": {
+            "params": [
+              {
+                "name": "amount",
+                "id": "amount"
+              },
+              {
+                "name": "coins",
+                "id": "coins"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "fast_cashier"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "variables_set",
+                "id": "35fcf1dd-1a66-4",
+                "fields": {
+                  "VAR": {
+                    "id": "total_coins"
+                  }
+                },
+                "inputs": {
+                  "VALUE": {
+                    "block": {
+                      "type": "math_number",
+                      "id": "86128cb6-d831-4",
+                      "fields": {
+                        "NUM": 0
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "variables_set",
+                    "id": "4deeaa7a-b19c-4",
+                    "fields": {
+                      "VAR": {
+                        "id": "remaining"
+                      }
+                    },
+                    "inputs": {
+                      "VALUE": {
+                        "block": {
+                          "type": "variables_get",
+                          "id": "4a80d6d8-2798-4",
+                          "fields": {
+                            "VAR": {
+                              "id": "amount"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "block": {
+                        "type": "controls_forEach",
+                        "id": "dbb98e9f-3e2f-4",
+                        "fields": {
+                          "VAR": {
+                            "id": "coin"
+                          }
+                        },
+                        "inputs": {
+                          "LIST": {
+                            "block": {
+                              "type": "variables_get",
+                              "id": "95865144-e9f8-4",
+                              "fields": {
+                                "VAR": {
+                                  "id": "coins"
+                                }
+                              }
+                            }
+                          },
+                          "DO": {
+                            "block": {
+                              "type": "controls_whileUntil",
+                              "id": "c73773b2-f58d-4",
+                              "fields": {
+                                "MODE": "WHILE"
+                              },
+                              "inputs": {
+                                "BOOL": {
+                                  "block": {
+                                    "type": "logic_compare",
+                                    "id": "c209d764-62ce-4",
+                                    "fields": {
+                                      "OP": "GTE"
+                                    },
+                                    "inputs": {
+                                      "A": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "451a717f-3b61-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "remaining"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "B": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "0aa6df6f-6459-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "coin"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "DO": {
+                                  "block": {
+                                    "type": "math_assignment",
+                                    "id": "ac21beb1-ecbd-4",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "remaining"
+                                      },
+                                      "OP": "MINUS"
+                                    },
+                                    "inputs": {
+                                      "DELTA": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "7b90ef2f-07da-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "coin"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "next": {
+                                      "block": {
+                                        "type": "math_assignment",
+                                        "id": "f463d013-4534-4",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "total_coins"
+                                          },
+                                          "OP": "ADD"
+                                        },
+                                        "inputs": {
+                                          "DELTA": {
+                                            "block": {
+                                              "type": "math_number",
+                                              "id": "30de2a4f-76cf-4",
+                                              "fields": {
+                                                "NUM": 1
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "variables_get",
+                "id": "c8830739-c430-4",
+                "fields": {
+                  "VAR": {
+                    "id": "total_coins"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "coins",
+        "id": "coins"
+      },
+      {
+        "name": "total_coins",
+        "id": "total_coins"
+      },
+      {
+        "name": "amount",
+        "id": "amount"
+      },
+      {
+        "name": "coin",
+        "id": "coin"
+      },
+      {
+        "name": "remaining",
+        "id": "remaining"
+      }
+    ],
+    "backpack": []
+  },
+  "pythonCode": "def fast_cashier(amount, coins):\n    total_coins = 0\n    remaining = amount\n\n    for coin in coins:\n        while remaining >= coin:\n            remaining -= coin\n            total_coins += 1\n\n    return total_coins"
+}

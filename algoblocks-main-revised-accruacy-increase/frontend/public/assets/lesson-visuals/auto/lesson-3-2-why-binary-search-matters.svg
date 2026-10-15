@@ -1,0 +1,13 @@
+<svg viewBox="0 0 640 250" width="640" height="250" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="250" rx="16" fill="#FFFBF2" stroke="#FCE3B3" stroke-width="1.5"/>
+<rect x="0" y="0" width="8" height="250" rx="4" fill="#F59E0B"/>
+<text x="30" y="30" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#7A4A02">Why Binary Search Matters</text>
+<polygon points="36.0,57.0 38.5,63.1 45.0,63.6 40.0,67.8 41.6,74.2 36.0,70.7 30.4,74.2 32.0,67.8 27.0,63.6 33.5,63.1" fill="#F59E0B"/>
+<text x="58" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#7A4A02">Cuts</tspan><tspan dx="4" font-weight="700" fill="#7A4A02">comparisons</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">from</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">billions</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">to</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">dozens.</tspan></text>
+<polygon points="36.0,105.0 38.5,111.1 45.0,111.6 40.0,115.8 41.6,122.2 36.0,118.7 30.4,122.2 32.0,115.8 27.0,111.6 33.5,111.1" fill="#F59E0B"/>
+<text x="58" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#7A4A02">Scales</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">to</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">massive</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">real-world</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">datasets.</tspan></text>
+<polygon points="36.0,153.0 38.5,159.1 45.0,159.6 40.0,163.8 41.6,170.2 36.0,166.7 30.4,170.2 32.0,163.8 27.0,159.6 33.5,159.1" fill="#F59E0B"/>
+<text x="58" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A4A2E">A</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">clean</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">demonstration</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">of</tspan><tspan dx="4" font-weight="700" fill="#7A4A02">Divide</tspan><tspan dx="4" font-weight="700" fill="#7A4A02">and</tspan><tspan dx="4" font-weight="700" fill="#7A4A02">Conquer.</tspan></text>
+<polygon points="36.0,201.0 38.5,207.1 45.0,207.6 40.0,211.8 41.6,218.2 36.0,214.7 30.4,218.2 32.0,211.8 27.0,207.6 33.5,207.1" fill="#F59E0B"/>
+<text x="58" y="217" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A4A2E">Introduces</tspan><tspan dx="4" font-weight="700" fill="#7A4A02">logarithmic</tspan><tspan dx="4" font-weight="700" fill="#7A4A02">growth</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">as</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">a</tspan><tspan dx="4" font-weight="400" fill="#5A4A2E">concept.</tspan></text>
+</svg>

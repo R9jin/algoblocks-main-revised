@@ -1,0 +1,12 @@
+<svg viewBox="0 0 640 216" width="640" height="216" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="216" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="8" height="216" rx="4" fill="#7C5CFF"/>
+<text x="30" y="30" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#2B005C">Visualizing Array Operations</text>
+<circle cx="36" cy="66.5" r="6" fill="#7C5CFF"/>
+<text x="58" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Changed</tspan><tspan dx="4" font-weight="400" fill="#3D3554">elements</tspan><tspan dx="4" font-weight="400" fill="#3D3554">flash.</tspan></text>
+<circle cx="36" cy="114.5" r="6" fill="#7C5CFF"/>
+<text x="58" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">New</tspan><tspan dx="4" font-weight="400" fill="#3D3554">elements</tspan><tspan dx="4" font-weight="400" fill="#3D3554">highlight.</tspan></text>
+<circle cx="36" cy="162.5" r="6" fill="#7C5CFF"/>
+<text x="58" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Removed</tspan><tspan dx="4" font-weight="400" fill="#3D3554">elements</tspan><tspan dx="4" font-weight="400" fill="#3D3554">fade</tspan><tspan dx="4" font-weight="400" fill="#3D3554">out,</tspan><tspan dx="4" font-weight="400" fill="#3D3554">with</tspan><tspan dx="4" font-weight="400" fill="#3D3554">the</tspan><tspan dx="4" font-weight="400" fill="#3D3554">remaining</tspan><tspan dx="4" font-weight="400" fill="#3D3554">indices</tspan><tspan dx="4" font-weight="400" fill="#3D3554">shifting</tspan><tspan dx="4" font-weight="400" fill="#3D3554">automatically</tspan><tspan dx="4" font-weight="400" fill="#3D3554">to</tspan></text>
+<text x="58" y="188" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">fill</tspan><tspan dx="4" font-weight="400" fill="#3D3554">the</tspan><tspan dx="4" font-weight="400" fill="#3D3554">gap.</tspan></text>
+</svg>

@@ -47,12 +47,8 @@
        "inputs": {
         "VALUE": {
          "block": {
-          "type": "lists_create_with",
-          "id": "10c32cee-63bf-4",
-          "extraState": {
-           "itemCount": 0
-          },
-          "output": "Array"
+          "type": "set_create_empty",
+          "id": "10c32cee-63bf-4"
          }
         }
        },
@@ -69,24 +65,32 @@
          "inputs": {
           "VALUE": {
            "block": {
-            "type": "lists_create_with",
+            "type": "deque_from_list",
             "id": "4c6b29b8-378e-4",
-            "extraState": {
-             "itemCount": 1
-            },
-            "output": "Array",
             "inputs": {
-             "ADD0": {
+             "LIST": {
               "block": {
-               "type": "variables_get",
-               "id": "b808fbfa-ef37-4",
-               "fields": {
-                "VAR": {
-                 "id": "start",
-                 "name": "start"
-                }
+               "type": "lists_create_with",
+               "id": "4c6b29b8-378e-4L",
+               "extraState": {
+                "itemCount": 1
                },
-               "output": "Any"
+               "output": "Array",
+               "inputs": {
+                "ADD0": {
+                 "block": {
+                  "type": "variables_get",
+                  "id": "b808fbfa-ef37-4",
+                  "fields": {
+                   "VAR": {
+                    "id": "start",
+                    "name": "start"
+                   }
+                  },
+                  "output": "Any"
+                 }
+                }
+               }
               }
              }
             }
@@ -95,22 +99,9 @@
          },
          "next": {
           "block": {
-           "type": "list_append",
+           "type": "set_add",
            "id": "f57df01b-5e9f-4",
            "inputs": {
-            "LIST": {
-             "block": {
-              "type": "variables_get",
-              "id": "4645dfca-3e20-4",
-              "fields": {
-               "VAR": {
-                "id": "visited",
-                "name": "visited"
-               }
-              },
-              "output": "Any"
-             }
-            },
             "ITEM": {
              "block": {
               "type": "variables_get",
@@ -119,6 +110,19 @@
                "VAR": {
                 "id": "start",
                 "name": "start"
+               }
+              },
+              "output": "Any"
+             }
+            },
+            "SET": {
+             "block": {
+              "type": "variables_get",
+              "id": "4645dfca-3e20-4",
+              "fields": {
+               "VAR": {
+                "id": "visited",
+                "name": "visited"
                }
               },
               "output": "Any"
@@ -190,7 +194,7 @@
                 "inputs": {
                  "VALUE": {
                   "block": {
-                   "type": "queue_dequeue",
+                   "type": "deque_popleft",
                    "id": "258c8c26-f43b-4",
                    "inputs": {
                     "QUEUE": {
@@ -331,22 +335,9 @@
                         },
                         "DO0": {
                          "block": {
-                          "type": "list_append",
+                          "type": "set_add",
                           "id": "1ef61976-723e-4",
                           "inputs": {
-                           "LIST": {
-                            "block": {
-                             "type": "variables_get",
-                             "id": "8ba62d62-c24d-4",
-                             "fields": {
-                              "VAR": {
-                               "id": "visited",
-                               "name": "visited"
-                              }
-                             },
-                             "output": "Any"
-                            }
-                           },
                            "ITEM": {
                             "block": {
                              "type": "variables_get",
@@ -355,6 +346,19 @@
                               "VAR": {
                                "id": "neighbor",
                                "name": "neighbor"
+                              }
+                             },
+                             "output": "Any"
+                            }
+                           },
+                           "SET": {
+                            "block": {
+                             "type": "variables_get",
+                             "id": "8ba62d62-c24d-4",
+                             "fields": {
+                              "VAR": {
+                               "id": "visited",
+                               "name": "visited"
                               }
                              },
                              "output": "Any"

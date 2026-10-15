@@ -1,0 +1,11 @@
+<svg viewBox="0 0 640 150" width="640" height="150" xmlns="http://www.w3.org/2000/svg">
+<rect x="30" y="40" width="180" height="70" rx="12" fill="#F5F3FF" stroke="#7C5CFF" stroke-width="1.5"/>
+<text x="120.0" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#3E2A85">Numbers</text>
+<text x="120.0" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#6B5B95">Math and counters</text>
+<rect x="230" y="40" width="180" height="70" rx="12" fill="#F1E9FB" stroke="#7928CA" stroke-width="1.5"/>
+<text x="320.0" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#4B1F82">Strings</text>
+<text x="320.0" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#6B5590">Text values</text>
+<rect x="430" y="40" width="180" height="70" rx="12" fill="#FDECFB" stroke="#E058FB" stroke-width="1.5"/>
+<text x="520.0" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#7A1D74">Booleans</text>
+<text x="520.0" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#94538F">True or false</text>
+</svg>
