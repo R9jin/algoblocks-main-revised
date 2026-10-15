@@ -609,10 +609,11 @@ class VariableExplanations:
         elif factor and factor["text"] != "1" and (scaling or halving):
             n_loops = len(scaling) + len(halving)
             times = factor["text"]
+            _art = "An" if str(loc)[:1] in ("O", "\u03a9") else "A"
             parts.append(gen._v(
                 f"On its own this step costs `{loc}`, but it sits inside {self._loop_word(n_loops)} that {self._repeat_verb(n_loops)} it about `{times}` times. "
                 f"So the total is `{loc}` x `{times}` = `{glo}`.",
-                f"A `{loc}` step that runs inside {self._loop_word(n_loops)} gets repeated about `{times}` times -- "
+                f"{_art} `{loc}` step that runs inside {self._loop_word(n_loops)} gets repeated about `{times}` times -- "
                 f"`{loc}` x `{times}` = `{glo}` in total.",
             ))
             parts.append("The loops around it:\n" + self._loop_bullets(scaling + halving))

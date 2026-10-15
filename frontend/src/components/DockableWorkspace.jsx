@@ -171,6 +171,11 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
   layoutRef.current = layout;
   const [dragState, setDragState] = useState(null); // { panelId, fromRegion }
   const [dragOver, setDragOver] = useState(null); // { region, quadrant }
+  // Touch / pen drag (HTML5 drag-and-drop never fires for touch, so tabs are
+  // moved with pointer events after a short press-and-hold instead).
+  const [touchGhost, setTouchGhost] = useState(null); // { x, y, title }
+  const lastPointerType = useRef("mouse");
+  const suppressClick = useRef(false);
 
   // --- Mobile: the 5-region split/splitter layout doesn't work on phone
   // widths (there simply isn't room to show more than one region at once),
@@ -306,6 +311,9 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
   };
 
   const handleTabDragStart = (e, panelId, fromRegion) => {
+    // Android Chrome can start a native drag on a long press; the pointer
+    // path below handles touch and pen, so cancel the native one.
+    if (lastPointerType.current !== "mouse") { e.preventDefault(); return; }
     e.dataTransfer.effectAllowed = "move";
     try { e.dataTransfer.setData("text/plain", panelId); } catch {
       // Some browsers are picky about setData in certain contexts; the
@@ -365,10 +373,15 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
     e.preventDefault();
     if (!dragState) return;
     const quadrant = dragOver && dragOver.region === regionKey ? dragOver.quadrant : "center";
-    const targetRegion = quadrant === "center" ? regionKey : quadrant;
+    commitDrop(dragState, quadrant === "center" ? regionKey : quadrant);
+    setDragState(null);
+    setDragOver(null);
+  };
 
+  // Moves a panel into targetRegion (shared by mouse drop and touch drop).
+  const commitDrop = ({ panelId, fromRegion }, targetRegion) => {
+    setMobileRegion(targetRegion);
     setLayout((prev) => {
-      const { panelId, fromRegion } = dragState;
       if (fromRegion === targetRegion) {
         return { ...prev, activeTab: { ...prev.activeTab, [targetRegion]: panelId } };
       }
@@ -384,9 +397,106 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
       next.lastRegion[panelId] = targetRegion;
       return next;
     });
+  };
 
-    setDragState(null);
-    setDragOver(null);
+  // Which drop target (and, for the busy center region, which edge) is under
+  // the finger. The phone drop bar buttons carry data-drop-region; the
+  // regions themselves carry data-dock-region.
+  const resolveDropAt = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    const chip = el.closest("[data-drop-region]");
+    if (chip) return { region: chip.getAttribute("data-drop-region"), quadrant: "center" };
+    const regionEl = el.closest("[data-dock-region]");
+    if (!regionEl) return null;
+    const key = regionEl.getAttribute("data-dock-region");
+    const region = layoutRef.current.regions[key];
+    if (key === "center" && region && region.panelIds.length > 0) {
+      const rect = regionEl.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        const fx = (x - rect.left) / rect.width;
+        const fy = (y - rect.top) / rect.height;
+        let quadrant = "center";
+        if (fx < EDGE_RATIO) quadrant = "left";
+        else if (fx > 1 - EDGE_RATIO) quadrant = "right";
+        else if (fy < EDGE_RATIO) quadrant = "top";
+        else if (fy > 1 - EDGE_RATIO) quadrant = "bottom";
+        return { region: key, quadrant };
+      }
+    }
+    return { region: key, quadrant: "center" };
+  };
+
+  // Touch / pen: press and hold a tab for ~0.25 s, then slide it. A quick
+  // swipe still scrolls the tab bar and a tap still selects the tab.
+  const handleTabPointerDown = (e, panelId, fromRegion, title) => {
+    lastPointerType.current = e.pointerType;
+    if (e.pointerType === "mouse") return;
+    if (e.target.closest && e.target.closest(".dock-tab-close")) return;
+    const pointerId = e.pointerId;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let dragging = false;
+    let target = null;
+    let timer = null;
+
+    const block = (ev) => { if (dragging && ev.cancelable) ev.preventDefault(); };
+    const noMenu = (ev) => ev.preventDefault();
+    const cleanup = () => {
+      clearTimeout(timer);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("touchmove", block);
+      window.removeEventListener("contextmenu", noMenu);
+    };
+    const finish = () => {
+      setTouchGhost(null);
+      setDragState(null);
+      setDragOver(null);
+    };
+    function onMove(ev) {
+      if (ev.pointerId !== pointerId) return;
+      if (!dragging) {
+        // Moved before the hold finished: the user is scrolling, not dragging.
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > 10) cleanup();
+        return;
+      }
+      setTouchGhost({ x: ev.clientX, y: ev.clientY, title });
+      target = resolveDropAt(ev.clientX, ev.clientY);
+      setDragOver(target);
+    }
+    function onUp(ev) {
+      if (ev.pointerId !== pointerId) return;
+      const was = dragging;
+      cleanup();
+      if (!was) return;
+      suppressClick.current = true;
+      setTimeout(() => { suppressClick.current = false; }, 100);
+      if (target) {
+        const targetRegion = target.quadrant === "center" ? target.region : target.quadrant;
+        commitDrop({ panelId, fromRegion }, targetRegion);
+      }
+      finish();
+    }
+    function onCancel(ev) {
+      if (ev.pointerId !== pointerId) return;
+      const was = dragging;
+      cleanup();
+      if (was) finish();
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("touchmove", block, { passive: false });
+    window.addEventListener("contextmenu", noMenu);
+    timer = setTimeout(() => {
+      dragging = true;
+      setDragState({ panelId, fromRegion });
+      setTouchGhost({ x: startX, y: startY, title });
+      try { navigator.vibrate && navigator.vibrate(15); } catch { /* ignore */ }
+    }, 250);
   };
 
   const handleSplitterDelta = (regionKey, signedDelta, axis) => {
@@ -430,6 +540,7 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
         key={key}
         className={`dock-region dock-region-${key}${isDropTarget ? " dock-region-drag-over" : ""}${isEmptyCenter ? " dock-region-center-empty" : ""}${isMobileActive ? " dock-region-mobile-active" : ""}`}
         style={style}
+        data-dock-region={key}
         onDragOver={(e) => handleRegionDragOver(e, key)}
         onDragLeave={(e) => handleRegionDragLeave(e, key)}
         onDrop={(e) => handleRegionDrop(e, key)}
@@ -446,8 +557,9 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
                   draggable
                   onDragStart={(e) => handleTabDragStart(e, pid, key)}
                   onDragEnd={handleTabDragEnd}
-                  onClick={() => setActiveTab(key, pid)}
-                  title={`Drag to redock ${panel.title}`}
+                  onPointerDown={(e) => handleTabPointerDown(e, pid, key, panel.title)}
+                  onClick={() => { if (!suppressClick.current) setActiveTab(key, pid); }}
+                  title={`Drag to redock ${panel.title} (on touch: press and hold, then slide)`}
                 >
                   {panel.icon}
                   <span className="dock-tab-title">{panel.title}</span>
@@ -541,6 +653,24 @@ const DockableWorkspace = forwardRef(function DockableWorkspace(
 
       {bottomVisible && <DockSplitter axis="y" title="Resize bottom panel" onDelta={(d) => handleSplitterDelta("bottom", -d, "y")} />}
       {renderRegion("bottom")}
+
+      {touchGhost && (
+        <>
+          <div className="dock-touch-targets" role="presentation">
+            <span className="dock-touch-targets-label">Drop on a panel area:</span>
+            {["center", "bottom", "left", "right", "top"].map((k) => (
+              <div
+                key={k}
+                data-drop-region={k}
+                className={`dock-touch-target${dragOver?.region === k ? " over" : ""}`}
+              >
+                {{ center: "Workspace", bottom: "Bottom", left: "Left", right: "Right", top: "Top" }[k]}
+              </div>
+            ))}
+          </div>
+          <div className="dock-touch-ghost" style={{ left: touchGhost.x, top: touchGhost.y }}>{touchGhost.title}</div>
+        </>
+      )}
     </div>
   );
 });

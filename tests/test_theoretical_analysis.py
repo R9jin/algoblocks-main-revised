@@ -179,3 +179,19 @@ def test_explanations_are_not_runtime_based():
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))
+
+
+def _symbolic_note(src):
+    import contextlib, io
+    with contextlib.redirect_stdout(io.StringIO()):
+        r = analyze_source_code(src)
+    return r["overall_explanation"]
+
+
+def test_symbolic_scoring_note_is_not_limited_to_for_loops():
+    assert "Symbolic scoring" in _symbolic_note("for i in range(5):\n    print(i)\n")
+    assert "Symbolic scoring" in _symbolic_note("n = 10\nt = 0\nfor i in range(n):\n    t += i\n")
+    assert "Symbolic scoring" in _symbolic_note(
+        "def fact(n):\n    if n <= 1:\n        return 1\n    return n * fact(n - 1)\nprint(fact(5))\n")
+    # a real input size needs no such note
+    assert "Symbolic scoring" not in _symbolic_note("def f(n):\n    t = 0\n    for i in range(n):\n        t += i\n    return t\n")

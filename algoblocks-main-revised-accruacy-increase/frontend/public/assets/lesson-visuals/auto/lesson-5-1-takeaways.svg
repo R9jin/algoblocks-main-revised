@@ -1,0 +1,23 @@
+<svg viewBox="0 0 640 346" width="640" height="346" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="346" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="8" height="346" rx="4" fill="#7C5CFF"/>
+<text x="30" y="30" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#2B005C">Key Takeaways</text>
+<circle cx="36" cy="66.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 66.5 L 34.5 70.5 L 41.5 62.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Dynamic</tspan><tspan dx="4" font-weight="400" fill="#3D3554">Programming</tspan><tspan dx="4" font-weight="700" fill="#2B005C">reuses</tspan><tspan dx="4" font-weight="700" fill="#2B005C">previously</tspan><tspan dx="4" font-weight="700" fill="#2B005C">computed</tspan><tspan dx="4" font-weight="700" fill="#2B005C">results.</tspan></text>
+<circle cx="36" cy="114.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 114.5 L 34.5 118.5 L 41.5 110.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">DP</tspan><tspan dx="4" font-weight="400" fill="#3D3554">solves</tspan><tspan dx="4" font-weight="700" fill="#2B005C">overlapping</tspan><tspan dx="4" font-weight="700" fill="#2B005C">subproblems</tspan><tspan dx="4" font-weight="400" fill="#3D3554">highly</tspan><tspan dx="4" font-weight="400" fill="#3D3554">efficiently.</tspan></text>
+<circle cx="36" cy="162.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 162.5 L 34.5 166.5 L 41.5 158.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#2B005C">Memoization</tspan><tspan dx="4" font-weight="400" fill="#3D3554">uses</tspan><tspan dx="4" font-weight="400" fill="#3D3554">top-down</tspan><tspan dx="4" font-weight="400" fill="#3D3554">recursion</tspan><tspan dx="4" font-weight="400" fill="#3D3554">with</tspan><tspan dx="4" font-weight="400" fill="#3D3554">caching.</tspan></text>
+<circle cx="36" cy="210.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 210.5 L 34.5 214.5 L 41.5 206.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="217" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#2B005C">Tabulation</tspan><tspan dx="4" font-weight="400" fill="#3D3554">uses</tspan><tspan dx="4" font-weight="400" fill="#3D3554">bottom-up</tspan><tspan dx="4" font-weight="400" fill="#3D3554">iterative</tspan><tspan dx="4" font-weight="400" fill="#3D3554">table</tspan><tspan dx="4" font-weight="400" fill="#3D3554">construction.</tspan></text>
+<circle cx="36" cy="258.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 258.5 L 34.5 262.5 L 41.5 254.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="265" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">DP</tspan><tspan dx="4" font-weight="400" fill="#3D3554">dramatically</tspan><tspan dx="4" font-weight="400" fill="#3D3554">reduces</tspan><tspan dx="4" font-weight="400" fill="#3D3554">redundant</tspan><tspan dx="4" font-weight="400" fill="#3D3554">computation</tspan><tspan dx="4" font-weight="400" fill="#3D3554">from</tspan><tspan dx="4" font-weight="700" fill="#2B005C">exponential</tspan><tspan dx="4" font-weight="700" fill="#2B005C">to</tspan><tspan dx="4" font-weight="700" fill="#2B005C">polynomial.</tspan></text>
+<circle cx="36" cy="306.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 306.5 L 34.5 310.5 L 41.5 302.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="313" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">DP</tspan><tspan dx="4" font-weight="400" fill="#3D3554">is</tspan><tspan dx="4" font-weight="400" fill="#3D3554">heavily</tspan><tspan dx="4" font-weight="400" fill="#3D3554">utilized</tspan><tspan dx="4" font-weight="400" fill="#3D3554">in</tspan><tspan dx="4" font-weight="400" fill="#3D3554">modern</tspan><tspan dx="4" font-weight="700" fill="#2B005C">optimization,</tspan><tspan dx="4" font-weight="700" fill="#2B005C">routing,</tspan><tspan dx="4" font-weight="700" fill="#2B005C">and</tspan><tspan dx="4" font-weight="700" fill="#2B005C">AI</tspan><tspan dx="4" font-weight="700" fill="#2B005C">systems.</tspan></text>
+</svg>

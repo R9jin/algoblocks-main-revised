@@ -1,0 +1,39 @@
+<svg viewBox="0 0 640 329" width="640" height="329" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="329" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<line x1="320.0" y1="46" x2="320.0" y2="315" stroke="#E5E0F5" stroke-width="1.5"/>
+<text x="24" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#065F46">Engineering Advantages</text>
+<circle cx="35" cy="66.5" r="11" fill="#10B981"/>
+<path d="M 30 66.5 L 33.5 70.5 L 40.5 62.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">Major</tspan><tspan dx="4" font-weight="700" fill="#065F46">performance</tspan><tspan dx="4" font-weight="700" fill="#065F46">wins</tspan><tspan dx="4" font-weight="400" fill="#33534A">on</tspan><tspan dx="4" font-weight="400" fill="#33534A">large</tspan></text>
+<text x="52" y="92" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">datasets.</tspan></text>
+<circle cx="35" cy="128.5" r="11" fill="#10B981"/>
+<path d="M 30 128.5 L 33.5 132.5 L 40.5 124.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="135" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">Simplifies</tspan><tspan dx="4" font-weight="700" fill="#065F46">tree/branching</tspan></text>
+<text x="52" y="154" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">structures.</tspan></text>
+<circle cx="35" cy="190.5" r="11" fill="#10B981"/>
+<path d="M 30 190.5 L 33.5 194.5 L 40.5 186.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="197" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">State</tspan><tspan dx="4" font-weight="400" fill="#33534A">tracking</tspan><tspan dx="4" font-weight="400" fill="#33534A">handled</tspan><tspan dx="4" font-weight="400" fill="#33534A">by</tspan><tspan dx="4" font-weight="400" fill="#33534A">the</tspan><tspan dx="4" font-weight="700" fill="#065F46">Call</tspan></text>
+<text x="52" y="216" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">Stack.</tspan></text>
+<circle cx="35" cy="252.5" r="11" fill="#10B981"/>
+<path d="M 30 252.5 L 33.5 256.5 L 40.5 248.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="259" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">Naturally</tspan><tspan dx="4" font-weight="400" fill="#33534A">suited</tspan><tspan dx="4" font-weight="400" fill="#33534A">to</tspan><tspan dx="4" font-weight="700" fill="#065F46">parallel</tspan></text>
+<text x="52" y="278" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">processing</tspan><tspan dx="4" font-weight="400" fill="#33534A">--</tspan><tspan dx="4" font-weight="400" fill="#33534A">independent</tspan><tspan dx="4" font-weight="400" fill="#33534A">branches,</tspan></text>
+<text x="52" y="297" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">independent</tspan><tspan dx="4" font-weight="400" fill="#33534A">cores.</tspan></text>
+<text x="332.0" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#7A1E1E">Scalability Limitations</text>
+<circle cx="343.0" cy="66.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 62.5 L 347.0 70.5 M 347.0 62.5 L 339.0 70.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">Uses</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">real</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">stack</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">memory</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">--</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">deep</tspan></text>
+<text x="360.0" y="92" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">recursion</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">risks</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">limits.</tspan></text>
+<circle cx="343.0" cy="128.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 124.5 L 347.0 132.5 M 347.0 124.5 L 339.0 132.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="135" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">Missing</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">base</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">case</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">=</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">guaranteed</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">Stack</tspan></text>
+<text x="360.0" y="154" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#7A1E1E">Overflow.</tspan></text>
+<circle cx="343.0" cy="190.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 186.5 L 347.0 194.5 M 347.0 186.5 L 339.0 194.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="197" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">Harder</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">to</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">trace</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">and</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">debug</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">without</tspan></text>
+<text x="360.0" y="216" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">visual</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">tools.</tspan></text>
+<circle cx="343.0" cy="252.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 248.5 L 347.0 256.5 M 347.0 248.5 L 339.0 256.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="259" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">Overhead</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">from</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">frame</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">creation</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">makes</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">it</tspan></text>
+<text x="360.0" y="278" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#7A1E1E">slower</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">than</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">loops</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">on</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">tiny</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">inputs.</tspan></text>
+</svg>

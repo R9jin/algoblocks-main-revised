@@ -1,0 +1,21 @@
+<svg viewBox="0 0 640 180" width="640" height="180" xmlns="http://www.w3.org/2000/svg">
+<circle cx="110.0" cy="42" r="13" fill="#7C5CFF"/>
+<text x="110.0" y="47" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">1</text>
+<rect x="30" y="60" width="160" height="70" rx="12" fill="#F5F3FF" stroke="#7C5CFF" stroke-width="1.5"/>
+<text x="110.0" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#3E2A85">Create</text>
+<text x="110.0" y="112" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#6B5B95">Name a variable</text>
+<circle cx="320.0" cy="42" r="13" fill="#7C5CFF"/>
+<text x="320.0" y="47" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">2</text>
+<rect x="240" y="60" width="160" height="70" rx="12" fill="#F5F3FF" stroke="#7C5CFF" stroke-width="1.5"/>
+<text x="320.0" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#3E2A85">Set</text>
+<text x="320.0" y="112" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#6B5B95">Give it a value</text>
+<circle cx="530.0" cy="42" r="13" fill="#7C5CFF"/>
+<text x="530.0" y="47" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">3</text>
+<rect x="450" y="60" width="160" height="70" rx="12" fill="#F5F3FF" stroke="#7C5CFF" stroke-width="1.5"/>
+<text x="530.0" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#3E2A85">Change</text>
+<text x="530.0" y="112" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#6B5B95">Update its value</text>
+<line x1="196" y1="95.0" x2="226" y2="95.0" stroke="#7C5CFF" stroke-width="2"/>
+<polygon points="226,89.0 238,95.0 226,101.0" fill="#7C5CFF"/>
+<line x1="406" y1="95.0" x2="436" y2="95.0" stroke="#7C5CFF" stroke-width="2"/>
+<polygon points="436,89.0 448,95.0 436,101.0" fill="#7C5CFF"/>
+</svg>

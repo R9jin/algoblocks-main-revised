@@ -1,0 +1,61 @@
+/* Line Executions view (console tab) */
+.lex-root { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
+.lex-table-wrapper { flex: 1; min-height: 0; }
+
+.lex-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 2px 2px 0; }
+.lex-stat { display: flex; align-items: baseline; gap: 5px; font-size: 0.8rem; color: var(--text-muted); }
+.lex-stat strong { color: var(--text-main); font-size: 0.95rem; }
+.lex-hot-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 14px;
+  border: 1px solid rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.12); color: #B45309;
+  font-size: 0.78rem; font-weight: 700; cursor: pointer;
+}
+.lex-hot-chip:hover { background: rgba(245, 158, 11, 0.2); }
+
+.lex-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.lex-filter-group { display: inline-flex; border: 1px solid var(--border-light); border-radius: 8px; overflow: hidden; }
+.lex-filter-btn {
+  padding: 4px 11px; border: none; background: transparent; color: var(--text-muted);
+  font-size: 0.78rem; font-weight: 600; cursor: pointer;
+}
+.lex-filter-btn + .lex-filter-btn { border-left: 1px solid var(--border-light); }
+.lex-filter-btn.active { background: #7c3aed; color: #fff; }
+.lex-sort { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted); }
+.lex-sort select {
+  padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border-light);
+  background: var(--panel-bg); color: var(--text-main); font-size: 0.78rem;
+}
+
+.lex-empty { display: flex; align-items: center; justify-content: center; gap: 8px; height: 100%; color: var(--text-muted); font-size: 0.9rem; }
+.lex-empty p { margin: 0; }
+.lex-no-rows { text-align: center; padding: 18px; color: var(--text-muted); }
+
+.lex-clickable { cursor: pointer; }
+.lex-clickable:hover { background-color: rgba(124, 58, 237, 0.08); }
+.lex-clickable:focus-visible { outline: 2px solid #7c3aed; outline-offset: -2px; }
+.lex-hot-row { box-shadow: inset 3px 0 0 #F59E0B; background-color: rgba(245, 158, 11, 0.08); }
+.lex-notrun-row .source-code-td { opacity: 0.6; }
+.lex-notrun-row .line-num-td { opacity: 0.6; }
+
+.lex-badge { display: inline-block; margin-left: 10px; padding: 0 6px; border-radius: 8px; font-family: inherit; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; vertical-align: middle; }
+.lex-badge-hot { background: rgba(245, 158, 11, 0.2); color: #B45309; }
+.lex-badge-notrun { background: rgba(107, 114, 128, 0.18); color: var(--text-muted); }
+
+/* Python syntax colours (light) */
+.py-kw { color: #7c3aed; font-weight: 600; }
+.py-const { color: #c2410c; }
+.py-str { color: #15803d; }
+.py-num { color: #1d4ed8; }
+.py-comment { color: #6b7280; font-style: italic; }
+.py-def { color: #0e7490; font-weight: 600; }
+.py-builtin { color: #0369a1; }
+
+:root[data-theme="dark"] .py-kw { color: #c4b5fd; }
+:root[data-theme="dark"] .py-const { color: #fdba74; }
+:root[data-theme="dark"] .py-str { color: #86efac; }
+:root[data-theme="dark"] .py-num { color: #93c5fd; }
+:root[data-theme="dark"] .py-comment { color: #9ca3af; }
+:root[data-theme="dark"] .py-def { color: #67e8f9; }
+:root[data-theme="dark"] .py-builtin { color: #7dd3fc; }
+:root[data-theme="dark"] .lex-hot-chip { color: #fcd34d; }
+:root[data-theme="dark"] .lex-badge-hot { color: #fcd34d; }

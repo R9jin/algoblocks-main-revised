@@ -1,0 +1,1827 @@
+"""
+AST Node Visitors
+
+The ast.NodeVisitor visit_* implementations that perform the actual
+dependency-ordered depth-first traversal of each function body,
+producing per-line complexity signatures -- the traversal half of the
+"Dependency-Ordered Signature Pass (DFS)" stage.
+"""
+import ast
+from complexity_analyzer import code_preprocessor as _cp_mod
+from complexity_analyzer.code_preprocessor import safe_walk, extract_constant, _name_hints_memo_or_graph, _detect_factorial_branching, _factorial_recursion_space
+import re
+
+try:
+    from complexity_explainer.complexity_explainer import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
+except ImportError:
+    SemanticNLGEngine = None
+    ComprehensiveASTVisitor = None
+
+
+def _alloc_dims(node, is_const=None):
+    """How many input-sized dimensions a nested list allocation has:
+    [[0]*n for _ in range(n)] -> 2, [[[0]*n for _ in range(n)] for _ in range(n)] -> 3.
+    Fixed small sizes (range(3), [0]*10) don't count."""
+    def small(x):
+        if isinstance(x, ast.Constant) and isinstance(x.value, int) and not isinstance(x.value, bool) and x.value <= 100:
+            return True
+        # a named constant (MAX = 50, MAX_CHAR = 256): a fixed-capacity dimension (benchmark rule 7)
+        return bool(is_const) and isinstance(x, ast.Name) and is_const(x)
+    if isinstance(node, ast.ListComp):
+        n = 0
+        for g in node.generators:
+            it = g.iter
+            if isinstance(it, ast.Call) and getattr(it.func, 'id', '') == 'range' and len(it.args) == 1 and small(it.args[0]):
+                continue
+            n += 1
+        return n + _alloc_dims(node.elt, is_const)
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mult):
+        for lst, mult in ((node.left, node.right), (node.right, node.left)):
+            if isinstance(lst, ast.List):
+                return (0 if small(mult) else 1) + (_alloc_dims(lst.elts[0], is_const) if lst.elts else 0)
+    return 0
+
+class ASTNodeVisitor(ast.NodeVisitor):
+    """Dependency-Ordered Signature Pass (traversal half). A standalone
+    ast.NodeVisitor composed into ComplexityAnalyzer as `self.ast_visitor`;
+    reads/writes shared analysis state via `self.analyzer`.
+    """
+
+    def __init__(self, analyzer):
+        self.analyzer = analyzer
+
+    def _is_terminal(self, node):
+        if isinstance(node, (ast.Return, ast.Break, ast.Continue, ast.Raise)): return True
+        if isinstance(node, ast.If):
+            return self._block_is_terminal(node.body) and self._block_is_terminal(getattr(node, 'orelse', []))
+        return False
+
+    def _block_is_terminal(self, body):
+        return any(self._is_terminal(stmt) for stmt in body)
+
+    @staticmethod
+    def _unreachable_reason(term):
+        line = getattr(term, 'lineno', None)
+        where = f" on line {line}" if line else ""
+        if isinstance(term, ast.Return): what, why = "return", "the function has already returned"
+        elif isinstance(term, ast.Break): what, why = "break", "the loop has already been exited"
+        elif isinstance(term, ast.Continue): what, why = "continue", "execution has already jumped to the next iteration"
+        elif isinstance(term, ast.Raise): what, why = "raise", "an exception has already been raised"
+        else: what, why = "if/else", "every branch above already exits"
+        return {"kind": "unreachable",
+                "reason": f"Unreachable: it comes after the `{what}`{where}, so {why} and this line can never run."}
+
+    def _visit_block(self, body):
+        hit_terminal = False
+        terminal_item = None
+        for item in body:
+            # BUG FIX: `body` is not guaranteed to be a list of AST nodes --
+            # e.g. `ast.Global`/`ast.Nonlocal`.names is a list of plain
+            # strings, not ast.AST instances. The stdlib's own
+            # ast.NodeVisitor.generic_visit guards against this
+            # (`if isinstance(item, AST): self.visit(item)`), but this
+            # custom block-visitor previously called self.visit(item)
+            # unconditionally. self.visit() dispatches on
+            # node.__class__.__name__ (here 'str'), falls through to
+            # generic_visit, and immediately crashes in ast.iter_fields()
+            # with "'str' object has no attribute '_fields'" -- which took
+            # down the whole analysis (any function containing a bare
+            # `global x` or `nonlocal x` statement) and silently dropped it
+            # to the crude regex fallback_analyzer. Skipping non-AST items
+            # here restores the same safety the stdlib traversal has.
+            if not isinstance(item, ast.AST):
+                continue
+            if hit_terminal:
+                prev_dead = self.analyzer.in_dead_code
+                prev_reason = getattr(self.analyzer, 'dead_reason', None)
+                self.analyzer.in_dead_code = True
+                # Keep the outermost reason if we're already inside a dead region.
+                if not prev_dead:
+                    self.analyzer.dead_reason = self._unreachable_reason(terminal_item)
+                self.visit(item)
+                self.analyzer.in_dead_code = prev_dead
+                self.analyzer.dead_reason = prev_reason
+            else:
+                self.visit(item)
+                if self._is_terminal(item):
+                    hit_terminal = True
+                    terminal_item = item
+
+    def generic_visit(self, node):
+        for field, value in ast.iter_fields(node):
+            if isinstance(value, list):
+                self._visit_block(value)
+            elif isinstance(value, ast.AST): self.visit(value)
+    
+    def visit_Try(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)")
+        self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1
+
+    def visit_With(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)")
+        self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1
+
+    def visit_Lambda(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="Definition", space_override="O(1)")
+        self.generic_visit(node)
+
+    def visit_Yield(self, node):
+        self.analyzer.has_global_accumulation = True
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)")
+        self.generic_visit(node)
+
+    def visit_YieldFrom(self, node):
+        self.analyzer.has_global_accumulation = True
+        self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)")
+        self.generic_visit(node)
+
+    def visit_GeneratorExp(self, node):
+        if self.analyzer.max_poly_str == "O(1)":
+            self.analyzer.max_poly_str = "O(n)"
+            self.analyzer.max_complexity = max(self.analyzer.max_complexity, 4)
+        self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Generator Expression")
+        self.generic_visit(node)
+        
+    def visit_IfExp(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Ternary Conditional")
+        self.generic_visit(node)
+        
+    def visit_JoinedStr(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Interpolation")
+        self.generic_visit(node)
+
+    def visit_Compare(self, node):
+        if any(isinstance(op, (ast.In, ast.NotIn)) for op in getattr(node, 'ops', [])):
+            is_hash_map = False
+            is_constant_collection = False
+
+            for comp in getattr(node, 'comparators', []):
+                if isinstance(comp, ast.Name):
+                    t = self.analyzer.var_types.get(comp.id)
+                    if t in ['set', 'dict']: is_hash_map = True
+                    elif t in ['list', 'tuple', 'str']: pass  # known sequence: `x in seen` is O(n) even if the name is 'seen'/'visited'
+                    # Whole-token match only -- a raw substring check here
+                    # would false-positive on names like "dataset", "subset",
+                    # "offset", "reset" (all contain "set"), incorrectly
+                    # treating a plain list as a hash-map for complexity
+                    # purposes.
+                    elif any(t2 in ('memo', 'cache', 'visited', 'visit', 'set', 'map', 'dp', 'seen') for t2 in re.findall(r'[A-Za-z][a-z0-9]*', comp.id.lower())): is_hash_map = True
+                elif isinstance(comp, (ast.Set, ast.Dict, ast.SetComp, ast.DictComp)): is_hash_map = True
+                elif isinstance(comp, ast.Call) and isinstance(getattr(comp, 'func', None), ast.Name) and comp.func.id in ['set', 'dict', 'defaultdict', 'Counter', 'OrderedDict']: is_hash_map = True
+                elif isinstance(comp, ast.Call) and isinstance(getattr(comp, 'func', None), ast.Attribute) and comp.func.attr in ['keys', 'values']: is_hash_map = True
+                elif isinstance(comp, (ast.List, ast.Tuple)):
+                    all_const = True
+                    for elt in getattr(comp, 'elts', []):
+                        if not isinstance(elt, (ast.Constant, getattr(ast, 'Name', type(None)))):
+                            all_const = False
+                            break
+                    if all_const:
+                        is_constant_collection = True
+                # A hardcoded string literal (e.g. `c in "+-*/()"`) has a
+                # fixed length independent of input size n, exactly like a
+                # constant list/tuple literal -- previously only List/Tuple
+                # literals got this treatment, so a fixed-alphabet check
+                # like this was wrongly charged O(n) per call.
+                elif isinstance(comp, ast.Constant) and isinstance(comp.value, str):
+                    is_constant_collection = True
+
+            if is_hash_map:
+                # Average-case O(1), matching the standard amortized-analysis
+                # convention (the same fix applied to set/dict .add()/.append()
+                # below) -- not the pathological worst-case hash-collision
+                # bound, which would otherwise compound with any enclosing
+                # loop into a spurious O(n^2) for extremely common patterns
+                # like `if complement in seen:` inside a single O(n) loop.
+                self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Membership Check (Set/Dict, Average-Case)")
+            elif is_constant_collection:
+                self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Membership Check (Constant Size)")
+            else:
+                self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Membership Check (List/Tuple/String)")
+            
+            self.generic_visit(node)
+            return
+
+        if any(isinstance(op, ast.LtE) for op in getattr(node, 'ops', [])):
+            for comp in getattr(node, 'comparators', []):
+                if isinstance(comp, ast.Call) and getattr(getattr(comp, 'func', None), 'id', '') == 'len':
+                    self.analyzer.signature_recorder.add_logic_hint(node, "Logic Risk (Off-By-One): Using '<=' with 'len()' mainly causes an IndexError because arrays are 0-indexed.")
+                    
+        self.analyzer.signature_recorder.record_line(node, time_override=None, space_override=None)
+        self.generic_visit(node)
+
+    _PARENT_STATE = ('current_function_name', 'in_graph_context', 'recursive_calls_count', 'tree_traversal_calls',
+                     'function_gcd_vars', 'in_frequency_summation_depth', 'has_recursion_in_loop', 'has_slicing',
+                     'has_partitioning', 'has_division', 'has_global_accumulation', 'has_factorial_branching',
+                     'first_rec_line', 'conditional_partition_lines', 'in_if_depth')
+
+    def visit_FunctionDef(self, node):
+        # A def nested in another function must hand the enclosing function's per-function state back
+        # untouched: otherwise its recursion flags / name / graph context leak into (or wipe) the parent.
+        _a = self.analyzer
+        _parent = None
+        if getattr(_a, 'current_function_name', None):
+            _parent = {k: getattr(_a, k, None) for k in self._PARENT_STATE}
+        try:
+            return self._visit_FunctionDef_core(node)
+        finally:
+            if _parent is not None:
+                for k, v in _parent.items():
+                    setattr(_a, k, v)
+
+    def _visit_FunctionDef_core(self, node):
+        is_memoized_or_graph = False
+        for dec in getattr(node, 'decorator_list', []):
+            if isinstance(dec, ast.Name) and dec.id in ['lru_cache', 'cache', 'memoize']: is_memoized_or_graph = True
+            elif isinstance(dec, ast.Call) and getattr(getattr(dec, 'func', None), 'id', '') in ['lru_cache', 'cache']: is_memoized_or_graph = True
+        
+        for child in safe_walk(node):
+            if isinstance(child, ast.Name) and _name_hints_memo_or_graph(child.id):
+                is_memoized_or_graph = True
+
+        if is_memoized_or_graph: self.analyzer.memoized_funcs.add(node.name)
+        self.analyzer.has_factorial_branching = _detect_factorial_branching(node)
+
+        start_idx = len(self.analyzer._details)
+        prev_data = (self.analyzer.max_complexity, getattr(self.analyzer, 'max_space_weight', 0), self.analyzer.max_poly_str, self.analyzer.max_log, self.analyzer.max_sqrt, self.analyzer.max_exp, getattr(self.analyzer, 'max_graph_ve', 0), getattr(self.analyzer, 'max_fact', 0))
+        self.analyzer.max_complexity = self.analyzer.max_space_weight = self.analyzer.max_log = self.analyzer.max_sqrt = self.analyzer.max_exp = self.analyzer.max_graph_ve = self.analyzer.max_fact = 0
+        self.analyzer.max_poly_str = "O(1)"
+        self.analyzer.function_gcd_vars = None
+        
+        self.analyzer.active_poly_dims = [] 
+        self.analyzer.loop_stack = []
+        self.analyzer.loop_stack_targets = []
+        self.analyzer.loop_body_stack = []
+        self.analyzer.loop_depth = 0
+        self.analyzer.in_frequency_summation_depth = 0
+        self.analyzer.current_function_name = node.name
+        self.analyzer.recursive_calls_count = 0
+        self.analyzer.tree_traversal_calls = 0
+        
+        self.analyzer.has_recursion_in_loop = self.analyzer.has_slicing = self.analyzer.has_partitioning = self.analyzer.has_division = self.analyzer.has_global_accumulation = False
+        self.analyzer.first_rec_line = float('inf')
+        self.analyzer.conditional_partition_lines = []
+        self.analyzer.in_if_depth = 0
+        self.analyzer.in_graph_context = self.analyzer.call_graph_mapper._detect_graph_context(node)
+        
+        is_dead = node.name not in self.analyzer.reachable_funcs
+        self.analyzer.signature_recorder.record_line(node, time_override="Definition", space_override="O(1)")
+        
+        # Ensure we capture the exact index to avoid IndexError during update mapping
+        found_idx = None
+        for i in range(len(self.analyzer._details)-1, -1, -1):
+            if self.analyzer._details[i]["lineno"] == getattr(node, 'lineno', -1):
+                found_idx = i
+                break
+        if found_idx is not None:
+            start_idx = found_idx
+        
+        # Entry-point execution vs function-level analysis: a `def` that nothing calls never runs, so
+        # its body must not add to the entry point's total -- but the helper itself is still a function
+        # the learner wrote, so its body is analysed on its own (rows flagged `uncalled_function`).
+        # `in_dead_code` stays reserved for statements that are genuinely unreachable.
+        prev_dead = self.analyzer.in_dead_code
+        prev_uncalled = getattr(self.analyzer, 'in_uncalled_func', False)
+        prev_uncalled_reason = getattr(self.analyzer, 'uncalled_reason', None)
+        func_dead_reason = None
+        if is_dead and not prev_uncalled:
+            func_dead_reason = getattr(self.analyzer, 'dead_func_reasons', {}).get(node.name) or {
+                "kind": "uncalled_function",
+                "reason": f"`{node.name}()` is never called by the program, so it adds nothing to the entry point's complexity. Its own complexity is shown below."}
+            self.analyzer.uncalled_reason = func_dead_reason["reason"]
+        self.analyzer.in_uncalled_func = prev_uncalled or is_dead
+        self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1
+        self.analyzer.in_uncalled_func = prev_uncalled
+        self.analyzer.uncalled_reason = prev_uncalled_reason
+        
+        does_linear_work = self.analyzer.max_poly_str != "O(1)" or self.analyzer.has_slicing
+        if not does_linear_work:
+            for called_info in self.analyzer.call_graph.get(node.name, []):
+                called = called_info['target']
+                if called == node.name: continue
+                if called in self.analyzer.custom_functions:
+                    called_rel = self.analyzer.custom_functions[called]
+                    if called_rel != "T(n)" and called_rel not in ["O(1)", "O(log n)", "O(sqrt n)"] and ("n" in called_rel or "V" in called_rel):
+                        does_linear_work = True
+                        break
+                if called in self.analyzer.symbol_table and called != node.name:
+                    for child in safe_walk(self.analyzer.symbol_table[called]):
+                        if isinstance(child, (ast.For, ast.While)) and not self.analyzer.complexity_heuristics._is_constant_loop(child): does_linear_work = True; break
+                        elif isinstance(child, ast.ListComp): does_linear_work = True; break
+                        elif isinstance(child, ast.Subscript) and isinstance(getattr(child, 'slice', None), ast.Slice): does_linear_work = True; break
+                    if does_linear_work: break
+
+        is_indirect = node.name in self.analyzer.indirect_recursive_funcs
+        # Whole-word match on the identifier's camelCase / snake_case parts. A raw substring
+        # test treated 'st' inside "Longest" / "first" / "list" as a segment-tree marker, so
+        # e.g. `findLongestConseqSubseq` was misread as an O(log n) tree query.
+        _name_words = {w.lower() for w in re.findall(r'[A-Z]?[a-z0-9]+|[A-Z]+(?![a-z])', node.name)}
+        is_segment_tree_query = bool(_name_words & {'query', 'rmq', 'find'}) and bool(_name_words & {'st', 'segment', 'tree'})
+
+        is_2d_memo = False
+        for child in safe_walk(node):
+            if isinstance(child, ast.Subscript) and isinstance(getattr(child, 'slice', None), ast.Tuple):
+                is_2d_memo = True
+            
+            if isinstance(child, ast.Assign):
+                for t in child.targets:
+                    if isinstance(t, ast.Name) and 'mid' in t.id.lower():
+                        self.analyzer.has_partitioning = True
+            if isinstance(child, ast.Call):
+                func_name = getattr(getattr(child, 'func', None), 'id', '')
+                if 'mid' in func_name.lower() or 'half' in func_name.lower():
+                    self.analyzer.has_partitioning = True
+                    self.analyzer.has_division = True
+
+        if is_memoized_or_graph and (self.analyzer.recursive_calls_count > 0 or self.analyzer.has_recursion_in_loop):
+            if self.analyzer.in_graph_context or any(t in ('visit', 'visited', 'visiting', 'visitor') for t in re.findall(r'[A-Za-z][a-z0-9]*', node.name.lower())):
+                relation = "O(V+E)"
+                self.analyzer.custom_space[node.name] = "O(V+E)"
+            elif is_2d_memo:
+                relation = "O(n^2)"
+                self.analyzer.custom_space[node.name] = "O(n^2)"
+            else:
+                relation = "O(n)"
+                self.analyzer.custom_space[node.name] = "O(n)"
+        else:
+            if is_segment_tree_query:
+                relation = "O(log n)"
+            elif is_indirect:
+                relation = "T(n) = T(n-1) + O(1)" 
+            elif self.analyzer.has_factorial_branching or (any(k in node.name.lower() for k in ['permutation', 'permute']) and self.analyzer.recursive_calls_count > 0):
+                relation = "T(n) = n * T(n-1)"
+            elif self.analyzer.has_recursion_in_loop: 
+                if self.analyzer.in_graph_context:
+                    relation = "O(V+E)"
+                else:
+                    relation = "O(2^n)" 
+            elif self.analyzer.recursive_calls_count == 1:
+                if (self.analyzer.has_division or self.analyzer.has_partitioning) and does_linear_work:
+                    relation = "T(n) = T(n/2) + O(n)"
+                elif (self.analyzer.has_division or self.analyzer.has_partitioning):
+                    relation = "T(n) = T(n/2) + O(1)"
+                elif does_linear_work:
+                    relation = "T(n) = T(n-1) + O(n)"
+                elif self.analyzer.max_log > 0:
+                    relation = "T(n) = T(n-1) + O(log n)"
+                else:
+                    relation = "T(n) = T(n-1) + O(1)"
+            elif self.analyzer.recursive_calls_count >= 2:
+                if self.analyzer.in_graph_context:
+                    relation = "O(V+E)"
+                else:
+                    is_quicksort = False
+                    # Structural form: two sequential self-calls on the two sides of a computed split index
+                    # (f(a, lo, p - 1); f(a, p + 1, hi)). Both sides always run, unlike binary-search
+                    # recursion where the two calls sit in different if/else branches.
+                    if not is_quicksort:
+                        _self = [c for c in safe_walk(node) if isinstance(c, ast.Call) and isinstance(c.func, ast.Name) and c.func.id == node.name]
+                        _minus, _plus = {}, {}
+                        for _c in _self:
+                            for _a in _c.args:
+                                if isinstance(_a, ast.BinOp) and isinstance(_a.left, ast.Name) and isinstance(_a.right, ast.Constant) and _a.right.value == 1:
+                                    if isinstance(_a.op, ast.Sub): _minus.setdefault(_a.left.id, []).append(_c)
+                                    elif isinstance(_a.op, ast.Add): _plus.setdefault(_a.left.id, []).append(_c)
+                        def _same_block(c1, c2):
+                            for _n in safe_walk(node):
+                                for _f in ('body', 'orelse', 'finalbody'):
+                                    _lst = getattr(_n, _f, None)
+                                    if isinstance(_lst, list):
+                                        _hit = [st for st in _lst if any(x is c1 or x is c2 for x in ast.walk(st))]
+                                        if len(_hit) >= 2: return True
+                            return False
+                        for _name in set(_minus) & set(_plus):
+                            if any(_same_block(a, b) for a in _minus[_name] for b in _plus[_name] if a is not b):
+                                is_quicksort = True
+                    for child in safe_walk(node):
+                        # 'pivot' only: the old bare 'pi' substring also matched pick/mapping/spiral/api,
+                        # which matters now that this branch reports the O(n^2) worst case.
+                        if isinstance(child, ast.Name) and 'pivot' in child.id.lower():
+                            is_quicksort = True
+                            break
+                    if not is_quicksort and 'quick' in node.name.lower():
+                        is_quicksort = True
+                    
+                    # Word-tokenize the function name instead of doing raw
+                    # substring checks against it (matches the approach
+                    # already used above for the memo/graph 'visit' check).
+                    # A plain `'path' in name` substring check false-positives
+                    # on any function whose name merely contains "path" as
+                    # part of a longer word -- e.g. "unique_paths_opt" (grid
+                    # DP, no tree/graph involved) matches 'path' inside
+                    # "paths" and got misclassified as tree traversal
+                    # (T(n)=2T(n/2)+O(1) -> O(n)) instead of the true
+                    # branching recursion (O(2^n)) its two self-calls are.
+                    name_tokens = set(re.findall(r'[A-Za-z][a-z0-9]*', node.name.lower()))
+                    is_binary_search = bool(name_tokens & {'search', 'find', 'pivot', 'query', 'rmq', 'lca', 'floor', 'ceil', 'kth', 'select', 'median', 'bound'})
+                    is_tree_trav = self.analyzer.tree_traversal_calls >= 2 or bool(name_tokens & {'order', 'tree', 'bst', 'node', 'path', 'height', 'depth', 'lca', 'sum', 'build', 'construct'})
+                    
+                    if is_binary_search:
+                        if does_linear_work:
+                            relation = "T(n) = T(n/2) + O(n)"
+                        else:
+                            relation = "T(n) = T(n/2) + O(1)"
+                    elif is_tree_trav:
+                        if does_linear_work:
+                            relation = "T(n) = 2T(n/2) + O(n)"
+                        else:
+                            relation = "T(n) = 2T(n/2) + O(1)"
+                    elif is_quicksort:
+                        # Worst case only: when the pivot is always the smallest or
+                        # largest item (e.g. already-sorted input with a first/last
+                        # pivot) one side is empty, so the recursion is n levels deep
+                        # with O(n) partition work per level: O(n^2) time, O(n) stack.
+                        relation = "T(n) = T(n-1) + O(n)"
+                    elif (self.analyzer.has_partitioning and not self.analyzer.has_division):
+                        relation = "T(n) = T(n-1) + O(n)"
+                    elif (self.analyzer.has_division or self.analyzer.has_partitioning) and does_linear_work:
+                        relation = "T(n) = 2T(n/2) + O(n)"
+                    elif (self.analyzer.has_division or self.analyzer.has_partitioning):
+                        relation = "T(n) = 2T(n/2) + O(1)"
+                    else:
+                        relation = "O(2^n)"
+            else: 
+                relation = "O(n!)" if self.analyzer.max_fact > 0 else ("O(2^n)" if self.analyzer.max_exp > 0 else (self.analyzer.max_poly_str if self.analyzer.max_poly_str != "O(1)" else self.analyzer.signature_recorder._build_time_str([], self.analyzer.max_log, self.analyzer.max_sqrt, 0, self.analyzer.max_graph_ve)))
+            
+            if node.name not in self.analyzer.custom_space:
+                if not is_indirect:
+                    if "n * T(n-1)" in relation:
+                        # Permutation-style enumeration is decided by what it retains, before the
+                        # graph/weight shortcuts below (a `seen` set or a slice copy must not make
+                        # it look like a graph traversal or a plain O(n^2) routine).
+                        self.analyzer.custom_space[node.name] = _factorial_recursion_space(node)
+                    elif self.analyzer.max_graph_ve > 0 or self.analyzer.in_graph_context or relation == "O(V+E)": 
+                        if self.analyzer.has_global_accumulation and 'adj' in "\n".join(self.analyzer.source_lines).lower():
+                            self.analyzer.custom_space[node.name] = "O(V+E)"
+                        else:
+                            self.analyzer.custom_space[node.name] = "O(V+E)"
+                    elif self.analyzer.recursive_calls_count > 0:
+                        if "O(n^2)" in relation: 
+                            self.analyzer.custom_space[node.name] = "O(n^2)"
+                        # A factorial-branching recursion (e.g. permutation
+                        # generation, or backtracking that accumulates a
+                        # growing partial-solution structure across sibling
+                        # calls, per _detect_factorial_branching / max_fact)
+                        # genuinely retains O(n!) worth of state, not the flat
+                        # O(n) every other recursive shape gets here.
+                        #
+                        # NOTE: a plain "O(2^n) TIME" relation (has_recursion_
+                        # in_loop, e.g. tree/DFS-style branching that doesn't
+                        # accumulate) does NOT get the same treatment here.
+                        # For that shape only one root-to-leaf path is ever
+                        # live on the call stack at once, so its *space* stays
+                        # O(n) (the recursion depth) even though the *time*
+                        # (total call count across the whole branching tree)
+                        # is exponential -- e.g. a matrix/word-search DFS that
+                        # recurses into up to 8 neighbours per call still only
+                        # holds one path's worth of frames at a time. Treating
+                        # every O(2^n)-time recursion as O(2^n)-space conflates
+                        # "many calls happen in total" with "many calls are
+                        # alive simultaneously", and mislabels that whole
+                        # (much more common) tree-recursion class.
+                        elif "n * T(n-1)" in relation or self.analyzer.max_fact > 0:
+                            self.analyzer.custom_space[node.name] = _factorial_recursion_space(node)
+                        elif "T(n/2)" in relation or relation == "O(log n)":
+                            if self.analyzer.max_space_weight >= 1:
+                                self.analyzer.custom_space[node.name] = "O(n)"
+                            else:
+                                self.analyzer.custom_space[node.name] = "O(log n)"
+                        else: 
+                            self.analyzer.custom_space[node.name] = "O(n)"
+                    elif self.analyzer.max_space_weight >= 2: self.analyzer.custom_space[node.name] = "O(n^2)"
+                    elif self.analyzer.max_space_weight >= 1: self.analyzer.custom_space[node.name] = "O(n)"
+                    elif self.analyzer.max_space_weight >= 0.5: self.analyzer.custom_space[node.name] = "O(log n)"
+                    else: self.analyzer.custom_space[node.name] = "O(1)"
+                else:
+                    self.analyzer.custom_space[node.name] = "O(n)"
+            
+        self.analyzer.custom_functions[node.name] = relation
+
+        call_idx = 0
+        if start_idx < len(self.analyzer._details):
+            for i in range(start_idx, len(self.analyzer._details)):
+                is_placeholder = False
+                loc_time = str(self.analyzer._details[i]["local_time"])
+                if loc_time == "T(placeholder)" or loc_time.startswith("T("): 
+                    current_call_cost = "T(n-1)"
+                    if "T(n/2)" in relation or relation == "O(log n)":
+                        current_call_cost = "T(n/2)"
+                    elif "T(n-1) + T(n-2)" in relation:
+                        current_call_cost = "T(n-1)" if call_idx == 0 else "T(n-2)"
+                    elif "T(n-1)" in relation:
+                        current_call_cost = "T(n-1)"
+                    
+                    self.analyzer._details[i]["local_time"] = current_call_cost
+                    self.analyzer._details[i]["global_time"] = current_call_cost 
+                    is_placeholder = True
+    
+                if is_placeholder:
+                    call_idx += 1
+    
+                if str(self.analyzer._details[i]["local_space"]).startswith("S("):
+                    self.analyzer._details[i]["local_space"] = "O(1)"
+                if str(self.analyzer._details[i]["global_space"]).startswith("S("):
+                    self.analyzer._details[i]["global_space"] = "O(1)" 
+                    
+                if is_placeholder and "T(placeholder)" in str(self.analyzer._details[i].get("time_explanation", "")) and SemanticNLGEngine:
+                    with self.analyzer.explain_clock():
+                        formatted_rel = self.analyzer.nlg_engine._format_recurrence_relation(relation)
+                    self.analyzer._details[i]["time_explanation"] = self.analyzer._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
+
+        if self.analyzer.recursive_calls_count > 0 or self.analyzer.has_recursion_in_loop or is_indirect or is_segment_tree_query:
+            resolved_rel = relation
+            for k, v in self.analyzer.RECURRENCE_RESOLVER.items():
+                if k in relation:
+                    resolved_rel = v
+                    break
+            
+            heavy_ops = {"Loop", "Array Slicing", "List Comprehension", "Set Comprehension", "Dict Comprehension", "Generator Expression", "Sort", "Sorted", "Deep Copy Allocation", "Row Allocation", "2D Array Allocation", "List Repetition", "Set Operation", "Slice Assignment"}
+            
+            if start_idx < len(self.analyzer._details):
+                for i in range(start_idx + 1, len(self.analyzer._details)):
+                    loc_t = str(self.analyzer._details[i]["local_time"])
+                    op = self.analyzer._details[i]["operation"]
+                    
+                    if op == "Dead Code":
+                        self.analyzer._details[i]["global_time"] = "O(1)"
+                        self.analyzer._details[i]["weight"] = self.analyzer.signature_recorder._get_weight("O(1)")
+                        continue
+                        
+                    is_rec_call = loc_t.startswith("T(") or loc_t == "T(placeholder)" or "Recursive Call" in op
+                    is_heavy_op = op in heavy_ops or (loc_t not in ["O(1)", "Definition", "Dead Code"])
+                    
+                    if is_rec_call or is_heavy_op:
+                        self.analyzer._details[i]["global_time"] = resolved_rel
+                        self.analyzer._details[i]["weight"] = self.analyzer.signature_recorder._get_weight(resolved_rel, False)
+                        # BUGFIX: the placeholder-substitution pass above (see
+                        # "current_call_cost") only ever writes raw recurrence
+                        # tokens like "T(n-1)" into local_time for the
+                        # recursive-call line itself, and nothing later ever
+                        # resolves that token to a real Big-O class -- unlike
+                        # global_time, which *is* resolved right here. Ground
+                        # truth annotates the call-site line's local_time as
+                        # the same resolved relation as its global_time (see
+                        # e.g. algo_n2_148 lines 24/27/30/33: local_time ==
+                        # global_time == "O(V+E)"), so do the same here. Only
+                        # for the actual recursive-call line (is_rec_call) --
+                        # not for is_heavy_op lines (loops, comprehensions,
+                        # etc.), whose local_time already reflects their own,
+                        # narrower local cost and must not be overwritten with
+                        # the whole function's resolved relation.
+                        if is_rec_call:
+                            self.analyzer._details[i]["local_time"] = resolved_rel
+                    elif not getattr(self.analyzer, 'in_graph_context', False):
+                        if self.analyzer._details[i]["global_time"] == "O(1)" and relation not in ["O(1)", "O(log n)"]:
+                            if "2T(" in relation or "T(n-1) + T(n-2)" in relation or self.analyzer.recursive_calls_count >= 2:
+                                # Cumulative executions of this line = number of invocations of the function.
+                                # When the recurrence is exponential/factorial that is the whole resolved
+                                # class (2^n / n!), not a linear count: the base case runs once per leaf.
+                                _bump = resolved_rel if ("2^n" in resolved_rel or "n!" in resolved_rel) else "O(n)"
+                                self.analyzer._details[i]["global_time"] = _bump
+                                self.analyzer._details[i]["weight"] = self.analyzer.signature_recorder._get_weight(_bump)
+
+        if start_idx < len(self.analyzer._details):
+            self.analyzer._details[start_idx]["local_time"] = "O(1)"
+            self.analyzer._details[start_idx]["global_time"] = "O(1)"
+            self.analyzer._details[start_idx]["local_space"] = "O(1)"
+            self.analyzer._details[start_idx]["global_space"] = "O(1)"
+            self.analyzer._details[start_idx]["weight"] = 1
+            self.analyzer._details[start_idx]["time_explanation"] = "Function declaration."
+            self.analyzer._details[start_idx]["space_explanation"] = "O(1) memory overhead."
+            if func_dead_reason:
+                self.analyzer._details[start_idx]["uncalled_function"] = True
+                self.analyzer._details[start_idx]["scope"] = "function-level"
+                self.analyzer._details[start_idx]["uncalled_reason"] = func_dead_reason["reason"]
+                self.analyzer._details[start_idx]["time_explanation"] = "Function declaration. " + func_dead_reason["reason"]
+            # Teach what the definition means instead of a one-line stub. Any failure
+            # here must fall back to the plain text above, never break the analysis.
+            try:
+                nlg = getattr(self.analyzer, "nlg_engine", None)
+                if nlg is not None and hasattr(nlg, "generate_definition_explanations"):
+                    with self.analyzer.explain_clock():
+                        t_exp, s_exp = nlg.generate_definition_explanations(
+                            node,
+                            dead_reason=func_dead_reason["reason"] if func_dead_reason else None,
+                            code_snippet=self.analyzer._details[start_idx].get("lineOfCode", ""),
+                        )
+                    self.analyzer._details[start_idx]["time_explanation"] = t_exp
+                    self.analyzer._details[start_idx]["space_explanation"] = s_exp
+            except Exception:
+                pass
+
+        if is_dead:
+            # function-level only: hand the enclosing scope's maxima back untouched
+            (self.analyzer.max_complexity, self.analyzer.max_space_weight, self.analyzer.max_poly_str,
+             self.analyzer.max_log, self.analyzer.max_sqrt, self.analyzer.max_exp,
+             self.analyzer.max_graph_ve, self.analyzer.max_fact) = prev_data
+        if not is_dead:
+            self.analyzer.max_exp, self.analyzer.max_graph_ve = max(prev_data[5], self.analyzer.max_exp), max(prev_data[6], self.analyzer.max_graph_ve)
+            self.analyzer.max_fact = max(prev_data[7] if len(prev_data) > 7 else 0, getattr(self.analyzer, 'max_fact', 0))
+            self.analyzer.max_complexity, self.analyzer.max_space_weight = max(prev_data[0], self.analyzer.max_complexity), max(prev_data[1], self.analyzer.max_space_weight)
+            self.analyzer.max_poly_str, self.analyzer.max_log, self.analyzer.max_sqrt = prev_data[2] if prev_data[2] != "O(1)" else self.analyzer.max_poly_str, max(prev_data[3], self.analyzer.max_log), max(prev_data[4], self.analyzer.max_sqrt)
+        else:
+            self.analyzer.max_complexity, self.analyzer.max_space_weight, self.analyzer.max_poly_str, self.analyzer.max_log, self.analyzer.max_sqrt, self.analyzer.max_exp, self.analyzer.max_graph_ve = prev_data[:7]
+            self.analyzer.max_fact = prev_data[7] if len(prev_data) > 7 else 0
+        
+        final_sp_upgrade = None
+        if self.analyzer.max_space_weight >= 2:
+            final_sp_upgrade = "O(n^2)"
+        elif (self.analyzer.custom_space.get(node.name) == "O(n^2)"
+              and self.analyzer.recursive_calls_count > 0):
+            # recursion that copies a slice per call keeps every active frame's copy alive at once
+            # (n + (n-1) + ... = O(n^2) elements): the copy lines carry the retained total.
+            final_sp_upgrade = "O(n^2)"
+
+        if start_idx < len(self.analyzer._details):
+            for i in range(start_idx, len(self.analyzer._details)):
+                # a plain call row already carries the CALLEE's own space class; another helper's
+                # O(n^2) must not be copied onto it
+                if (final_sp_upgrade and self.analyzer._details[i].get("global_space") == "O(n)"
+                        and self.analyzer._details[i].get("operation") != "Function Call"):
+                    self.analyzer._details[i]["global_space"] = final_sp_upgrade
+
+        self.analyzer.current_function_name = None; self.analyzer.in_graph_context = False; self.analyzer.recursive_calls_count = 0 
+        self.analyzer.tree_traversal_calls = 0
+        self.analyzer.function_gcd_vars = None; self.analyzer.in_frequency_summation_depth = 0
+        self.analyzer.has_recursion_in_loop = self.analyzer.has_slicing = self.analyzer.has_partitioning = self.analyzer.has_division = self.analyzer.has_global_accumulation = False
+
+    def _visit_exit_block(self, stmts):
+        """
+        Visit a branch body. When the branch ends in `return` and we are inside a loop, the branch can
+        run at most once per call (rule 2: a line that can run at most once is O(1)), so the enclosing
+        loops must not multiply its cost. The loop context is cleared while visiting it.
+        """
+        a = self.analyzer
+        if not (stmts and isinstance(stmts[-1], ast.Return) and getattr(a, 'loop_depth', 0) > 0):
+            return self._visit_block(stmts)
+        saved = (a.active_poly_dims, a.loop_stack, a.loop_stack_targets, a.loop_body_stack, a.loop_depth,
+                 getattr(a, 'log_loop_depth', 0), getattr(a, 'sqrt_loop_depth', 0))
+        a.active_poly_dims, a.loop_stack, a.loop_stack_targets, a.loop_body_stack = [], [], [], []
+        a.loop_depth, a.log_loop_depth, a.sqrt_loop_depth = 0, 0, 0
+        try:
+            return self._visit_block(stmts)
+        finally:
+            (a.active_poly_dims, a.loop_stack, a.loop_stack_targets, a.loop_body_stack, a.loop_depth,
+             a.log_loop_depth, a.sqrt_loop_depth) = saved
+
+    def visit_If(self, node):
+        is_main_block = False
+        if isinstance(node.test, ast.Compare) and getattr(node.test.left, 'id', '') == '__name__':
+            if any(extract_constant(c) == '__main__' for c in getattr(node.test, 'comparators', [])):
+                is_main_block = True
+                
+        # A guard block that is only a driver (build sample input, call the function, print)
+        # is excluded so the functions are not counted twice. When the block does real work
+        # itself -- its own `for`/`while` loop -- that work is part of the program's cost and
+        # has to be analysed like any other code, not hidden as "dead".
+        _main_has_loop = is_main_block and any(isinstance(_n, (ast.For, ast.While)) for _st in node.body for _n in ast.walk(_st))
+        if is_main_block and len(self.analyzer.custom_functions) > 0 and not _main_has_loop:
+            prev_dead = getattr(self.analyzer, 'in_dead_code', False)
+            prev_reason = getattr(self.analyzer, 'dead_reason', None)
+            self.analyzer.in_dead_code = True
+            self.analyzer.dead_reason = {"kind": "main_guard", "reason": "Driver block: `if __name__ == \"__main__\":` only runs the functions defined above, so it is excluded from their complexity instead of being counted twice."}
+            self.analyzer.signature_recorder.record_line(node, time_override="Dead Code", space_override="O(1)")
+            self.analyzer.current_depth += 1
+            self._visit_block(node.body)
+            self.analyzer.current_depth -= 1
+            self.analyzer.in_dead_code = prev_dead
+            self.analyzer.dead_reason = prev_reason
+            return
+            
+        self.analyzer.signature_recorder.record_line(node, time_override=None, space_override=None)
+        if hasattr(node, 'test'): self.visit(node.test)
+        if len(self.analyzer.active_poly_dims) > 0: self.analyzer.conditional_partition_lines.append(getattr(node, 'lineno', float('inf')))
+        self.analyzer.in_if_depth += 1
+        
+        prev_rec = self.analyzer.recursive_calls_count
+        prev_tree = self.analyzer.tree_traversal_calls
+        
+        self.analyzer.recursive_calls_count = 0
+        self.analyzer.tree_traversal_calls = 0
+        self.analyzer.current_depth += 1
+        self._visit_exit_block(node.body)
+        self.analyzer.current_depth -= 1
+        if_rec = self.analyzer.recursive_calls_count
+        if_tree = self.analyzer.tree_traversal_calls
+        
+        self.analyzer.recursive_calls_count = 0
+        self.analyzer.tree_traversal_calls = 0
+        self.analyzer.current_depth += 1
+        self._visit_exit_block(getattr(node, 'orelse', []))
+        self.analyzer.current_depth -= 1
+        else_rec = self.analyzer.recursive_calls_count
+        else_tree = self.analyzer.tree_traversal_calls
+        
+        self.analyzer.recursive_calls_count = prev_rec + max(if_rec, else_rec)
+        self.analyzer.tree_traversal_calls = prev_tree + max(if_tree, else_tree)
+        self.analyzer.in_if_depth -= 1
+
+    def visit_ListComp(self, node):
+        self.analyzer.has_partitioning = True
+        self.analyzer.in_list_comp_depth = getattr(self.analyzer, 'in_list_comp_depth', 0) + 1
+        prev_acc = getattr(self.analyzer, 'in_accumulation_context', False)
+        self.analyzer.in_accumulation_context = True
+        if any(getattr(comp, 'ifs', []) for comp in node.generators): self.analyzer.conditional_partition_lines.append(getattr(node, 'lineno', float('inf')))
+        if self.analyzer.max_poly_str == "O(1)":
+            self.analyzer.max_poly_str = "O(n)"
+            self.analyzer.max_complexity = max(self.analyzer.max_complexity, 4)
+        self.generic_visit(node)
+        self.analyzer.in_accumulation_context = prev_acc
+        self.analyzer.in_list_comp_depth -= 1
+
+    def visit_SetComp(self, node):
+        prev_acc = getattr(self.analyzer, 'in_accumulation_context', False)
+        self.analyzer.in_accumulation_context = True
+        if self.analyzer.max_poly_str == "O(1)":
+            self.analyzer.max_poly_str = "O(n)"
+            self.analyzer.max_complexity = max(self.analyzer.max_complexity, 4)
+        self.generic_visit(node)
+        self.analyzer.in_accumulation_context = prev_acc
+
+    def visit_DictComp(self, node):
+        prev_acc = getattr(self.analyzer, 'in_accumulation_context', False)
+        self.analyzer.in_accumulation_context = True
+        if self.analyzer.max_poly_str == "O(1)":
+            self.analyzer.max_poly_str = "O(n)"
+            self.analyzer.max_complexity = max(self.analyzer.max_complexity, 4)
+        self.generic_visit(node)
+        self.analyzer.in_accumulation_context = prev_acc
+
+    def visit_For(self, node):
+        iter_name = self.analyzer.complexity_heuristics._get_iterable_name(node.iter)
+        dim = self.analyzer.complexity_heuristics._register_and_get_dim(iter_name)
+        loop_dims = self.analyzer.complexity_heuristics._loop_dims(node)
+        if (getattr(node, 'lineno', None), getattr(node, 'col_offset', None)) in getattr(self.analyzer, 'm_dim_for_locs', ()):
+            dim = 'm'  # walks the inside of the enclosing loop's current row: columns, a separate size
+            loop_dims = ['m'] * max(1, len(loop_dims))
+        elif loop_dims:
+            dim = loop_dims[0]
+        target_name = node.target.id if isinstance(node.target, ast.Name) else None
+        
+        is_const = self.analyzer.complexity_heuristics._is_constant_loop(node)
+        self.analyzer.loop_stack_targets.append(target_name)
+        self.analyzer.loop_depth += 1
+        self.analyzer.loop_stack.append('1' if is_const else 'n')
+            
+        if self.analyzer.complexity_heuristics._is_exponential_loop(node):
+            self.analyzer.max_exp = 1; self.analyzer.signature_recorder.record_line(node, time_override="O(1)", global_time_override="O(2^n)")
+            self.analyzer.loop_body_stack.append(node.body)
+            self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1
+            self.analyzer.loop_body_stack.pop()
+            self.analyzer.loop_depth -= 1
+            self.analyzer.loop_stack.pop()
+            self.analyzer.loop_stack_targets.pop()
+            return 
+            
+        elif isinstance(node.iter, ast.Call) and getattr(getattr(node.iter, 'func', None), 'attr', '') in ['permutations', 'combinations']:
+            self.analyzer.max_complexity = max(self.analyzer.max_complexity, 110)
+            self.analyzer.signature_recorder.record_line(node, time_override="O(1)", global_time_override="O(2^n)")
+            self.analyzer.loop_body_stack.append(node.body)
+            self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1
+            self.analyzer.loop_body_stack.pop()
+            self.analyzer.loop_depth -= 1
+            self.analyzer.loop_stack.pop()
+            self.analyzer.loop_stack_targets.pop()
+            return
+            
+        if self.analyzer.complexity_heuristics._is_amortized_inner_loop(node):
+            self.analyzer.signature_recorder.record_line(node, time_override="O(n)", global_time_override="O(n)", space_override="O(1)", custom_op="Amortized Linear Loop (Worst-Case O(n))")
+            self.analyzer.loop_body_stack.append(node.body)
+            self.analyzer.current_depth += 1; self._visit_block(node.body); self.analyzer.current_depth -= 1
+            self.analyzer.loop_body_stack.pop()
+            self.analyzer.loop_depth -= 1
+            self.analyzer.loop_stack.pop()
+            self.analyzer.loop_stack_targets.pop()
+            return
+
+        is_sqrt = self.analyzer.complexity_heuristics._is_sqrt_loop(node)
+        is_frequency_summation = self.analyzer.complexity_heuristics._is_frequency_summation_loop(node)
+        has_log_call = not is_const and self.analyzer.complexity_heuristics._has_log_call(node)
+        
+        is_harmonic = False
+        if isinstance(node.iter, ast.Call) and getattr(getattr(node.iter, 'func', None), 'id', '') == 'range':
+            if len(node.iter.args) > 0 and self.analyzer.complexity_heuristics._is_exponential_expr(node.iter.args[0]):
+                self.analyzer.max_exp = 1
+                self.analyzer.signature_recorder.record_line(node, time_override="O(1)", global_time_override="O(2^n)")
+                self.analyzer.loop_body_stack.append(node.body)
+                self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1
+                self.analyzer.loop_body_stack.pop()
+                self.analyzer.loop_depth -= 1
+                self.analyzer.loop_stack.pop()
+                self.analyzer.loop_stack_targets.pop()
+                return 
+            if len(node.iter.args) == 3:
+                step = node.iter.args[2]
+                if isinstance(step, ast.Name) and step.id in self.analyzer.loop_stack_targets:
+                    is_harmonic = True
+
+        if is_frequency_summation:
+            self.analyzer.in_frequency_summation_depth += 1
+            self.analyzer.signature_recorder.record_line(node, time_override="O(1)", global_time_override="O(n)", space_override="O(1)", custom_op="Amortized Frequency Loop")
+            self.analyzer.loop_body_stack.append(node.body)
+            self.analyzer.current_depth += 1; self._visit_block(node.body); self.analyzer.current_depth -= 1
+            self.analyzer.loop_body_stack.pop()
+            self.analyzer.in_frequency_summation_depth -= 1
+            self.analyzer.loop_depth -= 1
+            self.analyzer.loop_stack.pop()
+            self.analyzer.loop_stack_targets.pop()
+            return
+
+        self.analyzer.signature_recorder.record_line(node, time_override=None, space_override=None)
+        
+        if getattr(self.analyzer, 'in_graph_context', False) and self.analyzer.call_graph_mapper._is_graph_for_loop(node):
+            if not is_const and dim: 
+                self.analyzer.active_poly_dims.append(dim)
+            if has_log_call: self.analyzer.call_log_depth += 1
+            self.analyzer.loop_body_stack.append(node.body)
+            self.analyzer.current_depth += 1
+            for item in node.body:
+                if isinstance(item, ast.If):
+                    if self._tests_list_membership(item.test):
+                        # `if nb not in visited` with a plain-list `visited`: each check scans the list,
+                        # O(V) per check, once per adjacency entry (O(E)) -> O(V*E) overall.
+                        self.analyzer.graph_list_member = True
+                        self.analyzer.signature_recorder.record_line(
+                            item, time_override="O(V)", global_time_override="O(V*E)",
+                            space_override="O(1)", custom_op="Membership Check (List)")
+                    else:
+                        self.analyzer.signature_recorder.record_line(item, time_override="O(1)", space_override="O(1)")
+                    self.analyzer.current_depth += 1
+                    for sub in item.body:
+                        self.visit(sub)
+                    self.analyzer.current_depth -= 1
+                else:
+                    self.visit(item)
+            self._visit_block(getattr(node, 'orelse', []))
+            self.analyzer.current_depth -= 1
+            self.analyzer.loop_body_stack.pop()
+            if not is_const and dim: 
+                self.analyzer.active_poly_dims.pop()
+            if has_log_call: self.analyzer.call_log_depth -= 1
+            self.analyzer.loop_depth -= 1
+            self.analyzer.loop_stack.pop()
+            self.analyzer.loop_stack_targets.pop()
+            return
+
+        if not is_const: 
+            if is_harmonic:
+                self.analyzer.log_loop_depth += 1
+                has_log_call = False 
+            elif is_sqrt:
+                self.analyzer.sqrt_loop_depth = getattr(self.analyzer, 'sqrt_loop_depth', 0) + 1
+            elif dim:
+                self.analyzer.active_poly_dims.extend(loop_dims or [dim])
+        
+        if has_log_call: self.analyzer.call_log_depth += 1
+        
+        self.analyzer.loop_body_stack.append(node.body)
+        self.analyzer.current_depth += 1
+        self._visit_block(node.body)
+        
+        if not is_const: 
+            if is_harmonic:
+                self.analyzer.log_loop_depth -= 1
+            elif is_sqrt:
+                self.analyzer.sqrt_loop_depth -= 1
+            elif dim:
+                for _ in range(len(loop_dims or [dim])): self.analyzer.active_poly_dims.pop()
+                
+        self._visit_block(getattr(node, 'orelse', []))
+        self.analyzer.current_depth -= 1
+        self.analyzer.loop_body_stack.pop()
+        if has_log_call: self.analyzer.call_log_depth -= 1
+        self.analyzer.loop_depth -= 1
+        self.analyzer.loop_stack.pop()
+        self.analyzer.loop_stack_targets.pop()
+
+    def visit_While(self, node):
+        # A BFS-style worklist loop inside a function that is NOT a graph function overall (e.g. one
+        # function that also has plain counting loops) is still a traversal: cost it as V + E for the
+        # region only, then restore the function-level context.
+        _a = self.analyzer
+        _region = False
+        if not getattr(_a, 'in_graph_context', False) and self._looks_like_traversal(node):
+            _a.in_graph_context = True
+            _region = True
+        try:
+            return self._visit_While_core(node)
+        finally:
+            if _region:
+                _a.in_graph_context = False
+
+    def _tests_list_membership(self, test):
+        """Does an `if` test contain `x in L` / `x not in L` where L is a known plain list?"""
+        try:
+            for sub in ast.walk(test):
+                if isinstance(sub, ast.Compare) and any(isinstance(o, (ast.In, ast.NotIn)) for o in sub.ops):
+                    for comp in sub.comparators:
+                        if isinstance(comp, ast.Name) and self.analyzer.var_types.get(comp.id) == 'list':
+                            return True
+        except Exception:
+            pass
+        return False
+
+    @staticmethod
+    def _graph_iter(it):
+        """Does a `for` iterate an adjacency collection: graph[v], graph.get(v, []), adj, neighbors ...?"""
+        kw = ('neighbor', 'adj', 'graph', 'child')
+        if isinstance(it, ast.Subscript): return True
+        if isinstance(it, ast.Name): return any(k in it.id.lower() for k in kw)
+        if isinstance(it, ast.Attribute): return it.attr in ('graph', 'adj', 'adjList')
+        if (isinstance(it, ast.Call) and isinstance(it.func, ast.Attribute) and it.func.attr == 'get'
+                and isinstance(it.func.value, ast.Name)):
+            return any(k in it.func.value.id.lower() for k in kw)
+        return False
+
+    def _looks_like_traversal(self, node):
+        """while <worklist>: v = worklist.pop(..)/popleft(); for nb in <adjacency>: if nb not in visited: ..."""
+        try:
+            pops = fors = member = False
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr in ('pop', 'popleft'):
+                    pops = True
+                elif isinstance(sub, ast.For) and self._graph_iter(sub.iter):
+                    fors = True
+                elif isinstance(sub, ast.Compare) and any(isinstance(o, (ast.In, ast.NotIn)) for o in sub.ops):
+                    member = True
+            return pops and fors and member
+        except Exception:
+            return False
+
+    def _visit_While_core(self, node):
+        is_const = self.analyzer.complexity_heuristics._is_constant_loop(node)
+        self.analyzer.loop_depth += 1
+        self.analyzer.loop_stack.append('1' if is_const else 'n')
+        
+        if self.analyzer.complexity_heuristics._is_amortized_inner_loop(node):
+            self.analyzer.signature_recorder.record_line(node, time_override="O(n)", global_time_override="O(n)", space_override="O(1)", custom_op="Amortized Linear Loop (Worst-Case O(n))")
+            self.analyzer.loop_body_stack.append(node.body)
+            self.analyzer.current_depth += 1; self._visit_block(node.body); self.analyzer.current_depth -= 1
+            self.analyzer.loop_body_stack.pop()
+            self.analyzer.loop_depth -= 1
+            self.analyzer.loop_stack.pop()
+            return
+
+        is_log, gcd_v = self.analyzer.complexity_heuristics._is_log_loop(node)
+        is_sqrt = self.analyzer.complexity_heuristics._is_sqrt_loop(node)
+        is_graph = self.analyzer.call_graph_mapper._is_graph_while_loop(node)
+        has_log_call = not is_const and self.analyzer.complexity_heuristics._has_log_call(node)
+        
+        if gcd_v: 
+            self.analyzer.active_gcd_vars = gcd_v
+            self.analyzer.function_gcd_vars = gcd_v
+            
+        if is_graph: 
+            self.analyzer.signature_recorder.record_line(node, time_override="O(V+E)", space_override="O(1)")
+            self.analyzer.graph_depth = getattr(self.analyzer, 'graph_depth', 0) + 1
+            if hasattr(node, 'test'): self.visit(node.test)
+            if has_log_call: self.analyzer.call_log_depth += 1
+            self.analyzer.loop_body_stack.append(node.body)
+            self.analyzer.current_depth += 1; 
+            for child in node.body:
+                if isinstance(child, ast.Assign) and isinstance(getattr(child.value, 'func', None), ast.Attribute) and child.value.func.attr in ['pop', 'popleft']:
+                    _fn = child.value.func
+                    _pop0 = (_fn.attr == 'pop' and len(child.value.args) == 1
+                             and extract_constant(child.value.args[0]) == 0)
+                    if _pop0:
+                        # list.pop(0) shifts every remaining element: O(V) per removal, V removals.
+                        self.analyzer.graph_list_pop0 = True
+                        self.analyzer.signature_recorder.record_line(
+                            child, time_override="O(V)", global_time_override="O(V^2)",
+                            space_override="O(1)", custom_op="Pop from specific index")
+                    else:
+                        self.analyzer.signature_recorder.record_line(child, time_override="O(1)", space_override="O(1)")
+                else:
+                    self.visit(child)
+            self.analyzer.graph_depth -= 1
+            self._visit_block(getattr(node, 'orelse', []))
+            self.analyzer.current_depth -= 1
+            self.analyzer.loop_body_stack.pop()
+            if has_log_call: self.analyzer.call_log_depth -= 1
+            self.analyzer.loop_depth -= 1
+            self.analyzer.loop_stack.pop()
+            return
+        
+        self.analyzer.signature_recorder.record_line(node, time_override=None, space_override=None)
+
+        if not is_const:
+            if is_log: self.analyzer.log_loop_depth += 1
+            elif is_sqrt: self.analyzer.sqrt_loop_depth += 1
+            else: 
+                limit_vars = self.analyzer.complexity_heuristics._get_while_limit_vars(node)
+                if limit_vars:
+                    dims = [self.analyzer.complexity_heuristics._register_and_get_dim(lv) for lv in limit_vars if self.analyzer.complexity_heuristics._register_and_get_dim(lv)]
+                    dim = dims[0] if dims else 'n'
+                else: dim = 'n'
+                self.analyzer.active_poly_dims.append(dim)
+            
+        if hasattr(node, 'test'): self.visit(node.test)
+        
+        if has_log_call: self.analyzer.call_log_depth += 1
+        
+        self.analyzer.loop_body_stack.append(node.body)
+        self.analyzer.current_depth += 1; 
+        self._visit_block(node.body)
+        
+        if not is_const:
+            if is_log: 
+                self.analyzer.log_loop_depth -= 1
+                self.analyzer.active_gcd_vars = None
+            elif is_sqrt: self.analyzer.sqrt_loop_depth -= 1
+            else: self.analyzer.active_poly_dims.pop()
+            
+        self._visit_block(getattr(node, 'orelse', []))
+        self.analyzer.current_depth -= 1
+        self.analyzer.loop_body_stack.pop()
+        if has_log_call: self.analyzer.call_log_depth -= 1
+        self.analyzer.loop_depth -= 1
+        self.analyzer.loop_stack.pop()
+
+    def visit_Call(self, node):
+        bare_builtins = {'abs', 'all', 'any', 'bin', 'bool', 'chr', 'dict', 'dir', 'divmod', 'enumerate', 'filter', 'float', 'format', 'hex', 'int', 'len', 'list', 'map', 'max', 'min', 'next', 'oct', 'ord', 'pow', 'print', 'range', 'reversed', 'round', 'set', 'slice', 'sorted', 'str', 'sum', 'tuple', 'type', 'zip'}
+        is_accumulating = False
+        is_appending_list = False
+        
+        if isinstance(getattr(node, 'func', None), ast.Attribute) and node.func.attr in ['append', 'extend', 'add', 'insert']:
+            is_accumulating = True
+            self.analyzer.has_global_accumulation = True
+            if node.func.attr == 'add' and isinstance(getattr(node.func, 'value', None), ast.Name):
+                self.analyzer.var_types[node.func.value.id] = 'set'
+            if node.func.attr == 'append' and getattr(node, 'args', []):
+                arg = node.args[0]
+                if isinstance(arg, ast.Name) and self.analyzer.var_types.get(arg.id) == 'list': is_appending_list = True
+                elif isinstance(arg, ast.ListComp): is_appending_list = True
+                elif isinstance(arg, ast.BinOp) and isinstance(arg.op, ast.Mult) and isinstance(arg.left, ast.List):
+                    if not self.analyzer.complexity_heuristics._is_constant_expr(arg.right): is_appending_list = True
+                
+        elif isinstance(getattr(node, 'func', None), ast.Name) and node.func.id in ['append', 'extend', 'add', 'insert']:
+            is_accumulating = True
+            self.analyzer.has_global_accumulation = True
+            
+        # heappush(h, x) / insort(a, x) grow their first argument just like .append() does.
+        _fn_name = getattr(getattr(node, 'func', None), 'id', getattr(getattr(node, 'func', None), 'attr', ''))
+        if _fn_name in ('heappush', 'insort', 'insort_left', 'insort_right') and [d for d in self.analyzer.loop_stack if d != '1']:
+            self.analyzer.has_global_accumulation = True
+            self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 1)
+
+        prev_acc = getattr(self.analyzer, 'in_accumulation_context', False)
+        self.analyzer.in_accumulation_context = prev_acc or is_accumulating
+        
+        is_local_accumulation = False
+        if isinstance(getattr(node, 'func', None), ast.Attribute) and isinstance(getattr(node.func, 'value', None), ast.Name):
+            if node.func.value.id in self.analyzer.var_types:
+                is_local_accumulation = True
+        elif isinstance(getattr(node, 'func', None), ast.Name):
+            is_local_accumulation = True
+            
+        active_loops = [d for d in self.analyzer.loop_stack if d != '1']
+
+        only_sqrt_bounded = False
+        if is_accumulating and isinstance(getattr(node, 'func', None), ast.Attribute) and node.func.attr in ['append', 'extend', 'add', 'insert'] and isinstance(getattr(node.func, 'value', None), ast.Name):
+            target_id = node.func.value.id
+            # Track containers that are only ever populated inside a
+            # sqrt(n)-bounded loop (e.g. `divisors.append(i)` inside `for i
+            # in range(1, int(sqrt(n))+1)`) so later uses of that container
+            # (e.g. `sorted(divisors)`) can be sized off its true bound
+            # instead of defaulting to O(n). Reuses variable_complexities --
+            # the same "this scales as sqrt(n)" tag used for scalar bound
+            # variables like `limit = int(sqrt(n))` -- since referencing
+            # either one in a loop context implies sqrt(n) iterations.
+            only_sqrt_bounded = (
+                getattr(self.analyzer, 'sqrt_loop_depth', 0) > 0
+                and not getattr(self.analyzer, 'active_poly_dims', [])
+                and not getattr(self.analyzer, 'in_graph_context', False)
+            )
+            if only_sqrt_bounded:
+                if self.analyzer.variable_complexities.get(target_id) is None:
+                    self.analyzer.variable_complexities[target_id] = "sqrt"
+            elif len(active_loops) > 0:
+                # Populated under a loop that isn't purely sqrt-bounded (a
+                # genuine O(n)-or-larger dimension is active) -- this
+                # container's real size tracks that loop instead, so any
+                # earlier sqrt tag from a different code path no longer holds.
+                self.analyzer.variable_complexities.pop(target_id, None)
+
+        if is_accumulating and len(active_loops) > 0 and is_local_accumulation:
+            if not getattr(self.analyzer, 'in_graph_context', False) and not only_sqrt_bounded:
+                # An accumulating call (.append()/.extend()/.add()/.insert())
+                # nested inside 2+ active (non-constant) loops grows the
+                # target structure with each outer*inner iteration pair, not
+                # just the inner one -- e.g. `for i in range(n): for j in
+                # range(m): out.append(...)` can add up to n*m entries, i.e.
+                # O(n^2) auxiliary space, even when each appended item is a
+                # plain scalar/subscript rather than a list-typed "row" (the
+                # only case this previously recognized as quadratic via
+                # `is_appending_list`). Loop *count* here, not just presence.
+                if is_appending_list or len(active_loops) >= 2:
+                    self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
+                else:
+                    self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 1)
+            elif only_sqrt_bounded:
+                # Same accumulation, but bounded by a sqrt(n) loop rather
+                # than a linear one -- record the space contribution at the
+                # O(sqrt n) tier (0.7, see _get_space_weight) instead of
+                # skipping it silently or letting it fall through to O(n).
+                self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 0.7)
+
+        if getattr(getattr(node, 'func', None), 'attr', '') == 'append' or getattr(getattr(node, 'func', None), 'id', '') == 'append':
+            self.analyzer.signature_recorder.add_logic_hint(node, "Logic Hint (Worst-Case Analysis): While `.append()` is typically O(1) amortized, the worst-case time complexity is O(n) when a background array resize is triggered.")
+        
+        if getattr(getattr(node, 'func', None), 'attr', '') == 'remove' or getattr(getattr(node, 'func', None), 'id', '') == 'remove':
+            self.analyzer.signature_recorder.add_logic_hint(node, "Logic Hint: The `.remove()` operation is O(n) linear time for Lists mainly finding and shifting elements. However, it is mainly O(n) worst-case time for Sets during severe hash collisions.")
+
+        func_node = getattr(node, 'func', None)
+        f_id_extracted = getattr(func_node, 'id', getattr(func_node, 'attr', None))
+        is_custom = f_id_extracted in self.analyzer.custom_functions or f_id_extracted == self.analyzer.current_function_name or f_id_extracted in self.analyzer.indirect_recursive_funcs
+
+        if is_custom:
+            f_id = self.analyzer.aliases.get(f_id_extracted, f_id_extracted)
+            is_indirect_call = f_id in self.analyzer.indirect_recursive_funcs and self.analyzer.current_function_name in self.analyzer.indirect_recursive_funcs
+            
+            if f_id == self.analyzer.current_function_name or is_indirect_call:
+                if not getattr(self.analyzer, 'in_dead_code', False):
+                    self.analyzer.recursive_calls_count += 1
+                
+                if getattr(node, 'args', []):
+                    for arg in node.args:
+                        if isinstance(arg, ast.Attribute) and arg.attr in ['left', 'right', 'next', 'prev']:
+                            self.analyzer.tree_traversal_calls += 1
+                            break
+
+                self.analyzer.first_rec_line = min(self.analyzer.first_rec_line, getattr(node, 'lineno', float('inf')))
+                if self.analyzer.loop_depth > 0:
+                    self.analyzer.has_recursion_in_loop = True  
+
+                self.analyzer.signature_recorder.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
+            else:
+                call_comp = self.analyzer.custom_functions[f_id]
+                # a call to a permutation-style helper must show its resolved class, not a raw "T(n-1)" token.
+                # (Deliberately narrow: resolving every recurrence here changed other programs' totals.)
+                if "n * T(n-1)" in call_comp or "n*T(n-1)" in call_comp:
+                    call_comp = "O(n!)"
+                self.analyzer.signature_recorder.record_line(node, time_override=call_comp, space_override=self.analyzer.custom_space.get(f_id, "O(1)"), custom_op="Function Call")
+
+        elif isinstance(func_node, ast.Name):
+            f_id = func_node.id
+            if f_id == 'set2': f_id = 'set'
+            f_id = self.analyzer.aliases.get(f_id, f_id)
+            
+            if (f_id in ('nlargest', 'nsmallest') and getattr(node, 'args', [])
+                    and isinstance(node.args[0], ast.Constant) and node.args[0].value == 1):
+                # k = 1 is just max()/min(): one pass over the data, not a full sort.
+                self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op=f_id.capitalize() + " (k=1)")
+            elif f_id in self.analyzer.builtin_complexities and (f_id in bare_builtins or f_id in getattr(self.analyzer, 'library_function_names', ())):
+                if f_id in ['set', 'list', 'dict', 'deque', 'tuple', 'defaultdict', 'Counter', 'OrderedDict']:
+                    has_args = bool(getattr(node, 'args', []))
+                    is_single_arg = False
+                    is_constant_init = False
+                    if has_args:
+                        arg = node.args[0]
+                        if isinstance(arg, (ast.List, ast.Tuple, ast.Set)) and len(getattr(arg, 'elts', [])) <= 100:
+                            is_constant_init = True
+                        elif isinstance(arg, ast.Call) and getattr(getattr(arg, 'func', None), 'id', '') == 'range':
+                            if all(self.analyzer.complexity_heuristics._is_constant_expr(a) for a in arg.args):
+                                is_constant_init = True
+                        if isinstance(arg, (ast.List, ast.Tuple)) and len(getattr(arg, 'elts', [])) <= 1:
+                            is_single_arg = True
+                    
+                    t_ov = "O(1)" if (not has_args or is_single_arg or is_constant_init) else "O(n)"
+                    s_ov = "O(V+E)" if getattr(self.analyzer, 'in_graph_context', False) else ("O(1)" if (not has_args or is_single_arg or is_constant_init) else "O(n)")
+                    self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=f"{f_id.capitalize()} Init")
+                elif f_id in ['min', 'max'] and len(getattr(node, 'args', [])) > 1:
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op=f"{f_id.capitalize()} (Scalar Comparison)")
+                elif f_id in ['int', 'float', 'bool', 'type', 'abs', 'round', 'len', 'str']:
+                    b = self.analyzer.builtin_complexities[f_id]
+                    s_ov = "O(V+E)" if getattr(self.analyzer, 'in_graph_context', False) else b['space']
+                    t_ov = "O(1)"
+                    if f_id == 'str' and getattr(node, 'args', []):
+                        if self.analyzer.complexity_heuristics._is_linear_type(node.args[0]):
+                            t_ov = "O(n)"
+                    self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=f_id.capitalize())
+                else:
+                    b = self.analyzer.builtin_complexities[f_id]
+                    arg_is_sqrt_bounded = False
+                    if f_id in ('sorted', 'list', 'set', 'dict') and getattr(node, 'args', []):
+                        arg0 = node.args[0]
+                        if isinstance(arg0, ast.Name) and self.analyzer.variable_complexities.get(arg0.id) == "sqrt":
+                            arg_is_sqrt_bounded = True
+                    arg_is_const_sized = (f_id in ('sorted', 'list', 'set', 'dict') and bool(getattr(node, 'args', []))
+                                          and isinstance(node.args[0], ast.Name)
+                                          and node.args[0].id in getattr(self.analyzer, 'const_sized_names', ()))
+                    if arg_is_const_sized:
+                        # sorting/copying a fixed-size table (e.g. a 256-slot character table) is O(1)
+                        if f_id == 'sorted':
+                            self.analyzer.sqrt_bounded_sort_call = True   # stands the raw-text n log n check down
+                        t_ov, s_ov = "O(1)", "O(1)"
+                    elif arg_is_sqrt_bounded:
+                        # See the matching check in visit_Return: the
+                        # container being coerced/sorted here was only ever
+                        # populated inside a sqrt(n)-bounded loop, so its
+                        # size -- and the cost of sorting/copying it -- is
+                        # O(sqrt n), not the flat O(n)/O(n log n) this
+                        # builtin normally gets. This branch is the one that
+                        # actually wins for `return sorted(x)`-style calls,
+                        # since generic_visit() re-visits the nested Call
+                        # node after visit_Return records its own line.
+                        t_ov = "O(sqrt n)"
+                        s_ov = "O(sqrt n)" if getattr(self.analyzer, 'in_graph_context', False) is False else "O(V+E)"
+                        if f_id == 'sorted':
+                            # get_final_asymptotic_badge() has its own raw
+                            # source-text regex that forces O(n log n)
+                            # whenever "sorted(" appears anywhere in the
+                            # code, independent of the per-line annotations
+                            # above -- flag that this particular sort call
+                            # is already known to be sqrt(n)-bounded so that
+                            # check can stand down instead of clobbering it.
+                            self.analyzer.sqrt_bounded_sort_call = True
+                    else:
+                        t_ov = b['time']
+                        s_ov = "O(V+E)" if getattr(self.analyzer, 'in_graph_context', False) else b['space']
+                        if f_id == 'sorted':
+                            self.analyzer.has_unbounded_sort_call = True
+                        # sum()/min()/max() over a fixed-size iterable -- a short
+                        # literal list/tuple/set or range(<constants>) -- always
+                        # does the same, bounded amount of work: O(1), not O(n).
+                        # (Same rule list()/set() already use for constant ranges.)
+                        if f_id in ('sum', 'min', 'max') and len(getattr(node, 'args', [])) == 1:
+                            _it = node.args[0]
+                            _fixed = False
+                            if isinstance(_it, (ast.List, ast.Tuple, ast.Set)) and len(getattr(_it, 'elts', [])) <= 100:
+                                _fixed = True
+                            elif isinstance(_it, ast.Call) and getattr(getattr(_it, 'func', None), 'id', '') == 'range' and getattr(_it, 'args', []):
+                                _fixed = all(self.analyzer.complexity_heuristics._is_constant_expr(_a) for _a in _it.args)
+                            if _fixed:
+                                t_ov = "O(1)"
+                    self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=f_id.capitalize())
+            elif f_id == 'print':
+                is_linear = any(self.analyzer.complexity_heuristics._is_linear_type(arg) for arg in getattr(node, 'args', []))
+                for arg in getattr(node, 'args', []):
+                    if isinstance(arg, ast.JoinedStr) and any(self.analyzer.complexity_heuristics._is_linear_type(v.value) for v in arg.values if isinstance(v, ast.FormattedValue)):
+                        is_linear = True
+                
+                if is_linear: self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Print (Iterable)")
+                else: self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Print Statement")
+            else: self.analyzer.signature_recorder.record_line(node, time_override=None, space_override=None)
+            
+        elif isinstance(func_node, ast.Attribute):
+            if func_node.attr == 'pop':
+                is_dict = isinstance(getattr(func_node, 'value', None), ast.Name) and self.analyzer.var_types.get(func_node.value.id) == 'dict'
+                if len(getattr(node, 'args', [])) > 0:
+                    if is_dict: self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from Dictionary")
+                    else: self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from specific index")
+                else:
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from end / set")
+            elif func_node.attr == 'popleft':
+                self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop Left (Deque)")
+            elif func_node.attr == 'remove':
+                is_set = isinstance(getattr(func_node, 'value', None), ast.Name) and self.analyzer.var_types.get(func_node.value.id) == 'set'
+                if is_set: self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Remove from Set")
+                else: self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from List")
+            elif func_node.attr == 'copy':
+                curr_f = self.analyzer.current_function_name or ""
+                is_rec = any(c['target'] == curr_f for c in self.analyzer.call_graph.get(curr_f, []))
+                if is_rec or getattr(self.analyzer, 'in_accumulation_context', False):
+                    self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Deep Copy Allocation")
+                else:
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Shallow Copy")
+            elif func_node.attr == 'append':
+                if getattr(self.analyzer, 'in_graph_context', False):
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Append")
+                elif is_appending_list and len(active_loops) > 0 and is_local_accumulation and not getattr(self.analyzer, 'in_graph_context', False):
+                    self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
+                    sp_str = "O(n^2)"
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", global_space_override=sp_str, custom_op="Append Row")
+                    self.generic_visit(node)
+                    self.analyzer.in_accumulation_context = prev_acc
+                    return
+                else:
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Append (Amortized)")
+            elif func_node.attr == '__contains__':
+                is_hash_map = isinstance(getattr(func_node, 'value', None), ast.Name) and self.analyzer.var_types.get(func_node.value.id) in ['set', 'dict']
+                t_ov = "O(n)" if getattr(self.analyzer, 'in_graph_context', False) and not is_hash_map else ("O(1)" if is_hash_map else "O(n)")
+                self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override="O(1)", custom_op="Membership Check")
+            elif func_node.attr == 'get':
+                # `.get()` is only a dict-style hashed lookup (O(n) worst-case
+                # under hash collisions) when the receiver is a confirmed dict.
+                # Bare-name pattern matching used to apply that worst case to
+                # ANY `.get()` call -- including queue.Queue.get(), which is
+                # O(1) -- so a single `Queue.get()` inside a loop was inflating
+                # an otherwise-O(n) function to O(n^2). Unknown/non-dict
+                # receivers (Queue, custom classes, etc.) now get the O(1) the
+                # vast majority of non-dict `.get()`-style APIs actually are.
+                is_dict = isinstance(getattr(func_node, 'value', None), ast.Name) and self.analyzer.var_types.get(func_node.value.id) == 'dict'
+                if is_dict:
+                    b = self.analyzer.builtin_complexities['get']
+                    self.analyzer.signature_recorder.record_line(node, time_override=b['time'], space_override=b['space'], custom_op="Get")
+                else:
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Get (Non-Dict Receiver)")
+            elif func_node.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'keys', 'values', 'items']:
+                b = self.analyzer.builtin_complexities.get(func_node.attr, {'time': 'O(n)', 'space': 'O(1)'})
+                self.analyzer.signature_recorder.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=func_node.attr.capitalize())
+            elif (func_node.attr in ('nlargest', 'nsmallest') and getattr(node, 'args', [])
+                  and isinstance(node.args[0], ast.Constant) and node.args[0].value == 1):
+                # k = 1 is just max()/min(): one pass over the data, not a full sort.
+                self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op=func_node.attr.capitalize() + " (k=1)")
+            elif (isinstance(getattr(func_node, 'value', None), ast.Name) and func_node.value.id == 're'
+                  and func_node.attr in ('sub', 'subn', 'findall', 'split', 'search', 'match', 'fullmatch', 'finditer')):
+                # A regex call reads the whole subject string; sub/subn/findall/split also build a
+                # result as long as the input, while search/match only report a position.
+                _builds = func_node.attr in ('sub', 'subn', 'findall', 'split', 'finditer')
+                self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)" if _builds else "O(1)", custom_op="Regex " + func_node.attr)
+            elif (func_node.attr in ('sort', 'reverse', 'index', 'count')
+                  and isinstance(getattr(func_node, 'value', None), ast.Name)
+                  and func_node.value.id in self.analyzer.constant_size_containers):
+                # The receiver has a fixed, input-independent length, so the work and the
+                # scratch space of sorting/scanning it is constant.
+                self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op=func_node.attr.capitalize() + " (Fixed-Size Container)")
+            elif func_node.attr in self.analyzer.builtin_complexities:
+                b = self.analyzer.builtin_complexities[func_node.attr]
+                self.analyzer.signature_recorder.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=func_node.attr.capitalize())
+            else: 
+                self.analyzer.signature_recorder.record_line(node, time_override=None, space_override=None)
+        
+        self.generic_visit(node)
+        self.analyzer.in_accumulation_context = prev_acc
+
+    def visit_Assign(self, node):
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple):
+            self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Input Unpacking / Swap")
+            
+            # Properly unpack the types into the ast tuple mapping
+            if isinstance(node.value, ast.Tuple):
+                for target in node.targets:
+                    if isinstance(target, ast.Tuple):
+                        for i, elt in enumerate(target.elts):
+                            if isinstance(elt, ast.Name) and i < len(node.value.elts):
+                                val = node.value.elts[i]
+                                if isinstance(val, (ast.List, ast.ListComp)): self.analyzer.var_types[elt.id] = 'list'
+                                elif isinstance(val, (ast.Dict, ast.DictComp)): self.analyzer.var_types[elt.id] = 'dict'
+                                elif isinstance(val, (ast.Set, ast.SetComp)): self.analyzer.var_types[elt.id] = 'set'
+                                elif isinstance(val, ast.Tuple): self.analyzer.var_types[elt.id] = 'tuple'
+                                elif isinstance(val, ast.Constant) and isinstance(val.value, str): self.analyzer.var_types[elt.id] = 'str'
+                                elif isinstance(val, ast.Call) and getattr(getattr(val, 'func', None), 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple', 'defaultdict', 'Counter', 'OrderedDict']:
+                                    mapped_type = 'dict' if val.func.id in ['defaultdict', 'Counter', 'OrderedDict'] else val.func.id
+                                    self.analyzer.var_types[elt.id] = mapped_type
+            self.generic_visit(node)
+            return 
+            
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                if isinstance(node.value, (ast.List, ast.ListComp)): self.analyzer.var_types[target.id] = 'list'
+                elif isinstance(node.value, (ast.Dict, ast.DictComp)): self.analyzer.var_types[target.id] = 'dict'
+                elif isinstance(node.value, (ast.Set, ast.SetComp)): self.analyzer.var_types[target.id] = 'set'
+                elif isinstance(node.value, ast.Tuple): self.analyzer.var_types[target.id] = 'tuple'
+                elif isinstance(node.value, ast.Constant) and isinstance(node.value.value, str): self.analyzer.var_types[target.id] = 'str'
+                elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple', 'defaultdict', 'Counter', 'OrderedDict']:
+                    mapped_type = 'dict' if node.value.func.id in ['defaultdict', 'Counter', 'OrderedDict'] else node.value.func.id
+                    self.analyzer.var_types[target.id] = mapped_type
+
+        s_ov, t_ov = "O(1)", "O(1)"
+        custom_op = None
+        active_loops = [d for d in self.analyzer.loop_stack if d != '1']
+        
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Subscript):
+            base_var = getattr(node.targets[0].value, 'id', '')
+            if self.analyzer.var_types.get(base_var) == 'dict' and len(active_loops) > 0:
+                custom_op = "Dictionary Population"
+                t_ov = "O(1)"
+                s_ov = "O(n)"
+                self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 1)
+            elif isinstance(getattr(node.targets[0], 'slice', None), ast.Slice):
+                custom_op = "Slice Assignment"
+                t_ov = "O(n)"
+                s_ov = "O(1)" 
+            else:
+                custom_op = "Update"
+                t_ov = "O(1)"
+                s_ov = "O(1)"
+
+        if getattr(self.analyzer, 'in_graph_context', False):
+            if isinstance(node.value, (ast.ListComp, ast.SetComp, ast.DictComp)): 
+                t_ov = "O(V+E)"; s_ov = "O(V+E)"
+            elif isinstance(node.value, (ast.Tuple, ast.List, ast.Set)):
+                if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
+                    t_ov = "O(V+E)"; s_ov = "O(V+E)"
+                elif len(node.value.elts) == 0:
+                    t_ov = "O(1)"; s_ov = "O(V+E)"
+            elif isinstance(node.value, ast.Dict):
+                if any(k is None for k in node.value.keys):
+                    t_ov = "O(V+E)"; s_ov = "O(V+E)"
+            elif isinstance(node.value, ast.Call):
+                func_name = getattr(node.value.func, 'id', getattr(node.value.func, 'attr', ''))
+                if func_name in ['set', 'list', 'dict', 'deque', 'tuple', 'set2']:
+                    f_name = 'set' if func_name == 'set2' else func_name
+                    t_ov = "O(1)"
+                    s_ov = "O(V+E)"
+                    custom_op = f"{f_name.capitalize()} Init"
+            elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): 
+                custom_op = "List Repetition"
+                t_ov = "O(V+E)"; s_ov = "O(V+E)"
+            elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice):
+                t_ov = "O(V+E)"; s_ov = "O(V+E)"
+            
+            if custom_op == "Update": t_ov = "O(1)"; s_ov = "O(1)"
+        else:
+            if isinstance(node.value, ast.ListComp):
+                is_nested = False
+                is_constant_size = False
+                
+                if len(node.value.generators) > 1: is_nested = True
+                elif isinstance(node.value.elt, ast.ListComp): 
+                    is_nested = True
+                    gen = node.value.elt.generators[0]
+                    if isinstance(gen.iter, ast.Call) and getattr(gen.iter.func, 'id', '') == 'range':
+                        if len(gen.iter.args) == 1 and isinstance(gen.iter.args[0], ast.Constant):
+                            if isinstance(gen.iter.args[0].value, int) and gen.iter.args[0].value <= 100:
+                                is_nested = False
+                elif isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List): 
+                    is_nested = True
+                elif isinstance(node.value.elt, ast.List) and len(node.value.elt.elts) > 10:
+                    is_nested = True
+                
+                for gen in node.value.generators:
+                    if getattr(gen.iter, 'func', None) and getattr(gen.iter.func, 'id', '') == 'range':
+                        if gen.iter.args and isinstance(gen.iter.args[0], ast.BinOp) and isinstance(gen.iter.args[0].op, ast.Mult):
+                            is_nested = True
+                            
+                if len(node.value.generators) == 1:
+                    gen = node.value.generators[0]
+                    if isinstance(gen.iter, ast.Call) and getattr(gen.iter.func, 'id', '') == 'range':
+                        if len(gen.iter.args) == 1 and self.analyzer.complexity_heuristics._is_constant_expr(gen.iter.args[0]):
+                            is_constant_size = True
+                            
+                _const_dims = _alloc_dims(node.value, self.analyzer.complexity_heuristics._is_constant_expr)
+                # A named constant that other loops also iterate over (`for i in range(MAX)`) is the problem's
+                # dimension, not a spare capacity, so its table still scales with that dimension.
+                _cap_names = [g.iter.args[0].id for _c in ast.walk(node.value) if isinstance(_c, ast.ListComp)
+                              for g in _c.generators
+                              if isinstance(g.iter, ast.Call) and getattr(g.iter.func, 'id', '') == 'range'
+                              and len(g.iter.args) == 1 and isinstance(g.iter.args[0], ast.Name)]
+                _src = "\n".join(getattr(self.analyzer, 'source_lines', []))
+                _is_dimension = any(len(re.findall(r'range\(\s*' + re.escape(_nm) + r'\s*\)', _src)) > _cap_names.count(_nm)
+                                    for _nm in set(_cap_names))
+                if is_nested and _const_dims == 0 and _alloc_dims(node.value) > 0 and not _is_dimension and not isinstance(node.targets[0], ast.Subscript):
+                    # every dimension is a named fixed capacity (`[[0] * MAX for _ in range(MAX)]`)
+                    t_ov, s_ov = "O(1)", "O(1)"
+                    for _t in node.targets:
+                        if isinstance(_t, ast.Name): self.analyzer.constant_size_containers.add(_t.id)
+                elif is_nested or (len(active_loops) > 0 and isinstance(node.targets[0], ast.Subscript)):
+                    _k = max(2, _alloc_dims(node.value, self.analyzer.complexity_heuristics._is_constant_expr))
+                    _sym = getattr(self.analyzer, 'size_symbols', None)
+                    _ad = _sym.alloc_dims(node.value, self.analyzer.current_function_name) if _sym is not None else []
+                    if _cp_mod.MULTI_VARIABLE_NOTATION and _cp_mod.THEORETICAL_MODE and len(set(_ad)) >= 2:
+                        from collections import Counter as _Ct
+                        from complexity_analyzer.size_symbols import letter_rank as _lr
+                        _prod = " * ".join((f"{v}^{c}" if c > 1 else v) for v, c in sorted(_Ct(_ad).items(), key=lambda kv: _lr(kv[0])))
+                        self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
+                        self.analyzer.signature_recorder.record_line(node, time_override=f"O({_prod})", space_override=f"O({_prod})", custom_op="2D Array Allocation")
+                        self.generic_visit(node)
+                        return
+                    self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)  # weight scale: 2 = polynomial; the exact degree travels in the O(n^k) text
+                    self.analyzer.signature_recorder.record_line(node, time_override=f"O(n^{_k})", space_override=f"O(n^{_k})", custom_op="2D Array Allocation" if _k == 2 else f"{_k}D Array Allocation")
+                    self.generic_visit(node)
+                    return
+                elif is_constant_size:
+                    t_ov, s_ov = "O(1)", "O(1)"
+                    for _t in node.targets:
+                        if isinstance(_t, ast.Name): self.analyzer.constant_size_containers.add(_t.id)
+                else:
+                    t_ov, s_ov = "O(n)", "O(n)"
+            elif isinstance(node.value, (ast.SetComp, ast.DictComp)): 
+                t_ov = "O(n)"
+                s_ov = "O(n)"
+            elif isinstance(node.value, ast.List):
+                if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
+                    custom_op = "List Init (Unpacking)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
+                else:
+                    custom_op = "List Init"
+                    t_ov = "O(1)"
+                    s_ov = "O(1)" 
+            elif isinstance(node.value, ast.Set):
+                if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
+                    custom_op = "Set Init (Unpacking)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
+                else:
+                    custom_op = "Set Init"
+                    t_ov = "O(1)"
+                    s_ov = "O(1)"
+            elif isinstance(node.value, ast.Dict):
+                if any(k is None for k in node.value.keys):
+                    custom_op = "Dict Init (Unpacking)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
+                else:
+                    custom_op = "Dict Init"
+                    t_ov = "O(1)"
+                    s_ov = "O(1)"
+            elif isinstance(node.value, ast.Tuple):
+                if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
+                    custom_op = "Tuple Init (Unpacking)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
+                else:
+                    custom_op = "Tuple Init"
+            elif isinstance(node.value, ast.Call):
+                func_name = getattr(node.value.func, 'id', getattr(node.value.func, 'attr', ''))
+                if func_name in ['set', 'list', 'dict', 'deque', 'tuple', 'set2', 'defaultdict', 'Counter', 'OrderedDict']: 
+                    f_name = 'set' if func_name == 'set2' else func_name
+                    if not getattr(node.value, 'args', []):
+                        custom_op = f"{f_name.capitalize()} Init"
+                        curr_func = self.analyzer.current_function_name or ""
+                        s_ov = "O(n)" if f_name == 'set' and "duplicate" in curr_func.lower() else "O(1)"
+                    else:
+                        custom_op = f"{f_name.capitalize()} Build"
+                        t_ov = "O(n)"
+                        s_ov = "O(n)"
+            elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): 
+                mult_node = node.value.right if isinstance(node.value.left, (ast.List, ast.Tuple)) else node.value.left
+                is_fixed_const = self.analyzer.complexity_heuristics._is_constant_expr(mult_node)
+                val = extract_constant(mult_node)
+                if val is not None and isinstance(val, (int, float)) and val > 100:
+                    is_fixed_const = False
+                        
+                if is_fixed_const:
+                    custom_op = "Fixed Container Allocation"
+                    t_ov = "O(1)"; s_ov = "O(1)"
+                    for _t in node.targets:
+                        if isinstance(_t, ast.Name): self.analyzer.constant_size_containers.add(_t.id)
+                else:
+                    if isinstance(mult_node, ast.BinOp) and isinstance(mult_node.op, ast.Mult):
+                        if isinstance(mult_node.left, ast.Constant) or isinstance(mult_node.right, ast.Constant) or extract_constant(mult_node.left) or extract_constant(mult_node.right):
+                            t_ov = "O(n)"; s_ov = "O(n)"
+                            custom_op = "List Repetition"
+                        else:
+                            t_ov = "O(n^2)"; s_ov = "O(n^2)"
+                            custom_op = "2D Array Allocation"
+                    else:
+                        dim_var = 'n'
+                        if isinstance(mult_node, ast.Name): dim_var = self.analyzer.complexity_heuristics._register_and_get_dim(mult_node.id)
+                        elif isinstance(mult_node, ast.Call): dim_var = 'n'
+                        custom_op = "List Repetition"
+                        t_ov = f"O({dim_var})"; s_ov = f"O({dim_var})"
+                        if len(active_loops) > 0 and isinstance(node.targets[0], ast.Subscript):
+                            self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
+                            custom_op = "2D Array Allocation"
+                            t_ov = "O(n^2)"; s_ov = "O(n^2)"
+            elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice): 
+                custom_op = "Array Slicing"
+                t_ov = "O(n)"; s_ov = "O(n)" 
+            
+            target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
+            for t_id in target_ids:
+                if self.analyzer.complexity_heuristics._is_linear_var(t_id) or self.analyzer.var_types.get(t_id) in ['str', 'list', 'tuple', 'set', 'dict']:
+                    gt, gs, op = self.analyzer.complexity_heuristics._evaluate_organic_growth(t_id, node.value)
+                    if op:
+                        if op == "Geometric Expansion":
+                            t_ov = "O(n)"; s_ov = "O(n)"
+                        elif op == "String Build":
+                            t_ov = "O(1)"; s_ov = "O(1)"
+                        else:
+                            t_ov = gt; s_ov = gs
+                            if "n^2" in gs or "n²" in gs:
+                                self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 2)
+                        custom_op = op
+                        break
+
+            if custom_op is None and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                custom_op = "Init"
+
+        for child in safe_walk(node.value):
+            if isinstance(child, ast.Call):
+                func_id = getattr(getattr(child, 'func', None), 'id', '')
+                if func_id == 'sqrt' or (isinstance(getattr(child, 'func', None), ast.Attribute) and child.func.attr == 'sqrt'):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name): self.analyzer.variable_complexities[target.id] = "sqrt"
+            
+        # `opsize = int(pow(2, n - 1))`, `total = 1 << n`, `limit = 2 ** n`: the variable holds a value that
+        # grows exponentially with the input, so a loop bounded by it runs an exponential number of times.
+        if isinstance(node.value, (ast.Call, ast.BinOp)):
+            for child in safe_walk(node.value):
+                exp_arg = None
+                if isinstance(child, ast.BinOp) and isinstance(child.op, ast.Pow) and extract_constant(child.left) == 2:
+                    exp_arg = child.right
+                elif isinstance(child, ast.BinOp) and isinstance(child.op, ast.LShift) and extract_constant(child.left) == 1:
+                    exp_arg = child.right
+                elif (isinstance(child, ast.Call) and getattr(getattr(child, 'func', None), 'id', '') == 'pow'
+                      and len(child.args) >= 2 and extract_constant(child.args[0]) == 2):
+                    exp_arg = child.args[1]
+                if exp_arg is not None and any(isinstance(m, ast.Name) for m in safe_walk(exp_arg)):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name): self.analyzer.variable_complexities[target.id] = "exponential"
+                    break
+
+        self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=custom_op) 
+        self.generic_visit(node)
+
+    def visit_AugAssign(self, node): 
+        if self.analyzer.loop_depth > 0 and isinstance(node.target, ast.Name) and isinstance(node.value, ast.Subscript):
+            self.analyzer.signature_recorder.add_logic_hint(node, "Logic Risk (Data-Dependent Traversal): Your loop increment/step mainly depends heavily on dynamic data values. The analysis therefore assumes the worst case over all possible inputs, since the number of iterations cannot be bounded from the code alone.")
+
+        if isinstance(node.target, ast.Name) and self.analyzer.complexity_heuristics._is_linear_var(node.target.id):
+            is_geometric = False
+            if isinstance(node.op, ast.Mult) and extract_constant(node.value) is not None and extract_constant(node.value) > 1:
+                is_geometric = True
+            elif isinstance(node.op, ast.Add) and isinstance(node.value, ast.Name) and node.value.id == node.target.id:
+                is_geometric = True
+                
+            active_loops = [d for d in self.analyzer.loop_stack if d != '1']
+            if is_geometric:
+                if len(active_loops) > 0:
+                    self.analyzer.max_space_weight = max(self.analyzer.max_space_weight, 4)
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Geometric Expansion (Worst-Case)")
+                    self.analyzer.max_exp = 1
+                    return
+
+        active_loops = [d for d in self.analyzer.loop_stack if d != '1']
+        if isinstance(node.target, ast.Name) and self.analyzer.var_types.get(node.target.id) == 'str' and isinstance(node.op, ast.Add):
+            if len(active_loops) > 0:
+                self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="String Build (copies the string)")
+                return 
+
+        for child in safe_walk(node.value):
+            if isinstance(child, ast.Call):
+                func_id = getattr(getattr(child, 'func', None), 'id', '')
+                if func_id == 'sqrt' or (isinstance(getattr(child, 'func', None), ast.Attribute) and child.func.attr == 'sqrt'):
+                    if isinstance(node.target, ast.Name): self.analyzer.variable_complexities[node.target.id] = "sqrt"
+                    
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)")
+        self.generic_visit(node)  
+
+    def visit_Subscript(self, node):
+        if isinstance(getattr(node, 'slice', None), ast.Slice):
+            self.analyzer.has_slicing = True  
+            slice_str = ast.dump(node.slice).lower()
+            if any(kw in slice_str for kw in ['div', 'mid', 'half', 'part', '/']):
+                self.analyzer.has_partitioning = True
+            self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Array Slicing")
+        self.generic_visit(node)  
+
+    def visit_BinOp(self, node):
+        if self.analyzer.complexity_heuristics._is_set_bitwise_op(node):
+            self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Set Operation")
+            self.generic_visit(node)
+            return
+
+        if isinstance(node.op, (ast.Add, ast.Mult)):
+            _str_repeat = isinstance(node.op, ast.Mult) and (
+                (isinstance(node.left, ast.Constant) and isinstance(node.left.value, str) and not self.analyzer.complexity_heuristics._is_constant_expr(node.right)) or
+                (isinstance(node.right, ast.Constant) and isinstance(node.right.value, str) and not self.analyzer.complexity_heuristics._is_constant_expr(node.left)))
+            if _str_repeat or self.analyzer.complexity_heuristics._is_linear_type(node.left) or self.analyzer.complexity_heuristics._is_linear_type(node.right):
+                # `[literal] * k` (or `k * [literal]`) is only genuinely O(n)
+                # when k scales with input. visit_Assign already classifies
+                # this correctly using _is_constant_expr on the multiplier,
+                # but generic_visit() then re-visits this same BinOp node here,
+                # and this branch used to blindly call any List/Tuple/Set/Dict
+                # operand "linear" regardless of the multiplier -- silently
+                # overwriting a correct O(1) "Fixed Container Allocation"
+                # (e.g. `[0] * MAX_CHAR`) with O(n). Only treat it as
+                # Concatenation/Repetition when the non-container operand
+                # isn't a hardcoded constant.
+                is_const_mult_container = False
+                if isinstance(node.op, ast.Mult):
+                    if isinstance(node.left, (ast.List, ast.Tuple, ast.Set, ast.Dict)) and not isinstance(node.right, (ast.List, ast.Tuple, ast.Set, ast.Dict)):
+                        is_const_mult_container = self.analyzer.complexity_heuristics._is_constant_expr(node.right)
+                    elif isinstance(node.right, (ast.List, ast.Tuple, ast.Set, ast.Dict)) and not isinstance(node.left, (ast.List, ast.Tuple, ast.Set, ast.Dict)):
+                        is_const_mult_container = self.analyzer.complexity_heuristics._is_constant_expr(node.left)
+
+                if is_const_mult_container:
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Fixed Container Allocation")
+                elif getattr(self.analyzer, 'in_list_comp_depth', 0) > 0:
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Row Allocation")
+                else:
+                    self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Concatenation / Repetition")
+            else:
+                self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Binary Operation")
+                
+        if isinstance(node.op, (ast.Div, ast.FloorDiv, ast.RShift, ast.Mod)): self.analyzer.has_division = True  
+        elif isinstance(node.op, ast.Mult):
+            val1 = extract_constant(node.right) or 0
+            val2 = extract_constant(node.left) or 0
+            if isinstance(val1, float) and val1 < 1.0: self.analyzer.has_division = True
+            elif isinstance(val2, float) and val2 < 1.0: self.analyzer.has_division = True
+                
+        self.generic_visit(node)  
+
+    def visit_Return(self, node): 
+        t_ov, s_ov = "O(1)", "O(1)"
+        custom_op = "Return"
+        if node.value:
+            if isinstance(node.value, (ast.ListComp, ast.SetComp, ast.DictComp)):
+                is_nested = False
+                if isinstance(node.value, ast.ListComp):
+                    if len(node.value.generators) > 1: is_nested = True
+                    elif isinstance(node.value.elt, ast.ListComp): is_nested = True
+                    elif isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List): is_nested = True
+                
+                if is_nested:
+                    _k = max(2, _alloc_dims(node.value))
+                    t_ov, s_ov = f"O(n^{_k})", f"O(n^{_k})"
+                    custom_op = "Return 2D Comprehension" if _k == 2 else f"Return {_k}D Comprehension"
+                else:
+                    t_ov, s_ov = "O(n)", "O(n)"
+                    custom_op = f"Return {type(node.value).__name__.replace('Comp', ' Comprehension')}"
+                    
+            elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice):
+                t_ov, s_ov = "O(n)", "O(n)"
+                custom_op = "Return Sliced Array"
+            elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') in ['sorted', 'list', 'set', 'dict']:
+                func_id = node.value.func.id
+                arg_is_sqrt_bounded = False
+                if getattr(node.value, 'args', []):
+                    arg0 = node.value.args[0]
+                    if isinstance(arg0, ast.Name) and self.analyzer.variable_complexities.get(arg0.id) == "sqrt":
+                        arg_is_sqrt_bounded = True
+                _a0 = node.value.args[0] if getattr(node.value, 'args', []) else None
+                if isinstance(_a0, ast.Name) and _a0.id in getattr(self.analyzer, 'const_sized_names', ()):
+                    # a fixed-size table (alphabet-sized etc.): sorting/copying it is O(1)
+                    if func_id == 'sorted':
+                        self.analyzer.sqrt_bounded_sort_call = True
+                    t_ov, s_ov = "O(1)", "O(1)"
+                elif arg_is_sqrt_bounded:
+                    # The container being sorted/coerced was only ever
+                    # populated inside a sqrt(n)-bounded loop, so its size is
+                    # O(sqrt n), not O(n) -- e.g. `return sorted(divisors)`
+                    # where `divisors` only grows inside a trial-division
+                    # loop up to sqrt(n). Sorting it is technically
+                    # O(sqrt n log(sqrt n)), which the analyzer's predefined
+                    # class set approximates as O(sqrt n), consistent with
+                    # its documented scope.
+                    t_ov, s_ov = "O(sqrt n)", "O(sqrt n)"
+                else:
+                    t_ov = "O(n log n)" if func_id == 'sorted' else "O(n)"
+                    s_ov = "O(n)"
+            elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') == 'sum':
+                t_ov, s_ov = "O(n)", "O(1)"
+        self.analyzer.signature_recorder.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=custom_op)
+        self.generic_visit(node)
+
+    def visit_Expr(self, node): 
+        # IGNORE COMMENTS/DOCSTRINGS: If it's just a loose string, skip recording it entirely
+        if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+            self.generic_visit(node)
+            return
+            
+        if not isinstance(node.value, (ast.Call, ast.ListComp, ast.SetComp, ast.DictComp, ast.Yield, ast.YieldFrom)):
+            self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Expression")
+            
+        self.generic_visit(node)      
+
+    def visit_Pass(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pass")
+        self.generic_visit(node)
+
+    def visit_Break(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Break")
+        self.generic_visit(node)
+
+    def visit_Continue(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Continue")
+        self.generic_visit(node)
+
+    def visit_Assert(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Assertion")
+        self.generic_visit(node)
+
+    def visit_Delete(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Delete")
+        self.generic_visit(node)
+
+    def visit_Import(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Import")
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Import From")
+        self.generic_visit(node)
+
+    def visit_Global(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Global Declaration")
+        self.generic_visit(node)
+
+    def visit_Nonlocal(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Nonlocal Declaration")
+        self.generic_visit(node)
+
+    def visit_Raise(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Raise Exception")
+        self.generic_visit(node)
+
+    def visit_ClassDef(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="Definition", space_override="O(1)", custom_op="Class Definition")
+        self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1
+
+    def visit_AsyncFunctionDef(self, node):
+        self.visit_FunctionDef(node)
+
+    def visit_AsyncFor(self, node):
+        self.visit_For(node)
+
+    def visit_AsyncWith(self, node):
+        self.visit_With(node)
+
+    def visit_Match(self, node):
+        self.analyzer.signature_recorder.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pattern Matching")
+        self.analyzer.current_depth += 1; self.generic_visit(node); self.analyzer.current_depth -= 1

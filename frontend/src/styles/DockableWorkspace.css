@@ -341,3 +341,79 @@
     font-size: 13px;
   }
 }
+
+
+/* --- Touch / pen dragging of tabs --- */
+.dock-tab {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+}
+
+.dock-touch-ghost {
+  position: fixed;
+  z-index: 10001;
+  transform: translate(-50%, -140%);
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--purple-main, #7928CA);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Drop bar: only needed on phones, where just one region is on screen. */
+.dock-touch-targets {
+  display: none;
+}
+
+.dock-region-drag-over {
+  outline: 2px dashed var(--purple-main, #7928CA);
+  outline-offset: -2px;
+}
+
+@media (max-width: 768px) {
+  .dock-touch-targets {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 10000;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 12px;
+    background: var(--panel-bg, #fff);
+    border: 1px solid var(--border-light, #ddd);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .dock-touch-targets-label {
+    flex: 1 0 100%;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted, #666);
+  }
+
+  .dock-touch-target {
+    flex: 1 1 0;
+    min-width: 56px;
+    padding: 14px 6px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 8px;
+    border: 2px dashed var(--border-light, #ccc);
+    color: var(--text-main, #222);
+  }
+
+  .dock-touch-target.over {
+    border-color: var(--purple-main, #7928CA);
+    background: rgba(121, 40, 202, 0.14);
+    color: var(--purple-main, #7928CA);
+  }
+}

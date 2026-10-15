@@ -306,15 +306,48 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
   }, [graphSignature, layoutWidth, layoutHeight, containerSize.width, containerSize.height]);
 
   // --- PAN AND ZOOM HANDLERS ---
+  // Pointer events (not mouse events) so the graph can also be panned with a
+  // finger or pen, and pinched to zoom with two fingers.
+  const activePointers = useRef(new Map());
+  const pinchDist = useRef(null);
+
   const handleMouseDown = (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (e.pointerType !== "mouse") {
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    }
+    if (activePointers.current.size === 2) {
+      const [a, b] = [...activePointers.current.values()];
+      pinchDist.current = Math.hypot(a.x - b.x, a.y - b.y);
+    }
     setIsDragging(true);
     lastMousePos.current = { x: e.clientX, y: e.clientY };
   };
 
   const handleMouseMove = (e) => {
-    if (containerRef.current) {
+    if (containerRef.current && e.pointerType === "mouse") {
       const rect = containerRef.current.getBoundingClientRect();
       setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    }
+    if (activePointers.current.has(e.pointerId)) {
+      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+    if (activePointers.current.size >= 2 && pinchDist.current && containerRef.current) {
+      const [a, b] = [...activePointers.current.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      const factor = dist / pinchDist.current;
+      pinchDist.current = dist;
+      const rect = containerRef.current.getBoundingClientRect();
+      const mx = (a.x + b.x) / 2 - rect.left;
+      const my = (a.y + b.y) / 2 - rect.top;
+      setTransform((prev) => {
+        const newScale = Math.min(Math.max(0.1, prev.scale * factor), 5);
+        const xs = (mx - prev.x) / prev.scale;
+        const ys = (my - prev.y) / prev.scale;
+        return { x: mx - xs * newScale, y: my - ys * newScale, scale: newScale };
+      });
+      return;
     }
     if (!isDragging) return;
     const dx = e.clientX - lastMousePos.current.x;
@@ -323,8 +356,15 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
     lastMousePos.current = { x: e.clientX, y: e.clientY };
   };
 
-  const handleMouseUpOrLeave = () => {
-    setIsDragging(false);
+  const handleMouseUpOrLeave = (e) => {
+    if (e && e.pointerId != null) activePointers.current.delete(e.pointerId);
+    if (activePointers.current.size < 2) pinchDist.current = null;
+    if (activePointers.current.size === 1) {
+      // Back to one finger: continue panning from where it is now.
+      lastMousePos.current = [...activePointers.current.values()][0];
+      return;
+    }
+    if (activePointers.current.size === 0) setIsDragging(false);
   };
 
   // Attach wheel event to the container
@@ -487,11 +527,12 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
           ref={svgRef}
           width="100%" 
           height="100%" 
-          style={{ cursor: isDragging ? 'grabbing' : 'grab', position: 'absolute', top: 0, left: 0 }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUpOrLeave}
-          onMouseLeave={handleMouseUpOrLeave}
+          style={{ cursor: isDragging ? 'grabbing' : 'grab', position: 'absolute', top: 0, left: 0, touchAction: 'none' }}
+          onPointerDown={handleMouseDown}
+          onPointerMove={handleMouseMove}
+          onPointerUp={handleMouseUpOrLeave}
+          onPointerCancel={handleMouseUpOrLeave}
+          onPointerLeave={(e) => { if (e.pointerType === 'mouse') handleMouseUpOrLeave(e); }}
         >
           <defs>
             <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">

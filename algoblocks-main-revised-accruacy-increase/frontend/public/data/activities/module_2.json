@@ -1,0 +1,803 @@
+{
+  "lesson_1": [
+    {
+      "id": "m2_l1_a1",
+      "title": "Brute Force: Maximum Value Search",
+      "difficulty": "Intermediate",
+      "task": [
+        "A brute force algorithmic strategy evaluates every candidate within a dataset to ensure the correct solution is identified.",
+        "To find the maximum value, the algorithm must systematically check every element against a recorded state.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else | Loops: Count With (For Loop) | Variables: Set Variable",
+        "1. Define the function `find_max(arr)`.",
+        "2. Implement a defensive check: if the array is empty, return the string 'Error'.",
+        "3. Initialize a tracking variable and assign it the value located at the first index.",
+        "4. Construct an iterative loop to traverse every element in the array.",
+        "5. Within the loop, evaluate if the current element exceeds your recorded maximum.",
+        "6. If true, update your tracking variable to equal the current element.",
+        "7. Return the tracking variable."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "find_max([32, 45, 28, 47, 39])",
+          "expected": "47",
+          "isHidden": false
+        },
+        {
+          "call": "find_max([-10, -5, -20])",
+          "expected": "-5",
+          "isHidden": false
+        },
+        {
+          "call": "find_max([100])",
+          "expected": "100",
+          "isHidden": false
+        },
+        {
+          "call": "find_max([])",
+          "expected": "'Error'",
+          "isHidden": true
+        },
+        {
+          "call": "find_max([1, 1, 1, 1])",
+          "expected": "1",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_l1_a2",
+      "title": "Brute Force: Minimum Value Search",
+      "difficulty": "Intermediate",
+      "task": [
+        "Finding the minimum value within an unsorted array requires the identical O(n) sequential traversal strategy, utilizing an inverted logical comparison.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else | Loops: Count With (For Loop) | Variables: Set Variable | Lists: Is List Empty?",
+        "1. Define the function `find_min(arr)`.",
+        "2. Evaluate if the list is empty, returning 'Error' if true.",
+        "3. Initialize a variable to track the minimum value, seeding it with the first element.",
+        "4. Construct a loop to traverse the array.",
+        "5. Evaluate if the current item is strictly less than your tracked minimum. If true, update the tracking variable.",
+        "6. Return the tracking variable."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "find_min([3, 1, 9, 2])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "find_min([10, 20, 30, 40])",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "find_min([-5, -10, 0, 5])",
+          "expected": "-10",
+          "isHidden": false
+        },
+        {
+          "call": "find_min([])",
+          "expected": "'Error'",
+          "isHidden": true
+        },
+        {
+          "call": "find_min([99])",
+          "expected": "99",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_l1_a3",
+      "title": "Brute Force: Target Sum Search",
+      "difficulty": "Intermediate",
+      "task": [
+        "A brute force target sum algorithm checks every possible combination of two elements to determine if they accumulate to a specific value.",
+        "Because this requires an inner loop to evaluate subsequent elements for every outer loop iteration, the time complexity scales quadratically.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else | Lists: Length Of List | Loops: Count With (For Loop)",
+        "1. Define the function `sum_search(arr, target)`.",
+        "2. Construct an outer loop iterating from 0 to the length of the array minus 1.",
+        "3. Construct an inner loop starting from the element immediately following the outer loop's index, up to the end of the array.",
+        "4. Inside the inner loop, evaluate if the sum of the elements at both pointers equals the target.",
+        "5. If true, return a list containing both elements.",
+        "6. If all combinations are evaluated without a match, return an empty list."
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "sum_search([2, 7, 11, 15], 9)",
+          "expected": "[2, 7]",
+          "isHidden": false
+        },
+        {
+          "call": "sum_search([3, 2, 4], 6)",
+          "expected": "[2, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "sum_search([1, 2, 3], 10)",
+          "expected": "[]",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_l1_a4",
+      "title": "Brute Force: Conditional Counting",
+      "difficulty": "Intermediate",
+      "task": [
+        "Exhaustive search can be combined with conditional logic to aggregate specific data subsets, such as computing the total number of even integers within an array.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else | Math: Remainder Of (Modulo) | Loops: Count With (For Loop) | Variables: Set Variable",
+        "1. Define the function `count_evens(arr)`.",
+        "2. Initialize an accumulator variable to track the count.",
+        "3. Construct a standard traversal loop over the array.",
+        "4. Within the loop, evaluate if the current element is an even number by checking if it is cleanly divisible by 2 using the modulo operator.",
+        "5. If the condition evaluates to true, increment the accumulator variable by 1.",
+        "6. Return the accumulator variable."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "count_evens([1, 2, 3, 4, 5, 6])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "count_evens([2, 4, 6, 8])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "count_evens([1, 3, 5])",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "count_evens([])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "count_evens([0])",
+          "expected": "1",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_l1_a5",
+      "title": "Brute Force: Early Exit Optimization",
+      "difficulty": "Intermediate",
+      "task": [
+        "When an algorithm only requires the first valid instance of a condition, executing the loop to completion is inefficient.",
+        "Implementing an early exit optimizes the average-case time complexity, although the worst-case remains O(n).",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else | Loops: Count With (For Loop)",
+        "1. Define the function `first_negative(arr)`.",
+        "2. Construct a linear traversal loop over the array.",
+        "3. Evaluate if the current item is strictly less than 0.",
+        "4. If true, return the item immediately to terminate the execution.",
+        "5. If the traversal concludes without encountering a negative number, return `0`."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "first_negative([5, 3, -2, 8, -1])",
+          "expected": "-2",
+          "isHidden": false
+        },
+        {
+          "call": "first_negative([10, 20, 30])",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "first_negative([-5, -10])",
+          "expected": "-5",
+          "isHidden": false
+        },
+        {
+          "call": "first_negative([])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "first_negative([0, 0, -1])",
+          "expected": "-1",
+          "isHidden": true
+        }
+      ]
+    }
+  ],
+  "lesson_2": [
+    {
+      "id": "m2_l2_a1",
+      "title": "Linear Search: Target Identification",
+      "difficulty": "Intermediate",
+      "task": [
+        "Linear Search relies on evaluating elements sequentially to locate a specific target within an unsorted dataset.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Lists: Length Of List | Lists: Get Item At Index | Loops: Count With (For Loop)",
+        "1. Define the function `linear_search(arr, target)`.",
+        "2. Construct an indexed loop from 0 up to the length of the array.",
+        "3. Inside the loop, evaluate if the element at the current index equals the target.",
+        "4. If the condition evaluates to true, return the index variable immediately.",
+        "5. If the loop completes without identifying the target, return `-1`."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "linear_search([3, 8, 5, 11, 2], 11)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "linear_search([10, 20, 30], 40)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "linear_search([7, 7, 7], 7)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "linear_search([], 5)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "linear_search([1], 1)",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_l2_a2",
+      "title": "Linear Search: Frequency Counting",
+      "difficulty": "Intermediate",
+      "task": [
+        "Rather than terminating upon the first identification, a full linear traversal can be utilized to compute the frequency of a target value within the dataset.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else | Loops: Count With (For Loop) | Variables: Set Variable | Math: Compound Assignment (+=, -=, *=, /=)",
+        "1. Define the function `count_occurrences(arr, target)`.",
+        "2. Initialize an accumulator variable to track the frequency count.",
+        "3. Construct a standard traversal loop over the array.",
+        "4. Evaluate if the current element equals the target. If true, increment your accumulator variable by 1.",
+        "5. Return the finalized accumulator variable."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "count_occurrences([1, 2, 2, 3], 2)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "count_occurrences([5, 5, 5, 5], 5)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "count_occurrences([1, 2, 3], 4)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "count_occurrences([], 1)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "count_occurrences([9], 9)",
+          "expected": "1",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_l2_a3",
+      "title": "Linear Search: Reverse Traversal",
+      "difficulty": "Intermediate",
+      "task": [
+        "To locate the final occurrence of a specific target, traversing the array from index 0 to the end is mathematically inefficient.",
+        "Implementing a reverse traversal ensures the first match encountered is the last occurrence in the sequence, allowing for an immediate early exit.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else | Lists: Get Item At Index | Loops: Count With (For Loop) | Math: Compound Assignment (+=, -=, *=, /=)",
+        "1. Define the function `last_occurrence(arr, target)`.",
+        "2. Construct a loop that iterates backward, starting the index at the final valid array position and decrementing to 0.",
+        "3. Inside the loop, evaluate if the element at the current index equals the target.",
+        "4. If true, execute an immediate return of the current index.",
+        "5. If the loop concludes without a match, return `-1`."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "last_occurrence([1, 2, 2, 3, 2, 4], 2)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "last_occurrence([5, 5, 5], 5)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "last_occurrence([1, 2, 3], 4)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "last_occurrence([9, 1, 1], 9)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "last_occurrence([], 1)",
+          "expected": "-1",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_l2_a4",
+      "title": "Linear Search: Bounded Range",
+      "difficulty": "Intermediate",
+      "task": [
+        "Search algorithms frequently operate within dynamic subsections of memory defined by `start` and `end` pointers.",
+        "Accepting dynamic bounds without validation presents a critical stability risk. The bounds must be sanitized prior to execution.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else | Lists: Get Item At Index | Loops: Count With (For Loop)",
+        "1. Define the function `search_in_range(arr, target, start, end)`.",
+        "2. Apply boundary validation: prevent negative bounds by clamping the start pointer to 0 if necessary.",
+        "3. Apply upper boundary validation: clamp the end pointer to the final valid index to prevent overflow.",
+        "4. Construct an indexed loop originating at the validated `start` parameter and terminating at `end`.",
+        "5. Evaluate if the element at the current index matches the target. Return the index if true.",
+        "6. Return `-1` if the bounded search completes without a match."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "search_in_range([10, 20, 30, 40, 50], 40, 1, 4)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "search_in_range([10, 20, 30, 40, 50], 50, 0, 99)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "search_in_range([5, 5, 5], 5, -5, 2)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "search_in_range([], 1, 0, 0)",
+          "expected": "-1",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_l2_a5",
+      "title": "Linear Search: Multi-Target Extraction",
+      "difficulty": "Intermediate",
+      "task": [
+        "When an algorithm must identify multiple occurrences of a target and preserve their locations, it requires an out-of-place allocation strategy.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else | Lists: Create List With | Lists: Length Of List | Lists: Get Item At Index",
+        "1. Define the function `multi_search(arr, target)`.",
+        "2. Initialize an empty array to warehouse the identified indices.",
+        "3. Construct an indexed loop traversing the length of the array.",
+        "4. Evaluate if the element at the current index equals the target. If true, append the index to the auxiliary array.",
+        "5. Return the auxiliary array upon completion."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        {
+          "call": "multi_search([1, 5, 1, 8, 1], 1)",
+          "expected": "[0, 2, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "multi_search([2, 4, 6], 5)",
+          "expected": "[]",
+          "isHidden": false
+        },
+        {
+          "call": "multi_search([3, 3], 3)",
+          "expected": "[0, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "multi_search([], 1)",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "multi_search([0], 0)",
+          "expected": "[0]",
+          "isHidden": true
+        }
+      ]
+    }
+  ],
+  "lesson_3": [
+    {
+      "id": "m2_l3_a1",
+      "title": "Bubble Sort: Ascending Execution",
+      "difficulty": "Intermediate",
+      "task": [
+        "Bubble Sort operates by systematically comparing adjacent elements and exchanging them if they violate the intended sequence order.",
+        "This algorithm relies on nested iteration, resulting in an O(n²) time complexity.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Variables: Swap Two Variables | Loops: Count With (For Loop)",
+        "1. Define the function `bubble_sort_asc(arr)`.",
+        "2. Construct an outer loop encompassing the entire array to track the sorting passes.",
+        "3. Construct an inner loop to traverse the unsorted boundary.",
+        "4. Evaluate adjacent elements: if the current element is strictly greater than the subsequent element, execute an in-place swap.",
+        "5. Return the sorted array structure."
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "bubble_sort_asc([5, 2, 8, 1])",
+          "expected": "[1, 2, 5, 8]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_asc([3, 3, 1, 2])",
+          "expected": "[1, 2, 3, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_asc([9, 8, 7])",
+          "expected": "[7, 8, 9]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_asc([1])",
+          "expected": "[1]",
+          "isHidden": true
+        },
+        {
+          "call": "bubble_sort_asc([])",
+          "expected": "[]",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_l3_a2",
+      "title": "Selection Sort: Ascending Execution",
+      "difficulty": "Intermediate",
+      "task": [
+        "Selection Sort divides the array into sorted and unsorted segments. It scans the unsorted segment to locate the minimum element and swaps it into the sorted boundary.",
+        "This requires pointer indirection: tracking the structural index of the minimum value rather than the integer itself.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else | Variables: Swap Two Variables | Loops: Count With (For Loop) | Variables: Set Variable",
+        "1. Define the function `selection_sort(arr)`.",
+        "2. Construct an outer loop tracking the boundary of the sorted subsection.",
+        "3. Initialize a variable to track the index of the minimum value, setting it initially to the outer loop's position.",
+        "4. Construct an inner loop to scan the remaining unsorted elements.",
+        "5. Evaluate if the current unsorted element is less than the element at your tracked minimum index. If true, update your minimum index pointer.",
+        "6. Execute an in-place swap to move the absolute minimum value into the sorted boundary.",
+        "7. Return the sorted array."
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "selection_sort([64, 25, 12, 22, 11])",
+          "expected": "[11, 12, 22, 25, 64]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort([3, 1, 4, 1, 5, 9])",
+          "expected": "[1, 1, 3, 4, 5, 9]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort([9, 8, 7])",
+          "expected": "[7, 8, 9]",
+          "isHidden": true
+        },
+        {
+          "call": "selection_sort([42])",
+          "expected": "[42]",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_l3_a3",
+      "title": "Bubble Sort: Descending Execution",
+      "difficulty": "Intermediate",
+      "task": [
+        "To sequence elements in descending order, the algorithmic structure remains identical while the adjacent evaluation logic is inverted.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Variables: Swap Two Variables",
+        "1. Define the function `bubble_sort_desc(arr)`.",
+        "2. Implement the nested iterative structure established in the previous Bubble Sort exercise.",
+        "3. Modify the conditional evaluation: if the current element is strictly less than the subsequent element, execute the in-place swap.",
+        "4. Return the sorted array."
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "bubble_sort_desc([1, 2, 3])",
+          "expected": "[3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_desc([5, 8, 2, 9])",
+          "expected": "[9, 8, 5, 2]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_desc([2, 2, 1])",
+          "expected": "[2, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_desc([-1, -5, 0])",
+          "expected": "[0, -1, -5]",
+          "isHidden": true
+        },
+        {
+          "call": "bubble_sort_desc([])",
+          "expected": "[]",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_l3_a4",
+      "title": "Selection Sort: Descending Execution",
+      "difficulty": "Intermediate",
+      "task": [
+        "Selection Sort can be inverted by searching the unsorted boundary for the maximum value rather than the minimum.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Variables: Swap Two Variables",
+        "1. Define the function `selection_sort_desc(arr)`.",
+        "2. Implement the nested iterative structure. Initialize a tracker for the maximum index rather than the minimum.",
+        "3. Modify the conditional evaluation: if the current unsorted element exceeds the element at your tracked maximum index, update the pointer.",
+        "4. Execute an in-place swap to lock the maximum value into the sorted boundary.",
+        "5. Return the sorted array."
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "selection_sort_desc([1, 2, 3])",
+          "expected": "[3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort_desc([10, 50, 20])",
+          "expected": "[50, 20, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort_desc([4, 4, 6])",
+          "expected": "[6, 4, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort_desc([9])",
+          "expected": "[9]",
+          "isHidden": true
+        },
+        {
+          "call": "selection_sort_desc([])",
+          "expected": "[]",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_l3_a5",
+      "title": "Sort Execution Tracking: Single Pass",
+      "difficulty": "Intermediate",
+      "task": [
+        "To isolate and understand the underlying mechanics of Bubble Sort, we can track the structural state of the array after executing a single complete traversal.",
+        "A single pass of the adjacent comparison logic guarantees that the maximum element is pushed to the highest available index.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Variables: Swap Two Variables",
+        "1. Define the function `single_pass(arr)`.",
+        "2. Construct a single sequential loop that traverses the unsorted boundary.",
+        "3. Evaluate adjacent logic: if the current element is greater than the subsequent element, execute an in-place swap.",
+        "4. Return the modified array.",
+        "5. Observe that isolating the primary sorting mechanism reduces the execution to O(n) linear time."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "single_pass([5, 2, 8, 1])",
+          "expected": "[2, 5, 1, 8]",
+          "isHidden": false
+        },
+        {
+          "call": "single_pass([10, 1, 2])",
+          "expected": "[1, 2, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "single_pass([3, 2, 1])",
+          "expected": "[2, 1, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "single_pass([1, 2])",
+          "expected": "[1, 2]",
+          "isHidden": true
+        },
+        {
+          "call": "single_pass([])",
+          "expected": "[]",
+          "isHidden": true
+        }
+      ]
+    }
+  ],
+  "optimizations": [
+    {
+      "id": "m2_opt_1",
+      "title": "Optimization Challenge: Two-Pointer Convergence",
+      "difficulty": "Intermediate",
+      "task": [
+        "Finding a target sum using nested loops takes O(n²) time. Since the array is already sorted, you can use converging pointers to find the answer in O(n) time.",
+        "",
+        "Optimization Guidelines:",
+        "Blocks you'll need: Loops: Count With (For Loop) | Loops: Repeat While / Until",
+        "1. Remove the nested loops. Create a left pointer at the start of the array and a right pointer at the end.",
+        "2. Implement a loop that runs while the left pointer is less than the right pointer.",
+        "3. Calculate the sum of the elements at both pointer locations.",
+        "4. If the sum matches the target, return a new list containing the two elements.",
+        "5. If the sum is smaller than the target, move the left pointer forward. If it is larger, move the right pointer backward.",
+        "6. Return an empty list if the loop finishes without finding a match."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m2_opt_1.json",
+      "testCasesPool": [
+        {
+          "call": "two_sum_sorted([2, 7, 11, 15], 9)",
+          "expected": "[2, 7]",
+          "isHidden": false
+        },
+        {
+          "call": "two_sum_sorted([2, 3, 4], 6)",
+          "expected": "[2, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "two_sum_sorted([1, 2, 3], 10)",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "two_sum_sorted([], 5)",
+          "expected": "[]",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_opt_2",
+      "title": "Optimization Challenge: Center Index Verification",
+      "difficulty": "Intermediate",
+      "task": [
+        "Counting every element to find a majority item takes O(n²) time. In a sorted array, an item that makes up more than half the data will always occupy the exact middle position.",
+        "",
+        "Optimization Guidelines:",
+        "Blocks you'll need: Lists: Get Item At Index | Math: Advanced Math (//, **, >>, <<, &, |) | Loops: Count With (For Loop)",
+        "1. Delete the loops from the workspace.",
+        "2. Calculate the middle index of the array by dividing its length by 2 using integer division.",
+        "3. Access and return the element located at that middle index.",
+        "4. This approach reduces the time complexity to O(1)."
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m2_opt_2.json",
+      "testCasesPool": [
+        {
+          "call": "find_majority_sorted([1, 1, 1, 2, 3])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "find_majority_sorted([2, 3, 3, 3, 4])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "find_majority_sorted([99, 99])",
+          "expected": "99",
+          "isHidden": true
+        },
+        {
+          "call": "find_majority_sorted([0, 0, 0, 0, 0])",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m2_opt_3",
+      "title": "Optimization Challenge: Pre-Sorting for Adjacency",
+      "difficulty": "Intermediate",
+      "task": [
+        "Checking for duplicate values using nested loops requires O(n²) time. Sorting the array places identical values next to each other, allowing you to find duplicates with a single pass.",
+        "",
+        "Optimization Guidelines:",
+        "Blocks you'll need: Logic: Compare (=, ≠, <, >, ≤, ≥) | Loops: Count With (For Loop)",
+        "1. Remove the nested loop configuration.",
+        "2. Apply a sorting operation to the array, which requires O(n log n) time.",
+        "3. Create a single loop to iterate through the array, stopping one element early to prevent boundary errors.",
+        "4. Compare the current element to the element immediately following it.",
+        "5. If they match, return True immediately. If the loop completes without finding a match, return False."
+      ],
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m2_opt_3.json",
+      "testCasesPool": [
+        {
+          "call": "has_duplicates_opt([4, 1, 2, 1, 3])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "has_duplicates_opt([5, 8, 2, 9])",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "has_duplicates_opt([7, 7])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "has_duplicates_opt([1, 2, 3])",
+          "expected": "False",
+          "isHidden": true
+        }
+      ]
+    }
+  ]
+}

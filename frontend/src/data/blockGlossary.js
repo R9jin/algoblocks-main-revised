@@ -922,6 +922,14 @@ export const BLOCK_GLOSSARY = [
     useCase: "Use to package logic that produces a result you need elsewhere, like a calculate_average(list) function.",
   },
   {
+    type: "procedure_call_statement",
+    label: "Run Function And Ignore Result",
+    category: "Functions",
+    python: "my_function(a, b)",
+    description: "Runs a function that returns a value as a standalone step and throws the returned value away. Plug the function's call block into it.",
+    useCase: "Use to start a function by itself, such as dfs_undirected(graph, 0), when you only need its effects and not its return value.",
+  },
+  {
     type: "procedure_return_value",
     label: "Return",
     category: "Functions",

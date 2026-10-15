@@ -1,0 +1,32 @@
+<svg viewBox="0 0 640 268" width="640" height="268" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="268" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<line x1="320.0" y1="46" x2="320.0" y2="254" stroke="#E5E0F5" stroke-width="1.5"/>
+<text x="24" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#065F46">Advantages</text>
+<circle cx="35" cy="66.5" r="11" fill="#10B981"/>
+<path d="M 30 66.5 L 33.5 70.5 L 40.5 62.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">Easy</tspan><tspan dx="4" font-weight="700" fill="#065F46">to</tspan><tspan dx="4" font-weight="700" fill="#065F46">understand</tspan><tspan dx="4" font-weight="700" fill="#065F46">and</tspan><tspan dx="4" font-weight="700" fill="#065F46">implement.</tspan></text>
+<circle cx="35" cy="114.5" r="11" fill="#10B981"/>
+<path d="M 30 114.5 L 33.5 118.5 L 40.5 110.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">A</tspan><tspan dx="4" font-weight="400" fill="#33534A">solid</tspan><tspan dx="4" font-weight="700" fill="#065F46">correctness</tspan><tspan dx="4" font-weight="700" fill="#065F46">baseline.</tspan></text>
+<circle cx="35" cy="162.5" r="11" fill="#10B981"/>
+<path d="M 30 162.5 L 33.5 166.5 L 40.5 158.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">Reliable</tspan><tspan dx="4" font-weight="400" fill="#33534A">on</tspan><tspan dx="4" font-weight="400" fill="#33534A">small</tspan><tspan dx="4" font-weight="400" fill="#33534A">search</tspan><tspan dx="4" font-weight="400" fill="#33534A">spaces.</tspan></text>
+<circle cx="35" cy="210.5" r="11" fill="#10B981"/>
+<path d="M 30 210.5 L 33.5 214.5 L 40.5 206.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="217" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">Great</tspan><tspan dx="4" font-weight="400" fill="#33534A">for</tspan><tspan dx="4" font-weight="700" fill="#065F46">debugging</tspan><tspan dx="4" font-weight="700" fill="#065F46">and</tspan><tspan dx="4" font-weight="700" fill="#065F46">testing</tspan></text>
+<text x="52" y="236" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">faster</tspan><tspan dx="4" font-weight="400" fill="#33534A">solutions.</tspan></text>
+<text x="332.0" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#7A1E1E">Limitations</text>
+<circle cx="343.0" cy="66.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 62.5 L 347.0 70.5 M 347.0 62.5 L 339.0 70.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">Does</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">unnecessary</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">work.</tspan></text>
+<circle cx="343.0" cy="114.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 110.5 L 347.0 118.5 M 347.0 110.5 L 339.0 118.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#7A1E1E">Scales</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">poorly</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">as</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">candidates</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">grow.</tspan></text>
+<circle cx="343.0" cy="162.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 158.5 L 347.0 166.5 M 347.0 158.5 L 339.0 166.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">Can</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">burn</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">excessive</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">time</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">or</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">memory.</tspan></text>
+<circle cx="343.0" cy="210.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 206.5 L 347.0 214.5 M 347.0 206.5 L 339.0 214.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="217" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">Often</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">impractical</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">for</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">large</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">or</tspan></text>
+<text x="360.0" y="236" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">real-time</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">systems.</tspan></text>
+</svg>

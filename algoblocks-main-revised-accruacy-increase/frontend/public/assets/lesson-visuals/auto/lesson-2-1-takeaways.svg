@@ -1,0 +1,21 @@
+<svg viewBox="0 0 640 312" width="640" height="312" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="312" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="8" height="312" rx="4" fill="#7C5CFF"/>
+<text x="30" y="30" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#2B005C">Key Takeaways</text>
+<circle cx="36" cy="66.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 66.5 L 34.5 70.5 L 41.5 62.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Brute</tspan><tspan dx="4" font-weight="400" fill="#3D3554">force</tspan><tspan dx="4" font-weight="400" fill="#3D3554">solves</tspan><tspan dx="4" font-weight="400" fill="#3D3554">problems</tspan><tspan dx="4" font-weight="400" fill="#3D3554">by</tspan><tspan dx="4" font-weight="700" fill="#2B005C">systematically</tspan><tspan dx="4" font-weight="700" fill="#2B005C">checking</tspan><tspan dx="4" font-weight="700" fill="#2B005C">every</tspan><tspan dx="4" font-weight="700" fill="#2B005C">candidate.</tspan></text>
+<circle cx="36" cy="114.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 114.5 L 34.5 118.5 L 41.5 110.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Simple,</tspan><tspan dx="4" font-weight="400" fill="#3D3554">and</tspan><tspan dx="4" font-weight="700" fill="#2B005C">usually</tspan><tspan dx="4" font-weight="700" fill="#2B005C">guarantees</tspan><tspan dx="4" font-weight="700" fill="#2B005C">correctness.</tspan></text>
+<circle cx="36" cy="162.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 162.5 L 34.5 166.5 L 41.5 158.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">A</tspan><tspan dx="4" font-weight="400" fill="#3D3554">great</tspan><tspan dx="4" font-weight="700" fill="#2B005C">baseline</tspan><tspan dx="4" font-weight="700" fill="#2B005C">before</tspan><tspan dx="4" font-weight="700" fill="#2B005C">optimizing.</tspan></text>
+<circle cx="36" cy="210.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 210.5 L 34.5 214.5 L 41.5 206.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="217" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Cost</tspan><tspan dx="4" font-weight="400" fill="#3D3554">depends</tspan><tspan dx="4" font-weight="400" fill="#3D3554">on</tspan><tspan dx="4" font-weight="700" fill="#2B005C">how</tspan><tspan dx="4" font-weight="700" fill="#2B005C">many</tspan><tspan dx="4" font-weight="700" fill="#2B005C">candidates</tspan><tspan dx="4" font-weight="700" fill="#2B005C">get</tspan><tspan dx="4" font-weight="700" fill="#2B005C">tested.</tspan></text>
+<circle cx="36" cy="258.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 258.5 L 34.5 262.5 L 41.5 254.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="265" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Large</tspan><tspan dx="4" font-weight="400" fill="#3D3554">search</tspan><tspan dx="4" font-weight="400" fill="#3D3554">spaces</tspan><tspan dx="4" font-weight="400" fill="#3D3554">can</tspan><tspan dx="4" font-weight="400" fill="#3D3554">make</tspan><tspan dx="4" font-weight="400" fill="#3D3554">it</tspan><tspan dx="4" font-weight="700" fill="#2B005C">impractical</tspan><tspan dx="4" font-weight="400" fill="#3D3554">--</tspan><tspan dx="4" font-weight="400" fill="#3D3554">watch</tspan><tspan dx="4" font-weight="400" fill="#3D3554">for</tspan><tspan dx="4" font-weight="400" fill="#3D3554">quadratic</tspan><tspan dx="4" font-weight="400" fill="#3D3554">or</tspan><tspan dx="4" font-weight="400" fill="#3D3554">exponential</tspan></text>
+<text x="58" y="284" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">blowup.</tspan></text>
+</svg>

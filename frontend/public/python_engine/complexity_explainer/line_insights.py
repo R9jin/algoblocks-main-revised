@@ -923,12 +923,9 @@ class LineInsights:
                 return []
             own = [lp for lp in self._shape.enclosing_loops(line_no, include_self=True)
                    if lp.fixed and lp.lineno == line_no]
-            passes = own[0].passes_text() if own else "a fixed number of passes"
-            return [(1, (
-                f"**Why a fixed bound still shows O(n):** AlgoBlocks scores every `for` over `range(...)` as the general loop pattern -- one unit of work per pass of its bound -- "
-                f"so you can see how this same loop would grow if `{_src(node.iter, 30)}` were replaced by the input size n. "
-                f"Keep the three readings apart: the *profiler count* ({passes}) measures one execution, the *headline O(n)* is the loop pattern, "
-                f"and the *strict asymptotic result* (O(1) for a fixed bound) is spelled out in the Strict asymptotic analysis paragraph above."))]
+            # The "Strict asymptotic analysis" paragraph already explains the fixed-bound reading;
+            # repeating it here made the same point a third and fourth time.
+            return []
         except Exception:
             if STRICT:
                 raise

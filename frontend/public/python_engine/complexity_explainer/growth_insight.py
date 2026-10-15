@@ -335,6 +335,85 @@ def strict_without_fixed(total: str, k: int) -> Optional[str]:
     return "O(" + (" * ".join(parts) if parts else "1") + ")"
 
 
+def symbolic_scoring_note(tree) -> str:
+    """One general note listing every place the analyzer read a fixed value in the code as an example of an
+    input size `n` (symbolic scoring) rather than as the strict constant it literally is. Not specific to
+    `for` loops: fixed range() bounds, variables holding a fixed value that bound a loop, and calls to a
+    scaling function with literal arguments are all covered. Returns "" when none of them occur."""
+    try:
+        found = []  # (lineno, text)
+        theoretical = bool(getattr(_cp, "THEORETICAL_MODE", True)) if _cp is not None else True
+
+        # 1. fixed-bound range() loops
+        for node in ast.walk(tree):
+            if isinstance(node, ast.For) and is_symbolic_fixed_range(node):
+                found.append((node.lineno, f"line {node.lineno}: `{ast.unparse(node.iter)}` is a fixed bound, read as the loop pattern (work grows with its bound)"))
+
+        # 2. a script-level variable holding a fixed number, used as a loop bound
+        if theoretical:
+            consts = {}
+            counts = {}
+            for stmt in getattr(tree, "body", []):
+                if (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name)
+                        and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, (int, float))
+                        and not isinstance(stmt.value.value, bool)):
+                    consts[stmt.targets[0].id] = stmt.value.value
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+                    counts[node.id] = counts.get(node.id, 0) + 1
+            consts = {k: v for k, v in consts.items() if counts.get(k, 0) == 1}
+            if consts:
+                for node in ast.walk(tree):
+                    hdr = node.iter if isinstance(node, ast.For) else node.test if isinstance(node, ast.While) else None
+                    if hdr is None:
+                        continue
+                    names = [n.id for n in ast.walk(hdr) if isinstance(n, ast.Name) and n.id in consts]
+                    if names:
+                        nm = names[0]
+                        found.append((node.lineno, f"line {node.lineno}: `{nm}` holds the fixed value {consts[nm]}, but is read as the input size `n`"))
+
+        # 3. a call to a user function that scales with its argument, given only literal arguments
+        scaling = set()
+        for fn in ast.walk(tree):
+            if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for sub in ast.walk(fn):
+                    if isinstance(sub, (ast.For, ast.While)) or (
+                            isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name) and sub.func.id == fn.name):
+                        scaling.add(fn.name)
+                        break
+        if scaling:
+            def lit(a):
+                return (isinstance(a, ast.Constant) and isinstance(a.value, (int, float)) and not isinstance(a.value, bool)) or (
+                    isinstance(a, ast.UnaryOp) and isinstance(a.op, ast.USub) and lit(a.operand))
+            inside = {}
+            for fn in ast.walk(tree):
+                if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    for sub in ast.walk(fn):
+                        inside.setdefault(id(sub), fn.name)
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in scaling
+                        and node.args and all(lit(a) for a in node.args) and inside.get(id(node)) != node.func.id):
+                    found.append((node.lineno, f"line {node.lineno}: `{ast.unparse(node)}` is called with fixed argument(s), read as the input size `n`"))
+
+        if not found:
+            return ""
+        found.sort(key=lambda t: t[0])
+        seen, bullets = set(), []
+        for _, text in found:
+            if text not in seen:
+                seen.add(text)
+                bullets.append(text)
+        shown = "\n".join(f"- {b}" for b in bullets[:5]) + (f"\n- ... and {len(bullets) - 5} more" if len(bullets) > 5 else "")
+        return (
+            "**Symbolic scoring:** AlgoBlocks treats some parts of your code symbolically instead of applying strict asymptotic "
+            "analysis to the exact program. Fixed values written in the code are read as examples of an input size `n`, so you "
+            "can see how the same operation generally scales. For those parts the feedback is a generalized learning example "
+            "and can differ from the strict complexity of this exact code (which may be O(1)).\n\nHere this applies to:\n" + shown
+        )
+    except Exception:
+        return ""
+
+
 def strict_asymptotic_note(total: str, fixed_loops, own: bool = False) -> str:
     """The 'strictly this is O(1)' paragraph shown next to a fixed-bound loop's O(n) score.
     `fixed_loops` are the LoopInfo of every fixed-bound loop around (and including) the line."""
@@ -351,8 +430,8 @@ def strict_asymptotic_note(total: str, fixed_loops, own: bool = False) -> str:
         who = f"{heads} all have fixed bounds"
         what = "so under strict asymptotic analysis they repeat a constant number of times in total and add only constant factors"
     tail = (f" Strictly, this {'loop' if own else 'line'} is therefore `{strict}`" if strict else "")
-    tail += (f"; the main output stays {shown} because AlgoBlocks scores a loop over `range(...)` as the general loop pattern "
-             f"(work proportional to its bound), to show how the same code grows once that bound becomes the input size.")
+    tail += (f"; the headline stays {shown} because AlgoBlocks scores a fixed bound symbolically, as an example of an input size n, "
+             f"to show how the code grows once that bound becomes the input size.")
     return f"**Strict asymptotic analysis:** {who}, {what}.{tail}"
 
 # ---------------------------------------------------------------------------
@@ -497,7 +576,7 @@ class ProgramShape:
                 times = f"exactly {k} times" if k is not None else "a fixed number of times"
                 if is_symbolic_fixed_range(node):
                     return LoopInfo(node.lineno, "for", header,
-                                    f"repeats {times} (a fixed bound) -- AlgoBlocks scores it as the O(n) loop pattern, although strictly it is O(1)",
+                                    f"repeats {times} (a fixed bound, strictly O(1))",
                                     True, True, k)
                 return LoopInfo(node.lineno, "for", header, f"always repeats {times} (a fixed number)", False, False, k)
             if isinstance(it, ast.Call) and isinstance(it.func, ast.Name) and it.func.id == "range":

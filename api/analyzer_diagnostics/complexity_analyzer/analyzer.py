@@ -717,6 +717,14 @@ def analyze_source_code(source_code, explain=True):
         _lit_note = script_literal_loop_note(tree, getattr(analyzer, 'script_literal_locs', set()))
         if _lit_note:
             overall_exp = ((overall_exp or '') + '\n\n' + _lit_note).strip()
+        if explain:
+            try:
+                from complexity_explainer.growth_insight import symbolic_scoring_note
+                _sym_note = symbolic_scoring_note(tree)
+            except Exception:
+                _sym_note = ""
+            if _sym_note:
+                overall_exp = ((overall_exp or '') + '\n\n' + _sym_note).strip()
 
         _total_badge = analyzer.complexity_synthesizer.get_final_asymptotic_badge()
         _lines_out = _finalize_line_output(analyzer.details)

@@ -62,6 +62,8 @@ const customBlocks = [
     args0: [{ type: "field_variable", name: "VAR", variable: "item" }, { type: "field_dropdown", name: "OP", options: [["+=", "ADD"], ["-=", "MINUS"], ["*=", "MULTIPLY"], ["/=", "DIVIDE"]] }, { type: "input_value", name: "DELTA", check: "Number" }], inputsInline: true, previousStatement: null, nextStatement: null },
   { type: "procedure_return_value", message0: "return %1", colour: "#7a6b66", tooltip: "Exits the current function and returns the specified value back to where the function was called. Any code written after this block inside the same function will not run.",
     args0: [{ type: "input_value", name: "VALUE" }], previousStatement: null, nextStatement: null },
+  { type: "procedure_call_statement", message0: "run %1 and ignore its result", colour: "#7a6b66", tooltip: "Runs a function that returns a value as a standalone step, discarding what it returns. Plug a function's call block (the one with its name and inputs) into the socket. Use it when you only want the function's effects, such as printing, and not its returned value.",
+    args0: [{ type: "input_value", name: "VALUE" }], previousStatement: null, nextStatement: null },
   { type: "custom_string_join", message0: "join list %1 with delimiter %2", colour: "#d5a52a", tooltip: "Joins all items in a list into a single continuous string, placing the specified delimiter between each item. Great for converting arrays into readable, formatted text.",
     args0: [{ type: "input_value", name: "LIST", check: "Array" }, { type: "input_value", name: "DELIMITER", check: "String" }], output: "String" },
   { type: "string_to_list", message0: "create list from string %1", style: "list_blocks", tooltip: "Converts a string into a list where each character (or separated word) becomes an individual element in the newly created list array.",
@@ -339,6 +341,7 @@ export function registerCustomPythonGenerators() {
     return `${list}[${idx}] = ${val}\n`;
   };
 
+  pythonGenerator.forBlock["procedure_call_statement"] = b => { const c = getCode(b, "VALUE"); return c ? `${c}\n` : "pass\n"; };
   pythonGenerator.forBlock["procedure_return_value"] = b => `return ${getCode(b, "VALUE") || "None"}\n`;
   pythonGenerator.forBlock["custom_string_join"] = b => [`${getCode(b, "DELIMITER", pythonGenerator.ORDER_MEMBER) || "''"}.join(${getCode(b, "LIST") || "[]"})`, pythonGenerator.ORDER_FUNCTION_CALL];
   pythonGenerator.forBlock["string_to_list"] = b => [`list(${getCode(b, "STRING") || "''"})`, pythonGenerator.ORDER_FUNCTION_CALL];
@@ -484,6 +487,25 @@ Blockly.Procedures.flyoutCategory = function (ws) {
   const returnBlk = document.createElement("block");
   returnBlk.setAttribute("type", "procedure_return_value");
   xmlList.push(returnBlk);
+  // Blockly only offers a value-style call block ("procedures_callreturn",
+  // with an output tab) for a function that returns a value, and that cannot
+  // stand on its own. Also offer the plain statement-style call block
+  // ("procedures_callnoreturn") for the same function, so it can be dropped in
+  // and run directly -- exactly how the graph templates call their functions.
+  // Blockly 12 returns flyout items as plain objects ({kind, type,
+  // extraState}); older versions return XML elements. Handle both.
+  const wrapped = [];
+  xmlList.forEach((el) => {
+    if (el && el.kind === "block" && el.type === "procedures_callreturn") {
+      wrapped.push({ kind: "block", type: "procedures_callnoreturn", extraState: el.extraState });
+    } else if (el && el.getAttribute && el.getAttribute("type") === "procedures_callreturn") {
+      const call = el.cloneNode(true);
+      call.setAttribute("type", "procedures_callnoreturn");
+      wrapped.push(call);
+    }
+  });
+  const at = xmlList.indexOf(returnBlk);
+  xmlList.splice(at, 0, ...wrapped);
   return xmlList;
 };
 
@@ -639,7 +661,8 @@ export const toolbox = {
         { kind: "block", type: "procedures_defnoreturn" },
         { kind: "block", type: "procedures_defreturn" },
         { kind: "block", type: "procedures_ifreturn" },
-        { kind: "block", type: "procedure_return_value" }
+        { kind: "block", type: "procedure_return_value" },
+        { kind: "block", type: "procedure_call_statement" }
       ]
     },
     {
@@ -710,24 +733,224 @@ export const relayoutTopBlocks = (ws) => {
   }
 };
 
-// Only restack when something actually overlaps, so a learner's own saved
+// Small clearance left between two stacks after one is moved off the other.
+const SEPARATION_GAP = 16;
+
+// When the workspace is first built or re-synced (e.g. Python -> Blocks), only the
+// stacks that actually collide are moved, and only straight down by just enough to
+// clear the one above. Everything that was already fine stays exactly where it is,
+// instead of the whole workspace being re-stacked into one tall column.
+const separateOverlaps = (ws) => {
+  const blocks = topLevelBlocks(ws).sort((a, b) => {
+    const pa = a.getRelativeToSurfaceXY(), pb = b.getRelativeToSurfaceXY();
+    return pa.y - pb.y || pa.x - pb.x;
+  });
+  if (blocks.length < 2) return;
+  // Hidden/unrendered panel: sizes read back as 0, so there is nothing to measure yet.
+  if (blocks.every((b) => !b.getHeightWidth().height)) return;
+  const prevGroup = Blockly.Events.getGroup();
+  Blockly.Events.setGroup(true);
+  try {
+    const placed = [];
+    for (const b of blocks) {
+      for (let guard = 0; guard < 30; guard++) {
+        const mine = b.getBoundingRectangle();
+        const hit = placed.find((o) => rectsOverlap(mine, o.getBoundingRectangle()));
+        if (!hit) break;
+        b.moveBy(0, hit.getBoundingRectangle().bottom + SEPARATION_GAP - mine.top);
+      }
+      placed.push(b);
+    }
+  } finally {
+    Blockly.Events.setGroup(prevGroup || false);
+  }
+};
+
+// Only fix things when something actually overlaps, so a learner's own saved
 // arrangement is left alone whenever it is already fine.
 export const fixOverlapsIfAny = (ws) => {
   if (!ws) return;
-  try { if (hasTopLevelOverlap(ws)) relayoutTopBlocks(ws); } catch (e) { /* layout is best-effort */ }
+  try { if (hasTopLevelOverlap(ws)) separateOverlaps(ws); } catch (e) { /* layout is best-effort */ }
 };
 
-// Move one top-level group straight down past anything it overlaps.
+// The shortest straight move (left, right, up or down) that clears `mine` of `other`.
+// Ties go to down, then right, so the reading order of the code changes as little as possible.
+const smallestClearingMove = (mine, other) => {
+  const options = [
+    { dx: 0, dy: other.bottom + SEPARATION_GAP - mine.top },
+    { dx: other.right + SEPARATION_GAP - mine.left, dy: 0 },
+    { dx: 0, dy: other.top - SEPARATION_GAP - mine.bottom },
+    { dx: other.left - SEPARATION_GAP - mine.right, dy: 0 },
+  ];
+  return options.reduce((best, o) =>
+    (Math.abs(o.dx) + Math.abs(o.dy) < Math.abs(best.dx) + Math.abs(best.dy) ? o : best));
+};
+
+// A dropped stack that lands on another one is nudged the short way out, not thrown
+// to the bottom of everything.
 const nudgeOutOfOverlap = (ws, block) => {
   if (!block || block.disposed || block.getParent()) return;
   const others = topLevelBlocks(ws).filter((b) => b.id !== block.id);
+  for (let guard = 0; guard < 12; guard++) {
+    const mine = block.getBoundingRectangle();
+    const hit = others.find((o) => rectsOverlap(mine, o.getBoundingRectangle()));
+    if (!hit) return;
+    const move = smallestClearingMove(mine, hit.getBoundingRectangle());
+    block.moveBy(move.dx, move.dy);
+  }
+  // Last resort (stacks packed too tightly to separate by small moves): drop below the one it still hits.
   for (let guard = 0; guard < 25; guard++) {
     const mine = block.getBoundingRectangle();
     const hit = others.find((o) => rectsOverlap(mine, o.getBoundingRectangle()));
     if (!hit) return;
-    const target = hit.getBoundingRectangle().bottom + BLOCK_GAP;
-    block.moveBy(0, target - mine.top);
+    block.moveBy(0, hit.getBoundingRectangle().bottom + SEPARATION_GAP - mine.top);
   }
+};
+
+// ---------------------------------------------------------------------------
+// Edge auto-scroll while dragging a block
+//
+// Blocks can no longer be dropped on top of each other, so a learner needs room to
+// move around. While a block is being dragged, holding it near (or past) an edge of
+// the workspace scrolls the view in that direction -- up, down, left or right --
+// faster the further past the edge the pointer is. The dragged block stays under
+// the pointer while the view moves. Pausing over the toolbox, trashcan or backpack
+// keeps those drop targets usable (no scrolling while the pointer is on them).
+// ---------------------------------------------------------------------------
+const AUTOSCROLL_ZONE = 56;  // px inside the edge where scrolling starts
+const AUTOSCROLL_MIN = 4;    // px per frame right at the zone's inner border
+const AUTOSCROLL_MAX = 24;   // px per frame at full speed
+const dragAutoScrollHandlers = new Map(); // workspace -> handler
+let draggerPatched = false;
+
+const handlerForDragger = (dragger) =>
+  dragAutoScrollHandlers.get(dragger?.draggable?.workspace)
+  || dragAutoScrollHandlers.get(dragger?.workspace)
+  || dragAutoScrollHandlers.get(dragger?.workspace?.targetWorkspace);
+
+const patchDraggerOnce = () => {
+  if (draggerPatched) return;
+  const Dragger = Blockly.dragging && Blockly.dragging.Dragger;
+  if (!Dragger || !Dragger.prototype) return;
+  draggerPatched = true;
+  const origStart = Dragger.prototype.onDragStart;
+  const origDrag = Dragger.prototype.onDrag;
+  const origEnd = Dragger.prototype.onDragEnd;
+  Dragger.prototype.onDragStart = function (e) {
+    const r = origStart.call(this, e);
+    try { handlerForDragger(this)?.start(this, e); } catch (err) { /* auto-scroll is a convenience only */ }
+    return r;
+  };
+  Dragger.prototype.onDrag = function (e, delta) {
+    try { handlerForDragger(this)?.track(e, delta); } catch (err) { /* ignore */ }
+    return origDrag.call(this, e, delta);
+  };
+  Dragger.prototype.onDragEnd = function (e) {
+    try { handlerForDragger(this)?.stop(); } catch (err) { /* ignore */ }
+    return origEnd.call(this, e);
+  };
+};
+
+const installDragAutoScroll = (ws) => {
+  patchDraggerOnce();
+  let dragger = null;
+  let lastEvent = null;
+  let lastDelta = null;
+  let pointer = null;
+  let raf = 0;
+
+  const viewportRect = () => {
+    const svg = ws.getParentSvg().getBoundingClientRect();
+    const mm = ws.getMetricsManager();
+    const abs = mm.getAbsoluteMetrics();
+    const view = mm.getViewMetrics();
+    return {
+      left: svg.left + abs.left,
+      top: svg.top + abs.top,
+      right: svg.left + abs.left + view.width,
+      bottom: svg.top + abs.top + view.height,
+    };
+  };
+
+  const speedFor = (depth) => Math.min(AUTOSCROLL_MAX, AUTOSCROLL_MIN + depth * 0.35);
+
+  const tick = () => {
+    raf = 0;
+    if (!dragger || !pointer || ws.disposed) return;
+    try {
+      // Over the toolbox / trashcan / backpack: the learner is aiming at a drop target.
+      if (!dragger.dragTarget) {
+        const r = viewportRect();
+        let vx = 0, vy = 0;
+        const dl = r.left + AUTOSCROLL_ZONE - pointer.x;
+        const dr = pointer.x - (r.right - AUTOSCROLL_ZONE);
+        const dt = r.top + AUTOSCROLL_ZONE - pointer.y;
+        const db = pointer.y - (r.bottom - AUTOSCROLL_ZONE);
+        if (dl > 0) vx = -speedFor(dl); else if (dr > 0) vx = speedFor(dr);
+        if (dt > 0) vy = -speedFor(dt); else if (db > 0) vy = speedFor(db);
+        if (vx || vy) {
+          const bx = ws.scrollX, by = ws.scrollY;
+          ws.scroll(bx - vx, by - vy); // clamps to the scrollable area
+          const movedX = bx - ws.scrollX, movedY = by - ws.scrollY;
+          if (movedX || movedY) {
+            // The content slid under the pointer: shift the drag's origin by the same
+            // amount so the block keeps following the pointer, then redraw it there.
+            dragger.startLoc.x += movedX / ws.scale;
+            dragger.startLoc.y += movedY / ws.scale;
+            if (lastEvent && lastDelta) dragger.onDrag(lastEvent, lastDelta);
+          }
+        }
+      }
+    } catch (err) { /* never break dragging over a scroll nicety */ }
+    raf = requestAnimationFrame(tick);
+  };
+
+  const handler = {
+    start(d, e) {
+      dragger = d;
+      lastEvent = e;
+      lastDelta = null;
+      pointer = e && e.clientX != null ? { x: e.clientX, y: e.clientY } : null;
+      if (!raf) raf = requestAnimationFrame(tick);
+    },
+    track(e, delta) {
+      lastEvent = e;
+      lastDelta = delta;
+      if (e && e.clientX != null) pointer = { x: e.clientX, y: e.clientY };
+    },
+    stop() {
+      dragger = null;
+      lastEvent = null;
+      lastDelta = null;
+      pointer = null;
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    },
+  };
+  dragAutoScrollHandlers.set(ws, handler);
+  return () => { handler.stop(); dragAutoScrollHandlers.delete(ws); };
+};
+
+// ---------------------------------------------------------------------------
+// "Auto-remove unused blocks" setting
+//
+// Unused (loose) blocks always show a warning icon and can always be removed with the
+// "Remove unused blocks" button. This setting only decides whether they are removed
+// automatically (undoable) instead of by hand. It is remembered in the browser and shared
+// by every workspace (Main app, Activity app, the Pipeline view's embedded app and all
+// open tabs). Default: on.
+// On = a loose block is removed shortly after it is left unconnected, and again on Run.
+// ---------------------------------------------------------------------------
+const AUTO_REMOVE_KEY = "algoblocks.autoRemoveUnusedBlocks";
+const AUTO_REMOVE_EVENT = "algoblocks:autoRemoveUnusedBlocks";
+// With the setting on, a block left unconnected is removed after this long without any
+// workspace change, so a learner still moving blocks around has time to plug it in.
+const AUTO_REMOVE_DELAY_MS = 2500;
+const readAutoRemoveSetting = () => {
+  try { return window.localStorage.getItem(AUTO_REMOVE_KEY) !== "off"; } catch (e) { return true; }
+};
+const writeAutoRemoveSetting = (on) => {
+  try { window.localStorage.setItem(AUTO_REMOVE_KEY, on ? "on" : "off"); } catch (e) { /* storage unavailable: applies to this session only */ }
+  try { window.dispatchEvent(new CustomEvent(AUTO_REMOVE_EVENT, { detail: on })); } catch (e) { /* ignore */ }
 };
 
 // ---------------------------------------------------------------------------
@@ -812,6 +1035,19 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
   // Undo" message, which keeps the removed blocks (as JSON) so Undo can put
   // them back exactly where they were.
   const [unusedCount, setUnusedCount] = useState(0);
+  const [autoRemoveUnused, setAutoRemoveUnusedState] = useState(readAutoRemoveSetting);
+  const autoRemoveRef = useRef(autoRemoveUnused);
+  autoRemoveRef.current = autoRemoveUnused;
+  const removeUnusedNowRef = useRef(null);
+  const flagLooseRef = useRef(null);
+  // Keep every open workspace (tabs, docked panels) in step when the setting changes.
+  useEffect(() => {
+    const onChange = (ev) => setAutoRemoveUnusedState(!!ev.detail);
+    const onStorage = (ev) => { if (ev.key === AUTO_REMOVE_KEY) setAutoRemoveUnusedState(ev.newValue !== "off"); };
+    window.addEventListener(AUTO_REMOVE_EVENT, onChange);
+    window.addEventListener("storage", onStorage);
+    return () => { window.removeEventListener(AUTO_REMOVE_EVENT, onChange); window.removeEventListener("storage", onStorage); };
+  }, []);
   const [notice, setNotice] = useState(null);
   const noticeTimerRef = useRef(null);
 
@@ -865,6 +1101,10 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       });
     } finally { Blockly.Events.setGroup(prevGroup || false); }
   };
+
+  removeUnusedNowRef.current = removeUnusedNow;
+  // Turning the setting on/off takes effect right away for blocks already loose.
+  useEffect(() => { flagLooseRef.current?.(); }, [autoRemoveUnused]);
 
   const executeLoad = (json, preservePythonCode) => {
     if (!workspace.current) return;
@@ -1097,7 +1337,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     arrangeBlocks: () => { if (workspace.current) relayoutTopBlocks(workspace.current); },
     // Removes unused (loose, do-nothing) value blocks. Used when the program
     // is run and by the "Remove unused blocks" button. Returns { removed, code }.
-    removeUnusedBlocks: () => removeUnusedNow(),
+    removeUnusedBlocks: () => (autoRemoveRef.current ? removeUnusedNow() : { removed: 0 }),
     resize: () => {
       const ws = workspace.current;
       if (!ws) return;
@@ -1118,6 +1358,8 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     let searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin;
     let resizeObserverRef = null;
     let looseTimer = null;
+    let autoRemoveTimer = null;
+    let disposeDragAutoScroll = null;
     let resizeFrame = null;
 
     if (!crossTabPluginInitialized) {
@@ -1153,6 +1395,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       // or Variables still rendered without them. Calling this directly
       // guarantees the callback actually used by this workspace is ours,
       // regardless of whatever Blockly does internally by default.
+      try { disposeDragAutoScroll = installDragAutoScroll(workspace.current); } catch (e) { console.warn("Drag auto-scroll unavailable:", e); }
       workspace.current.registerToolboxCategoryCallback("VARIABLE", Blockly.Variables.flyoutCategory);
       workspace.current.registerToolboxCategoryCallback("PROCEDURE", Blockly.Procedures.flyoutCategory);
 
@@ -1198,7 +1441,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
           const stillLoose = new Set(loose.map((b) => b.id));
           loose.forEach((b) => {
             if (!looseWarnedIds.has(b.id)) {
-              b.setWarningText("This block isn't connected to anything, so it does nothing. Plug it into another block, or remove it with \"Remove unused blocks\". It is also cleaned up when you run the program.");
+              b.setWarningText("This block isn't connected to anything, so it does nothing. Plug it into another block, or remove it with the \"Remove unused blocks\" button.");
               looseWarnedIds.add(b.id);
             }
           });
@@ -1209,10 +1452,26 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
             looseWarnedIds.delete(id);
           });
           setUnusedCount(countBlocks(loose));
+          // Auto-remove: once the workspace has been idle for a moment, clear the loose blocks
+          // (undoable). Never while a block is being dragged or a load is in progress.
+          if (autoRemoveTimer) { clearTimeout(autoRemoveTimer); autoRemoveTimer = null; }
+          if (autoRemoveRef.current && loose.length) {
+            autoRemoveTimer = setTimeout(function attempt() {
+              autoRemoveTimer = null;
+              const w = workspace.current;
+              if (!w || !autoRemoveRef.current) return;
+              if ((w.isDragging && w.isDragging()) || suppressAutoChangeRef.current) {
+                autoRemoveTimer = setTimeout(attempt, 1000);
+                return;
+              }
+              if (removeUnusedNowRef.current) removeUnusedNowRef.current();
+            }, AUTO_REMOVE_DELAY_MS);
+          }
         } catch (e) { /* warnings are cosmetic; never break the workspace over them */ }
         flaggingLoose = false;
       };
       looseTimer = null;
+      flagLooseRef.current = flagLooseBlocks;
       workspace.current.addChangeListener((event) => {
         const t = event.type;
         if (t !== Blockly.Events.BLOCK_MOVE && t !== Blockly.Events.BLOCK_CREATE
@@ -1278,7 +1537,10 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       if (changeTimeoutRef.current) { clearTimeout(changeTimeoutRef.current); changeTimeoutRef.current = null; }
       if (noticeTimerRef.current) { clearTimeout(noticeTimerRef.current); noticeTimerRef.current = null; }
       if (looseTimer) { clearTimeout(looseTimer); looseTimer = null; }
+      if (autoRemoveTimer) { clearTimeout(autoRemoveTimer); autoRemoveTimer = null; }
+      flagLooseRef.current = null;
       if (resizeFrame) { cancelAnimationFrame(resizeFrame); resizeFrame = null; }
+      if (disposeDragAutoScroll) { try { disposeDragAutoScroll(); } catch (e) {} disposeDragAutoScroll = null; }
       try { [searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin].forEach(p => p?.dispose && p.dispose()); } catch (e) {}
       if (workspace.current) { workspace.current.dispose(); workspace.current = null; }
       if (resizeObserverRef) { resizeObserverRef.disconnect(); resizeObserverRef = null; }
@@ -1288,21 +1550,53 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={blocklyDiv} style={{ height: "100%", width: "100%" }} />
-      {unusedCount > 0 && (
-        <button
-          type="button"
-          onClick={() => removeUnusedNow()}
-          title="Delete value blocks that aren't plugged into anything. They do nothing, and you can undo this."
+      <div
+        style={{
+          position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", zIndex: 40,
+          display: "flex", alignItems: "center", gap: 8, pointerEvents: "none",
+        }}
+      >
+        <label
+          title={autoRemoveUnused
+            ? "On: a block left unplugged is removed automatically after a moment, and again when you run. You can undo it."
+            : "Off: unused blocks stay on the canvas. Use the Remove unused blocks button to clear them."}
           style={{
-            position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", zIndex: 40,
-            display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", border: "none",
-            borderRadius: 18, background: "#7c3aed", color: "#fff", fontSize: "0.82rem", fontWeight: 600,
-            cursor: "pointer", boxShadow: "0 4px 14px rgba(124, 58, 237, 0.35)",
+            pointerEvents: "auto", display: "flex", alignItems: "center", gap: 7, padding: "6px 12px",
+            borderRadius: 18, background: "rgba(255, 255, 255, 0.94)", border: "1px solid #d9d2ee",
+            color: "#4c1d95", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)", userSelect: "none", whiteSpace: "nowrap",
           }}
         >
-          <FiTrash2 size={14} /> Remove unused blocks ({unusedCount})
-        </button>
-      )}
+          <input
+            type="checkbox"
+            checked={autoRemoveUnused}
+            onChange={(e) => {
+              const on = e.target.checked;
+              setAutoRemoveUnusedState(on);
+              writeAutoRemoveSetting(on);
+              showNotice(on
+                ? "Unused blocks will now be removed automatically. You can undo a removal."
+                : "Unused blocks will be kept. Use the Remove unused blocks button to clear them.");
+            }}
+            style={{ accentColor: "#7c3aed", margin: 0, cursor: "pointer" }}
+          />
+          Auto-remove unused blocks
+        </label>
+        {unusedCount > 0 && (
+          <button
+            type="button"
+            onClick={() => removeUnusedNow()}
+            title="Delete value blocks that aren't plugged into anything. They do nothing, and you can undo this."
+            style={{
+              pointerEvents: "auto", display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", border: "none",
+              borderRadius: 18, background: "#7c3aed", color: "#fff", fontSize: "0.82rem", fontWeight: 600,
+              cursor: "pointer", boxShadow: "0 4px 14px rgba(124, 58, 237, 0.35)", whiteSpace: "nowrap",
+            }}
+          >
+            <FiTrash2 size={14} /> Remove unused blocks ({unusedCount})
+          </button>
+        )}
+      </div>
       {notice && (
         <div
           role="status"

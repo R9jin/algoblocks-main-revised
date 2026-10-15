@@ -1,0 +1,33 @@
+<svg viewBox="0 0 640 296" width="640" height="296" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="296" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<line x1="320.0" y1="46" x2="320.0" y2="282" stroke="#E5E0F5" stroke-width="1.5"/>
+<text x="24" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#065F46">Engineering Merits</text>
+<circle cx="35" cy="66.5" r="11" fill="#10B981"/>
+<path d="M 30 66.5 L 33.5 70.5 L 40.5 62.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">In-Place:</tspan><tspan dx="4" font-weight="400" fill="#33534A">O(1)</tspan><tspan dx="4" font-weight="400" fill="#33534A">auxiliary</tspan><tspan dx="4" font-weight="400" fill="#33534A">space.</tspan></text>
+<circle cx="35" cy="114.5" r="11" fill="#10B981"/>
+<path d="M 30 114.5 L 33.5 118.5 L 40.5 110.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">Simple:</tspan><tspan dx="4" font-weight="400" fill="#33534A">no</tspan><tspan dx="4" font-weight="400" fill="#33534A">recursion,</tspan><tspan dx="4" font-weight="400" fill="#33534A">no</tspan><tspan dx="4" font-weight="400" fill="#33534A">pivot</tspan></text>
+<text x="52" y="140" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">selection.</tspan></text>
+<circle cx="35" cy="176.5" r="11" fill="#10B981"/>
+<path d="M 30 176.5 L 33.5 180.5 L 40.5 172.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="183" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">Educational:</tspan><tspan dx="4" font-weight="400" fill="#33534A">clean</tspan><tspan dx="4" font-weight="400" fill="#33534A">invariants,</tspan><tspan dx="4" font-weight="400" fill="#33534A">easy</tspan></text>
+<text x="52" y="202" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">to</tspan><tspan dx="4" font-weight="400" fill="#33534A">trace.</tspan></text>
+<circle cx="35" cy="238.5" r="11" fill="#10B981"/>
+<path d="M 30 238.5 L 33.5 242.5 L 40.5 234.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="245" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#065F46">Stable</tspan><tspan dx="4" font-weight="700" fill="#065F46">(Bubble</tspan><tspan dx="4" font-weight="700" fill="#065F46">Sort):</tspan><tspan dx="4" font-weight="400" fill="#33534A">equal</tspan></text>
+<text x="52" y="264" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#33534A">elements</tspan><tspan dx="4" font-weight="400" fill="#33534A">keep</tspan><tspan dx="4" font-weight="400" fill="#33534A">their</tspan><tspan dx="4" font-weight="400" fill="#33534A">original</tspan><tspan dx="4" font-weight="400" fill="#33534A">order.</tspan></text>
+<text x="332.0" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#7A1E1E">System Vulnerabilities</text>
+<circle cx="343.0" cy="66.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 62.5 L 347.0 70.5 M 347.0 62.5 L 339.0 70.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#7A1E1E">O(n²)</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">scaling</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">falls</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">apart</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">past</tspan></text>
+<text x="360.0" y="92" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">~1,000</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">items.</tspan></text>
+<circle cx="343.0" cy="128.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 124.5 L 347.0 132.5 M 347.0 124.5 L 339.0 132.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="135" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#7A1E1E">Bubble</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">Sort</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">writes</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">a</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">lot</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">--</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">heavy</tspan></text>
+<text x="360.0" y="154" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">swap</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">overhead.</tspan></text>
+<circle cx="343.0" cy="190.5" r="11" fill="#EF4444"/>
+<path d="M 339.0 186.5 L 347.0 194.5 M 347.0 186.5 L 339.0 194.5" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="360.0" y="197" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#7A1E1E">Not</tspan><tspan dx="4" font-weight="700" fill="#7A1E1E">adaptive</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">--</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">doesn't</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">notice</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">data</tspan></text>
+<text x="360.0" y="216" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#5A3B3B">that's</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">already</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">mostly</tspan><tspan dx="4" font-weight="400" fill="#5A3B3B">sorted.</tspan></text>
+</svg>

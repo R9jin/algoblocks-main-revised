@@ -1,0 +1,23 @@
+<svg viewBox="0 0 640 346" width="640" height="346" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="346" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="8" height="346" rx="4" fill="#7C5CFF"/>
+<text x="30" y="30" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#2B005C">Key Takeaways</text>
+<circle cx="36" cy="66.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 66.5 L 34.5 70.5 L 41.5 62.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Greedy</tspan><tspan dx="4" font-weight="400" fill="#3D3554">makes</tspan><tspan dx="4" font-weight="700" fill="#2B005C">locally</tspan><tspan dx="4" font-weight="700" fill="#2B005C">optimal</tspan><tspan dx="4" font-weight="400" fill="#3D3554">decisions.</tspan></text>
+<circle cx="36" cy="114.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 114.5 L 34.5 118.5 L 41.5 110.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">It</tspan><tspan dx="4" font-weight="700" fill="#2B005C">never</tspan><tspan dx="4" font-weight="700" fill="#2B005C">revisits</tspan><tspan dx="4" font-weight="400" fill="#3D3554">earlier</tspan><tspan dx="4" font-weight="400" fill="#3D3554">choices.</tspan></text>
+<circle cx="36" cy="162.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 162.5 L 34.5 166.5 L 41.5 158.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Works</tspan><tspan dx="4" font-weight="400" fill="#3D3554">reliably</tspan><tspan dx="4" font-weight="400" fill="#3D3554">only</tspan><tspan dx="4" font-weight="400" fill="#3D3554">when</tspan><tspan dx="4" font-weight="400" fill="#3D3554">a</tspan><tspan dx="4" font-weight="400" fill="#3D3554">problem</tspan><tspan dx="4" font-weight="400" fill="#3D3554">has</tspan><tspan dx="4" font-weight="400" fill="#3D3554">the</tspan><tspan dx="4" font-weight="700" fill="#2B005C">Greedy</tspan><tspan dx="4" font-weight="700" fill="#2B005C">Choice</tspan><tspan dx="4" font-weight="700" fill="#2B005C">Property.</tspan></text>
+<circle cx="36" cy="210.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 210.5 L 34.5 214.5 L 41.5 206.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="217" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#2B005C">Fast</tspan><tspan dx="4" font-weight="700" fill="#2B005C">and</tspan><tspan dx="4" font-weight="700" fill="#2B005C">memory-efficient</tspan><tspan dx="4" font-weight="400" fill="#3D3554">--</tspan><tspan dx="4" font-weight="400" fill="#3D3554">usually</tspan><tspan dx="4" font-weight="400" fill="#3D3554">O(n)</tspan><tspan dx="4" font-weight="400" fill="#3D3554">or</tspan><tspan dx="4" font-weight="400" fill="#3D3554">O(n</tspan><tspan dx="4" font-weight="400" fill="#3D3554">log</tspan><tspan dx="4" font-weight="400" fill="#3D3554">n).</tspan></text>
+<circle cx="36" cy="258.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 258.5 L 34.5 262.5 L 41.5 254.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="265" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Does</tspan><tspan dx="4" font-weight="700" fill="#2B005C">not</tspan><tspan dx="4" font-weight="700" fill="#2B005C">always</tspan><tspan dx="4" font-weight="700" fill="#2B005C">guarantee</tspan><tspan dx="4" font-weight="400" fill="#3D3554">the</tspan><tspan dx="4" font-weight="400" fill="#3D3554">optimal</tspan><tspan dx="4" font-weight="400" fill="#3D3554">solution.</tspan></text>
+<circle cx="36" cy="306.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 306.5 L 34.5 310.5 L 41.5 302.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="313" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Knowing</tspan><tspan dx="4" font-weight="400" fill="#3D3554">when</tspan><tspan dx="4" font-weight="400" fill="#3D3554">greedy</tspan><tspan dx="4" font-weight="400" fill="#3D3554">works</tspan><tspan dx="4" font-weight="400" fill="#3D3554">is</tspan><tspan dx="4" font-weight="400" fill="#3D3554">the</tspan><tspan dx="4" font-weight="400" fill="#3D3554">real</tspan><tspan dx="4" font-weight="400" fill="#3D3554">skill.</tspan></text>
+</svg>

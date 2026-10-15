@@ -345,8 +345,7 @@ def loop_form(node, outer_vars: List[str]) -> Optional[Tuple[str, str]]:
             if all(_const(a) is not None for a in ra):
                 if is_symbolic_fixed_range(node):
                     return ("const", f"The bound `{_src(node.iter, 30)}` is a fixed number, so strictly the loop runs a constant number of times: "
-                                     f"\u03a3 1 over a constant range = \u0398(1). AlgoBlocks scores it as the loop pattern instead -- "
-                                     f"\u03a3 1 over a range of n values = \u0398(n) -- to show how the same loop grows when its bound becomes the input size.")
+                                     f"\u03a3 1 over a constant range = \u0398(1).")
                 return ("const", f"The bound `{_src(node.iter, 30)}` is a fixed number, not tied to the input, so the loop runs a constant number of times: "
                                  f"\u03a3 1 over a constant range = \u0398(1). (If this were `range(n)` with n the problem size it would be \u0398(n).)")
             if used_outer and n_args >= 1:

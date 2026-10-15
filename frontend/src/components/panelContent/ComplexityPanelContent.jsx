@@ -213,6 +213,8 @@ export default function ComplexityPanelContent({
                 const timeRaw = line.time || "O(1)";
                 const timeComplexity = toClosedFormBigO(timeRaw);
                 const spaceComplexity = toClosedFormBigO(line.space || "O(1)");
+                // O(1) space needs no chart and only a short explanation, tucked away.
+                const isConstSpace = /^O\(\s*1\s*\)$/.test(String(spaceComplexity).trim());
                 let timeExp = line.time_explanation ?? "Not available.";
                 let spaceExp = line.space_explanation ?? "Not available.";
 
@@ -263,7 +265,14 @@ export default function ComplexityPanelContent({
                               <div className="explanation-icon-wrapper" style={{ color: spaceColor }}><FiInfo size={20} /></div>
                               <div className="explanation-text-content">
                                 <strong className="explanation-header" style={{ color: spaceColor }}>Space Complexity</strong>
-                                <div className="explanation-body">{formatExplanation(spaceExp)}</div>
+                                {isConstSpace ? (
+                                  <details className="nlg-space-collapse">
+                                    <summary>Why is it {formatComplexity(spaceComplexity)}?</summary>
+                                    <div className="explanation-body">{formatExplanation(spaceExp)}</div>
+                                  </details>
+                                ) : (
+                                  <div className="explanation-body">{formatExplanation(spaceExp)}</div>
+                                )}
                               </div>
                             </div>
                             <div className="explanation-graph-wrapper">
