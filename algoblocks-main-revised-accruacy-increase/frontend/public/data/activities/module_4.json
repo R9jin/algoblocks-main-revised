@@ -1,0 +1,711 @@
+{
+  "lesson_1": [
+    {
+      "id": "m4_l1_a1",
+      "title": "Greedy Selection: Largest First",
+      "difficulty": "Intermediate",
+      "task": [
+        "A greedy algorithm makes the locally optimal choice at each stage. When maximizing a value, the optimal local choice is selecting the maximum available magnitude.",
+        "We will implement a greedy choice by sorting a dataset and extracting the largest element.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Logic: If / Else | Lists: Sorted Copy Of List (Built-in)",
+        "1. Define the function `greedy_largest(arr)`.",
+        "2. Execute an in-place sort on the array in descending order. This dictates an O(n log n) time complexity.",
+        "3. Evaluate if the array is empty. If true, return 0.",
+        "4. Return the first element from the sorted array, representing the maximum greedy choice."
+      ],
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "greedy_largest([3, 1, 4, 1, 5])",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_largest([10, 20])",
+          "expected": "20",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_largest([])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "greedy_largest([7, 7, 7])",
+          "expected": "7",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l1_a2",
+      "title": "Greedy Selection: Smallest First",
+      "difficulty": "Intermediate",
+      "task": [
+        "Conversely, when minimizing a cost function, the optimal local choice is the element with the smallest magnitude.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Lists: Sorted Copy Of List (Built-in)",
+        "1. Define the function `greedy_smallest(arr)`.",
+        "2. Execute an in-place sort on the array in ascending order.",
+        "3. Evaluate the boundary: if the array is empty, return 0.",
+        "4. Return the first element from the array."
+      ],
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "greedy_smallest([8, 2, 6, 1])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_smallest([10, 20])",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_smallest([])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "greedy_smallest([5, 5])",
+          "expected": "5",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l1_a3",
+      "title": "Greedy Aggregation: Top K Sum",
+      "difficulty": "Intermediate",
+      "task": [
+        "To maximize a cumulative sum given a restricted number of selections (K), a greedy algorithm continuously selects the largest remaining elements.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Loops: Count With (For Loop) | Variables: Set Variable | Lists: Sorted Copy Of List (Built-in)",
+        "1. Define the function `greedy_sum(arr, k)`.",
+        "2. Sort the array in descending order to prioritize magnitude.",
+        "3. Initialize an accumulator variable to track the total sum.",
+        "4. Construct a loop constrained to iterate exactly K times. Ensure your loop bounds do not exceed the array length.",
+        "5. Inside the loop, accumulate the value of the current element into your total.",
+        "6. Return the accumulated total."
+      ],
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "greedy_sum([1, 5, 2, 9, 3], 2)",
+          "expected": "14",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_sum([10, 10, 10], 1)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_sum([5, 4, 3, 2, 1], 3)",
+          "expected": "12",
+          "isHidden": true
+        },
+        {
+          "call": "greedy_sum([], 1)",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l1_a4",
+      "title": "Greedy Minimization: Closest Number",
+      "difficulty": "Intermediate",
+      "task": [
+        "Greedy choices can evaluate derived metrics, such as identifying an element that minimizes the absolute mathematical difference to a target.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Loops: For Each Item In List | Variables: Set Variable",
+        "1. Define the function `closest_number(arr, target)`.",
+        "2. Initialize tracking variables for the 'best match' and 'minimum difference', seeding them using the first element of the array.",
+        "3. Traverse the array. For each element, compute the absolute difference between it and the target.",
+        "4. If this newly computed difference is strictly less than your recorded minimum, update both tracking variables.",
+        "5. Return the best match."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "closest_number([10, 22, 28, 29, 30], 25)",
+          "expected": "22",
+          "isHidden": false
+        },
+        {
+          "call": "closest_number([1, 5, 10], 6)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "closest_number([100, 200, 300], 260)",
+          "expected": "300",
+          "isHidden": true
+        },
+        {
+          "call": "closest_number([0], 10)",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l1_a5",
+      "title": "Greedy Navigation: Minimum Cost Path",
+      "difficulty": "Intermediate",
+      "task": [
+        "In navigation scenarios, a greedy strategy dictates moving to the adjacent node with the lowest immediate cost, disregarding potential future bottlenecks.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Variables: Set Variable | Math: Compound Assignment (+=, -=, *=, /=)",
+        "1. Define `greedy_path(costs)`. The parameter `costs` is an array of sub-arrays representing sequential choice sets.",
+        "2. Initialize an accumulator variable to track the total path cost.",
+        "3. Traverse the outer sequence of choice sets. For each set, identify the absolute minimum cost option available.",
+        "4. Increment your total cost by this selected minimum value.",
+        "5. Return the total cost. Observe that local optimization does not inherently guarantee global optimization."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "greedy_path([[5, 10], [1, 2], [8, 9]])",
+          "expected": "14",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_path([[100, 200], [50, 10]])",
+          "expected": "110",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_path([[5, 5], [5, 5]])",
+          "expected": "10",
+          "isHidden": true
+        }
+      ]
+    }
+  ],
+  "lesson_2": [
+    {
+      "id": "m4_l2_a1",
+      "title": "Standard Denominations (Philippine Cashier)",
+      "difficulty": "Intermediate",
+      "task": [
+        "The Coin Change Problem seeks to minimize the total number of coins dispensed. When utilizing standard currencies, a greedy algorithm successfully yields the optimal solution.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Lists: Create List With | Math: Remainder Of (Modulo) | Math: Advanced Math (//, **, >>, <<, &, |) | Variables: Set Variable",
+        "1. Define `ph_cashier(amount)`.",
+        "2. Initialize an array containing standard Philippine coin denominations in descending order.",
+        "3. Initialize a variable to track the total coins dispensed.",
+        "4. Iterate through the coin array. Utilize integer division to determine exactly how many times the current coin fits into the remaining amount.",
+        "5. Accumulate this count into your tracking variable.",
+        "6. Update the remaining amount using the modulo operator.",
+        "7. Return the finalized coin count."
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "ph_cashier(47)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "ph_cashier(100)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "ph_cashier(8)",
+          "expected": "4",
+          "isHidden": true
+        },
+        {
+          "call": "ph_cashier(0)",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l2_a2",
+      "title": "Standard Denominations (US Cashier)",
+      "difficulty": "Intermediate",
+      "task": [
+        "Applying the exact greedy methodology to a distinct currency system verifies the algorithm's interoperability with standard denomination structures.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Math: Remainder Of (Modulo)",
+        "1. Define `us_cashier(amount)`.",
+        "2. Initialize the US coin denominations in descending order.",
+        "3. Implement the identical greedy division and modulo iteration structure established in the previous activity.",
+        "4. Return the aggregated coin count."
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "us_cashier(47)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "us_cashier(99)",
+          "expected": "9",
+          "isHidden": false
+        },
+        {
+          "call": "us_cashier(4)",
+          "expected": "4",
+          "isHidden": true
+        },
+        {
+          "call": "us_cashier(0)",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l2_a3",
+      "title": "Coin Breakdown Distribution",
+      "difficulty": "Intermediate",
+      "task": [
+        "To provide operational transparency, the algorithm must record the specific denominations allocated rather than merely the total sum.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Lists: Create List With | Lists: Append To List | Math: Remainder Of (Modulo)",
+        "1. Define `coin_breakdown(amount, coins)`. Assume `coins` is provided in descending order.",
+        "2. Initialize an empty array to map the distribution.",
+        "3. Iterate through the available coins. Determine how many times the current coin fits into the remaining amount.",
+        "4. Append this specific integer count to your distribution array.",
+        "5. Reduce the remaining amount via modulo arithmetic.",
+        "6. Return the distribution array to map the exact subset allocation."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        {
+          "call": "coin_breakdown(47, [25, 10, 5, 1])",
+          "expected": "[1, 2, 0, 2]",
+          "isHidden": false
+        },
+        {
+          "call": "coin_breakdown(47, [20, 10, 5, 1])",
+          "expected": "[2, 0, 1, 2]",
+          "isHidden": false
+        },
+        {
+          "call": "coin_breakdown(100, [50, 20, 10])",
+          "expected": "[2, 0, 0]",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l2_a4",
+      "title": "Arbitrary Currency System",
+      "difficulty": "Intermediate",
+      "task": [
+        "A robust greedy algorithm must self-organize the dataset prior to execution. If a currency system is provided unsorted, the algorithm must execute an O(n log n) preprocessing phase.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Math: Remainder Of (Modulo) | Lists: Sorted Copy Of List (Built-in)",
+        "1. Define `custom_change(amount, coins)`.",
+        "2. Execute an in-place descending sort on the `coins` array.",
+        "3. Apply the standard iterative division and modulo reduction logic.",
+        "4. Return the aggregated coin count."
+      ],
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "custom_change(15, [1, 10, 5])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "custom_change(33, [10, 1, 25])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "custom_change(0, [5, 1])",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l2_a5",
+      "title": "Exact Change Validation",
+      "difficulty": "Intermediate",
+      "task": [
+        "The Greedy Choice Property is not mathematically flawless. If an arbitrary coin system lacks a 1-unit denomination, the greedy algorithm may fail to process the exact amount.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Math: Remainder Of (Modulo) | Lists: Sorted Copy Of List (Built-in)",
+        "1. Define `can_make_change(amount, coins)`.",
+        "2. Sort the array of coins in descending order.",
+        "3. Execute the greedy subtraction and modulo logic to iteratively reduce the target amount.",
+        "4. Evaluate the terminal state: if the remaining amount has been reduced exactly to zero, return True.",
+        "5. If a non-zero remainder exists, the greedy constraints failed. Return False."
+      ],
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "can_make_change(15, [10, 5])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "can_make_change(13, [10, 5])",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "can_make_change(20, [15, 4])",
+          "expected": "False",
+          "isHidden": true
+        },
+        {
+          "call": "can_make_change(10, [10])",
+          "expected": "True",
+          "isHidden": true
+        }
+      ]
+    }
+  ],
+  "lesson_3": [
+    {
+      "id": "m4_l3_a1",
+      "title": "Activity Preprocessing (Sorting by End Time)",
+      "difficulty": "Intermediate",
+      "task": [
+        "The Activity Selection algorithm maximizes concurrent scheduling by unconditionally prioritizing tasks that terminate the earliest.",
+        "To achieve O(n log n) efficiency, the dataset must be sorted utilizing the termination boundaries.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Lists: Sorted Copy Of List (Built-in)",
+        "1. Define `sort_by_end(activities)`. Assume `activities` is a 2D array where each sub-array contains a start time and an end time.",
+        "2. Utilize the sorting construct to arrange the array in ascending order based specifically on the element representing the end time.",
+        "3. Return the sorted 2D array structure."
+      ],
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "sort_by_end([[1, 4], [0, 2], [3, 5]])",
+          "expected": "[[0, 2], [1, 4], [3, 5]]",
+          "isHidden": false
+        },
+        {
+          "call": "sort_by_end([[5, 9], [1, 2], [3, 4]])",
+          "expected": "[[1, 2], [3, 4], [5, 9]]",
+          "isHidden": false
+        },
+        {
+          "call": "sort_by_end([[1, 2]])",
+          "expected": "[[1, 2]]",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l3_a2",
+      "title": "The Event Scheduler",
+      "difficulty": "Intermediate",
+      "task": [
+        "Upon structural preprocessing, a single O(n) linear sweep is sufficient to greedily aggregate compatible activities.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Variables: Set Variable | Math: Compound Assignment (+=, -=, *=, /=)",
+        "1. Define `schedule_events(activities)`. Ensure boundary validation: if the array is empty, return 0.",
+        "2. Assume the input is already sorted by end time. Initialize your event count to 1, and set your tracking variable to the termination time of the initial event.",
+        "3. Iterate through the array starting from the second event.",
+        "4. Evaluate overlap: if the start time of the current activity is greater than or equal to your tracked end time, the event is compatible.",
+        "5. When an event is compatible, increment your count and update the tracked end time to the termination time of the newly scheduled event.",
+        "6. Return the total count."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "schedule_events([[0, 2], [1, 4], [3, 5]])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "schedule_events([[1, 2], [2, 3], [3, 4]])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "schedule_events([[1, 10], [2, 3], [4, 5]])",
+          "expected": "1",
+          "isHidden": true
+        },
+        {
+          "call": "schedule_events([])",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l3_a3",
+      "title": "Algorithmic Conflict Detection",
+      "difficulty": "Intermediate",
+      "task": [
+        "Evaluating sequence validity requires an algorithm capable of detecting structural overlap between continuous states.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Logic: Compare (=, ≠, <, >, ≤, ≥) | Loops: Count With (For Loop)",
+        "1. Define `has_conflicts(activities)`. Assume the array is sorted by start time.",
+        "2. Construct an iteration loop that safely evaluates adjacent pairs without triggering an out-of-bounds error.",
+        "3. Evaluate the boundary violation: if the end time of the current activity strictly exceeds the start time of the subsequent activity, a conflict exists.",
+        "4. If a conflict is detected, return True immediately.",
+        "5. Return False if the sequential scan verifies all activities are perfectly disjoint."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "has_conflicts([[1, 3], [2, 5]])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "has_conflicts([[1, 2], [3, 4]])",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "has_conflicts([[1, 5], [5, 6]])",
+          "expected": "False",
+          "isHidden": true
+        },
+        {
+          "call": "has_conflicts([])",
+          "expected": "False",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l3_a4",
+      "title": "Aggregating Scheduled Duration",
+      "difficulty": "Intermediate",
+      "task": [
+        "To determine the operational efficiency of the scheduled blocks, the algorithm must dynamically map and aggregate the structural differences.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Variables: Set Variable | Math: Compound Assignment (+=, -=, *=, /=) | Lists: Create List With",
+        "1. Define `total_duration(activities)`.",
+        "2. Initialize an accumulator variable to track total time.",
+        "3. Iterate through the multi-dimensional array.",
+        "4. Compute the mathematical duration of the current task by subtracting its start time from its end time.",
+        "5. Increment your tracking variable by this computed magnitude.",
+        "6. Return the accumulated total."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "total_duration([[1, 3], [4, 6]])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "total_duration([[0, 10]])",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "total_duration([[1, 2], [2, 3], [3, 4]])",
+          "expected": "3",
+          "isHidden": true
+        },
+        {
+          "call": "total_duration([])",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l3_a5",
+      "title": "Facility Allocation (Max Overlap)",
+      "difficulty": "Intermediate",
+      "task": [
+        "Determining the minimum number of rooms required to host all events requires tracking the maximum state of concurrency.",
+        "",
+        "Instructions:",
+        "Blocks you'll need: Functions: Define Function (With Return) | Math: Compound Assignment (+=, -=, *=, /=) | Lists: Sorted Copy Of List (Built-in)",
+        "1. Define `rooms_required(activities)`.",
+        "2. Isolate two distinct mathematical sequences: an array of start times and an array of end times. Sort both in ascending order.",
+        "3. Initialize boundary pointers for both arrays, alongside variables tracking current rooms and the maximum recorded rooms.",
+        "4. Traverse the sequences: if the current start time occurs strictly before the current end time, a new room is needed. Increment the current room count, advance the start pointer, and update the recorded maximum.",
+        "5. Otherwise, a room has freed up. Decrement the current room count and advance the end pointer.",
+        "6. Return the maximum recorded rooms."
+      ],
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        {
+          "call": "rooms_required([[1, 4], [2, 5], [6, 8]])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "rooms_required([[1, 2], [3, 4], [5, 6]])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "rooms_required([[1, 10], [2, 9], [3, 8]])",
+          "expected": "3",
+          "isHidden": true
+        },
+        {
+          "call": "rooms_required([])",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    }
+  ],
+  "optimizations": [
+    {
+      "id": "m4_opt_1",
+      "title": "Optimization Challenge: Pre-Sorting Over Exhaustive Search",
+      "difficulty": "Intermediate",
+      "task": [
+        "Repeatedly searching an array for the largest remaining value results in O(n²) time complexity. Sorting the data first allows you to extract the largest values efficiently.",
+        "",
+        "Optimization Guidelines:",
+        "Blocks you'll need: Loops: Count With (For Loop) | Lists: Sorted Copy Of List (Built-in)",
+        "1. Eliminate the nested loops used to find the maximum value.",
+        "2. Sort the array in descending order before starting the iteration.",
+        "3. Create a single loop that iterates exactly K times.",
+        "4. Accumulate the values from the beginning of the sorted array.",
+        "5. Return the total to achieve an O(n log n) time complexity."
+      ],
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m4_opt_1.json",
+      "testCasesPool": [
+        {
+          "call": "greedy_sum_opt([1, 5, 2, 9, 3], 2)",
+          "expected": "14",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_sum_opt([10, 10, 10], 1)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_sum_opt([5, 4, 3, 2, 1], 3)",
+          "expected": "12",
+          "isHidden": true
+        },
+        {
+          "call": "greedy_sum_opt([], 1)",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_opt_2",
+      "title": "Optimization Challenge: Constant Time Modulo Deduction",
+      "difficulty": "Intermediate",
+      "task": [
+        "Using a loop to repeatedly subtract coin values simulates an inefficient linear search. Mathematical division and modulo operations can process this in constant time per coin.",
+        "",
+        "Optimization Guidelines:",
+        "Blocks you'll need: Math: Remainder Of (Modulo) | Math: Advanced Math (//, **, >>, <<, &, |) | Loops: Count With (For Loop)",
+        "1. Remove the inner loop that handles repeated subtraction.",
+        "2. Use integer division to determine how many times the current coin fits into the remaining amount.",
+        "3. Add the division result to your total coin counter.",
+        "4. Use the modulo operator to update the remaining amount.",
+        "5. Removing the inner loop produces a more efficient algorithm."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m4_opt_2.json",
+      "testCasesPool": [
+        {
+          "call": "fast_cashier(47, [25, 10, 5, 1])",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fast_cashier(100, [50, 20, 10])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "fast_cashier(8, [5, 1])",
+          "expected": "4",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_opt_3",
+      "title": "Optimization Challenge: Greedy Activity Scheduling",
+      "difficulty": "Intermediate",
+      "task": [
+        "Evaluating every combination of activities takes exponential time. Sorting the activities by their end times allows for a single-pass greedy selection.",
+        "",
+        "Optimization Guidelines:",
+        "Blocks you'll need: Lists: Sorted Copy Of List (Built-in) | Loops: Count With (For Loop) | Logic: If / Else",
+        "1. Sort the given activities based on their termination times.",
+        "2. Track the end time of the most recently selected activity. Start with the first activity in the sorted list.",
+        "3. Iterate through the remaining activities sequentially.",
+        "4. If an activity starts at or after the tracked end time, select it and update the tracked end time.",
+        "5. Return the total number of selected activities to observe an O(n log n) efficiency."
+      ],
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m4_opt_3.json",
+      "testCasesPool": [
+        {
+          "call": "schedule_opt([[0, 2], [1, 4], [3, 5]])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "schedule_opt([[1, 2], [2, 3], [3, 4]])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "schedule_opt([[1, 10], [2, 3], [4, 5]])",
+          "expected": "2",
+          "isHidden": true
+        },
+        {
+          "call": "schedule_opt([])",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    }
+  ]
+}

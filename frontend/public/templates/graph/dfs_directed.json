@@ -40,22 +40,9 @@
      },
      "STACK": {
       "block": {
-       "type": "list_append",
+       "type": "set_add",
        "id": "8a5addc8-4db2-4",
        "inputs": {
-        "LIST": {
-         "block": {
-          "type": "variables_get",
-          "id": "5c4ee67b-b280-4",
-          "fields": {
-           "VAR": {
-            "id": "visited",
-            "name": "visited"
-           }
-          },
-          "output": "Any"
-         }
-        },
         "ITEM": {
          "block": {
           "type": "variables_get",
@@ -64,6 +51,19 @@
            "VAR": {
             "id": "node",
             "name": "node"
+           }
+          },
+          "output": "Any"
+         }
+        },
+        "SET": {
+         "block": {
+          "type": "variables_get",
+          "id": "5c4ee67b-b280-4",
+          "fields": {
+           "VAR": {
+            "id": "visited",
+            "name": "visited"
            }
           },
           "output": "Any"
@@ -492,12 +492,8 @@
        },
        "ARG2": {
         "block": {
-         "type": "lists_create_with",
-         "id": "7be8e5d4-a693-4",
-         "extraState": {
-          "itemCount": 0
-         },
-         "output": "Array"
+         "type": "set_create_empty",
+         "id": "7be8e5d4-a693-4"
         }
        }
       }

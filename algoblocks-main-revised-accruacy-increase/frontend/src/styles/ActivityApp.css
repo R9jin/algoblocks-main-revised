@@ -1,0 +1,205 @@
+@import "./WorkspaceShared.css";
+
+/* =========================================
+   3-COLUMN ACTIVITY SPLIT LAYOUT
+   ========================================= */
+.activity-left-panel, .activity-right-panel { background-color: var(--panel-bg); display: flex; flex-direction: column; height: 100%; overflow: hidden;}
+.activity-left-panel { border-right: 1px solid var(--border-light); transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), min-width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.2s ease;}
+.activity-right-panel { border-left: 1px solid var(--border-light); transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), min-width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.2s ease;}
+.activity-center-panel { display: flex; flex-direction: column; background-color: var(--panel-bg); position: relative; height: 100%; transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+
+/* Lesson Selection Outline Dropdown */
+.activity-selector-container { padding: 16px 20px; background-color: var(--app-bg); border-bottom: 1px solid var(--border-light); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02); }
+.activity-selector-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; color: var(--purple-main); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.activity-selector-dropdown { width: 100%; padding: 10px 36px 10px 14px; border-radius: 8px; border: 1px solid var(--border-light); outline: none; cursor: pointer; font-weight: 600; font-size: 0.9rem; background-color: var(--panel-bg); color: var(--text-main); transition: all 0.2s ease; appearance: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237928ca%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 14px top 50%; background-size: 10px auto; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03); }
+.activity-selector-dropdown:hover { border-color: var(--purple-main); }
+
+.activity-panel-header { padding: 20px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; }
+.activity-panel-header h2, .activity-panel-header h3 { margin: 0; color: var(--text-main); font-size: 1.1rem; display: flex; align-items: center; gap: 8px; font-weight: 800;}
+.activity-panel-content { padding: 20px; flex: 1; overflow-y: auto; overflow-x: hidden; }
+
+/* Left Panel Task Description Typography */
+.activity-task-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; margin-top: 10px; }
+.activity-title-text { margin: 0; font-size: 1.4rem; color: var(--purple-main); font-weight: 800; }
+.difficulty-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; text-transform: capitalize;}
+.difficulty-badge.beginner { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+.difficulty-badge.intermediate { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+.difficulty-badge.advanced { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+
+.activity-card { font-size: 0.95rem; color: var(--text-main); }
+
+/* Right Panel: Test Cases UI */
+.test-cases-counter { font-size: 0.8rem; color: var(--text-muted); font-weight: bold; }
+.test-case-card { border: 1px solid var(--border-light); border-radius: 12px; margin-bottom: 15px; background-color: var(--app-bg); transition: all 0.3s ease; overflow: hidden; }
+.test-case-card.passing { border-color: #10B981; background-color: rgba(16, 185, 129, 0.05); }
+.test-case-card.failing { border-color: #EF4444; background-color: rgba(239, 68, 68, 0.05); }
+
+.test-case-header { display: flex; align-items: center; justify-content: space-between; padding: 15px; cursor: pointer; user-select: none; background-color: transparent; transition: background-color 0.2s ease; }
+.test-case-header:hover { background-color: rgba(0, 0, 0, 0.02); }
+.test-case-header-left { display: flex; align-items: center; }
+
+.test-case-indicator { width: 14px; height: 14px; border: 2px solid var(--border-light); border-radius: 50%; margin-right: 10px; background-color: transparent; transition: all 0.3s ease; }
+.test-case-indicator.passing { border-color: #10B981; background-color: #10B981; }
+.test-case-indicator.failing { border-color: #EF4444; background-color: #EF4444; }
+
+.test-case-title { color: var(--text-main); font-size: 0.95rem; font-weight: bold; }
+.test-case-card.passing .test-case-title { color: #059669; }
+.test-case-card.failing .test-case-title { color: #DC2626; }
+
+.test-case-chevron { color: var(--text-muted); transition: transform 0.3s ease; }
+.test-case-card.passing .test-case-chevron { color: #10B981; }
+.test-case-card.failing .test-case-chevron { color: #EF4444; }
+.test-case-chevron.open { transform: rotate(90deg); }
+
+.test-case-details { padding: 0 15px 15px 15px; font-size: 0.85rem; color: var(--text-muted); animation: slideDown 0.3s ease-out; }
+.test-case-row { margin-bottom: 10px; display: flex; flex-direction: column; gap: 5px; }
+.test-case-label { font-weight: 800; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.test-case-code { font-family: 'Fira Code', monospace; color: var(--purple-main); background: var(--panel-bg); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-light); word-break: break-all; font-size: 0.8rem; }
+
+.test-case-status-row { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; }
+
+/* Activity Specific Sidebar Toggle Overrides */
+.sidebar-toggle-btn.right-panel-toggle { left: auto; right: 0; border-radius: 8px 0 0 8px; }
+.sidebar-toggle-btn.right-panel-toggle.closed .toggle-icon { transform: rotate(180deg); }
+
+.activity-split.left-hidden .activity-left-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; padding: 0 !important; overflow: hidden !important; }
+.activity-split.left-hidden .gutter.gutter-horizontal:first-of-type { display: none !important; }
+.activity-split.right-hidden .activity-right-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; padding: 0 !important; overflow: hidden !important; }
+.activity-split.right-hidden .gutter.gutter-horizontal:last-of-type { display: none !important; }
+
+.activity-split.left-hidden .activity-center-panel,
+.activity-split.right-hidden .activity-center-panel {
+  flex: 1 !important;
+  width: auto !important;
+}
+
+/* AES & ROG Badges */
+.aes-badge { background: var(--purple-alpha); border: 1px solid rgba(121, 40, 202, 0.3); color: var(--purple-main); }
+.aes-badge .total-label { color: var(--purple-main); }
+.rog-badge { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #059669; }
+.rog-badge .total-label { color: #059669; }
+
+/* Interactive Hover Tooltips */
+.info-tooltip { position: relative; display: inline-flex; align-items: center; margin-left: 6px; cursor: help; color: inherit; opacity: 0.7; transition: opacity 0.2s; }
+.info-tooltip:hover { opacity: 1; }
+
+.tooltip-text { 
+    visibility: hidden; opacity: 0; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%) translateY(5px);
+    background-color: var(--dark-surface); color: var(--text-on-dark); text-align: left; padding: 12px 16px; border-radius: 8px;
+    width: 240px; font-size: 0.8rem; font-family: 'Inter', sans-serif; font-weight: normal; letter-spacing: normal; text-transform: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.2s ease; z-index: 1000; border: 1px solid var(--dark-border); pointer-events: none;
+}
+.info-tooltip:hover .tooltip-text { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0); }
+.tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--dark-surface) transparent transparent transparent; }
+.tooltip-title { display: block; font-weight: bold; margin-bottom: 6px; color: #FFFFFF; font-size: 0.85rem;}
+/* =========================================================
+   RESPONSIVE
+   The side panels now default to collapsed below ~900px viewport width
+   (see ActivityApp.jsx), so the Blockly canvas gets the room it actually
+   needs instead of the 3-panel Split.js layout forcing a 900px minimum
+   width and a horizontal scrollbar on tablets/phones.
+========================================================= */
+@media (max-width: 900px) {
+  .activity-panel-header {
+    padding: 14px 16px;
+  }
+
+  .activity-panel-content {
+    padding: 14px 16px;
+  }
+
+  .activity-title-text {
+    font-size: 1.15rem;
+  }
+
+  /* A 240px fixed-width tooltip can run off the edge of a narrow
+     viewport when the trigger icon sits near the panel edge */
+  .tooltip-text {
+    width: min(240px, calc(100vw - 40px));
+  }
+}
+
+@media (max-width: 480px) {
+  .activity-task-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .activity-title-text {
+    font-size: 1.05rem;
+  }
+}
+
+/* "Blocks you'll need" hint row -- see renderFormattedTask in
+   ActivityApp.jsx. Uses an FiGrid icon rather than a text emoji, styled as
+   a small chip row so it reads as UI, not prose. */
+.activity-blocks-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 10px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(124, 92, 255, 0.08);
+  border: 1px solid rgba(124, 92, 255, 0.25);
+  /* Without this, a flex item's min-width defaults to the width of its
+     longest unbreakable content, which forced this row (and its chips)
+     wider than the panel and left long chip labels clipped/overlapping
+     the panel edge instead of wrapping. */
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.activity-blocks-hint-icon {
+  color: var(--purple-main, #7c5cff);
+  flex-shrink: 0;
+}
+
+.activity-blocks-hint-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--purple-main, #7c5cff);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.activity-blocks-hint-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.activity-blocks-hint-chip {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 2px 10px;
+  /* Previously white-space: nowrap. Long chip labels (e.g. "Functions:
+     Define Function (With Return)") were then wider than the narrow
+     left panel and got clipped by the panel's overflow instead of
+     wrapping, which is exactly the cut-off/overlapping text users
+     reported. Let each chip wrap its own text and shrink to fit. */
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .activity-blocks-hint {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .activity-blocks-hint-chip {
+    font-size: 0.74rem;
+  }
+}

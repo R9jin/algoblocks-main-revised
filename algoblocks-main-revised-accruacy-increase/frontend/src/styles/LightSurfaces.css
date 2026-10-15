@@ -1,0 +1,68 @@
+/* frontend/src/styles/LightSurfaces.css
+   =====================================================================
+   TEXT COLOURS FOR LIGHT BACKGROUNDS -- the counterpart of DarkSurfaces.css
+   =====================================================================
+   Every colour below is >= 4.5:1 (WCAG AA) on the surface it sits on.
+
+   How to edit:
+   * Want ALL muted/grey text darker or lighter?  Change --lt-text-muted.
+   * Want ONE element different?  Change only its own --lt-* variable; the
+     per-element variables default to the shared token, so overriding one
+     never touches the others.
+
+   Specificity note: route stylesheets (MainApp.css, Dashboard.css ...) are
+   lazy-loaded and get injected AFTER this file, so a plain `.tab-btn` here
+   would silently lose to the same selector there. `:root:root` raises the
+   specificity so these rules win regardless of load order.
+   ===================================================================== */
+
+:root:root {
+  /* ---- shared tokens ---- */
+  --lt-text-main:   #1E293B;
+  --lt-text-muted:  #475569;   /* 7.2:1 on #F8FAFC, 5.4:1 on the lilac mesh */
+  --lt-text-brand:  #5A1398;   /* purple text on white/lilac (10:1)         */
+
+  /* ---- workspace: tabs & panel chrome ---- */
+  --lt-tab-inactive:      var(--lt-text-muted);   /* Overall / Complexity / Memory Map ... */
+  --lt-dock-tab-inactive: var(--lt-text-muted);   /* Console / Python / Blocks tabs        */
+  --lt-sync-status:       var(--lt-text-muted);   /* "Code is synced with blocks."         */
+  --lt-sync-btn-disabled: var(--lt-text-muted);   /* disabled "Sync to Blocks"             */
+  --lt-operation-cell:    var(--lt-text-muted);   /* "Function Call" / "Recursive Call"    */
+
+  /* ---- workspace: badges & chips ---- */
+  --lt-system-badge:      #5B1D99;   /* "SYSTEM" pill in the template sidebar */
+  --lt-inline-code:       #B43403;   /* inline `code` in explanations         */
+  --lt-total-time:        #047857;   /* "Total Time" badge (green)            */
+  --lt-total-space:       #0369A1;   /* "Total Space" badge (blue)            */
+  --lt-bottleneck:        #B91C1C;   /* "Bottleneck" badge                    */
+  --lt-clear-console:     #B91C1C;   /* console "Clear" button                */
+
+  /* ---- workspace: pipeline replay ---- */
+  --lt-pipeline-lineno:   var(--lt-text-muted);   /* source line numbers */
+  --lt-pipeline-done-bg:  #047857;                /* completed stage dot */
+}
+
+/* ---------- tabs & panel chrome ---------- */
+:root:root .tab-btn                    { color: var(--lt-tab-inactive); }
+:root:root .tab-btn.active             { color: var(--lt-text-brand); }
+:root:root .dock-tab-title             { color: var(--lt-dock-tab-inactive); }
+:root:root .active .dock-tab-title,
+:root:root .dock-tab.active .dock-tab-title { color: var(--lt-text-brand); }
+:root:root .python-sync-status         { color: var(--lt-sync-status); }
+:root:root .python-sync-btn.disabled   { color: var(--lt-sync-btn-disabled); }
+:root:root .operation-cell             { color: var(--lt-operation-cell); }
+
+/* ---------- badges & chips ---------- */
+:root:root .badge-system-polished      { color: var(--lt-system-badge); }
+:root:root .badge-system-polished .dot { background: var(--lt-system-badge); }
+:root:root .nlg-inline-code            { color: var(--lt-inline-code); }
+:root:root .total-time-badge           { color: var(--lt-total-time); }
+:root:root .total-space-badge          { color: var(--lt-total-space); }
+:root:root .total-label                { opacity: 1; }      /* was 0.8 -> washed out */
+:root:root .bottleneck-badge           { color: var(--lt-bottleneck); }
+:root:root .clear-console-btn          { color: var(--lt-clear-console); }
+
+/* ---------- pipeline replay ---------- */
+:root:root .pr-src-no                  { color: var(--lt-pipeline-lineno); }
+:root:root .pr-stage.done .pr-stage-n  { background: var(--lt-pipeline-done-bg); color: #FFFFFF; }
+:root:root .pr-stage.active .pr-stage-n{ background: rgba(0, 0, 0, 0.28); color: #FFFFFF; }

@@ -1,0 +1,23 @@
+<svg viewBox="0 0 640 346" width="640" height="346" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="346" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="8" height="346" rx="4" fill="#7C5CFF"/>
+<text x="30" y="30" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#2B005C">Key Takeaways</text>
+<circle cx="36" cy="66.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 66.5 L 34.5 70.5 L 41.5 62.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">The</tspan><tspan dx="4" font-weight="400" fill="#3D3554">N-Queens</tspan><tspan dx="4" font-weight="400" fill="#3D3554">Problem</tspan><tspan dx="4" font-weight="400" fill="#3D3554">places</tspan><tspan dx="4" font-weight="400" fill="#3D3554">queens</tspan><tspan dx="4" font-weight="400" fill="#3D3554">safely</tspan><tspan dx="4" font-weight="400" fill="#3D3554">on</tspan><tspan dx="4" font-weight="400" fill="#3D3554">a</tspan><tspan dx="4" font-weight="400" fill="#3D3554">chessboard.</tspan></text>
+<circle cx="36" cy="114.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 114.5 L 34.5 118.5 L 41.5 110.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Queens</tspan><tspan dx="4" font-weight="400" fill="#3D3554">cannot</tspan><tspan dx="4" font-weight="400" fill="#3D3554">share</tspan><tspan dx="4" font-weight="400" fill="#3D3554">rows,</tspan><tspan dx="4" font-weight="400" fill="#3D3554">columns,</tspan><tspan dx="4" font-weight="400" fill="#3D3554">or</tspan><tspan dx="4" font-weight="400" fill="#3D3554">diagonals.</tspan></text>
+<circle cx="36" cy="162.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 162.5 L 34.5 166.5 L 41.5 158.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Backtracking</tspan><tspan dx="4" font-weight="400" fill="#3D3554">explores</tspan><tspan dx="4" font-weight="400" fill="#3D3554">placements</tspan><tspan dx="4" font-weight="400" fill="#3D3554">recursively.</tspan></text>
+<circle cx="36" cy="210.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 210.5 L 34.5 214.5 L 41.5 206.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="217" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Rollback</tspan><tspan dx="4" font-weight="400" fill="#3D3554">restores</tspan><tspan dx="4" font-weight="400" fill="#3D3554">previous</tspan><tspan dx="4" font-weight="400" fill="#3D3554">board</tspan><tspan dx="4" font-weight="400" fill="#3D3554">states.</tspan></text>
+<circle cx="36" cy="258.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 258.5 L 34.5 262.5 L 41.5 254.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="265" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Pruning</tspan><tspan dx="4" font-weight="400" fill="#3D3554">eliminates</tspan><tspan dx="4" font-weight="400" fill="#3D3554">invalid</tspan><tspan dx="4" font-weight="400" fill="#3D3554">placements</tspan><tspan dx="4" font-weight="400" fill="#3D3554">early.</tspan></text>
+<circle cx="36" cy="306.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 306.5 L 34.5 310.5 L 41.5 302.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="313" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">N-Queens</tspan><tspan dx="4" font-weight="400" fill="#3D3554">demonstrates</tspan><tspan dx="4" font-weight="400" fill="#3D3554">recursive</tspan><tspan dx="4" font-weight="400" fill="#3D3554">constraint</tspan><tspan dx="4" font-weight="400" fill="#3D3554">solving</tspan><tspan dx="4" font-weight="400" fill="#3D3554">clearly.</tspan></text>
+</svg>

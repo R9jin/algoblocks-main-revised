@@ -32,10 +32,10 @@ const SYSTEM_TEMPLATES = {
     { name: "Exponential Search", path: "search/exponential_search", desc: "Finds the range where the element should be, then performs a binary search.", icon: "/assets/search-icon.png", isSystem: true },
   ],
   graph: [
-    { name: "BFS (Undirected Graph)", path: "graph/bfs_undirected", desc: "Breadth-first traversal of an undirected graph: every edge is stored in both directions, and a visited list stops it from looping back.", icon: "/assets/search-icon.png", isSystem: true },
-    { name: "BFS (Directed Graph)", path: "graph/bfs_directed", desc: "Breadth-first traversal of a directed graph: an edge only leads from its source to its target, so some nodes may be unreachable.", icon: "/assets/search-icon.png", isSystem: true },
-    { name: "DFS (Undirected Graph)", path: "graph/dfs_undirected", desc: "Depth-first traversal of an undirected graph using recursion and a visited list.", icon: "/assets/search-icon.png", isSystem: true },
-    { name: "DFS (Directed Graph)", path: "graph/dfs_directed", desc: "Depth-first traversal of a directed graph, following edges only in their given direction.", icon: "/assets/search-icon.png", isSystem: true },
+    { name: "BFS (Undirected Graph)", path: "graph/bfs_undirected", desc: "Breadth-first traversal of an undirected graph: every edge is stored in both directions, and a visited set stops it from looping back, and a deque keeps each dequeue O(1), so it runs in O(V+E).", icon: "/assets/search-icon.png", isSystem: true },
+    { name: "BFS (Directed Graph)", path: "graph/bfs_directed", desc: "Breadth-first traversal of a directed graph: an edge only leads from its source to its target, so some nodes may be unreachable. It uses a visited set and a deque, so it runs in O(V+E).", icon: "/assets/search-icon.png", isSystem: true },
+    { name: "DFS (Undirected Graph)", path: "graph/dfs_undirected", desc: "Depth-first traversal of an undirected graph using recursion and a visited set, so it runs in O(V+E).", icon: "/assets/search-icon.png", isSystem: true },
+    { name: "DFS (Directed Graph)", path: "graph/dfs_directed", desc: "Depth-first traversal of a directed graph using a visited set, following edges only in their given direction (O(V+E)).", icon: "/assets/search-icon.png", isSystem: true },
   ]
 };
 

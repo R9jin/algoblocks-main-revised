@@ -13,8 +13,7 @@ from typing import Any, Dict, List, Optional, Set
 from complexity_explainer.explanation_signals import BigOInfo, MemorySignals, ComplexitySignals, AlgorithmicParadigms, PatternSignals
 from complexity_explainer.statement_narrator import StatementNarrator
 from complexity_explainer.growth_insight import (
-    parse_complexity, is_constant, scaling_line, doubling_effect, context_factor, growth_word,
-)
+    parse_complexity, is_constant, scaling_line, doubling_effect, context_factor, growth_word, strict_asymptotic_note)
 from complexity_explainer.notation_insight import short_local_phrase, meaning_line, classify_notation
 
 class VariableExplanations:
@@ -467,6 +466,9 @@ class VariableExplanations:
         # A loop line: say how often *this* loop repeats, using the learner's own bound.
         own = self._own_loop(node, line_no)
         if own is not None:
+            if own.scales and own.fixed:
+                return (f"This loop {own.bound}. The loop header is cheap on its own; what matters is that it makes "
+                        f"everything indented under it run once per pass.")
             if own.scales:
                 return (f"This loop {own.bound}. The loop header is cheap on its own; what matters is that it makes "
                         f"everything indented under it run that many times.")
@@ -607,10 +609,11 @@ class VariableExplanations:
         elif factor and factor["text"] != "1" and (scaling or halving):
             n_loops = len(scaling) + len(halving)
             times = factor["text"]
+            _art = "An" if str(loc)[:1] in ("O", "\u03a9") else "A"
             parts.append(gen._v(
                 f"On its own this step costs `{loc}`, but it sits inside {self._loop_word(n_loops)} that {self._repeat_verb(n_loops)} it about `{times}` times. "
                 f"So the total is `{loc}` x `{times}` = `{glo}`.",
-                f"A `{loc}` step that runs inside {self._loop_word(n_loops)} gets repeated about `{times}` times -- "
+                f"{_art} `{loc}` step that runs inside {self._loop_word(n_loops)} gets repeated about `{times}` times -- "
                 f"`{loc}` x `{times}` = `{glo}` in total.",
             ))
             parts.append("The loops around it:\n" + self._loop_bullets(scaling + halving))
@@ -645,6 +648,15 @@ class VariableExplanations:
                 parts.append("The loops around it:\n" + self._loop_bullets(enclosing))
             else:
                 parts.append(f"Once you account for everything happening around it, this line's contribution to the overall time complexity is `{glo}`.")
+
+        # ---- 1b. fixed-bound range() loops: scored O(n), strictly O(1) ----
+        _fx = [lp for lp in enclosing if lp.fixed]
+        _own_fx = self._own_loop(node, line_no)
+        _own_fx = _own_fx if (_own_fx is not None and _own_fx.fixed) else None
+        if _own_fx is not None:
+            _fx = _fx + [_own_fx]
+        if _fx:
+            parts.append(strict_asymptotic_note(glo, _fx, own=_own_fx is not None))
 
         # ---- 2. what the notation itself means (cubic and beyond, log factors, bases...) ----
         mean = meaning_line(glo)

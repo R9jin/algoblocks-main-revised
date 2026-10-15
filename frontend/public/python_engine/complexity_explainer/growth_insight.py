@@ -23,6 +23,11 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
+try:  # the analyzer's switch: score a fixed-bound range() loop as the O(n) loop pattern
+    from complexity_analyzer import code_preprocessor as _cp
+except Exception:  # pragma: no cover - explainer used on its own
+    _cp = None
+
 
 # ---------------------------------------------------------------------------
 # Big-O string parsing
@@ -239,6 +244,196 @@ def _norm(s: str) -> str:
     return re.sub(r"[\s]", "", str(s)).lower()
 
 
+
+# ---------------------------------------------------------------------------
+# Fixed-bound range() loops: scored O(n) (loop pattern), strictly O(1)
+# ---------------------------------------------------------------------------
+def symbolic_fixed_range_on() -> bool:
+    """Mirror of complexity_analyzer.code_preprocessor.SYMBOLIC_FIXED_RANGE."""
+    return bool(getattr(_cp, "SYMBOLIC_FIXED_RANGE", True)) if _cp is not None else True
+
+
+def _num(e):
+    """Numeric value of a literal expression (4, -1, 2 * 5, 2 ** 10), else None."""
+    try:
+        if isinstance(e, ast.Constant) and isinstance(e.value, (int, float)) and not isinstance(e.value, bool):
+            return e.value
+        if isinstance(e, ast.UnaryOp) and isinstance(e.op, (ast.USub, ast.UAdd)):
+            v = _num(e.operand)
+            return None if v is None else (-v if isinstance(e.op, ast.USub) else v)
+        if isinstance(e, ast.BinOp):
+            a, b = _num(e.left), _num(e.right)
+            if a is None or b is None:
+                return None
+            if isinstance(e.op, ast.Add): return a + b
+            if isinstance(e.op, ast.Sub): return a - b
+            if isinstance(e.op, ast.Mult): return a * b
+            if isinstance(e.op, ast.FloorDiv): return a // b
+            if isinstance(e.op, ast.Pow) and 0 <= b <= 64: return a ** b
+    except Exception:
+        pass
+    return None
+
+
+def _is_alphabet_name(e) -> bool:
+    # same named exception the analyzer makes: MAX_CHAR = 26, NO_OF_CHARS = 256 ...
+    return isinstance(e, ast.Name) and any(k in e.id.upper() for k in ("CHARS", "MAX_CHAR", "ALPHABET", "ASCII"))
+
+
+def is_fixed_range(node) -> bool:
+    """`for ... in range(<constants only>)` -- the pass count is a fixed number."""
+    try:
+        it = getattr(node, "iter", None)
+        return bool(isinstance(node, (ast.For, ast.AsyncFor)) and isinstance(it, ast.Call)
+                    and isinstance(it.func, ast.Name) and it.func.id == "range" and it.args and not it.keywords
+                    and all(_fixed_expr(a) for a in it.args))
+    except Exception:
+        return False
+
+
+def _fixed_expr(e) -> bool:
+    if _num(e) is not None or _is_alphabet_name(e):
+        return True
+    if isinstance(e, ast.BinOp):
+        return _fixed_expr(e.left) and _fixed_expr(e.right)
+    if isinstance(e, ast.UnaryOp):
+        return _fixed_expr(e.operand)
+    return False
+
+
+def is_symbolic_fixed_range(node) -> bool:
+    """A fixed-bound range() loop that the analyzer scores as the O(n) loop pattern.
+    (A body that always breaks/returns on its first pass genuinely runs once: O(1), not this.)"""
+    if not (symbolic_fixed_range_on() and is_fixed_range(node)):
+        return False
+    return not any(isinstance(st, (ast.Break, ast.Return)) for st in node.body)
+
+
+def fixed_range_passes(node) -> Optional[int]:
+    """Exact number of passes of a fixed-bound range() loop, or None when unknown/huge."""
+    try:
+        vals = [_num(a) for a in node.iter.args]
+        if any(v is None or float(v) != int(v) for v in vals):
+            return None
+        return len(range(*[int(v) for v in vals]))
+    except Exception:
+        return None
+
+
+def strict_without_fixed(total: str, k: int) -> Optional[str]:
+    """Strict complexity of a line scored `total` once `k` fixed-bound loops are treated as the
+    constants they really are (each one was scored as a factor of n)."""
+    t = parse_complexity(total)
+    if t is None or t.kind != "poly" or t.poly < k or float(t.poly - k) != int(t.poly - k):
+        return None
+    poly = int(t.poly - k)
+    parts = []
+    if poly:
+        parts.append("n" if poly == 1 else f"n^{poly}")
+    if t.log:
+        parts.append("log n" if t.log == 1 else f"(log n)^{t.log}")
+    return "O(" + (" * ".join(parts) if parts else "1") + ")"
+
+
+def symbolic_scoring_note(tree) -> str:
+    """One general note listing every place the analyzer read a fixed value in the code as an example of an
+    input size `n` (symbolic scoring) rather than as the strict constant it literally is. Not specific to
+    `for` loops: fixed range() bounds, variables holding a fixed value that bound a loop, and calls to a
+    scaling function with literal arguments are all covered. Returns "" when none of them occur."""
+    try:
+        found = []  # (lineno, text)
+        theoretical = bool(getattr(_cp, "THEORETICAL_MODE", True)) if _cp is not None else True
+
+        # 1. fixed-bound range() loops
+        for node in ast.walk(tree):
+            if isinstance(node, ast.For) and is_symbolic_fixed_range(node):
+                found.append((node.lineno, f"line {node.lineno}: `{ast.unparse(node.iter)}` is a fixed bound, read as the loop pattern (work grows with its bound)"))
+
+        # 2. a script-level variable holding a fixed number, used as a loop bound
+        if theoretical:
+            consts = {}
+            counts = {}
+            for stmt in getattr(tree, "body", []):
+                if (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name)
+                        and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, (int, float))
+                        and not isinstance(stmt.value.value, bool)):
+                    consts[stmt.targets[0].id] = stmt.value.value
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+                    counts[node.id] = counts.get(node.id, 0) + 1
+            consts = {k: v for k, v in consts.items() if counts.get(k, 0) == 1}
+            if consts:
+                for node in ast.walk(tree):
+                    hdr = node.iter if isinstance(node, ast.For) else node.test if isinstance(node, ast.While) else None
+                    if hdr is None:
+                        continue
+                    names = [n.id for n in ast.walk(hdr) if isinstance(n, ast.Name) and n.id in consts]
+                    if names:
+                        nm = names[0]
+                        found.append((node.lineno, f"line {node.lineno}: `{nm}` holds the fixed value {consts[nm]}, but is read as the input size `n`"))
+
+        # 3. a call to a user function that scales with its argument, given only literal arguments
+        scaling = set()
+        for fn in ast.walk(tree):
+            if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for sub in ast.walk(fn):
+                    if isinstance(sub, (ast.For, ast.While)) or (
+                            isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name) and sub.func.id == fn.name):
+                        scaling.add(fn.name)
+                        break
+        if scaling:
+            def lit(a):
+                return (isinstance(a, ast.Constant) and isinstance(a.value, (int, float)) and not isinstance(a.value, bool)) or (
+                    isinstance(a, ast.UnaryOp) and isinstance(a.op, ast.USub) and lit(a.operand))
+            inside = {}
+            for fn in ast.walk(tree):
+                if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    for sub in ast.walk(fn):
+                        inside.setdefault(id(sub), fn.name)
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in scaling
+                        and node.args and all(lit(a) for a in node.args) and inside.get(id(node)) != node.func.id):
+                    found.append((node.lineno, f"line {node.lineno}: `{ast.unparse(node)}` is called with fixed argument(s), read as the input size `n`"))
+
+        if not found:
+            return ""
+        found.sort(key=lambda t: t[0])
+        seen, bullets = set(), []
+        for _, text in found:
+            if text not in seen:
+                seen.add(text)
+                bullets.append(text)
+        shown = "\n".join(f"- {b}" for b in bullets[:5]) + (f"\n- ... and {len(bullets) - 5} more" if len(bullets) > 5 else "")
+        return (
+            "**Symbolic scoring:** AlgoBlocks treats some parts of your code symbolically instead of applying strict asymptotic "
+            "analysis to the exact program. Fixed values written in the code are read as examples of an input size `n`, so you "
+            "can see how the same operation generally scales. For those parts the feedback is a generalized learning example "
+            "and can differ from the strict complexity of this exact code (which may be O(1)).\n\nHere this applies to:\n" + shown
+        )
+    except Exception:
+        return ""
+
+
+def strict_asymptotic_note(total: str, fixed_loops, own: bool = False) -> str:
+    """The 'strictly this is O(1)' paragraph shown next to a fixed-bound loop's O(n) score.
+    `fixed_loops` are the LoopInfo of every fixed-bound loop around (and including) the line."""
+    k = len(fixed_loops)
+    if not k:
+        return ""
+    strict = strict_without_fixed(total, k)
+    heads = ", ".join(f"`{lp.header}`" for lp in fixed_loops[:3]) + (" ..." if k > 3 else "")
+    shown = f"`{total}`"
+    if k == 1:
+        who = f"{heads} has a fixed bound ({fixed_loops[0].passes_text()})"
+        what = "so under strict asymptotic analysis it repeats a constant number of times and adds only a constant factor"
+    else:
+        who = f"{heads} all have fixed bounds"
+        what = "so under strict asymptotic analysis they repeat a constant number of times in total and add only constant factors"
+    tail = (f" Strictly, this {'loop' if own else 'line'} is therefore `{strict}`" if strict else "")
+    tail += (f"; the headline stays {shown} because AlgoBlocks scores a fixed bound symbolically, as an example of an input size n, "
+             f"to show how the code grows once that bound becomes the input size.")
+    return f"**Strict asymptotic analysis:** {who}, {what}.{tail}"
+
 # ---------------------------------------------------------------------------
 # Structural facts read from the learner's source
 # ---------------------------------------------------------------------------
@@ -249,6 +444,11 @@ class LoopInfo:
     header: str
     bound: str                # human description of how often it repeats
     scales: bool = True       # False for constant / halving loops
+    fixed: bool = False       # fixed-bound range() loop scored as O(n) (strictly O(1))
+    passes: Optional[int] = None
+
+    def passes_text(self) -> str:
+        return f"exactly {self.passes} passes" if self.passes is not None else "a fixed number of passes"
 
 def live_tree(tree):
     """Drop functions that nothing ever calls.
@@ -371,12 +571,18 @@ class ProgramShape:
         if isinstance(node, (ast.For, ast.AsyncFor)):
             it = node.iter
             target = src(node.target)
+            if is_fixed_range(node):
+                k = fixed_range_passes(node)
+                times = f"exactly {k} times" if k is not None else "a fixed number of times"
+                if is_symbolic_fixed_range(node):
+                    return LoopInfo(node.lineno, "for", header,
+                                    f"repeats {times} (a fixed bound, strictly O(1))",
+                                    True, True, k)
+                return LoopInfo(node.lineno, "for", header, f"always repeats {times} (a fixed number)", False, False, k)
             if isinstance(it, ast.Call) and isinstance(it.func, ast.Name) and it.func.id == "range":
                 args = it.args
                 if len(args) == 1:
                     b = src(args[0])
-                    if isinstance(args[0], ast.Constant):
-                        return LoopInfo(node.lineno, "for", header, f"always repeats {b} times (a fixed number)", False)
                     return LoopInfo(node.lineno, "for", header, f"counts `{target}` from 0 up to {b} - 1, so it repeats {b} times")
                 if len(args) >= 2:
                     lo, hi = src(args[0]), src(args[1])

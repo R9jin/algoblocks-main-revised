@@ -1,0 +1,69 @@
+const curriculumIndex = [
+  {
+    moduleId: "module-0",
+    title: "Welcome to AlgoBlocks",
+    lessons: [
+      { lessonId: "lesson-0-1", title: "The AlgoBlocks Workspace", path: "/data/curriculum/module-0/lesson-0-1.json" },
+      { lessonId: "lesson-0-2", title: "Core Blockly Components", path: "/data/curriculum/module-0/lesson-0-2.json" },
+      { lessonId: "lesson-0-3", title: "The Complexity Analyzer", path: "/data/curriculum/module-0/lesson-0-3.json" },
+      { lessonId: "lesson-0-4", title: "Memory Visualizer", path: "/data/curriculum/module-0/lesson-0-4.json" }
+    ]
+  },
+  {
+    moduleId: "module-1",
+    title: "Algorithm Foundations",
+    lessons: [
+      { lessonId: "lesson-1-1", title: "Big-O Notation", path: "/data/curriculum/module-1/lesson-1-1.json" },
+      { lessonId: "lesson-1-2", title: "Time Complexity Classes", path: "/data/curriculum/module-1/lesson-1-2.json" },
+      { lessonId: "lesson-1-3", title: "Space Complexity", path: "/data/curriculum/module-1/lesson-1-3.json" }
+    ]
+  },
+  {
+    moduleId: "module-2",
+    title: "Brute Force & Exhaustive Search",
+    lessons: [
+      { lessonId: "lesson-2-1", title: "Brute Force Strategy", path: "/data/curriculum/module-2/lesson-2-1.json" },
+      { lessonId: "lesson-2-2", title: "Linear Search", path: "/data/curriculum/module-2/lesson-2-2.json" },
+      { lessonId: "lesson-2-3", title: "Simple Sorting", path: "/data/curriculum/module-2/lesson-2-3.json" }
+    ]
+  },
+  {
+    moduleId: "module-3",
+    title: "Divide and Conquer",
+    lessons: [
+      { lessonId: "lesson-3-1", title: "Divide and Conquer Paradigm", path: "/data/curriculum/module-3/lesson-3-1.json" },
+      { lessonId: "lesson-3-2", title: "Binary Search", path: "/data/curriculum/module-3/lesson-3-2.json" },
+      { lessonId: "lesson-3-3", title: "Merge Sort", path: "/data/curriculum/module-3/lesson-3-3.json" },
+      { lessonId: "lesson-3-4", title: "Quick Sort", path: "/data/curriculum/module-3/lesson-3-4.json" }
+    ]
+  },
+  {
+    moduleId: "module-4",
+    title: "Greedy Algorithms",
+    lessons: [
+      { lessonId: "lesson-4-1", title: "Greedy Strategy", path: "/data/curriculum/module-4/lesson-4-1.json" },
+      { lessonId: "lesson-4-2", title: "Coin Change Problem", path: "/data/curriculum/module-4/lesson-4-2.json" },
+      { lessonId: "lesson-4-3", title: "Activity Selection", path: "/data/curriculum/module-4/lesson-4-3.json" }
+    ]
+  },
+  {
+    moduleId: "module-5",
+    title: "Dynamic Programming",
+    lessons: [
+      { lessonId: "lesson-5-1", title: "Dynamic Programming Fundamentals", path: "/data/curriculum/module-5/lesson-5-1.json" },
+      { lessonId: "lesson-5-2", title: "Fibonacci Optimization", path: "/data/curriculum/module-5/lesson-5-2.json" },
+      { lessonId: "lesson-5-3", title: "0/1 Knapsack Problem", path: "/data/curriculum/module-5/lesson-5-3.json" },
+      { lessonId: "lesson-5-4", title: "Longest Common Subsequence (LCS)", path: "/data/curriculum/module-5/lesson-5-4.json" }
+    ]
+  },
+  {
+    moduleId: "module-6",
+    title: "Backtracking",
+    lessons: [
+      { lessonId: "lesson-6-1", title: "State Trees", path: "/data/curriculum/module-6/lesson-6-1.json" },
+      { lessonId: "lesson-6-2", title: "Permutations and Combinations", path: "/data/curriculum/module-6/lesson-6-2.json" },
+      { lessonId: "lesson-6-3", title: "N-Queens Problem", path: "/data/curriculum/module-6/lesson-6-3.json" },
+      { lessonId: "lesson-6-4", title: "Maze and Subset Problems", path: "/data/curriculum/module-6/lesson-6-4.json" }
+    ]
+  }
+];

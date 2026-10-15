@@ -76,6 +76,7 @@ class BlocklyASTConverter:
         self.line_comments = {}
         self.consumed_comment_lines = set()
         self.defined_functions = set()
+        self.returning_functions = set()
         self.blank_lines = set()
 
     # ==========================================
@@ -232,6 +233,15 @@ class BlocklyASTConverter:
         self.defined_functions = {
             n.name for n in ast.walk(tree)
             if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+
+        # Top-level functions that become `procedures_defreturn` blocks. A bare
+        # call statement to one of these cannot be a `procedures_callnoreturn`
+        # (the toolbox has no such block for them), so it is wrapped in a
+        # `procedure_call_statement` around a `procedures_callreturn`.
+        self.returning_functions = {
+            n.name for n in tree.body
+            if isinstance(n, ast.FunctionDef) and n.body and isinstance(n.body[-1], ast.Return)
         }
 
         scope_warnings = detect_scope_issues(clean_code, tree)
@@ -689,6 +699,14 @@ class BlocklyASTConverter:
                             self.add_input(block, "LIST", self.serialize_expr(node.args[0]))
                             return block
                             
+                    if name == "deque" and not node.keywords:
+                        if len(node.args) == 0:
+                            return {"type": "deque_create_empty", "id": gen_uid()}
+                        elif len(node.args) == 1:
+                            block = {"type": "deque_from_list", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(node.args[0]))
+                            return block
+
                     if name == "list":
                         if len(node.args) == 1:
                             arg = node.args[0]
@@ -845,6 +863,11 @@ class BlocklyASTConverter:
                         block = {"type": "set_operations", "id": gen_uid(), "fields": {"OP": method.upper()}}
                         self.add_input(block, "SET1", self.serialize_expr(obj))
                         self.add_input(block, "SET2", self.serialize_expr(node.args[0]))
+                        return block
+
+                    if method == "popleft" and len(node.args) == 0:
+                        block = {"type": "deque_popleft", "id": gen_uid()}
+                        self.add_input(block, "QUEUE", self.serialize_expr(obj))
                         return block
 
                     if method == "pop":
@@ -1086,6 +1109,13 @@ class BlocklyASTConverter:
                             return block
 
                         if name in self.defined_functions:
+                            if name in self.returning_functions:
+                                call = {"type": "procedures_callreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.value.args))]}}
+                                for i, arg in enumerate(node.value.args):
+                                    self.add_input(call, f"ARG{i}", self.serialize_expr(arg))
+                                block = {"type": "procedure_call_statement", "id": gen_uid()}
+                                self.add_input(block, "VALUE", call)
+                                return block
                             block = {"type": "procedures_callnoreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.value.args))]}}
                             for i, arg in enumerate(node.value.args):
                                 self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
@@ -1145,6 +1175,11 @@ class BlocklyASTConverter:
                             self.add_input(block, "LIST", self.serialize_expr(obj))
                             return block
                             
+                        if method == "popleft" and len(node.value.args) == 0:
+                            block = {"type": "deque_popleft_statement", "id": gen_uid()}
+                            self.add_input(block, "QUEUE", self.serialize_expr(obj))
+                            return block
+
                         if method == "pop":
                             if len(node.value.args) == 0:
                                 block = {"type": "list_pop_statement", "id": gen_uid()}

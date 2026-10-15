@@ -207,6 +207,7 @@ function generateClassificationReport(details, expKey, predKey, standardClasses)
 const ENGINE_MODULE_FILES = [
   "blockly_ast.py",
   "dynamic_tracer.py",
+  "silent_runner.py",
   "scope_detector.py",
   "logic_lint.py",
   "complexity_analyzer/__init__.py",
@@ -403,64 +404,102 @@ for _mod in (
     'complexity_explainer.paradigm_detector', 'complexity_explainer.variable_explanations',
     'complexity_explainer.insight_gatherers', 'complexity_explainer.line_insights', 'complexity_explainer.overall_narrative',
     'complexity_explainer.explanation_warnings', 'complexity_explainer.insight_generator',
-    'dynamic_tracer', 'scope_detector',
+    'dynamic_tracer', 'silent_runner', 'scope_detector',
 ):
     if _mod in sys.modules:
         del sys.modules[_mod]
 
-def gather_custom_lint_errors(code_str):
-    errs = []
+def collect_syntax_errors(code_str, max_errors=30):
+    # Python's parser stops at the FIRST syntax error, so a file with several
+    # mistakes would only ever report one. To list them all, we parse, record the
+    # error, patch just that line in a scratch copy (same line count, so numbers
+    # stay accurate) and parse again until the copy is clean.
+    import re
+    found = []
+    seen = set()
     lines = code_str.split('\\n')
-    stack = []
-    pairs = {'(': ')', '[': ']', '{': '}'}
-    for i, line in enumerate(lines):
-        s = line.strip()
-        if not s or s.startswith('#'):
+
+    def code_lines_before(idx):
+        return [l for l in lines[:idx] if l.strip() and not l.strip().startswith('#')]
+
+    def indent_of(s):
+        return len(s.expandtabs(4)) - len(s.expandtabs(4).lstrip(' '))
+
+    for _ in range(max_errors):
+        try:
+            ast.parse('\\n'.join(lines))
+            break
+        except SyntaxError as e:
+            msg = e.msg or ''
+            ln = e.lineno or 1
+            idx = min(max(ln - 1, 0), len(lines) - 1)
+            key = (idx, msg)
+            if key in seen:
+                break
+            seen.add(key)
+            found.append({"line": idx + 1, "message": f"{type(e).__name__}: {e}"})
+
+            line = lines[idx]
+            stripped = line.strip()
+            before = code_lines_before(idx)
+            fixed = None
+            if "expected ':'" in msg:
+                fixed = line.split('#')[0].rstrip() + ':'
+            elif 'expected an indented block' in msg:
+                m = re.search(r'on line (\\d+)', msg)
+                h = int(m.group(1)) - 1 if m else idx - 1
+                base = indent_of(lines[h]) if 0 <= h < len(lines) else 0
+                fixed = ' ' * (base + 4) + (stripped or 'pass')
+            elif 'unexpected indent' in msg:
+                prev_indent = indent_of(before[-1]) if before else 0
+                fixed = ' ' * prev_indent + stripped
+            elif 'unindent does not match' in msg:
+                cur = indent_of(line)
+                lower = [indent_of(l) for l in before if indent_of(l) < cur]
+                fixed = ' ' * (max(lower) if lower else 0) + stripped
+            else:
+                pad = ' ' * indent_of(line)
+                fixed = pad + ('if True:' if stripped.endswith(':') else 'pass')
+            if fixed is None or fixed == line:
+                break
+            lines[idx] = fixed
+    return found, '\\n'.join(lines)
+
+
+def gather_custom_lint_errors(code_str):
+    return collect_syntax_errors(code_str)[0]
+
+
+def gather_runtime_errors(source, existing):
+    # Silent run: executes the (syntax-repaired) code without printing and lists every
+    # runtime error it can reach, before the learner ever presses Run.
+    try:
+        from silent_runner import collect_runtime_errors
+        found = collect_runtime_errors(source)
+    except Exception:
+        return []
+    seen = set((e.get('line'), (e.get('message') or '').split(':')[0]) for e in existing)
+    out = []
+    for r in found:
+        key = (r['line'], r['message'].split(':')[0])
+        if key in seen:
             continue
-        if s.startswith(('def ', 'if ', 'elif ', 'else', 'for ', 'while ', 'class ', 'try', 'except', 'finally')):
-            s_no_comment = s.split('#')[0].strip()
-            if not s_no_comment.endswith(':') and not s_no_comment.endswith(('(', '[', '{', ',', '\\\\')):
-                errs.append({"line": i+1, "message": "SyntaxError: expected ':'"})
-        in_str = False
-        str_char = ''
-        escape = False
-        for char in line:
-            if escape:
-                escape = False
-                continue
-            if char == '\\\\':
-                escape = True
-                continue
-            if char in ['"', "'"] and not in_str:
-                in_str = True
-                str_char = char
-            elif char == str_char and in_str:
-                in_str = False
-            if not in_str:
-                if char in pairs:
-                    stack.append((char, i+1))
-                elif char in pairs.values():
-                    if not stack:
-                        errs.append({"line": i+1, "message": f"SyntaxError: unmatched '{char}'"})
-                    else:
-                        top, _ = stack.pop()
-                        if pairs[top] != char:
-                            errs.append({"line": i+1, "message": f"SyntaxError: closing '{char}' does not match opening '{top}'"})
-    for char, l in stack:
-        errs.append({"line": l, "message": f"SyntaxError: unclosed '{char}'"})
-    return errs
+        seen.add(key)
+        out.append(r)
+    return out
 
 try:
     from complexity_analyzer.analyzer import analyze_source_code
     output_dict = analyze_source_code(user_code)
     if isinstance(output_dict, dict) and output_dict.get("status") == "error":
-        custom_errs = gather_custom_lint_errors(user_code)
+        custom_errs, repaired_src = collect_syntax_errors(user_code)
         real_line = output_dict.get("line", 1)
         real_msg = output_dict.get("message", "Syntax Error")
         all_errors = [{"line": real_line, "message": real_msg}]
         for ce in custom_errs:
             if not any(existing['line'] == ce['line'] for existing in all_errors):
                 all_errors.append(ce)
+        all_errors += gather_runtime_errors(repaired_src, all_errors)
         all_errors.sort(key=lambda x: x['line'])
         output_dict["multiple_errors"] = all_errors
     elif isinstance(output_dict, dict) and output_dict.get("runtime_warning"):
@@ -483,15 +522,23 @@ try:
     # fails when run, so report it here (flagged blocking) next to any other findings.
     if isinstance(output_dict, dict) and output_dict.get("status") != "error" and output_dict.get("name_errors"):
         output_dict["multiple_errors"] = list(output_dict.get("multiple_errors") or []) + list(output_dict["name_errors"])
+    # Silent run of the code: every runtime error it can reach (TypeError, KeyError, ...),
+    # listed up front instead of one at a time after pressing Run.
+    if isinstance(output_dict, dict) and output_dict.get("status") != "error":
+        _prior = list(output_dict.get("multiple_errors") or [])
+        _extra = gather_runtime_errors(user_code, _prior)
+        if _extra:
+            output_dict["multiple_errors"] = _prior + _extra
     output = json.dumps(output_dict)
 except Exception as e:
-    custom_errs = gather_custom_lint_errors(user_code)
+    custom_errs, repaired_src = collect_syntax_errors(user_code)
     real_line = getattr(e, 'lineno', 1) or 1
     real_msg = str(e)
     all_errors = [{"line": real_line, "message": real_msg}]
     for ce in custom_errs:
         if not any(existing['line'] == ce['line'] for existing in all_errors):
             all_errors.append(ce)
+    all_errors += gather_runtime_errors(repaired_src, all_errors)
     all_errors.sort(key=lambda x: x['line'])
     output = json.dumps({"status": "error", "multiple_errors": all_errors, "line": real_line, "message": real_msg})
 output

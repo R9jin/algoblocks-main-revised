@@ -16,7 +16,9 @@ export function formatComplexity(str) {
     'n': 'ⁿ', 'x': 'ˣ', '+': '⁺', '-': '⁻'
   };
 
-  return formatted.replace(/\^([0-9nx+-]+)/g, (match, p1) => {
+  // Only the exponent itself is superscripted: a number (optionally signed) or a single
+  // variable. The old pattern also swallowed a following "+", so "V^2+E" rendered as "V²⁺E".
+  return formatted.replace(/\^([+-]?[0-9]+|[nx])/g, (match, p1) => {
     return p1.split('').map(char => superscripts[char] || char).join('');
   });
 }

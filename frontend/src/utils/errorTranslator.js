@@ -352,7 +352,7 @@ export const translatePythonError = (errorMsg) => {
     {
       test: /RecursionError: maximum recursion depth exceeded/i,
       generate: () =>
-        "Infinite Recursion Trap: Your function is caught in an infinite loop, calling itself over and over without ever stopping. The system artificially crashed the program to protect system RAM. Ensure your recursive function has a reachable 'Base Case' (a condition where it returns a value instead of calling itself again) and that every parameter passed down moves mathematically closer to that base case.",
+        "Infinite Recursion Trap: Your function kept calling itself until it went past Python's recursion limit (the maximum number of nested calls Python allows, roughly 1000 by default), so Python stopped it with this error. This usually means the function has no base case, or the base case is never reached. Ensure your recursive function has a reachable 'Base Case' (a condition where it returns a value instead of calling itself again) and that every parameter passed down moves mathematically closer to that base case.",
     },
     {
       test: /Execution exceeded max steps \(infinite loop protection\)/i,
@@ -367,7 +367,27 @@ export const translatePythonError = (errorMsg) => {
     {
       test: /ModuleNotFoundError: No module named '(.+)'/i,
       generate: (match) =>
-        `Missing Library: You tried to import a library named \`${match[1]}\`. However, the sandbox engine doesn't have this third-party library installed. The AlgoBlocks environment relies strictly on pure Python standard libraries (like \`math\`, \`collections\`, or \`itertools\`).`,
+        `Module Not Found: Python could not find a module named \`${match[1]}\`. There are two common causes: the name is misspelled or has the wrong capitalization (for example \`Math\` instead of \`math\`), or it is not part of Python's standard library. AlgoBlocks runs in the browser with only the built-in standard libraries (like \`math\`, \`collections\`, or \`itertools\`), so third-party packages such as \`numpy\` are not available here.`,
+    },
+    {
+      test: /ImportError: cannot import name '(.+)' from '(.+)'/i,
+      generate: (match) =>
+        `Name Not Found in Module: You asked \`${match[2].split(" ")[0]}\` for \`${match[1]}\`, but it doesn't have anything with that name. Check the spelling and capitalization, or look up what that module actually offers.`,
+    },
+    {
+      test: /FileNotFoundError: .*No such file or directory: '(.+)'/i,
+      generate: (match) =>
+        `File Not Found: The code tried to open \`${match[1]}\`, but no file with that name exists in the sandbox. The browser engine has no access to files on your computer, so create the file in the code first or use data stored in variables instead.`,
+    },
+    {
+      test: /OverflowError: (.+)/i,
+      generate: (match) =>
+        `Number Too Large: A calculation produced a number bigger than Python can store in that kind of value ("${match[1]}"). Check for an exponent or repeated multiplication that grows far faster than you expected.`,
+    },
+    {
+      test: /^RuntimeError: (.+)/i,
+      generate: (match) =>
+        `Program Raised an Error: Your code deliberately stopped with the message "${match[1]}" (a \`raise RuntimeError(...)\` statement). Check which condition triggers that line, or catch it with \`try\` / \`except\` if it is expected.`,
     }
   ];
 

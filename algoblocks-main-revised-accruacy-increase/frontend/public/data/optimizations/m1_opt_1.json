@@ -1,0 +1,211 @@
+{
+  "type": "algoblocks_project",
+  "version": "1.0",
+  "title": "algoblocks_workspace",
+  "blocklyJson": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "141e03c3-b4d3-4",
+          "x": 20,
+          "y": 20,
+          "extraState": {
+            "params": [
+              {
+                "name": "arr",
+                "id": "arr"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "reverse_in_place"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "variables_set",
+                "id": "fb9ef85e-26d4-4",
+                "fields": {
+                  "VAR": {
+                    "id": "new_arr"
+                  }
+                },
+                "inputs": {
+                  "VALUE": {
+                    "block": {
+                      "type": "lists_create_with",
+                      "id": "58ae982a-faa1-4",
+                      "extraState": {
+                        "itemCount": 0
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "controls_for",
+                    "id": "c41f09f2-5388-4",
+                    "fields": {
+                      "VAR": {
+                        "id": "i"
+                      }
+                    },
+                    "inputs": {
+                      "FROM": {
+                        "block": {
+                          "type": "math_arithmetic",
+                          "id": "26adf836-5818-4",
+                          "fields": {
+                            "OP": "MINUS"
+                          },
+                          "inputs": {
+                            "A": {
+                              "block": {
+                                "type": "lists_length",
+                                "id": "90655ce6-0874-4",
+                                "inputs": {
+                                  "VALUE": {
+                                    "block": {
+                                      "type": "variables_get",
+                                      "id": "f7952ff8-72bd-4",
+                                      "fields": {
+                                        "VAR": {
+                                          "id": "arr"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "B": {
+                              "block": {
+                                "type": "math_number",
+                                "id": "6096eee8-9a5d-4",
+                                "fields": {
+                                  "NUM": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "TO": {
+                        "block": {
+                          "type": "math_number",
+                          "id": "b4485799-6f21-4",
+                          "fields": {
+                            "NUM": -1
+                          }
+                        }
+                      },
+                      "BY": {
+                        "block": {
+                          "type": "math_number",
+                          "id": "d1f931a8-3957-4",
+                          "fields": {
+                            "NUM": -1
+                          }
+                        }
+                      },
+                      "DO": {
+                        "block": {
+                          "type": "list_append",
+                          "id": "2e6c13b8-1c8e-4",
+                          "inputs": {
+                            "ITEM": {
+                              "block": {
+                                "type": "lists_getIndex",
+                                "id": "a614db53-2770-4",
+                                "fields": {
+                                  "MODE": "GET",
+                                  "WHERE": "FROM_START"
+                                },
+                                "inputs": {
+                                  "VALUE": {
+                                    "block": {
+                                      "type": "variables_get",
+                                      "id": "e6a39a8d-84b6-4",
+                                      "fields": {
+                                        "VAR": {
+                                          "id": "arr"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "AT": {
+                                    "block": {
+                                      "type": "variables_get",
+                                      "id": "1fa4a40f-d816-4",
+                                      "fields": {
+                                        "VAR": {
+                                          "id": "i"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "LIST": {
+                              "block": {
+                                "type": "variables_get",
+                                "id": "f2e75876-ddfd-4",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "new_arr"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "variables_get",
+                "id": "e562c05c-defc-4",
+                "fields": {
+                  "VAR": {
+                    "id": "new_arr"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "arr",
+        "id": "arr"
+      },
+      {
+        "name": "new_arr",
+        "id": "new_arr"
+      },
+      {
+        "name": "i",
+        "id": "i"
+      }
+    ],
+    "backpack": []
+  },
+  "pythonCode": "def reverse_in_place(arr):\n    new_arr = []\n\n    for i in range(len(arr) - 1, -1, -1):\n        new_arr.append(arr[i])\n\n    return new_arr"
+}

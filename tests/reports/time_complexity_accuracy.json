@@ -1,8 +1,8 @@
 {
   "metric": "expected_overall_time vs analyzer 'total'",
   "n": 273,
-  "correct": 253,
-  "accuracy": 0.9267,
+  "correct": 248,
+  "accuracy": 0.9084,
   "floor": 0.9,
   "mismatches": [
     {
@@ -27,6 +27,22 @@
       "source_file": "ground_truth_chunk_05.json",
       "expected": "O(n^2)",
       "predicted": "O(n^3)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_069",
+      "name": "Longest Common Subsequence with Permutations Allowed",
+      "source_file": "ground_truth_chunk_07.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^3 + m)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_078",
+      "name": "Find the Nth Permutation of a String (Factorial Number System)",
+      "source_file": "ground_truth_chunk_08.json",
+      "expected": "O(n)",
+      "predicted": "O(n^3 + m)",
       "analyzer_status": "success"
     },
     {
@@ -65,6 +81,14 @@
       "id": "algo_n2_148",
       "name": "Longest Increasing Path in a Matrix (DFS + Memoization)",
       "source_file": "ground_truth_chunk_15.json",
+      "expected": "O(n^2)",
+      "predicted": "O(n^3)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n2_161",
+      "name": "Insertion Sort with Swaps Across Two Lists",
+      "source_file": "ground_truth_chunk_17.json",
       "expected": "O(n^2)",
       "predicted": "O(n^3)",
       "analyzer_status": "success"
@@ -110,6 +134,14 @@
       "analyzer_status": "success"
     },
     {
+      "id": "algo_n_230",
+      "name": "Find the Maximum Occurring Digit in a Number (No Array)",
+      "source_file": "ground_truth_chunk_23.json",
+      "expected": "O(log n)",
+      "predicted": "O(n log n)",
+      "analyzer_status": "success"
+    },
+    {
       "id": "algo_nlogn_237",
       "name": "Find the Kth Non-Repeating Character in a Stream",
       "source_file": "ground_truth_chunk_24.json",
@@ -131,6 +163,14 @@
       "source_file": "ground_truth_chunk_26.json",
       "expected": "O(2^n)",
       "predicted": "O(n^3)",
+      "analyzer_status": "success"
+    },
+    {
+      "id": "algo_n_263",
+      "name": "Print Common Characters of Two Strings in Alphabetical Order",
+      "source_file": "ground_truth_chunk_27.json",
+      "expected": "O(n)",
+      "predicted": "O(n^2 + m)",
       "analyzer_status": "success"
     },
     {

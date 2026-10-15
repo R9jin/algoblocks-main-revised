@@ -1,0 +1,20 @@
+<svg viewBox="0 0 640 298" width="640" height="298" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="640" height="298" rx="16" fill="#FBFAFF" stroke="#D8CBFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="8" height="298" rx="4" fill="#7C5CFF"/>
+<text x="30" y="30" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#2B005C">Key Takeaways</text>
+<circle cx="36" cy="66.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 66.5 L 34.5 70.5 L 41.5 62.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="73" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Linear</tspan><tspan dx="4" font-weight="400" fill="#3D3554">Search</tspan><tspan dx="4" font-weight="400" fill="#3D3554">checks</tspan><tspan dx="4" font-weight="400" fill="#3D3554">elements</tspan><tspan dx="4" font-weight="700" fill="#2B005C">sequentially,</tspan><tspan dx="4" font-weight="400" fill="#3D3554">with</tspan><tspan dx="4" font-weight="400" fill="#3D3554">zero</tspan><tspan dx="4" font-weight="400" fill="#3D3554">preprocessing.</tspan></text>
+<circle cx="36" cy="114.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 114.5 L 34.5 118.5 L 41.5 110.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="121" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="700" fill="#2B005C">Reverse</tspan><tspan dx="4" font-weight="700" fill="#2B005C">Traversal</tspan><tspan dx="4" font-weight="400" fill="#3D3554">and</tspan><tspan dx="4" font-weight="700" fill="#2B005C">Boundary</tspan><tspan dx="4" font-weight="700" fill="#2B005C">Clamping</tspan><tspan dx="4" font-weight="400" fill="#3D3554">handle</tspan><tspan dx="4" font-weight="400" fill="#3D3554">specialized</tspan><tspan dx="4" font-weight="400" fill="#3D3554">queries.</tspan></text>
+<circle cx="36" cy="162.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 162.5 L 34.5 166.5 L 41.5 158.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="169" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Best</tspan><tspan dx="4" font-weight="400" fill="#3D3554">case:</tspan><tspan dx="4" font-weight="700" fill="#2B005C">O(1)</tspan><tspan dx="4" font-weight="400" fill="#3D3554">(target</tspan><tspan dx="4" font-weight="400" fill="#3D3554">first).</tspan></text>
+<circle cx="36" cy="210.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 210.5 L 34.5 214.5 L 41.5 206.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="217" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Worst</tspan><tspan dx="4" font-weight="400" fill="#3D3554">case:</tspan><tspan dx="4" font-weight="700" fill="#2B005C">O(n)</tspan><tspan dx="4" font-weight="400" fill="#3D3554">(target</tspan><tspan dx="4" font-weight="400" fill="#3D3554">last</tspan><tspan dx="4" font-weight="400" fill="#3D3554">or</tspan><tspan dx="4" font-weight="400" fill="#3D3554">missing).</tspan></text>
+<circle cx="36" cy="258.5" r="11" fill="#7C5CFF"/>
+<path d="M 31 258.5 L 34.5 262.5 L 41.5 254.0" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="265" font-family="Arial, sans-serif" font-size="13.5"><tspan font-weight="400" fill="#3D3554">Simple</tspan><tspan dx="4" font-weight="400" fill="#3D3554">and</tspan><tspan dx="4" font-weight="400" fill="#3D3554">reliable,</tspan><tspan dx="4" font-weight="400" fill="#3D3554">but</tspan><tspan dx="4" font-weight="700" fill="#2B005C">not</tspan><tspan dx="4" font-weight="700" fill="#2B005C">ideal</tspan><tspan dx="4" font-weight="700" fill="#2B005C">for</tspan><tspan dx="4" font-weight="700" fill="#2B005C">repeated</tspan><tspan dx="4" font-weight="700" fill="#2B005C">searches</tspan><tspan dx="4" font-weight="400" fill="#3D3554">on</tspan><tspan dx="4" font-weight="400" fill="#3D3554">large</tspan><tspan dx="4" font-weight="400" fill="#3D3554">data.</tspan></text>
+</svg>
