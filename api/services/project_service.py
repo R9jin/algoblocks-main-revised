@@ -28,6 +28,7 @@ class ProjectService:
             "userId": req.userId,
             "owner_id": req.owner_id or req.userId,
             "projectId": req.projectId,
+            "clientId": req.clientId or None,
             "isSynced": True
         }
 
@@ -42,13 +43,23 @@ class ProjectService:
             # which raced under rapid repeated saves (see
             # ProjectRepository.insert_if_under_limit). Do both atomically
             # under one advisory-lock-guarded transaction instead.
-            project_id = ProjectRepository.insert_if_under_limit(update_data, MAX_PROJECTS_PER_USER)
-            if project_id is None:
+            result = ProjectRepository.insert_if_under_limit(update_data, MAX_PROJECTS_PER_USER)
+            if result is None:
                 raise HTTPException(
                     status_code=403,
                     detail=f"Project limit reached ({MAX_PROJECTS_PER_USER} max per account). Please delete an existing project before creating a new one."
                 )
-            return {"status": "success", "projectId": project_id, "synced": True}
+            # ``projectId`` is the canonical, stable identifier (the same value
+            # GET /projects returns). ``_id`` is the numeric row id, kept only
+            # so the client can reconcile records written by older builds.
+            return {
+                "status": "success",
+                "projectId": result["projectId"],
+                "_id": result["id"],
+                "clientId": update_data["clientId"],
+                "duplicate": result["duplicate"],
+                "synced": True,
+            }
 
     @staticmethod
     def delete_project(payload: dict):
