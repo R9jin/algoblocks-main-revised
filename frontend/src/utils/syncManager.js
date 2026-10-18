@@ -82,6 +82,10 @@ let pendingRerun = false;
 let pendingForce = false;
 const pullInFlight = { project: null, template: null };
 let rateLimitedUntil = 0;
+// Set when any request in the current pass gets a 401 (expired/invalid session).
+// The rest of the pass stops, and nothing is counted as a failed attempt: the work
+// is fine, the login is not, and it must survive until the person signs in again.
+let authFailed = false;
 
 const withCrossTabLock = async (fn, wait) => {
     if (typeof navigator !== "undefined" && navigator.locks?.request) {
@@ -126,6 +130,7 @@ const pushSimpleRecord = async ({ db, key, url, headers, buildBody, force, onFor
         return fail();
     }
 
+    if (res.status === 401) { authFailed = true; return "unauthorized"; }
     if (res.ok) {
         const latest = await db.get(key);
         if (!latest) return "ok"; // deleted meanwhile
@@ -172,6 +177,7 @@ export const SyncManager = {
     },
 
     async _syncPass(force = false) {
+        authFailed = false;
         if (!navigator.onLine) {
             console.log("Offline: Skipping background sync.");
             return;
@@ -232,9 +238,9 @@ export const SyncManager = {
             const syncBlocked = !force && Date.now() < rateLimitedUntil;
             const runSimple = async (list, cfg) => {
                 for (const item of list) {
-                    if (!force && Date.now() < rateLimitedUntil) return; // a 429 mid-pass: stop
+                    if (authFailed || (!force && Date.now() < rateLimitedUntil)) return; // a 401/429 mid-pass: stop
                     const outcome = await pushSimpleRecord({ ...cfg, key: cfg.keyOf(item), headers, force });
-                    if (outcome === "rate_limited") return;
+                    if (outcome === "rate_limited" || outcome === "unauthorized") return;
                 }
             };
 
@@ -275,16 +281,18 @@ export const SyncManager = {
             // local project instead of inserting a duplicate.
             if (!(!force && Date.now() < rateLimitedUntil)) {
                 for (const snapshot of unsyncedProjects) {
+                    if (authFailed) break;
                     const outcome = await SyncManager._pushItem("project", recordKey(snapshot), headers, force);
-                    if (outcome === "rate_limited") break; // stop hammering; the rest wait for the next pass
+                    if (outcome === "rate_limited" || outcome === "unauthorized") break; // stop hammering; the rest wait for the next pass
                 }
             }
 
             // 4. Sync Individual Templates (same safe, idempotent push as projects)
             if (!(!force && Date.now() < rateLimitedUntil)) {
                 for (const snapshot of unsyncedTemplates) {
+                    if (authFailed) break;
                     const outcome = await SyncManager._pushItem("template", recordKey(snapshot), headers, force);
-                    if (outcome === "rate_limited") break;
+                    if (outcome === "rate_limited" || outcome === "unauthorized") break;
                 }
             }
 
@@ -323,6 +331,25 @@ export const SyncManager = {
                 console.error("Failed to sync onboarding state", e);
             }
 
+            // 5b. Drain the localStorage fallback queue. ActivityApp.jsx writes there
+            // when IndexedDB is unavailable, but nothing ever read it back, so those
+            // retries (progress / submissions) were silently lost. Move them into the
+            // real queue; they are then replayed by step 6 below.
+            try {
+                const rawLegacy = localStorage.getItem("offline_sync_queue");
+                if (rawLegacy) {
+                    const legacy = JSON.parse(rawLegacy);
+                    if (Array.isArray(legacy)) {
+                        for (const entry of legacy) {
+                            if (entry && entry.key && entry.data) await syncQueueDB.setItem(entry.key, entry.data);
+                        }
+                    }
+                    localStorage.removeItem("offline_sync_queue");
+                }
+            } catch (e) {
+                console.error("Could not migrate the legacy localStorage sync queue:", e);
+            }
+
             // 6. Process Offline Action Queue (e.g. Project or Template Deletions)
             // A task that can never succeed used to stay in the queue forever and be
             // replayed every 30s (and keep the "Local Pending" count stuck, so Force
@@ -334,7 +361,7 @@ export const SyncManager = {
             const PERMANENT = new Set([400, 403, 405, 409, 410, 413, 422]);
             const queue = await syncQueueDB.getAll();
             for (const task of queue) {
-                if (!force && Date.now() < rateLimitedUntil) break;
+                if (authFailed || (!force && Date.now() < rateLimitedUntil)) break;
                 let res = null;
                 try {
                     if (task.action === "DELETE_PROJECT") {
@@ -372,6 +399,7 @@ export const SyncManager = {
                     }
 
                     // Not successful.
+                    if (res.status === 401) { authFailed = true; break; } // keep the task; no attempt counted
                     if (res.status === 429) {
                         const retryAfter = parseInt(res.headers.get("Retry-After") || "", 10);
                         rateLimitedUntil = Date.now() + (Number.isFinite(retryAfter) ? retryAfter * 1000 : 60000);
@@ -441,6 +469,8 @@ export const SyncManager = {
                 await SyncManager._markFailed(kind, key);
                 return "failed";
             }
+
+            if (res.status === 401) { authFailed = true; return "unauthorized"; }
 
             if (res.ok) {
                 const data = await res.json().catch(() => ({}));
