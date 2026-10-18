@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/update-progress")
 @limiter.limit("30/minute")
-async def update_progress(request: Request, data: ProgressUpdate, current_user_email: str = Depends(get_current_user_email)):
+def update_progress(request: Request, data: ProgressUpdate, current_user_email: str = Depends(get_current_user_email)):
     try:
         if data.email != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to update this progress")
@@ -46,7 +46,7 @@ async def update_progress(request: Request, data: ProgressUpdate, current_user_e
 
 @router.post("/sync-submission")
 @limiter.limit("30/minute")
-async def sync_submission(request: Request, data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
+def sync_submission(request: Request, data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
     try:
         if data.get("userId") != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to sync this submission")
@@ -64,7 +64,7 @@ async def sync_submission(request: Request, data: Dict[str, Any] = Body(...), cu
 
 @router.post("/sync-assessment")
 @limiter.limit("30/minute")
-async def sync_assessment(request: Request, data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
+def sync_assessment(request: Request, data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
     try:
         if data.get("userId") != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to sync this assessment")
@@ -82,7 +82,7 @@ async def sync_assessment(request: Request, data: Dict[str, Any] = Body(...), cu
 
 @router.post("/batch-sync", response_model=SyncResponse)
 @limiter.limit("15/minute")
-async def batch_sync(request: Request, payload: BatchSyncPayload, current_user_email: str = Depends(get_current_user_email)):
+def batch_sync(request: Request, payload: BatchSyncPayload, current_user_email: str = Depends(get_current_user_email)):
     try:
         response = AuthService.batch_sync(payload.dict(), current_user_email)
         return SyncResponse(
@@ -96,7 +96,7 @@ async def batch_sync(request: Request, payload: BatchSyncPayload, current_user_e
 
 @router.get("/get-submission")
 @limiter.limit("60/minute")
-async def get_submission(request: Request, activityId: str, moduleId: str, current_user_email: str = Depends(get_current_user_email)):
+def get_submission(request: Request, activityId: str, moduleId: str, current_user_email: str = Depends(get_current_user_email)):
     try:
         res = AuthService.get_submission(current_user_email, activityId, moduleId)
         if res and res.get("submission"):
@@ -108,7 +108,7 @@ async def get_submission(request: Request, activityId: str, moduleId: str, curre
 
 @router.get("/get-assessment")
 @limiter.limit("60/minute")
-async def get_assessment(request: Request, assessmentId: str, current_user_email: str = Depends(get_current_user_email)):
+def get_assessment(request: Request, assessmentId: str, current_user_email: str = Depends(get_current_user_email)):
     try:
         res = AuthService.get_assessment(current_user_email, assessmentId)
         if res and res.get("assessment"):

@@ -588,38 +588,61 @@ class AuthService:
         safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
 
         conn = get_db_connection()
+        # Real transaction + per-(user, module, activity) advisory lock. This was a
+        # plain SELECT-then-INSERT under autocommit, so two overlapping syncs of the
+        # same submission (background sync + the direct save, two tabs, a retry) both
+        # saw "no row yet" and each inserted one -> duplicate submission rows.
+        conn.autocommit = False
         cursor = conn.cursor()
-        
-        # FIXED: Resilient Schema Check handles both "userId" OR "email" column variations securely without crashing API 
+        lock_key = f"{user_id}|{module_id}|{activity_id}"
+
         try:
-            cursor.execute('''
-                SELECT id FROM submissions 
-                WHERE "userId" = %s AND data->>'moduleId' = %s AND data->>'activityId' = %s
-            ''', (user_id, module_id, activity_id))
-            col_name = '"userId"'
+            cursor.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', (lock_key,))
+
+            # FIXED: Resilient Schema Check handles both "userId" OR "email" column variations securely without crashing API
+            try:
+                cursor.execute('''
+                    SELECT id, data FROM submissions
+                    WHERE "userId" = %s AND data->>'moduleId' = %s AND data->>'activityId' = %s
+                ''', (user_id, module_id, activity_id))
+                col_name = '"userId"'
+            except Exception:
+                conn.rollback()  # also releases the lock: take it again
+                cursor.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', (lock_key,))
+                cursor.execute('''
+                    SELECT id, data FROM submissions
+                    WHERE email = %s AND data->>'moduleId' = %s AND data->>'activityId' = %s
+                ''', (user_id, module_id, activity_id))
+                col_name = 'email'
+
+            existing = cursor.fetchone()
+
+            if existing:
+                # Ignore a stale replay (an older queued copy arriving after a newer
+                # one was already stored) instead of overwriting newer work.
+                try:
+                    old_ts = float((existing["data"] or {}).get("timestamp") or 0)
+                    new_ts = float(safe_update_data.get("timestamp") or 0)
+                except (TypeError, ValueError, AttributeError):
+                    old_ts = new_ts = 0
+                if new_ts and old_ts and new_ts < old_ts:
+                    conn.commit()
+                    return {"status": "success", "message": "Stale submission ignored"}
+                cursor.execute('UPDATE submissions SET data = %s WHERE id = %s',
+                               (json.dumps(safe_update_data), existing['id']))
+            else:
+                cursor.execute(f'''
+                    INSERT INTO submissions ({col_name}, data) VALUES (%s, %s)
+                ''', (user_id, json.dumps(safe_update_data)))
+
+            conn.commit()
+            return {"status": "success", "message": "Submission synced"}
         except Exception:
             conn.rollback()
-            cursor.execute('''
-                SELECT id FROM submissions 
-                WHERE email = %s AND data->>'moduleId' = %s AND data->>'activityId' = %s
-            ''', (user_id, module_id, activity_id))
-            col_name = 'email'
-        
-        existing = cursor.fetchone()
-        
-        if existing:
-            cursor.execute('''
-                UPDATE submissions SET data = %s WHERE id = %s
-            ''', (json.dumps(safe_update_data), existing['id']))
-        else:
-            cursor.execute(f'''
-                INSERT INTO submissions ({col_name}, data) VALUES (%s, %s)
-            ''', (user_id, json.dumps(safe_update_data)))
-            
-        conn.commit()  # <--- CRITICAL FIX: Save the transaction!
-        cursor.close()
-        conn.close()
-        return {"status": "success", "message": "Submission synced"}
+            raise
+        finally:
+            cursor.close()
+            conn.close()
 
     @staticmethod
     def get_submission(email: str, activityId: str, moduleId: str = None):
@@ -710,6 +733,10 @@ class AuthService:
                 answers = COALESCE(EXCLUDED.answers, assessments.answers),
                 question_ids = COALESCE(EXCLUDED.question_ids, assessments.question_ids),
                 updated_at = now()
+            -- Ignore a stale replay (older attempt arriving after a newer one).
+            WHERE EXCLUDED.attempts IS NULL
+               OR assessments.attempts IS NULL
+               OR EXCLUDED.attempts >= assessments.attempts
         ''', (
             user_id, module_id,
             payload.get("score"), payload.get("maxScore"), payload.get("correct"), payload.get("total"),

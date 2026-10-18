@@ -6,14 +6,22 @@ MAX_TEMPLATES_PER_USER = 20
 
 class TemplateService:
     @staticmethod
-    def get_templates_by_category(category: str):
-        templates = TemplateRepository.find_by_category(category)
+    def get_templates_by_category(category: str, user_id: str):
+        templates = TemplateRepository.find_by_category(category, user_id)
         return {"status": "success", "templates": templates}
 
     @staticmethod
-    def get_all_templates():
-        templates = TemplateRepository.find_all()
+    def get_all_templates(user_id: str):
+        templates = TemplateRepository.find_all(user_id)
         return {"status": "success", "templates": templates}
+
+    @staticmethod
+    def delete_template(template_id: str, user_id: str):
+        if not template_id or not user_id:
+            raise HTTPException(status_code=400, detail="Missing templateId or userId")
+        if TemplateRepository.delete(template_id, user_id) == 0:
+            raise HTTPException(status_code=404, detail="Template not found or unauthorized")
+        return {"status": "success"}
 
     @staticmethod
     def save_template(req):

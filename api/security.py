@@ -68,7 +68,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         return encoded_jwt.decode("utf-8")
     return encoded_jwt
 
-async def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
+# NOTE: plain ``def`` on purpose. This runs a blocking psycopg2 query on every
+# authenticated request; as ``async def`` it executed ON the event loop and
+# stalled every other in-flight request while it waited on the database.
+# FastAPI runs sync dependencies in its threadpool.
+def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
     """
     FastAPI dependency that authenticates the Bearer token on every request.
 
@@ -147,7 +151,7 @@ async def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
         logger.warning(f"Rejected request: Invalid token - {str(e)}")
         raise credentials_exception
 
-async def get_current_admin_user(email: str = Depends(get_current_user_email)) -> str:
+def get_current_admin_user(email: str = Depends(get_current_user_email)) -> str:
     """
     FastAPI dependency that enforces administrator privileges.
 
