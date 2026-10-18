@@ -242,8 +242,8 @@ class ProjectRepository:
             query = 'DELETE FROM projects WHERE id = %s AND ("userId" = %s OR owner_id = %s)'
             cursor.execute(query, (p_id, user_id, user_id))
         except ValueError:
-            query = 'DELETE FROM projects WHERE "projectId" = %s AND ("userId" = %s OR owner_id = %s)'
-            cursor.execute(query, (project_id, user_id, user_id))
+            query = 'DELETE FROM projects WHERE ("projectId" = %s OR "clientId" = %s) AND ("userId" = %s OR owner_id = %s)'
+            cursor.execute(query, (project_id, project_id, user_id, user_id))
             
         rowcount = cursor.rowcount
         cursor.close()

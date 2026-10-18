@@ -6,6 +6,7 @@ import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
 import { useOnboarding } from "../context/OnboardingContext";
 import { progressDB, projectsDB, templatesDB } from "../db";
+import { syncManager } from "../utils/syncManager";
 import "../styles/Dashboard.css";
 import "../styles/Skeleton.css";
 import { fetchStaticJson } from "../utils/staticJsonCache";
@@ -280,6 +281,10 @@ export default function Dashboard() {
             }
           }
 
+          // Deletions still queued for the server must not be undone by this pull.
+          const pendingProjectDeletes = await syncManager.getPendingDeleteIds("project");
+          const pendingTemplateDeletes = await syncManager.getPendingDeleteIds("template");
+
           if (pResult.status === "fulfilled") {
             const pRes = pResult.value;
             if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
@@ -289,6 +294,7 @@ export default function Dashboard() {
                 .filter(cp => cp.owner_id === user.email || cp.userId === user.email)
                 .map(async (cp) => {
                   const key = cp.projectId || cp._id;
+                  if (pendingProjectDeletes.has(String(key)) || pendingProjectDeletes.has(String(cp._id))) return; // deletion still queued
                   // Never overwrite a local project that still has unsynced edits.
                   const local = await projectsDB.get(key).catch(() => null);
                   if (local && !local.isSynced && !local.synced && (local.timestamp || 0) >= (cp.timestamp || 0)) return;
@@ -307,6 +313,7 @@ export default function Dashboard() {
                 .filter(ct => ct.owner_id === user.email || ct.userId === user.email)
                 .map(async (ct) => {
                   const key = ct.templateId || ct._id;
+                  if (pendingTemplateDeletes.has(String(key)) || pendingTemplateDeletes.has(String(ct._id))) return; // deletion still queued
                   // Never overwrite a local template that still has unsynced edits.
                   const local = await templatesDB.get(key).catch(() => null);
                   if (local && !local.isSynced && !local.synced && (local.timestamp || 0) >= (ct.timestamp || 0)) return;

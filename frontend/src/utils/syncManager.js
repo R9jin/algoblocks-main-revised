@@ -93,6 +93,56 @@ const withCrossTabLock = async (fn, wait) => {
     return fn();
 };
 
+// Push one progress / assessment / submission record. Shared by the three loops
+// in _syncPass so they all get the same protections:
+//  - the record is re-read before it is marked synced, and only marked synced if
+//    it was not edited during the upload (the old code wrote back the stale
+//    snapshot with isSynced:true, silently discarding a newer score/answer),
+//  - a permanent 4xx no longer retries every 30s forever (exponential back-off),
+//  - a 429 stops the pass instead of hammering the endpoint.
+// Returns "ok" | "skipped" | "failed" | "rate_limited" | "dropped".
+const pushSimpleRecord = async ({ db, key, url, headers, buildBody, force, onForbidden }) => {
+    const rec = await db.get(key);
+    if (!rec || rec.isSynced) return "skipped";
+    if (!force && rec.nextRetryAt && rec.nextRetryAt > Date.now()) return "skipped";
+    const sentVersion = versionOf(rec);
+
+    const fail = async () => {
+        try {
+            const cur = await db.get(key);
+            if (cur && !cur.isSynced) {
+                const failures = (cur.syncFailures || 0) + 1;
+                await db.save({ ...cur, syncFailures: failures, nextRetryAt: Date.now() + nextRetryDelay(failures) });
+            }
+        } catch (e) { /* best effort */ }
+        return "failed";
+    };
+
+    let res;
+    try {
+        res = await fetchWithTimeout(url, { method: "POST", headers, body: JSON.stringify(buildBody(rec)) });
+    } catch (e) {
+        console.error(`Failed to sync ${url}`, e);
+        return fail();
+    }
+
+    if (res.ok) {
+        const latest = await db.get(key);
+        if (!latest) return "ok"; // deleted meanwhile
+        const { nextRetryAt, syncFailures, ...clean } = latest;
+        const editedMeanwhile = versionOf(latest) !== sentVersion;
+        await db.save({ ...clean, isSynced: !editedMeanwhile });
+        return "ok";
+    }
+    if (res.status === 429) {
+        const retryAfter = parseInt(res.headers.get("Retry-After") || "", 10);
+        rateLimitedUntil = Date.now() + (Number.isFinite(retryAfter) ? retryAfter * 1000 : 60000);
+        return "rate_limited";
+    }
+    if (res.status === 403 && onForbidden) return onForbidden(key);
+    return fail();
+};
+
 const nextRetryDelay = (failures) => Math.min(30000 * 2 ** Math.max(0, failures - 1), 10 * 60 * 1000);
 
 export const SyncManager = {
@@ -179,59 +229,43 @@ export const SyncManager = {
 
             // 2. Batch Sync Core Metrics (Progress, Assessments, Submissions) to Postgres JSONB
             // The API endpoints are tailored for standard single-item updates, so we sync them individually here
-            for (const p of unsyncedProgress) {
-                try {
-                    const res = await fetchWithTimeout(`${API_BASE_URL}/update-progress`, {
-                        method: "POST",
-                        headers,
-                        // Stamp the current account's email onto the payload --
-                        // see the currentUserEmail comment above. Falls back to
-                        // whatever (if anything) was already on the record.
-                        body: JSON.stringify({ ...p, email: p.email || currentUserEmail })
-                    });
-                    if (res.ok) {
-                        await progressDB.save({ ...p, isSynced: true });
-                    } else if (res.status === 403) {
-                        // A 403 here means the backend rejected the email/account
-                        // match outright -- not a connectivity blip, and retrying
-                        // on the next 30s tick with the exact same payload would
-                        // just 403 forever (this was previously spamming
-                        // update-progress every cycle and eventually tripping the
-                        // endpoint's own rate limit). There's no fixable local
-                        // state to retry with, so drop this record rather than
-                        // let it loop indefinitely.
-                        console.error("Progress sync rejected (403), dropping stale local record:", p.lesson_id);
-                        await progressDB.delete(p.lesson_id);
-                    }
-                } catch (e) {
-                    console.error("Failed to sync progress", e);
+            const syncBlocked = !force && Date.now() < rateLimitedUntil;
+            const runSimple = async (list, cfg) => {
+                for (const item of list) {
+                    if (!force && Date.now() < rateLimitedUntil) return; // a 429 mid-pass: stop
+                    const outcome = await pushSimpleRecord({ ...cfg, key: cfg.keyOf(item), headers, force });
+                    if (outcome === "rate_limited") return;
                 }
-            }
+            };
 
-            for (const a of unsyncedAssessments) {
-                try {
-                    const res = await fetchWithTimeout(`${API_BASE_URL}/update-assessment`, {
-                        method: "POST",
-                        headers,
-                        body: JSON.stringify(a)
-                    });
-                    if (res.ok) await assessmentsDB.save({ ...a, isSynced: true });
-                } catch (e) {
-                    console.error("Failed to sync assessment", e);
-                }
-            }
+            if (!syncBlocked) {
+                await runSimple(unsyncedProgress, {
+                    db: progressDB, keyOf: (p) => p.lesson_id, url: `${API_BASE_URL}/update-progress`,
+                    // Stamp the current account's email onto the payload -- see the
+                    // currentUserEmail comment above.
+                    buildBody: (p) => ({ ...p, email: p.email || currentUserEmail }),
+                    // A 403 means the backend rejected the email/account match outright;
+                    // retrying the same payload would 403 forever, so drop the stale record.
+                    onForbidden: async (k) => {
+                        console.error("Progress sync rejected (403), dropping stale local record:", k);
+                        await progressDB.delete(k);
+                        return "dropped";
+                    },
+                });
 
-            for (const s of unsyncedSubmissions) {
-                try {
-                    const res = await fetchWithTimeout(`${API_BASE_URL}/sync-submission`, {
-                        method: "POST",
-                        headers,
-                        body: JSON.stringify(s)
-                    });
-                    if (res.ok) await submissionsDB.save({ ...s, isSynced: true });
-                } catch (e) {
-                    console.error("Failed to sync submission", e);
-                }
+                await runSimple(unsyncedAssessments, {
+                    db: assessmentsDB, keyOf: (a) => a.assessmentId, url: `${API_BASE_URL}/update-assessment`,
+                    // /update-assessment expects { email, assessment_key, ... }. The raw
+                    // IndexedDB record has neither, so every push 422'd and the assessment
+                    // was re-sent every 30s forever without ever syncing.
+                    buildBody: (a) => ({ ...a, email: a.email || currentUserEmail, key: a.assessmentId, assessment_key: a.assessment_key || a.assessmentId }),
+                });
+
+                await runSimple(unsyncedSubmissions, {
+                    db: submissionsDB, keyOf: (x) => x.id, url: `${API_BASE_URL}/sync-submission`,
+                    // /sync-submission 403s unless userId matches the signed-in account.
+                    buildBody: (x) => ({ ...x, userId: x.userId || currentUserEmail }),
+                });
             }
 
             // 3. Sync Individual Projects
@@ -239,8 +273,7 @@ export const SyncManager = {
             // sent (the snapshot above can be stale by now), and each tagged with a
             // stable clientId so the server can recognise a re-send of the same
             // local project instead of inserting a duplicate.
-            const rateLimited = !force && Date.now() < rateLimitedUntil;
-            if (!rateLimited) {
+            if (!(!force && Date.now() < rateLimitedUntil)) {
                 for (const snapshot of unsyncedProjects) {
                     const outcome = await SyncManager._pushItem("project", recordKey(snapshot), headers, force);
                     if (outcome === "rate_limited") break; // stop hammering; the rest wait for the next pass
@@ -248,7 +281,7 @@ export const SyncManager = {
             }
 
             // 4. Sync Individual Templates (same safe, idempotent push as projects)
-            if (!rateLimited) {
+            if (!(!force && Date.now() < rateLimitedUntil)) {
                 for (const snapshot of unsyncedTemplates) {
                     const outcome = await SyncManager._pushItem("template", recordKey(snapshot), headers, force);
                     if (outcome === "rate_limited") break;
@@ -271,14 +304,18 @@ export const SyncManager = {
                 if (storedUser && storedUser !== "null" && storedUser !== "undefined") {
                     const parsedUser = JSON.parse(storedUser);
                     if (parsedUser?.onboarding_state) {
-                        const serializedOnboarding = JSON.stringify(parsedUser.onboarding_state);
+                        // Keyed by account too, so signing in as someone else with the
+                        // same state is still pushed.
+                        const serializedOnboarding = `${parsedUser.email || ""}|${JSON.stringify(parsedUser.onboarding_state)}`;
                         if (serializedOnboarding !== lastPushedOnboardingState) {
-                            await fetchWithTimeout(`${API_BASE_URL}/update-onboarding`, {
+                            const obRes = await fetchWithTimeout(`${API_BASE_URL}/update-onboarding`, {
                                 method: "POST",
                                 headers,
                                 body: JSON.stringify({ onboarding_state: parsedUser.onboarding_state })
                             });
-                            lastPushedOnboardingState = serializedOnboarding;
+                            // fetch() resolves on 4xx/5xx too; remembering a FAILED push as
+                            // "already pushed" meant it was never retried.
+                            if (obRes.ok) lastPushedOnboardingState = serializedOnboarding;
                         }
                     }
                 }
@@ -287,58 +324,74 @@ export const SyncManager = {
             }
 
             // 6. Process Offline Action Queue (e.g. Project or Template Deletions)
+            // A task that can never succeed used to stay in the queue forever and be
+            // replayed every 30s (and keep the "Local Pending" count stuck, so Force
+            // Sync looked endless -- e.g. DELETE /templates/:id had no backend route,
+            // and RETRY_REQUESTs rejected with a 4xx). Now: success/404 removes it, a
+            // permanent 4xx removes it, 429 waits, and anything else is retried a
+            // bounded number of times.
+            const MAX_QUEUE_ATTEMPTS = 10;
+            const PERMANENT = new Set([400, 403, 405, 409, 410, 413, 422]);
             const queue = await syncQueueDB.getAll();
             for (const task of queue) {
+                if (!force && Date.now() < rateLimitedUntil) break;
+                let res = null;
                 try {
                     if (task.action === "DELETE_PROJECT") {
-                        // Defensive cleanup: a "local_"-prefixed id was never
-                        // pushed to Postgres, so the backend will never
-                        // recognize it -- this DELETE would fail forever and
-                        // keep the queue (and the "Local Pending" count)
-                        // stuck. Drop it locally instead of retrying it.
+                        // Defensive cleanup: a "local_"-prefixed id was never pushed, so
+                        // the backend can never recognise it. Drop it instead of retrying.
                         if (String(task.payload.projectId).startsWith("local_")) {
                             await syncQueueDB.remove(task.id);
                             continue;
                         }
-                        const res = await fetchWithTimeout(`${API_BASE_URL}/projects/${task.payload.projectId}`, {
-                            method: "DELETE",
-                            headers
-                        });
-                        if (res.ok || res.status === 404) {
-                            await syncQueueDB.remove(task.id);
-                        }
+                        res = await fetchWithTimeout(`${API_BASE_URL}/projects/${task.payload.projectId}`, { method: "DELETE", headers });
+                        if (res.ok || res.status === 404) { await syncQueueDB.remove(task.id); continue; }
                     } else if (task.action === "DELETE_TEMPLATE") {
                         if (String(task.payload.templateId).startsWith("local_")) {
                             await syncQueueDB.remove(task.id);
                             continue;
                         }
-                        const res = await fetchWithTimeout(`${API_BASE_URL}/templates/${task.payload.templateId}`, {
-                            method: "DELETE",
-                            headers
-                        });
-                        if (res.ok || res.status === 404) {
-                            await syncQueueDB.remove(task.id);
-                        }
+                        res = await fetchWithTimeout(`${API_BASE_URL}/templates/${task.payload.templateId}`, { method: "DELETE", headers });
+                        if (res.ok || res.status === 404) { await syncQueueDB.remove(task.id); continue; }
                     } else if (task.action === "RETRY_REQUEST") {
-                        // Generic queued HTTP retry (e.g. assessment/progress
-                        // updates queued by AssessmentPage.jsx via
-                        // syncQueueDB.setItem when the direct submit failed
-                        // or the user was offline). Replays the exact
-                        // request and clears it from the queue once it
-                        // succeeds.
+                        // Generic queued HTTP retry (assessment/progress updates queued by
+                        // AssessmentPage.jsx when the direct submit failed or the user was
+                        // offline). Replays the exact request.
                         const { url, method, payload: reqPayload } = task.payload || {};
                         if (!url) { await syncQueueDB.remove(task.id); continue; }
-                        const res = await fetchWithTimeout(url, {
+                        res = await fetchWithTimeout(url, {
                             method: method || "POST",
                             headers,
                             body: reqPayload !== undefined ? JSON.stringify(reqPayload) : undefined
                         });
-                        if (res.ok) {
-                            await syncQueueDB.remove(task.id);
-                        }
+                        if (res.ok) { await syncQueueDB.remove(task.id); continue; }
+                    } else {
+                        // Unknown action (e.g. written by a newer/older build): never block the queue on it.
+                        await syncQueueDB.remove(task.id);
+                        continue;
                     }
+
+                    // Not successful.
+                    if (res.status === 429) {
+                        const retryAfter = parseInt(res.headers.get("Retry-After") || "", 10);
+                        rateLimitedUntil = Date.now() + (Number.isFinite(retryAfter) ? retryAfter * 1000 : 60000);
+                        break;
+                    }
+                    if (PERMANENT.has(res.status)) {
+                        console.error(`Dropping queued ${task.action}: permanent ${res.status}`);
+                        await syncQueueDB.remove(task.id);
+                        continue;
+                    }
+                    throw new Error(`HTTP ${res.status}`);
                 } catch (e) {
                     console.error(`Failed to execute queued action: ${task.action}`, e);
+                    const attempts = (task.attempts || 0) + 1;
+                    if (attempts >= MAX_QUEUE_ATTEMPTS) {
+                        console.error(`Dropping queued ${task.action} after ${attempts} failed attempts`);
+                        await syncQueueDB.remove(task.id);
+                    } else {
+                        await syncQueueDB.update({ ...task, attempts });
+                    }
                 }
             }
 
@@ -541,6 +594,18 @@ export const SyncManager = {
      * another key was inserted a second time on the next pull -- which is why
      * synced projects showed up twice. Match on all three (plus clientId) instead.
      */
+    /** Ids (of the given kind: "project" | "template") with a queued, not-yet-synced deletion. */
+    async getPendingDeleteIds(kind) {
+        const cfg = ITEM_KINDS[kind];
+        const ids = new Set();
+        try {
+            for (const t of await syncQueueDB.getAll()) {
+                if (t.action === cfg.deleteAction && t.payload?.[cfg.idField] !== undefined) ids.add(String(t.payload[cfg.idField]));
+            }
+        } catch (e) { /* queue unreadable: nothing is filtered */ }
+        return ids;
+    },
+
     async pullProjects(headersArg) { return SyncManager._pullItems("project", headersArg); },
 
     async pullTemplates(headersArg) { return SyncManager._pullItems("template", headersArg); },
@@ -563,6 +628,10 @@ export const SyncManager = {
                 const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
                 currentEmail = raw && raw !== "null" ? JSON.parse(raw)?.email || null : null;
             } catch (e) {}
+            // A deletion that has not reached the server yet must not be undone by
+            // this pull: the server still has the row, so merging it would bring the
+            // just-deleted project/template back ("zombie") until the DELETE lands.
+            const pendingDeletes = await SyncManager.getPendingDeleteIds(kind);
             const locals = await cfg.db.getAll();
             const byKey = new Map();
             const byClient = new Map();
@@ -577,6 +646,7 @@ export const SyncManager = {
                 try {
                     const canonical = String(remote[cfg.idField] || remote._id || "");
                     if (!canonical) continue;
+                    if (pendingDeletes.has(canonical) || (remote._id !== undefined && pendingDeletes.has(String(remote._id)))) continue;
 
                     const local =
                         byKey.get(canonical) ||

@@ -16,7 +16,7 @@ let dbPromise = null;
 export const initDB = async () => {
     if (!dbPromise) {
         dbPromise = openDB(DB_NAME, DB_VERSION, {
-        upgrade(db) {
+        upgrade(db, oldVersion, newVersion, transaction) {
             if (!db.objectStoreNames.contains("projects")) {
                 const store = db.createObjectStore("projects", { keyPath: "projectId" });
                 store.createIndex("userId", "userId", { unique: false });
@@ -38,12 +38,18 @@ export const initDB = async () => {
                 store.createIndex("isSynced", "isSynced", { unique: false });
             }
 
-            // FIX: Recreate submissions store with correct primary key "id"
-            if (db.objectStoreNames.contains("submissions")) {
+            // Submissions must be keyed by "id". This block used to delete and
+            // recreate the store on EVERY schema upgrade, so any future DB_VERSION
+            // bump silently wiped every saved submission -- including ones not yet
+            // synced to the server. Only rebuild it when it is missing or was
+            // created with the old, wrong key path.
+            if (db.objectStoreNames.contains("submissions") && transaction.objectStore("submissions").keyPath !== "id") {
                 db.deleteObjectStore("submissions");
             }
-            const subStore = db.createObjectStore("submissions", { keyPath: "id" });
-            subStore.createIndex("isSynced", "isSynced", { unique: false });
+            if (!db.objectStoreNames.contains("submissions")) {
+                const subStore = db.createObjectStore("submissions", { keyPath: "id" });
+                subStore.createIndex("isSynced", "isSynced", { unique: false });
+            }
             
             if (!db.objectStoreNames.contains("syncQueue")) {
                 db.createObjectStore("syncQueue", { keyPath: "id", autoIncrement: true });
@@ -162,6 +168,11 @@ export const syncQueueDB = {
     async setItem(key, data) {
         const db = await initDB();
         return db.add("syncQueue", { action: "RETRY_REQUEST", key, payload: data, timestamp: Date.now() });
+    },
+    // Persist changes to an existing queued task (e.g. its retry counter).
+    async update(task) {
+        const db = await initDB();
+        return db.put("syncQueue", task);
     },
     async getAll() {
         const db = await initDB();
