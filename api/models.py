@@ -133,6 +133,8 @@ class ProjectSyncRequest(BaseModel):
     userId: Optional[str] = None
     owner_id: Optional[str] = None
     projectId: Optional[str] = None
+    # Stable client-generated idempotency key (see database.py, uq_projects_user_client)
+    clientId: Optional[str] = Field(default=None, max_length=255)
     title: Optional[str] = "Untitled Project"
     name: Optional[str] = "Untitled Project"
     description: Optional[str] = ""
@@ -145,6 +147,8 @@ class ProjectSyncRequest(BaseModel):
 
 class TemplateSyncRequest(BaseModel):
     templateId: Optional[str] = None
+    # Stable client-generated idempotency key (see database.py, uq_templates_user_client)
+    clientId: Optional[str] = Field(default=None, max_length=255)
     title: Optional[str] = "Untitled Template"
     name: Optional[str] = "Untitled Template"
     description: Optional[str] = ""

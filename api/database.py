@@ -330,8 +330,25 @@ def init_db():
     _add_fk_if_missing(cursor, "templates_userid_fkey", "templates", "userId", "users", "email")
     _add_fk_if_missing(cursor, "submissions_userid_fkey", "submissions", "userId", "users", "email")
 
+    # Idempotency key for local->cloud project sync. The browser stamps every
+    # offline-created project with a stable ``clientId`` and re-sends it on every
+    # retry, so a retried / double-fired / refresh-interrupted push resolves to
+    # the SAME row instead of inserting a brand-new copy each time. The partial
+    # unique index is the hard backstop; ProjectRepository.insert_if_under_limit
+    # does the friendly lookup first (under the per-user advisory lock).
+    cursor.execute('ALTER TABLE projects ADD COLUMN IF NOT EXISTS "clientId" VARCHAR(255)')
+    cursor.execute(
+        'CREATE UNIQUE INDEX IF NOT EXISTS uq_projects_user_client '
+        'ON projects("userId", "clientId") WHERE "clientId" IS NOT NULL'
+    )
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_projects_userid ON projects("userId")')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_projects_ownerid ON projects(owner_id)')
+    # Same idempotency key as projects (see uq_projects_user_client above).
+    cursor.execute('ALTER TABLE templates ADD COLUMN IF NOT EXISTS "clientId" VARCHAR(255)')
+    cursor.execute(
+        'CREATE UNIQUE INDEX IF NOT EXISTS uq_templates_user_client '
+        'ON templates("userId", "clientId") WHERE "clientId" IS NOT NULL'
+    )
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_templates_userid ON templates("userId")')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_templates_ownerid ON templates(owner_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_templates_category ON templates(category)')
