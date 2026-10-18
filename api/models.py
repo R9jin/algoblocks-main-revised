@@ -55,6 +55,11 @@ def _validate_password_strength(value: str) -> str:
     """
     if len(value) < 8:
         raise ValueError("Password must be at least 8 characters long.")
+    # bcrypt only accepts up to 72 BYTES (multi-byte characters count more than
+    # one). Newer bcrypt releases raise on longer input, which surfaced as a 500
+    # on signup / password reset instead of a clear validation message.
+    if len(value.encode("utf-8")) > 72:
+        raise ValueError("Password is too long (maximum 72 bytes).")
     if not any(ch.isalpha() for ch in value):
         raise ValueError("Password must include at least one letter.")
     if not any(ch.isdigit() for ch in value):
@@ -76,7 +81,7 @@ class UserCreate(BaseModel):
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(..., max_length=256)  # bounded: bcrypt work scales with attacker-chosen input
 
 class Token(BaseModel):
     access_token: str

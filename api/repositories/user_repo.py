@@ -280,6 +280,12 @@ class UserRepository:
                 answers = COALESCE(EXCLUDED.answers, assessments.answers),
                 question_ids = COALESCE(EXCLUDED.question_ids, assessments.question_ids),
                 updated_at = now()
+            -- Ignore a STALE replay: a queued offline submission of attempt N
+            -- reaching the server after attempt N+1 had already synced used to
+            -- overwrite the newer score/answers (and lower the attempt count).
+            WHERE EXCLUDED.attempts IS NULL
+               OR assessments.attempts IS NULL
+               OR EXCLUDED.attempts >= assessments.attempts
         ''', (
             email, assessment_key,
             data.get("score"), data.get("correct"), data.get("total"),

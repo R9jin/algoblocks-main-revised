@@ -18,6 +18,7 @@ Provides:
 import os
 import json
 import logging
+import threading
 from pathlib import Path
 from dotenv import load_dotenv
 import psycopg2
@@ -40,6 +41,16 @@ if not DATABASE_URL:
 # connection without the client socket's ``.closed`` flag ever flipping to
 # True. The liveness ping in get_db_connection() catches these stale
 # connections and replaces them transparently.
+# psycopg2's ThreadedConnectionPool RAISES "connection pool exhausted" the moment
+# more than maxconn connections are checked out -- it never waits. FastAPI runs
+# sync endpoints/dependencies in a ~40-thread pool, so a burst of >10 concurrent
+# requests (a class syncing at once) turned into immediate 500s. This semaphore
+# makes callers queue for a free connection (bounded wait) instead.
+POOL_MAX_CONNECTIONS = 10
+POOL_WAIT_SECONDS = float(os.getenv("DB_POOL_WAIT_SECONDS", "20"))
+_pool_slots = threading.BoundedSemaphore(POOL_MAX_CONNECTIONS)
+
+
 class PooledConnection(psycopg2.extensions.connection):
     # Re-entrancy guard: when a connection needs to be truly closed rather
     # than returned to the pool (over capacity, or discarded as dead),
@@ -47,8 +58,15 @@ class PooledConnection(psycopg2.extensions.connection):
     # without this guard that would just try to hand it back to the pool
     # again. Setting this flag first makes close() do a real close instead.
     _pool_return_in_progress = False
+    _slot_held = False
 
     def close(self):
+        # Give the checkout slot back exactly once, however this connection is
+        # returned to the pool or closed.
+        if self._slot_held:
+            self._slot_held = False
+            _pool_slots.release()
+
         if self._pool_return_in_progress:
             self._pool_return_in_progress = False
             super().close()
@@ -80,7 +98,7 @@ def _get_pool():
         # in a worker thread pool, so concurrent requests legitimately call
         # get_db_connection() from different threads at once.
         _connection_pool = psycopg2.pool.ThreadedConnectionPool(
-            1, 10, DATABASE_URL,
+            1, POOL_MAX_CONNECTIONS, DATABASE_URL,
             cursor_factory=RealDictCursor,
             connection_factory=PooledConnection,
         )
@@ -113,6 +131,8 @@ def get_db_connection():
     Raises:
         psycopg2.OperationalError: If a new connection cannot be established.
     """
+    if not _pool_slots.acquire(timeout=POOL_WAIT_SECONDS):
+        raise psycopg2.OperationalError("Database is busy: no free connection became available in time.")
     try:
         pool = _get_pool()
         conn = pool.getconn()
@@ -140,8 +160,10 @@ def get_db_connection():
             conn._pool_return_in_progress = False
             conn.autocommit = True
 
+        conn._slot_held = True
         return conn
     except Exception as e:
+        _pool_slots.release()  # the checkout never completed: free the slot
         logger.error(f"Error connecting to PostgreSQL Neon: {e}", exc_info=True)
         raise
 

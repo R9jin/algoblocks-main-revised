@@ -607,9 +607,16 @@ export default function MainApp({ pipelineMode = false }) {
           // code looked the record up by the server's row number ("_id"),
           // never found it, and replaced the unsynced local work with the
           // stale cloud version every time this ran online.
+          // Items whose deletion is still queued must not be re-added from the
+          // cloud copy the server has not deleted yet.
+          const pendingDel = {
+            projectId: await syncManager.getPendingDeleteIds("project"),
+            templateId: await syncManager.getPendingDeleteIds("template"),
+          };
           const mergeCloud = async (db, keyName, cloudItem) => {
             const key = cloudItem[keyName] || cloudItem._id;
             if (!key) return;
+            if (pendingDel[keyName]?.has(String(key)) || pendingDel[keyName]?.has(String(cloudItem._id))) return;
             const local = await db.get(key).catch(() => null);
             const localUnsynced = local && !local.isSynced && !local.synced;
             const localNewer = local && (local.updatedAt || local.timestamp || 0) > (cloudItem.updatedAt || cloudItem.timestamp || 0);
@@ -1278,7 +1285,14 @@ export default function MainApp({ pipelineMode = false }) {
         
         let res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
         if (res.status === 404) {
-           res = await fetch(`${API_BASE}${fallbackEndpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
+           // 404 on an update means the cloud copy no longer exists (deleted on
+           // another device, or the route differs). Re-create it from this local
+           // copy instead of re-sending the same update to a second URL, which
+           // could only 404 again and left the save "queued" for no reason. The
+           // stable clientId keeps this idempotent if the request is repeated.
+           const recreate = { ...apiPayload, clientId: apiPayload.clientId || String(id) };
+           if (saveModal.saveType === "template") recreate.templateId = null; else recreate.projectId = null;
+           res = await fetch(`${API_BASE}${fallbackEndpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(recreate) });
         }
 
         if (res.status === 403) {
@@ -1293,7 +1307,11 @@ export default function MainApp({ pipelineMode = false }) {
             const errData = await res.json();
             if (errData?.detail) limitMessage = errData.detail;
           } catch (e) {}
-          await db.removeItem(id);
+          // Only discard the local copy for a real "limit reached" rejection of a
+          // brand-new local item. A 403 on an EXISTING item (e.g. "you don't have
+          // permission to modify this template") used to delete the user's local
+          // copy too, even though the server still had it.
+          if (/limit reached/i.test(limitMessage) && String(id).startsWith("local_")) await db.removeItem(id);
           showToast(limitMessage, "error");
           return;
         }

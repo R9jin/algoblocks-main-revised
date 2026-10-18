@@ -15,16 +15,9 @@ class TemplateRepository:
         return row["count"] if row else 0
 
     @staticmethod
-    def find_by_category(category: str):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM templates WHERE category = %s', (category,))
-        templates = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        
+    def _unpack(rows):
         result = []
-        for tpl in templates:
+        for tpl in rows:
             t = dict(tpl)
             # Unpack blockly_data back to root
             blockly_data = t.pop("blockly_data", {})
@@ -34,22 +27,58 @@ class TemplateRepository:
         return result
 
     @staticmethod
-    def find_all():
+    def find_by_category(category: str, user_id: str):
+        # SECURITY: only ever return the requesting user's own templates. This
+        # used to return every account's templates (code + workspace) to anyone.
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM templates')
+        cursor.execute(
+            'SELECT * FROM templates WHERE category = %s AND ("userId" = %s OR owner_id = %s)',
+            (category, user_id, user_id)
+        )
         templates = cursor.fetchall()
         cursor.close()
         conn.close()
-        
-        result = []
-        for tpl in templates:
-            t = dict(tpl)
-            blockly_data = t.pop("blockly_data", {})
-            t.update(blockly_data)
-            t["_id"] = str(t["id"])
-            result.append(t)
-        return result
+        return TemplateRepository._unpack(templates)
+
+    @staticmethod
+    def find_all(user_id: str):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'SELECT * FROM templates WHERE "userId" = %s OR owner_id = %s',
+            (user_id, user_id)
+        )
+        templates = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return TemplateRepository._unpack(templates)
+
+    @staticmethod
+    def delete(template_id: str, user_id: str) -> int:
+        """Delete one of the user's own templates. Accepts the numeric row id,
+        the canonical templateId, or the clientId. Returns the deleted row
+        count. Previously there was no delete at all, so templates could never
+        be removed (they kept counting toward the 20-template cap and came
+        back on every pull)."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            try:
+                t_id = int(template_id)
+                cursor.execute(
+                    'DELETE FROM templates WHERE id = %s AND ("userId" = %s OR owner_id = %s)',
+                    (t_id, user_id, user_id)
+                )
+            except ValueError:
+                cursor.execute(
+                    'DELETE FROM templates WHERE ("templateId" = %s OR "clientId" = %s) AND ("userId" = %s OR owner_id = %s)',
+                    (template_id, template_id, user_id, user_id)
+                )
+            return cursor.rowcount
+        finally:
+            cursor.close()
+            conn.close()
 
     @staticmethod
     def save(template_data: dict):
