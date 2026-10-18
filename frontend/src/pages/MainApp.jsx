@@ -1242,7 +1242,8 @@ export default function MainApp({ pipelineMode = false }) {
 
     setIsSavingModal(true);
     try {
-    const id = saveModal.editingId || (saveModal.saveType === "template" ? `local_tpl_${Date.now()}` : `local_proj_${Date.now()}`);
+    const uniq = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const id = saveModal.editingId || (saveModal.saveType === "template" ? `local_tpl_${uniq}` : `local_proj_${uniq}`);
     const nowMs = Date.now();
     const payload = {
       _id: id, title: saveModal.title, name: saveModal.title, description: saveModal.description,
@@ -1252,6 +1253,15 @@ export default function MainApp({ pipelineMode = false }) {
       pythonCode: activeTab.pythonCode || "",
       owner_id: user.email, userId: user.email, synced: false, isSynced: false, updatedAt: nowMs,
     };
+    // Stable idempotency key for local->cloud project sync: lets the server
+    // recognise a re-send of this same project (retry, background sync racing
+    // this direct save, refresh mid-request) and reuse the row instead of
+    // inserting a duplicate. Kept for the record's whole life.
+    {
+      let existingClientId = null;
+      try { existingClientId = (await (saveModal.saveType === "template" ? templatesDB : projectsDB).get(id))?.clientId || null; } catch (e) {}
+      payload.clientId = existingClientId || (String(id).startsWith("local_") ? String(id) : null) || undefined;
+    }
 
     const db = saveModal.saveType === "template" ? templatesDB : projectsDB;
     await db.setItem(id, payload);
@@ -1263,8 +1273,8 @@ export default function MainApp({ pipelineMode = false }) {
         
         // Strip string IDs before sending to Postgres to prevent 500 errors
         const apiPayload = saveModal.saveType === "template"
-          ? { templateId: String(id).startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
-          : { projectId: String(id).startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
+          ? { templateId: String(id).startsWith("local_") ? null : id, clientId: payload.clientId, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
+          : { projectId: String(id).startsWith("local_") ? null : id, clientId: payload.clientId, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
         
         let res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
         if (res.status === 404) {

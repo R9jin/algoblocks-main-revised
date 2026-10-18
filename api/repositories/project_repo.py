@@ -96,8 +96,9 @@ class ProjectRepository:
         same user to run one at a time, so each one sees the effect of the
         previous one's insert (or rollback) before deciding.
 
-        Returns the new project's id, or None if the user is already at/over
-        the limit (nothing is inserted in that case).
+        Returns {"id", "projectId", "duplicate"} for the new (or already-existing,
+        when ``clientId`` matches) project, or None if the user is already
+        at/over the limit (nothing is inserted in that case).
         """
         conn = get_db_connection()
         conn.autocommit = False
@@ -116,6 +117,39 @@ class ProjectRepository:
             )
             current_count = cursor.fetchone()["count"]
 
+            blockly_data = {
+                "title": project_data.get("title", "Untitled"),
+                "name": project_data.get("name", "Untitled"),
+                "description": project_data.get("description", ""),
+                "workspace": project_data.get("workspace", {}),
+                "pythonCode": project_data.get("pythonCode", "")
+            }
+            timestamp = project_data.get("timestamp", 0)
+            client_id = project_data.get("clientId")
+
+            # IDEMPOTENCY: if this client already pushed this exact local
+            # project (retry, double-click, two tabs, a refresh that
+            # interrupted the first response...), return the row that already
+            # exists -- refreshed with the newest content -- instead of
+            # inserting another copy. Runs under the advisory lock above, so
+            # two concurrent pushes can never both miss each other. It also
+            # runs BEFORE the limit check: re-sending an already-stored
+            # project must never be rejected as "limit reached".
+            if client_id:
+                cursor.execute(
+                    'SELECT id, "projectId", timestamp FROM projects WHERE "userId" = %s AND "clientId" = %s',
+                    (user_id, client_id)
+                )
+                existing = cursor.fetchone()
+                if existing:
+                    if timestamp is not None and timestamp >= (existing["timestamp"] or 0):
+                        cursor.execute(
+                            'UPDATE projects SET blockly_data = %s::jsonb, timestamp = %s, "isSynced" = TRUE WHERE id = %s',
+                            (json.dumps(blockly_data), timestamp, existing["id"])
+                        )
+                    conn.commit()
+                    return {"id": str(existing["id"]), "projectId": existing["projectId"], "duplicate": True}
+
             if current_count >= max_allowed:
                 conn.rollback()
                 return None
@@ -125,31 +159,23 @@ class ProjectRepository:
                 project_id = str(uuid.uuid4())
 
             is_synced = project_data.get("isSynced", False)
-            timestamp = project_data.get("timestamp", 0)
-
-            blockly_data = {
-                "title": project_data.get("title", "Untitled"),
-                "name": project_data.get("name", "Untitled"),
-                "description": project_data.get("description", ""),
-                "workspace": project_data.get("workspace", {}),
-                "pythonCode": project_data.get("pythonCode", "")
-            }
 
             cursor.execute('''
-                INSERT INTO projects ("projectId", "userId", owner_id, "isSynced", timestamp, blockly_data)
-                VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
+                INSERT INTO projects ("projectId", "userId", owner_id, "isSynced", timestamp, blockly_data, "clientId")
+                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
             ''', (
                 project_id,
                 user_id,
                 owner_id,
                 is_synced,
                 timestamp,
-                json.dumps(blockly_data)
+                json.dumps(blockly_data),
+                client_id
             ))
 
             inserted_id = cursor.fetchone()["id"]
             conn.commit()
-            return str(inserted_id)
+            return {"id": str(inserted_id), "projectId": project_id, "duplicate": False}
         except Exception:
             conn.rollback()
             raise

@@ -42,7 +42,10 @@ class TemplateService:
             return {
                 "status": "success", 
                 "message": "Template updated successfully", 
-                "templateId": updated_id
+                # Echo the id the client used (canonical UUID or legacy numeric
+                # id). Returning the numeric row id here made the client re-key
+                # its record on every edit and spawn a twin on the next pull.
+                "templateId": template_id
             }
         else:
             user_id = template_data.get("userId")
@@ -51,16 +54,25 @@ class TemplateService:
                 # instead of a separate count check + insert, which raced
                 # under rapid repeated saves -- see
                 # TemplateRepository.save_if_under_limit.
-                inserted_id = TemplateRepository.save_if_under_limit(template_data, MAX_TEMPLATES_PER_USER)
-                if inserted_id is None:
+                result = TemplateRepository.save_if_under_limit(template_data, MAX_TEMPLATES_PER_USER)
+                if result is None:
                     raise HTTPException(
                         status_code=403,
                         detail=f"Template limit reached ({MAX_TEMPLATES_PER_USER} max per account). Please delete an existing template before creating a new one."
                     )
-            else:
-                inserted_id = TemplateRepository.save(template_data)
+                # templateId is the canonical id (what GET /templates returns);
+                # _id is the numeric row id for reconciling older client records.
+                return {
+                    "status": "success",
+                    "message": "Template saved successfully",
+                    "templateId": result["templateId"],
+                    "_id": result["id"],
+                    "clientId": template_data.get("clientId"),
+                    "duplicate": result["duplicate"],
+                }
+            inserted_id = TemplateRepository.save(template_data)
             return {
-                "status": "success", 
-                "message": "Template saved successfully", 
+                "status": "success",
+                "message": "Template saved successfully",
                 "templateId": inserted_id
             }

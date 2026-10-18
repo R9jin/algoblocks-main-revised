@@ -78,8 +78,8 @@ class TemplateRepository:
         }
         
         cursor.execute('''
-            INSERT INTO templates ("templateId", category, "userId", owner_id, "isSynced", timestamp, blockly_data)
-            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
+            INSERT INTO templates ("templateId", category, "userId", owner_id, "isSynced", timestamp, blockly_data, "clientId")
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
         ''', (
             template_id,
             category,
@@ -87,7 +87,8 @@ class TemplateRepository:
             owner_id,
             is_synced,
             timestamp,
-            json.dumps(blockly_data)
+            json.dumps(blockly_data),
+            template_data.get("clientId")
         ))
         
         inserted_id = cursor.fetchone()["id"]
@@ -104,8 +105,9 @@ class TemplateRepository:
         a separate count-then-insert (each its own autocommit statement)
         lets concurrent/rapid-fire saves race past the cap.
 
-        Returns the new template's id, or None if the user is already at/
-        over the limit (nothing is inserted in that case).
+        Returns {"id", "templateId", "duplicate"} for the new (or already-existing,
+        when ``clientId`` matches) template, or None if the user is already
+        at/over the limit (nothing is inserted in that case).
         """
         conn = get_db_connection()
         conn.autocommit = False
@@ -122,6 +124,37 @@ class TemplateRepository:
             )
             current_count = cursor.fetchone()["count"]
 
+            blockly_data = {
+                "title": template_data.get("title", "Untitled Template"),
+                "name": template_data.get("name", "Untitled Template"),
+                "description": template_data.get("description", ""),
+                "workspace": template_data.get("workspace", {}),
+                "pythonCode": template_data.get("pythonCode", "")
+            }
+            category = template_data.get("category", "Custom")
+            timestamp = template_data.get("timestamp", 0)
+            client_id = template_data.get("clientId")
+
+            # IDEMPOTENCY: a re-send of the same local template (retry, double
+            # fire, refresh mid-request) returns the row that already exists --
+            # refreshed with the newest content -- instead of inserting another
+            # copy. Checked before the limit so it is never rejected as "limit
+            # reached". See ProjectRepository.insert_if_under_limit.
+            if client_id:
+                cursor.execute(
+                    'SELECT id, "templateId", timestamp FROM templates WHERE "userId" = %s AND "clientId" = %s',
+                    (user_id, client_id)
+                )
+                existing = cursor.fetchone()
+                if existing:
+                    if timestamp is not None and timestamp >= (existing["timestamp"] or 0):
+                        cursor.execute(
+                            'UPDATE templates SET blockly_data = %s::jsonb, category = %s, timestamp = %s, "isSynced" = TRUE WHERE id = %s',
+                            (json.dumps(blockly_data), category, timestamp, existing["id"])
+                        )
+                    conn.commit()
+                    return {"id": str(existing["id"]), "templateId": existing["templateId"], "duplicate": True}
+
             if current_count >= max_allowed:
                 conn.rollback()
                 return None
@@ -130,21 +163,11 @@ class TemplateRepository:
             if not template_id or str(template_id).startswith("local_"):
                 template_id = str(uuid.uuid4())
 
-            category = template_data.get("category", "Custom")
             is_synced = template_data.get("isSynced", False)
-            timestamp = template_data.get("timestamp", 0)
-
-            blockly_data = {
-                "title": template_data.get("title", "Untitled Template"),
-                "name": template_data.get("name", "Untitled Template"),
-                "description": template_data.get("description", ""),
-                "workspace": template_data.get("workspace", {}),
-                "pythonCode": template_data.get("pythonCode", "")
-            }
 
             cursor.execute('''
-                INSERT INTO templates ("templateId", category, "userId", owner_id, "isSynced", timestamp, blockly_data)
-                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
+                INSERT INTO templates ("templateId", category, "userId", owner_id, "isSynced", timestamp, blockly_data, "clientId")
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
             ''', (
                 template_id,
                 category,
@@ -152,12 +175,13 @@ class TemplateRepository:
                 owner_id,
                 is_synced,
                 timestamp,
-                json.dumps(blockly_data)
+                json.dumps(blockly_data),
+                client_id
             ))
 
             inserted_id = cursor.fetchone()["id"]
             conn.commit()
-            return str(inserted_id)
+            return {"id": str(inserted_id), "templateId": template_id, "duplicate": False}
         except Exception:
             conn.rollback()
             raise

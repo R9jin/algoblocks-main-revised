@@ -1,5 +1,5 @@
 // frontend/src/pages/Projects.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FiChevronRight, FiClock, FiCloud, FiFileText, FiFolder, FiHardDrive, FiPlus, FiRefreshCw, FiTrash2 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal.jsx";
@@ -26,12 +26,22 @@ export default function Projects() {
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
 
+  // loadProjects() is triggered by several events at once (mount, "online",
+  // "localDataSynced", "sync-end", the Force Sync button). Overlapping runs used
+  // to each start their own cloud pull + local merge; coalesce them into one run
+  // plus at most one queued follow-up.
+  const loadingRef = useRef(false);
+  const manualSyncRef = useRef(false);
+  const reloadQueuedRef = useRef(null);
+
   useEffect(() => {
     loadProjects();
     
-    const handleAutoSync = () => loadProjects();
+    // Event-driven reloads only re-read IndexedDB: whoever fired the event
+    // (syncManager) has just pulled from the cloud already.
+    const handleAutoSync = () => loadProjects({ pull: false });
     const onStart = () => setGlobalSyncing(true);
-    const onEnd = () => { setGlobalSyncing(false); loadProjects(); };
+    const onEnd = () => { setGlobalSyncing(false); loadProjects({ pull: false }); };
 
     window.addEventListener("online", handleAutoSync);
     window.addEventListener("localDataSynced", handleAutoSync);
@@ -63,7 +73,12 @@ export default function Projects() {
     });
   };
 
-  const loadProjects = async () => {
+  const loadProjects = async ({ pull = true } = {}) => {
+    if (loadingRef.current) {
+      reloadQueuedRef.current = { pull: pull || !!reloadQueuedRef.current?.pull };
+      return;
+    }
+    loadingRef.current = true;
     try {
       setSyncState(prev => ({ ...prev, syncing: true }));
       const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -75,46 +90,14 @@ export default function Projects() {
       const user = JSON.parse(storedUser);
 
       // 1. PULL CLOUD DATA & MERGE SYNC STATES
-      if (navigator.onLine && API_BASE) {
+      // Delegated to syncManager.pullProjects(), the single identity-aware merge.
+      // This page used to carry its own copy that keyed every cloud project by
+      // projectId only, so a project already stored locally under another key
+      // (its "local_proj_..." key or the server's numeric row id) was inserted a
+      // second time -- the duplicates that appeared after syncing.
+      if (pull && navigator.onLine && API_BASE) {
         try {
-          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-          const headers = {
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
-          };
-
-          const res = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
-          const contentType = res.headers.get("content-type") || "";
-          
-          if (res.ok && contentType.includes("application/json")) {
-            const data = await res.json();
-            let cloudProjects = Array.isArray(data?.projects) ? data.projects : (Array.isArray(data) ? data : []);
-
-            for (const cp of cloudProjects) {
-              if (cp.owner_id === user.email || cp.userId === user.email) {
-                // IndexedDB is keyed by projectId. "_id" is only the
-                // server's row number, so looking the local copy up by it
-                // never found anything and the cloud version silently
-                // replaced projects that were edited offline.
-                const key = cp.projectId || cp._id;
-                if (!key) continue;
-                const existingLocal = await projectsDB.getItem(key);
-                const cloudUpdated = normalizeEpoch(cp.updatedAt || cp.updated_at || cp.timestamp);
-                const localUnsynced = existingLocal && !existingLocal.isSynced && !existingLocal.synced;
-                const localNewer = existingLocal && normalizeEpoch(existingLocal.updatedAt || existingLocal.timestamp) > cloudUpdated;
-                if (localUnsynced && localNewer) continue; // keep the offline edits; they sync up next
-
-                await projectsDB.setItem(key, {
-                  ...existingLocal,
-                  ...cp,
-                  projectId: key,
-                  synced: true,
-                  isSynced: true,
-                  updatedAt: cloudUpdated
-                });
-              }
-            }
-          }
+          await syncManager.pullProjects();
         } catch (fetchErr) {
           console.warn("Cloud pull degraded gracefully to offline storage:", fetchErr);
         }
@@ -165,15 +148,32 @@ export default function Projects() {
       setSyncState(prev => ({ ...prev, syncing: false }));
     } finally {
       setLoading(false);
+      loadingRef.current = false;
+      const queued = reloadQueuedRef.current;
+      reloadQueuedRef.current = null;
+      if (queued) loadProjects(queued);
     }
   };
 
   const handleManualTrigger = async () => {
+    // Ignore clicks while a sync is already running -- every extra click used to
+    // start another overlapping push of the same local projects.
+    if (syncState.syncing || globalSyncing || manualSyncRef.current) return;
+    manualSyncRef.current = true;
     setSyncState(prev => ({ ...prev, syncing: true }));
-    if (syncManager?.processSyncQueue) {
-      await syncManager.processSyncQueue();
+    try {
+      if (syncManager?.processSyncQueue) {
+        // force: ignore the retry back-off so "Force Sync" really retries now.
+        await syncManager.processSyncQueue({ force: true });
+      }
+      await loadProjects();
+    } catch (err) {
+      console.error("Force sync failed:", err);
+    } finally {
+      // Always clear the spinner, whatever happened above.
+      manualSyncRef.current = false;
+      setSyncState(prev => ({ ...prev, syncing: false }));
     }
-    await loadProjects();
   };
 
   const handleDeleteProject = (e, proj) => {

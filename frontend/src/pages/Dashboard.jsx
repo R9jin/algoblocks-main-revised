@@ -287,7 +287,13 @@ export default function Dashboard() {
               const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
               await Promise.all(cloudProjects
                 .filter(cp => cp.owner_id === user.email || cp.userId === user.email)
-                .map(cp => projectsDB.save({ ...cp, projectId: cp.projectId || cp._id, isSynced: true }))
+                .map(async (cp) => {
+                  const key = cp.projectId || cp._id;
+                  // Never overwrite a local project that still has unsynced edits.
+                  const local = await projectsDB.get(key).catch(() => null);
+                  if (local && !local.isSynced && !local.synced && (local.timestamp || 0) >= (cp.timestamp || 0)) return;
+                  await projectsDB.save({ ...cp, projectId: key, isSynced: true });
+                })
               );
             }
           }
@@ -299,7 +305,13 @@ export default function Dashboard() {
               const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
               await Promise.all(cloudTemplates
                 .filter(ct => ct.owner_id === user.email || ct.userId === user.email)
-                .map(ct => templatesDB.save({ ...ct, templateId: ct.templateId || ct._id, isSynced: true }))
+                .map(async (ct) => {
+                  const key = ct.templateId || ct._id;
+                  // Never overwrite a local template that still has unsynced edits.
+                  const local = await templatesDB.get(key).catch(() => null);
+                  if (local && !local.isSynced && !local.synced && (local.timestamp || 0) >= (ct.timestamp || 0)) return;
+                  await templatesDB.save({ ...ct, templateId: key, isSynced: true });
+                })
               );
             }
           }

@@ -18,11 +18,110 @@ const getAuthHeaders = () => {
     };
 };
 
+const FETCH_TIMEOUT_MS = 20000;
+
+// A request with no timeout can hang forever on a cold serverless backend or a
+// flaky connection, which left the Force Sync spinner (and the whole sync pass)
+// "going on and on". Every request here now gives up after 20s and is retried
+// on a later pass.
+const fetchWithTimeout = async (url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+};
+
+const isLocalId = (id) => String(id ?? "").startsWith("local_");
+const recordKey = (p) => (p ? p.projectId || p.templateId || p._id : null);
+
+// Projects and templates share the exact same local->cloud lifecycle (temporary
+// "local_..." key -> server id), so they share one push and one pull
+// implementation, parameterised by this table.
+const ITEM_KINDS = {
+    project: {
+        db: projectsDB, idField: "projectId", endpoint: "/projects", listKey: "projects",
+        deleteAction: "DELETE_PROJECT", limitMessage: "A locally saved project could not be synced: project limit reached.",
+        dropOnForbidden: false,
+    },
+    template: {
+        db: templatesDB, idField: "templateId", endpoint: "/templates", listKey: "templates",
+        deleteAction: "DELETE_TEMPLATE", limitMessage: "A locally saved template could not be synced: template limit reached.",
+        // A non-limit 403 on a template means "not yours / doesn't exist": permanent.
+        dropOnForbidden: true,
+    },
+};
+// Version fingerprint of a local record, used to detect "edited again while the
+// upload was in flight" so that newer edit is not wrongly marked as synced.
+const versionOf = (p) => `${p?.updatedAt ?? ""}|${p?.timestamp ?? ""}`;
+
+// ------------------------------------------------------------------
+// Concurrency control
+// ------------------------------------------------------------------
+// Root cause of the duplicate projects: syncDataWithServer() could run several
+// times at once (Force Sync click + the 30s timer + the "online" event + the
+// visibilitychange handler + MainApp's own save, and again after every browser
+// refresh because startBackgroundSync() fires an immediate pass). Each overlapping
+// pass read the same "unsynced" snapshot and POSTed the same local project, and the
+// backend inserted a new row every time. Fixes:
+//   1. one pass at a time per tab (single-flight + serialized with pulls),
+//   2. one pass at a time across tabs (Web Locks),
+//   3. every push re-reads the record right before sending,
+//   4. a stable `clientId` makes the server treat re-sends as the same project.
+let opChain = Promise.resolve();
+const serialize = (fn) => {
+    const run = opChain.then(fn, fn);
+    opChain = run.catch(() => {});
+    return run;
+};
+
+let syncInFlight = null;
+let pendingRerun = false;
+let pendingForce = false;
+const pullInFlight = { project: null, template: null };
+let rateLimitedUntil = 0;
+
+const withCrossTabLock = async (fn, wait) => {
+    if (typeof navigator !== "undefined" && navigator.locks?.request) {
+        return navigator.locks.request("algoblocks-sync", { ifAvailable: !wait }, async (lock) => {
+            if (!lock) return undefined; // another tab is already pushing everything
+            return fn();
+        });
+    }
+    return fn();
+};
+
+const nextRetryDelay = (failures) => Math.min(30000 * 2 ** Math.max(0, failures - 1), 10 * 60 * 1000);
+
 export const SyncManager = {
     /**
      * Executes the main batch sync sequence pushing local changes to Postgres Neon
      */
-    async syncDataWithServer() {
+    async syncDataWithServer(opts = {}) {
+        if (syncInFlight) {
+            // Never start a second overlapping pass. Remember to run one more
+            // right after, so anything saved meanwhile is not left waiting.
+            pendingRerun = true;
+            if (opts.force) pendingForce = true;
+            return syncInFlight;
+        }
+        const run = serialize(async () => {
+            let passes = 0;
+            do {
+                const force = !!(opts.force || pendingForce);
+                pendingRerun = false;
+                pendingForce = false;
+                await withCrossTabLock(() => SyncManager._syncPass(force), force);
+                passes++;
+            } while (pendingRerun && passes < 3);
+        });
+        syncInFlight = run.finally(() => { syncInFlight = null; });
+        return syncInFlight;
+    },
+
+    async _syncPass(force = false) {
         if (!navigator.onLine) {
             console.log("Offline: Skipping background sync.");
             return;
@@ -49,6 +148,7 @@ export const SyncManager = {
             // just 403 same as before and get cleaned up there.
         }
 
+        let announced = false;
         try {
 
             // 1. Gather all unsynced data from IndexedDB
@@ -67,11 +167,21 @@ export const SyncManager = {
             const allTemplates = await templatesDB.getAll();
             const unsyncedTemplates = allTemplates.filter(t => !t.isSynced);
 
+            // Tell listeners (Projects page, header, dashboard) a push is really
+            // happening -- only when there is work, so the 30s idle tick never
+            // flashes a spinner.
+            const queuedAtStart = await syncQueueDB.getAll();
+            if (unsyncedProgress.length || unsyncedAssessments.length || unsyncedSubmissions.length ||
+                unsyncedProjects.length || unsyncedTemplates.length || queuedAtStart.length) {
+                announced = true;
+                window.dispatchEvent(new Event("sync-start"));
+            }
+
             // 2. Batch Sync Core Metrics (Progress, Assessments, Submissions) to Postgres JSONB
             // The API endpoints are tailored for standard single-item updates, so we sync them individually here
             for (const p of unsyncedProgress) {
                 try {
-                    const res = await fetch(`${API_BASE_URL}/update-progress`, {
+                    const res = await fetchWithTimeout(`${API_BASE_URL}/update-progress`, {
                         method: "POST",
                         headers,
                         // Stamp the current account's email onto the payload --
@@ -100,7 +210,7 @@ export const SyncManager = {
 
             for (const a of unsyncedAssessments) {
                 try {
-                    const res = await fetch(`${API_BASE_URL}/update-assessment`, {
+                    const res = await fetchWithTimeout(`${API_BASE_URL}/update-assessment`, {
                         method: "POST",
                         headers,
                         body: JSON.stringify(a)
@@ -113,7 +223,7 @@ export const SyncManager = {
 
             for (const s of unsyncedSubmissions) {
                 try {
-                    const res = await fetch(`${API_BASE_URL}/sync-submission`, {
+                    const res = await fetchWithTimeout(`${API_BASE_URL}/sync-submission`, {
                         method: "POST",
                         headers,
                         body: JSON.stringify(s)
@@ -125,110 +235,23 @@ export const SyncManager = {
             }
 
             // 3. Sync Individual Projects
-            for (const project of unsyncedProjects) {
-                try {
-                    const apiPayload = { ...project };
-                    // Prevent Postgres 500 error by stripping local string IDs
-                    if (String(apiPayload.projectId || apiPayload._id).startsWith("local_")) {
-                        apiPayload.projectId = null;
-                    }
-                    
-                    const res = await fetch(`${API_BASE_URL}/projects`, {
-                        method: "POST",
-                        headers,
-                        body: JSON.stringify(apiPayload)
-                    });
-                    
-                    if (res.ok) {
-                        const responseData = await res.json().catch(() => ({}));
-                        const realId = responseData.projectId || responseData._id || project.projectId || project._id;
-                        
-                        // If the backend generated a new numeric ID, swap it out locally
-                        if (String(realId) !== String(project.projectId || project._id)) {
-                            await projectsDB.delete(project.projectId || project._id);
-                            await projectsDB.save({ ...project, projectId: realId, _id: realId, isSynced: true });
-                        } else {
-                            await projectsDB.save({ ...project, isSynced: true });
-                        }
-                    } else if (res.status === 403) {
-                        // Permanent rejection (account is at the project cap), not a
-                        // connectivity problem -- retrying on the next 30s tick would
-                        // just get 403 forever while this phantom "unsynced" project
-                        // keeps showing up in the local project list as if it were
-                        // real. Drop the local copy and tell the UI so it can surface
-                        // this to the person instead of silently failing forever.
-                        await projectsDB.delete(project.projectId || project._id);
-                        let limitMessage = "A locally saved project could not be synced: project limit reached.";
-                        try {
-                            const errData = await res.json();
-                            if (errData?.detail) limitMessage = errData.detail;
-                        } catch (e) {}
-                        window.dispatchEvent(new CustomEvent("syncLimitReached", { detail: { kind: "project", message: limitMessage } }));
-                    }
-                } catch (e) {
-                    console.error(`Failed to sync project ${project.projectId}`, e);
+            // One at a time, each re-read from IndexedDB immediately before it is
+            // sent (the snapshot above can be stale by now), and each tagged with a
+            // stable clientId so the server can recognise a re-send of the same
+            // local project instead of inserting a duplicate.
+            const rateLimited = !force && Date.now() < rateLimitedUntil;
+            if (!rateLimited) {
+                for (const snapshot of unsyncedProjects) {
+                    const outcome = await SyncManager._pushItem("project", recordKey(snapshot), headers, force);
+                    if (outcome === "rate_limited") break; // stop hammering; the rest wait for the next pass
                 }
             }
 
-            // 4. Sync Individual Templates
-            for (const template of unsyncedTemplates) {
-                try {
-                    const apiPayload = { ...template };
-                    // Prevent Postgres 500 error by stripping local string IDs
-                    if (String(apiPayload.templateId || apiPayload._id).startsWith("local_")) {
-                        apiPayload.templateId = null;
-                        apiPayload.projectId = null; 
-                    }
-                    
-                    const res = await fetch(`${API_BASE_URL}/templates`, {
-                        method: "POST",
-                        headers,
-                        body: JSON.stringify(apiPayload)
-                    });
-                    
-                    if (res.ok) {
-                        const responseData = await res.json().catch(() => ({}));
-                        const realId = responseData.templateId || responseData._id || template.templateId || template._id;
-                        
-                        if (String(realId) !== String(template.templateId || template._id)) {
-                            await templatesDB.delete(template.templateId || template._id);
-                            await templatesDB.save({ ...template, templateId: realId, _id: realId, isSynced: true });
-                        } else {
-                            await templatesDB.save({ ...template, isSynced: true });
-                        }
-                    } else if (res.status === 403) {
-                        // A 403 can mean the account hit the template cap, but it can also be a
-                        // permission rejection when attempting to update an existing templateId.
-                        // Only treat it as a limit error when the backend detail indicates that.
-                        let errDetail = "";
-                        try {
-                            const errData = await res.json();
-                            errDetail = errData?.detail || "";
-                        } catch (e) {}
-
-                        if (/limit reached/i.test(errDetail)) {
-                            await templatesDB.delete(template.templateId || template._id);
-                            const limitMessage = errDetail || "A locally saved template could not be synced: template limit reached.";
-                            window.dispatchEvent(new CustomEvent("syncLimitReached", { detail: { kind: "template", message: limitMessage } }));
-                        } else {
-                            // A genuine ownership/permission rejection (e.g. this
-                            // templateId belongs to another account, or doesn't
-                            // exist) is just as permanent as the cap case above --
-                            // retrying the identical payload every 30s tick would
-                            // 403 forever. Previously this branch only logged and
-                            // left the record marked unsynced, so it got retried
-                            // on every single sync cycle indefinitely (visible as
-                            // repeated "Template sync rejected (403)" console spam
-                            // and needless load on the endpoint). Drop the local
-                            // copy so it stops looping, same as the limit case.
-                            await templatesDB.delete(template.templateId || template._id);
-                            // This is stale local state, not a current-page
-                            // action. It has already been removed above, so
-                            // do not surface a global popup from MainApp.
-                        }
-                    }
-                } catch (e) {
-                    console.error(`Failed to sync template ${template.templateId}`, e);
+            // 4. Sync Individual Templates (same safe, idempotent push as projects)
+            if (!rateLimited) {
+                for (const snapshot of unsyncedTemplates) {
+                    const outcome = await SyncManager._pushItem("template", recordKey(snapshot), headers, force);
+                    if (outcome === "rate_limited") break;
                 }
             }
 
@@ -250,7 +273,7 @@ export const SyncManager = {
                     if (parsedUser?.onboarding_state) {
                         const serializedOnboarding = JSON.stringify(parsedUser.onboarding_state);
                         if (serializedOnboarding !== lastPushedOnboardingState) {
-                            await fetch(`${API_BASE_URL}/update-onboarding`, {
+                            await fetchWithTimeout(`${API_BASE_URL}/update-onboarding`, {
                                 method: "POST",
                                 headers,
                                 body: JSON.stringify({ onboarding_state: parsedUser.onboarding_state })
@@ -277,7 +300,7 @@ export const SyncManager = {
                             await syncQueueDB.remove(task.id);
                             continue;
                         }
-                        const res = await fetch(`${API_BASE_URL}/projects/${task.payload.projectId}`, {
+                        const res = await fetchWithTimeout(`${API_BASE_URL}/projects/${task.payload.projectId}`, {
                             method: "DELETE",
                             headers
                         });
@@ -289,7 +312,7 @@ export const SyncManager = {
                             await syncQueueDB.remove(task.id);
                             continue;
                         }
-                        const res = await fetch(`${API_BASE_URL}/templates/${task.payload.templateId}`, {
+                        const res = await fetchWithTimeout(`${API_BASE_URL}/templates/${task.payload.templateId}`, {
                             method: "DELETE",
                             headers
                         });
@@ -305,7 +328,7 @@ export const SyncManager = {
                         // succeeds.
                         const { url, method, payload: reqPayload } = task.payload || {};
                         if (!url) { await syncQueueDB.remove(task.id); continue; }
-                        const res = await fetch(url, {
+                        const res = await fetchWithTimeout(url, {
                             method: method || "POST",
                             headers,
                             body: reqPayload !== undefined ? JSON.stringify(reqPayload) : undefined
@@ -321,7 +344,123 @@ export const SyncManager = {
 
         } catch (error) {
             console.error("Critical error during sync manager execution:", error);
+        } finally {
+            if (announced) window.dispatchEvent(new Event("sync-end"));
         }
+    },
+
+    /**
+     * Pushes ONE local project or template to the cloud, safely.
+     * Returns "ok" | "skipped" | "failed" | "rate_limited" | "dropped".
+     */
+    async _pushItem(kind, key, headers, force = false) {
+        const cfg = ITEM_KINDS[kind];
+        if (key === null || key === undefined) return "skipped";
+
+        for (let attempt = 0; attempt < 2; attempt++) {
+            // Fresh read: another pass/tab may have synced, edited or deleted it.
+            const project = await cfg.db.get(key);
+            if (!project || project.isSynced) return "skipped";
+            if (!force && project.nextRetryAt && project.nextRetryAt > Date.now()) return "skipped";
+
+            // Stable idempotency key. A project created offline is born as
+            // "local_proj_..."; that value becomes its clientId and is kept on the
+            // record forever (even after the server id replaces the key), so every
+            // retry of the same project carries the same clientId.
+            const clientId = project.clientId || (isLocalId(key) ? String(key) : null);
+            const serverId = isLocalId(key) ? null : String(project[cfg.idField] || project._id);
+            // attempt 1 only happens after a 404 on update (the cloud copy no
+            // longer exists): recreate it from the local copy instead of looping.
+            const sendId = attempt === 0 ? serverId : null;
+            const sentVersion = versionOf(project);
+
+            let res;
+            try {
+                res = await fetchWithTimeout(`${API_BASE_URL}${cfg.endpoint}`, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({ ...project, [cfg.idField]: sendId, clientId })
+                });
+            } catch (e) {
+                // Network error / timeout. The server may or may not have received it --
+                // which is exactly why clientId matters: the retry cannot duplicate.
+                console.error(`Failed to sync ${kind} ${key}`, e);
+                await SyncManager._markFailed(kind, key);
+                return "failed";
+            }
+
+            if (res.ok) {
+                const data = await res.json().catch(() => ({}));
+                const canonicalId = String(data[cfg.idField] || serverId || key);
+                const rowId = data._id ? String(data._id) : canonicalId;
+
+                const latest = await cfg.db.get(key);
+                if (!latest) {
+                    // Deleted locally while the upload was in flight: make sure the
+                    // cloud copy we just created does not live on as a ghost.
+                    if (!isLocalId(canonicalId)) await syncQueueDB.add(cfg.deleteAction, { [cfg.idField]: canonicalId });
+                    return "ok";
+                }
+
+                // Edited again during the upload? Then the newest edit still needs a push.
+                const editedMeanwhile = versionOf(latest) !== sentVersion;
+                const { nextRetryAt, syncFailures, ...clean } = latest;
+                await cfg.db.save({
+                    ...clean,
+                    [cfg.idField]: canonicalId,
+                    _id: rowId,
+                    clientId: clientId || clean.clientId,
+                    isSynced: !editedMeanwhile,
+                    synced: !editedMeanwhile,
+                });
+                // Save under the canonical key FIRST, then drop the temporary one, so a
+                // crash in between can only leave a harmless extra copy, never lose data.
+                if (String(canonicalId) !== String(key)) await cfg.db.delete(key);
+                return "ok";
+            }
+
+            if (res.status === 404 && attempt === 0 && serverId) continue; // cloud copy gone -> recreate once
+
+            if (res.status === 429) {
+                const retryAfter = parseInt(res.headers.get("Retry-After") || "", 10);
+                rateLimitedUntil = Date.now() + (Number.isFinite(retryAfter) ? retryAfter * 1000 : 60000);
+                return "rate_limited";
+            }
+
+            if (res.status === 403) {
+                let detail = "";
+                try { detail = (await res.json())?.detail || ""; } catch (e) {}
+                const isLimit = /limit reached/i.test(detail);
+                if (isLimit || !serverId || cfg.dropOnForbidden) {
+                    // Permanent rejection (account at its cap, or not the owner), not a
+                    // connectivity problem -- retrying would 403 forever. Drop the local
+                    // copy; only the cap case is worth telling the person about.
+                    await cfg.db.delete(key);
+                    if (isLimit || !serverId) {
+                        window.dispatchEvent(new CustomEvent("syncLimitReached", {
+                            detail: { kind, message: detail || cfg.limitMessage }
+                        }));
+                    }
+                    return "dropped";
+                }
+            }
+
+            // Any other failure (5xx, validation error...): keep the local copy and
+            // back off instead of retrying every 30s forever.
+            await SyncManager._markFailed(kind, key);
+            return "failed";
+        }
+        return "failed";
+    },
+
+    async _markFailed(kind, key) {
+        const cfg = ITEM_KINDS[kind];
+        try {
+            const rec = await cfg.db.get(key);
+            if (!rec || rec.isSynced) return;
+            const failures = (rec.syncFailures || 0) + 1;
+            await cfg.db.save({ ...rec, syncFailures: failures, nextRetryAt: Date.now() + nextRetryDelay(failures) });
+        } catch (e) { /* best effort */ }
     },
 
     /**
@@ -349,7 +488,7 @@ export const SyncManager = {
         if (!headers) return;
 
         try {
-            const res = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+            const res = await fetchWithTimeout(`${API_BASE_URL}/projects/${projectId}`, {
                 method: "DELETE",
                 headers
             });
@@ -381,7 +520,7 @@ export const SyncManager = {
         if (!headers) return;
 
         try {
-            const res = await fetch(`${API_BASE_URL}/templates/${templateId}`, {
+            const res = await fetchWithTimeout(`${API_BASE_URL}/templates/${templateId}`, {
                 method: "DELETE",
                 headers
             });
@@ -392,17 +531,118 @@ export const SyncManager = {
     },
 
     /**
+     * Pulls the user's projects (or templates) from the cloud and merges them into IndexedDB
+     * WITHOUT creating duplicates.
+     *
+     * Local records can be keyed three different ways for the same project: the
+     * temporary "local_proj_..." key, the server's numeric row id (written by older
+     * builds) and the server's canonical projectId. The old merge only looked the
+     * remote project up by projectId, so a project that had just been pushed under
+     * another key was inserted a second time on the next pull -- which is why
+     * synced projects showed up twice. Match on all three (plus clientId) instead.
+     */
+    async pullProjects(headersArg) { return SyncManager._pullItems("project", headersArg); },
+
+    async pullTemplates(headersArg) { return SyncManager._pullItems("template", headersArg); },
+
+    async _pullItems(kind, headersArg) {
+        const cfg = ITEM_KINDS[kind];
+        if (!navigator.onLine) return false;
+        const headers = headersArg || getAuthHeaders();
+        if (!headers) return false;
+        if (pullInFlight[kind] && !headersArg) return pullInFlight[kind];
+
+        const run = async () => {
+            const res = await fetchWithTimeout(`${API_BASE_URL}${cfg.endpoint}`, { headers });
+            if (!res.ok) return false;
+            const body = await res.json().catch(() => ({}));
+            const items = Array.isArray(body) ? body : body[cfg.listKey] || [];
+
+            let currentEmail = null;
+            try {
+                const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
+                currentEmail = raw && raw !== "null" ? JSON.parse(raw)?.email || null : null;
+            } catch (e) {}
+            const locals = await cfg.db.getAll();
+            const byKey = new Map();
+            const byClient = new Map();
+            for (const l of locals) {
+                const k = String(recordKey(l));
+                byKey.set(k, l);
+                const cid = l.clientId || (isLocalId(k) ? k : null);
+                if (cid) byClient.set(String(cid), l);
+            }
+
+            for (const remote of items) {
+                try {
+                    const canonical = String(remote[cfg.idField] || remote._id || "");
+                    if (!canonical) continue;
+
+                    const local =
+                        byKey.get(canonical) ||
+                        (owned && remote._id !== undefined ? byKey.get(String(remote._id)) : undefined) ||
+                        (owned && remote.clientId ? byClient.get(String(remote.clientId)) : undefined);
+
+                    // GET /templates returns other accounts' templates too. Those are not
+                    // ours to reconcile by clientId; keep the original simple merge.
+                    const owned = kind === "project" || !currentEmail ||
+                        remote.userId === currentEmail || remote.owner_id === currentEmail;
+                    // Fresh read: a push may have finished since the snapshot above.
+                    const current = local ? await cfg.db.get(recordKey(local)) : null;
+                    if (current && !current.isSynced && (current.timestamp || 0) >= (remote.timestamp || 0)) {
+                        continue; // unsynced local edits win; they go up on the next push
+                    }
+
+                    await cfg.db.save({
+                        ...remote,
+                        [cfg.idField]: canonical,
+                        clientId: remote.clientId || current?.clientId || undefined,
+                        isSynced: true,
+                        synced: true,
+                    });
+                    // Same project stored under a different key -> remove the stale twin.
+                    if (current && String(recordKey(current)) !== canonical) {
+                        await cfg.db.delete(recordKey(current));
+                    }
+                } catch (e) {
+                    console.error(`Failed to merge pulled ${kind} ${canonical}`, e);
+                }
+            }
+
+            // Heal twins left behind by older builds: a synced record keyed by the
+            // numeric row id that also exists under its canonical projectId.
+            const after = await cfg.db.getAll();
+            const byRowId = new Set(after.filter(p => !/^\d+$/.test(String(recordKey(p)))).map(p => String(p._id)));
+            for (const p of after) {
+                const k = String(recordKey(p));
+                if (/^\d+$/.test(k) && p.isSynced && byRowId.has(k)) await cfg.db.delete(recordKey(p));
+            }
+            return true;
+        };
+
+        if (headersArg) return run(); // already inside a serialized pull
+        pullInFlight[kind] = serialize(run).finally(() => { pullInFlight[kind] = null; });
+        return pullInFlight[kind];
+    },
+
+    /**
      * Forces an immediate pull of the latest relational state from Postgres 
      * and updates the local IndexedDB stores.
      */
     async pullRemoteState() {
+        // Serialized with push passes so a pull can never interleave with a push
+        // that is in the middle of re-keying a project.
+        return serialize(() => SyncManager._pullRemoteStateImpl());
+    },
+
+    async _pullRemoteStateImpl() {
         if (!navigator.onLine) return;
         const headers = getAuthHeaders();
         if (!headers) return;
 
         try {
             // Pull Progress
-            const userRes = await fetch(`${API_BASE_URL}/get-progress`, { headers });
+            const userRes = await fetchWithTimeout(`${API_BASE_URL}/get-progress`, { headers });
             if (userRes.ok) {
                 const data = await userRes.json();
                 if (data.progress) {
@@ -413,7 +653,7 @@ export const SyncManager = {
             }
 
             // Pull Assessments
-            const assessmentRes = await fetch(`${API_BASE_URL}/get-assessments`, { headers });
+            const assessmentRes = await fetchWithTimeout(`${API_BASE_URL}/get-assessments`, { headers });
             if (assessmentRes.ok) {
                 const data = await assessmentRes.json();
                 if (data.assessments) {
@@ -424,7 +664,7 @@ export const SyncManager = {
             }
 
             // Pull Submissions
-            const submissionsRes = await fetch(`${API_BASE_URL}/get-all-submissions`, { headers });
+            const submissionsRes = await fetchWithTimeout(`${API_BASE_URL}/get-all-submissions`, { headers });
             if (submissionsRes.ok) {
                 const subData = await submissionsRes.json();
                 if (subData.submissions) {
@@ -460,42 +700,13 @@ export const SyncManager = {
                 }
             }
 
-            // Pull Projects
-            const projRes = await fetch(`${API_BASE_URL}/projects`, { headers });
-            if (projRes.ok) {
-                const projData = await projRes.json();
-                const items = Array.isArray(projData) ? projData : projData.projects || [];
-                for (const remoteProj of items) {
-                    try {
-                        const localProj = await projectsDB.get(remoteProj.projectId);
-                        if (!localProj || localProj.isSynced || (localProj.timestamp || 0) < (remoteProj.timestamp || 0)) {
-                            await projectsDB.save({ ...remoteProj, isSynced: true });
-                        }
-                    } catch (e) {
-                        // Isolated per-record, same reasoning as the submissions pull above.
-                        console.error(`Failed to merge pulled project ${remoteProj.projectId}`, e);
-                    }
-                }
-            }
+            // Pull Projects (identity-aware merge; see pullProjects)
+            await SyncManager.pullProjects(headers);
             
-            // Pull Templates
-            const tplRes = await fetch(`${API_BASE_URL}/templates`, { headers });
-            if (tplRes.ok) {
-                const tplData = await tplRes.json();
-                const items = Array.isArray(tplData) ? tplData : tplData.templates || [];
-                for (const remoteTpl of items) {
-                    try {
-                        const localTpl = await templatesDB.get(remoteTpl.templateId);
-                        if (!localTpl || localTpl.isSynced || (localTpl.timestamp || 0) < (remoteTpl.timestamp || 0)) {
-                            await templatesDB.save({ ...remoteTpl, isSynced: true });
-                        }
-                    } catch (e) {
-                        console.error(`Failed to merge pulled template ${remoteTpl.templateId}`, e);
-                    }
-                }
-            }
+            // Pull Templates (identity-aware merge, same as projects)
+            await SyncManager.pullTemplates(headers);
             // Pull Onboarding Tour Progress
-            const onboardingRes = await fetch(`${API_BASE_URL}/get-onboarding`, { headers });
+            const onboardingRes = await fetchWithTimeout(`${API_BASE_URL}/get-onboarding`, { headers });
             if (onboardingRes.ok) {
                 const onboardingData = await onboardingRes.json();
                 if (onboardingData.onboarding_state) {
@@ -625,7 +836,7 @@ export const syncManager = {
     ...SyncManager,
     // Pushes any unsynced local data (including the offline action queue)
     // up to the Postgres backend.
-    processSyncQueue: () => SyncManager.syncDataWithServer(),
+    processSyncQueue: (opts) => SyncManager.syncDataWithServer(opts),
 };
 
 // Pulls the latest server-side state down into local IndexedDB.
