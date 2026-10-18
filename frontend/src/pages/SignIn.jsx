@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { getErrorMessage } from "../utils/apiError";
-import { clearLocalUserData, projectsDB, templatesDB } from "../db";
+import { clearLocalUserData, claimLocalDataFor } from "../db";
+import { syncManager } from "../utils/syncManager";
 import "../styles/Auth.css";
 
 export default function SignIn() {
@@ -102,32 +103,13 @@ export default function SignIn() {
         "Authorization": `Bearer ${token}`
       };
 
-      const [projRes, tempRes] = await Promise.all([
-        fetchWithTimeout(`${API_BASE}/api/projects`, { headers }),
-        fetchWithTimeout(`${API_BASE}/api/templates`, { headers })
-      ]);
-
+      // Shared merge (see syncManager.pullProjects/pullTemplates): matches records by
+      // every key they can be stored under, never overwrites local edits that haven't
+      // synced yet, and does not resurrect items whose deletion is still queued.
+      await syncManager.pullProjects();
       if (!isStillCurrentSession(token)) return;
-
-      if (projRes.ok) {
-        const projData = await projRes.json();
-        const projects = Array.isArray(projData.projects) ? projData.projects : (Array.isArray(projData) ? projData : []);
-        for (let p of projects) {
-          if (p.owner_id === userEmail || p.userId === userEmail) {
-            await projectsDB.save({ ...p, projectId: p.projectId || p._id, isSynced: true });
-          }
-        }
-      } 
-
-      if (tempRes.ok) {
-        const tempData = await tempRes.json();
-        const templates = Array.isArray(tempData.templates) ? tempData.templates : (Array.isArray(tempData) ? tempData : []);
-        for (let t of templates) {
-          if (t.owner_id === userEmail || t.userId === userEmail) {
-            await templatesDB.save({ ...t, templateId: t.templateId || t._id, isSynced: true });
-          }
-        }
-      } 
+      await syncManager.pullTemplates();
+      if (!isStillCurrentSession(token)) return;
       // Data landed after the fact (dashboard/home already mounted from
       // navigate() below) -- let anything reading projectsDB/templatesDB
       // know there's fresh data to pick up.
@@ -219,7 +201,8 @@ export default function SignIn() {
       // above fix addressed -- only the actual cloud fetch stays
       // backgrounded.
       if (!isMountedRef.current) return;
-      await clearLocalUserData();
+      // Keeps this account's own unsynced work; clears another account's data.
+      await claimLocalDataFor(data.email);
       if (!isMountedRef.current) return;
       navigate(isAdminAccount ? "/dashboard" : "/home");
       syncUserCloudData(data.email, data.token);
@@ -324,7 +307,8 @@ export default function SignIn() {
       // Same IndexedDB-clear-must-finish-before-navigate fix too -- see the
       // comment above the equivalent call in handleSubmit.
       if (!isMountedRef.current) return;
-      await clearLocalUserData();
+      // Keeps this account's own unsynced work; clears another account's data.
+      await claimLocalDataFor(data.email);
       if (!isMountedRef.current) return;
       navigate(isAdminAccount ? "/dashboard" : "/home");
       syncUserCloudData(data.email, data.token);

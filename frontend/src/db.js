@@ -165,9 +165,24 @@ export const syncQueueDB = {
     // instead of syncing once back online). Store it as a "RETRY_REQUEST"
     // task using the same underlying add() so it's picked up by the queue
     // processor in syncManager.js.
+    // De-duplicated by key: the same submission/progress write is queued again
+    // every time a save or retry fails (e.g. key "sync_<submissionId>"), which
+    // piled up identical tasks that were each replayed. Re-queuing a key now
+    // replaces the pending task's payload with the newest one and resets its
+    // retry counter instead of adding another copy.
     async setItem(key, data) {
         const db = await initDB();
-        return db.add("syncQueue", { action: "RETRY_REQUEST", key, payload: data, timestamp: Date.now() });
+        const tx = db.transaction("syncQueue", "readwrite");
+        const store = tx.objectStore("syncQueue");
+        const existing = (await store.getAll()).find(t => t.action === "RETRY_REQUEST" && t.key === key);
+        let result;
+        if (existing) {
+            result = await store.put({ ...existing, payload: data, timestamp: Date.now(), attempts: 0 });
+        } else {
+            result = await store.add({ action: "RETRY_REQUEST", key, payload: data, timestamp: Date.now() });
+        }
+        await tx.done;
+        return result;
     },
     // Persist changes to an existing queued task (e.g. its retry counter).
     async update(task) {
@@ -207,7 +222,31 @@ export const syncQueueDB = {
 // clearing them would just force needless refetches -- including
 // re-downloading the ground-truth chunks right after the sign-out this
 // function runs on, defeating the point of caching them ahead of time.
+// Which account the locally cached data belongs to. The IndexedDB stores are
+// browser-wide and NOT namespaced per user, so every sign-in used to wipe them
+// unconditionally to stop one account's data leaking into another. That also
+// destroyed the SAME person's not-yet-synced work (offline projects, scores,
+// the retry queue) whenever their session expired or they logged out offline and
+// signed back in -- even though sign-out deliberately keeps it (see
+// utils/sessionCleanup.js). Recording the owner lets a sign-in keep the data when
+// the same account returns and still clear it when a different one signs in.
+export const LOCAL_DATA_OWNER_KEY = "algoblocks_local_data_owner";
+
+export async function claimLocalDataFor(email) {
+    const next = String(email || "").trim().toLowerCase();
+    let previous = null;
+    try { previous = localStorage.getItem(LOCAL_DATA_OWNER_KEY); } catch (e) { /* storage unavailable */ }
+    const sameAccount = !!next && !!previous && previous === next;
+    if (!sameAccount) await clearLocalUserData();
+    try {
+        if (next) localStorage.setItem(LOCAL_DATA_OWNER_KEY, next);
+        else localStorage.removeItem(LOCAL_DATA_OWNER_KEY);
+    } catch (e) { /* storage unavailable */ }
+    return sameAccount;
+}
+
 export async function clearLocalUserData() {
+    try { localStorage.removeItem(LOCAL_DATA_OWNER_KEY); } catch (e) { /* storage unavailable */ }
     await Promise.all([
         projectsDB.clear(),
         templatesDB.clear(),

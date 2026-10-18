@@ -19,6 +19,7 @@ import os
 import json
 import logging
 import threading
+import contextvars
 from pathlib import Path
 from dotenv import load_dotenv
 import psycopg2
@@ -49,6 +50,39 @@ if not DATABASE_URL:
 POOL_MAX_CONNECTIONS = 10
 POOL_WAIT_SECONDS = float(os.getenv("DB_POOL_WAIT_SECONDS", "20"))
 _pool_slots = threading.BoundedSemaphore(POOL_MAX_CONNECTIONS)
+
+# Safety net against connection leaks. Most repository/service functions do
+# ``conn = get_db_connection() ... conn.close()`` with no try/finally, so ANY
+# exception in between (a duplicate-signup unique violation, a timeout, bad
+# JSON...) skipped close() and the connection stayed checked out forever; ten of
+# those and the whole API hung. The HTTP middleware opens a per-request list here
+# (see begin_request_tracking), every connection handed out during the request is
+# recorded in it, and whatever is still checked out when the request ends is
+# rolled back and returned to the pool.
+_request_conns = contextvars.ContextVar("request_conns", default=None)
+
+
+def begin_request_tracking():
+    return _request_conns.set([])
+
+
+def release_leaked_connections(token):
+    conns = _request_conns.get()
+    _request_conns.reset(token)
+    leaked = 0
+    for c in conns or []:
+        if getattr(c, "_slot_held", False):
+            leaked += 1
+            try:
+                c.rollback()
+            except Exception:
+                pass
+            try:
+                c.close()  # returns it to the pool and frees the slot
+            except Exception:
+                pass
+    if leaked:
+        logger.warning(f"Reclaimed {leaked} database connection(s) a handler failed to close.")
 
 
 class PooledConnection(psycopg2.extensions.connection):
@@ -161,6 +195,9 @@ def get_db_connection():
             conn.autocommit = True
 
         conn._slot_held = True
+        tracked = _request_conns.get()
+        if tracked is not None:
+            tracked.append(conn)
         return conn
     except Exception as e:
         _pool_slots.release()  # the checkout never completed: free the slot

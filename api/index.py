@@ -149,7 +149,12 @@ async def security_headers_and_access_log(request: Request, call_next):
         request.client.host if request.client else "unknown"
     )
 
-    response = await call_next(request)
+    conn_token = database.begin_request_tracking()
+    try:
+        response = await call_next(request)
+    finally:
+        # Reclaim any DB connection a handler leaked (see database.py).
+        database.release_leaked_connections(conn_token)
 
     duration_ms = (time.perf_counter() - start) * 1000
 

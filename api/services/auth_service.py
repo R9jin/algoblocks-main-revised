@@ -6,6 +6,8 @@ import os
 import bcrypt
 import json
 import hashlib
+import psycopg2
+import psycopg2.errors
 import secrets
 import logging
 from datetime import datetime, timedelta, timezone
@@ -39,6 +41,18 @@ VERIFICATION_TOKEN_TTL_HOURS = 24
 LOGIN_LOCKOUT_THRESHOLD = 10
 LOGIN_LOCKOUT_MINUTES = 5
 LOGIN_ATTEMPT_DECAY_MINUTES = 20
+
+def _is_guest_identity(identifier) -> bool:
+    """True only for the app's generated guest identities.
+
+    The frontend creates guests as ``<id>@guest.local`` / ``guest_<ts>@algoblocks.local``
+    (reserved ``.local`` domains that a real signup can never use). The old check
+    was ``"guest" in email``, which also matched REAL accounts such as
+    ``guest.speaker@school.edu`` or ``miguest@gmail.com`` -- their progress,
+    assessments and submissions were reported as saved ("ignored") but never stored.
+    """
+    return str(identifier or "").strip().lower().endswith(("@guest.local", "@algoblocks.local"))
+
 
 class AuthService:
     @staticmethod
@@ -180,21 +194,26 @@ class AuthService:
 
         hashed_password = AuthService.hash_password(password)
 
-        UserRepository.insert({
-            "name": username,
-            "email": email,
-            "password": hashed_password,
-            "role": "user",
-            "isAdmin": False,
-            "is_verified": False,
-            "progress": {},
-            "assessments": {},
-            "onboarding_state": {
-                "tourSeen": False,
-                "completedAt": None,
-                "pages": {}
-            }
-        })
+        try:
+            UserRepository.insert({
+                "name": username,
+                "email": email,
+                "password": hashed_password,
+                "role": "user",
+                "isAdmin": False,
+                "is_verified": False,
+                "progress": {},
+                "assessments": {},
+                "onboarding_state": {
+                    "tourSeen": False,
+                    "completedAt": None,
+                    "pages": {}
+                }
+            })
+        except psycopg2.errors.UniqueViolation:
+            # Double-submit / two tabs: the pre-check above can pass for both
+            # requests. Report it like the normal duplicate instead of a 500.
+            raise HTTPException(status_code=400, detail="Email already registered")
 
         raw_token = secrets.token_urlsafe(32)
         token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
@@ -298,7 +317,7 @@ class AuthService:
         if not req.email or not req.lesson_id:
             return {"status": "ignored", "message": "Fired before state loaded"}
             
-        if "guest" in req.email.lower():
+        if _is_guest_identity(req.email):
             return {"status": "ignored", "message": "Guest persistence disabled"}
 
         try:
@@ -318,7 +337,7 @@ class AuthService:
         if not req.email or not req.assessment_key:
             return {"status": "ignored", "message": "Fired before state loaded"}
             
-        if "guest" in req.email.lower():
+        if _is_guest_identity(req.email):
             return {"status": "ignored", "message": "Guest persistence disabled"}
 
         save_data = {
@@ -456,6 +475,11 @@ class AuthService:
         if not user.get("is_verified", True):
             raise HTTPException(status_code=400, detail="Invalid or expired reset link.")
 
+        # Single-use, atomically: only the request that actually consumes the token
+        # may go on to change the password.
+        if UserRepository.claim_reset_token(token_hash) is None:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset link.")
+
         hashed_password = AuthService.hash_password(new_password)
         UserRepository.update_password(user["email"], hashed_password)
         UserRepository.clear_reset_token(user["email"])
@@ -507,6 +531,17 @@ class AuthService:
                     detail="Google account has no email"
                 )
 
+            # SECURITY FIX (account takeover): a Google account can carry an email
+            # address its owner never proved they control (e.g. someone creates a
+            # Google account using a victim's school/work address). Google flags
+            # that with email_verified=false. Trusting the address anyway let that
+            # person sign in as -- or create -- the account for that email here.
+            if idinfo.get("email_verified") not in (True, "true", "True"):
+                raise HTTPException(
+                    status_code=401,
+                    detail="Your Google account's email address is not verified."
+                )
+
             user = UserRepository.find_by_email(email)
 
             # SECURITY FIX: same suspension check as password login -- a
@@ -517,7 +552,20 @@ class AuthService:
                     detail=f"This account has been suspended. Contact an administrator at {SUPPORT_EMAIL} for help."
                 )
 
+            if user and not user.get("is_verified", True):
+                # SECURITY FIX (pre-registration takeover): someone may have signed up
+                # with this address + a password of THEIR choosing before the real
+                # owner ever verified it. The owner has now proven ownership through
+                # Google, so mark the account verified and wipe that password and every
+                # token issued so far -- otherwise the squatter's password would work
+                # the moment the account became verified.
+                UserRepository.update_password(email, None)
+                UserRepository.mark_verified(email)
+                UserRepository.bump_token_version(email)
+                user = UserRepository.find_by_email(email)
+
             if not user:
+              try:
                 UserRepository.insert({
                     "name": name,
                     "email": email,
@@ -536,7 +584,9 @@ class AuthService:
                         "pages": {}
                     }
                 })
-                user = UserRepository.find_by_email(email)
+              except psycopg2.errors.UniqueViolation:
+                pass  # two simultaneous first-time Google sign-ins: the row exists now
+              user = UserRepository.find_by_email(email)
 
             backend_token = create_access_token({"sub": email, "tv": user.get("token_version", 0)})
 
@@ -567,7 +617,7 @@ class AuthService:
         if not user_id or not activity_id:
             return {"status": "ignored"}
 
-        if "guest" in str(user_id).lower():
+        if _is_guest_identity(user_id):
             return {"status": "ignored", "message": "Guest persistence disabled"}
 
         # FIXED: Explicitly added "id" to allow syncing composite primary key back to frontend
@@ -697,7 +747,7 @@ class AuthService:
         if not user_id or not module_id:
             return {"status": "ignored"}
 
-        if "guest" in str(user_id).lower():
+        if _is_guest_identity(user_id):
             return {"status": "ignored", "message": "Guest persistence disabled"}
 
         conn = get_db_connection()
@@ -842,7 +892,7 @@ class AuthService:
 
     @staticmethod
     def batch_sync(payload: dict, trusted_email: str):
-        if "guest" in trusted_email.lower():
+        if _is_guest_identity(trusted_email):
             return {"status": "success", "message": "Ignored: Guest account", "synced_items": 0}
 
         synced_count = 0

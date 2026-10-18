@@ -365,6 +365,27 @@ class UserRepository:
         return dict(user) if user else None
 
     @staticmethod
+    def claim_reset_token(token_hash: str):
+        """Atomically consume a reset token: returns the account's email if this call
+        was the one that used it, None if it was already used / expired. Without this,
+        two simultaneous requests carrying the same emailed link both passed the
+        read-then-check and both completed the reset."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE users SET reset_token_hash = NULL, reset_token_expires = NULL
+                WHERE reset_token_hash = %s AND reset_token_expires > now()
+                RETURNING email
+            ''', (token_hash,))
+            row = cursor.fetchone()
+            conn.commit()
+            return row["email"] if row else None
+        finally:
+            cursor.close()
+            conn.close()
+
+    @staticmethod
     def clear_reset_token(email: str):
         conn = get_db_connection()
         cursor = conn.cursor()

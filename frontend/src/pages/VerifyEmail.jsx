@@ -4,7 +4,7 @@ import { FiCheckCircle, FiMail, FiXCircle } from "react-icons/fi";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getErrorMessage } from "../utils/apiError";
 import { SUPPORT_EMAIL } from "../utils/constants";
-import { clearLocalUserData } from "../db";
+import { claimLocalDataFor } from "../db";
 import "../styles/Auth.css";
 
 export default function VerifyEmail() {
@@ -68,7 +68,7 @@ export default function VerifyEmail() {
         // account the backend confirms has zero progress. SignIn.jsx already
         // clears this on regular login; do the same here so a fresh signup
         // is guaranteed to actually start fresh.
-        await clearLocalUserData();
+        await claimLocalDataFor(data.email);
         if (!isMountedRef.current) return;
 
         // Verifying logs the user in immediately (same pattern as
