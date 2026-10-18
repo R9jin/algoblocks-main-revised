@@ -1,6 +1,7 @@
 # api/services/mail_service.py
 import os
 import re
+import html
 import smtplib
 import logging
 from email.mime.multipart import MIMEMultipart
@@ -128,7 +129,7 @@ def _send_email(to_email: str, to_name: str, subject: str, html_body: str, text_
 
 
 def _build_reset_email_html(name: str, reset_link: str) -> str:
-    safe_name = name or "there"
+    safe_name = html.escape(name) if name else "there"
     return f"""
     <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #0A051A; color: #F5F5F5; border-radius: 16px;">
         <h2 style="color: #F5F5F5; margin-bottom: 8px;">Reset your password</h2>
@@ -160,7 +161,7 @@ def _build_reset_email_text(name: str, reset_link: str) -> str:
 
 
 def _build_verification_email_html(name: str, verify_link: str) -> str:
-    safe_name = name or "there"
+    safe_name = html.escape(name) if name else "there"
     return f"""
     <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #0A051A; color: #F5F5F5; border-radius: 16px;">
         <h2 style="color: #F5F5F5; margin-bottom: 8px;">Verify your email</h2>

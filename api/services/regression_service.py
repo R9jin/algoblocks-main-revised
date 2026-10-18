@@ -147,7 +147,10 @@ def _simple_regression(xs: List[float], ys: List[float]) -> Dict[str, Any]:
     sum_y2 = sum(y * y for y in ys)
 
     denom = n * sum_x2 - sum_x ** 2
-    if denom == 0:
+    # Tolerance, not == 0: a constant column of non-integers (e.g. 0.1 repeated)
+    # leaves ~1e-17 of floating-point residue here, which passed the exact check
+    # and produced a meaningless, enormous slope instead of "cannot be fitted".
+    if abs(denom) <= 1e-12 * max(1.0, abs(n * sum_x2)):
         raise _Unavailable("X (the System Interaction composite) has no variation, so the regression cannot be fitted.")
 
     b1 = (n * sum_xy - sum_x * sum_y) / denom
@@ -158,7 +161,7 @@ def _simple_regression(xs: List[float], ys: List[float]) -> Dict[str, Any]:
     sse = sum(e * e for e in resid)
     my = _mean(ys)
     sst = sum((y - my) ** 2 for y in ys)
-    if sst == 0:
+    if sst <= 1e-12 * max(1.0, sum(y * y for y in ys)):
         raise _Unavailable("Y (normalized learning gain) has no variation, so the regression cannot be fitted.")
 
     r2 = 1.0 - sse / sst

@@ -21,6 +21,14 @@ from limiter import limiter
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+
+def _same_user(claimed, authenticated) -> bool:
+    """Case-insensitive identity match. Account emails are stored lowercase, but the
+    email/userId a client replays from its local cache can differ in case; the strict
+    ``!=`` comparison turned that into a 403, and a 403 makes the client discard the
+    record as "belongs to another account" -- silently losing real progress."""
+    return str(claimed or "").strip().lower() == str(authenticated or "").strip().lower()
+
 # All endpoints in this router are rate-limited. An authenticated client (or
 # a stolen/leaked token) without rate limiting could hammer these write-heavy
 # sync endpoints without bound — a straightforward abuse and DB-load vector.
@@ -31,8 +39,9 @@ logger = logging.getLogger(__name__)
 @limiter.limit("30/minute")
 def update_progress(request: Request, data: ProgressUpdate, current_user_email: str = Depends(get_current_user_email)):
     try:
-        if data.email != current_user_email:
+        if not _same_user(data.email, current_user_email):
             raise HTTPException(status_code=403, detail="Not authorized to update this progress")
+        data.email = current_user_email  # canonical casing
 
         # Automatically handles SQL logic in user_repo via jsonb
         AuthService.update_progress(data)
@@ -48,8 +57,9 @@ def update_progress(request: Request, data: ProgressUpdate, current_user_email: 
 @limiter.limit("30/minute")
 def sync_submission(request: Request, data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
     try:
-        if data.get("userId") != current_user_email:
+        if not _same_user(data.get("userId"), current_user_email):
             raise HTTPException(status_code=403, detail="Not authorized to sync this submission")
+        data["userId"] = current_user_email  # canonical casing
 
         data["isSynced"] = True
 
@@ -66,8 +76,9 @@ def sync_submission(request: Request, data: Dict[str, Any] = Body(...), current_
 @limiter.limit("30/minute")
 def sync_assessment(request: Request, data: Dict[str, Any] = Body(...), current_user_email: str = Depends(get_current_user_email)):
     try:
-        if data.get("userId") != current_user_email:
+        if not _same_user(data.get("userId"), current_user_email):
             raise HTTPException(status_code=403, detail="Not authorized to sync this assessment")
+        data["userId"] = current_user_email  # canonical casing
 
         data["isSynced"] = True
         
@@ -90,6 +101,8 @@ def batch_sync(request: Request, payload: BatchSyncPayload, current_user_email: 
             message=response["message"], 
             synced_items=response["synced_items"]
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in batch sync: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error during batch sync")

@@ -45,18 +45,22 @@ const DEFAULT_DOCK_LAYOUT = {
 
 // ULTIMATE FALLBACK: Completely bypasses syncQueueDB errors by using native localStorage queue
 const pushToSyncQueue = (key, data) => {
+  const writeLocalFallback = () => {
+    try {
+      const queue = JSON.parse(localStorage.getItem("offline_sync_queue") || "[]");
+      queue.push({ key, data, timestamp: Date.now() });
+      localStorage.setItem("offline_sync_queue", JSON.stringify(queue));
+    } catch (e) { console.error("Sync queue failed:", e); }
+  };
   try {
     if (syncQueueDB && typeof syncQueueDB.setItem === 'function') {
-        syncQueueDB.setItem(key, data);
-        return;
+      // setItem is async: a rejected IndexedDB write used to slip past this
+      // try/catch (unhandled rejection), so the retry was lost with no fallback.
+      Promise.resolve(syncQueueDB.setItem(key, data)).catch(writeLocalFallback);
+      return;
     }
-  } catch(e) {}
-  
-  try {
-    const queue = JSON.parse(localStorage.getItem("offline_sync_queue") || "[]");
-    queue.push({ key, data, timestamp: Date.now() });
-    localStorage.setItem("offline_sync_queue", JSON.stringify(queue));
-  } catch (e) { console.error("Sync queue failed:", e); }
+  } catch (e) {}
+  writeLocalFallback();
 };
 
 // Prefix used by the per-activity "which blocks do I need" hint (see
