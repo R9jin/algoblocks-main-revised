@@ -63,6 +63,18 @@ const pushToSyncQueue = (key, data) => {
   writeLocalFallback();
 };
 
+// A corrupted/"undefined" `user` entry used to make several bare JSON.parse calls
+// throw (crashing the page from an effect, or skipping the reward modal after a
+// submission). Read it defensively instead.
+const readStoredUser = () => {
+  try {
+    const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (!raw || raw === "undefined" || raw === "null") return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (e) { return null; }
+};
+
 // Prefix used by the per-activity "which blocks do I need" hint (see
 // annotate_blocks.py / the activity JSON's task arrays). Matched here so it
 // can render with a real FiGrid icon + chip styling instead of a plain-text
@@ -134,6 +146,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const workerMessageHandler = useRef(null);
   const runTimeoutRef = useRef(null);
   const renderIntervalRef = useRef(null);
+  // clearInterval alone left the dead id in the ref, and the OUTPUT handler only starts a
+  // new flush timer when the ref is empty -- so from the second run on (and after any
+  // input() prompt) console output was only shown when the program finished.
+  const clearRenderInterval = () => { clearInterval(renderIntervalRef.current); renderIntervalRef.current = null; };
   // Id of the current plain run; messages from a run the user stopped are ignored.
   const runIdRef = useRef(0);
   const outputCountRef = useRef(0);
@@ -179,6 +195,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [isSyncingBlocks, setIsSyncingBlocks] = useState(false);
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
+  // Output of the last "Submit" run. The Test Cases panel reads pass/fail from this, not from the
+  // console: clearing the console, pressing Run Code (which replaces it), or a program that merely
+  // prints "Test 1: PASSED" used to change or wipe the test statuses.
+  const [testRunOutput, setTestRunOutput] = useState("");
   const [viewMode, setViewMode] = useState("workspace");
   const [passedTests, setPassedTests] = useState(0);
   const [isLeftPanelVisible, setIsLeftPanelVisible] = useState(() => typeof window === "undefined" || window.innerWidth >= 900);
@@ -277,9 +297,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   // specific activity, and still records its own pageId's bookkeeping.
   const activityTourAttemptedRef = useRef(false);
   useEffect(() => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (!storedUser) return;
-    const user = JSON.parse(storedUser);
+    const user = readStoredUser();
+    if (!user) return;
     if (user.isGuest) return;
     if (activityTourAttemptedRef.current) return;
     if (!isHydrated) return;
@@ -340,10 +359,19 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   }, [activityDataResolved]);
 
   const totalTests = processedTestCases.length;
+  // Saves fired from handlers registered once (page unload, Ctrl+S, "back online", unmount
+  // cleanup) close over the FIRST render's totalTests (0), which wrote "0 tests" over the
+  // real record. They read this ref instead.
+  const totalTestsRef = useRef(0);
+  totalTestsRef.current = totalTests;
 
+  // One timer for the toast: an earlier toast's timer used to hide a newer toast early.
+  const toastTimerRef = useRef(null);
+  useEffect(() => () => { clearTimeout(toastTimerRef.current); clearInterval(renderIntervalRef.current); }, []);
   const showToast = (message, type = "success") => {
+    clearTimeout(toastTimerRef.current);
     setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
+    toastTimerRef.current = setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
 
   useEffect(() => {
@@ -365,6 +393,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   }, []);
 
   const handleRunTimeout = () => {
+    clearRenderInterval();
     resetWorker(); const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
     setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
     setIsEvaluating(false); setIsWaitingForInput(false);
@@ -456,7 +485,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         }
       }
     } else if (type === "RUN_RESULT") {
-      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+      clearTimeout(runTimeoutRef.current); clearRenderInterval();
       if (testResolveRef.current) {
         setTimeout(() => {
           const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
@@ -508,7 +537,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     } else if (type === "OUTPUT") {
       outputCountRef.current += 1; pendingOutputRef.current += data;
       if (outputCountRef.current > 5000) {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); resetWorker();
+        clearTimeout(runTimeoutRef.current); clearRenderInterval(); resetWorker();
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         const floodMsg = "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n";
         if (testRejectRef.current) { testRejectRef.current(new Error(floodMsg)); testResolveRef.current = null; testRejectRef.current = null; }
@@ -518,7 +547,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         renderIntervalRef.current = setInterval(() => { if (pendingOutputRef.current) { setConsoleOutput((prev) => prev + pendingOutputRef.current); pendingOutputRef.current = ""; } }, 100);
       }
     } else if (type === "INPUT_REQUEST") {
-      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+      clearTimeout(runTimeoutRef.current); clearRenderInterval();
       const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
       setConsoleOutput((prev) => prev + flushed + data.prompt);
       setIsWaitingForInput(true);
@@ -755,7 +784,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       // AES only.
       rog: state.type === "optimization" && state.final_aes != null ? Math.max(0, state.final_aes - (state.initial_aes || 0)) : null,
       code_unchanged: state.code_unchanged ?? false,
-      passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
+      passedTestCases: state.passed, totalTestCases: totalTestsRef.current, passed_tests: state.passed, total_tests: totalTestsRef.current,
       functional_passed: state.functional_passed, functional_total: state.functional_total,
       complexity_passed: state.complexity_passed, complexity_total: state.complexity_total,
       hidden_passed: state.hidden_passed, hidden_total: state.hidden_total,
@@ -883,9 +912,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         setActivityDataResolved(resolvedActivity);
         latestStateRef.current.type = resolvedActivity.type; latestStateRef.current.targetTime = resolvedActivity.targetTimeComplexity; latestStateRef.current.targetSpace = resolvedActivity.targetSpaceComplexity;
 
-        const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-        if (!storedUser) { navigate("/learning-path", { replace: true }); return; }
-        const user = JSON.parse(storedUser); latestStateRef.current.userId = user.email;
+        const user = readStoredUser();
+        if (!user) { navigate("/learning-path", { replace: true }); return; }
+        latestStateRef.current.userId = user.email;
 
         const submissionId = `${user.email}_${moduleId}_${activityId}`;
 
@@ -1050,7 +1079,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
         const savedTests = localStorage.getItem(`activity_tests_${moduleId}_${activityId}`);
         if (savedTests && !cancelled) {
-          try { const { consoleOutput: savedOut, passedTests: savedPassed } = JSON.parse(savedTests); if (savedOut) setConsoleOutput(savedOut); if (savedPassed !== undefined) setPassedTests(savedPassed); } catch (e) { }
+          try { const { consoleOutput: savedOut, passedTests: savedPassed } = JSON.parse(savedTests); if (savedOut) { setConsoleOutput(savedOut); setTestRunOutput(savedOut); } if (savedPassed !== undefined) setPassedTests(savedPassed); } catch (e) { }
         }
         if (!cancelled) isReadyRef.current = true;
 
@@ -1074,7 +1103,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
   }, [moduleId, activityId]);
 
-  const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false, isReset = false) => {
+  const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTestsRef.current, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false, isReset = false) => {
     if (!latestStateRef.current.userId) return;
     const finalScore = score !== null ? score : latestStateRef.current.score;
     const finalPassed = passed !== null ? passed : latestStateRef.current.passed;
@@ -1171,7 +1200,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       // settled edit -- not just at unload or on the 4s interval.
       emergencySaveNow();
       if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") {
-        await saveSubmission(json, pythonCode, null, null, totalTests, null, latestStateRef.current.actualTime, latestStateRef.current.actualSpace, true);
+        await saveSubmission(json, pythonCode, null, null, totalTestsRef.current, null, latestStateRef.current.actualTime, latestStateRef.current.actualSpace, true);
       }
     }, 1500);
   };
@@ -1234,6 +1263,20 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const lastAutoSyncTextRef = useRef(null);
   const syntaxErrorsRef = useRef([]);
   syntaxErrorsRef.current = syntaxErrors;
+  // Red/yellow squiggles in the Python editor. MainApp did this; the activity page never did.
+  const applyEditorMarkers = () => {
+    if (!monacoRef.current || !editorRef.current) return;
+    const model = editorRef.current.getModel();
+    if (!model) return;
+    const monaco = monacoRef.current;
+    const markers = (syntaxErrorsRef.current || []).map((err) => ({
+      startLineNumber: err.line || 1, startColumn: 1, endLineNumber: err.line || 1, endColumn: 1000,
+      message: err.message,
+      severity: (err.blocking || err.isNameError || err.isRuntimeCrash) ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+    }));
+    monaco.editor.setModelMarkers(model, "owner", markers);
+  };
+  useEffect(() => { applyEditorMarkers(); }, [syntaxErrors]);
 
   // Python -> Blocks. `silent` is the automatic mode that runs while the
   // learner types: no panel switching, no toast, no modal, no error popup.
@@ -1363,7 +1406,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (!codeToRun || codeToRun.trim() === "" || codeToRun === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute."); focusDockPanel("console"); setConsoleTab("output"); return;
     }
-    clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); setIsEvaluating(true); setLineExecutions({});
+    clearTimeout(runTimeoutRef.current); clearRenderInterval(); setIsEvaluating(true); setLineExecutions({});
     focusDockPanel("console"); setConsoleTab("output");
     // Fresh console on every run (IDE-style) instead of appending to old output.
     setConsoleOutput("> Running the program...\n");
@@ -1381,7 +1424,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   // Manual stop. Waiting at input(): instant, engine stays loaded. Otherwise (busy loop, or a
   // test-case run) the worker is restarted -- the same recovery the 10s timeout already uses.
   const handleStopRun = () => {
-    clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+    clearTimeout(runTimeoutRef.current); clearRenderInterval();
     const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
     runIdRef.current += 1;
     const graceful = isWaitingForInput && !testResolveRef.current && !!workerRef.current;
@@ -1408,9 +1451,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   };
 
   const savePartialProgress = async (lessonId, score) => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (!storedUser) return;
-    const user = JSON.parse(storedUser);
+    const user = readStoredUser();
+    if (!user) return;
     if (!user.progress) user.progress = {};
     user.progress[lessonId] = Math.max(user.progress[lessonId] || 0, score);
     localStorage.setItem("user", JSON.stringify(user));
@@ -1431,9 +1473,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   };
 
   const completeFullTopic = async (topicId) => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (!storedUser) return;
-    const user = JSON.parse(storedUser);
+    const user = readStoredUser();
+    if (!user) return;
     if (!user.progress) user.progress = {};
     user.progress[topicId] = true;
     localStorage.setItem("user", JSON.stringify(user));
@@ -1469,12 +1510,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   // INSTANT PROGRESS FIX: Now accurately checks user.progress from localStorage to eliminate API DB sync delays
   const checkLessonCompletion = async (currentActivityId = null, currentScore = null) => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (!storedUser || !lessonActivitiesResolved.length) {
+    const user = readStoredUser();
+    if (!user || !lessonActivitiesResolved.length) {
       return { passedCount: 0, threshold: 1, isCompleted: false, kind: activityDataResolved?.type === "optimization" ? "optimization" : "lesson" };
     }
     
-    const user = JSON.parse(storedUser);
     const userProgress = user.progress || {};
 
     // BUG FIX (threshold inconsistency): Previously used per-activity difficulty
@@ -1772,13 +1812,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const cleanPayload = sanitizePythonCode(generatedPython);
     try { await executeTest(cleanPayload); } catch (failure) {
       const errorMsg = `Test Execution Prevented:\n\n${failure.error || failure.message}`;
-      setConsoleOutput(errorMsg); focusDockPanel("console"); setIsEvaluating(false);
+      setConsoleOutput(errorMsg); setTestRunOutput(""); focusDockPanel("console"); setIsEvaluating(false);
       localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: errorMsg, passedTests: 0 })); return;
     }
 
-    focusDockPanel("console"); setConsoleOutput("\n> --- Running Test Cases ---\n\n"); setPassedTests(0);
+    focusDockPanel("console"); setConsoleOutput("\n> --- Running Test Cases ---\n\n"); setTestRunOutput(""); setPassedTests(0);
 
-    let passed = 0; let functionalPassed = 0; let functionalTotal = 0;
+    // The denominator is every functional test, not "tests reached so far": when a run is cut
+    // short (timeout, stopped, output flood) the loop breaks, and counting only the executed
+    // tests inflated TSR/AES (3 of 6 passed, stopped at test 4 => 3/4) and could mark the
+    // activity as passed.
+    let passed = 0; let functionalPassed = 0;
+    const functionalTotal = processedTestCases.filter((t) => !t.isComplexityTest).length;
     let fullOutput = "\n> --- Running Test Cases ---\n";
 
     for (let i = 0; i < totalTests; i++) {
@@ -1790,10 +1835,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
         if (testPassed) passed++;
         fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n  Metric: ${tc.title}\n  Expected: <= ${formatComplexity(tc.target)}\n  Actual: ${formatComplexity(actualVal)}\n\n`;
-        setConsoleOutput(fullOutput); setPassedTests(passed); continue;
+        setConsoleOutput(fullOutput); setTestRunOutput(fullOutput); setPassedTests(passed); continue;
       }
 
-      functionalTotal++;
       const isFunctionCall = tc.call?.includes("(") && tc.call?.includes(")");
       const taskId = activityDataResolved?.id || ""; const isIntroLevel = taskId === "l1-t1" || taskId === "l1-t3";
       let codeToRun = "";
@@ -1833,10 +1877,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           else fullOutput += `  Expected: ${expected}\n  Actual: ${displayActual || "(No Output)"}\n`;
         }
         fullOutput += "\n";
-        setConsoleOutput(fullOutput); setPassedTests(passed);
+        setConsoleOutput(fullOutput); setTestRunOutput(fullOutput); setPassedTests(passed);
       } catch (err) { 
         fullOutput += `Test ${i + 1}: ERROR\n  Message: ${err.message}\n\n`; 
-        setConsoleOutput(fullOutput); 
+        setConsoleOutput(fullOutput); setTestRunOutput(fullOutput); 
         break;
       }
     }
@@ -2010,7 +2054,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             setGeneratedPython(newCode); setIsEditingCode(true); setSyntaxErrors([]);
             latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(getFailsafeWorkspaceJson() || latestStateRef.current.json, newCode);
           }}
-          onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
+          onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; setTimeout(applyEditorMarkers, 0); }}
         />
       ),
     },
@@ -2200,6 +2244,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
                     // 2. Set reset guard to prevent any beforeunload or autosave from saving old blocks
                     isResettingRef.current = true;
+                    // Safety net: if anything below throws, autosave must not stay disabled forever.
+                    const resetGuardTimer = setTimeout(() => { isResettingRef.current = false; }, 8000);
+                    lastAutoSyncTextRef.current = null;
                     loadTimeRef.current = Date.now() + 5000;
                     // Invalidate any ANALYZE_CODE request still in flight for the
                     // pre-restart code (see analysisEpochRef above) so its result
@@ -2208,8 +2255,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                     analysisEpochRef.current += 1;
 
                     // 3. Clear localStorage emergency snapshot and test results
-                    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-                    const user = storedUser ? JSON.parse(storedUser) : null;
+                    const user = readStoredUser();
                     const uid = user?.email || latestStateRef.current.userId;
 
                     if (uid) {
@@ -2250,6 +2296,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                     setCurrentAes(0);
                     setCurrentRog(0);
                     setPassedTests(0);
+                    setTestRunOutput("");
                     setConsoleOutput("Ready to run...\n");
                     setLineExecutions({});
                     setSyntaxErrors([]);
@@ -2283,6 +2330,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                     // again, nothing ever retriggered it afterward, so the
                     // fresh-template baseline analysis silently never ran at all.
                     isResettingRef.current = false;
+                    clearTimeout(resetGuardTimer);
 
                     // 8. Persist the reset state with was_reset: true to IndexedDB & Server
                     if (uid) {
@@ -2378,9 +2426,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           <div className="activity-panel-content">
             {processedTestCases.map((tc, i) => {
               const testIdentifier = `Test ${i + 1}`;
-              const isPassing = consoleOutput.includes(`${testIdentifier}: PASSED`);
-              const isFailing = consoleOutput.includes(`${testIdentifier}: FAILED`);
-              const isError = consoleOutput.includes(`${testIdentifier}: ERROR`);
+              const isPassing = testRunOutput.includes(`${testIdentifier}: PASSED`);
+              const isFailing = testRunOutput.includes(`${testIdentifier}: FAILED`);
+              const isError = testRunOutput.includes(`${testIdentifier}: ERROR`);
               const isExpanded = expandedTests[i];
               const statusClass = isPassing ? "passing" : isFailing || isError ? "failing" : "";
               const displayTitle = tc.isComplexityTest ? tc.title : tc.isHidden ? `Hidden Test` : `Test ${i + 1}`;
@@ -2440,8 +2488,7 @@ const ActivityApp = () => {
   // the pre-test is the entry gate for the entire curriculum, and bypassing
   // it via direct URL defeats the lock system entirely.
   useEffect(() => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    const user = storedUser ? JSON.parse(storedUser) : {};
+    const user = readStoredUser() || {};
     if (user.isGuest) {
       navigate("/learning-path", { replace: true });
       return;

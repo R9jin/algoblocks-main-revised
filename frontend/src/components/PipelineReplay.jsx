@@ -13,6 +13,7 @@ import Split from "react-split";
 import { FiChevronLeft, FiChevronRight, FiPause, FiPlay, FiRotateCcw, FiAlertTriangle, FiCheck, FiMaximize2, FiZoomIn, FiZoomOut, FiX, FiLayout } from "react-icons/fi";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { formatComplexity } from "../utils/formatters";
+import { sanitizePythonCode } from "../utils/asymptoticParser.jsx";
 import "../styles/PipelineReplay.css";
 
 /* ------------------------- resizable panel layout ------------------------- */
@@ -970,7 +971,10 @@ export default function PipelineReplay({ sourceCode, blockingErrors = [], runtim
   const [astView, setAstView] = useState("list"); // list | tree
   const epochRef = useRef(0);
 
-  const code = (sourceCode || "").trim();
+  // Same cleaning the Complexity analysis and Run use (non-breaking/zero-width spaces ->
+  // normal spaces). Without it, pasted code the analyzer accepted could show up here as a
+  // "Fatal parse error" on the fallback path, contradicting the Complexity panel.
+  const code = sanitizePythonCode(sourceCode || "").trim();
   const hasCode = code !== "" && code !== "# Drag blocks to generate Python code";
 
   // Request a fresh trace whenever the source changes (debounced).
@@ -1065,7 +1069,7 @@ export default function PipelineReplay({ sourceCode, blockingErrors = [], runtim
 
   /* ---- guard states ---- */
   if (!hasCode) {
-    return <div className="pr-root"><div className="pr-state">Write or build some code, then open this tab to watch the analysis model work through it.</div></div>;
+    return <div className="pr-root"><div className="pr-state">Write or build some code in the workspace above to watch the analysis model work through it.</div></div>;
   }
   if (!ready) {
     return <div className="pr-root"><div className="pr-state">The Python engine is still loading…</div></div>;

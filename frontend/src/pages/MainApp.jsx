@@ -293,9 +293,14 @@ export default function MainApp({ pipelineMode = false }) {
   const isAdmin = !!currentUser?.isAdmin;
   const isGuest = currentUser?.isGuest === true;
 
+  // One timer for the toast: an earlier toast's timer used to hide a newer
+  // toast after only the remainder of its own 3 seconds.
+  const toastTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(toastTimerRef.current), []);
   const showToast = (message, type = "success") => {
+    clearTimeout(toastTimerRef.current);
     setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
+    toastTimerRef.current = setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
 
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
@@ -336,7 +341,11 @@ export default function MainApp({ pipelineMode = false }) {
       const snapshotTabs = dirtyTabs.map((t) => ({
         id: t.id, title: t.title, viewMode: t.viewMode, blocklyJson: getLiveBlocklyJson(t),
         pythonCode: t.pythonCode, isEditingCode: t.isEditingCode, syntaxErrors: [],
-        analysisResult: t.analysisResult, lineExecutions: {}, analysisTime: "0.0",
+        // The analysis result can be very large and is rebuilt automatically after
+        // recovery, so it is not stored (it could push the snapshot over the
+        // localStorage quota, which silently disabled recovery).
+        analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
+        lineExecutions: {}, analysisTime: "0.0",
         currentLoadedId: t.currentLoadedId, saveType: t.saveType,
         description: t.description, category: t.category,
         isDirty: true, ignoreDirtyUntil: 0,
@@ -440,6 +449,7 @@ export default function MainApp({ pipelineMode = false }) {
   const cancelLeaveSite = () => setLeaveModal({ isOpen: false, tx: null, targetPath: null });
 
   const handleRunTimeout = () => {
+    clearInterval(renderIntervalRef.current);
     resetWorker();
     const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
     setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
@@ -464,6 +474,8 @@ export default function MainApp({ pipelineMode = false }) {
         // Apply the result only to the tab that asked, and drop it if a newer
         // request for that tab has been sent since.
         const targetId = requestEpoch !== undefined ? analyzeEpochTabRef.current[requestEpoch] : analyzingTabId.current;
+        // Each request is answered once; forget it so the map doesn't grow for the whole session.
+        if (requestEpoch !== undefined) delete analyzeEpochTabRef.current[requestEpoch];
         if (!targetId) return;
         if (requestEpoch !== undefined && latestEpochByTabRef.current[targetId] !== requestEpoch) return;
         if (data.status === "success") {
@@ -683,7 +695,32 @@ export default function MainApp({ pipelineMode = false }) {
     setActiveTabId(newTab.id);
   };
 
+  // Per-tab bookkeeping that must not outlive the tab's content. A stale
+  // "already auto-synced this exact text" entry made re-pasting the same Python
+  // after Clear (or after deleting its project) silently skip the Python -> Blocks sync.
+  const forgetTabSyncState = (tabId) => {
+    delete lastAutoSyncTextRef.current[tabId];
+    delete typedPythonRef.current[tabId];
+    delete lastAnalyzedRef.current[tabId];
+  };
+
   const closeTab = (id) => {
+    const target = tabs.find((t) => t.id === id);
+    // An edited tab used to be thrown away with one click, bypassing the
+    // unsaved-changes protection the rest of the workspace has.
+    if (target?.isDirty && !pipelineMode) {
+      setModalConfig({
+        isOpen: true, title: "Close unsaved tab?",
+        message: `"${target.title}" has unsaved changes. Close it and lose them?`,
+        confirmText: "Close tab", isDanger: true,
+        onConfirmAction: () => { closeModal(); closeTabNow(id); },
+      });
+      return;
+    }
+    closeTabNow(id);
+  };
+
+  const closeTabNow = (id) => {
     // Compute the next tab list here instead of inside a setTabs updater: the
     // updater used to call setActiveTabId (and createInitialTab) as a side
     // effect, and React may run updaters twice -- which could create two
@@ -698,6 +735,8 @@ export default function MainApp({ pipelineMode = false }) {
       if (activeTabId === id) setActiveTabId(filtered[filtered.length - 1].id);
     }
     delete workspaceRefs.current[id];
+    forgetTabSyncState(id);
+    delete latestEpochByTabRef.current[id];
   };
 
   const executeSidebarLoad = async (item) => {
@@ -708,7 +747,10 @@ export default function MainApp({ pipelineMode = false }) {
         json = await fetchStaticJson(`/templates/${item.path}.json`);
       } else { json = item.data; }
 
-      const isClean = activeTab.title === "Untitled Project" && !activeTab.blocklyJson;
+      // Typed-but-not-yet-synced Python has no blocks, so "no blocks" alone
+      // does not mean the tab is empty: loading a template used to replace it silently.
+      const hasTypedPython = !!(activeTab.pythonCode && activeTab.pythonCode.trim() && activeTab.pythonCode !== "# Drag blocks to generate Python code");
+      const isClean = activeTab.title === "Untitled Project" && !activeTab.blocklyJson && !hasTypedPython && !activeTab.currentLoadedId;
       const targetId = isClean ? activeTab.id : `tab-${Date.now()}`;
 
       const loadedState = {
@@ -727,6 +769,7 @@ export default function MainApp({ pipelineMode = false }) {
       };
 
       if (isClean) {
+        forgetTabSyncState(targetId);
         updateTab(targetId, loadedState);
         if (workspaceRefs.current[targetId]) workspaceRefs.current[targetId].loadTemplate(json);
       } else {
@@ -964,8 +1007,11 @@ export default function MainApp({ pipelineMode = false }) {
       isOpen: true, title: "Clear Workspace?", message: "Are you sure you want to clear? All unsaved progress will be lost.",
       confirmText: "Clear", isDanger: true, onConfirmAction: () => {
         closeModal();
-        if (workspaceRefs.current[activeTabId]) {
-          workspaceRefs.current[activeTabId].clear();
+        // The tab is reset even when the Blocks panel is closed/unmounted (there is
+        // no workspace instance then); it used to do nothing at all in that case.
+        {
+          workspaceRefs.current[activeTabId]?.clear?.();
+          forgetTabSyncState(activeTabId);
           updateTab(activeTabId, {
             pythonCode: "# Drag blocks to generate Python code", blocklyJson: null,
             // Back to "blocks are the source of truth". Left as true after typing
@@ -1180,14 +1226,26 @@ export default function MainApp({ pipelineMode = false }) {
         // An unrelated (but syntactically valid) JSON file used to be "imported"
         // as an empty workspace: it cleared every block and still reported
         // success. Reject anything that isn't a Blockly workspace instead.
-        if (!blocks || typeof blocks !== "object") throw new Error("Not an AlgoBlocks workspace file");
         if (typeof pythonCode !== "string" || !pythonCode) pythonCode = "# Drag blocks to generate Python code";
+        // A real Blockly workspace is `{ blocks: { blocks: [...] }, ... }`. The old check only
+        // rejected non-objects, so any other JSON object (or array) still wiped the workspace
+        // and reported success. A Python-only AlgoBlocks export (`blocklyJson: {}`) is still fine.
+        const isPlainObject = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+        const looksLikeBlockly = isPlainObject(blocks) && isPlainObject(blocks.blocks);
+        const isPythonOnlyExport = json && json.type === "algoblocks_project" && isPlainObject(blocks)
+          && Object.keys(blocks).length === 0 && pythonCode !== "# Drag blocks to generate Python code";
+        if (!looksLikeBlockly && !isPythonOnlyExport) throw new Error("Not an AlgoBlocks workspace file");
 
-        if (workspaceRefs.current[activeTabId]) {
+        if (!workspaceRefs.current[activeTabId]) {
+          showToast("Open the Blocks panel first, then import again.", "error");
+        } else {
           workspaceRefs.current[activeTabId].loadTemplate(blocks);
           updateTab(activeTabId, { 
             title: title, 
             saveType: "project", 
+            // The imported file is new content, not the project this tab was opened from;
+            // keeping that id made the next Save silently overwrite the old project.
+            currentLoadedId: null, description: "", category: "Custom Templates",
             pythonCode: pythonCode, 
             isEditingCode: pythonCode !== "# Drag blocks to generate Python code",
             isDirty: false,
@@ -1252,12 +1310,20 @@ export default function MainApp({ pipelineMode = false }) {
     const uniq = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const id = saveModal.editingId || (saveModal.saveType === "template" ? `local_tpl_${uniq}` : `local_proj_${uniq}`);
     const nowMs = Date.now();
+    // "Edit details" on a sidebar item changes only its name/description/category.
+    // It used to write the ACTIVE TAB's Python into that record (locally and in the
+    // cloud) -- pairing the item's blocks with unrelated code. Keep its own code.
+    let savedPythonCode = activeTab.pythonCode || "";
+    if (saveModal.isEditMetadataOnly) {
+      savedPythonCode = "";
+      try { savedPythonCode = (await (saveModal.saveType === "template" ? templatesDB : projectsDB).get(id))?.pythonCode || ""; } catch (e) {}
+    }
     const payload = {
       _id: id, title: saveModal.title, name: saveModal.title, description: saveModal.description,
       category: saveModal.saveType === "template" ? saveModal.category : undefined,
       data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson,
       workspace: { blocklyJson: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson },
-      pythonCode: activeTab.pythonCode || "",
+      pythonCode: savedPythonCode,
       owner_id: user.email, userId: user.email, synced: false, isSynced: false, updatedAt: nowMs,
     };
     // Stable idempotency key for local->cloud project sync: lets the server
@@ -1281,7 +1347,7 @@ export default function MainApp({ pipelineMode = false }) {
         // Strip string IDs before sending to Postgres to prevent 500 errors
         const apiPayload = saveModal.saveType === "template"
           ? { templateId: String(id).startsWith("local_") ? null : id, clientId: payload.clientId, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
-          : { projectId: String(id).startsWith("local_") ? null : id, clientId: payload.clientId, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
+          : { projectId: String(id).startsWith("local_") ? null : id, clientId: payload.clientId, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: savedPythonCode };
         
         let res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
         if (res.status === 404) {
@@ -1381,6 +1447,7 @@ export default function MainApp({ pipelineMode = false }) {
       tabs.forEach((t) => {
         if (String(t.currentLoadedId) === String(item._id)) {
           workspaceRefs.current[t.id]?.clear();
+          forgetTabSyncState(t.id);
           // clear() is muted (no onChange), so the tab must be reset here too.
           // Otherwise it keeps the deleted project's Python text and stale
           // blocklyJson, and the old blocks come back the next time the Blocks
@@ -1404,19 +1471,22 @@ export default function MainApp({ pipelineMode = false }) {
     }
   };
 
-  useEffect(() => {
-    if (monacoRef.current && editorRef.current) {
-      const model = editorRef.current.getModel();
-      if (model && activeTab?.syntaxErrors) {
-        const errors = activeTab.syntaxErrors || [];
-        const markers = errors.map(err => ({
-          startLineNumber: err.line || 1, startColumn: 1, endLineNumber: err.line || 1, endColumn: 1000,
-          message: err.message, severity: monacoRef.current.MarkerSeverity.Error,
-        }));
-        monacoRef.current.editor.setModelMarkers(model, "owner", markers);
-      }
-    }
-  }, [activeTab?.syntaxErrors, activeTabId]);
+  const applyEditorMarkers = () => {
+    if (!monacoRef.current || !editorRef.current) return;
+    const model = editorRef.current.getModel();
+    const tab = activeTabRef.current;
+    if (!model || !tab) return;
+    const monaco = monacoRef.current;
+    const markers = (tab.syntaxErrors || []).map((err) => ({
+      startLineNumber: err.line || 1, startColumn: 1, endLineNumber: err.line || 1, endColumn: 1000,
+      message: err.message,
+      // Lint-style "possible bug" notes are not errors: they share this list but are
+      // neither blocking, nor a real Python error, nor a crash.
+      severity: (err.blocking || err.isNameError || err.isRuntimeCrash) ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+    }));
+    monaco.editor.setModelMarkers(model, "owner", markers);
+  };
+  useEffect(() => { applyEditorMarkers(); }, [activeTab?.syntaxErrors, activeTabId]);
 
   const filteredTemplates = allTemplates.filter((t) => String(t.title || "").toLowerCase().includes(String(searchTerm || "").toLowerCase()));
   const groupedTemplates = filteredTemplates.reduce((acc, template) => {
@@ -1480,7 +1550,8 @@ export default function MainApp({ pipelineMode = false }) {
             typedPythonRef.current[activeTabId] = cleanValue;
             updateTab(activeTabId, { pythonCode: cleanValue, isEditingCode: true, syntaxErrors: [], isDirty: true });
           }}
-          onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
+          // The editor remounts when its panel is moved or reopened; its markers were lost then.
+          onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; setTimeout(applyEditorMarkers, 0); }}
         />
       ),
     },
