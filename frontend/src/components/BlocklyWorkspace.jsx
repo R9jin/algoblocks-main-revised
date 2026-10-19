@@ -13,7 +13,7 @@ import "blockly/blocks";
 import * as En from "blockly/msg/en";
 import { pythonGenerator } from "blockly/python";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { FiTrash2 } from "react-icons/fi";
+import { FiHelpCircle, FiTrash2 } from "react-icons/fi";
 import { convertPythonToBlocks } from "../workers/analyzerInstance";
 import FloatingErrorDropdown from "./FloatingErrorDropdown.jsx";
 import ScopeWarningModal from "./ScopeWarningModal.jsx";
@@ -931,10 +931,10 @@ const installDragAutoScroll = (ws) => {
 };
 
 // ---------------------------------------------------------------------------
-// "Auto-remove unused blocks" setting
+// "Auto-remove unplugged blocks" setting
 //
-// Unused (loose) blocks always show a warning icon and can always be removed with the
-// "Remove unused blocks" button. This setting only decides whether they are removed
+// Unplugged (loose) blocks always show a warning icon and can always be removed with the
+// "Remove unplugged blocks" button. This setting only decides whether they are removed
 // automatically (undoable) instead of by hand. It is remembered in the browser and shared
 // by every workspace (Main app, Activity app, the Pipeline view's embedded app and all
 // open tabs). Default: on.
@@ -954,7 +954,7 @@ const writeAutoRemoveSetting = (on) => {
 };
 
 // ---------------------------------------------------------------------------
-// Unused ("loose") blocks
+// Unplugged ("loose") blocks
 //
 // A value block (number, text, variable, comparison, list...) that is not
 // plugged into anything does no useful work, so it only clutters the canvas
@@ -962,7 +962,7 @@ const writeAutoRemoveSetting = (on) => {
 // every block inside the loose group must qualify too, so a loose group that
 // contains a function call (which would really run) is never touched.
 // Standalone statement blocks (e.g. a lone print) still run, so they are
-// never counted as unused.
+// never counted as unplugged.
 // ---------------------------------------------------------------------------
 const LOOSE_BLOCK_TYPES = new Set([
   "math_number", "math_arithmetic", "math_single", "math_round", "math_modulo",
@@ -1031,7 +1031,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
   };
 
   // Unused-block cleanup state. `unusedCount` drives the floating
-  // "Remove unused blocks" button; `notice` is the "Removed N unused blocks.
+  // "Remove unplugged blocks" button; `notice` is the "Removed N unplugged blocks.
   // Undo" message, which keeps the removed blocks (as JSON) so Undo can put
   // them back exactly where they were.
   const [unusedCount, setUnusedCount] = useState(0);
@@ -1049,6 +1049,16 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     return () => { window.removeEventListener(AUTO_REMOVE_EVENT, onChange); window.removeEventListener("storage", onStorage); };
   }, []);
   const [notice, setNotice] = useState(null);
+  // "(?)" help popover that explains exactly what "Remove unplugged blocks" does.
+  const [helpOpen, setHelpOpen] = useState(false);
+  useEffect(() => {
+    if (!helpOpen) return undefined;
+    const onKey = (ev) => { if (ev.key === "Escape") setHelpOpen(false); };
+    const onDown = (ev) => { if (!ev.target.closest?.("[data-unplugged-help]")) setHelpOpen(false); };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onDown);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("mousedown", onDown); };
+  }, [helpOpen]);
   const noticeTimerRef = useRef(null);
 
   const dismissNotice = () => {
@@ -1062,7 +1072,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     noticeTimerRef.current = setTimeout(() => { noticeTimerRef.current = null; setNotice(null); }, 20000);
   };
 
-  // Removes every unused block. Returns { removed, code }: `code` is the
+  // Removes every unplugged block. Returns { removed, code }: `code` is the
   // freshly generated Python for the cleaned workspace, so a caller that is
   // about to run the blocks' code can use it right away instead of waiting
   // for the debounced onChange to deliver it.
@@ -1077,7 +1087,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     Blockly.Events.setGroup(true);
     try { loose.forEach((b) => b.dispose(false)); } finally { Blockly.Events.setGroup(prevGroup || false); }
     setUnusedCount(0);
-    showNotice(`Removed ${removed} unused block${removed === 1 ? "" : "s"}.`, saved);
+    showNotice(`Removed ${removed} unplugged block${removed === 1 ? "" : "s"}.`, saved);
     let code;
     try { code = pythonGenerator.workspaceToCode(ws); } catch (e) { code = undefined; }
     return { removed, code };
@@ -1335,8 +1345,8 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
     },
     // Exposed so a "Tidy up" control or caller can force a clean layout.
     arrangeBlocks: () => { if (workspace.current) relayoutTopBlocks(workspace.current); },
-    // Removes unused (loose, do-nothing) value blocks. Used when the program
-    // is run and by the "Remove unused blocks" button. Returns { removed, code }.
+    // Removes unplugged (loose, do-nothing) value blocks. Used when the program
+    // is run and by the "Remove unplugged blocks" button. Returns { removed, code }.
     removeUnusedBlocks: () => (autoRemoveRef.current ? removeUnusedNow() : { removed: 0 }),
     resize: () => {
       const ws = workspace.current;
@@ -1425,7 +1435,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
         setTimeout(() => { if (workspace.current === ws) nudgeOutOfOverlap(ws, dragged.getRootBlock?.() || dragged); }, 0);
       });
 
-      // Unused-block warning: a plain value block (number, text, math, comparison,
+      // Unplugged-block warning: a plain value block (number, text, math, comparison,
       // variable, list...) that isn't plugged into anything produces no Python at all,
       // so it just clutters the workspace and confuses the learner. Show Blockly's own
       // warning icon on it. Limited to side-effect-free block types so a loose call that
@@ -1441,7 +1451,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
           const stillLoose = new Set(loose.map((b) => b.id));
           loose.forEach((b) => {
             if (!looseWarnedIds.has(b.id)) {
-              b.setWarningText("This block isn't connected to anything, so it does nothing. Plug it into another block, or remove it with the \"Remove unused blocks\" button.");
+              b.setWarningText("This block isn't plugged into anything, so it does nothing. Plug it into another block, or remove it with the \"Remove unplugged blocks\" button.");
               looseWarnedIds.add(b.id);
             }
           });
@@ -1558,8 +1568,8 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
       >
         <label
           title={autoRemoveUnused
-            ? "On: a block left unplugged is removed automatically after a moment, and again when you run. You can undo it."
-            : "Off: unused blocks stay on the canvas. Use the Remove unused blocks button to clear them."}
+            ? "On: value blocks (numbers, text, math, etc.) that aren't plugged into another block are removed automatically after a moment, and again when you run. You can undo it. Blocks that still run on their own (like Print or function calls) are kept."
+            : "Off: unplugged blocks stay on the canvas. Use the Remove unplugged blocks button to clear them. Only value blocks are removed; blocks that still run on their own (like Print or function calls) are kept."}
           style={{
             pointerEvents: "auto", display: "flex", alignItems: "center", gap: 7, padding: "6px 12px",
             borderRadius: 18, background: "rgba(255, 255, 255, 0.94)", border: "1px solid #d9d2ee",
@@ -1575,26 +1585,95 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxErrors = [], initialJson 
               setAutoRemoveUnusedState(on);
               writeAutoRemoveSetting(on);
               showNotice(on
-                ? "Unused blocks will now be removed automatically. You can undo a removal."
-                : "Unused blocks will be kept. Use the Remove unused blocks button to clear them.");
+                ? "Unplugged blocks will now be removed automatically. You can undo a removal."
+                : "Unplugged blocks will be kept. Use the Remove unplugged blocks button to clear them.");
             }}
             style={{ accentColor: "#7c3aed", margin: 0, cursor: "pointer" }}
           />
-          Auto-remove unused blocks
+          Auto-remove unplugged blocks
         </label>
         {unusedCount > 0 && (
           <button
             type="button"
             onClick={() => removeUnusedNow()}
-            title="Delete value blocks that aren't plugged into anything. They do nothing, and you can undo this."
+            title="Delete value blocks (numbers, text, math, etc.) that aren't plugged into anything. They do nothing, and you can undo this. Blocks that still run, like Print, are kept."
             style={{
               pointerEvents: "auto", display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", border: "none",
               borderRadius: 18, background: "#7c3aed", color: "#fff", fontSize: "0.82rem", fontWeight: 600,
               cursor: "pointer", boxShadow: "0 4px 14px rgba(124, 58, 237, 0.35)", whiteSpace: "nowrap",
             }}
           >
-            <FiTrash2 size={14} /> Remove unused blocks ({unusedCount})
+            <FiTrash2 size={14} /> Remove unplugged blocks ({unusedCount})
           </button>
+        )}
+        <button
+          type="button"
+          data-unplugged-help
+          onClick={() => setHelpOpen((v) => !v)}
+          aria-label="What does Remove unplugged blocks do?"
+          aria-expanded={helpOpen}
+          title="What gets removed?"
+          style={{
+            pointerEvents: "auto", display: "flex", alignItems: "center", justifyContent: "center",
+            width: 28, height: 28, padding: 0, border: "1px solid #d9d2ee", borderRadius: "50%",
+            background: helpOpen ? "#7c3aed" : "rgba(255, 255, 255, 0.94)",
+            color: helpOpen ? "#fff" : "#4c1d95", cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
+          }}
+        >
+          <FiHelpCircle size={16} />
+        </button>
+        {helpOpen && (
+          <div
+            data-unplugged-help
+            role="dialog"
+            aria-label="About unplugged blocks"
+            style={{
+              pointerEvents: "auto", position: "absolute", top: "100%", left: "50%",
+              transform: "translateX(-50%)", marginTop: 8, width: 360, maxWidth: "92vw",
+              padding: "12px 14px", borderRadius: 12, background: "#ffffff", color: "#1f2937",
+              border: "1px solid #d9d2ee", boxShadow: "0 8px 28px rgba(0, 0, 0, 0.25)",
+              fontSize: "0.8rem", lineHeight: 1.45, textAlign: "left", whiteSpace: "normal",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <strong style={{ color: "#4c1d95", fontSize: "0.88rem" }}>What are unplugged blocks?</strong>
+              <button
+                type="button"
+                onClick={() => setHelpOpen(false)}
+                aria-label="Close help"
+                style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer", fontSize: "1.1rem", lineHeight: 1, padding: 0 }}
+              >
+                ×
+              </button>
+            </div>
+            <p style={{ margin: "0 0 8px" }}>
+              An <strong>unplugged</strong> block is a value block that isn&apos;t connected to any other block, so it does nothing.
+              It shows a warning icon, and you can undo its removal.
+            </p>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontWeight: 700, color: "#b91c1c", marginBottom: 2 }}>Removed (value blocks left alone on the canvas)</div>
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                <li>A lone number, e.g. <code>5</code></li>
+                <li>A lone text, e.g. <code>&quot;hello&quot;</code></li>
+                <li>A lone math or comparison, e.g. <code>x + 3</code>, <code>x &gt; 10</code></li>
+                <li>A lone variable or list, e.g. <code>x</code>, <code>[1, 2, 3]</code></li>
+              </ul>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontWeight: 700, color: "#15803d", marginBottom: 2 }}>Kept (they still run or are part of your program)</div>
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                <li>Any block plugged into another, e.g. the <code>5</code> in <code>print(5)</code></li>
+                <li>A lone <code>print(&quot;hi&quot;)</code> or other statement blocks</li>
+                <li>A function call, e.g. <code>my_function()</code></li>
+                <li>A variable assignment, e.g. <code>x = 5</code></li>
+                <li>A function definition, even if you never call it</li>
+              </ul>
+            </div>
+            <p style={{ margin: 0, color: "#4b5563" }}>
+              Tip: plug the block into another block to keep it. Turn off <em>Auto-remove unplugged blocks</em> to keep them until you click the button.
+            </p>
+          </div>
         )}
       </div>
       {notice && (
