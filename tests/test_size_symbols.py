@@ -112,7 +112,7 @@ def test_sequential_sizes_add(src, expected):
     ("n = 10\nfor i in range(n):\n    print(i)\n", "O(n)"),
     ("for i in range(10):\n    pass\n", "O(n)"),
     ("def f(n):\n    for i in range(n):\n        for j in range(10):\n            pass\n", "O(n^2)"),
-    ("i = 1\nwhile i < 64:\n    i *= 2\n", "O(1)"),
+    ("i = 1\nwhile i < 64:\n    i *= 2\n", "O(log n)"),
     ("def f(n):\n    i = 1\n    while i < n:\n        i *= 2\n", "O(log n)"),
 ])
 def test_theoretical_rules_unchanged(src, expected):

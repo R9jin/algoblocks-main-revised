@@ -320,6 +320,80 @@ def fixed_range_passes(node) -> Optional[int]:
         return None
 
 
+def fixed_while_info(tree, node):
+    """`i = 0` ... `while i < 10: i += 1` -- the `while` twin of a fixed range(): the counter starts at a literal,
+    is only stepped by literals and is compared with a literal. Returns (is_fixed, passes_or_None).
+    Mirror of ComplexityHeuristics._is_literal_counter_loop (which decides the score)."""
+    try:
+        if not (symbolic_fixed_range_on() and isinstance(node, ast.While) and tree is not None):
+            return (False, None)
+        if any(isinstance(c, ast.Break) for c in ast.walk(node)) or any(isinstance(st, (ast.Break, ast.Return)) for st in node.body):
+            return (False, None)
+        test = node.test
+        if not isinstance(test, ast.Compare) or len(test.ops) != 1 or len(test.comparators) != 1:
+            return (False, None)
+        lit = lambda e: _num(e) is not None
+        l, r = test.left, test.comparators[0]
+        if isinstance(l, ast.Name) and lit(r):
+            name, limit, name_left = l.id, _num(r), True
+        elif isinstance(r, ast.Name) and lit(l):
+            name, limit, name_left = r.id, _num(l), False
+        else:
+            return (False, None)
+        block, idx = None, None
+        for parent in ast.walk(tree):
+            for fld in ("body", "orelse", "finalbody"):
+                lst = getattr(parent, fld, None)
+                if isinstance(lst, list) and any(st is node for st in lst):
+                    block, idx = lst, next(i for i, st in enumerate(lst) if st is node)
+                    break
+            if block is not None:
+                break
+        if block is None:
+            return (False, None)
+        start = None
+        for st in reversed(block[:idx]):
+            if isinstance(st, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in st.targets):
+                start = _num(st.value)
+                break
+            if any(isinstance(n, ast.Name) and n.id == name and isinstance(n.ctx, ast.Store) for n in ast.walk(st)):
+                return (False, None)
+        if start is None:
+            return (False, None)
+        step = None
+        for sub in ast.walk(node):
+            if isinstance(sub, ast.AugAssign) and isinstance(sub.target, ast.Name) and sub.target.id == name:
+                v = _num(sub.value)
+                if v is None:
+                    return (False, None)
+                step = (type(sub.op), v)
+            elif isinstance(sub, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in sub.targets):
+                v = sub.value
+                if not (isinstance(v, ast.BinOp) and isinstance(v.left, ast.Name) and v.left.id == name and _num(v.right) is not None):
+                    return (False, None)
+                step = (type(v.op), _num(v.right))
+        if step is None:
+            return (False, None)
+        # count the passes by running the counter (bounded, so a bad guess can never hang the explainer)
+        ops = {ast.Add: lambda a, b: a + b, ast.Sub: lambda a, b: a - b, ast.Mult: lambda a, b: a * b,
+               ast.FloorDiv: lambda a, b: a // b if b else a, ast.Div: lambda a, b: a / b if b else a}
+        f = ops.get(step[0])
+        cmp_ops = {ast.Lt: lambda a, b: a < b, ast.LtE: lambda a, b: a <= b, ast.Gt: lambda a, b: a > b,
+                   ast.GtE: lambda a, b: a >= b, ast.NotEq: lambda a, b: a != b}
+        c = cmp_ops.get(type(test.ops[0]))
+        if f is None or c is None:
+            return (True, None)
+        x, passes = start, 0
+        while passes <= 10000 and (c(x, limit) if name_left else c(limit, x)):
+            nx = f(x, step[1])
+            if nx == x:
+                return (True, None)
+            x, passes = nx, passes + 1
+        return (True, passes if passes <= 10000 else None)
+    except Exception:
+        return (False, None)
+
+
 def strict_without_fixed(total: str, k: int) -> Optional[str]:
     """Strict complexity of a line scored `total` once `k` fixed-bound loops are treated as the
     constants they really are (each one was scored as a factor of n)."""
@@ -348,6 +422,8 @@ def symbolic_scoring_note(tree) -> str:
         for node in ast.walk(tree):
             if isinstance(node, ast.For) and is_symbolic_fixed_range(node):
                 found.append((node.lineno, f"line {node.lineno}: `{ast.unparse(node.iter)}` is a fixed bound, read as the loop pattern (work grows with its bound)"))
+            elif isinstance(node, ast.While) and fixed_while_info(tree, node)[0]:
+                found.append((node.lineno, f"line {node.lineno}: `while {ast.unparse(node.test)}` has a fixed bound, read as the loop pattern (work grows with its bound)"))
 
         # 2. a script-level variable holding a fixed number, used as a loop bound
         if theoretical:
@@ -430,7 +506,7 @@ def strict_asymptotic_note(total: str, fixed_loops, own: bool = False) -> str:
         who = f"{heads} all have fixed bounds"
         what = "so under strict asymptotic analysis they repeat a constant number of times in total and add only constant factors"
     tail = (f" Strictly, this {'loop' if own else 'line'} is therefore `{strict}`" if strict else "")
-    tail += (f"; the headline stays {shown} because AlgoBlocks scores a fixed bound symbolically, as an example of an input size n, "
+    tail += (f"{';' if strict else '.'} {'The' if not strict else 'the'} headline stays {shown} because AlgoBlocks scores a fixed bound symbolically, as an example of an input size n, "
              f"to show how the code grows once that bound becomes the input size.")
     return f"**Strict asymptotic analysis:** {who}, {what}.{tail}"
 
@@ -597,6 +673,12 @@ class ProgramShape:
             return LoopInfo(node.lineno, "for", header, f"visits each element of `{src(it)}` once, so it repeats len({src(it)}) times")
         cond = src(node.test)
         low = cond.lower()
+        _fx, _k = fixed_while_info(self.tree, node)
+        if _fx:
+            _times = f"exactly {_k} times" if _k is not None else "a fixed number of times"
+            return LoopInfo(node.lineno, "while", header,
+                            f"keeps going while `{cond}`, so it repeats {_times} (a fixed bound, strictly O(1))",
+                            True, True, _k)
         if re.search(r"(lo|low|left|l)\s*<=?\s*(hi|high|right|r)", low):
             return LoopInfo(node.lineno, "while", header, f"keeps going while `{cond}`; each pass discards half of the range, so it repeats about log n times", False)
         return LoopInfo(node.lineno, "while", header, f"keeps repeating while `{cond}` is true")

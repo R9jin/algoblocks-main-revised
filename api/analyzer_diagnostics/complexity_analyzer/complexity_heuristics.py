@@ -322,11 +322,28 @@ class ComplexityHeuristics:
         except Exception:
             return False
 
+    def is_fixed_bound_while(self, node):
+        """`i = 0` ... `while i < 10: i += 1`: a while whose pass count is a fixed number (counter starts
+        at a literal, is stepped by literals, compared with a literal). The `while` twin of
+        is_fixed_range_loop."""
+        try:
+            return bool(isinstance(node, ast.While)
+                        and not any(isinstance(c, ast.Break) for c in safe_walk(node))
+                        and not any(isinstance(st, (ast.Break, ast.Return)) for st in node.body)
+                        and self._is_literal_counter_loop(node))
+        except Exception:
+            return False
+
     def _is_constant_loop_uncached(self, node):
         try:
             if isinstance(node, ast.While):
                 if any(isinstance(child, ast.Break) for child in safe_walk(node)): return False
-                if self._is_literal_counter_loop(node): return True
+                if self._is_literal_counter_loop(node):
+                    # teaching convention (same as a fixed `for ... in range(10)`): a literal-counter
+                    # `while` (`i = 0; while i < 10: i += 1`) is scored as the loop pattern -- O(n),
+                    # or O(log n) when the counter is multiplied/halved -- instead of folded to O(1).
+                    # The explainer still adds the strict-asymptotic O(1) note.
+                    return not _cp.SYMBOLIC_FIXED_RANGE
                 if getattr(node, 'test', None):
                     if isinstance(node.test, ast.Constant): return True
                     if self._is_constant_expr(node.test): return True
