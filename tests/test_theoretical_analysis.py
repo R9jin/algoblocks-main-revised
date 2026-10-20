@@ -66,14 +66,18 @@ def test_script_level_and_parameter_agree_on_every_class():
 # --- 2. literals written in the construct -------------------------------------------------------
 # A `for` over range(<fixed constant>) is scored as the loop pattern (O(n)); the explanation says
 # that STRICT asymptotic analysis of the exact code is O(1). (cp.SYMBOLIC_FIXED_RANGE = False
-# restores the old O(1) scoring.) A literal-bounded `while` counter is still O(1).
+# restores the old O(1) scoring.) A literal-bounded `while` counter is scored the same way: a fixed
+# additive counter is O(n), a fixed doubling/halving counter is O(log n).
 @pytest.mark.parametrize("src,expected", [
     ("for i in range(10):\n    print(i)\n", "O(n)"),
     ("for i in range(4):\n    print(i)\n", "O(n)"),
     ("for i in range(1, 10, 2):\n    pass\n", "O(n)"),
     ("for i in range(10):\n    for j in range(10):\n        pass\n", "O(n^2)"),
     ("for i in range(2**10):\n    pass\n", "O(n)"),
-    ("i = 1\nwhile i < 64:\n    i *= 2\n", "O(1)"),
+    ("i = 1\nwhile i < 64:\n    i *= 2\n", "O(log n)"),
+    ("i = 0\nwhile i < 10:\n    i += 1\n", "O(n)"),
+    ("i = 10\nwhile i > 0:\n    i -= 1\n", "O(n)"),
+    ("i = 0\nwhile i < 3:\n    j = 0\n    while j < 3:\n        j += 1\n    i += 1\n", "O(n^2)"),
     ("for i in range(4):\n    x = 1\n    break\n", "O(1)"),   # unconditional break: really one pass
 ])
 def test_fixed_range_scored_as_loop_pattern(src, expected):
@@ -85,6 +89,7 @@ def test_fixed_range_switch_restores_strict_scoring():
     cp.SYMBOLIC_FIXED_RANGE = False
     try:
         assert time_of("for i in range(10):\n    print(i)\n") == "O(1)"
+        assert time_of("i = 0\nwhile i < 10:\n    i += 1\n") == "O(1)"
     finally:
         cp.SYMBOLIC_FIXED_RANGE = saved
 
@@ -118,8 +123,10 @@ def test_log_loops(src):
     assert time_of(src) == "O(log n)"
 
 
-def test_literal_loop_nested_in_symbolic_loop_is_linear():
-    assert time_of("def f(n):\n    for k in range(n):\n        i = 1\n        while i < 8:\n            i *= 2\n") == "O(n)"
+def test_literal_loop_nested_in_symbolic_loop_is_scored_symbolically():
+    # a fixed-bound while is the loop pattern, exactly like a fixed range(): the doubling counter adds a log n factor
+    assert time_of("def f(n):\n    for k in range(n):\n        i = 1\n        while i < 8:\n            i *= 2\n") == "O(n log n)"
+    assert time_of("def f(n):\n    for k in range(n):\n        i = 0\n        while i < 8:\n            i += 1\n") == "O(n^2)"
 
 
 # --- 4. polynomial bounds in the range() argument ---------------------------------------------
@@ -195,3 +202,26 @@ def test_symbolic_scoring_note_is_not_limited_to_for_loops():
         "def fact(n):\n    if n <= 1:\n        return 1\n    return n * fact(n - 1)\nprint(fact(5))\n")
     # a real input size needs no such note
     assert "Symbolic scoring" not in _symbolic_note("def f(n):\n    t = 0\n    for i in range(n):\n        t += i\n    return t\n")
+
+
+# --- 2b. a fixed-bound `while` is read like a fixed range() -------------------------------------
+@pytest.mark.parametrize("src,expected", [
+    ("i = 0\nwhile i < 10:\n    print(i)\n    i += 1\n", "O(n)"),
+    ("i = 1\nwhile i <= 5:\n    i = i + 1\n", "O(n)"),
+    ("i = 0\nwhile i < 10:\n    i += 2\n", "O(n)"),
+    ("n = 10\ni = 0\nwhile i < n:\n    i += 1\n", "O(n)"),                      # variable bound: already symbolic
+    ("i = 1\nwhile i < 64:\n    i *= 2\n", "O(log n)"),
+    ("i = 0\nwhile i < 3:\n    j = 0\n    while j < 3:\n        j += 1\n    i += 1\n", "O(n^2)"),
+])
+def test_fixed_while_scored_like_fixed_range(src, expected):
+    assert time_of(src) == expected
+
+
+def test_fixed_while_explanation_states_the_strict_result():
+    r = run("i = 0\nwhile i < 10:\n    print(i)\n    i += 1\n")
+    assert r["total"] == "O(n)"
+    assert "Strict asymptotic analysis" in r["overall_explanation"]
+    assert "Symbolic scoring" in r["overall_explanation"]
+    w = [l for l in r["lines"] if "while" in l["lineOfCode"]][0]
+    assert "exactly 10 times" in w["time_explanation"]
+    assert "Strict asymptotic analysis" in w["time_explanation"]
