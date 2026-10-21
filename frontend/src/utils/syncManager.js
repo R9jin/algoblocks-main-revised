@@ -678,15 +678,20 @@ export const SyncManager = {
                     if (!canonical) continue;
                     if (pendingDeletes.has(canonical) || (remote._id !== undefined && pendingDeletes.has(String(remote._id)))) continue;
 
+                    // GET /templates returns other accounts' templates too. Those are not
+                    // ours to reconcile by clientId; keep the original simple merge.
+                    // NOTE: must be declared BEFORE it is used below. It used to be declared
+                    // after `local`, so whenever the record was not already in IndexedDB
+                    // (fresh login, cleared storage, new device) reading `owned` threw a
+                    // ReferenceError (temporal dead zone). The per-item catch swallowed it,
+                    // so every cloud project/template failed to merge and the list stayed empty.
+                    const owned = kind === "project" || !currentEmail ||
+                        remote.userId === currentEmail || remote.owner_id === currentEmail;
+
                     const local =
                         byKey.get(canonical) ||
                         (owned && remote._id !== undefined ? byKey.get(String(remote._id)) : undefined) ||
                         (owned && remote.clientId ? byClient.get(String(remote.clientId)) : undefined);
-
-                    // GET /templates returns other accounts' templates too. Those are not
-                    // ours to reconcile by clientId; keep the original simple merge.
-                    const owned = kind === "project" || !currentEmail ||
-                        remote.userId === currentEmail || remote.owner_id === currentEmail;
                     // Fresh read: a push may have finished since the snapshot above.
                     const current = local ? await cfg.db.get(recordKey(local)) : null;
                     if (current && !current.isSynced && (current.timestamp || 0) >= (remote.timestamp || 0)) {
