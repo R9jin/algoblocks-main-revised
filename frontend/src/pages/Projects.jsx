@@ -8,7 +8,6 @@ import { projectsDB, syncQueueDB } from "../db";
 import "../styles/Projects.css";
 import { syncManager } from "../utils/syncManager";
 
-const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 export default function Projects() {
   const navigate = useNavigate();
@@ -95,7 +94,7 @@ export default function Projects() {
       // projectId only, so a project already stored locally under another key
       // (its "local_proj_..." key or the server's numeric row id) was inserted a
       // second time -- the duplicates that appeared after syncing.
-      if (pull && navigator.onLine && API_BASE) {
+      if (pull && navigator.onLine) {
         try {
           await syncManager.pullProjects();
         } catch (fetchErr) {
